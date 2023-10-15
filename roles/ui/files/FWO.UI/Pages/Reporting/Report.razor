@@ -557,7 +557,7 @@
             mgm.Ignore = !relevantManagements.Contains(mgm.Id);
         }
     }
-   
+
     private ReportTemplate ConstructReportTemplate()
     {
         List<int> ownerList = new List<int>();
@@ -570,7 +570,15 @@
         reportParams.TimeFilter = savedTimeFilter;
         if (selectedReportType != ReportType.Statistics)
         {
+            // also make sure the report a user belonging to a tenant <> 1 sees, gets the additional filters in DynGraphqlQuery.cs
+            if (selectedTenantView==null && userConfig.User.Tenant.Id>1)
+            {
+                selectedTenantView = userConfig.User.Tenant;
+                // TODO: when admin selects a tenant filter, add the corresponding device filter to make sure only those devices are reported that the tenant is allowed to see
+                
+            }
             reportParams.TenantFilter = new TenantFilter(selectedTenantView);
+
         }
         reportParams.RecertFilter = new RecertFilter()
         {

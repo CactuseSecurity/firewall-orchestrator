@@ -7255,18 +7255,6 @@
                   }
                 }
               ],
-              "computed_fields": [
-                {
-                  "name": "object_relevant_for_tenant",
-                  "definition": {
-                    "function": {
-                      "name": "object_relevant_for_tenant",
-                      "schema": "public"
-                    },
-                    "session_argument": "hasura_session"
-                  }
-                }
-              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -7382,18 +7370,9 @@
                       "obj_last_seen"
                     ],
                     "filter": {
-                      "_and": [
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "object_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
                     },
                     "allow_aggregations": true
                   }
@@ -7434,18 +7413,9 @@
                       "obj_last_seen"
                     ],
                     "filter": {
-                      "_and": [
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "object_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
                     },
                     "allow_aggregations": true
                   }
@@ -14130,6 +14100,24 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -14385,6 +14373,18 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "device_id",
+                      "tenant_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [

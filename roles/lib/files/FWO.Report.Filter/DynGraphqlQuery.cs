@@ -454,6 +454,7 @@ namespace FWO.Report.Filter
                     break;
             }
 
+            // the following additional filters are only used for simulated tenant filtering (by admin users)
             if (filter.ReportParams.TenantFilter.IsActive)
             {
                 int tenant_id = filter.ReportParams.TenantFilter.TenantId;

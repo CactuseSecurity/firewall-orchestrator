@@ -184,6 +184,10 @@
                         showPasswordChangeForm = true;
                         StateHasChanged();
                     }
+
+                    // add User information after successful login
+                    userConfig.User.Tenant.Id = ((AuthStateProvider)AuthService).getTenantId(userConfig.User.Jwt);
+                    userConfig.User.Roles = ((AuthStateProvider)AuthService).getAllowedRoles(userConfig.User.Jwt);
                 }
                 else
                 {

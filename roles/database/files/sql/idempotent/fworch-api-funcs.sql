@@ -321,47 +321,47 @@ RETURNS boolean AS $$
 $$ LANGUAGE 'plpgsql' STABLE;
 
 
-CREATE OR REPLACE FUNCTION object_relevant_for_tenant(object object, hasura_session json)
-RETURNS boolean AS $$
-    DECLARE t_id integer;
-    show boolean DEFAULT false;
+-- CREATE OR REPLACE FUNCTION object_relevant_for_tenant(object object, hasura_session json)
+-- RETURNS boolean AS $$
+--     DECLARE t_id integer;
+--     show boolean DEFAULT false;
     
-    BEGIN
-        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+--     BEGIN
+--         t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
 
-        IF t_id IS NULL THEN
-            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
-        ELSIF t_id = 1 THEN
-            show := true;
-        ELSIF EXISTS ( -- ip of object (or any objgrp member) is in tenant_network of tenant
-            SELECT o.obj_id FROM object o
-                LEFT JOIN objgrp_flat of ON (o.obj_id=of.objgrp_flat_id)
-                LEFT JOIN object of_o ON (of.objgrp_flat_member_id=of_o.obj_id)
-                LEFT JOIN tenant_network ON
-                    (ip_ranges_overlap(of_o.obj_ip, of_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end))
-            WHERE o.obj_id = object.obj_id AND tenant_id = t_id
-        ) THEN
-            show := true;
-        ELSIF EXISTS ( -- object is in rule_from or rule_to of a rule that is visible to tenant
-            SELECT r.rule_id from rule r
-                LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
-                LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
-                LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
-                LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
-                LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
-                LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
-                LEFT JOIN tenant_network tn_rf ON
-                    (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tn_rf.tenant_net_ip, tn_rf.tenant_net_ip_end, rf.negated != r.rule_src_neg))
-                LEFT JOIN tenant_network tn_rt ON
-                    (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tn_rt.tenant_net_ip, tn_rt.tenant_net_ip_end, rt.negated != r.rule_dst_neg))
-            WHERE (rf_o.obj_id = object.obj_id AND tn_rt.tenant_id = t_id) OR (rt_o.obj_id = object.obj_id AND tn_rf.tenant_id = t_id) AND r.rule_head_text is NULL
-        ) THEN
-            show := true;
-        END IF;
+--         IF t_id IS NULL THEN
+--             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+--         ELSIF t_id = 1 THEN
+--             show := true;
+--         ELSIF EXISTS ( -- ip of object (or any objgrp member) is in tenant_network of tenant
+--             SELECT o.obj_id FROM object o
+--                 LEFT JOIN objgrp_flat of ON (o.obj_id=of.objgrp_flat_id)
+--                 LEFT JOIN object of_o ON (of.objgrp_flat_member_id=of_o.obj_id)
+--                 LEFT JOIN tenant_network ON
+--                     (ip_ranges_overlap(of_o.obj_ip, of_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end))
+--             WHERE o.obj_id = object.obj_id AND tenant_id = t_id
+--         ) THEN
+--             show := true;
+--         ELSIF EXISTS ( -- object is in rule_from or rule_to of a rule that is visible to tenant
+--             SELECT r.rule_id from rule r
+--                 LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
+--                 LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+--                 LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
+--                 LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
+--                 LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+--                 LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+--                 LEFT JOIN tenant_network tn_rf ON
+--                     (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tn_rf.tenant_net_ip, tn_rf.tenant_net_ip_end, rf.negated != r.rule_src_neg))
+--                 LEFT JOIN tenant_network tn_rt ON
+--                     (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tn_rt.tenant_net_ip, tn_rt.tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+--             WHERE (rf_o.obj_id = object.obj_id AND tn_rt.tenant_id = t_id) OR (rt_o.obj_id = object.obj_id AND tn_rf.tenant_id = t_id) AND r.rule_head_text is NULL
+--         ) THEN
+--             show := true;
+--         END IF;
 
-        RETURN show;
-    END;
-$$ LANGUAGE 'plpgsql' STABLE;
+--         RETURN show;
+--     END;
+-- $$ LANGUAGE 'plpgsql' STABLE;
 
 
 CREATE OR REPLACE FUNCTION get_objects_for_tenant(management_row management, tenant integer, hasura_session json)

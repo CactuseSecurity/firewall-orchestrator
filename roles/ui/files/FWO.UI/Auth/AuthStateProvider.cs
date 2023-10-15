@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Config.Api;
 using FWO.Api.Client;
+using FWO.Api.Data;
 using FWO.Ui.Services;
 using FWO.Middleware.Client;
 using FWO.Middleware.RequestParameters;
@@ -13,6 +14,7 @@ using FWO.Logging;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Authentication;
 using System.Security.Principal;
+
 
 namespace FWO.Ui.Auth
 {
@@ -102,8 +104,58 @@ namespace FWO.Ui.Auth
         }
 
         public void ConfirmPasswordChanged()
-        {           
+        {
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
+        }
+
+
+        public int getTenantId(string jwtString)
+        {
+            JwtReader jwtReader = new JwtReader(jwtString);
+            int tenantId = 0;
+
+            if (jwtReader.Validate())
+            {
+                ClaimsIdentity identity = new ClaimsIdentity
+                (
+                    claims: jwtReader.GetClaims(),
+                    authenticationType: "ldap",
+                    nameType: JwtRegisteredClaimNames.UniqueName,
+                    roleType: "role"
+                );
+
+                // Set user information
+                user = new ClaimsPrincipal(identity);
+
+                if (!int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
+                {
+                    // TODO: log warning
+                }
+            }
+            return tenantId;
+        }
+        public List<string> getAllowedRoles(string jwtString)
+        {
+            List<string> allowedRoles = new List<string>();
+            JwtReader jwtReader = new JwtReader(jwtString);
+            if (jwtReader.Validate())
+            {
+                ClaimsIdentity identity = new ClaimsIdentity
+                (
+                    claims: jwtReader.GetClaims(),
+                    authenticationType: "ldap",
+                    nameType: JwtRegisteredClaimNames.UniqueName,
+                    roleType: "role"
+                );
+                foreach (Claim claim in identity.Claims)
+                {
+                    if (claim.Type == "x-hasura-allowed-roles")
+                    {
+                        allowedRoles.Add(claim.Value);
+                    }
+                }
+            }
+            return allowedRoles;
         }
     }
 }

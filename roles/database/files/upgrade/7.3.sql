@@ -30,7 +30,7 @@ DROP FUNCTION IF EXISTS instr (varchar, varchar, integer, integer);
 DROP FUNCTION IF EXISTS instr (varchar, varchar, integer);
 DROP FUNCTION IF EXISTS instr (varchar, varchar);
 DROP FUNCTION IF EXISTS get_dev_typ_id (varchar);
-
+DROP FUNCTION IF EXISTS object_relevant_for_tenant(object object, hasura_session json);
 
 CREATE OR REPLACE VIEW view_obj_changes AS
 	SELECT

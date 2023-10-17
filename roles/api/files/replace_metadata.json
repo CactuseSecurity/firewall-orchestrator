@@ -14102,6 +14102,27 @@
                   }
                 },
                 {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
@@ -14373,6 +14394,21 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "device_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "reporter-viewall",

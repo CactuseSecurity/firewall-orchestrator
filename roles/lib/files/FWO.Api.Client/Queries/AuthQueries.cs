@@ -7,6 +7,7 @@ namespace FWO.Api.Client.Queries
     public class AuthQueries : Queries
     {
         public static readonly string getTenantId;
+        public static readonly string getTenantById;
         public static readonly string getTenants;
         public static readonly string addTenant;
         public static readonly string updateTenant;
@@ -42,6 +43,7 @@ namespace FWO.Api.Client.Queries
             try
             {
                 getTenantId = File.ReadAllText(QueryPath + "auth/getTenantId.graphql");
+                getTenantById = File.ReadAllText(QueryPath + "auth/getTenantById.graphql");
                 getTenants = File.ReadAllText(QueryPath + "auth/getTenants.graphql");
                 addTenant = File.ReadAllText(QueryPath + "auth/addTenant.graphql");
                 updateTenant = File.ReadAllText(QueryPath + "auth/updateTenant.graphql");

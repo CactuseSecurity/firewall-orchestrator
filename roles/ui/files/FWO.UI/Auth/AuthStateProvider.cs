@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Config.Api;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Ui.Services;
 using FWO.Middleware.Client;
@@ -108,7 +109,6 @@ namespace FWO.Ui.Auth
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
         }
 
-
         public int getTenantId(string jwtString)
         {
             JwtReader jwtReader = new JwtReader(jwtString);
@@ -134,6 +134,40 @@ namespace FWO.Ui.Auth
             }
             return tenantId;
         }
+
+        public async Task<Tenant> getTenantFromJwt(string jwtString, ApiConnection apiConnection)
+        {
+            JwtReader jwtReader = new JwtReader(jwtString);
+            Tenant tenant = new Tenant();
+            int tenantId;
+
+            if (jwtReader.Validate())
+            {
+                ClaimsIdentity identity = new ClaimsIdentity
+                (
+                    claims: jwtReader.GetClaims(),
+                    authenticationType: "ldap",
+                    nameType: JwtRegisteredClaimNames.UniqueName,
+                    roleType: "role"
+                );
+
+                // Set user information
+                user = new ClaimsPrincipal(identity);
+
+                if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
+                {
+                    Tenant[] tenantArray = Array.Empty<Tenant>();
+                    tenantArray = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantById, new { tenant_id = tenantId });
+                    tenant = tenantArray[0];
+                }
+                // else
+                // {
+                //     // TODO: log warning
+                // }
+            }
+            return tenant;
+        }
+
         public List<string> getAllowedRoles(string jwtString)
         {
             List<string> allowedRoles = new List<string>();

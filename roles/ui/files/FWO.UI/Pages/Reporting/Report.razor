@@ -91,13 +91,20 @@
         <div class="p-3">
             <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
             <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
-                @bind-SelectedElement="selectedTenantView" Elements="tenantList">
+                Elements="tenantList" SelectedElementChanged="TenantViewChanged">
                 <ElementTemplate Context="tenant">
                     @tenant.Name
                 </ElementTemplate>
             </Dropdown>
         </div>
     }
+    else
+    {
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant.Name</h5>
+        </div>
+    }
+
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
 </Sidebar>
 
@@ -292,7 +299,7 @@
             {
                 displayedTimeSelection = userConfig.GetText("now");
                 unusedDays = userConfig.UnusedTolerance;
-
+                tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
                 if (tenantFilteringAllowed)
@@ -327,6 +334,46 @@
         DisplaySelectedTime();
         StateHasChanged();
         reportGenerationDuration = 0;
+    }
+
+    private async Task TenantViewChanged(Tenant newTenantView)
+    {
+        // clear report data when switching Tenant
+        // as we would be missing src/dst/svc information in some cases           
+        managementsReport = new Management[] {};
+        globalStats = null;
+        selectAll = true; // reset selectAll button
+
+        // adjust device filter to newly selected tenant view
+        selectedTenantView = newTenantView;
+        if (selectedTenantView==null || selectedTenantView.Id == 1)
+        {
+            // tenant0 or no tenant selected
+            deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+        }
+        else
+        {
+            // reset  available devices according to tenant device filter
+            Tenant tenant = await getTenantById(newTenantView.Id, Connection);
+            List<int> visibleDevicesForTenant = new List<int>();
+            foreach (TenantDevice tenantDevice in tenant.TenantDevices)
+            {
+                visibleDevicesForTenant.Add(tenantDevice.VisibleDevice.Id);
+            }
+            deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(
+                DeviceQueries.getDevicesByManagements,
+                new { devIds = visibleDevicesForTenant.ToArray() }
+            );
+            StateHasChanged(); // redisplay LSB
+        }
+    }
+
+    private async Task<Tenant> getTenantById(int tenantId, ApiConnection apiConnection)
+    {
+        Tenant[] tenantArray = Array.Empty<Tenant>();
+        tenantArray = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantById, new { tenant_id = tenantId });
+        Tenant tenant = new Tenant(tenantArray[0]);
+        return tenant;
     }
 
     private void SyncFiltersFromTemplate(ReportTemplate template)
@@ -575,7 +622,7 @@
             {
                 selectedTenantView = userConfig.User.Tenant;
                 // TODO: when admin selects a tenant filter, add the corresponding device filter to make sure only those devices are reported that the tenant is allowed to see
-                
+
             }
             reportParams.TenantFilter = new TenantFilter(selectedTenantView);
 

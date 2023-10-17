@@ -299,12 +299,12 @@
             {
                 displayedTimeSelection = userConfig.GetText("now");
                 unusedDays = userConfig.UnusedTolerance;
-                tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
                 if (tenantFilteringAllowed)
                 {
                     tenantList = await Connection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+                    tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
                 }
 
                 await InvokeAsync(StateHasChanged);

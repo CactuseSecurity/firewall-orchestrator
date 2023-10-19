@@ -128,7 +128,7 @@ ALTER TABLE modelling.appserver_approle DROP CONSTRAINT IF EXISTS modelling_apps
 ALTER TABLE modelling.appserver_approle DROP CONSTRAINT IF EXISTS modelling_appserver_approle_approle_foreign_key;
 ALTER TABLE modelling.approle_connection DROP CONSTRAINT IF EXISTS modelling_approle_connection_approle_foreign_key;
 ALTER TABLE modelling.approle_connection DROP CONSTRAINT IF EXISTS modelling_approle_connection_connection_foreign_key;
-ALTER TABLE modelling.appserver_connection DROP CONSTRAINT IF EXISTS modelling_appserver_approle_appserver_foreign_key;
+ALTER TABLE modelling.appserver_connection DROP CONSTRAINT IF EXISTS modelling_appserver_connection_appserver_foreign_key;
 ALTER TABLE modelling.appserver_connection DROP CONSTRAINT IF EXISTS modelling_appserver_connection_connection_foreign_key;
 ALTER TABLE modelling.service_service_group DROP CONSTRAINT IF EXISTS modelling_service_service_group_service_foreign_key;
 ALTER TABLE modelling.service_service_group DROP CONSTRAINT IF EXISTS modelling_service_service_group_service_group_foreign_key;

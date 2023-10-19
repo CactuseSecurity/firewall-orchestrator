@@ -844,6 +844,96 @@
             },
             {
               "table": {
+                "name": "app_role",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "app_server",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "app_zone",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "approle_connection",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "appserver_approle",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "appserver_connection",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "area",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "area_subnet",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "change_history",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "connection",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "service",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "service_connection",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "service_group",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "service_group_connection",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
+                "name": "service_service_group",
+                "schema": "modelling"
+              }
+            },
+            {
+              "table": {
                 "name": "alert",
                 "schema": "public"
               },

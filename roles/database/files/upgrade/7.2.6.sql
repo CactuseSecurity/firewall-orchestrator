@@ -55,7 +55,7 @@ create table if not exists modelling.app_zone
 (
 	id SERIAL PRIMARY KEY,
 	name Varchar
-)
+);
 
 create table if not exists modelling.appserver_approle
 (
@@ -91,19 +91,19 @@ create table if not exists modelling.service_group
 	id SERIAL PRIMARY KEY,
 	name Varchar,
 	is_global boolean default false
-)
+);
 
 create table if not exists modelling.service_service_group
 (
 	service_id int,
     service_group_id int
-)
+);
 
 create table if not exists modelling.service_group_connection
 (
     service_group_id int,
 	connection_id int
-)
+);
 
 create table if not exists modelling.service_connection -- (used only if settings flag is set)
 (

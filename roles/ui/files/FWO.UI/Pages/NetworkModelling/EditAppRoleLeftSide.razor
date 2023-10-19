@@ -1,4 +1,5 @@
 @using FWO.Config.Api
+@using FWO.Ui.Display
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -13,7 +14,7 @@
             <select class="form-control form-control-sm" @bind="selectedIpAddresses" multiple>
                 @foreach (var appserver in IpAddresses)
                 {
-                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedIpAddresses)))" value="@appserver.Id">@DisplayIp(appserver)</option>
+                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedIpAddresses)))" value="@appserver.Id">@NwObjDisplay.DisplayWithName(appserver)</option>
                 }
             </select>
         </div>
@@ -81,10 +82,5 @@
     private async Task DataInconsistent()
     {
 
-    }
-
-    private string DisplayIp(NetworkObject elem)
-    {
-        return FWO.Ui.Display.NwObjDisplay.DisplayIp(elem.IP, elem.IpEnd);
     }
 }

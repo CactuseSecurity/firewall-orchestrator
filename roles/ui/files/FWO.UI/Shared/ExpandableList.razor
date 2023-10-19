@@ -4,7 +4,10 @@
 
 @if (Elements.Count() == 0)
 {
-	@(userConfig.GetText("None"))
+	@if(ShowTextIfEmpty)
+	{
+		@(userConfig.GetText("None"))
+	}
 }
 else if (Elements.Count() == 1)
 {
@@ -37,4 +40,7 @@ else
 	{
 		@element
 	};
+
+	[Parameter]
+	public bool ShowTextIfEmpty { get; set; } = true;
 }

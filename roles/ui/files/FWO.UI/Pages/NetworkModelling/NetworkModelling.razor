@@ -39,10 +39,10 @@
             <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddConn">@(userConfig.GetText("add_connection"))</button>
         </div>
         <div class="m-2">
-            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Connection" Items="coproOfApp" PageSize="0" ColumnReorder="true">
+            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="NetworkConnection" Items="coproOfApp" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
                 @if(userConfig.AllowManualOwnerAdmin)
                 {
-                    <Column TableItem="Connection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                    <Column TableItem="NetworkConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowDetails(context)">@(userConfig.GetText("details"))</button>
@@ -52,11 +52,34 @@
                         </Template>
                     </Column>
                 }
-                <Column TableItem="Connection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-                <Column TableItem="Connection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
-                <Column TableItem="Connection" Title="@(userConfig.GetText("preview"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                <Column TableItem="NetworkConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                <Column TableItem="NetworkConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="NetworkConnection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                <Column TableItem="NetworkConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <div class="col-sm-12">@DisplayPreview(context)</div>
+                        <ExpandableList Elements="GetSrcNames(context)" Context="src" ShowTextIfEmpty="false">
+                            <ElementTemplate>
+                                @src
+                            </ElementTemplate>
+                        </ExpandableList>
+                    </Template>
+                </Column>
+                <Column TableItem="NetworkConnection" Title="@(userConfig.GetText("service"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                    <Template>
+                        <ExpandableList Elements="context.Services" Context="svc" ShowTextIfEmpty="false">
+                            <ElementTemplate>
+                                @svc.Name
+                            </ElementTemplate>
+                        </ExpandableList>
+                    </Template>
+                </Column>
+                <Column TableItem="NetworkConnection" Title="@(userConfig.GetText("destination"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                    <Template>
+                        <ExpandableList Elements="GetDstNames(context)" Context="dest" ShowTextIfEmpty="false">
+                            <ElementTemplate>
+                                @dest
+                            </ElementTemplate>
+                        </ExpandableList>
                     </Template>
                 </Column>
             </Table>
@@ -79,8 +102,8 @@
     private bool singleApp = false;
     private bool appSelected = false;
 
-    private List<Connection> coproOfApp = new List<Connection>();
-    private Connection actConn = new Connection();
+    private List<NetworkConnection> coproOfApp = new List<NetworkConnection>();
+    private NetworkConnection actConn = new NetworkConnection();
     private bool AddConnMode = false;
     private bool EditConnMode = false;
     private bool DeleteConnMode = false;
@@ -88,16 +111,17 @@
     private string deleteMessage = "";
 
      // Test data
+    static NetworkArea TestArea1 = new NetworkArea(){ Id = 1, Name = "NA50"};
     static NetworkService TestService1 = new NetworkService(){  Id = 1, DestinationPort = 443, DestinationPortEnd = 443, Name = "TestService1", Protocol = new NetworkProtocol { Name = "TCP" }};
-    static NetworkObject TestIp1 = new NetworkObject(){ Id = 1, IP = "123.0.0.0/32", IpEnd = "123.0.0.0/32"};
-    static NetworkObject TestIp2 = new NetworkObject(){ Id = 2, IP = "12.1.1.0", IpEnd = "12.1.1.1"};
-    static AppRole TestAppRole1 = new AppRole() { Id = 1, Name = "AppRole1", NetworkObjects = new List<NetworkObject>(){ TestIp1 }};
-    static Connection TestConn1 = new Connection() { Id = 1, Name="TestConn1", Comment="Begrünung", Sources = new List<NetworkObject>(){ TestIp1 }, 
+    static NetworkObject TestIp1 = new NetworkObject(){ Id = 1, Name= "TestIp1", IP = "123.0.0.0/32", IpEnd = "123.0.0.0/32"};
+    static NetworkObject TestIp2 = new NetworkObject(){ Id = 2, Name= "TestIp2", IP = "12.1.1.0", IpEnd = "12.1.1.1"};
+    static AppRole TestAppRole1 = new AppRole() { Id = 1, Name = "AppRole1", Area = TestArea1, NetworkObjects = new List<NetworkObject>(){ TestIp1 }};
+    static NetworkConnection TestConn1 = new NetworkConnection() { Id = 1, Name="TestConn1", Comment="Begrünung", Sources = new List<NetworkObject>(){ TestIp1 }, 
         Destinations = new List<NetworkObject>(){ TestIp2 }, Services = new List<NetworkService>(){ TestService1 },
         SrcAppRoles = new List<AppRole>(){ TestAppRole1 }};
     static FwoOwner TestApp1 = new FwoOwner(){ Id = 1, Name = "TestApp1"};
     static FwoOwner TestApp2 = new FwoOwner(){ Id = 2, Name = "TestApp2"};
-    private int ConnIdCounter = 2;
+    private int ConnIdCounter = 20;
 
     protected override async Task OnInitializedAsync()
     {
@@ -132,7 +156,7 @@
             // await getAppData(selectedApp);
             SetConnectionTestData();
 
-            actConn = coproOfApp.FirstOrDefault() ?? new Connection();
+            actConn = coproOfApp.FirstOrDefault() ?? new NetworkConnection();
             appSelected = true;
         }
         catch (Exception exception)
@@ -141,24 +165,27 @@
         }
     }
 
-    private string DisplayPreview(Connection conn)
+    private List<string> GetSrcNames(NetworkConnection conn)
     {
-        return userConfig.GetText("source") + ": " + string.Join(", ", conn.SrcAppRoles.ConvertAll(s => s.Name)) 
-            + (conn.SrcAppRoles.Count > 0 && conn.Sources.Count > 0 ? ", " : "")
-            + string.Join(", ", conn.Sources.ConvertAll(s => s.IP)) + ", "
-            + userConfig.GetText("destination") + ": " + string.Join(", ", conn.DstAppRoles.ConvertAll(s => s.Name))
-            + (conn.DstAppRoles.Count > 0 && conn.Destinations.Count > 0 ? ", " : "")
-            + string.Join(", ", conn.Destinations.ConvertAll(d => d.IP)) + ", "
-            + userConfig.GetText("service") + ": " + string.Join(", ", conn.Services.ConvertAll(s => s.Name));
+        List<string> names = conn.SrcAppRoles.ConvertAll(s => s.Name);
+        names.AddRange(conn.Sources.ConvertAll(s => s.IP));
+        return names;
+    }
+    
+    private List<string> GetDstNames(NetworkConnection conn)
+    {
+        List<string> names = conn.DstAppRoles.ConvertAll(s => s.Name);
+        names.AddRange(conn.Destinations.ConvertAll(s => s.IP));
+        return names;
     }
 
     private void AddConn()
     {
         AddConnMode = true;
-        EditConn(new Connection());
+        EditConn(new NetworkConnection());
     }
 
-    private void ShowDetails(Connection conn)
+    private void ShowDetails(NetworkConnection conn)
     {
         readOnly = true;
         actConn = conn;
@@ -166,14 +193,14 @@
         AddConnMode = false;
     }
 
-    private void EditConn(Connection conn)
+    private void EditConn(NetworkConnection conn)
     {
         readOnly = false;
         actConn = conn;
         EditConnMode = true;
     }
 
-    private void RequestDeleteConn(Connection conn)
+    private void RequestDeleteConn(NetworkConnection conn)
     {
         actConn = conn;
         deleteMessage = userConfig.GetText("U9001") + actConn.Name + "?";
@@ -194,16 +221,25 @@
         StateHasChanged();
     }
 
-    private async Task NewConn(Connection conn)
+    private async Task NewConn(NetworkConnection conn)
     {
         conn.Id = ++ConnIdCounter; // just for test
         coproOfApp.Add(conn);
         AddConnMode = false;
     }
 
-    private async Task UpdateConn(Connection conn)
+    private async Task UpdateConn(NetworkConnection conn)
     {
         coproOfApp[coproOfApp.FindIndex(c => c.Id == conn.Id)] = conn;
+    }
+
+    private string getTableRowClass(NetworkConnection conn)
+    {
+        if(conn.IsInterface)
+        {
+            return "bg-secondary";
+        }
+        return "";
     }
 
     private async Task Report()
@@ -246,6 +282,6 @@
                 relevantImportId = managementsWithRelevantImportId.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId,
                 // owner = selectedApp.Id
             };
-            coproOfApp = await apiConnection.SendQueryAsync<List<Connection>>(FWO.Api.Client.Queries.RuleQueries.getVirtRulesForOwner, RuleVariables); *@
+            coproOfApp = await apiConnection.SendQueryAsync<List<NetworkConnection>>(FWO.Api.Client.Queries.RuleQueries.getVirtRulesForOwner, RuleVariables); *@
     }
 }

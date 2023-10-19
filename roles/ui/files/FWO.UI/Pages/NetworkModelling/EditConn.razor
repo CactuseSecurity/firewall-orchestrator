@@ -1,4 +1,5 @@
 @using FWO.Config.Api
+@using FWO.Ui.Display
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -10,11 +11,31 @@
         <EditConnLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" Groups="groups" Services="services"
             ObjToSource="AddObjSources" ObjToDest="AddObjDestinations" GrpToSource="AddGrpSources" GrpToDest="AddGrpDestinations" 
             ToService="AddServices" CreateGroup="CreateGroup" EditGroup="EditGroup" RequestDeleteGroup="RequestDeleteGroup" 
-            CreateService="CreateService" EditService="EditService" RequestDeleteService="RequestDeleteService"/>
+            CreateService="CreateService" EditService="EditService" RequestDeleteService="RequestDeleteService"
+            DisplayInterfaces="@(!Conn.IsInterface && Conn.UsedInterfaceId == null)" Interfaces="interfaces" IntToConn="InterfToConn" ToSrcAllowed="@(!SrcDropForbidden())" ToDestAllowed="@(!DstDropForbidden())" ToSvcAllowed="!svcReadOnly"/>
     }
     <div style="margin-left: @($"{(ReadOnly ? 0 : sidebarLeftWidth) + 10}px");">
-        <h3>@(ReadOnly || AddMode ? userConfig.GetText("connection") : userConfig.GetText("edit_connection"))</h3>
+        <h3>@(ReadOnly && Conn.IsInterface ? userConfig.GetText("interface") : userConfig.GetText("connection"))</h3>
         <div class="col-sm-11 border rounded m-2 p-2">
+            @if(!ReadOnly)
+            {
+                @if(srcReadOnly || dstReadOnly)
+                {
+                    <div class="form-group row">
+                        <div class="col-sm-2"/>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveInterf()">@(userConfig.GetText("remove_interface"))</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="form-group row">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
+                        <div class="col-sm-1">
+                            <input type="checkbox" class="w-25" @bind="Conn.IsInterface">
+                        </div>
+                    </div>
+                }
+            }
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                 <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="Conn.Name" />
@@ -26,7 +47,7 @@
             <div class="form-group row">
                 <div class="col-sm-4">
                     <h6>@(userConfig.GetText("source"))</h6>
-                    @if(ReadOnly)
+                    @if(ReadOnly || srcReadOnly)
                     {
                         foreach(var src in Conn.SrcAppRoles)
                         {
@@ -34,62 +55,26 @@
                         }
                         foreach(var src in Conn.Sources)
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayIp(src)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(src)</div>
                         }
                     }
                     else 
                     {
-                        <div class="minheight-dropzone bg-secondary dropzone" 
+                        <div class="@SrcClass()" 
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleSrcDrop">
-                            <EditList ElementType="AppRole" Elements="Conn.SrcAppRoles.ToArray()" ElementsToAdd="SrcGrpsToAdd" ElementsToDelete="SrcGrpsToDelete" StdLayout="false">
+                            <EditList ElementType="AppRole" Elements="Conn.SrcAppRoles.ToArray()" ElementsToAdd="SrcGrpsToAdd" ElementsToDelete="SrcGrpsToDelete" StdLayout="false" AfterRemoveAction="CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayGrp(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="NetworkObject" Elements="Conn.Sources.ToArray()" ElementsToAdd="SrcIpsToAdd" ElementsToDelete="SrcIpsToDelete" StdLayout="false">
+                            <EditList ElementType="NetworkObject" Elements="Conn.Sources.ToArray()" ElementsToAdd="SrcIpsToAdd" ElementsToDelete="SrcIpsToDelete" StdLayout="false" AfterRemoveAction="CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayIp(context)</div>
-                                    </div>
-                                </Display>
-                            </EditList>
-                        </div>
-                    }
-                </div>
-                <div class="col-sm-4">
-                    <h6>@(userConfig.GetText("destination"))</h6>
-                    @if(ReadOnly)
-                    {
-                        foreach(var dst in Conn.DstAppRoles)
-                        {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayGrp(dst)</div>
-                        }
-                        foreach(var dst in Conn.Destinations)
-                        {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayIp(dst)</div>
-                        }
-                    }
-                    else 
-                    {
-                        <div class="minheight-dropzone bg-secondary dropzone" 
-                            ondragover="event.preventDefault();"
-                            ondragstart="event.dataTransfer.setData('', event.target.id);"
-                            @ondrop="HandleDstDrop">
-                            <EditList ElementType="AppRole" Elements="Conn.DstAppRoles.ToArray()" ElementsToAdd="DstGrpsToAdd" ElementsToDelete="DstGrpsToDelete" StdLayout="false">
-                                <Display>
-                                    <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayGrp(context)</div>
-                                    </div>
-                                </Display>
-                            </EditList>
-                            <EditList ElementType="NetworkObject" Elements="Conn.Destinations.ToArray()" ElementsToAdd="DstIpsToAdd" ElementsToDelete="DstIpsToDelete" StdLayout="false">
-                                <Display>
-                                    <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayIp(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
@@ -98,7 +83,7 @@
                 </div>
                 <div class="col-sm-4">
                     <h6>@(userConfig.GetText("service"))</h6>
-                    @if(ReadOnly)
+                    @if(ReadOnly || svcReadOnly)
                     {
                         foreach(var svc in Conn.Services)
                         {
@@ -107,14 +92,50 @@
                     }
                     else 
                     {
-                        <div class="minheight-dropzone bg-secondary dropzone" 
+                        <div class="@dropzoneClass" 
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleSvcDrop">
-                            <EditList ElementType="NetworkService" Elements="Conn.Services.ToArray()" ElementsToAdd="SvcToAdd" ElementsToDelete="SvcToDelete" StdLayout="false">
+                            <EditList ElementType="NetworkService" Elements="Conn.Services.ToArray()" ElementsToAdd="SvcToAdd" ElementsToDelete="SvcToDelete" StdLayout="false" AfterRemoveAction="CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@FWO.Ui.Display.RuleDisplayBase.DisplayService(context, FWO.Report.Filter.ReportType.Rules)</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                        </div>
+                    }
+                </div>
+                <div class="col-sm-4">
+                    <h6>@(userConfig.GetText("destination"))</h6>
+                    @if(ReadOnly || dstReadOnly)
+                    {
+                        foreach(var dst in Conn.DstAppRoles)
+                        {
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayGrp(dst)</div>
+                        }
+                        foreach(var dst in Conn.Destinations)
+                        {
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(dst)</div>
+                        }
+                    }
+                    else 
+                    {
+                        <div class="@DestClass()" 
+                            ondragover="event.preventDefault();"
+                            ondragstart="event.dataTransfer.setData('', event.target.id);"
+                            @ondrop="HandleDstDrop">
+                            <EditList ElementType="AppRole" Elements="Conn.DstAppRoles.ToArray()" ElementsToAdd="DstGrpsToAdd" ElementsToDelete="DstGrpsToDelete" StdLayout="false" AfterRemoveAction="CalcVisibility">
+                                <Display>
+                                    <div class="row">
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayGrp(context)</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="NetworkObject" Elements="Conn.Destinations.ToArray()" ElementsToAdd="DstIpsToAdd" ElementsToDelete="DstIpsToDelete" StdLayout="false" AfterRemoveAction="CalcVisibility">
+                                <Display>
+                                    <div class="row">
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
@@ -156,13 +177,13 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public Connection Conn { get; set; } = new Connection();
+    public NetworkConnection Conn { get; set; } = new NetworkConnection();
 
     [Parameter]
-    public Func<Connection, Task> NewConn { get; set; } = DefaultInit.DoNothing;
+    public Func<NetworkConnection, Task> NewConn { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<Connection, Task> UpdateConn { get; set; } = DefaultInit.DoNothing;
+    public Func<NetworkConnection, Task> UpdateConn { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public bool ReadOnly { get; set; } = false;
@@ -197,15 +218,30 @@
 
     private List<AppRole> groups = new List<AppRole>(){};
     private List<NetworkService> services = new List<NetworkService>(){};
+    private List<NetworkConnection> interfaces = new List<NetworkConnection>(){};
+
+    private static string dropzoneClass = "minheight-dropzone bg-secondary dropzone";
+    private static string forbiddenDropzoneClass = "minheight-dropzone bg-white";
+    private bool srcReadOnly = false;
+    private bool dstReadOnly = false;
+    private bool svcReadOnly = false;
 
     // Test data
     static NetworkObject TestIp3 = new NetworkObject(){ Id = 3, IP = "1.2.3.4", IpEnd = "1.2.3.4"};
     static NetworkObject TestIp4 = new NetworkObject(){ Id = 4, IP = "111.222.1.0", IpEnd = "111.222.1.7"};
     //static NetworkObject TestIp5 = new NetworkObject(){ Id = 5, IP = "10.0.1.1", IpEnd = "10.0.1.1"};
     //static NetworkObject TestIp6 = new NetworkObject(){ Id = 6, IP = "123.1.1.0", IpEnd = "123.1.1.1"};
+    static NetworkArea TestArea1 = new NetworkArea(){ Id = 1, Name = "NA50"};
+    static NetworkArea TestArea2 = new NetworkArea(){ Id = 2, Name = "NA91"};
     static NetworkService TestService2 = new NetworkService(){ Id = 2, DestinationPort = 6666, DestinationPortEnd = 7777, Name = "TestService2", Protocol = new NetworkProtocol { Name = "UDP" }};
     static NetworkService TestService3 = new NetworkService(){ Id = 3, DestinationPort = 1234, DestinationPortEnd = 1235, Name = "TestService3", Protocol = new NetworkProtocol { Name = "UDP" }};
-    static AppRole TestAppRole2 = new AppRole(){ Id = 2, Name = "AppRole2", NetworkObjects = new List<NetworkObject>(){ TestIp3, TestIp4 }};
+    static AppRole TestAppRole2 = new AppRole(){ Id = 2, Name = "AppRole2", Area = TestArea2, NetworkObjects = new List<NetworkObject>(){ TestIp3, TestIp4 }};
+    static NetworkConnection TestInterface1 = new NetworkConnection() { Id = 100, Name="TestInterface1", Comment="SrcInt", Sources = new List<NetworkObject>(){ TestIp4 }, 
+        Destinations = new List<NetworkObject>(){}, Services = new List<NetworkService>(){ TestService3 },
+        SrcAppRoles = new List<AppRole>(){ TestAppRole2 }};
+    static NetworkConnection TestInterface2 = new NetworkConnection() { Id = 101, Name="TestInterface2", Comment="DSTInt", Sources = new List<NetworkObject>(){}, 
+        Destinations = new List<NetworkObject>(){ TestIp3 }, Services = new List<NetworkService>(){ TestService2 },
+        SrcAppRoles = new List<AppRole>(){ TestAppRole2 }};
     private int AppRoleIdCounter = 3;
     private int ServiceIdCounter = 4;
 
@@ -215,6 +251,7 @@
         {
             groups = new List<AppRole>(){ TestAppRole2 };
             services = new List<NetworkService>(){ TestService2, TestService3 };
+            interfaces = new List<NetworkConnection>(){ TestInterface1, TestInterface2 };
         }
         catch (Exception exception)
         {
@@ -222,9 +259,36 @@
         }
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
+        if(Display)
+        {
+            CalcVisibility();
+        }
+    }
 
+    private bool CalcVisibility()
+    {
+        if(Conn.IsInterface)
+        {
+            dstReadOnly = Conn.Sources.Count > 0 || SrcIpsToAdd.Count > 0;
+            srcReadOnly = Conn.Destinations.Count > 0|| DstIpsToAdd.Count > 0;
+            svcReadOnly = false;
+        }
+        else if (Conn.UsedInterfaceId != null)
+        {
+            srcReadOnly = Conn.Sources.Count > 0;
+            dstReadOnly = !srcReadOnly;
+            svcReadOnly = true;
+        }
+        else
+        {
+            srcReadOnly = false;
+            dstReadOnly = false;
+            svcReadOnly = false;
+        }
+        StateHasChanged();
+        return true;
     }
 
     private async Task NewAppRole(AppRole appRole)
@@ -269,33 +333,51 @@
 
     private async Task HandleSrcDrop()
     {
-        if(Container.IpElements.Count > 0)
+        if(Container.ConnElement != null)
         {
-            AddObjSources(Container.IpElements);
+            InterfToConn(Container.ConnElement);
         }
-        if(Container.GrpElements.Count > 0)
+        else if(!SrcDropForbidden())
         {
-            AddGrpSources(Container.GrpElements);
+            if(Container.IpElements.Count > 0)
+            {
+                AddObjSources(Container.IpElements);
+            }
+            if(Container.GrpElements.Count > 0)
+            {
+                AddGrpSources(Container.GrpElements);
+            }
         }
         Container.Clear();
     }
 
     private async Task HandleDstDrop()
     {
-        if(Container.IpElements.Count > 0)
+        if(Container.ConnElement != null)
         {
-            AddObjDestinations(Container.IpElements);
+            InterfToConn(Container.ConnElement);
         }
-        if(Container.GrpElements.Count > 0)
+        else if(!DstDropForbidden())
         {
-            AddGrpDestinations(Container.GrpElements);
+            if(Container.IpElements.Count > 0)
+            {
+                AddObjDestinations(Container.IpElements);
+            }
+            if(Container.GrpElements.Count > 0)
+            {
+                AddGrpDestinations(Container.GrpElements);
+            }
         }
         Container.Clear();
     }
 
     private async Task HandleSvcDrop()
     {
-        if(Container.SvcElements.Count > 0)
+        if(Container.ConnElement != null)
+        {
+            InterfToConn(Container.ConnElement);
+        }
+        else if(Container.SvcElements.Count > 0)
         {
             AddServices(Container.SvcElements);
         }
@@ -377,11 +459,6 @@
         DisplayChanged.InvokeAsync(Display);
     }
 
-    private string DisplayIp(NetworkObject elem)
-    {
-        return FWO.Ui.Display.NwObjDisplay.DisplayIp(elem.IP, elem.IpEnd);
-    }
-
     private string DisplayGrp(AppRole grp)
     {
         if(grp.Name != null && grp.Name != "")
@@ -390,61 +467,110 @@
         }
         if(grp.NetworkObjects.Count > 0)
         {
-            return FWO.Ui.Display.NwObjDisplay.DisplayIp(grp.NetworkObjects[0].IP, grp.NetworkObjects[0].IpEnd);
+            return NwObjDisplay.DisplayWithName(grp.NetworkObjects[0]);
         }
         return "anything else";
     }
     
+    private bool InterfToConn(NetworkConnection inter)
+    {
+        srcReadOnly = inter.Sources.Count > 0;
+        dstReadOnly = !srcReadOnly;
+        svcReadOnly = true;
+        Conn.IsInterface = false;
+        Conn.UsedInterfaceId = inter.Id;
+        if(srcReadOnly)
+        {
+            Conn.Sources = new List<NetworkObject>(inter.Sources){};
+        }
+        else
+        {
+            Conn.Destinations = new List<NetworkObject>(inter.Destinations){};
+        }
+        Conn.Services = new List<NetworkService>(inter.Services){};
+        StateHasChanged();
+        return true;
+    }
+
+    private void RemoveInterf()
+    {
+        if(srcReadOnly)
+        {
+            Conn.Sources = new();
+        }
+        if(dstReadOnly)
+        {
+            Conn.Destinations = new();
+        }
+        Conn.Services = new();
+        Conn.UsedInterfaceId = null;
+        srcReadOnly = false;
+        dstReadOnly = false;
+        svcReadOnly = false;
+        StateHasChanged();
+    }
 
     private bool AddObjSources(List<NetworkObject> sources)
     {
-        foreach(var source in sources)
+        if(!SrcDropForbidden())
         {
-            if(!Conn.Sources.Contains(source) && !SrcIpsToAdd.Contains(source))
+            foreach(var source in sources)
             {
-                SrcIpsToAdd.Add(source);
+                if(!Conn.Sources.Contains(source) && !SrcIpsToAdd.Contains(source))
+                {
+                    SrcIpsToAdd.Add(source);
+                }
             }
+            CalcVisibility();
         }
-        StateHasChanged();
         return true;
     }
 
     private bool AddObjDestinations(List<NetworkObject> dests)
     {
-        foreach(var dest in dests)
+        if(!DstDropForbidden())
         {
-            if(!Conn.Destinations.Contains(dest) && !DstIpsToAdd.Contains(dest))
+            foreach(var dest in dests)
             {
-                DstIpsToAdd.Add(dest);
+                if(!Conn.Destinations.Contains(dest) && !DstIpsToAdd.Contains(dest))
+                {
+                    DstIpsToAdd.Add(dest);
+                }
             }
+            CalcVisibility();
         }
-        StateHasChanged();
         return true;
     }
 
     private bool AddGrpSources(List<AppRole> sources)
     {
-        foreach(var source in sources)
+        if(!SrcDropForbidden())
         {
-            if(!Conn.SrcAppRoles.Contains(source) && !SrcGrpsToAdd.Contains(source))
+            foreach(var source in sources)
             {
-                SrcGrpsToAdd.Add(source);
+                if(!Conn.SrcAppRoles.Contains(source) && !SrcGrpsToAdd.Contains(source))
+                {
+                    SrcGrpsToAdd.Add(source);
+                }
             }
+            CalcVisibility();
         }
-        StateHasChanged();
         return true;
     }
 
     private bool AddGrpDestinations(List<AppRole> dests)
     {
-        foreach(var dest in dests)
+        if(!DstDropForbidden())
         {
-            if(!Conn.DstAppRoles.Contains(dest) && !DstGrpsToAdd.Contains(dest))
+            foreach(var dest in dests)
             {
-                DstGrpsToAdd.Add(dest);
+                if(!Conn.DstAppRoles.Contains(dest) && !DstGrpsToAdd.Contains(dest))
+                {
+                    DstGrpsToAdd.Add(dest);
+                }
             }
+            CalcVisibility();
         }
-        StateHasChanged();
         return true;
     }
 
@@ -513,5 +639,41 @@
         DeleteServiceMode = true;
         StateHasChanged();
         return true;
+    }
+
+    private bool SrcDropForbidden()
+    {
+        return srcReadOnly || (Conn.IsInterface && 
+            (Conn.DstAppRoles != null && Conn.DstAppRoles.Count > 0 || 
+            Conn.Destinations != null && Conn.Destinations.Count > 0 ||
+            DstIpsToAdd != null && DstIpsToAdd.Count > 0 ||
+            DstGrpsToAdd != null && DstGrpsToAdd.Count > 0));
+    }
+
+    private bool DstDropForbidden()
+    {
+        return dstReadOnly || (Conn.IsInterface && 
+            (Conn.SrcAppRoles != null && Conn.SrcAppRoles.Count > 0 || 
+            Conn.Sources != null && Conn.Sources.Count > 0 ||
+            SrcIpsToAdd != null && SrcIpsToAdd.Count > 0 ||
+            SrcGrpsToAdd != null && SrcGrpsToAdd.Count > 0));
+    }
+
+    private string SrcClass()
+    {
+        if(SrcDropForbidden())
+        {
+            return forbiddenDropzoneClass;
+        }
+        return dropzoneClass;
+    }
+
+    private string DestClass()
+    {
+        if(DstDropForbidden())
+        {
+            return forbiddenDropzoneClass;
+        }
+        return dropzoneClass;
     }
 }

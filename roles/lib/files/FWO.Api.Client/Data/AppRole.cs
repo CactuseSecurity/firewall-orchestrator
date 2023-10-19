@@ -15,6 +15,8 @@ namespace FWO.Api.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        [JsonProperty("comment"), JsonPropertyName("comment")]
+        public string? Comment { get; set; }
 
         public List<NetworkObject> NetworkObjects { get; set; } = new List<NetworkObject>{};
 

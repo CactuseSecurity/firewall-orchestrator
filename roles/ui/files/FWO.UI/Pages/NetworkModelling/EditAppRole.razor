@@ -1,4 +1,5 @@
 @using FWO.Config.Api
+@using FWO.Ui.Display
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -15,8 +16,8 @@
                     <h3>@(userConfig.GetText("app_role"))</h3>
                     <div class="col-sm-11 border rounded m-2 p-2">
                         <div class="form-group row">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
-                            <div class="col-sm-9">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
+                            <div class="col-sm-8">
                                 <Dropdown ElementType="NetworkArea" SelectedElement="AppRole.Area" ElementToString="@(a => a.Name)" 
                                         SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
                                     <ElementTemplate Context="area">
@@ -26,8 +27,12 @@
                             </div>
                         </div>
                         <div class="form-group row">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="AppRole.Name" />
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRole.Name" />
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRole.Comment" />
                         </div>
                         <div class="col-sm-12">
                             <h6>@(userConfig.GetText("app_server"))</h6>
@@ -38,7 +43,7 @@
                                 <EditList ElementType="NetworkObject" Elements="AppRole.NetworkObjects.ToArray()" ElementsToAdd="IpsToAdd" ElementsToDelete="IpsToDelete" StdLayout="false">
                                     <Display>
                                         <div class="row">
-                                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayIp(context)</div>
+                                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
                                         </div>
                                     </Display>
                                 </EditList>
@@ -76,7 +81,7 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public AppRole AppRole { get; set; } = new AppRole();
+    public AppRole AppRole { get; set; } = new AppRole(){ Area = new NetworkArea(){} };
 
     [Parameter]
     public Func<AppRole, Task> NewAppRole { get; set; } = DefaultInit.DoNothing;
@@ -100,9 +105,9 @@
     // Test data
     static NetworkArea TestArea1 = new NetworkArea(){ Id = 1, Name = "NA50"};
     static NetworkArea TestArea2 = new NetworkArea(){ Id = 2, Name = "NA91"};
-    static NetworkObject TestIp3 = new NetworkObject(){ Id = 3, IP = "1.2.3.4", IpEnd = "1.2.3.4"};
-    static NetworkObject TestIp4 = new NetworkObject(){ Id = 4, IP = "111.222.1.0", IpEnd = "111.222.1.7"};
-    static NetworkObject TestIp5 = new NetworkObject(){ Id = 5, IP = "10.0.1.1", IpEnd = "10.0.1.1"};
+    static NetworkObject TestIp3 = new NetworkObject(){ Id = 3, IP = "1.2.3.4", IpEnd = "1.2.3.4", Name = "TestIp3"};
+    static NetworkObject TestIp4 = new NetworkObject(){ Id = 4, IP = "111.222.1.0", IpEnd = "111.222.1.7", Name = "TestIp4"};
+    static NetworkObject TestIp5 = new NetworkObject(){ Id = 5, IP = "10.0.1.1", IpEnd = "10.0.1.1", Name = "TestIp5"};
     static NetworkObject TestIp6 = new NetworkObject(){ Id = 6, IP = "123.1.1.0", IpEnd = "123.1.1.1"};
 
 
@@ -123,6 +128,10 @@
     {
         if(Display)
         {
+            if(AddMode)
+            {
+                AppRole.Comment = userConfig.User.Name;
+            }
             SelectedAreaChanged(AddMode ? areas.First() : AppRole.Area);
         }
     }
@@ -163,11 +172,6 @@
         IpsToDelete = new List<NetworkObject>();
         Display = false;
         DisplayChanged.InvokeAsync(Display);
-    }
-
-    private string DisplayIp(NetworkObject elem)
-    {
-        return FWO.Ui.Display.NwObjDisplay.DisplayIp(elem.IP, elem.IpEnd);
     }
 
     private bool AddServer(List<NetworkObject> nwObjects)

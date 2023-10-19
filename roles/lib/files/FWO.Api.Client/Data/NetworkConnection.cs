@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class Connection
+    public class NetworkConnection
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -19,6 +19,12 @@ namespace FWO.Api.Data
 
         [JsonProperty("rule_comment"), JsonPropertyName("rule_comment")]
         public string? Comment { get; set; } = "";
+
+        [JsonProperty("is_interface"), JsonPropertyName("is_interface")]
+        public bool IsInterface { get; set; } = false;
+
+        [JsonProperty("used_interface_id"), JsonPropertyName("used_interface_id")]
+        public long? UsedInterfaceId { get; set; }
 
         [JsonProperty("froms"), JsonPropertyName("froms")]
         public List<NetworkObject> Sources { get; set; } = new List<NetworkObject>{};

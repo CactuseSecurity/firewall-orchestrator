@@ -3,6 +3,7 @@ using System.Text;
 using FWO.Logging;
 using System.Net;
 using System.Text.RegularExpressions;
+using FWO.Api.Data;
 
 namespace FWO.Ui.Display
 {
@@ -122,6 +123,16 @@ namespace FWO.Ui.Display
         static bool isV4Address(string ip)
         {
             return ip.Contains(".");
+        }
+
+        public static string DisplayWithName(NetworkObject elem)
+        {
+            string ip = DisplayIp(elem.IP, elem.IpEnd);
+            if(elem.Name != null && elem.Name != "")
+            {
+                return elem.Name + " (" + ip + ")";
+            }
+            return ip;
         }
     }
 }

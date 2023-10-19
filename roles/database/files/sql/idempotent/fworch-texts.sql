@@ -994,6 +994,14 @@ INSERT INTO txt VALUES ('ext_request', 	        'German',	'Externer Antrag');
 INSERT INTO txt VALUES ('ext_request', 	        'English',	'External Request');
 INSERT INTO txt VALUES ('area', 	            'German',	'Area');
 INSERT INTO txt VALUES ('area', 	            'English',	'Area');
+INSERT INTO txt VALUES ('interface', 	        'German',	'Schnittstelle');
+INSERT INTO txt VALUES ('interface', 	        'English',	'Interface');
+INSERT INTO txt VALUES ('interfaces', 	        'German',	'Schnittstellen');
+INSERT INTO txt VALUES ('interfaces', 	        'English',	'Interfaces');
+INSERT INTO txt VALUES ('remove_interface', 	'German',	'Schnittstelle entfernen');
+INSERT INTO txt VALUES ('remove_interface', 	'English',	'Remove Interface');
+INSERT INTO txt VALUES ('apply',                'German', 	'Anwenden');
+INSERT INTO txt VALUES ('apply',                'English', 	'Apply');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -1540,6 +1548,18 @@ INSERT INTO txt VALUES ('custom_text',          'German', 	'Angepasster Text');
 INSERT INTO txt VALUES ('custom_text',          'English', 	'Custom Text');
 INSERT INTO txt VALUES ('allowServerInConn',    'German', 	'Server in Verbindung erlauben');
 INSERT INTO txt VALUES ('allowServerInConn',    'English', 	'Allow Servers in Connection');
+INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad zur Appdaten-Datei');
+INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path to App data file');
+INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
+INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
+INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
+INSERT INTO txt VALUES ('importAppDataStartAt', 'English', 	'Import App data start at');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad zur Subnetzdaten-Datei');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'English', 	'Path to subnet data file');
+INSERT INTO txt VALUES ('importSubnetDataSleepTime','German','Import Subnetzdaten-Intervall (in Stunden)');
+INSERT INTO txt VALUES ('importSubnetDataSleepTime','English','Import Subnet data sleep time (in hours)');
+INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten-Start');
+INSERT INTO txt VALUES ('importSubnetDataStartAt','English','Import Subnet data start at');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1656,6 +1676,10 @@ INSERT INTO txt VALUES ('changes_found',        'German', 	' &Auml;nderungen gef
 INSERT INTO txt VALUES ('changes_found',        'English',	' changes found');
 INSERT INTO txt VALUES ('found_no_changes',     'German', 	'keine &Auml;nderungen gefunden');
 INSERT INTO txt VALUES ('found_no_changes',     'English',	'no changes found');
+INSERT INTO txt VALUES ('scheduled_app_import', 'German',   'Termingesteuerter App-Import');
+INSERT INTO txt VALUES ('scheduled_app_import', 'English',  'Scheduled App Import');
+INSERT INTO txt VALUES ('scheduled_subnet_import','German', 'Termingesteuerter Subnetz-Import');
+INSERT INTO txt VALUES ('scheduled_subnet_import','English','Scheduled Subnet Import');
 
 
 -- help pages

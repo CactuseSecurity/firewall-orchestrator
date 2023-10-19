@@ -1029,7 +1029,8 @@ create table owner
     recert_interval int,
     app_id_external varchar UNIQUE,
     last_recert_check Timestamp,
-    recert_check_params Varchar
+    recert_check_params Varchar,
+	criticality Varchar
 );
 
 create table owner_network
@@ -1286,3 +1287,129 @@ create table compliance.ip_range
 	PRIMARY KEY(network_zone_id, ip_range_start, ip_range_end)
 );
 
+
+--- Network modelling ---
+create schema modelling;
+
+-- create table modelling.app  -- owner!
+-- (
+--     id SERIAL PRIMARY KEY,
+--     app_id_external varchar UNIQUE,
+--     name Varchar UNIQUE NOT NULL,
+--		app_owner_name Varchar,  -- owner ??
+--		sbw Varchar, -- ?criticality
+--     dn Varchar NOT NULL, -- = app owner id??
+--     group_dn Varchar NOT NULL, -- ?
+--     tenant_id int -- ?
+-- );
+
+create table modelling.area
+(
+ 	id SERIAL PRIMARY KEY,
+	name Varchar
+);
+
+create table modelling.area_subnet
+(
+ 	id SERIAL PRIMARY KEY,
+	name Varchar,
+	area_id int,
+	network cidr
+);
+
+create table modelling.app_server
+(
+ 	id BIGSERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar,
+	ip cidr,
+	-- area_id int, --> calculated from subnet
+	import_source Varchar default 'manual', 
+	is_deleted boolean default false
+);
+
+create table modelling.app_role
+(
+ 	id SERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar, -- prefix format AR... -> settings 
+	comment Varchar -- e.g. for creator
+);
+
+create table modelling.connection
+(
+ 	id SERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar,
+	reason Text,
+	is_interface boolean default false,
+	used_interface_id int
+);
+
+create table modelling.app_zone -- necessary ?
+(
+	id SERIAL PRIMARY KEY,
+	name Varchar
+)
+
+create table modelling.appserver_approle
+(
+    appserver_id bigint,
+    approle_id int
+);
+
+create table modelling.approle_connection
+(
+    approle_id int,
+    connection_id int,
+	connection_field int -- enum src=1, dest=2, ...
+);
+
+create table modelling.appserver_connection -- (used only if settings flag is set)
+(
+    appserver_id bigint,
+    connection_id int,
+	connection_field int -- enum src=1, dest=2, ...
+);
+
+create table modelling.service
+(
+ 	id SERIAL PRIMARY KEY,
+	name Varchar,
+	port int,
+	port_end int,
+	proto_id int
+);
+
+create table modelling.service_group
+(
+	id SERIAL PRIMARY KEY,
+	name Varchar,
+	is_global boolean default false
+)
+
+create table modelling.service_service_group
+(
+	service_id int,
+    service_group_id int
+)
+
+create table modelling.service_group_connection
+(
+    service_group_id int,
+	connection_id int
+)
+
+create table modelling.service_connection -- (used only if settings flag is set)
+(
+    service_id int,
+    connection_id int
+);
+
+create table modelling.change_history
+(
+	id BIGSERIAL PRIMARY KEY,
+	change_time Timestamp,
+    connection_id bigint,
+	change Varchar
+);

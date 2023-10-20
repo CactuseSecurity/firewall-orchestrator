@@ -92,6 +92,13 @@
                     <input id="saveTemplateUnused" type="number" min="0" class="col-sm-8" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
                 </div>
             }
+            else if(reportTemplateInEdit.ReportParams.TenantFilter.IsActive)
+            {
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                    <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.TenantFilter.TenantId)</label>
+                </div>
+            }
             else
             {
                 <div class="form-group row">

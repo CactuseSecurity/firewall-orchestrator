@@ -88,15 +88,18 @@
     }
     @if (tenantFilteringAllowed && selectedReportType != ReportType.Statistics)
     {
-        <div class="p-3">
-            <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
-            <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
-                Elements="tenantList" SelectedElementChanged="TenantViewChanged">
-                <ElementTemplate Context="tenant">
-                    @tenant.Name
-                </ElementTemplate>
-            </Dropdown>
-        </div>
+        if (tenantList.Count > 1)
+        {
+            <div class="p-3">
+                <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
+                <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
+                    Elements="tenantList" SelectedElementChanged="TenantViewChanged">
+                    <ElementTemplate Context="tenant">
+                        @tenant.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        }
     }
     else
     {
@@ -143,7 +146,7 @@
     <hr />
 
     @* ==== Templates ==== *@
-    <ReportTemplateComponent OnTemplateLoad="template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
+    <ReportTemplateComponent OnTemplateLoad="async template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
 
     @* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
@@ -376,7 +379,7 @@
         return tenant;
     }
 
-    private void SyncFiltersFromTemplate(ReportTemplate template)
+    private async Task SyncFiltersFromTemplate(ReportTemplate template)
     {
         filterInput = template.Filter;
         selectedReportType = (ReportType)template.ReportParams.ReportType;
@@ -385,6 +388,10 @@
             deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
         }
         selectAll = !deviceFilter.isAnyDeviceFilterSet();
+        if(template.ReportParams.TenantFilter.IsActive)
+        {
+            selectedTenantView = await getTenantById(template.ReportParams.TenantFilter.TenantId, Connection);
+        }        
         if(template.ReportParams.TimeFilter != null)
         {
             actTimeFilter = template.ReportParams.TimeFilter;

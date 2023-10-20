@@ -60,6 +60,21 @@ namespace FWO.Report.Filter
             }
         }
 
+        private static void SetTenantFilter(ref DynGraphqlQuery query, ReportTemplate filter)
+        {
+            // the following additional filters are used for standard and simulated tenant filtering (by admin users)
+            if (filter.ReportParams.TenantFilter.IsActive)
+            {
+                int tenant_id = filter.ReportParams.TenantFilter.TenantId;
+                query.FullQuery = Regex.Replace(query.FullQuery, @"\srules\s*\(", $" rules: get_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"changelog_rules\s*\(", $" changelog_rules: get_changelog_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*\(", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*{", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}) {{");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*\(", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*{", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}) {{");
+            }
+        }
+
         private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType, RecertFilter recertFilter)
         {
             if (timeFilter != null)
@@ -248,6 +263,7 @@ namespace FWO.Report.Filter
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
+            SetTenantFilter(ref query, reportParams);
             SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
             if (reportParams.ReportParams.ReportType!= null && (ReportType)reportParams.ReportParams.ReportType==ReportType.Recertification)
             {
@@ -454,18 +470,7 @@ namespace FWO.Report.Filter
                     break;
             }
 
-            // the following additional filters are only used for simulated tenant filtering (by admin users)
-            if (filter.ReportParams.TenantFilter.IsActive)
-            {
-                int tenant_id = filter.ReportParams.TenantFilter.TenantId;
-                query.FullQuery = Regex.Replace(query.FullQuery, @"\srules\s*\(", $" rules: get_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"changelog_rules\s*\(", $" changelog_rules: get_changelog_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*\(", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*{", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}) {{");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*\(", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*{", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}) {{");
-            }
-
+            SetTenantFilter(ref query, filter);
             string pattern = "";
 
             // remove comment lines (#) before joining lines!

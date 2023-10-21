@@ -156,9 +156,7 @@ namespace FWO.Ui.Auth
 
                 if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
                 {
-                    Tenant[] tenantArray = Array.Empty<Tenant>();
-                    tenantArray = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantById, new { tenant_id = tenantId });
-                    tenant = tenantArray[0];
+                    tenant = await Tenant.getTenantById(apiConnection, tenantId);
                 }
                 // else
                 // {

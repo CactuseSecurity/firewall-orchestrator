@@ -86,26 +86,29 @@
             </div>
         </div>
     }
-    @if (tenantFilteringAllowed && selectedReportType != ReportType.Statistics)
+    @if (selectedReportType != ReportType.Statistics && tenantList.Count > 1)
     {
-        if (tenantList.Count > 1)
+        if (tenantFilteringAllowed)
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
-                <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
-                    Elements="tenantList" SelectedElementChanged="TenantViewChanged">
+                <Dropdown
+                    @ref="tenantSelector"
+                    SelectedElementChanged="TenantViewChanged"
+                    ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
+                    Elements="tenantList">
                     <ElementTemplate Context="tenant">
                         @tenant.Name
                     </ElementTemplate>
                 </Dropdown>
             </div>
         }
-    }
-    else
-    {
-        <div class="p-3">
-            <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant.Name</h5>
-        </div>
+        else
+        {
+            <div class="p-3">
+                <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant.Name</h5>
+            </div>
+        }
     }
 
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
@@ -262,6 +265,8 @@
     private List<string> unsupportedList = new List<string>();
     private DeviceFilter reducedDeviceFilter = new DeviceFilter();
 
+    private Dropdown<Tenant> tenantSelector;
+
     private TimeFilter actTimeFilter = new TimeFilter();
     private TimeFilter savedTimeFilter = new TimeFilter();
     private string displayedTimeSelection = "";
@@ -345,19 +350,18 @@
         // as we would be missing src/dst/svc information in some cases           
         managementsReport = new Management[] {};
         globalStats = null;
-        selectAll = true; // reset selectAll button
 
         // adjust device filter to newly selected tenant view
         selectedTenantView = newTenantView;
-        if (selectedTenantView==null || selectedTenantView.Id == 1)
+        StateHasChanged(); // redisplay LSB
+        if (selectedTenantView==null || selectedTenantView.Id == 1)   // tenant0 or no tenant selected
         {
-            // tenant0 or no tenant selected
             deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
         }
         else
         {
             // reset  available devices according to tenant device filter
-            Tenant tenant = await getTenantById(newTenantView.Id, Connection);
+            Tenant tenant = await Tenant.getTenantById(Connection, newTenantView.Id);
             List<int> visibleDevicesForTenant = new List<int>();
             foreach (TenantDevice tenantDevice in tenant.TenantDevices)
             {
@@ -367,31 +371,36 @@
                 DeviceQueries.getDevicesByManagements,
                 new { devIds = visibleDevicesForTenant.ToArray() }
             );
-            StateHasChanged(); // redisplay LSB
         }
-    }
-
-    private async Task<Tenant> getTenantById(int tenantId, ApiConnection apiConnection)
-    {
-        Tenant[] tenantArray = Array.Empty<Tenant>();
-        tenantArray = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantById, new { tenant_id = tenantId });
-        Tenant tenant = new Tenant(tenantArray[0]);
-        return tenant;
+        selectAll = !deviceFilter.isAnyDeviceFilterSet();
+        StateHasChanged(); // redisplay LSB
     }
 
     private async Task SyncFiltersFromTemplate(ReportTemplate template)
     {
         filterInput = template.Filter;
         selectedReportType = (ReportType)template.ReportParams.ReportType;
+
+        if (template.ReportParams.TenantFilter.IsActive)
+        {
+            Tenant tenantFromTemplate = await Tenant.getTenantById(Connection, template.ReportParams.TenantFilter.TenantId);
+            await tenantSelector.SelectElement(tenantFromTemplate);
+            await TenantViewChanged(tenantFromTemplate);
+        }
+        else
+        {
+            await tenantSelector.SelectElement(null);
+            await TenantViewChanged(null);
+        }
+
         if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
         {
             deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
+            StateHasChanged();
         }
         selectAll = !deviceFilter.isAnyDeviceFilterSet();
-        if(template.ReportParams.TenantFilter.IsActive)
-        {
-            selectedTenantView = await getTenantById(template.ReportParams.TenantFilter.TenantId, Connection);
-        }        
+        StateHasChanged();
+
         if(template.ReportParams.TimeFilter != null)
         {
             actTimeFilter = template.ReportParams.TimeFilter;

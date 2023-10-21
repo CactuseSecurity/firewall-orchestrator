@@ -52,7 +52,7 @@ namespace FWO.Report.Filter.Ast
             string queryVarName = AddVariable<string>(query, "fullTextFiler", Operator.Kind, semanticValue!);
             string queryOperator = ExtractOperator();
 
-            List<string> ruleFieldNames = new List<string>() { "rule_src", "rule_dst", "rule_svc", "rule_action" };  // TODO: add comment later
+            List<string> ruleFieldNames = new List<string>() { "rule_src", "rule_dst", "rule_svc", "rule_action", "rule_name", "rule_comment", "rule_uid" };  // TODO: add comment later
             List<string> searchParts = new List<string>();
             foreach (string field in ruleFieldNames)
                 searchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");

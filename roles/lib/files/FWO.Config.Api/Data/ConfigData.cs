@@ -203,6 +203,27 @@ namespace FWO.Config.Api.Data
         [JsonProperty("allowServerInConn"), JsonPropertyName("allowServerInConn")]
         public bool AllowServerInConn { get; set; } = true;
 
+        [JsonProperty("allowServiceInConn"), JsonPropertyName("allowServiceInConn")]
+        public bool AllowServiceInConn { get; set; } = true;
+
+        [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
+        public string ImportAppDataPath { get; set; } = "";
+
+        [JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
+        public int ImportAppDataSleepTime { get; set; } = 24;
+
+        [JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
+        public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
+
+        [JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
+        public string ImportSubnetDataPath { get; set; } = "";
+
+        [JsonProperty("importSubnetDataSleepTime"), JsonPropertyName("importSubnetDataSleepTime")]
+        public int ImportSubnetDataSleepTime { get; set; } = 24;
+
+        [JsonProperty("importSubnetDataStartAt"), JsonPropertyName("importSubnetDataStartAt")]
+        public DateTime ImportSubnetDataStartAt { get; set; } = new DateTime();
+
 
         public ConfigData(bool editable = false)
         {

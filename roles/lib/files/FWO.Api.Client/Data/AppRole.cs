@@ -9,8 +9,8 @@ namespace FWO.Api.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
 
-        [JsonProperty("area"), JsonPropertyName("area")]
-        public NetworkArea Area { get; set; }
+        [JsonProperty("app_id"), JsonPropertyName("app_id")]
+        public int AppId { get; set; }
 
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
@@ -18,7 +18,10 @@ namespace FWO.Api.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
+        [JsonProperty("appServers"), JsonPropertyName("appServers")]
         public List<NetworkObject> NetworkObjects { get; set; } = new List<NetworkObject>{};
+
+        public NetworkArea Area { get; set; }
 
     }
 }

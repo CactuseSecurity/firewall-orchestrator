@@ -11,7 +11,7 @@
             <h3>@(userConfig.GetText("library"))</h3>
         </div>
         <div class="mt-3 col-sm-5 justify-content-end">
-            <label class="col-form-label text-success">@AppName</label>
+            <label class="col-form-label text-success">@Application.Name</label>
         </div>
     </div>
     <div class="col-sm-11 border rounded m-2 p-2">
@@ -41,21 +41,21 @@
             <h5>@(userConfig.GetText("app_server"))</h5>
             <div class="form-group row">
                 <div class="col-sm-9">
-                    <select class="form-control form-control-sm" @bind="selectedIpAddresses" multiple>
-                        @foreach (var appserver in IpAddresses)
+                    <select class="form-control form-control-sm" @bind="selectedAppServer" multiple>
+                        @foreach (var appserver in AppServer)
                         {
-                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedIpAddresses)))" value="@appserver.Id">@NwObjDisplay.DisplayWithName(appserver)</option>
+                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedAppServer)))" value="@appserver.Id">@NwObjDisplay.DisplayWithName(appserver)</option>
                         }
                     </select>
                 </div>
                 <div class="col-sm-3">
-                @if(ToSrcAllowed && selectedIpAddresses.Length > 0)
+                @if(ToSrcAllowed && selectedAppServer.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => ObjToSource(ResolveElem(selectedIpAddresses))">@(userConfig.GetText("to_source"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => AppServerToSource(ResolveElem(selectedAppServer))">@(userConfig.GetText("to_source"))</button>
                 }
-                @if(ToDestAllowed && selectedIpAddresses.Length > 0)
+                @if(ToDestAllowed && selectedAppServer.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => ObjToDest(ResolveElem(selectedIpAddresses))">@(userConfig.GetText("to_dest"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => AppServerToDest(ResolveElem(selectedAppServer))">@(userConfig.GetText("to_dest"))</button>
                 }
                 </div>
             </div>
@@ -65,66 +65,95 @@
         <h5>@(userConfig.GetText("app_roles"))</h5>
         <div class="form-group row">
             <div class="col-sm-9">
-                <select class="form-control form-control-sm" @bind="selectedGroups" multiple>
-                    @foreach (var group in Groups)
+                <select class="form-control form-control-sm" @bind="selectedAppRoles" multiple>
+                    @foreach (var appRole in AppRoles)
                     {
-                        <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveGrp(selectedGroups)))" value="@group.Id">
+                        <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveAppRole(selectedAppRoles)))" value="@appRole.Id">
                             <div class="col-sm-12 dropzone" 
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
-                                @ondrop="() => HandleIpDropToGrp(group)">
-                                @group.Name
+                                @ondrop="() => HandleIpDropToAppRole(appRole)">
+                                @appRole.Name
                             </div>
                         </option>
                     }
                 </select>
             </div>
             <div class="col-sm-3">
-                @if(ToSrcAllowed && selectedGroups.Length > 0)
+                @if(ToSrcAllowed && selectedAppRoles.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => GrpToSource(ResolveGrp(selectedGroups))">@(userConfig.GetText("to_source"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => AppRoleToSource(ResolveAppRole(selectedAppRoles))">@(userConfig.GetText("to_source"))</button>
                 }
-                @if(ToDestAllowed && selectedGroups.Length > 0)
+                @if(ToDestAllowed && selectedAppRoles.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => GrpToDest(ResolveGrp(selectedGroups))">@(userConfig.GetText("to_dest"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => AppRoleToDest(ResolveAppRole(selectedAppRoles))">@(userConfig.GetText("to_dest"))</button>
                 }
             </div>
         </div>
         <div class="form-group row">
             <div class="col-sm-12">
-                <button type="button" class="btn btn-sm btn-success" @onclick="() => CreateGroup()">@(userConfig.GetText("def_app_role"))</button>
-                @if(selectedGroups.Length == 1)
+                <button type="button" class="btn btn-sm btn-success" @onclick="() => CreateAppRole()">@(userConfig.GetText("def_app_role"))</button>
+                @if(selectedAppRoles.Length == 1)
                 {
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditGroup(ResolveGrp(selectedGroups).First())">@(userConfig.GetText("edit_app_role"))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {RequestDeleteGroup(ResolveGrp(selectedGroups).First());selectedGroups = new long[]{};}">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditAppRole(ResolveAppRole(selectedAppRoles).First())">@(userConfig.GetText("edit_app_role"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {RequestDeleteAppRole(ResolveAppRole(selectedAppRoles).First());selectedAppRoles = new long[]{};}">@(userConfig.GetText("delete"))</button>
                 }
             </div>
         </div>
         <br><br>
+        @if(userConfig.AllowServiceInConn)
+        {
+            @if(ToSvcAllowed)
+            {
+                <h5>@(userConfig.GetText("services"))</h5>
+                <div class="form-group row">
+                    <div class="col-sm-9">
+                        <select class="form-control form-control-sm" @bind="selectedServices" multiple>
+                            @foreach (var service in connHandler.Services)
+                            {
+                                <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@DisplayService(service)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-3">
+                        @if(ToSvcAllowed && selectedServices.Length > 0)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => connHandler.ServicesToConn(ResolveSvc(selectedServices))">@(userConfig.GetText("to_service"))</button>
+                        }
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-success" @onclick="() => CreateService()">@(userConfig.GetText("add_service"))</button>
+                @if(selectedServices.Length == 1)
+                {
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditService(ResolveSvc(selectedServices).First())">@(userConfig.GetText("edit_service"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {RequestDeleteService(ResolveSvc(selectedServices).First());selectedServices = new long[]{};}">@(userConfig.GetText("delete"))</button>
+                }
+            }
+        }
         @if(ToSvcAllowed)
         {
-            <h5>@(userConfig.GetText("services"))</h5>
+            <h5>@(userConfig.GetText("services_groups"))</h5>
             <div class="form-group row">
                 <div class="col-sm-9">
-                    <select class="form-control form-control-sm" @bind="selectedServices" multiple>
-                        @foreach (var service in Services)
+                    <select class="form-control form-control-sm" @bind="selectedServiceGroups" multiple>
+                        @foreach (var grp in connHandler.ServiceGroups)
                         {
-                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@FWO.Ui.Display.RuleDisplayBase.DisplayService(service, FWO.Report.Filter.ReportType.Rules)</option>
+                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvcGrp(selectedServiceGroups)))" value="@grp.Id">@DisplayServiceGroup(grp)</option>
                         }
                     </select>
                 </div>
                 <div class="col-sm-3">
-                    @if(ToSvcAllowed && selectedServices.Length > 0)
+                    @if(ToSvcAllowed && selectedServiceGroups.Length > 0)
                     {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => ToService(ResolveSvc(selectedServices))">@(userConfig.GetText("to_service"))</button>
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => connHandler.ServiceGrpsToConn(ResolveSvcGrp(selectedServiceGroups))">@(userConfig.GetText("to_service"))</button>
                     }
                 </div>
             </div>
-            <button type="button" class="btn btn-sm btn-success" @onclick="() => CreateService()">@(userConfig.GetText("add_service"))</button>
-            @if(selectedServices.Length == 1)
+            <button type="button" class="btn btn-sm btn-success" @onclick="() => CreateServiceGrp()">@(userConfig.GetText("add_service"))</button>
+            @if(selectedServiceGroups.Length == 1)
             {
-                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditService(ResolveSvc(selectedServices).First())">@(userConfig.GetText("edit_service"))</button>
-                <button type="button" class="btn btn-sm btn-danger" @onclick="() => {RequestDeleteService(ResolveSvc(selectedServices).First());selectedServices = new long[]{};}">@(userConfig.GetText("delete"))</button>
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGrp(ResolveSvcGrp(selectedServiceGroups).First())">@(userConfig.GetText("edit_service"))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="() => {RequestDeleteServiceGrp(ResolveSvcGrp(selectedServiceGroups).First());selectedServiceGroups = new long[]{};}">@(userConfig.GetText("delete"))</button>
             }
         }
     </div>
@@ -136,7 +165,7 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter] 
-    public string AppName { get; set; } = "";
+    public FwoOwner Application { get; set; } = new FwoOwner();
 
     [Parameter] 
     public DnDContainer Container { get; set; } = new();
@@ -150,35 +179,42 @@
     [Parameter]
     public EventCallback<int> WidthChanged { get; set; }
 
+    [Parameter]
+    public ModellingConnectionHandler connHandler { get; set; }
+
+
     [Parameter] 
-    public List<AppRole> Groups { get; set; } = new();
+    public List<AppRole> AppRoles { get; set; } = new();
 
-    [Parameter] 
-    public List<NetworkService> Services { get; set; } = new();
-
-    [Parameter]
-    public Func<List<NetworkObject>, bool> ObjToSource { get; set; } = DefaultInit.DoNothingSync;
+    @* [Parameter] 
+    public List<ServiceGroup> ServiceGroups { get; set; } = new(); *@
 
     [Parameter]
-    public Func<List<NetworkObject>, bool> ObjToDest { get; set; } = DefaultInit.DoNothingSync;
+    public Func<List<NetworkObject>, bool> AppServerToSource { get; set; } = DefaultInit.DoNothingSync;
 
     [Parameter]
-    public Func<List<AppRole>, bool> GrpToSource { get; set; } = DefaultInit.DoNothingSync;
+    public Func<List<NetworkObject>, bool> AppServerToDest { get; set; } = DefaultInit.DoNothingSync;
 
     [Parameter]
-    public Func<List<AppRole>, bool> GrpToDest { get; set; } = DefaultInit.DoNothingSync;
+    public Func<List<AppRole>, bool> AppRoleToSource { get; set; } = DefaultInit.DoNothingSync;
 
     [Parameter]
-    public Func<List<NetworkService>, bool> ToService { get; set; } = DefaultInit.DoNothingSync;
+    public Func<List<AppRole>, bool> AppRoleToDest { get; set; } = DefaultInit.DoNothingSync;
+
+    @* [Parameter]
+    public Func<List<NetworkService>, bool> SvcToService { get; set; } = DefaultInit.DoNothingSync; *@
+
+    @* [Parameter]
+    public Func<List<ServiceGroup>, bool> SvcGrpToService { get; set; } = DefaultInit.DoNothingSync; *@
 
     [Parameter]
-    public Func<bool> CreateGroup { get; set; } = DefaultInit.DoNothingSync;
+    public Func<bool> CreateAppRole { get; set; } = DefaultInit.DoNothingSync;
 
     [Parameter]
-    public Func<AppRole, bool> EditGroup { get; set; } = DefaultInit.DoNothingSync;
+    public Func<AppRole, bool> EditAppRole { get; set; } = DefaultInit.DoNothingSync;
 
     [Parameter]
-    public Func<AppRole, bool> RequestDeleteGroup { get; set; } = DefaultInit.DoNothingSync;
+    public Func<AppRole, bool> RequestDeleteAppRole { get; set; } = DefaultInit.DoNothingSync;
 
     [Parameter]
     public Func<bool> CreateService { get; set; } = DefaultInit.DoNothingSync;
@@ -188,6 +224,15 @@
 
     [Parameter]
     public Func<NetworkService, bool> RequestDeleteService { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public Func<bool> CreateServiceGrp { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public Func<ServiceGroup, bool> EditServiceGrp { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public Func<ServiceGroup, bool> RequestDeleteServiceGrp { get; set; } = DefaultInit.DoNothingSync;
 
     [Parameter]
     public bool DisplayInterfaces { get; set; } = false;
@@ -208,25 +253,23 @@
     public bool ToSvcAllowed { get; set; } = true;
 
 
-    private List<NetworkObject> IpAddresses = new List<NetworkObject>(){};
-    private long[] selectedIpAddresses = new long[]{};
-    private long[] selectedGroups = new long[]{};
+    private List<NetworkObject> AppServer = new List<NetworkObject>(){};
+    //private List<NetworkService> Services = new List<NetworkService>(){};
+    private long[] selectedAppServer = new long[]{};
+    private long[] selectedAppRoles = new long[]{};
     private long[] selectedServices = new long[]{};
+    private long[] selectedServiceGroups = new long[]{};
     private long selectedInterface = 0;
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
-    // Test data
-    private static NetworkObject TestIp3 = new NetworkObject(){ Id = 3, IP = "1.2.3.4", IpEnd = "1.2.3.4", Name = "TestIp3"};
-    private static NetworkObject TestIp4 = new NetworkObject(){ Id = 4, IP = "111.222.1.0", IpEnd = "111.222.1.7", Name = "TestIp4"};
-    private static NetworkObject TestIp5 = new NetworkObject(){ Id = 5, IP = "10.0.1.1", IpEnd = "10.0.1.1", Name = "TestIp5"};
-    private static NetworkObject TestIp6 = new NetworkObject(){ Id = 6, IP = "123.1.1.0", IpEnd = "123.1.1.1"};
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // IpAddresses = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.OwnerQueries.getNetworkOwnerships, new { ownerId = 1 });
-            IpAddresses = new List<NetworkObject>(){TestIp3, TestIp4, TestIp5, TestIp6};
+            AppServer = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServer, new { appId = Application.Id });
+            //Services = await apiConnection.SendQueryAsync<List<NetworkService>>(FWO.Api.Client.Queries.ModellingQueries.getServicesForApp, new { appId = Application.Id });
+
             if(Interfaces.Count > 0)
             {
                 selectedInterface = Interfaces.First().Id;
@@ -250,10 +293,10 @@
         Container.IpElements = selectedIps;
     }
 
-    private void HandleDragStart(List<AppRole> selectedGroups)
+    private void HandleDragStart(List<AppRole> selectedAppRoles)
     {
         Container.Clear();
-        Container.GrpElements = selectedGroups;
+        Container.AppRoleElements = selectedAppRoles;
     }
 
     private void HandleDragStart(List<NetworkService> selectedSvcs)
@@ -262,11 +305,17 @@
         Container.SvcElements = selectedSvcs;
     }
 
-    private async Task HandleIpDropToGrp(AppRole group)
+    private void HandleDragStart(List<ServiceGroup> selectedSvcGrps)
+    {
+        Container.Clear();
+        Container.SvcGrpElements = selectedSvcGrps;
+    }
+
+    private async Task HandleIpDropToAppRole(AppRole appRole)
     {
         if(Container.IpElements.Count > 0)
         {
-            group.NetworkObjects.AddRange(Container.IpElements);
+            appRole.NetworkObjects.AddRange(Container.IpElements);
             // save ???
         }
         Container.Clear();
@@ -282,19 +331,19 @@
         List<NetworkObject> addedIps = new();
         foreach(var id in selectedIds)
         {
-            addedIps.Add(IpAddresses.FirstOrDefault(x => x.Id == id));
+            addedIps.Add(AppServer.FirstOrDefault(x => x.Id == id));
         }
         return addedIps;
     }
 
-    private List<AppRole> ResolveGrp(long[] selectedIds)
+    private List<AppRole> ResolveAppRole(long[] selectedIds)
     {
-        List<AppRole> addedGrps = new();
+        List<AppRole> addedAppRoles = new();
         foreach(var id in selectedIds)
         {
-            addedGrps.Add(Groups.FirstOrDefault(x => x.Id == id));
+            addedAppRoles.Add(AppRoles.FirstOrDefault(x => x.Id == id));
         }
-        return addedGrps;
+        return addedAppRoles;
     }
 
     private List<NetworkService> ResolveSvc(long[] selectedIds)
@@ -302,9 +351,37 @@
         List<NetworkService> addedSvcs = new();
         foreach(var id in selectedIds)
         {
-            addedSvcs.Add(Services.FirstOrDefault(x => x.Id == id));
+            addedSvcs.Add(connHandler.Services.FirstOrDefault(x => x.Id == id));
         }
         return addedSvcs;
+    }
+
+    private List<ServiceGroup> ResolveSvcGrp(long[] selectedIds)
+    {
+        List<ServiceGroup> addedSvcGrps = new();
+        foreach(var id in selectedIds)
+        {
+            addedSvcGrps.Add(connHandler.ServiceGroups.FirstOrDefault(x => x.Id == id));
+        }
+        return addedSvcGrps;
+    }
+
+    private string DisplayService(NetworkService service)
+    {
+        return FWO.Ui.Display.RuleDisplayBase.DisplayService(service, FWO.Report.Filter.ReportType.Rules).ToString();
+    }
+
+    private string DisplayServiceGroup(ServiceGroup grp)
+    {
+        if(grp.Name != null && grp.Name != "")
+        {
+            return grp.Name;
+        }
+        if(grp.NetworkServices.Count > 0)
+        {
+            return DisplayService(grp.NetworkServices[0].Content);
+        }
+        return "anything else";
     }
 
     private async Task DataInconsistent()

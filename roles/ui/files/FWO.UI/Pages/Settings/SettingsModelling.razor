@@ -15,11 +15,54 @@
 
 @if (configData != null)
 {
-
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("allowServerInConn")):</label>
         <div class="col-sm-2">
             <input type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("allowServiceInConn")):</label>
+        <div class="col-sm-2">
+            <input type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>
+        <div class="col-sm-8">
+            <input type="text" class="form-control form-control-sm" @bind="configData!.ImportAppDataPath" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataSleepTime")):</label>
+        <div class="col-sm-2">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportAppDataSleepTime" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataStartAt")):</label>
+        <div class="col-sm-2">
+            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImportAppDataStartAt" />
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
+        <div class="col-sm-8">
+            <input type="text" class="form-control form-control-sm" @bind="configData!.ImportSubnetDataPath" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataSleepTime")):</label>
+        <div class="col-sm-2">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportSubnetDataSleepTime" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataStartAt")):</label>
+        <div class="col-sm-2">
+            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImportSubnetDataStartAt" />
         </div>
     </form>
     <hr />

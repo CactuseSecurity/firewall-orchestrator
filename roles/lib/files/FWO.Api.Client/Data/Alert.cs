@@ -22,7 +22,10 @@ namespace FWO.Api.Data
         Autodiscovery = 21,
         AutoDiscoveryErrorUnspecific = 22,
 
-        WorkflowAlert = 31
+        WorkflowAlert = 31,
+
+        ImportAppData = 41,
+        ImportSubnetData = 42
     }
 
     public class Alert

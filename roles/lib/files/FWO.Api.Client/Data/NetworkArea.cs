@@ -7,14 +7,15 @@ namespace FWO.Api.Data
 {
     public class NetworkSubnet
     {
-        public string Name { get; set; }
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; } = 0;
 
-        public string Address { get; set; }
-
-        public string Mask { get; set; }
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
 
         // -> cidr
-        public IPAddressRange IPAddressRange { get; set; }
+        [JsonProperty("network"), JsonPropertyName("network")]
+        public string? Network { get; set; }
     }
 
     public class NetworkArea
@@ -25,6 +26,7 @@ namespace FWO.Api.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("subnets"), JsonPropertyName("subnets")]
         public List<NetworkSubnet> Subnets { get; set; }
     }
 }

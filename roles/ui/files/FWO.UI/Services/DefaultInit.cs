@@ -20,6 +20,8 @@ namespace FWO.Ui.Services
         public static bool DoNothingSync(List<AppRole> a) { return false; }
         public static bool DoNothingSync(NetworkService s) { return false; }
         public static bool DoNothingSync(List<NetworkService> s) { return false; }
+        public static bool DoNothingSync(ServiceGroup s) { return false; }
+        public static bool DoNothingSync(List<ServiceGroup> s) { return false; }
         public static bool DoNothingSync(List<NetworkObject> o) { return false; }
     }
 }

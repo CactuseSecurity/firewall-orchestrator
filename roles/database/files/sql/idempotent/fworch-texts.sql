@@ -1002,6 +1002,10 @@ INSERT INTO txt VALUES ('remove_interface', 	'German',	'Schnittstelle entfernen'
 INSERT INTO txt VALUES ('remove_interface', 	'English',	'Remove Interface');
 INSERT INTO txt VALUES ('use',                  'German', 	'Benutzen');
 INSERT INTO txt VALUES ('use',                  'English', 	'Use');
+INSERT INTO txt VALUES ('services_group', 	    'German',	'Dienstgruppe');
+INSERT INTO txt VALUES ('services_group', 	    'English',	'Service Group');
+INSERT INTO txt VALUES ('services_groups', 	    'German',	'Dienstgruppen');
+INSERT INTO txt VALUES ('services_groups', 	    'English',	'Service Groups');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -1550,14 +1554,14 @@ INSERT INTO txt VALUES ('allowServerInConn',    'German', 	'Server in Verbindung
 INSERT INTO txt VALUES ('allowServerInConn',    'English', 	'Allow Servers in Connection');
 INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in Verbindung erlauben');
 INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
-INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad zur Appdaten-Datei');
-INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path to App data file');
+INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad zur Appdaten-Importskript');
+INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path to App data import script');
 INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'English', 	'Import App data start at');
-INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad zur Subnetzdaten-Datei');
-INSERT INTO txt VALUES ('importSubnetDataPath', 'English', 	'Path to subnet data file');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad zur Subnetzdaten-Importskript');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'English', 	'Path to subnet data import script');
 INSERT INTO txt VALUES ('importSubnetDataSleepTime','German','Import Subnetzdaten-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('importSubnetDataSleepTime','English','Import Subnet data sleep time (in hours)');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten-Start');
@@ -2317,6 +2321,8 @@ INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested 
 
 INSERT INTO txt VALUES ('E9001', 'German',  'Sie haben Modellier-Rechte für keine Applikation.');
 INSERT INTO txt VALUES ('E9001', 'English', 'You have no modeller rights for any application.');
+INSERT INTO txt VALUES ('E9002', 'German',  'Keine Area verf&uuml;gbar.');
+INSERT INTO txt VALUES ('E9002', 'English', 'No areas available.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

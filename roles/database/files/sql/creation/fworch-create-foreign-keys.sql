@@ -293,6 +293,8 @@ ALTER TABLE modelling.approle_connection ADD CONSTRAINT modelling_approle_connec
 ALTER TABLE modelling.approle_connection ADD CONSTRAINT modelling_approle_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.appserver_connection ADD CONSTRAINT modelling_appserver_connection_appserver_foreign_key FOREIGN KEY (appserver_id) REFERENCES modelling.app_server(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.appserver_connection ADD CONSTRAINT modelling_appserver_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.service ADD CONSTRAINT modelling_service_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.service_group ADD CONSTRAINT modelling_service_group_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_service_group ADD CONSTRAINT modelling_service_service_group_service_foreign_key FOREIGN KEY (service_id) REFERENCES modelling.service(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_service_group ADD CONSTRAINT modelling_service_service_group_service_group_foreign_key FOREIGN KEY (service_group_id) REFERENCES modelling.service_group(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_group_connection ADD CONSTRAINT modelling_service_group_connection_service_group_foreign_key FOREIGN KEY (service_group_id) REFERENCES modelling.service_group(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -300,4 +302,5 @@ ALTER TABLE modelling.service_group_connection ADD CONSTRAINT modelling_service_
 ALTER TABLE modelling.service_connection ADD CONSTRAINT modelling_service_connection_service_foreign_key FOREIGN KEY (service_id) REFERENCES modelling.service(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_connection ADD CONSTRAINT modelling_service_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.change_history ADD CONSTRAINT modelling_change_history_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.change_history ADD CONSTRAINT modelling_change_history_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 

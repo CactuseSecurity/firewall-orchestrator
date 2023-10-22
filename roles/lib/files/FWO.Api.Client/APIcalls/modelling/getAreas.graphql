@@ -1,0 +1,11 @@
+query getAreas {
+  modelling_area (order_by: { name: asc }){
+    id
+    name
+    subnets: area_subnets{
+      id
+      name
+      network
+    }
+  }
+}

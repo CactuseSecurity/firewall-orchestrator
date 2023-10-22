@@ -12,7 +12,7 @@
     <div class="form-group row">
         <div class="col-sm-9">
             <select class="form-control form-control-sm" @bind="selectedIpAddresses" multiple>
-                @foreach (var appserver in IpAddresses)
+                @foreach (var appserver in AppServer)
                 {
                     <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedIpAddresses)))" value="@appserver.Id">@NwObjDisplay.DisplayWithName(appserver)</option>
                 }
@@ -43,7 +43,7 @@
     public EventCallback<int> WidthChanged { get; set; }
 
     [Parameter]
-    public List<NetworkObject> IpAddresses { get; set; }
+    public List<NetworkObject> AppServer { get; set; }
 
     [Parameter]
     public Func<List<NetworkObject>, bool> ToAppRole { get; set; }
@@ -74,7 +74,7 @@
         List<NetworkObject> addedIps = new();
         foreach(var id in selectedIds)
         {
-            addedIps.Add(IpAddresses.FirstOrDefault(x => x.Id == id));
+            addedIps.Add(AppServer.FirstOrDefault(x => x.Id == id));
         }
         return addedIps;
     }

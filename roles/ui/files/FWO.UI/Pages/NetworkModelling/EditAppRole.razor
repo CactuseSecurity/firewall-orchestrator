@@ -10,7 +10,7 @@
         <Body>
             <div class="row">
                 <div class="col-sm-6">
-                    <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" IpAddresses="IpAddresses" ToAppRole="AddServer"/>
+                    <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" AppServer="actServers" ToAppRole="AddServer"/>
                 </div>
                 <div class="col-sm-6">
                     <h3>@(userConfig.GetText("app_role"))</h3>
@@ -100,23 +100,18 @@
     public List<NetworkObject> IpsToDelete { get; set; } = new List<NetworkObject>();
 
     private List<NetworkArea> areas = new List<NetworkArea>();
-    private List<NetworkObject> IpAddresses = new List<NetworkObject>(){};
-
-    // Test data
-    static NetworkArea TestArea1 = new NetworkArea(){ Id = 1, Name = "NA50"};
-    static NetworkArea TestArea2 = new NetworkArea(){ Id = 2, Name = "NA91"};
-    static NetworkObject TestIp3 = new NetworkObject(){ Id = 3, IP = "1.2.3.4", IpEnd = "1.2.3.4", Name = "TestIp3"};
-    static NetworkObject TestIp4 = new NetworkObject(){ Id = 4, IP = "111.222.1.0", IpEnd = "111.222.1.7", Name = "TestIp4"};
-    static NetworkObject TestIp5 = new NetworkObject(){ Id = 5, IP = "10.0.1.1", IpEnd = "10.0.1.1", Name = "TestIp5"};
-    static NetworkObject TestIp6 = new NetworkObject(){ Id = 6, IP = "123.1.1.0", IpEnd = "123.1.1.1"};
-
+    private List<NetworkObject> allServers = new List<NetworkObject>(){};
+    private List<NetworkObject> actServers = new List<NetworkObject>(){};
+    private bool firstTry = true;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // todo: get areas
-            areas = new List<NetworkArea>(){TestArea1, TestArea2};
+            areas = await apiConnection.SendQueryAsync<List<NetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
+            // todo: select relevant areas for owner?
+
+            allServers = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServer, new { appId = AppRole.AppId });
         }
         catch (Exception exception)
         {
@@ -132,7 +127,19 @@
             {
                 AppRole.Comment = userConfig.User.Name;
             }
-            SelectedAreaChanged(AddMode ? areas.First() : AppRole.Area);
+
+            if(areas.Count == 0)
+            {
+                if(firstTry)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("E9002"), "", true);
+                    firstTry = false;
+                }
+            }
+            else
+            {
+                SelectedAreaChanged(AddMode ? areas.First() : AppRole.Area);
+            }
         }
     }
 
@@ -194,19 +201,35 @@
         {
             AppRole.Name = newArea.Name.Remove(1, 1).Insert(1, "Z");
         }
-        IpAddresses = SelectIpsFromArea(newArea);
+        SelectIpsFromArea(newArea);
     }
 
-    private List<NetworkObject> SelectIpsFromArea(NetworkArea area)
+    private void SelectIpsFromArea(NetworkArea area)
     {
-        // todo: logic
-        if(area.Id == 1)
+        actServers = new List<NetworkObject>(){};
+        foreach(var server in allServers)
         {
-            return new List<NetworkObject>(){TestIp3, TestIp4};
+            if(IsInArea(server, area))
+            {
+                actServers.Add(server);
+            }
         }
-        else
+    }
+
+    private bool IsInArea(NetworkObject server, NetworkArea area)
+    {
+        foreach(var subnet in area.Subnets)
         {
-            return new List<NetworkObject>(){TestIp5, TestIp6};
+            var slashIdx = subnet.Network.IndexOf("/");
+            if (slashIdx == -1)
+            {
+                slashIdx = 31;
+            }
+            if(server.IP.Substring(0, slashIdx) == subnet.Network.Substring(0, slashIdx)) // TODO: correct? IPv6??
+            {
+                return true;
+            }
         }
+        return false;
     }
 }

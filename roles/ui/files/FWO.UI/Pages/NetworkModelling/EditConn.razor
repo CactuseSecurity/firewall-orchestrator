@@ -8,40 +8,21 @@
 {
     @if(!ReadOnly)
     {
-        <EditConnLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" Groups="groups" Services="services"
+        <EditConnLeftSide AppName="@AppName" @bind-Container="Container" @bind-Width="sidebarLeftWidth" Groups="groups" Services="services"
             ObjToSource="AddObjSources" ObjToDest="AddObjDestinations" GrpToSource="AddGrpSources" GrpToDest="AddGrpDestinations" 
             ToService="AddServices" CreateGroup="CreateGroup" EditGroup="EditGroup" RequestDeleteGroup="RequestDeleteGroup" 
             CreateService="CreateService" EditService="EditService" RequestDeleteService="RequestDeleteService"
             DisplayInterfaces="@(!Conn.IsInterface && Conn.UsedInterfaceId == null)" Interfaces="interfaces" IntToConn="InterfToConn" ToSrcAllowed="@(!SrcDropForbidden())" ToDestAllowed="@(!DstDropForbidden())" ToSvcAllowed="!svcReadOnly"/>
     }
     <div style="margin-left: @($"{(ReadOnly ? 0 : sidebarLeftWidth) + 10}px");">
-        <h3>@(ReadOnly && Conn.IsInterface ? userConfig.GetText("interface") : userConfig.GetText("connection"))</h3>
+        <h3>@(Conn.IsInterface ? userConfig.GetText("interface") : userConfig.GetText("connection"))</h3>
         <div class="col-sm-11 border rounded m-2 p-2">
-            @if(!ReadOnly)
-            {
-                @if(srcReadOnly || dstReadOnly)
-                {
-                    <div class="form-group row">
-                        <div class="col-sm-2"/>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveInterf()">@(userConfig.GetText("remove_interface"))</button>
-                    </div>
-                }
-                else
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
-                        <div class="col-sm-1">
-                            <input type="checkbox" class="w-25" @bind="Conn.IsInterface">
-                        </div>
-                    </div>
-                }
-            }
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                 <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="Conn.Name" />
             </div>
             <div class="form-group row">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("func_reason")):</label>
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("func_reason"))*:</label>
                 <textarea rows="3" type="text" class=" col-sm-9 form-control form-control-sm" @bind="Conn.Comment" />
             </div>
             <div class="form-group row">
@@ -157,6 +138,13 @@
                 </AuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            @if(!ReadOnly)
+            {
+                @if(srcReadOnly || dstReadOnly)
+                {
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveInterf()">@(userConfig.GetText("remove_interface"))</button>
+                }
+            }
         </div>
     </div>
     <EditAppRole @bind-Display="EditAppRoleMode" AppRole="actAppRole" NewAppRole="NewAppRole" UpdateAppRole="UpdateAppRole" AddMode="AddAppRoleMode"/>
@@ -175,6 +163,9 @@
         
     [Parameter]
     public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter] 
+    public string AppName { get; set; } = "";
 
     [Parameter]
     public NetworkConnection Conn { get; set; } = new NetworkConnection();

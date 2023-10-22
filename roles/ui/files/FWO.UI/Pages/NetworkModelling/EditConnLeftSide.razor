@@ -6,13 +6,18 @@
 @inject UserConfig userConfig
 
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
-    <div class="mt-3 ml-2">
-        <h3>@(userConfig.GetText("library"))</h3>
+    <div class="form-group row col-sm-12">
+        <div class="mt-3 ml-2 col-sm-6">
+            <h3>@(userConfig.GetText("library"))</h3>
+        </div>
+        <div class="mt-3 col-sm-5 justify-content-end">
+            <label class="col-form-label text-success">@AppName</label>
+        </div>
     </div>
     <div class="col-sm-11 border rounded m-2 p-2">
         @if(DisplayInterfaces)
         {
-            <h5>@(userConfig.GetText("interface"))</h5>
+            <h5>@(userConfig.GetText("interfaces"))</h5>
             <div class="form-group row">
                 <div class="col-sm-9">
                     <select class="form-control form-control-sm" @bind="selectedInterface">
@@ -25,7 +30,7 @@
                 <div class="col-sm-3">
                     @if(selectedInterface > 0)
                     {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => IntToConn(ResolveConn(selectedInterface))">@(userConfig.GetText("apply"))</button>
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => IntToConn(ResolveConn(selectedInterface))">@(userConfig.GetText("use"))</button>
                     }
                 </div>
             </div>
@@ -129,6 +134,9 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter] 
+    public string AppName { get; set; } = "";
 
     [Parameter] 
     public DnDContainer Container { get; set; } = new();

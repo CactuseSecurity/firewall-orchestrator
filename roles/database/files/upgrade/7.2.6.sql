@@ -7,6 +7,8 @@ insert into config (config_key, config_value, config_user) VALUES ('importSubnet
 insert into config (config_key, config_value, config_user) VALUES ('importAppDataPath', '', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '', 0) ON CONFLICT DO NOTHING;
 
+alter table owner add column if not exists criticality Varchar;
+
 create schema if not exists modelling;
 
 create table if not exists modelling.area
@@ -80,6 +82,7 @@ create table if not exists modelling.appserver_connection -- (used only if setti
 create table if not exists modelling.service
 (
  	id SERIAL PRIMARY KEY,
+	app_id int,
 	name Varchar,
 	port int,
 	port_end int,
@@ -89,8 +92,10 @@ create table if not exists modelling.service
 create table if not exists modelling.service_group
 (
 	id SERIAL PRIMARY KEY,
+	app_id int,
 	name Varchar,
-	is_global boolean default false
+	is_global boolean default false,
+	comment Varchar
 );
 
 create table if not exists modelling.service_service_group
@@ -115,9 +120,11 @@ create table if not exists modelling.change_history
 (
 	id BIGSERIAL PRIMARY KEY,
 	change_time Timestamp,
+	app_id int,
     connection_id bigint,
 	change Varchar
 );
+
 
 ALTER TABLE modelling.area_subnet DROP CONSTRAINT IF EXISTS modelling_area_subnet_area_foreign_key;
 ALTER TABLE modelling.app_server DROP CONSTRAINT IF EXISTS modelling_app_server_owner_foreign_key;
@@ -130,6 +137,8 @@ ALTER TABLE modelling.approle_connection DROP CONSTRAINT IF EXISTS modelling_app
 ALTER TABLE modelling.approle_connection DROP CONSTRAINT IF EXISTS modelling_approle_connection_connection_foreign_key;
 ALTER TABLE modelling.appserver_connection DROP CONSTRAINT IF EXISTS modelling_appserver_connection_appserver_foreign_key;
 ALTER TABLE modelling.appserver_connection DROP CONSTRAINT IF EXISTS modelling_appserver_connection_connection_foreign_key;
+ALTER TABLE modelling.service DROP CONSTRAINT IF EXISTS modelling_service_owner_foreign_key;
+ALTER TABLE modelling.service_group DROP CONSTRAINT IF EXISTS modelling_service_group_owner_foreign_key;
 ALTER TABLE modelling.service_service_group DROP CONSTRAINT IF EXISTS modelling_service_service_group_service_foreign_key;
 ALTER TABLE modelling.service_service_group DROP CONSTRAINT IF EXISTS modelling_service_service_group_service_group_foreign_key;
 ALTER TABLE modelling.service_group_connection DROP CONSTRAINT IF EXISTS modelling_service_group_connection_service_group_foreign_key;
@@ -137,6 +146,7 @@ ALTER TABLE modelling.service_group_connection DROP CONSTRAINT IF EXISTS modelli
 ALTER TABLE modelling.service_connection DROP CONSTRAINT IF EXISTS modelling_service_connection_service_foreign_key;
 ALTER TABLE modelling.service_connection DROP CONSTRAINT IF EXISTS modelling_service_connection_connection_foreign_key;
 ALTER TABLE modelling.change_history DROP CONSTRAINT IF EXISTS modelling_change_history_connection_foreign_key;
+ALTER TABLE modelling.change_history DROP CONSTRAINT IF EXISTS modelling_change_history_owner_foreign_key;
 
 ALTER TABLE modelling.area_subnet ADD CONSTRAINT modelling_area_subnet_area_foreign_key FOREIGN KEY (area_id) REFERENCES modelling.area(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.app_server ADD CONSTRAINT modelling_app_server_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -149,6 +159,8 @@ ALTER TABLE modelling.approle_connection ADD CONSTRAINT modelling_approle_connec
 ALTER TABLE modelling.approle_connection ADD CONSTRAINT modelling_approle_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.appserver_connection ADD CONSTRAINT modelling_appserver_connection_appserver_foreign_key FOREIGN KEY (appserver_id) REFERENCES modelling.app_server(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.appserver_connection ADD CONSTRAINT modelling_appserver_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.service ADD CONSTRAINT modelling_service_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.service_group ADD CONSTRAINT modelling_service_group_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_service_group ADD CONSTRAINT modelling_service_service_group_service_foreign_key FOREIGN KEY (service_id) REFERENCES modelling.service(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_service_group ADD CONSTRAINT modelling_service_service_group_service_group_foreign_key FOREIGN KEY (service_group_id) REFERENCES modelling.service_group(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_group_connection ADD CONSTRAINT modelling_service_group_connection_service_group_foreign_key FOREIGN KEY (service_group_id) REFERENCES modelling.service_group(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -156,3 +168,5 @@ ALTER TABLE modelling.service_group_connection ADD CONSTRAINT modelling_service_
 ALTER TABLE modelling.service_connection ADD CONSTRAINT modelling_service_connection_service_foreign_key FOREIGN KEY (service_id) REFERENCES modelling.service(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_connection ADD CONSTRAINT modelling_service_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.change_history ADD CONSTRAINT modelling_change_history_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.change_history ADD CONSTRAINT modelling_change_history_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+

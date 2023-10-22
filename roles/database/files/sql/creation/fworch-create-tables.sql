@@ -1291,18 +1291,6 @@ create table compliance.ip_range
 --- Network modelling ---
 create schema modelling;
 
--- create table modelling.app  -- owner!
--- (
---     id SERIAL PRIMARY KEY,
---     app_id_external varchar UNIQUE,
---     name Varchar UNIQUE NOT NULL,
---		app_owner_name Varchar,  -- owner ??
---		sbw Varchar, -- ?criticality
---     dn Varchar NOT NULL, -- = app owner id??
---     group_dn Varchar NOT NULL, -- ?
---     tenant_id int -- ?
--- );
-
 create table modelling.area
 (
  	id SERIAL PRIMARY KEY,
@@ -1375,6 +1363,7 @@ create table modelling.appserver_connection -- (used only if settings flag is se
 create table modelling.service
 (
  	id SERIAL PRIMARY KEY,
+	app_id int,
 	name Varchar,
 	port int,
 	port_end int,
@@ -1384,8 +1373,10 @@ create table modelling.service
 create table modelling.service_group
 (
 	id SERIAL PRIMARY KEY,
+	app_id int,
 	name Varchar,
-	is_global boolean default false
+	is_global boolean default false,
+	comment Varchar
 );
 
 create table modelling.service_service_group
@@ -1410,6 +1401,7 @@ create table modelling.change_history
 (
 	id BIGSERIAL PRIMARY KEY,
 	change_time Timestamp,
+	app_id int,
     connection_id bigint,
 	change Varchar
 );

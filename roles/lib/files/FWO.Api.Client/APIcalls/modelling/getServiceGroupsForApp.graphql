@@ -1,0 +1,18 @@
+query getServiceGroupsForApp ($appId: Int!){
+  modelling_service_group (where: { app_id: { _eq: $appId } } order_by: { name: asc }){
+    id
+    app_id
+    name
+    is_global
+    comment
+    services: service_service_group{
+      service{
+        id
+	      name
+	      port
+	      port_end
+	      proto_id
+      }
+    }
+  }
+}

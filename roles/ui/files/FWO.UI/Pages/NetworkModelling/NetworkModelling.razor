@@ -37,6 +37,7 @@
         <div class="form-group row m-2">
             <h5>@(userConfig.GetText("comm_profile"))</h5>
             <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddConn">@(userConfig.GetText("add_connection"))</button>
+            <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddInt">@(userConfig.GetText("add_interface"))</button>
         </div>
         <div class="m-2">
             <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="NetworkConnection" Items="coproOfApp" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
@@ -86,7 +87,7 @@
         </div>
     }
 }
-<EditConn @bind-Display="EditConnMode" Conn="actConn" NewConn="NewConn" UpdateConn="UpdateConn" ReadOnly="readOnly" AddMode="AddConnMode"/>
+<EditConn @bind-Display="EditConnMode" AppName="@selectedApp.Name" Conn="actConn" NewConn="NewConn" UpdateConn="UpdateConn" ReadOnly="readOnly" AddMode="AddConnMode"/>
 <ConfirmDelete @bind-Display="DeleteConnMode" PerformAction="DeleteConn" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@deleteMessage"/>
 
 @code
@@ -183,6 +184,12 @@
     {
         AddConnMode = true;
         EditConn(new NetworkConnection());
+    }
+
+    private void AddInt()
+    {
+        AddConnMode = true;
+        EditConn(new NetworkConnection(){ IsInterface = true });
     }
 
     private void ShowDetails(NetworkConnection conn)

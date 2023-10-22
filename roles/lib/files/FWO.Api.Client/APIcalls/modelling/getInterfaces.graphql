@@ -1,0 +1,8 @@
+query getInterfaces{
+  modelling_connection (where: { is_interface: { _eq: true } } order_by: { name: asc }){
+    id
+    app_id
+    name
+    reason
+  }
+}

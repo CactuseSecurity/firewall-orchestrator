@@ -846,91 +846,1084 @@
               "table": {
                 "name": "app_role",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "approle_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "approle_id",
+                      "table": {
+                        "name": "approle_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "appserver_approles",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "approle_id",
+                      "table": {
+                        "name": "appserver_approle",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment",
+                      "name",
+                      "app_id",
+                      "id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "comment",
+                      "name",
+                      "app_id",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "comment",
+                      "name",
+                      "app_id",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "comment",
+                      "name",
+                      "app_id",
+                      "id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "app_server",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "appserver_approles",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "appserver_id",
+                      "table": {
+                        "name": "appserver_approle",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "appserver_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "appserver_id",
+                      "table": {
+                        "name": "appserver_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "app_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "app_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "app_zone",
                 "schema": "modelling"
-              }
+              },
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "approle_connection",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "app_role",
+                  "using": {
+                    "foreign_key_constraint_on": "approle_id"
+                  }
+                },
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "approle_id",
+                      "connection_field",
+                      "connection_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "approle_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "approle_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "appserver_approle",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "app_role",
+                  "using": {
+                    "foreign_key_constraint_on": "approle_id"
+                  }
+                },
+                {
+                  "name": "app_server",
+                  "using": {
+                    "foreign_key_constraint_on": "appserver_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "appserver_id",
+                      "approle_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "appserver_id",
+                      "approle_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "appserver_id",
+                      "approle_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "appserver_connection",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "app_server",
+                  "using": {
+                    "foreign_key_constraint_on": "appserver_id"
+                  }
+                },
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "appserver_id",
+                      "connection_field",
+                      "connection_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "appserver_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "appserver_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "area",
                 "schema": "modelling"
-              }
+              },
+              "array_relationships": [
+                {
+                  "name": "area_subnets",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "area_id",
+                      "table": {
+                        "name": "area_subnet",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "area_subnet",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "area",
+                  "using": {
+                    "foreign_key_constraint_on": "area_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "network",
+                      "area_id",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "network",
+                      "area_id",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "change_history",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "connection_id",
+                      "id",
+                      "change",
+                      "change_time"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "id",
+                      "change",
+                      "change_time"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "id",
+                      "change",
+                      "change_time"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "connection",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "used_interface_id"
+                  }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "approle_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "approle_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "appserver_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "appserver_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "change_histories",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "change_history",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "used_interface_id",
+                      "table": {
+                        "name": "connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "service_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "service_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "service_group_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "service_group_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "is_interface",
+                      "name",
+                      "app_id",
+                      "id",
+                      "used_interface_id",
+                      "reason"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "is_interface",
+                      "name",
+                      "app_id",
+                      "id",
+                      "used_interface_id",
+                      "reason"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_interface",
+                      "name",
+                      "app_id",
+                      "id",
+                      "used_interface_id",
+                      "reason"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_interface",
+                      "name",
+                      "app_id",
+                      "id",
+                      "used_interface_id",
+                      "reason"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "service",
                 "schema": "modelling"
-              }
+              },
+              "array_relationships": [
+                {
+                  "name": "service_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "service_id",
+                      "table": {
+                        "name": "service_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "service_service_groups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "service_id",
+                      "table": {
+                        "name": "service_service_group",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "port",
+                      "port_end",
+                      "proto_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "port",
+                      "port_end",
+                      "proto_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "service_connection",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                },
+                {
+                  "name": "service",
+                  "using": {
+                    "foreign_key_constraint_on": "service_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "connection_id",
+                      "service_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "service_group",
                 "schema": "modelling"
-              }
+              },
+              "array_relationships": [
+                {
+                  "name": "service_group_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "service_group_id",
+                      "table": {
+                        "name": "service_group_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "service_service_groups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "service_group_id",
+                      "table": {
+                        "name": "service_service_group",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "service_group_connection",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                },
+                {
+                  "name": "service_group",
+                  "using": {
+                    "foreign_key_constraint_on": "service_group_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "connection_id",
+                      "service_group_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
                 "name": "service_service_group",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "service",
+                  "using": {
+                    "foreign_key_constraint_on": "service_id"
+                  }
+                },
+                {
+                  "name": "service_group",
+                  "using": {
+                    "foreign_key_constraint_on": "service_group_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "service_group_id",
+                      "service_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "service_group_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "service_group_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
             },
             {
               "table": {
@@ -7809,6 +8802,18 @@
                 }
               ],
               "array_relationships": [
+                {
+                  "name": "app_roles",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "app_id",
+                      "table": {
+                        "name": "app_role",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "owner_networks",
                   "using": {

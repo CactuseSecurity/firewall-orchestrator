@@ -429,7 +429,7 @@ RETURNS SETOF rule AS $$
                     LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                     LEFT JOIN tenant_network ON
                         (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
-                WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant
+                WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant AND rule_head_text IS NULL
                 UNION
                 SELECT r.* FROM rule r
                     LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
@@ -437,7 +437,7 @@ RETURNS SETOF rule AS $$
                     LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                     LEFT JOIN tenant_network ON
                         (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
-                WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant
+                WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant AND rule_head_text IS NULL
                 ORDER BY rule_name;
         END IF;
     END;

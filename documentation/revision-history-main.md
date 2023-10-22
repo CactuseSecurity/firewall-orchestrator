@@ -311,3 +311,37 @@ adding report template format fk and permissions
    - demo data: fix sample group role path
    - adding demo video in github README.MD
    - splitting revision history into develop and main
+
+### 7.3 12.10.2023 MAIN
+- new features
+    - recertification: new rule ownership
+    - customizable UI texts
+    - starting target state module with introducing new role "modeller"
+    - adding tenant ip filtering
+    - adding tenant simulation (exluding statistical report, recertification and scheduled simulated reporting)
+- maintenance / bug-fixing
+  - complete re-work: all ip addresses are now internally represented as ranges, including all networks
+  - UI:
+    - do not show super managers in RSB all tab
+    - Use production / development based on the build type instead of always using development.
+    - do not show detailed errors in production mode + use the custom error page in the production environment
+    - bug fix jwt expiry, jwt expiry timer now works as intended
+    - unifying IP addresses display method across all parts
+    - fix filtering for rules with negated source / destination or single negated ip ranges
+  - Database:
+    - removing unused materialized view for tenant ip filtering
+  - Installer
+    - fix upgrade become issue in middleware ldif files
+    - fix client/server db sort order mismatch (collate)
+    - fix postgresql_query module reference
+    - adding simulated changes to fwodemodata (fortigate)
+    - add check for successful publishing dotnet (mw, ui)
+  - Importer
+    - fortiOS: fix importer action field
+    - fortimanager: ignore missing negate fields
+    - Check Point: adding Inform action
+    - Check Point: adding new network object type 'external-gateway' (for interoperable-dervice)
+    - Check Point: adding network object type support for 'CpmiVsClusterNetobj' (for VSX virtual switches)
+  - API:
+    - upgrade hasura to 2.34.0
+

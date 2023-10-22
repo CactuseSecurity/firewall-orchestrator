@@ -69,6 +69,8 @@ apiConn.SetAuthHeader(jwt);
 // Get all non-confidential configuration settings and add to a global service (for all users)
 GlobalConfig globalConfig = Task.Run(async () => await GlobalConfig.ConstructAsync(jwt)).Result;
 builder.Services.AddSingleton<GlobalConfig>(_ => globalConfig);
+
+// the user's personal config
 builder.Services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
 
 builder.Services.AddScoped(_ => new NetworkZoneService());

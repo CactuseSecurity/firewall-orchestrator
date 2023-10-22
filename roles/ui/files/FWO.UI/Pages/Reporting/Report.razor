@@ -86,18 +86,31 @@
             </div>
         </div>
     }
-    @if (tenantFilteringAllowed && selectedReportType != ReportType.Statistics)
+    @if (selectedReportType != ReportType.Statistics && tenantList.Count > 1)
     {
-        <div class="p-3">
-            <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
-            <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
-                @bind-SelectedElement="selectedTenantView" Elements="tenantList">
-                <ElementTemplate Context="tenant">
-                    @tenant.Name
-                </ElementTemplate>
-            </Dropdown>
-        </div>
+        if (tenantFilteringAllowed)
+        {
+            <div class="p-3">
+                <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
+                <Dropdown
+                    @ref="tenantSelector"
+                    SelectedElementChanged="TenantViewChanged"
+                    ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
+                    Elements="tenantList">
+                    <ElementTemplate Context="tenant">
+                        @tenant.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        }
+        else
+        {
+            <div class="p-3">
+                <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant.Name</h5>
+            </div>
+        }
     }
+
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
 </Sidebar>
 
@@ -136,7 +149,7 @@
     <hr />
 
     @* ==== Templates ==== *@
-    <ReportTemplateComponent OnTemplateLoad="template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
+    <ReportTemplateComponent OnTemplateLoad="async template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
 
     @* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
@@ -252,6 +265,8 @@
     private List<string> unsupportedList = new List<string>();
     private DeviceFilter reducedDeviceFilter = new DeviceFilter();
 
+    private Dropdown<Tenant> tenantSelector;
+
     private TimeFilter actTimeFilter = new TimeFilter();
     private TimeFilter savedTimeFilter = new TimeFilter();
     private string displayedTimeSelection = "";
@@ -292,12 +307,12 @@
             {
                 displayedTimeSelection = userConfig.GetText("now");
                 unusedDays = userConfig.UnusedTolerance;
-
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
                 if (tenantFilteringAllowed)
                 {
                     tenantList = await Connection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+                    tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
                 }
 
                 await InvokeAsync(StateHasChanged);
@@ -329,15 +344,63 @@
         reportGenerationDuration = 0;
     }
 
-    private void SyncFiltersFromTemplate(ReportTemplate template)
+    private async Task TenantViewChanged(Tenant newTenantView)
+    {
+        // clear report data when switching Tenant
+        // as we would be missing src/dst/svc information in some cases           
+        managementsReport = new Management[] {};
+        globalStats = null;
+
+        // adjust device filter to newly selected tenant view
+        selectedTenantView = newTenantView;
+        StateHasChanged(); // redisplay LSB
+        if (selectedTenantView==null || selectedTenantView.Id == 1)   // tenant0 or no tenant selected
+        {
+            deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+        }
+        else
+        {
+            // reset  available devices according to tenant device filter
+            Tenant tenant = await Tenant.getTenantById(Connection, newTenantView.Id);
+            List<int> visibleDevicesForTenant = new List<int>();
+            foreach (TenantDevice tenantDevice in tenant.TenantDevices)
+            {
+                visibleDevicesForTenant.Add(tenantDevice.VisibleDevice.Id);
+            }
+            deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(
+                DeviceQueries.getDevicesByManagements,
+                new { devIds = visibleDevicesForTenant.ToArray() }
+            );
+        }
+        selectAll = !deviceFilter.isAnyDeviceFilterSet();
+        StateHasChanged(); // redisplay LSB
+    }
+
+    private async Task SyncFiltersFromTemplate(ReportTemplate template)
     {
         filterInput = template.Filter;
         selectedReportType = (ReportType)template.ReportParams.ReportType;
+
+        if (template.ReportParams.TenantFilter.IsActive)
+        {
+            Tenant tenantFromTemplate = await Tenant.getTenantById(Connection, template.ReportParams.TenantFilter.TenantId);
+            await tenantSelector.SelectElement(tenantFromTemplate);
+            await TenantViewChanged(tenantFromTemplate);
+        }
+        else
+        {
+            await tenantSelector.SelectElement(null);
+            await TenantViewChanged(null);
+        }
+
         if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
         {
             deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
+            StateHasChanged();
         }
         selectAll = !deviceFilter.isAnyDeviceFilterSet();
+        StateHasChanged();
+
         if(template.ReportParams.TimeFilter != null)
         {
             actTimeFilter = template.ReportParams.TimeFilter;
@@ -557,7 +620,7 @@
             mgm.Ignore = !relevantManagements.Contains(mgm.Id);
         }
     }
-   
+
     private ReportTemplate ConstructReportTemplate()
     {
         List<int> ownerList = new List<int>();
@@ -570,7 +633,15 @@
         reportParams.TimeFilter = savedTimeFilter;
         if (selectedReportType != ReportType.Statistics)
         {
+            // also make sure the report a user belonging to a tenant <> 1 sees, gets the additional filters in DynGraphqlQuery.cs
+            if (selectedTenantView==null && userConfig.User.Tenant.Id>1)
+            {
+                selectedTenantView = userConfig.User.Tenant;
+                // TODO: when admin selects a tenant filter, add the corresponding device filter to make sure only those devices are reported that the tenant is allowed to see
+
+            }
             reportParams.TenantFilter = new TenantFilter(selectedTenantView);
+
         }
         reportParams.RecertFilter = new RecertFilter()
         {

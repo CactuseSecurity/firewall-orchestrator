@@ -60,6 +60,21 @@ namespace FWO.Report.Filter
             }
         }
 
+        private static void SetTenantFilter(ref DynGraphqlQuery query, ReportTemplate filter)
+        {
+            // the following additional filters are used for standard and simulated tenant filtering (by admin users)
+            if (filter.ReportParams.TenantFilter.IsActive)
+            {
+                int tenant_id = filter.ReportParams.TenantFilter.TenantId;
+                query.FullQuery = Regex.Replace(query.FullQuery, @"\srules\s*\(", $" rules: get_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"changelog_rules\s*\(", $" changelog_rules: get_changelog_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*\(", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*{", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}) {{");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*\(", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*{", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}) {{");
+            }
+        }
+
         private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType, RecertFilter recertFilter)
         {
             if (timeFilter != null)
@@ -248,7 +263,8 @@ namespace FWO.Report.Filter
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
-            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)(reportParams.ReportParams.ReportType ?? throw new Exception("No report type set")), reportParams.ReportParams.RecertFilter);
+            SetTenantFilter(ref query, reportParams);
+            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
             if (reportParams.ReportParams.ReportType!= null && (ReportType)reportParams.ReportParams.ReportType==ReportType.Recertification)
             {
                 SetRecertFilter(ref query, reportParams.ReportParams.RecertFilter);
@@ -271,7 +287,7 @@ namespace FWO.Report.Filter
 
             // now we convert the ast into a graphql query:
             if (ast != null)
-                ast.Extract(ref query, (ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")));
+                ast.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
 
             query.ruleWhereStatement += "}] ";
 
@@ -286,10 +302,10 @@ namespace FWO.Report.Filter
                                     stm_dev_typ: {{is_pure_routing_device:{{_eq:false}} }}
                                     }} order_by: {{ dev_name: asc }}";
 
-            if (((ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set"))).IsResolvedReport())
+            if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport())
                 filter.Detailed = true;
 
-            switch ((ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")))
+            switch ((ReportType)filter.ReportParams.ReportType)
             {
                 case ReportType.Statistics:
                     query.FullQuery = Queries.compact($@"
@@ -454,6 +470,7 @@ namespace FWO.Report.Filter
                     break;
             }
 
+            SetTenantFilter(ref query, filter);
             string pattern = "";
 
             // remove comment lines (#) before joining lines!
@@ -471,6 +488,16 @@ namespace FWO.Report.Filter
             query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
             pattern = @"\s+";
             query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
+
+            // // query debugging
+            // Log.WriteDebug("Filter", $"FullQuery = {query.FullQuery}");
+            // string queryVars = "";
+            // foreach ((string k, object o) in query.QueryVariables)
+            // {
+            //     queryVars += $"\"{k}\": {o.ToString()}, ";
+            // }
+            // Log.WriteDebug("Filter", $"Variables = {queryVars}");
+            
             return query;
         }
     }

@@ -1,0 +1,64 @@
+﻿@using NetTools;
+@using FWO.Api.Data;
+@using FWO.Ui.Display;
+
+@inject UserConfig userConfig
+
+<div class="form-group row">
+    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip_addresses")):</label>
+    <div class="col-sm-9">
+        <EditList ElementType="NwObjectElement" Elements="IpAddresses.ToArray()" ElementsToAdd="IpsToAdd" ElementsToDelete="IpsToDelete" StdLayout="false">
+            <Display>
+                <div class="row">
+                    <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayIp(context.IpString, context.IpEndString)</div>
+                </div>
+            </Display>
+        </EditList>
+        <div class="col-sm-12">
+            <div class="form-group row">
+                <div class="col-sm-10">
+                    <IpAddressInput @bind-IpRange="ipRangeToAdd" />
+                </div>
+                <button @onclick="AddIpRange" type="button" class="col-sm-2 btn-sm btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public List<NwObjectElement> IpAddresses { get; set; } = new List<NwObjectElement>();
+
+    [Parameter]
+    public List<NwObjectElement> IpsToAdd { get; set; } = new List<NwObjectElement>();
+
+    [Parameter]
+    public EventCallback<List<NwObjectElement>> IpsToAddChanged { get; set; }
+
+    [Parameter]
+    public List<NwObjectElement> IpsToDelete { get; set; } = new List<NwObjectElement>();
+
+    [Parameter]
+    public EventCallback<List<NwObjectElement>> IpsToDeleteChanged { get; set; }
+
+
+    private IPAddressRange? ipRangeToAdd;
+
+    private void AddIpRange()
+    {
+        if (ipRangeToAdd != null)
+        {
+            NwObjectElement obj = new NwObjectElement(ipRangeToAdd, 0);
+            if (!obj.CidrEnd.Valid)
+            {
+                obj.CidrEnd = obj.Cidr;
+            }
+            if (obj.Cidr.Valid && obj.CidrEnd.Valid)
+            {
+                IpsToAdd.Add(obj);
+            }
+			ipRangeToAdd = null;
+		}
+	}    
+}

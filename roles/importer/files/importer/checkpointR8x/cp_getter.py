@@ -266,11 +266,19 @@ def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layername, ac
 
         if 'total' in rulebase:
             total=rulebase['total']
+        if 'total' in rulebase:
+            total=rulebase['total']
         else:
-            logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
-                + str(current_layer_json))
+            logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(current_layer_json))
+            logger.warning ( "sid: " + sid)
+            logger.warning ( "api_v_url: " + api_v_url)
+            logger.warning ( "access_type: " + access_type)
+            for key, value in show_params_rules.items():
+                logger.warning("show_params_rules " + key + ": " + str(value))
+            for key, value in rulebase.items():
+                logger.warning("rulebase " + key + ": " + str(value))
             return None
-
+        
         if total==0:
             current=0
         else:

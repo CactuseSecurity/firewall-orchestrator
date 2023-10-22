@@ -91,6 +91,7 @@ CREATE TRIGGER import_rule_rule_id_seq BEFORE INSERT ON import_rule FOR EACH ROW
 
 CREATE OR REPLACE FUNCTION import_config_from_jsonb ()
     RETURNS TRIGGER
+    LANGUAGE plpgsql
     AS $BODY$
 DECLARE
     import_id BIGINT;
@@ -132,10 +133,7 @@ BEGIN
 
     RETURN NEW;
 END;
-$BODY$
-LANGUAGE plpgsql
-VOLATILE
-COST 100;
+$BODY$;
 
 ALTER FUNCTION public.import_config_from_jsonb () OWNER TO fworch;
 

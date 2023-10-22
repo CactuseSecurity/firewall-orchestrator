@@ -78,3 +78,69 @@ In 2020 we decided to re-launch a new
 ### 6.5.1 24.07.2023 DEVELOP
 - New report type Unused Rules
 
+### 7.0.1 - 28.07.2023 DEVELOP
+- Compliance matrix edit fix
+- Logout audit logging fix
+
+### 7.0.2 - 28.07.2023 DEVELOP
+- Default templates for new report types
+
+### 7.1 - 11.08.2023 DEVELOP
+- adding tenant network UI
+- adding test import via URI in hostname field
+- replacing legacy demo data import with standard imported data, closing #2197 (note: only for new installations, an upgrade will not touch the demo data)
+- test imports can now be made from file (integrated in UI)
+- improve debugging of imports (no errors for missing object parts)
+
+### 7.1.1 - 15.08.2023 DEVELOP
+- fixes upgrade bug on systems without demo data
+
+### 7.1.2 - 16.08.2023 DEVELOP
+- adding Check Point R8x Inform action
+
+### 7.2 - 21.08.2023 DEVELOP
+mostly version update summarizing latest PRs
+- UI/API: adding tenant ip filtering beta version (clean-up and optiomazation necessary)
+- API: updating hasura to 2.32.0
+- UI: now not showing super managers in RSB all tab
+- UI: bug fixes blazor environment settings
+  - Use production / development based on the build type instead of always using development.
+  - Do not show detailed errors in production mode.
+  - Use the custom error page in the production environment.
+  - Spelling mistake fix
+- UI: bug fix jwt expiry
+  - jwt expiry timer now works as intended
+  - after the jwt expired no exception can be triggered anymore
+
+### 7.2.1 - 11.09.2023 DEVELOP
+- new settings option for rule ownership mode
+### 7.2.2 - 15.09.2023 DEVELOP
+- complete re-work: all ip addresses are now internally represented as ranges, including all networks
+### 7.2.3 - 29.09.2023 DEVELOP
+bugfix release:
+- api - upgrade hasura to 2.33.4
+- installer - fix client/server db sort order mismatch (collate)
+- adding simulated changes to fwodemodata (fortiate)
+- importer - fix in fortiOS importer action field
+- UI
+  - fix settings owner networks editing and displaying
+  - recert report (and recert page) IP addresses now also simplified like an other reports
+  - fix broken links in recert page
+### 7.2.4 - 04.10.2023 DEVELOP
+- new role modeller
+- new mechanism for overwriting texts 
+# 7.2.5 - 05.10.2023 DEVELOP
+- importer
+  - adding more error debugging in CPR8x importer 
+  - adding new network object type 'external-gateway' (for interoperable-dervice in check point)
+  - fix fortimanager importer: ignore missing negate fields
+- middleware & ui: add check for successful publishing dotnet
+- middlware: fix upgrade become issue in middleware ldif files
+- database: fix postgresql_query module reference
+
+# 7.2.6 - 06.10.2023 DEVELOP
+- importer Checkpoint: adding network object type support for 'CpmiVsClusterNetobj' (for VSX virtual switches)
+
+# 7.3 - 22.10.2023 DEVOP
+- cleanup unused database views and functions
+- first working tenant ip-based filtering

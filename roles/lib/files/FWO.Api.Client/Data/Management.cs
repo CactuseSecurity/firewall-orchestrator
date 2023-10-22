@@ -18,7 +18,7 @@ namespace FWO.Api.Data
         public ImportCredential ImportCredential { get; set; } = new ImportCredential();
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
-        public string ConfigPath { get; set; } = "";
+        public string? ConfigPath { get; set; } = "";
 
         [JsonProperty("domainUid"), JsonPropertyName("domainUid")]
         public string? DomainUid { get; set; } = "";
@@ -170,10 +170,9 @@ namespace FWO.Api.Data
         public bool Sanitize()
         {
             bool shortened = false;
-            shortened = ImportCredential.Sanitize();
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             Hostname = Sanitizer.SanitizeMand(Hostname, ref shortened);
-            ConfigPath = Sanitizer.SanitizeMand(ConfigPath, ref shortened);
+            ConfigPath = Sanitizer.SanitizeOpt(ConfigPath, ref shortened);
             DomainUid = Sanitizer.SanitizeOpt(DomainUid, ref shortened);
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);

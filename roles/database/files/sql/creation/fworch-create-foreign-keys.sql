@@ -165,6 +165,7 @@ Alter table "tenant_network" add  foreign key ("tenant_id") references "tenant" 
 Alter table "tenant_to_device" add  foreign key ("device_id") references "device" ("dev_id") on update restrict on delete cascade;
 Alter table "tenant_to_device" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "txt" add foreign key ("language") references "language" ("name") on update restrict on delete cascade;
+Alter table "customtxt" add foreign key ("language") references "language" ("name") on update restrict on delete cascade;
 Alter table "uiuser" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "uiuser" add  foreign key ("uiuser_language") references "language" ("name") on update restrict on delete cascade;
 Alter table "uiuser" add  foreign key ("ldap_connection_id") references "ldap_connection" ("ldap_connection_id") on update restrict on delete cascade;

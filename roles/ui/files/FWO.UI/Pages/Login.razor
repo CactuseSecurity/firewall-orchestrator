@@ -1,5 +1,6 @@
 @using FWO.Config.File;
 @using FWO.Middleware.RequestParameters
+@using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using System.Net
 @using FWO.Ui.Auth
@@ -16,7 +17,7 @@
 @inject ApiConnection ApiConnection
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
-@inject CircuitHandlerService circuitHandler
+@inject CircuitHandler circuitHandler
 
 @if (showLoginForm)
 {
@@ -120,7 +121,7 @@
                 try
                 {
                     await ((AuthStateProvider)AuthService).Authenticate(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"),
-                    ApiConnection, middlewareClient, userConfig, circuitHandler, sessionStorage);
+                    ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler), sessionStorage);
                     return;
                 }
                 catch (Exception ex) { Log.WriteError("Session Restore", "Session restore unsuccessful.", ex); }
@@ -173,7 +174,7 @@
             try
             {
                 RestResponse<string> authResponse = await ((AuthStateProvider)AuthService)
-                .Authenticate(Username, Password, ApiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
+                .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
                 {
@@ -183,6 +184,10 @@
                         showPasswordChangeForm = true;
                         StateHasChanged();
                     }
+
+                    // add User information after successful login
+                    userConfig.User.Tenant = await ((AuthStateProvider)AuthService).getTenantFromJwt(userConfig.User.Jwt, ApiConnection);
+                    userConfig.User.Roles = ((AuthStateProvider)AuthService).getAllowedRoles(userConfig.User.Jwt);
                 }
                 else
                 {

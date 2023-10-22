@@ -45,11 +45,9 @@
                     <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
                 }
             </Authorized>
-        </AuthorizeView>
-        <AuthorizeView Roles="auditor" Context="ctx">
-            <Authorized>
+            <NotAuthorized>
                 <button type="button" disabled class="btn btn-sm btn-info m-2">@(userConfig.GetText("recalc_recerts"))</button>
-            </Authorized>
+            </NotAuthorized> 
         </AuthorizeView>
 
         @if (showCleanupButton)
@@ -73,6 +71,9 @@
                                     <Authorized>
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
                                     </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
+                                    </NotAuthorized> 
                                 </AuthorizeView>
                             }
                         </div>
@@ -93,19 +94,19 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_owner"))" Show="@EditOwnerMode" Large="true" OnClose="() => EditOwnerMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_owner"))" Show="@EditOwnerMode" XLarge="true" OnClose="() => EditOwnerMode = false">
         <Body>
             @if (EditOwnerMode)
             {
                 <div class="col-sm-12">
                     <div class="form-group row">
-                        <div class="col-sm-2">
+                        <div class="col-sm-1">
                             <div class="form-group row">
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(actOwner.Id)</label>
                             </div>
                         </div>
-                        <div class="col-sm-10">
+                        <div class="col-sm-11">
                             <div class="form-group row">
                                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                                 <input type="text" class=" col-sm-10 form-control form-control-sm" @bind="actOwner.Name" />
@@ -138,6 +139,12 @@
                                     @tenant.Name
                                 </ElementTemplate>
                             </Dropdown>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
                         </div>
                     </div>
                     <div class="form-group row">
@@ -183,34 +190,10 @@
                             }
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
-                        <div class="col-sm-9">
-                            <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
-                        </div>
-                    </div>
-
                     @if (!actOwner.IsDefault)
                     {
-                        <div class="form-group row">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip_addresses")):</label>
-                            <div class="col-sm-9">
-                                @foreach(var ipAdd in actIpAddresses)
-                                {
-                                    <div class="col-sm-12">
-                                        <div class="form-group row">
-                                            <input type="text" class="col-sm-11 form-control form-control-sm" readonly @bind="ipAdd.Cidr.CidrString" />
-                                            <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteIp(ipAdd)">x</button>
-                                        </div>
-                                    </div>
-                                }
-                                <div class="col-sm-12">
-                                    <div class="form-group row">
-                                        <input @onsubmit:preventDefault @onsubmit:stopPropagation type="text" class="col-sm-12 form-control form-control-sm" placeholder="@(userConfig.GetText("insert_ip"))" @bind="newIpString"/>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <RuleSelector SelectedRules="actRules" @bind-RulesToAdd="rulesToAdd" @bind-RulesToDelete="rulesToDelete"/>
+                        <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete"/>
                     }
                 </div>
             }
@@ -387,7 +370,7 @@ else
     private Tenant? selectedTenant;
     private DayOfWeek? selectedDayOfWeek;
     private RecertRefresh recertRefresh;
-    private List<Management> managements;
+    private List<Management> managements = new List<Management>();
     private List<UserGroup> ownerGroups = new List<UserGroup>();
     private List<Tenant> tenants = new List<Tenant>();
 
@@ -416,27 +399,11 @@ else
     private bool recertCalcInProgress = false;
 
     private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
-    private bool ipChanged = false;
-
-    private string newIpInt = "";
-    private string newIpString
-    {
-        get => newIpInt;
-        set
-        {
-            if(value != null && value != "")
-            {
-                NwObjectElement obj = new NwObjectElement(value, 0);
-                if (obj.Cidr.Valid)
-                {
-                    actIpAddresses.Add(obj);
-                    newIpInt = "";
-                }
-            }
-            ipChanged = true;
-            StateHasChanged();
-        }
-    }
+    private List<NwObjectElement> ipsToAdd = new List<NwObjectElement>();
+    private List<NwObjectElement> ipsToDelete = new List<NwObjectElement>();
+    private List<Rule> actRules = new List<Rule>();
+    private List<Rule> rulesToAdd = new List<Rule>();
+    private List<Rule> rulesToDelete = new List<Rule>();
 
 
     protected override async Task OnInitializedAsync()
@@ -490,13 +457,6 @@ else
         showCleanupButton = (sampleOwners.Count > 0);
     }
 
-    private void DeleteIp(NwObjectElement obj)
-    {
-        actIpAddresses.Remove(obj);
-        ipChanged = true;
-        StateHasChanged();
-    }
-
     private async Task AddOwner()
     {
         AddOwnerMode = true;
@@ -514,12 +474,17 @@ else
             if(AddOwnerMode)
             {
                 actIpAddresses.Clear();
+                actRules.Clear();
             }
             else
             {
                 actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(FWO.Api.Client.Queries.OwnerQueries.getNetworkOwnerships, new { ownerId = actOwner.Id });
+                actRules= await apiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.OwnerQueries.getRuleOwnerships, new { ownerId = actOwner.Id });
             }
-            ipChanged = false;
+            ipsToAdd.Clear();
+            ipsToDelete.Clear();
+            rulesToAdd.Clear();
+            rulesToDelete.Clear();
             EditOwnerMode = true;
         }
         catch (Exception exception)
@@ -588,6 +553,7 @@ else
         else
         {
             actOwner.Id = returnIds[0].NewId;
+            await addRuleOwners();
             await addNetworkOwners();
             owners.Add(actOwner);
         }
@@ -613,28 +579,68 @@ else
         }
         else
         {
-            // TODO: block editing single ip addresses - either delete them or add new ones.
-            if(ipChanged)
-            {
-                await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteNetworkOwnerships, new { ownerId = actOwner.Id });
-                actOwner.NwObjElements.Clear();
-                await addNetworkOwners();
-            }
+            await deleteRuleOwners();
+            await addRuleOwners();
+            await deleteNetworkOwners();
+            await addNetworkOwners();
             owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
+        }
+    }
+
+    private async Task addRuleOwners()
+    {
+        foreach(var rule in rulesToAdd)
+        {
+            var Variables = new
+            {
+                ownerId = actOwner.Id,
+                ruleMetadataId = rule.Metadata.Id
+            };
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newRuleOwnership, Variables);
+            actRules.Add(rule);
+        }
+    }
+
+    private async Task deleteRuleOwners()
+    {
+        foreach(var rule in rulesToDelete)
+        {
+            var Variables = new
+            {
+                ownerId = actOwner.Id,
+                ruleMetadataId = rule.Metadata.Id
+            };
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.deleteRuleOwnership, Variables);
+            actRules.Remove(rule);
         }
     }
 
     private async Task addNetworkOwners()
     {
-        foreach(var ipAdd in actIpAddresses)
+        foreach(var ipAdd in ipsToAdd)
         {
             var Variables = new
             {
                 ownerId = actOwner.Id,
-                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.Cidr.CidrString : null)
+                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null), 
+                ip_end = (ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid  && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null)
             };
             await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newNetworkOwnership, Variables);
-            actOwner.NwObjElements.Add(ipAdd);
+            actIpAddresses.Add(ipAdd);
+        }
+    }
+
+    private async Task deleteNetworkOwners()
+    {
+        foreach(var ipDel in ipsToDelete)
+        {
+            var Variables = new
+            {
+                ownerId = actOwner.Id,
+                id = ipDel.ElemId
+            };
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteNetworkOwnership, Variables);
+            actIpAddresses.Remove(ipDel);
         }
     }
 

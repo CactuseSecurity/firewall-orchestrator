@@ -312,13 +312,13 @@ adding report template format fk and permissions
    - adding demo video in github README.MD
    - splitting revision history into develop and main
 
-### 7.3 12.10.2023 MAIN
+### 7.3 22.10.2023 MAIN
 - new features
     - recertification: new rule ownership
     - customizable UI texts
     - starting target state module with introducing new role "modeller"
     - adding tenant ip filtering
-    - adding tenant simulation (exluding statistical report, recertification and scheduled simulated reporting)
+    - adding tenant simulation (exluding statistical report and recertification) including scheduling
 - maintenance / bug-fixing
   - complete re-work: all ip addresses are now internally represented as ranges, including all networks
   - UI:
@@ -344,4 +344,6 @@ adding report template format fk and permissions
     - Check Point: adding network object type support for 'CpmiVsClusterNetobj' (for VSX virtual switches)
   - API:
     - upgrade hasura to 2.34.0
-
+- restrictions
+  - since tenant filtering is not done in the API but in the UI, the API should not be exposed to the tenants
+  

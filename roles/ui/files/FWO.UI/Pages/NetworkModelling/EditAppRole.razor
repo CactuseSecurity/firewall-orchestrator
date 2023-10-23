@@ -121,7 +121,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if(Display)
+        if(Display && firstTry)
         {
             if(AddMode)
             {
@@ -130,16 +130,13 @@
 
             if(areas.Count == 0)
             {
-                if(firstTry)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("E9002"), "", true);
-                    firstTry = false;
-                }
+                DisplayMessageInUi(null, userConfig.GetText("E9002"), "", true);
             }
             else
             {
                 SelectedAreaChanged(AddMode ? areas.First() : AppRole.Area);
             }
+            firstTry = false;
         }
     }
 
@@ -177,6 +174,7 @@
     {
         IpsToAdd = new List<NetworkObject>();
         IpsToDelete = new List<NetworkObject>();
+        firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

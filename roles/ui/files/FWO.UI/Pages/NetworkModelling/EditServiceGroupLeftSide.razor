@@ -1,0 +1,67 @@
+@using FWO.Config.Api
+@using FWO.Ui.Display
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="ml-2">
+    <h3>@(userConfig.GetText("library"))</h3>
+</div>
+<div class="col-sm-11 border rounded m-2 p-2">
+    <h5>@(userConfig.GetText("services"))</h5>
+    <div class="form-group row">
+        <div class="col-sm-9">
+            <select class="form-control form-control-sm" @bind="selectedServices" multiple>
+                @foreach (var service in SvcGroupHandler.Services)
+                {
+                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@SvcGroupHandler.DisplayService(service)</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-2">
+            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => SvcGroupHandler.ServicesToSvcGroup(ResolveSvc(selectedServices))">@(userConfig.GetText("to_services_group"))</button>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter] 
+    public DnDContainer Container { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<DnDContainer> ContainerChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public ModellingServiceGroupHandler SvcGroupHandler { get; set; }
+
+
+    private long[] selectedServices = new long[]{};
+    private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+
+
+    private void HandleDragStart(List<NetworkService> selectedSvcs)
+    {
+        Container.Clear();
+        Container.SvcElements = selectedSvcs;
+    }
+
+    private List<NetworkService> ResolveSvc(long[] selectedIds)
+    {
+        List<NetworkService> addedSvcs = new();
+        foreach(var id in selectedIds)
+        {
+            addedSvcs.Add(SvcGroupHandler.Services.FirstOrDefault(x => x.Id == id));
+        }
+        return addedSvcs;
+    }
+}

@@ -1353,6 +1353,12 @@
                   "using": {
                     "foreign_key_constraint_on": "connection_id"
                   }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
                 }
               ],
               "insert_permissions": [
@@ -1361,10 +1367,11 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "connection_id",
-                      "id",
+                      "app_id",
                       "change",
-                      "change_time"
+                      "change_time",
+                      "connection_id",
+                      "id"
                     ]
                   },
                   "comment": ""
@@ -1378,6 +1385,7 @@
                       "connection_id",
                       "id",
                       "change",
+                      "app_id",
                       "change_time"
                     ],
                     "filter": {}
@@ -1391,6 +1399,7 @@
                       "connection_id",
                       "id",
                       "change",
+                      "app_id",
                       "change_time"
                     ],
                     "filter": {}
@@ -1574,6 +1583,14 @@
                 "name": "service",
                 "schema": "modelling"
               },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
+                }
+              ],
               "array_relationships": [
                 {
                   "name": "service_connections",
@@ -1606,6 +1623,7 @@
                   "permission": {
                     "columns": [
                       "name",
+                      "app_id",
                       "id",
                       "port",
                       "port_end",
@@ -1620,6 +1638,7 @@
                   "permission": {
                     "columns": [
                       "name",
+                      "app_id",
                       "id",
                       "port",
                       "port_end",
@@ -1702,6 +1721,14 @@
                 "name": "service_group",
                 "schema": "modelling"
               },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
+                }
+              ],
               "array_relationships": [
                 {
                   "name": "service_group_connections",
@@ -1735,7 +1762,9 @@
                     "check": {},
                     "columns": [
                       "is_global",
+                      "comment",
                       "name",
+                      "app_id",
                       "id"
                     ]
                   },
@@ -1748,7 +1777,9 @@
                   "permission": {
                     "columns": [
                       "is_global",
+                      "comment",
                       "name",
+                      "app_id",
                       "id"
                     ],
                     "filter": {}
@@ -1760,7 +1791,9 @@
                   "permission": {
                     "columns": [
                       "is_global",
+                      "comment",
                       "name",
+                      "app_id",
                       "id"
                     ],
                     "filter": {}
@@ -1774,7 +1807,9 @@
                   "permission": {
                     "columns": [
                       "is_global",
+                      "comment",
                       "name",
+                      "app_id",
                       "id"
                     ],
                     "filter": {},
@@ -8815,6 +8850,42 @@
                   }
                 },
                 {
+                  "name": "app_servers",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "app_id",
+                      "table": {
+                        "name": "app_server",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "change_histories",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "app_id",
+                      "table": {
+                        "name": "change_history",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "app_id",
+                      "table": {
+                        "name": "connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "owner_networks",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -8861,6 +8932,30 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "service_groups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "app_id",
+                      "table": {
+                        "name": "service_group",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "services",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "app_id",
+                      "table": {
+                        "name": "service",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
                 }
               ],
               "select_permissions": [
@@ -8868,16 +8963,17 @@
                   "role": "approver",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
+                      "id",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -8888,6 +8984,7 @@
                     "columns": [
                       "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
                       "name",
@@ -8904,16 +9001,17 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
+                      "id",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -8922,16 +9020,17 @@
                   "role": "implementer",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
+                      "id",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -8940,16 +9039,17 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id",
-                      "name",
+                      "is_default",
+                      "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
-                      "is_default",
-                      "tenant_id",
+                      "name",
+                      "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "app_id_external",
-                      "last_recert_check",
-                      "recert_check_params"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -8960,6 +9060,7 @@
                     "columns": [
                       "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
                       "name",
@@ -8990,16 +9091,17 @@
                   "role": "planner",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
+                      "id",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -9008,16 +9110,17 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
+                      "id",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {
                       "_or": [
@@ -9040,16 +9143,17 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
+                      "id",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {
                       "tenant_id": {
@@ -9063,16 +9167,17 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
+                      "id",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -9082,16 +9187,17 @@
                   "role": "requester",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
+                      "id",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -9100,16 +9206,17 @@
                   "role": "reviewer",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
+                      "criticality",
                       "dn",
                       "group_dn",
+                      "id",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }

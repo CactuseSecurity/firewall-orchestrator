@@ -5,7 +5,7 @@ query getServiceGroupsForApp ($appId: Int!){
     name
     is_global
     comment
-    services: service_service_group{
+    services: service_service_groups{
       service{
         id
 	      name

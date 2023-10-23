@@ -1006,6 +1006,14 @@ INSERT INTO txt VALUES ('services_group', 	    'German',	'Dienstgruppe');
 INSERT INTO txt VALUES ('services_group', 	    'English',	'Service Group');
 INSERT INTO txt VALUES ('services_groups', 	    'German',	'Dienstgruppen');
 INSERT INTO txt VALUES ('services_groups', 	    'English',	'Service Groups');
+INSERT INTO txt VALUES ('to_services_group', 	'German',	'Zu Dienstgruppe');
+INSERT INTO txt VALUES ('to_services_group', 	'English',	'To Service Group');
+INSERT INTO txt VALUES ('add_service_group', 	'German',	'Dienstgruppe hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_service_group', 	'English',	'Add Service Group');
+INSERT INTO txt VALUES ('edit_service_group', 	'German',	'Dienstgruppe bearbeiten');
+INSERT INTO txt VALUES ('edit_service_group', 	'English',	'Edit Service Group');
+INSERT INTO txt VALUES ('delete_service_group', 'German',	'Dienstgruppe l&ouml;schen');
+INSERT INTO txt VALUES ('delete_service_group', 'English',	'Delete Service Group');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -2034,6 +2042,8 @@ INSERT INTO txt VALUES ('U9002', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U9002', 'English', 'Are you sure you want to delete App Role: ');
 INSERT INTO txt VALUES ('U9003', 'German',  'Sind sie sicher, dass sie folgenden Dienst l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U9003', 'English', 'Are you sure you want to delete service: ');
+INSERT INTO txt VALUES ('U9004', 'German',  'Sind sie sicher, dass sie folgende Dienstgruppe l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9004', 'English', 'Are you sure you want to delete service group: ');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');

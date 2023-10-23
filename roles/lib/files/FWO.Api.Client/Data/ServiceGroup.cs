@@ -15,6 +15,10 @@ namespace FWO.Api.Data
         [JsonProperty("is_global"), JsonPropertyName("is_global")]
         public bool IsGlobal { get; set; }
 
+        [JsonProperty("comment"), JsonPropertyName("comment")]
+        public string? Comment { get; set; }
+
+
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<ServiceWrapper> NetworkServices { get; set; } = new List<ServiceWrapper>{};
 

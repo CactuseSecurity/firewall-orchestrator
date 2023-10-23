@@ -21,7 +21,7 @@
                 <input type="number" class=" col-sm-4 form-control form-control-sm" @bind="Service.DestinationPortEnd" />
             </div>
             <div class="form-group row">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("protocol")):</label>
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("protocol"))*:</label>
                 <div class="col-sm-9">
                     <Dropdown ElementType="NetworkProtocol" @bind-SelectedElement="Service.Protocol" ElementToString="@(p => p.Name)" Elements="ipProtos" Nullable="true">
                         <ElementTemplate Context="proto">

@@ -1,0 +1,19 @@
+mutation newService(
+  $name: String
+  $appId: Int
+  $port: Int
+  $portEnd: Int
+  $protoId: Int
+  ) {
+  insert_modelling_service(objects: {
+    name: $name
+    app_id: $appId
+    port: $port
+    port_end: $portEnd
+    proto_id: $protoId
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

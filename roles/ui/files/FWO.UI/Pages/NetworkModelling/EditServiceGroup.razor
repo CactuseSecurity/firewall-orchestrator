@@ -78,9 +78,6 @@
     [Parameter]
     public bool AddMode { get; set; } = false;
 
-    [Parameter]
-    public EventCallback<bool> AddModeChanged { get; set; }
-
 
     private DnDContainer Container { get; set; } = new DnDContainer();
     int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;

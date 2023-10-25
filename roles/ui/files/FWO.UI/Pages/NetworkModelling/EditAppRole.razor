@@ -6,11 +6,11 @@
 
 @if (Display)
 {
-    <PopUp Title="@(AddMode ? userConfig.GetText("def_app_role") : userConfig.GetText("edit_app_role"))" XLarge="true" Show="@Display" OnClose="Close">
+    <PopUp Title="@(AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role"))" XLarge="true" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
                 <div class="col-sm-6">
-                    <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" AppServer="actServers" ToAppRole="AddServer"/>
+                    <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" AppRoleHandler="AppRoleHandler"/>
                 </div>
                 <div class="col-sm-6">
                     <h3>@(userConfig.GetText("app_role"))</h3>
@@ -18,7 +18,7 @@
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
                             <div class="col-sm-8">
-                                <Dropdown ElementType="NetworkArea" SelectedElement="AppRole.Area" ElementToString="@(a => a.Name)" 
+                                <Dropdown ElementType="NetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Name)" 
                                         SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
                                     <ElementTemplate Context="area">
                                         @area.Name
@@ -28,11 +28,11 @@
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRole.Name" />
+                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.Name" />
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRole.Comment" />
+                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.Comment" />
                         </div>
                         <div class="col-sm-12">
                             <h6>@(userConfig.GetText("app_server"))</h6>
@@ -40,7 +40,7 @@
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
                                 @ondrop="HandleServerDrop">
-                                <EditList ElementType="NetworkObject" Elements="AppRole.NetworkObjects.ToArray()" ElementsToAdd="IpsToAdd" ElementsToDelete="IpsToDelete" StdLayout="false">
+                                <EditList ElementType="NetworkObject" Elements="AppRoleHandler.ActAppRole.NetworkObjects.ToArray()" ElementsToAdd="AppRoleHandler.IpsToAdd" ElementsToDelete="AppRoleHandler.IpsToDelete" StdLayout="false">
                                     <Display>
                                         <div class="row">
                                             <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
@@ -57,7 +57,7 @@
             <div class="btn-group">
                 <AuthorizeView Roles="admin, modeller">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="AppRoleHandler.Save">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -81,13 +81,10 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public AppRole AppRole { get; set; } = new AppRole(){ Area = new NetworkArea(){} };
+    public ModellingAppRoleHandler AppRoleHandler { get; set; }
 
     [Parameter]
-    public Func<AppRole, Task> NewAppRole { get; set; } = DefaultInit.DoNothing;
-
-    [Parameter]
-    public Func<AppRole, Task> UpdateAppRole { get; set; } = DefaultInit.DoNothing;
+    public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
 
     [Parameter]
     public bool AddMode { get; set; } = false;
@@ -96,11 +93,7 @@
     private DnDContainer Container { get; set; } = new DnDContainer();
     int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
 
-    public List<NetworkObject> IpsToAdd { get; set; } = new List<NetworkObject>();
-    public List<NetworkObject> IpsToDelete { get; set; } = new List<NetworkObject>();
-
     private List<NetworkArea> areas = new List<NetworkArea>();
-    private List<NetworkObject> allServers = new List<NetworkObject>(){};
     private List<NetworkObject> actServers = new List<NetworkObject>(){};
     private bool firstTry = true;
 
@@ -110,8 +103,6 @@
         {
             areas = await apiConnection.SendQueryAsync<List<NetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
             // todo: select relevant areas for owner?
-
-            allServers = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServer, new { appId = AppRole.AppId });
         }
         catch (Exception exception)
         {
@@ -125,7 +116,7 @@
         {
             if(AddMode)
             {
-                AppRole.Comment = userConfig.User.Name;
+                AppRoleHandler.ActAppRole.Comment = userConfig.User.Name;
             }
 
             if(areas.Count == 0)
@@ -134,7 +125,7 @@
             }
             else
             {
-                SelectedAreaChanged(AddMode ? areas.First() : AppRole.Area);
+                SelectedAreaChanged(AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
             }
             firstTry = false;
         }
@@ -144,60 +135,24 @@
     {
         if(Container.IpElements.Count > 0)
         {
-            AddServer(Container.IpElements);
+            AppRoleHandler.AppServerToAppRole(Container.IpElements);
         }
         Container.Clear();
     }
 
-    private async Task Save()
-    {
-        foreach(var ip in IpsToDelete)
-        {
-            AppRole.NetworkObjects.Remove(ip);
-        }
-        foreach(var ip in IpsToAdd)
-        {
-            AppRole.NetworkObjects.Add(ip);
-        }
-        if(AddMode)
-        {
-            await NewAppRole(AppRole);
-        }
-        else
-        {
-            await UpdateAppRole(AppRole);
-        }
-        Close();
-    }
-
     private void Close()
     {
-        IpsToAdd = new List<NetworkObject>();
-        IpsToDelete = new List<NetworkObject>();
         firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }
 
-    private bool AddServer(List<NetworkObject> nwObjects)
-    {
-        foreach(var nwobj in nwObjects)
-        {
-            if(!AppRole.NetworkObjects.Contains(nwobj) && !IpsToAdd.Contains(nwobj))
-            {
-                IpsToAdd.Add(nwobj);
-            }
-        }
-        StateHasChanged();
-        return true;
-    }
-
     private void SelectedAreaChanged(NetworkArea newArea)
     {
-        AppRole.Area = newArea;
+        AppRoleHandler.ActAppRole.Area = newArea;
         if(newArea != null && newArea.Name.Length == 4 && AddMode)
         {
-            AppRole.Name = newArea.Name.Remove(1, 1).Insert(1, "Z");
+            AppRoleHandler.ActAppRole.Name = newArea.Name.Remove(1, 1).Insert(1, "Z");
         }
         SelectIpsFromArea(newArea);
     }
@@ -205,7 +160,7 @@
     private void SelectIpsFromArea(NetworkArea area)
     {
         actServers = new List<NetworkObject>(){};
-        foreach(var server in allServers)
+        foreach(var server in AppRoleHandler.AppServer)
         {
             if(IsInArea(server, area))
             {

@@ -37,7 +37,7 @@
         <div class="form-group row m-2">
             <h5>@(userConfig.GetText("comm_profile"))</h5>
             <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddConn">@(userConfig.GetText("add_connection"))</button>
-            <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddInt">@(userConfig.GetText("add_interface"))</button>
+            <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddInterface">@(userConfig.GetText("add_interface"))</button>
         </div>
         <div class="m-2">
             <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="NetworkConnection" Items="coproOfApp" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
@@ -87,7 +87,7 @@
         </div>
     }
 }
-<EditConn @bind-Display="EditConnMode" Application="@selectedApp" Conn="actConn" NewConn="NewConn" UpdateConn="UpdateConn" ReadOnly="readOnly" AddMode="AddConnMode"/>
+<EditConn @bind-Display="EditConnMode" Application="@selectedApp" ConnHandler="connHandler"/>
 <ConfirmDelete @bind-Display="DeleteConnMode" PerformAction="DeleteConn" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@deleteMessage"/>
 
 @code
@@ -103,6 +103,7 @@
     private bool singleApp = false;
     private bool appSelected = false;
 
+    private ModellingConnectionHandler connHandler;
     private List<NetworkConnection> coproOfApp = new List<NetworkConnection>();
     private NetworkConnection actConn = new NetworkConnection();
     private bool AddConnMode = false;
@@ -170,30 +171,38 @@
         return names;
     }
 
-    private void AddConn()
-    {
-        AddConnMode = true;
-        EditConn(new NetworkConnection() { AppId = selectedApp.Id });
-    }
-
-    private void AddInt()
-    {
-        AddConnMode = true;
-        EditConn(new NetworkConnection(){ AppId = selectedApp.Id, IsInterface = true });
-    }
-
-    private void ShowDetails(NetworkConnection conn)
-    {
-        readOnly = true;
-        actConn = conn;
-        EditConnMode = true;
-        AddConnMode = false;
-    }
-
-    private void EditConn(NetworkConnection conn)
+    private async Task AddConn()
     {
         readOnly = false;
-        actConn = conn;
+        AddConnMode = true;
+        await HandleConn(new NetworkConnection() { AppId = selectedApp.Id });
+    }
+
+    private async Task AddInterface()
+    {
+        readOnly = false;
+        AddConnMode = true;
+        await HandleConn(new NetworkConnection(){ AppId = selectedApp.Id, IsInterface = true });
+    }
+
+    private async Task ShowDetails(NetworkConnection conn)
+    {
+        readOnly = true;
+        AddConnMode = false;
+        await HandleConn(conn);
+    }
+
+    private async Task EditConn(NetworkConnection conn)
+    {
+        readOnly = false;
+        AddConnMode = false;
+        await HandleConn(conn);
+    }
+
+    public async Task HandleConn(NetworkConnection conn)
+    {
+        connHandler = new ModellingConnectionHandler(apiConnection, userConfig, selectedApp, coproOfApp, conn, AddConnMode, readOnly, DisplayMessageInUi);
+        await connHandler.Init();
         EditConnMode = true;
     }
 

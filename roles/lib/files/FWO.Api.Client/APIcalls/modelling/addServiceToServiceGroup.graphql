@@ -1,10 +1,10 @@
 mutation addServiceToServiceGroup(
-  $ServiceId: Int!
-  $ServiceGroupId: Int!
+  $serviceId: Int!
+  $serviceGroupId: Int!
   ) {
   insert_modelling_service_service_group(objects: {
-    service_id: $ServiceId
-    service_group_id: $ServiceGroupId
+    service_id: $serviceId
+    service_group_id: $serviceGroupId
   }) {
     returning {
       newId: service_id

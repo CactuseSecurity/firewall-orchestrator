@@ -1,0 +1,19 @@
+mutation newConnection(
+  $name: String
+  $appId: Int
+  $reason: String
+  $isInterface: Boolean
+  $usedInterfaceId: Int
+  ) {
+  insert_modelling_connection(objects: {
+    name: $name
+    app_id: $appId
+    reason: $reason
+    is_interface: $isInterface
+    used_interface_id: $usedInterfaceId
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

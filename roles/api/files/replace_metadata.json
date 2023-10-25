@@ -989,9 +989,41 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "app_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "app_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "id",
@@ -1017,6 +1049,24 @@
                       "app_id"
                     ],
                     "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "app_id"
+                    ],
+                    "filter": {},
+                    "check": {}
                   },
                   "comment": ""
                 }
@@ -1275,9 +1325,33 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "name",
+                      "id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "name",
@@ -1294,6 +1368,29 @@
                       "name",
                       "id"
                     ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
                     "filter": {}
                   },
                   "comment": ""
@@ -1313,9 +1410,37 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "name",
+                      "network",
+                      "area_id",
+                      "id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "network",
+                      "area_id",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "name",
@@ -1336,6 +1461,31 @@
                       "area_id",
                       "id"
                     ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "network",
+                      "area_id",
+                      "id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
                     "filter": {}
                   },
                   "comment": ""
@@ -8956,6 +9106,28 @@
                       }
                     }
                   }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "criticality",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "recert_check_params",
+                      "id",
+                      "recert_interval",
+                      "tenant_id",
+                      "last_recert_check"
+                    ]
+                  },
+                  "comment": ""
                 }
               ],
               "select_permissions": [

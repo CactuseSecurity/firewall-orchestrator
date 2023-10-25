@@ -12,18 +12,18 @@
         {
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="Service.Name" />
+                <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="ServiceHandler.ActService.Name" />
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
-                <input type="number" class=" col-sm-4 form-control form-control-sm" @bind="Service.DestinationPort" />
+                <input type="number" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.DestinationPort" />
                 <label class="col-sm-1 col-form-label col-form-label-sm"> - </label>
-                <input type="number" class=" col-sm-4 form-control form-control-sm" @bind="Service.DestinationPortEnd" />
+                <input type="number" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.DestinationPortEnd" />
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("protocol"))*:</label>
                 <div class="col-sm-9">
-                    <Dropdown ElementType="NetworkProtocol" @bind-SelectedElement="Service.Protocol" ElementToString="@(p => p.Name)" Elements="ipProtos" Nullable="true">
+                    <Dropdown ElementType="NetworkProtocol" @bind-SelectedElement="ServiceHandler.ActService.Protocol" ElementToString="@(p => p.Name)" Elements="ipProtos" Nullable="true">
                         <ElementTemplate Context="proto">
                             @proto.Name
                         </ElementTemplate>
@@ -36,7 +36,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin, modeller">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await ServiceHandler.Save(); Close();}">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
@@ -60,13 +60,7 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public NetworkService Service { get; set; } = new NetworkService();
-
-    [Parameter]
-    public Func<NetworkService, Task> NewService { get; set; } = DefaultInit.DoNothing;
-
-    [Parameter]
-    public Func<NetworkService, Task> UpdateService { get; set; } = DefaultInit.DoNothing;
+    public ModellingServiceHandler ServiceHandler { get; set; }
 
     [Parameter]
     public bool AddMode { get; set; } = false;
@@ -86,19 +80,6 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
-    }
-
-    private async Task Save()
-    {
-        if(AddMode)
-        {
-            await NewService(Service);
-        }
-        else
-        {
-            await UpdateService(Service);
-        }
-        Close();
     }
 
     private void Close()

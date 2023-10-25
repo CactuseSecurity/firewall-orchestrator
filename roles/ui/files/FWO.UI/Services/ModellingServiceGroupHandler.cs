@@ -9,9 +9,9 @@ namespace FWO.Ui.Services
 {
     public class ModellingServiceGroupHandler
     {
-        public FwoOwner Application { get; set; } = new FwoOwner();
+        public FwoOwner Application { get; set; } = new();
         public List<ServiceGroup> ServiceGroups { get; set; } = new();
-        public ServiceGroup ActServiceGroup { get; set; } = new ();
+        public ServiceGroup ActServiceGroup { get; set; } = new();
         public List<NetworkService> Services { get; set; } = new();
         public bool AddMode { get; set; } = false;
 
@@ -38,7 +38,14 @@ namespace FWO.Ui.Services
 
         public async Task Init()
         {
-            Services = await ApiConnection.SendQueryAsync<List<NetworkService>>(FWO.Api.Client.Queries.ModellingQueries.getServicesForApp, new { appId = Application.Id });
+            try
+            {
+                Services = await ApiConnection.SendQueryAsync<List<NetworkService>>(FWO.Api.Client.Queries.ModellingQueries.getServicesForApp, new { appId = Application.Id });
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
         }
 
         public string DisplayService(NetworkService service)
@@ -73,7 +80,7 @@ namespace FWO.Ui.Services
             }
             else
             {
-                await UpdateServiceGroup();
+                await UpdateServiceGroupInDb();
             }
             Close();
         }
@@ -97,8 +104,8 @@ namespace FWO.Ui.Services
                     {
                         var svcParams = new
                         {
-                            ServiceId = service.Content.Id,
-                            ServiceGroupId = ActServiceGroup.Id
+                            serviceId = service.Content.Id,
+                            serviceGroupId = ActServiceGroup.Id
                         };
                         await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.addServiceToServiceGroup, svcParams);
                     }
@@ -111,7 +118,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateServiceGroup()
+        public async Task UpdateServiceGroupInDb()
         {
             try
             {
@@ -128,8 +135,8 @@ namespace FWO.Ui.Services
                 {
                     var svcParams = new
                     {
-                        ServiceId = service.Id,
-                        ServiceGroupId = ActServiceGroup.Id
+                        serviceId = service.Id,
+                        serviceGroupId = ActServiceGroup.Id
                     };
                     await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.removeServiceFromServiceGroup, svcParams);
                 }
@@ -137,8 +144,8 @@ namespace FWO.Ui.Services
                 {
                     var svcParams = new
                     {
-                        ServiceId = service.Id,
-                        ServiceGroupId = ActServiceGroup.Id
+                        serviceId = service.Id,
+                        serviceGroupId = ActServiceGroup.Id
                     };
                     await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.addServiceToServiceGroup, svcParams);
                 }

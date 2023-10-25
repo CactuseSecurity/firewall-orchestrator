@@ -1,0 +1,13 @@
+mutation addAppServerToAppRole(
+  $appServerId: bigint!
+  $appRoleId: Int!
+  ) {
+  insert_modelling_appserver_approle(objects: {
+    appserver_id: $appServerId
+    approle_id: $appRoleId
+  }) {
+    returning {
+      newId: appserver_id
+    }
+  }
+}

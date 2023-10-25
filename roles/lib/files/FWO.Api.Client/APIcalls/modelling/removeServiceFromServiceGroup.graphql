@@ -1,0 +1,8 @@
+mutation removeServiceFromServiceGroup(
+  $serviceId: Int!
+  $serviceGroupId: Int!
+  ) {
+  delete_modelling_service_service_group(where: {service_id: {_eq: $serviceId}, service_group_id: {_eq: $serviceGroupId}}) {
+    affected_rows
+  }
+}

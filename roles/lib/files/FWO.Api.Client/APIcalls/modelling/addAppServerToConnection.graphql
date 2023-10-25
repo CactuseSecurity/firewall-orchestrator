@@ -1,0 +1,15 @@
+mutation addAppServerToConnection(
+  $appServerId: bigint!
+  $connectionId: Int!
+  $connectionField: Int!
+  ) {
+  insert_modelling_appserver_connection(objects: {
+    appserver_id: $appServerId
+    connection_id: $connectionId
+    connection_field: $connectionField
+  }) {
+    returning {
+      newId: appserver_id
+    }
+  }
+}

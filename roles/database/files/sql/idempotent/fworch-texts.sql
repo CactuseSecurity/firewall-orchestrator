@@ -978,8 +978,8 @@ INSERT INTO txt VALUES ('add_service', 	        'German',	'Dienst hinzuf&uuml;ge
 INSERT INTO txt VALUES ('add_service', 	        'English',	'Add Service');
 INSERT INTO txt VALUES ('data_inconsistent',    'German', 	'Daten inkonsistent');
 INSERT INTO txt VALUES ('data_inconsistent',    'English', 	'Data inconsistent');
-INSERT INTO txt VALUES ('def_app_role', 	    'German',	'Neue App Rolle definieren');
-INSERT INTO txt VALUES ('def_app_role', 	    'English',	'Define new App Role');
+INSERT INTO txt VALUES ('add_app_role', 	    'German',	'Neue App Rolle definieren');
+INSERT INTO txt VALUES ('add_app_role', 	    'English',	'Define new App Role');
 INSERT INTO txt VALUES ('edit_app_role', 	    'German',	'App Rolle bearbeiten');
 INSERT INTO txt VALUES ('edit_app_role', 	    'English',	'Edit App Role');
 INSERT INTO txt VALUES ('delete_app_role', 	    'German',	'App Rolle l&ouml;schen');

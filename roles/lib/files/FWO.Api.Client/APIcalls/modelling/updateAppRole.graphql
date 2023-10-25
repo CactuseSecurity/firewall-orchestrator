@@ -1,0 +1,16 @@
+mutation updateAppRole(
+  $id: Int!
+  $name: String
+  $appId: Int
+  $comment: String
+  ) {
+  update_modelling_app_role_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      name: $name
+      app_id: $appId
+      comment: $comment
+  }) {
+    UpdatedId: id
+  }
+}

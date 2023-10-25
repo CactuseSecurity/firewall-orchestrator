@@ -69,6 +69,9 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
     [Parameter]
     public string FilterInput { get; set; } = "";
 
@@ -122,9 +125,17 @@
         {
             if (management.UiReference != null)
             {
-                await SetElementProperty(management.UiReference!.Value, "indeterminate",
-                management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => d.Selected)
-                /* any but not all devices selected */ );
+                try
+                {
+                    await SetElementProperty(management.UiReference!.Value, "indeterminate",
+                    management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => d.Selected)
+                    /* any but not all devices selected */ );
+                }
+                catch (Exception exception)
+                {
+                    // TODO: handle exception!
+                    // DisplayMessageInUi(exception, userConfig.GetText("device_select_error"), "", true);
+                }
             }
         }
     }

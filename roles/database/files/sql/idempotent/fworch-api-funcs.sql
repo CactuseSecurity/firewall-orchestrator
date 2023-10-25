@@ -392,6 +392,50 @@ RETURNS SETOF changelog_rule AS $$
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
 
+CREATE OR REPLACE FUNCTION get_objects_for_tenant(management_row management, tenant integer, hasura_session json)
+RETURNS SETOF object AS $$
+    DECLARE t_id integer;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        -- ELSIF t_id != 1 THEN
+        --     RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        ELSIF tenant = 1 THEN
+            RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
+        ELSE
+            RETURN QUERY
+                SELECT o.* FROM (
+                    SELECT o.* FROM object o
+                        LEFT JOIN rule_from rf ON (o.obj_id=rf.obj_id)
+                        LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
+                        LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+                        LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
+                        LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+                        LEFT JOIN tenant_network ON
+                            (ip_ranges_overlap(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg)
+                             OR ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
+                    UNION
+                    SELECT o.* FROM object o
+                        LEFT JOIN rule_to rt ON (o.obj_id=rt.obj_id)
+                        LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
+                        LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
+                        LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
+                        LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+                        LEFT JOIN tenant_network ON
+                            (ip_ranges_overlap(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg)
+                             OR ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
+                ) AS o
+                ORDER BY obj_name;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
 ------------------------------------------------------------------------------------------------------------------------
 -- rule_relevant complexity: O(rf + rt)
 -- rule_from_relevant complexity: O(rt)

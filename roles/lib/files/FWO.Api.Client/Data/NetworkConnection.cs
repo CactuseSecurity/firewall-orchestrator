@@ -36,7 +36,7 @@ namespace FWO.Api.Data
         public List<NetworkObject> Destinations { get; set; } = new List<NetworkObject>{};
         public List<AppRole> DstAppRoles { get; set; } = new List<AppRole>{};
 
-        public List<NetworkService> Services { get; set; } = new List<NetworkService>{};
+        public List<ModellingService> Services { get; set; } = new List<ModellingService>{};
         public List<ServiceGroup> ServiceGroups { get; set; } = new List<ServiceGroup>{};
 
     }

@@ -49,15 +49,15 @@
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
 
-    private void HandleDragStart(List<NetworkService> selectedSvcs)
+    private void HandleDragStart(List<ModellingService> selectedSvcs)
     {
         Container.Clear();
         Container.SvcElements = selectedSvcs;
     }
 
-    private List<NetworkService> ResolveSvc(long[] selectedIds)
+    private List<ModellingService> ResolveSvc(long[] selectedIds)
     {
-        List<NetworkService> addedSvcs = new();
+        List<ModellingService> addedSvcs = new();
         foreach(var id in selectedIds)
         {
             addedSvcs.Add(SvcGroupHandler.AvailableServices.FirstOrDefault(x => x.Id == id));

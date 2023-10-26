@@ -12,11 +12,11 @@ namespace FWO.Ui.Services
         public FwoOwner Application { get; set; } = new();
         public List<ServiceGroup> ServiceGroups { get; set; } = new();
         public ServiceGroup ActServiceGroup { get; set; } = new();
-        public List<NetworkService> AvailableServices { get; set; } = new();
+        public List<ModellingService> AvailableServices { get; set; } = new();
         public bool AddMode { get; set; } = false;
 
-        public List<NetworkService> SvcToAdd { get; set; } = new();
-        public List<NetworkService> SvcToDelete { get; set; } = new();
+        public List<ModellingService> SvcToAdd { get; set; } = new();
+        public List<ModellingService> SvcToDelete { get; set; } = new();
 
         private readonly ApiConnection ApiConnection;
         private readonly UserConfig userConfig;
@@ -24,7 +24,7 @@ namespace FWO.Ui.Services
 
 
         public ModellingServiceGroupHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            List<ServiceGroup> serviceGroups, ServiceGroup serviceGroup, List<NetworkService> availableServices,
+            List<ServiceGroup> serviceGroups, ServiceGroup serviceGroup, List<ModellingService> availableServices,
             bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ApiConnection = apiConnection;
@@ -37,7 +37,7 @@ namespace FWO.Ui.Services
             DisplayMessageInUi = displayMessageInUi;
         }
 
-        public void ServicesToSvcGroup(List<NetworkService> services)
+        public void ServicesToSvcGroup(List<ModellingService> services)
         {
             foreach(var svc in services)
             {
@@ -52,11 +52,11 @@ namespace FWO.Ui.Services
         {
             foreach(var svc in SvcToDelete)
             {
-                ActServiceGroup.NetworkServices.Remove(ActServiceGroup.NetworkServices.FirstOrDefault(x => x.Content.Id == svc.Id));
+                ActServiceGroup.Services.Remove(ActServiceGroup.Services.FirstOrDefault(x => x.Content.Id == svc.Id));
             }
             foreach(var svc in SvcToAdd)
             {
-                ActServiceGroup.NetworkServices.Add(new ServiceWrapper(){ Content = svc });
+                ActServiceGroup.Services.Add(new ModellingServiceWrapper(){ Content = svc });
             }
             if(AddMode)
             {
@@ -84,7 +84,7 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActServiceGroup.Id = returnIds[0].NewId;
-                    foreach(var service in ActServiceGroup.NetworkServices)
+                    foreach(var service in ActServiceGroup.Services)
                     {
                         var svcParams = new
                         {
@@ -142,8 +142,8 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
-            SvcToAdd = new List<NetworkService>();
-            SvcToDelete = new List<NetworkService>();
+            SvcToAdd = new List<ModellingService>();
+            SvcToDelete = new List<ModellingService>();
         }
     }
 }

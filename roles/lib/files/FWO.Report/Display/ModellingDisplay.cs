@@ -11,9 +11,9 @@ namespace FWO.Ui.Display
         public ModellingDisplay(UserConfig userConfig) : base(userConfig)
         { }
 
-        public static string DisplayService(NetworkService service)
+        public static string DisplayService(ModellingService service)
         {
-            return RuleDisplayBase.DisplayService(service, FWO.Report.Filter.ReportType.Rules, service.Name).ToString();
+            return RuleDisplayBase.DisplayService(ModellingService.ToNetworkService(service), FWO.Report.Filter.ReportType.Rules, service.Name).ToString();
         }
 
         public static string DisplayServiceGroup(ServiceGroup grp)
@@ -22,9 +22,9 @@ namespace FWO.Ui.Display
             {
                 return grp.Name;
             }
-            if(grp.NetworkServices.Count > 0)
+            if(grp.Services.Count > 0)
             {
-                return DisplayService(grp.NetworkServices[0].Content);
+                return DisplayService(grp.Services[0].Content);
             }
             return "anything else";
         }

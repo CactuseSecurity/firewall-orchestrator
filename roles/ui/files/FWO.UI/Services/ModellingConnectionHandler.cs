@@ -15,11 +15,11 @@ namespace FWO.Ui.Services
         public List<NetworkObject> AvailableAppServer { get; set; } = new();
         public List<AppRole> AvailableAppRoles { get; set; } = new();
         public List<ServiceGroup> AvailableServiceGroups { get; set; } = new();
-        public List<NetworkService> AvailableServices { get; set; } = new();
+        public List<ModellingService> AvailableServices { get; set; } = new();
         public List<NetworkConnection> AvailableInterfaces { get; set; } = new();
 
-        public List<NetworkService> SvcToAdd { get; set; } = new List<NetworkService>();
-        public List<NetworkService> SvcToDelete { get; set; } = new List<NetworkService>();
+        public List<ModellingService> SvcToAdd { get; set; } = new();
+        public List<ModellingService> SvcToDelete { get; set; } = new();
 
         // public bool DisplayInterfaces { get; set; } = false;
         // public bool ToSrcAllowed { get; set; } = true;
@@ -62,7 +62,7 @@ namespace FWO.Ui.Services
 
         private AppRole actAppRole = new();
         private ServiceGroup actServiceGroup = new();
-        private NetworkService actService = new();
+        private ModellingService actService = new();
 
         private readonly ApiConnection apiConnection;
         private readonly UserConfig userConfig;
@@ -90,7 +90,7 @@ namespace FWO.Ui.Services
                 AvailableAppServer = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServer, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<AppRole>>(FWO.Api.Client.Queries.ModellingQueries.getAppRoles, new { appId = Application.Id });
                 AvailableServiceGroups = await apiConnection.SendQueryAsync<List<ServiceGroup>>(FWO.Api.Client.Queries.ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id });
-                AvailableServices = await apiConnection.SendQueryAsync<List<NetworkService>>(FWO.Api.Client.Queries.ModellingQueries.getServicesForApp, new { appId = Application.Id });
+                AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(FWO.Api.Client.Queries.ModellingQueries.getServicesForApp, new { appId = Application.Id });
                 AvailableInterfaces = await apiConnection.SendQueryAsync<List<NetworkConnection>>(FWO.Api.Client.Queries.ModellingQueries.getInterfaces);
             }
             catch (Exception exception)
@@ -114,7 +114,7 @@ namespace FWO.Ui.Services
             {
                 ActConn.Destinations = new List<NetworkObject>(interf.Destinations){};
             }
-            ActConn.Services = new List<NetworkService>(interf.Services){};
+            ActConn.Services = new List<ModellingService>(interf.Services){};
         }
 
         public void RemoveInterf()
@@ -291,22 +291,22 @@ namespace FWO.Ui.Services
         public async Task CreateService()
         {
             AddServiceMode = true;
-            await HandleService(new NetworkService(){});
+            await HandleService(new ModellingService(){});
         }
 
-        public async Task EditService(NetworkService service)
+        public async Task EditService(ModellingService service)
         {
             AddServiceMode = false;
             await HandleService(service);
         }
 
-        public async Task HandleService(NetworkService service)
+        public async Task HandleService(ModellingService service)
         {
             ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AddServiceMode, DisplayMessageInUi);
             EditServiceMode = true;
         }
 
-        public void RequestDeleteService(NetworkService service)
+        public void RequestDeleteService(ModellingService service)
         {
             actService = service;
             deleteMessage = userConfig.GetText("U9003") + service.Name + "?";
@@ -329,7 +329,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void ServicesToConn(List<NetworkService> services)
+        public void ServicesToConn(List<ModellingService> services)
         {
             foreach(var svc in services)
             {
@@ -620,8 +620,8 @@ namespace FWO.Ui.Services
             SrcAppRolesToDelete = new List<AppRole>();
             DstAppRolesToAdd = new List<AppRole>();
             DstAppRolesToDelete = new List<AppRole>();
-            SvcToAdd = new List<NetworkService>();
-            SvcToDelete = new List<NetworkService>();
+            SvcToAdd = new List<ModellingService>();
+            SvcToDelete = new List<ModellingService>();
             SvcGrpToAdd = new List<ServiceGroup>();
             SvcGrpToDelete = new List<ServiceGroup>();
             AddAppRoleMode = false;

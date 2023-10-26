@@ -10,7 +10,7 @@ namespace FWO.Ui.Services
     public class ModellingServiceHandler
     {
         public FwoOwner Application { get; set; } = new();
-        public NetworkService ActService { get; set; } = new();
+        public ModellingService ActService { get; set; } = new();
         public bool AddMode { get; set; } = false;
         private readonly ApiConnection ApiConnection;
         private readonly UserConfig userConfig;
@@ -18,7 +18,7 @@ namespace FWO.Ui.Services
 
 
         public ModellingServiceHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            NetworkService service, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
+            ModellingService service, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ApiConnection = apiConnection;
             this.userConfig = userConfig;
@@ -48,9 +48,9 @@ namespace FWO.Ui.Services
                 {
                     name = ActService.Name,
                     appId = Application.Id,
-                    port = ActService.DestinationPort,
-                    portEnd = ActService.DestinationPortEnd,
-                    protoId = ActService.Protocol.Id
+                    port = ActService.Port,
+                    portEnd = ActService.PortEnd,
+                    protoId = ActService.ProtoId
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.newService, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -73,8 +73,8 @@ namespace FWO.Ui.Services
                     id = ActService.Id,
                     name = ActService.Name,
                     appId = Application.Id,
-                    port = ActService.DestinationPort,
-                    portEnd = ActService.DestinationPortEnd,
+                    port = ActService.Port,
+                    portEnd = ActService.PortEnd,
                     protoId = ActService.Protocol.Id
                 };
                 await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.updateService, Variables);

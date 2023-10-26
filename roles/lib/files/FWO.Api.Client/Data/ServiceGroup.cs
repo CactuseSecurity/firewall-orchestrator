@@ -20,7 +20,12 @@ namespace FWO.Api.Data
 
 
         [JsonProperty("services"), JsonPropertyName("services")]
-        public List<ServiceWrapper> NetworkServices { get; set; } = new List<ServiceWrapper>{};
+        public List<ModellingServiceWrapper> Services { get; set; } = new();
+    }
 
+    public class ModellingServiceWrapper
+    {
+        [JsonProperty("service"), JsonPropertyName("service")]
+        public ModellingService Content { get; set; } = new();
     }
 }

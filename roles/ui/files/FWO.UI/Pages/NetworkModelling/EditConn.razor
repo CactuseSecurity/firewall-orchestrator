@@ -85,7 +85,7 @@
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="NetworkService" Elements="ConnHandler.ActConn.Services.ToArray()" ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="ModellingService" Elements="ConnHandler.ActConn.Services.ToArray()" ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayService(context)</div>
@@ -184,7 +184,7 @@
     private DnDContainer Container { get; set; } = new DnDContainer();
     int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
     
-    private List<NetworkService> services = new List<NetworkService>(){};
+    private List<ModellingService> services = new List<ModellingService>(){};
     private List<ServiceGroup> serviceGroups = new List<ServiceGroup>(){};
 
     private static string dropzoneClass = "minheight-dropzone bg-secondary dropzone";

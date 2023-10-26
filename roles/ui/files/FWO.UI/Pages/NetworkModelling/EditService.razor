@@ -16,9 +16,9 @@
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
-                <input type="number" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.DestinationPort" />
+                <input type="number" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.Port" />
                 <label class="col-sm-1 col-form-label col-form-label-sm"> - </label>
-                <input type="number" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.DestinationPortEnd" />
+                <input type="number" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.PortEnd" />
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("protocol"))*:</label>

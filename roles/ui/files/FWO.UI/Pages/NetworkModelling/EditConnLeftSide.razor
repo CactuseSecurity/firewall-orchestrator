@@ -238,7 +238,7 @@
         Container.AppRoleElements = selectedAppRoles;
     }
 
-    private void HandleDragStart(List<NetworkService> selectedSvcs)
+    private void HandleDragStart(List<ModellingService> selectedSvcs)
     {
         Container.Clear();
         Container.SvcElements = selectedSvcs;
@@ -285,9 +285,9 @@
         return addedAppRoles;
     }
 
-    private List<NetworkService> ResolveSvc(long[] selectedIds)
+    private List<ModellingService> ResolveSvc(long[] selectedIds)
     {
-        List<NetworkService> addedSvcs = new();
+        List<ModellingService> addedSvcs = new();
         foreach(var id in selectedIds)
         {
             addedSvcs.Add(ConnHandler.AvailableServices.FirstOrDefault(x => x.Id == id));

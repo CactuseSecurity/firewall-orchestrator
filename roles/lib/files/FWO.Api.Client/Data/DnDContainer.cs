@@ -4,7 +4,7 @@
     {
         public List<NetworkObject> IpElements { get; set; } = new();
         public List<AppRole> AppRoleElements { get; set; } = new();
-        public List<NetworkService> SvcElements { get; set; } = new();
+        public List<ModellingService> SvcElements { get; set; } = new();
         public List<ServiceGroup> SvcGrpElements { get; set; } = new();
         public NetworkConnection ConnElement { get; set; } = null;
 

@@ -1294,7 +1294,7 @@ create schema modelling;
 create table modelling.area
 (
  	id SERIAL PRIMARY KEY,
-	name Varchar
+	name Varchar NOT NULL UNIQUE
 );
 
 create table modelling.area_subnet

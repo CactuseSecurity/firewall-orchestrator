@@ -9,8 +9,6 @@
     @if(!ConnHandler.ReadOnly)
     {
         <EditConnLeftSide Application="@Application" @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-ConnHandler="ConnHandler"
-            AppServerToSource="AddAppServerSources" AppServerToDest="AddAppServerDestinations"
-            DisplayInterfaces="@(!ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.UsedInterfaceId == null)" Interfaces="interfaces" IntToConn="InterfToConn" 
             ToSrcAllowed="@(!ConnHandler.SrcDropForbidden())" ToDestAllowed="@(!ConnHandler.DstDropForbidden())" ToSvcAllowed="!ConnHandler.svcReadOnly"/>
     }
     <div style="margin-left: @($"{(ConnHandler.ReadOnly ? 0 : sidebarLeftWidth) + 10}px");">
@@ -51,7 +49,7 @@
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.Sources.ToArray()" ElementsToAdd="ConnHandler.SrcIpsToAdd" ElementsToDelete="ConnHandler.SrcIpsToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.Sources.ToArray()" ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
@@ -67,11 +65,11 @@
                     {
                         foreach(var grp in ConnHandler.ActConn.ServiceGroups)
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayServiceGroup(grp)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayServiceGroup(grp)</div>
                         }
                         foreach(var svc in ConnHandler.ActConn.Services)
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayService(svc)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayService(svc)</div>
                         }
                     }
                     else 
@@ -83,14 +81,14 @@
                             <EditList ElementType="ServiceGroup" Elements="ConnHandler.ActConn.ServiceGroups.ToArray()" ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayServiceGroup(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayServiceGroup(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
                             <EditList ElementType="NetworkService" Elements="ConnHandler.ActConn.Services.ToArray()" ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayService(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayService(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
@@ -123,7 +121,7 @@
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.Destinations.ToArray()" ElementsToAdd="ConnHandler.DstIpsToAdd" ElementsToDelete="ConnHandler.DstIpsToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.Destinations.ToArray()" ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
@@ -152,7 +150,7 @@
             {
                 @if(ConnHandler.srcReadOnly || ConnHandler.dstReadOnly)
                 {
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveInterf()">@(userConfig.GetText("remove_interface"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(userConfig.GetText("remove_interface"))</button>
                 }
             }
         </div>
@@ -160,7 +158,6 @@
     <EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="ConnHandler.AddAppRoleMode"/>
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="ConnHandler.AddSvcGrpMode"/>
     <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
-    <ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="ConnHandler.DeleteAppRole" Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.deleteMessage"/>
 }
 
 @code
@@ -189,22 +186,10 @@
     
     private List<NetworkService> services = new List<NetworkService>(){};
     private List<ServiceGroup> serviceGroups = new List<ServiceGroup>(){};
-    private List<NetworkConnection> interfaces = new List<NetworkConnection>(){};
 
     private static string dropzoneClass = "minheight-dropzone bg-secondary dropzone";
     private static string forbiddenDropzoneClass = "minheight-dropzone bg-white";
 
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            interfaces = await apiConnection.SendQueryAsync<List<NetworkConnection>>(FWO.Api.Client.Queries.ModellingQueries.getInterfaces);
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-        }
-    }
 
     protected override void OnParametersSet()
     {
@@ -218,13 +203,13 @@
     {
         if(Container.ConnElement != null)
         {
-            InterfToConn(Container.ConnElement);
+            ConnHandler.InterfaceToConn(Container.ConnElement);
         }
         else if(!ConnHandler.SrcDropForbidden())
         {
             if(Container.IpElements.Count > 0)
             {
-                AddAppServerSources(Container.IpElements);
+                ConnHandler.AppServerToSource(Container.IpElements);
             }
             if(Container.AppRoleElements.Count > 0)
             {
@@ -238,13 +223,13 @@
     {
         if(Container.ConnElement != null)
         {
-            InterfToConn(Container.ConnElement);
+            ConnHandler.InterfaceToConn(Container.ConnElement);
         }
         else if(!ConnHandler.DstDropForbidden())
         {
             if(Container.IpElements.Count > 0)
             {
-                AddAppServerDestinations(Container.IpElements);
+                ConnHandler.AppServerToDestination(Container.IpElements);
             }
             if(Container.AppRoleElements.Count > 0)
             {
@@ -258,7 +243,7 @@
     {
         if(Container.ConnElement != null)
         {
-            InterfToConn(Container.ConnElement);
+            ConnHandler.InterfaceToConn(Container.ConnElement);
         }
         else if(Container.SvcElements.Count > 0)
         {
@@ -278,107 +263,19 @@
         DisplayChanged.InvokeAsync(Display);
     }
 
-    private string DisplayAppRole(AppRole grp)
+    private string DisplayAppRole(AppRole appRole)
     {
-        if(grp.Name != null && grp.Name != "")
+        if(appRole.Name != null && appRole.Name != "")
         {
-            return grp.Name;
+            return appRole.Name;
         }
-        if(grp.NetworkObjects.Count > 0)
+        if(appRole.NetworkObjects.Count > 0)
         {
-            return NwObjDisplay.DisplayWithName(grp.NetworkObjects[0]);
-        }
-        return "anything else";
-    }
-
-    private string DisplayService(NetworkService service)
-    {
-        return FWO.Ui.Display.RuleDisplayBase.DisplayService(service, FWO.Report.Filter.ReportType.Rules).ToString();
-    }
-
-    private string DisplayServiceGroup(ServiceGroup grp)
-    {
-        if(grp.Name != null && grp.Name != "")
-        {
-            return grp.Name;
-        }
-        if(grp.NetworkServices.Count > 0)
-        {
-            return DisplayService(grp.NetworkServices[0].Content);
+            return NwObjDisplay.DisplayWithName(appRole.NetworkObjects[0]);
         }
         return "anything else";
     }
     
-    private bool InterfToConn(NetworkConnection inter)
-    {
-        ConnHandler.srcReadOnly = inter.Sources.Count > 0;
-        ConnHandler.dstReadOnly = !ConnHandler.srcReadOnly;
-        ConnHandler.svcReadOnly = true;
-        ConnHandler.ActConn.IsInterface = false;
-        ConnHandler.ActConn.UsedInterfaceId = inter.Id;
-        if(ConnHandler.srcReadOnly)
-        {
-            ConnHandler.ActConn.Sources = new List<NetworkObject>(inter.Sources){};
-        }
-        else
-        {
-            ConnHandler.ActConn.Destinations = new List<NetworkObject>(inter.Destinations){};
-        }
-        ConnHandler.ActConn.Services = new List<NetworkService>(inter.Services){};
-        StateHasChanged();
-        return true;
-    }
-
-    private void RemoveInterf()
-    {
-        if(ConnHandler.srcReadOnly)
-        {
-            ConnHandler.ActConn.Sources = new();
-        }
-        if(ConnHandler.dstReadOnly)
-        {
-            ConnHandler.ActConn.Destinations = new();
-        }
-        ConnHandler.ActConn.Services = new();
-        ConnHandler.ActConn.UsedInterfaceId = null;
-        ConnHandler.srcReadOnly = false;
-        ConnHandler.dstReadOnly = false;
-        ConnHandler.svcReadOnly = false;
-        StateHasChanged();
-    }
-
-    private bool AddAppServerSources(List<NetworkObject> sources)
-    {
-        if(!ConnHandler.SrcDropForbidden())
-        {
-            foreach(var source in sources)
-            {
-                if(!ConnHandler.ActConn.Sources.Contains(source) && !ConnHandler.SrcIpsToAdd.Contains(source))
-                {
-                    ConnHandler.SrcIpsToAdd.Add(source);
-                }
-            }
-            ConnHandler.CalcVisibility();
-        }
-        return true;
-    }
-
-    private bool AddAppServerDestinations(List<NetworkObject> dests)
-    {
-        if(!ConnHandler.DstDropForbidden())
-        {
-            foreach(var dest in dests)
-            {
-                if(!ConnHandler.ActConn.Destinations.Contains(dest) && !ConnHandler.DstIpsToAdd.Contains(dest))
-                {
-                    ConnHandler.DstIpsToAdd.Add(dest);
-                }
-            }
-            ConnHandler.CalcVisibility();
-        }
-        return true;
-    }
-
     private string SrcClass()
     {
         if(ConnHandler.SrcDropForbidden())

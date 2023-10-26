@@ -5,6 +5,11 @@ namespace FWO.Api.Client.Queries
     public class ModellingQueries : Queries
     {
         public static readonly string getAreas;
+        public static readonly string newArea;
+        public static readonly string deleteArea;
+        public static readonly string newAreaSubnet;
+        public static readonly string deleteAreaSubnet;
+
         public static readonly string getAppServer;
 
         public static readonly string getInterfaces;
@@ -48,6 +53,11 @@ namespace FWO.Api.Client.Queries
             try
             {
                 getAreas = File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
+                newArea = File.ReadAllText(QueryPath + "modelling/newArea.graphql");
+                deleteArea = File.ReadAllText(QueryPath + "modelling/deleteArea.graphql");
+                newAreaSubnet = File.ReadAllText(QueryPath + "modelling/newAreaSubnet.graphql");
+                deleteAreaSubnet = File.ReadAllText(QueryPath + "modelling/deleteAreaSubnet.graphql");
+
                 getAppServer = File.ReadAllText(QueryPath + "modelling/getAppServer.graphql");
 
                 getInterfaces = File.ReadAllText(QueryPath + "modelling/getInterfaces.graphql");

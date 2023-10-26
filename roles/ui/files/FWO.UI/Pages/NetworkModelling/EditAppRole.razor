@@ -28,7 +28,8 @@
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.Name" />
+                            <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.NameFixedPart" />
+                            <input type="text" class=" col-sm-6 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.NameFreePart" />
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
@@ -40,7 +41,7 @@
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
                                 @ondrop="HandleServerDrop">
-                                <EditList ElementType="NetworkObject" Elements="AppRoleHandler.ActAppRole.NetworkObjects.ToArray()" ElementsToAdd="AppRoleHandler.IpsToAdd" ElementsToDelete="AppRoleHandler.IpsToDelete" StdLayout="false">
+                                <EditList ElementType="NetworkObject" Elements="AppRoleHandler.ActAppRole.NetworkObjects.ToArray()" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false">
                                     <Display>
                                         <div class="row">
                                             <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
@@ -57,7 +58,7 @@
             <div class="btn-group">
                 <AuthorizeView Roles="admin, modeller">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="AppRoleHandler.Save">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {await AppRoleHandler.Save(); Close();}">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -150,17 +151,17 @@
     private void SelectedAreaChanged(NetworkArea newArea)
     {
         AppRoleHandler.ActAppRole.Area = newArea;
-        if(newArea != null && newArea.Name.Length == 4 && AddMode)
+        if(newArea != null && newArea.Name.Length >= AppRole.FixedPartLength && AddMode)
         {
-            AppRoleHandler.ActAppRole.Name = newArea.Name.Remove(1, 1).Insert(1, "Z");
+            AppRoleHandler.ActAppRole.NameFixedPart = newArea.Name.Substring(0, AppRole.FixedPartLength).Remove(0, 2).Insert(0, "AR");
         }
-        SelectIpsFromArea(newArea);
+        SelectAppServerFromArea(newArea);
     }
 
-    private void SelectIpsFromArea(NetworkArea area)
+    private void SelectAppServerFromArea(NetworkArea area)
     {
         actServers = new List<NetworkObject>(){};
-        foreach(var server in AppRoleHandler.AppServer)
+        foreach(var server in AppRoleHandler.AvailableAppServer)
         {
             if(IsInArea(server, area))
             {

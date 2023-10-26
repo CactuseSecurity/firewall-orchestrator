@@ -12,9 +12,9 @@
     <div class="form-group row">
         <div class="col-sm-9">
             <select class="form-control form-control-sm" @bind="selectedServices" multiple>
-                @foreach (var service in SvcGroupHandler.Services)
+                @foreach (var service in SvcGroupHandler.AvailableServices)
                 {
-                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@SvcGroupHandler.DisplayService(service)</option>
+                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@ModellingDisplay.DisplayService(service)</option>
                 }
             </select>
         </div>
@@ -60,7 +60,7 @@
         List<NetworkService> addedSvcs = new();
         foreach(var id in selectedIds)
         {
-            addedSvcs.Add(SvcGroupHandler.Services.FirstOrDefault(x => x.Id == id));
+            addedSvcs.Add(SvcGroupHandler.AvailableServices.FirstOrDefault(x => x.Id == id));
         }
         return addedSvcs;
     }

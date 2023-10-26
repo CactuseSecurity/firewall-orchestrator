@@ -14,7 +14,7 @@ create schema if not exists modelling;
 create table if not exists modelling.area
 (
  	id SERIAL PRIMARY KEY,
-	name Varchar
+	name Varchar NOT NULL UNIQUE
 );
 
 create table if not exists modelling.area_subnet

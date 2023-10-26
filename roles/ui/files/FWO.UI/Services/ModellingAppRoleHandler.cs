@@ -12,11 +12,11 @@ namespace FWO.Ui.Services
         public FwoOwner Application { get; set; } = new();
         public List<AppRole> AppRoles { get; set; } = new();
         public AppRole ActAppRole { get; set; } = new();
-        public List<NetworkObject> AppServer { get; set; } = new();
+        public List<NetworkObject> AvailableAppServer { get; set; } = new();
         public bool AddMode { get; set; } = false;
 
-        public List<NetworkObject> IpsToAdd { get; set; } = new();
-        public List<NetworkObject> IpsToDelete { get; set; } = new();
+        public List<NetworkObject> AppServerToAdd { get; set; } = new();
+        public List<NetworkObject> AppServerToDelete { get; set; } = new();
 
         private readonly ApiConnection ApiConnection;
         private readonly UserConfig userConfig;
@@ -32,7 +32,7 @@ namespace FWO.Ui.Services
             this.apiConnection = apiConnection;
         }
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            List<AppRole> appRoles, AppRole appRole,
+            List<AppRole> appRoles, AppRole appRole, List<NetworkObject> availableAppServer,
             bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ApiConnection = apiConnection;
@@ -40,41 +40,31 @@ namespace FWO.Ui.Services
             Application = application;
             AppRoles = appRoles;
             ActAppRole = appRole;
+            AvailableAppServer = availableAppServer;
             AddMode = addMode;
             DisplayMessageInUi = displayMessageInUi;
-        }
-        public async Task Init()
-        {
-            try
-            {
-                AppServer = await ApiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServer, new { appId = Application.Id });
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-            }
         }
 
         public void AppServerToAppRole(List<NetworkObject> nwObjects)
         {
-        foreach(var nwobj in nwObjects)
+        foreach(var appServer in nwObjects)
         {
-            if(!ActAppRole.NetworkObjects.Contains(nwobj) && !IpsToAdd.Contains(nwobj))
+            if(!ActAppRole.NetworkObjects.Contains(appServer) && !AppServerToAdd.Contains(appServer))
             {
-                IpsToAdd.Add(nwobj);
+                AppServerToAdd.Add(appServer);
             }
         }
         }
 
         public async Task Save()
         {
-            foreach(var nwobj in IpsToDelete)
+            foreach(var appServer in AppServerToDelete)
             {
-                ActAppRole.NetworkObjects.Remove(nwobj);
+                ActAppRole.NetworkObjects.Remove(appServer);
             }
-            foreach(var nwobj in IpsToAdd)
+            foreach(var appServer in AppServerToAdd)
             {
-                ActAppRole.NetworkObjects.Add(nwobj);
+                ActAppRole.NetworkObjects.Add(appServer);
             }
             if(AddMode)
             {
@@ -101,11 +91,11 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActAppRole.Id = returnIds[0].NewId;
-                    foreach(var nwobj in ActAppRole.NetworkObjects)
+                    foreach(var appServer in ActAppRole.NetworkObjects)
                     {
                         var Vars = new
                         {
-                            appServerId = nwobj.Id,
+                            appServerId = appServer.Id,
                             appRoleId = ActAppRole.Id
                         };
                         await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.addAppServerToAppRole, Vars);
@@ -131,20 +121,20 @@ namespace FWO.Ui.Services
                     comment = ActAppRole.Comment
                 };
                 await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.updateAppRole, Variables);
-                foreach(var nwobj in IpsToDelete)
+                foreach(var appServer in AppServerToDelete)
                 {
                     var Vars = new
                     {
-                        appServerId = nwobj.Id,
+                        appServerId = appServer.Id,
                         appRoleId = ActAppRole.Id
                     };
                     await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.removeAppServerFromAppRole, Vars);
                 }
-                foreach(var nwobj in IpsToAdd)
+                foreach(var appServer in AppServerToAdd)
                 {
                     var Vars = new
                     {
-                        appServerId = nwobj.Id,
+                        appServerId = appServer.Id,
                         appRoleId = ActAppRole.Id
                     };
                     await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.addAppServerToAppRole, Vars);
@@ -158,8 +148,8 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
-            IpsToAdd = new List<NetworkObject>();
-            IpsToDelete = new List<NetworkObject>();
+            AppServerToAdd = new List<NetworkObject>();
+            AppServerToDelete = new List<NetworkObject>();
         }
     }
 }

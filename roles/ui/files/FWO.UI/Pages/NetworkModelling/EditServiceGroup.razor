@@ -29,10 +29,10 @@
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
                                 @ondrop="HandleSvcDrop">
-                                <EditList ElementType="NetworkService" Elements="SvcGroupHandler.Services.ToArray()" ElementsToAdd="SvcGroupHandler.SvcToAdd" ElementsToDelete="SvcGroupHandler.SvcToDelete" StdLayout="false">
+                                <EditList ElementType="NetworkService" Elements="SvcGroupHandler.AvailableServices.ToArray()" ElementsToAdd="SvcGroupHandler.SvcToAdd" ElementsToDelete="SvcGroupHandler.SvcToDelete" StdLayout="false">
                                     <Display>
                                         <div class="row">
-                                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@SvcGroupHandler.DisplayService(context)</div>
+                                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayService(context)</div>
                                         </div>
                                     </Display>
                                 </EditList>

@@ -12,7 +12,7 @@ namespace FWO.Ui.Services
         public FwoOwner Application { get; set; } = new();
         public List<ServiceGroup> ServiceGroups { get; set; } = new();
         public ServiceGroup ActServiceGroup { get; set; } = new();
-        public List<NetworkService> Services { get; set; } = new();
+        public List<NetworkService> AvailableServices { get; set; } = new();
         public bool AddMode { get; set; } = false;
 
         public List<NetworkService> SvcToAdd { get; set; } = new();
@@ -24,7 +24,7 @@ namespace FWO.Ui.Services
 
 
         public ModellingServiceGroupHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            List<ServiceGroup> serviceGroups, ServiceGroup serviceGroup,
+            List<ServiceGroup> serviceGroups, ServiceGroup serviceGroup, List<NetworkService> availableServices,
             bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ApiConnection = apiConnection;
@@ -32,32 +32,16 @@ namespace FWO.Ui.Services
             Application = application;
             ServiceGroups = serviceGroups;
             ActServiceGroup = serviceGroup;
+            AvailableServices = availableServices;
             AddMode = addMode;
             DisplayMessageInUi = displayMessageInUi;
-        }
-
-        public async Task Init()
-        {
-            try
-            {
-                Services = await ApiConnection.SendQueryAsync<List<NetworkService>>(FWO.Api.Client.Queries.ModellingQueries.getServicesForApp, new { appId = Application.Id });
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-            }
-        }
-
-        public string DisplayService(NetworkService service)
-        {
-            return FWO.Ui.Display.RuleDisplayBase.DisplayService(service, FWO.Report.Filter.ReportType.Rules).ToString();
         }
 
         public void ServicesToSvcGroup(List<NetworkService> services)
         {
             foreach(var svc in services)
             {
-                if(!Services.Contains(svc) && !SvcToAdd.Contains(svc))
+                if(!AvailableServices.Contains(svc) && !SvcToAdd.Contains(svc))
                 {
                     SvcToAdd.Add(svc);
                 }

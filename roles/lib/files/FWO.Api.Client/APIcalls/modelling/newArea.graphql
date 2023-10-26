@@ -1,0 +1,11 @@
+mutation newArea(
+  $name: String
+  ) {
+  insert_modelling_area(objects: {
+    name: $name
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

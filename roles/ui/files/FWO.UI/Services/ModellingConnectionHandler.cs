@@ -12,10 +12,11 @@ namespace FWO.Ui.Services
         public FwoOwner Application { get; set; } = new();
         public List<NetworkConnection> Connections { get; set; } = new();
         public NetworkConnection ActConn { get; set; } = new();
-        public List<AppRole> AppRoles { get; set; } = new();
+        public List<NetworkObject> AvailableAppServer { get; set; } = new();
+        public List<AppRole> AvailableAppRoles { get; set; } = new();
         public List<ServiceGroup> AvailableServiceGroups { get; set; } = new();
         public List<NetworkService> AvailableServices { get; set; } = new();
-        // public List<NetworkConnection> Interfaces { get; set; } = new();
+        public List<NetworkConnection> AvailableInterfaces { get; set; } = new();
 
         public List<NetworkService> SvcToAdd { get; set; } = new List<NetworkService>();
         public List<NetworkService> SvcToDelete { get; set; } = new List<NetworkService>();
@@ -29,10 +30,10 @@ namespace FWO.Ui.Services
         public bool dstReadOnly { get; set; } = false;
         public bool svcReadOnly { get; set; } = false;
 
-        public List<NetworkObject> SrcIpsToAdd { get; set; } = new List<NetworkObject>();
-        public List<NetworkObject> SrcIpsToDelete { get; set; } = new List<NetworkObject>();
-        public List<NetworkObject> DstIpsToAdd { get; set; } = new List<NetworkObject>();
-        public List<NetworkObject> DstIpsToDelete { get; set; } = new List<NetworkObject>();
+        public List<NetworkObject> SrcAppServerToAdd { get; set; } = new List<NetworkObject>();
+        public List<NetworkObject> SrcAppServerToDelete { get; set; } = new List<NetworkObject>();
+        public List<NetworkObject> DstAppServerToAdd { get; set; } = new List<NetworkObject>();
+        public List<NetworkObject> DstAppServerToDelete { get; set; } = new List<NetworkObject>();
 
         public List<AppRole> SrcAppRolesToAdd { get; set; } = new List<AppRole>();
         public List<AppRole> SrcAppRolesToDelete { get; set; } = new List<AppRole>();
@@ -47,7 +48,7 @@ namespace FWO.Ui.Services
         public List<ServiceGroup> SvcGrpToDelete { get; set; } = new();
         public bool AddSvcGrpMode = false;
         public bool EditSvcGrpMode = false;
-        public bool DeleteServiceGrpMode = false;
+        public bool DeleteSvcGrpMode = false;
         public ModellingServiceGroupHandler SvcGrpHandler;
         public bool AddServiceMode = false;
         public bool EditServiceMode = false;
@@ -86,13 +87,80 @@ namespace FWO.Ui.Services
         {
             try
             {
-                AppRoles = await apiConnection.SendQueryAsync<List<AppRole>>(FWO.Api.Client.Queries.ModellingQueries.getAppRoles, new { appId = Application.Id });
+                AvailableAppServer = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServer, new { appId = Application.Id });
+                AvailableAppRoles = await apiConnection.SendQueryAsync<List<AppRole>>(FWO.Api.Client.Queries.ModellingQueries.getAppRoles, new { appId = Application.Id });
                 AvailableServiceGroups = await apiConnection.SendQueryAsync<List<ServiceGroup>>(FWO.Api.Client.Queries.ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id });
                 AvailableServices = await apiConnection.SendQueryAsync<List<NetworkService>>(FWO.Api.Client.Queries.ModellingQueries.getServicesForApp, new { appId = Application.Id });
+                AvailableInterfaces = await apiConnection.SendQueryAsync<List<NetworkConnection>>(FWO.Api.Client.Queries.ModellingQueries.getInterfaces);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        public void InterfaceToConn(NetworkConnection interf)
+        {
+            srcReadOnly = interf.Sources.Count > 0;
+            dstReadOnly = !srcReadOnly;
+            svcReadOnly = true;
+            ActConn.IsInterface = false;
+            ActConn.UsedInterfaceId = interf.Id;
+            if(srcReadOnly)
+            {
+                ActConn.Sources = new List<NetworkObject>(interf.Sources){};
+            }
+            else
+            {
+                ActConn.Destinations = new List<NetworkObject>(interf.Destinations){};
+            }
+            ActConn.Services = new List<NetworkService>(interf.Services){};
+        }
+
+        public void RemoveInterf()
+        {
+            if(srcReadOnly)
+            {
+                ActConn.Sources = new();
+            }
+            if(dstReadOnly)
+            {
+                ActConn.Destinations = new();
+            }
+            ActConn.Services = new();
+            ActConn.UsedInterfaceId = null;
+            srcReadOnly = false;
+            dstReadOnly = false;
+            svcReadOnly = false;
+        }
+        
+        public void AppServerToSource(List<NetworkObject> sources)
+        {
+            if(!SrcDropForbidden())
+            {
+                foreach(var source in sources)
+                {
+                    if(!ActConn.Sources.Contains(source) && !SrcAppServerToAdd.Contains(source))
+                    {
+                        SrcAppServerToAdd.Add(source);
+                    }
+                }
+                CalcVisibility();
+            }
+        }
+
+        public void AppServerToDestination(List<NetworkObject> dests)
+        {
+            if(!DstDropForbidden())
+            {
+                foreach(var dest in dests)
+                {
+                    if(!ActConn.Destinations.Contains(dest) && !DstAppServerToAdd.Contains(dest))
+                    {
+                        DstAppServerToAdd.Add(dest);
+                    }
+                }
+                CalcVisibility();
             }
         }
 
@@ -110,8 +178,7 @@ namespace FWO.Ui.Services
 
         public async Task HandleAppRole(AppRole appRole)
         {
-            AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AppRoles, appRole, AddAppRoleMode, DisplayMessageInUi);
-            await AppRoleHandler.Init();
+            AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles, appRole, AvailableAppServer, AddAppRoleMode, DisplayMessageInUi);
             EditAppRoleMode = true;
         }
 
@@ -128,7 +195,7 @@ namespace FWO.Ui.Services
             {
                 if((await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.deleteAppRole, new { id = actAppRole.Id })).AffectedRows > 0)
                 {
-                    AppRoles.Remove(actAppRole);
+                    AvailableAppRoles.Remove(actAppRole);
                     DeleteAppRoleMode = false;
                 }
             }
@@ -182,8 +249,7 @@ namespace FWO.Ui.Services
 
         public async Task HandleServiceGroup(ServiceGroup serviceGroup)
         {
-            SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, Application, AvailableServiceGroups, serviceGroup, AddSvcGrpMode, DisplayMessageInUi);
-            await SvcGrpHandler.Init();
+            SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, Application, AvailableServiceGroups, serviceGroup, AvailableServices, AddSvcGrpMode, DisplayMessageInUi);
             EditSvcGrpMode = true;
         }
 
@@ -191,7 +257,7 @@ namespace FWO.Ui.Services
         {
             actServiceGroup = serviceGroup;
             deleteMessage = userConfig.GetText("U9004") + serviceGroup.Name + "?";
-            DeleteServiceGrpMode = true;
+            DeleteSvcGrpMode = true;
         }
 
         public async Task DeleteServiceGroup()
@@ -201,7 +267,7 @@ namespace FWO.Ui.Services
                 if((await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.deleteServiceGroup, new { id = actServiceGroup.Id })).AffectedRows > 0)
                 {
                     AvailableServiceGroups.Remove(actServiceGroup);
-                    DeleteServiceGrpMode = false;
+                    DeleteSvcGrpMode = false;
                 }
             }
             catch (Exception exception)
@@ -278,8 +344,8 @@ namespace FWO.Ui.Services
         {
             if(ActConn.IsInterface)
             {
-                dstReadOnly = ActConn.Sources.Count > 0 || SrcIpsToAdd.Count > 0;
-                srcReadOnly = ActConn.Destinations.Count > 0 || DstIpsToAdd.Count > 0;
+                dstReadOnly = ActConn.Sources.Count > 0 || SrcAppServerToAdd.Count > 0;
+                srcReadOnly = ActConn.Destinations.Count > 0 || DstAppServerToAdd.Count > 0;
                 svcReadOnly = false;
             }
             else if (ActConn.UsedInterfaceId != null)
@@ -299,84 +365,114 @@ namespace FWO.Ui.Services
 
         public bool SrcDropForbidden()
         {
-            return srcReadOnly || (ActConn.IsInterface && 
-                (ActConn.DstAppRoles != null && ActConn.DstAppRoles.Count > 0 || 
-                ActConn.Destinations != null && ActConn.Destinations.Count > 0 ||
-                DstIpsToAdd != null && DstIpsToAdd.Count > 0 ||
-                DstAppRolesToAdd != null && DstAppRolesToAdd.Count > 0));
+            return srcReadOnly || (ActConn.IsInterface && DstFilled());
         }
 
         public bool DstDropForbidden()
         {
-            return dstReadOnly || (ActConn.IsInterface && 
-                (ActConn.SrcAppRoles != null && ActConn.SrcAppRoles.Count > 0 || 
+            return dstReadOnly || (ActConn.IsInterface && SrcFilled());
+        }
+
+        public bool SrcFilled()
+        {
+            return ActConn.SrcAppRoles != null && ActConn.SrcAppRoles.Count > 0 || 
                 ActConn.Sources != null && ActConn.Sources.Count > 0 ||
-                SrcIpsToAdd != null && SrcIpsToAdd.Count > 0 ||
-                SrcAppRolesToAdd != null && SrcAppRolesToAdd.Count > 0));
+                SrcAppServerToAdd != null && SrcAppServerToAdd.Count > 0 ||
+                SrcAppRolesToAdd != null && SrcAppRolesToAdd.Count > 0;
+        }
+
+        public bool DstFilled()
+        {
+            return ActConn.DstAppRoles != null && ActConn.DstAppRoles.Count > 0 || 
+                ActConn.Destinations != null && ActConn.Destinations.Count > 0 ||
+                DstAppServerToAdd != null && DstAppServerToAdd.Count > 0 ||
+                DstAppRolesToAdd != null && DstAppRolesToAdd.Count > 0;
         }
 
         public async Task Save()
         {
-            foreach(var ip in SrcIpsToDelete)
+            if(checkConn())
             {
-                ActConn.Sources.Remove(ip);
+                if(!srcReadOnly)
+                {
+                    foreach(var ip in SrcAppServerToDelete)
+                    {
+                        ActConn.Sources.Remove(ip);
+                    }
+                    foreach(var ip in SrcAppServerToAdd)
+                    {
+                        ActConn.Sources.Add(ip);
+                    }
+                    foreach(var appRole in SrcAppRolesToDelete)
+                    {
+                        ActConn.SrcAppRoles.Remove(appRole);
+                    }
+                    foreach(var appRole in SrcAppRolesToAdd)
+                    {
+                        ActConn.SrcAppRoles.Add(appRole);
+                    }
+                }
+                if(!dstReadOnly)
+                {
+                    foreach(var ip in DstAppServerToDelete)
+                    {
+                        ActConn.Destinations.Remove(ip);
+                    }
+                    foreach(var ip in DstAppServerToAdd)
+                    {
+                        ActConn.Destinations.Add(ip);
+                    }
+                    foreach(var appRole in DstAppRolesToDelete)
+                    {
+                        ActConn.DstAppRoles.Remove(appRole);
+                    }
+                    foreach(var appRole in DstAppRolesToAdd)
+                    {
+                        ActConn.DstAppRoles.Add(appRole);
+                    }
+                }
+                if(!svcReadOnly)
+                {
+                    foreach(var svc in SvcToDelete)
+                    {
+                        ActConn.Services.Remove(svc);
+                    }
+                    foreach(var svc in SvcToAdd)
+                    {
+                        ActConn.Services.Add(svc);
+                    }
+                    foreach(var svcGrp in SvcGrpToDelete)
+                    {
+                        ActConn.ServiceGroups.Remove(svcGrp);
+                    }
+                    foreach(var svcGrp in SvcGrpToAdd)
+                    {
+                        ActConn.ServiceGroups.Add(svcGrp);
+                    }
+                }
+                if(AddMode)
+                {
+                    await AddConnectionToDb();
+                }
+                else
+                {
+                    await UpdateConnectionInDb();
+                }
+                Close();
             }
-            foreach(var ip in SrcIpsToAdd)
-            {
-                ActConn.Sources.Add(ip);
-            }
-            foreach(var ip in DstIpsToDelete)
-            {
-                ActConn.Destinations.Remove(ip);
-            }
-            foreach(var ip in DstIpsToAdd)
-            {
-                ActConn.Destinations.Add(ip);
-            }
-            foreach(var appRole in SrcAppRolesToDelete)
-            {
-                ActConn.SrcAppRoles.Remove(appRole);
-            }
-            foreach(var appRole in SrcAppRolesToAdd)
-            {
-                ActConn.SrcAppRoles.Add(appRole);
-            }
-            foreach(var appRole in DstAppRolesToDelete)
-            {
-                ActConn.DstAppRoles.Remove(appRole);
-            }
-            foreach(var appRole in DstAppRolesToAdd)
-            {
-                ActConn.DstAppRoles.Add(appRole);
-            }
-            foreach(var svc in SvcToDelete)
-            {
-                ActConn.Services.Remove(svc);
-            }
-            foreach(var svc in SvcToAdd)
-            {
-                ActConn.Services.Add(svc);
-            }
-            foreach(var svcGrp in SvcGrpToDelete)
-            {
-                ActConn.ServiceGroups.Remove(svcGrp);
-            }
-            foreach(var svcGrp in SvcGrpToAdd)
-            {
-                ActConn.ServiceGroups.Add(svcGrp);
-            }
-            if(AddMode)
-            {
-                await AddConnectionToDb();
-            }
-            else
-            {
-                await UpdateConnectionInDb();
-            }
-            Close();
         }
 
-        public async Task AddConnectionToDb()
+        private bool checkConn()
+        {
+            if(ActConn.IsInterface && !SrcFilled() && !DstFilled())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("Exxxx"), true);
+                return false;
+            }
+            return true;
+        }
+
+        private async Task AddConnectionToDb()
         {
             try
             {
@@ -431,7 +527,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateConnectionInDb()
+        private async Task UpdateConnectionInDb()
         {
             try
             {
@@ -446,22 +542,22 @@ namespace FWO.Ui.Services
                 };
                 await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.updateConnection, Variables);
 
-                foreach(var appServer in SrcIpsToDelete)
+                foreach(var appServer in SrcAppServerToDelete)
                 {
                     var srcParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = ConnectionField.Source };
                     await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.removeAppServerFromConnection, srcParams);
                 }
-                foreach(var appServer in SrcIpsToAdd)
+                foreach(var appServer in SrcAppServerToAdd)
                 {
                     var srcParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = ConnectionField.Source };
                     await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.addAppServerToConnection, srcParams);
                 }
-                foreach(var appServer in DstIpsToDelete)
+                foreach(var appServer in DstAppServerToDelete)
                 {
                     var dstParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = ConnectionField.Destination };
                     await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.removeAppServerFromConnection, dstParams);
                 }
-                foreach(var appServer in DstIpsToAdd)
+                foreach(var appServer in DstAppServerToAdd)
                 {
                     var dstParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = ConnectionField.Destination };
                     await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.addAppServerToConnection, dstParams);
@@ -516,10 +612,10 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
-            SrcIpsToAdd = new List<NetworkObject>();
-            SrcIpsToDelete = new List<NetworkObject>();
-            DstIpsToAdd = new List<NetworkObject>();
-            DstIpsToDelete = new List<NetworkObject>();
+            SrcAppServerToAdd = new List<NetworkObject>();
+            SrcAppServerToDelete = new List<NetworkObject>();
+            DstAppServerToAdd = new List<NetworkObject>();
+            DstAppServerToDelete = new List<NetworkObject>();
             SrcAppRolesToAdd = new List<AppRole>();
             SrcAppRolesToDelete = new List<AppRole>();
             DstAppRolesToAdd = new List<AppRole>();
@@ -533,7 +629,7 @@ namespace FWO.Ui.Services
             DeleteAppRoleMode = false;
             AddSvcGrpMode = false;
             EditSvcGrpMode = false;
-            DeleteServiceGrpMode = false;
+            DeleteSvcGrpMode = false;
             AddServiceMode = false;
             EditServiceMode = false;
             DeleteServiceMode = false;

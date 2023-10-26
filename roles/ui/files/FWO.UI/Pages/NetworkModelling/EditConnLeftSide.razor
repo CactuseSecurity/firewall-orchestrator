@@ -15,13 +15,13 @@
         </div>
     </div>
     <div class="col-sm-11 border rounded m-2 p-2">
-        @if(DisplayInterfaces)
+        @if(!ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.UsedInterfaceId == null)
         {
             <h5>@(userConfig.GetText("interfaces"))</h5>
             <div class="form-group row">
                 <div class="col-sm-9">
                     <select class="form-control form-control-sm" @bind="selectedInterface">
-                        @foreach (var interf in Interfaces)
+                        @foreach (var interf in ConnHandler.AvailableInterfaces)
                         {
                             <option class="draggable" draggable="true" @ondragstart="@(() => {if(selectedInterface > 0) HandleDragStart(ResolveConn(selectedInterface));})" value="@interf.Id">@interf.Name</option>
                         }
@@ -30,7 +30,7 @@
                 <div class="col-sm-3">
                     @if(selectedInterface > 0)
                     {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => IntToConn(ResolveConn(selectedInterface))">@(userConfig.GetText("use"))</button>
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.InterfaceToConn(ResolveConn(selectedInterface));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("use"))</button>
                     }
                 </div>
             </div>
@@ -42,7 +42,7 @@
             <div class="form-group row">
                 <div class="col-sm-9">
                     <select class="form-control form-control-sm" @bind="selectedAppServer" multiple>
-                        @foreach (var appserver in AppServer)
+                        @foreach (var appserver in ConnHandler.AvailableAppServer)
                         {
                             <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedAppServer)))" value="@appserver.Id">@NwObjDisplay.DisplayWithName(appserver)</option>
                         }
@@ -51,11 +51,11 @@
                 <div class="col-sm-3">
                 @if(ToSrcAllowed && selectedAppServer.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => AppServerToSource(ResolveElem(selectedAppServer))">@(userConfig.GetText("to_source"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppServerToSource(ResolveElem(selectedAppServer));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
                 }
                 @if(ToDestAllowed && selectedAppServer.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => AppServerToDest(ResolveElem(selectedAppServer))">@(userConfig.GetText("to_dest"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppServerToDestination(ResolveElem(selectedAppServer));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
                 }
                 </div>
             </div>
@@ -66,7 +66,7 @@
         <div class="form-group row">
             <div class="col-sm-9">
                 <select class="form-control form-control-sm" @bind="selectedAppRoles" multiple>
-                    @foreach (var appRole in ConnHandler.AppRoles)
+                    @foreach (var appRole in ConnHandler.AvailableAppRoles)
                     {
                         <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveAppRole(selectedAppRoles)))" value="@appRole.Id">
                             <div class="col-sm-12 dropzone" 
@@ -82,21 +82,21 @@
             <div class="col-sm-3">
                 @if(ToSrcAllowed && selectedAppRoles.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => ConnHandler.AppRolesToSource(ResolveAppRole(selectedAppRoles))">@(userConfig.GetText("to_source"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppRolesToSource(ResolveAppRole(selectedAppRoles));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
                 }
                 @if(ToDestAllowed && selectedAppRoles.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => ConnHandler.AppRolesToDestination(ResolveAppRole(selectedAppRoles))">@(userConfig.GetText("to_dest"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppRolesToDestination(ResolveAppRole(selectedAppRoles));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
                 }
             </div>
         </div>
         <div class="form-group row">
             <div class="col-sm-12">
-                <button type="button" class="btn btn-sm btn-success" @onclick="() => ConnHandler.CreateAppRole()">@(userConfig.GetText("add_app_role"))</button>
+                <button type="button" class="btn btn-sm btn-success" @onclick="async () => WrapAsync(ConnHandler.CreateAppRole)">@(userConfig.GetText("add_app_role"))</button>
                 @if(selectedAppRoles.Length == 1)
                 {
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => ConnHandler.EditAppRole(ResolveAppRole(selectedAppRoles).First())">@(userConfig.GetText("edit_app_role"))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedAppRoles).First());selectedAppRoles = new long[]{};}">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="async () => {await ConnHandler.EditAppRole(ResolveAppRole(selectedAppRoles).First());await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_app_role"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedAppRoles).First());selectedAppRoles = new long[]{};ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                 }
             </div>
         </div>
@@ -111,7 +111,7 @@
                         <select class="form-control form-control-sm" @bind="selectedServices" multiple>
                             @foreach (var service in ConnHandler.AvailableServices)
                             {
-                                <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@DisplayService(service)</option>
+                                <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@ModellingDisplay.DisplayService(service)</option>
                             }
                         </select>
                     </div>
@@ -139,7 +139,7 @@
                     <select class="form-control form-control-sm" @bind="selectedServiceGroups" multiple>
                         @foreach (var grp in ConnHandler.AvailableServiceGroups)
                         {
-                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvcGrp(selectedServiceGroups)))" value="@grp.Id">@DisplayServiceGroup(grp)</option>
+                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvcGrp(selectedServiceGroups)))" value="@grp.Id">@ModellingDisplay.DisplayServiceGroup(grp)</option>
                         }
                     </select>
                 </div>
@@ -159,7 +159,8 @@
         }
     </div>
 </Sidebar>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteServiceGrpMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteServiceGroup)" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.deleteMessage"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppRole)" Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.deleteMessage"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteServiceGroup)" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.deleteMessage"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)" Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.deleteMessage"/>
 
 @code
@@ -188,22 +189,6 @@
     [Parameter]
     public EventCallback<ModellingConnectionHandler> ConnHandlerChanged { get; set; }
 
-
-    [Parameter]
-    public Func<List<NetworkObject>, bool> AppServerToSource { get; set; } = DefaultInit.DoNothingSync;
-
-    [Parameter]
-    public Func<List<NetworkObject>, bool> AppServerToDest { get; set; } = DefaultInit.DoNothingSync;
-
-    [Parameter]
-    public bool DisplayInterfaces { get; set; } = false;
-
-    [Parameter] 
-    public List<NetworkConnection> Interfaces { get; set; } = new();
-
-    [Parameter]
-    public Func<NetworkConnection, bool> IntToConn { get; set; } = DefaultInit.DoNothingSync;
-
     [Parameter]
     public bool ToSrcAllowed { get; set; } = true;
 
@@ -214,29 +199,24 @@
     public bool ToSvcAllowed { get; set; } = true;
 
 
-    private List<NetworkObject> AppServer = new List<NetworkObject>(){};
     private long[] selectedAppServer = new long[]{};
     private long[] selectedAppRoles = new long[]{};
     private long[] selectedServices = new long[]{};
     private long[] selectedServiceGroups = new long[]{};
     private long selectedInterface = 0;
+    private bool FirstTry = true;
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnParametersSet()
     {
-        try
+        if(FirstTry)
         {
-            AppServer = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServer, new { appId = Application.Id });
-
-            if(Interfaces.Count > 0)
+            if(ConnHandler.AvailableInterfaces.Count > 0)
             {
-                selectedInterface = Interfaces.First().Id;
+                selectedInterface = ConnHandler.AvailableInterfaces.First().Id;
             }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            FirstTry = false;
         }
     }
 
@@ -282,7 +262,7 @@
 
     private NetworkConnection ResolveConn(long selectedConn)
     {
-        return Interfaces.FirstOrDefault(x => x.Id == selectedConn);
+        return ConnHandler.AvailableInterfaces.FirstOrDefault(x => x.Id == selectedConn);
     }
 
     private List<NetworkObject> ResolveElem(long[] selectedIds)
@@ -290,7 +270,7 @@
         List<NetworkObject> addedIps = new();
         foreach(var id in selectedIds)
         {
-            addedIps.Add(AppServer.FirstOrDefault(x => x.Id == id));
+            addedIps.Add(ConnHandler.AvailableAppServer.FirstOrDefault(x => x.Id == id));
         }
         return addedIps;
     }
@@ -300,7 +280,7 @@
         List<AppRole> addedAppRoles = new();
         foreach(var id in selectedIds)
         {
-            addedAppRoles.Add(ConnHandler.AppRoles.FirstOrDefault(x => x.Id == id));
+            addedAppRoles.Add(ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == id));
         }
         return addedAppRoles;
     }
@@ -325,32 +305,14 @@
         return addedSvcGrps;
     }
 
-    private string DisplayService(NetworkService service)
-    {
-        return FWO.Ui.Display.RuleDisplayBase.DisplayService(service, FWO.Report.Filter.ReportType.Rules).ToString();
-    }
-
-    private string DisplayServiceGroup(ServiceGroup grp)
-    {
-        if(grp.Name != null && grp.Name != "")
-        {
-            return grp.Name;
-        }
-        if(grp.NetworkServices.Count > 0)
-        {
-            return DisplayService(grp.NetworkServices[0].Content);
-        }
-        return "anything else";
-    }
-
     private async Task DataInconsistent()
     {
 
     }
 
-    private async Task WrapAsync(Func<Task> action)
+    private async Task WrapAsync(Func<Task> calledFunc)
     {
-        await action();
+        await calledFunc();
         await ConnHandlerChanged.InvokeAsync(ConnHandler);
     }
 }

@@ -1,0 +1,15 @@
+mutation newAreaSubnet(
+  $name: String
+  $areaId: Int
+  $network: cidr
+  ) {
+  insert_modelling_area_subnet(objects: {
+    name: $name
+    area_id: $areaId
+    network: $network
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

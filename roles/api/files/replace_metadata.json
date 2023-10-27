@@ -1739,6 +1739,12 @@
                   "using": {
                     "foreign_key_constraint_on": "app_id"
                   }
+                },
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "proto_id"
+                  }
                 }
               ],
               "array_relationships": [

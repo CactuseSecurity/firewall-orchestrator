@@ -1,0 +1,6 @@
+fragment appRoleDetails on modelling_app_role {
+  id
+  app_id
+  name
+  comment
+}

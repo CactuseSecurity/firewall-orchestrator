@@ -18,7 +18,7 @@ namespace FWO.Api.Data
         public string? Network { get; set; }
     }
 
-    public class NetworkArea
+    public class ModellingNetworkArea
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; } = 0;

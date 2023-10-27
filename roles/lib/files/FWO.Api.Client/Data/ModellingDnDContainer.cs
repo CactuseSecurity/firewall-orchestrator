@@ -1,12 +1,12 @@
 ﻿namespace FWO.Api.Data
 {
-    public class DnDContainer
+    public class ModellingDnDContainer
     {
         public List<NetworkObject> IpElements { get; set; } = new();
-        public List<AppRole> AppRoleElements { get; set; } = new();
+        public List<ModellingAppRole> AppRoleElements { get; set; } = new();
         public List<ModellingService> SvcElements { get; set; } = new();
-        public List<ServiceGroup> SvcGrpElements { get; set; } = new();
-        public NetworkConnection ConnElement { get; set; } = null;
+        public List<ModellingServiceGroup> SvcGrpElements { get; set; } = new();
+        public ModellingConnection ConnElement { get; set; } = null;
 
         public void Clear()
         {

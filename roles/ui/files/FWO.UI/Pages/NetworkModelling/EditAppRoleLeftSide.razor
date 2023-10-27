@@ -31,10 +31,10 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter] 
-    public DnDContainer Container { get; set; } = new();
+    public ModellingDnDContainer Container { get; set; } = new();
 
     [Parameter]
-    public EventCallback<DnDContainer> ContainerChanged { get; set; }
+    public EventCallback<ModellingDnDContainer> ContainerChanged { get; set; }
 
     [Parameter]
     public int Width { get; set; }

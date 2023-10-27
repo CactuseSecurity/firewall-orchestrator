@@ -172,10 +172,10 @@
     public FwoOwner Application { get; set; } = new FwoOwner();
 
     [Parameter] 
-    public DnDContainer Container { get; set; } = new();
+    public ModellingDnDContainer Container { get; set; } = new();
 
     [Parameter]
-    public EventCallback<DnDContainer> ContainerChanged { get; set; }
+    public EventCallback<ModellingDnDContainer> ContainerChanged { get; set; }
 
     [Parameter]
     public int Width { get; set; }
@@ -220,7 +220,7 @@
         }
     }
 
-    private void HandleDragStart(NetworkConnection selectedConn)
+    private void HandleDragStart(ModellingConnection selectedConn)
     {
         Container.Clear();
         Container.ConnElement = selectedConn;
@@ -232,7 +232,7 @@
         Container.IpElements = selectedIps;
     }
 
-    private void HandleDragStart(List<AppRole> selectedAppRoles)
+    private void HandleDragStart(List<ModellingAppRole> selectedAppRoles)
     {
         Container.Clear();
         Container.AppRoleElements = selectedAppRoles;
@@ -244,13 +244,13 @@
         Container.SvcElements = selectedSvcs;
     }
 
-    private void HandleDragStart(List<ServiceGroup> selectedSvcGrps)
+    private void HandleDragStart(List<ModellingServiceGroup> selectedSvcGrps)
     {
         Container.Clear();
         Container.SvcGrpElements = selectedSvcGrps;
     }
 
-    private async Task HandleIpDropToAppRole(AppRole appRole)
+    private async Task HandleIpDropToAppRole(ModellingAppRole appRole)
     {
         if(Container.IpElements.Count > 0)
         {
@@ -260,7 +260,7 @@
         Container.Clear();
     }
 
-    private NetworkConnection ResolveConn(long selectedConn)
+    private ModellingConnection ResolveConn(long selectedConn)
     {
         return ConnHandler.AvailableInterfaces.FirstOrDefault(x => x.Id == selectedConn);
     }
@@ -275,9 +275,9 @@
         return addedIps;
     }
 
-    private List<AppRole> ResolveAppRole(long[] selectedIds)
+    private List<ModellingAppRole> ResolveAppRole(long[] selectedIds)
     {
-        List<AppRole> addedAppRoles = new();
+        List<ModellingAppRole> addedAppRoles = new();
         foreach(var id in selectedIds)
         {
             addedAppRoles.Add(ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == id));
@@ -295,9 +295,9 @@
         return addedSvcs;
     }
 
-    private List<ServiceGroup> ResolveSvcGrp(long[] selectedIds)
+    private List<ModellingServiceGroup> ResolveSvcGrp(long[] selectedIds)
     {
-        List<ServiceGroup> addedSvcGrps = new();
+        List<ModellingServiceGroup> addedSvcGrps = new();
         foreach(var id in selectedIds)
         {
             addedSvcGrps.Add(ConnHandler.AvailableServiceGroups.FirstOrDefault(x => x.Id == id));

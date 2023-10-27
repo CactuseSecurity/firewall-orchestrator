@@ -18,7 +18,7 @@
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
                             <div class="col-sm-8">
-                                <Dropdown ElementType="NetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Name)" 
+                                <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Name)" 
                                         SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
                                     <ElementTemplate Context="area">
                                         @area.Name
@@ -91,18 +91,18 @@
     public bool AddMode { get; set; } = false;
 
 
-    private DnDContainer Container { get; set; } = new DnDContainer();
+    private ModellingDnDContainer Container { get; set; } = new();
     int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
 
-    private List<NetworkArea> areas = new List<NetworkArea>();
-    private List<NetworkObject> actServers = new List<NetworkObject>(){};
+    private List<ModellingNetworkArea> areas = new();
+    private List<NetworkObject> actServers = new();
     private bool firstTry = true;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            areas = await apiConnection.SendQueryAsync<List<NetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
+            areas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
             // todo: select relevant areas for owner?
         }
         catch (Exception exception)
@@ -148,17 +148,17 @@
         DisplayChanged.InvokeAsync(Display);
     }
 
-    private void SelectedAreaChanged(NetworkArea newArea)
+    private void SelectedAreaChanged(ModellingNetworkArea newArea)
     {
         AppRoleHandler.ActAppRole.Area = newArea;
-        if(newArea != null && newArea.Name.Length >= AppRole.FixedPartLength && AddMode)
+        if(newArea != null && newArea.Name.Length >= ModellingAppRole.FixedPartLength && AddMode)
         {
-            AppRoleHandler.ActAppRole.NameFixedPart = newArea.Name.Substring(0, AppRole.FixedPartLength).Remove(0, 2).Insert(0, "AR");
+            AppRoleHandler.ActAppRole.NameFixedPart = newArea.Name.Substring(0, ModellingAppRole.FixedPartLength).Remove(0, 2).Insert(0, "AR");
         }
         SelectAppServerFromArea(newArea);
     }
 
-    private void SelectAppServerFromArea(NetworkArea area)
+    private void SelectAppServerFromArea(ModellingNetworkArea area)
     {
         actServers = new List<NetworkObject>(){};
         foreach(var server in AppRoleHandler.AvailableAppServer)
@@ -170,7 +170,7 @@
         }
     }
 
-    private bool IsInArea(NetworkObject server, NetworkArea area)
+    private bool IsInArea(NetworkObject server, ModellingNetworkArea area)
     {
         foreach(var subnet in area.Subnets)
         {

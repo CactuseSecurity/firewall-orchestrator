@@ -1,10 +1,9 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using NetTools;
 
 namespace FWO.Api.Data
 {
-    public class ServiceGroup
+    public class ModellingServiceGroup
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -18,14 +17,18 @@ namespace FWO.Api.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
-
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<ModellingServiceWrapper> Services { get; set; } = new();
     }
 
-    public class ModellingServiceWrapper
+    public class ModellingServiceGroupWrapper
     {
-        [JsonProperty("service"), JsonPropertyName("service")]
-        public ModellingService Content { get; set; } = new();
+        [JsonProperty("service_group"), JsonPropertyName("service_group")]
+        public ModellingServiceGroup Content { get; set; } = new();
+
+        public static ModellingServiceGroup[] Resolve(List<ModellingServiceGroupWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
     }
 }

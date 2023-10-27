@@ -27,11 +27,11 @@
                     <h6>@(userConfig.GetText("source"))</h6>
                     @if(ConnHandler.ReadOnly || ConnHandler.srcReadOnly)
                     {
-                        foreach(var src in ConnHandler.ActConn.SrcAppRoles)
+                        foreach(var src in ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles))
                         {
                             <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayAppRole(src)</div>
                         }
-                        foreach(var src in ConnHandler.ActConn.Sources)
+                        foreach(var src in ConnHandler.ActConn.SourceAppServers)
                         {
                             <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(src)</div>
                         }
@@ -42,14 +42,14 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleSrcDrop">
-                            <EditList ElementType="AppRole" Elements="ConnHandler.ActConn.SrcAppRoles.ToArray()" ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles)" ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayAppRole(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.Sources.ToArray()" ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.SourceAppServers.ToArray()" ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
@@ -63,11 +63,11 @@
                     <h6>@(userConfig.GetText("service"))</h6>
                     @if(ConnHandler.ReadOnly || ConnHandler.svcReadOnly)
                     {
-                        foreach(var grp in ConnHandler.ActConn.ServiceGroups)
+                        foreach(var grp in ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups))
                         {
                             <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayServiceGroup(grp)</div>
                         }
-                        foreach(var svc in ConnHandler.ActConn.Services)
+                        foreach(var svc in ModellingServiceWrapper.Resolve(ConnHandler.ActConn.Services))
                         {
                             <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayService(svc)</div>
                         }
@@ -78,14 +78,14 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleSvcDrop">
-                            <EditList ElementType="ServiceGroup" Elements="ConnHandler.ActConn.ServiceGroups.ToArray()" ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="ModellingServiceGroup" Elements="ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups)" ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayServiceGroup(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="ModellingService" Elements="ConnHandler.ActConn.Services.ToArray()" ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="ModellingService" Elements="ModellingServiceWrapper.Resolve(ConnHandler.ActConn.Services)" ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayService(context)</div>
@@ -99,11 +99,11 @@
                     <h6>@(userConfig.GetText("destination"))</h6>
                     @if(ConnHandler.ReadOnly || ConnHandler.dstReadOnly)
                     {
-                        foreach(var dst in ConnHandler.ActConn.DstAppRoles)
+                        foreach(var dst in ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles))
                         {
                             <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayAppRole(dst)</div>
                         }
-                        foreach(var dst in ConnHandler.ActConn.Destinations)
+                        foreach(var dst in ConnHandler.ActConn.DestinationAppServers)
                         {
                             <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(dst)</div>
                         }
@@ -114,14 +114,14 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleDstDrop">
-                            <EditList ElementType="AppRole" Elements="ConnHandler.ActConn.DstAppRoles.ToArray()" ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles)" ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayAppRole(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.Destinations.ToArray()" ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.DestinationAppServers.ToArray()" ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
@@ -172,7 +172,7 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter] 
-    public FwoOwner Application { get; set; } = new FwoOwner();
+    public FwoOwner Application { get; set; } = new();
 
     [Parameter] 
     public ModellingConnectionHandler ConnHandler { get; set; }
@@ -181,11 +181,11 @@
     public EventCallback<ModellingConnectionHandler> ConnHandlerChanged { get; set; }
 
 
-    private DnDContainer Container { get; set; } = new DnDContainer();
+    private ModellingDnDContainer Container { get; set; } = new();
     int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
     
-    private List<ModellingService> services = new List<ModellingService>(){};
-    private List<ServiceGroup> serviceGroups = new List<ServiceGroup>(){};
+    private List<ModellingService> services = new();
+    private List<ModellingServiceGroup> serviceGroups = new();
 
     private static string dropzoneClass = "minheight-dropzone bg-secondary dropzone";
     private static string forbiddenDropzoneClass = "minheight-dropzone bg-white";
@@ -263,7 +263,7 @@
         DisplayChanged.InvokeAsync(Display);
     }
 
-    private string DisplayAppRole(AppRole appRole)
+    private string DisplayAppRole(ModellingAppRole appRole)
     {
         if(appRole.Name != null && appRole.Name != "")
         {

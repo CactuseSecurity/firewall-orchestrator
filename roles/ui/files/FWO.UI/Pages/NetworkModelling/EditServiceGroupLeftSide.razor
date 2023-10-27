@@ -19,7 +19,7 @@
             </select>
         </div>
         <div class="col-sm-2">
-            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => SvcGroupHandler.ServicesToSvcGroup(ResolveSvc(selectedServices))">@(userConfig.GetText("to_services_group"))</button>
+            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {SvcGroupHandler.ServicesToSvcGroup(ResolveSvc(selectedServices));SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("to_services_group"))</button>
         </div>
     </div>
 </div>
@@ -30,10 +30,10 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter] 
-    public DnDContainer Container { get; set; } = new();
+    public ModellingDnDContainer Container { get; set; } = new();
 
     [Parameter]
-    public EventCallback<DnDContainer> ContainerChanged { get; set; }
+    public EventCallback<ModellingDnDContainer> ContainerChanged { get; set; }
 
     [Parameter]
     public int Width { get; set; }
@@ -43,6 +43,9 @@
 
     [Parameter]
     public ModellingServiceGroupHandler SvcGroupHandler { get; set; }
+
+    [Parameter]
+    public EventCallback<ModellingServiceGroupHandler> SvcGroupHandlerChanged { get; set; }
 
 
     private long[] selectedServices = new long[]{};

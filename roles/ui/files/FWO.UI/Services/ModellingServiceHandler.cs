@@ -52,7 +52,7 @@ namespace FWO.Ui.Services
                     portEnd = ActService.PortEnd,
                     protoId = ActService.ProtoId
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.newService, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newService, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActService.Id = returnIds[0].NewId;
@@ -77,7 +77,7 @@ namespace FWO.Ui.Services
                     portEnd = ActService.PortEnd,
                     protoId = ActService.Protocol.Id
                 };
-                await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.updateService, Variables);
+                await ApiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateService, Variables);
             }
             catch (Exception exception)
             {

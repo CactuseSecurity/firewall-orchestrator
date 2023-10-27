@@ -1,0 +1,11 @@
+fragment serviceDetails on modelling_service {
+  id
+  name
+  port
+  port_end
+  proto_id
+  protocol: stm_ip_proto {
+    id: ip_proto_id
+    name: ip_proto_name
+  }
+}

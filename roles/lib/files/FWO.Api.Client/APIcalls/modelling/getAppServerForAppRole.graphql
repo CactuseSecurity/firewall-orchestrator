@@ -1,11 +1,7 @@
 query getAppServerForAppRole ($appRoleId: Int!){
   modelling_appserver_approle (where: { approle_id: { _eq: $appRoleId } } order_by: { name: asc }){
     app_server{
-      id
-      name
-      ip
-      import_source
-      is_deleted
+      ...appServerDetails
     }
   }
 }

@@ -1,10 +1,9 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using NetTools;
 
 namespace FWO.Api.Data
 {
-    public class AppRole
+    public class ModellingAppRole
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -24,7 +23,7 @@ namespace FWO.Api.Data
             { 
                 if(Name.Length >= FixedPartLength)
                 {
-                    Name = Name.Substring(0, FixedPartLength) + value;
+                    Name = value + Name.Substring(FixedPartLength);
                 }
                 else
                 {
@@ -36,13 +35,13 @@ namespace FWO.Api.Data
         {
             get
             { 
-                return Name.Length >= FixedPartLength ? Name.Substring(FixedPartLength - 1) : "";
+                return Name.Length >= FixedPartLength ? Name.Substring(FixedPartLength) : "";
             }
             set 
             {
                 if(Name.Length >= FixedPartLength)
                 {
-                    Name = Name.Substring(0, FixedPartLength - 1) + value;
+                    Name = Name.Substring(0, FixedPartLength) + value;
                 }
                 else
                 {
@@ -61,9 +60,20 @@ namespace FWO.Api.Data
         [JsonProperty("appServers"), JsonPropertyName("appServers")]
         public List<NetworkObject> NetworkObjects { get; set; } = new List<NetworkObject>{};
 
-        public NetworkArea Area { get; set; }
+        public ModellingNetworkArea Area { get; set; }
 
         public static int FixedPartLength = 4;
 
+    }
+    
+    public class ModellingAppRoleWrapper
+    {
+        [JsonProperty("app_role"), JsonPropertyName("app_role")]
+        public ModellingAppRole Content { get; set; } = new();
+
+        public static ModellingAppRole[] Resolve(List<ModellingAppRoleWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
     }
 }

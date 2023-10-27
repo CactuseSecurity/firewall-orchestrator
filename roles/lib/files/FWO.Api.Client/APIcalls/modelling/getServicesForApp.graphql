@@ -1,14 +1,5 @@
 query getServicesForApp ($appId: Int!){
   modelling_service (where: { app_id: { _eq: $appId } } order_by: { name: asc }){
-    id
-    app_id
-    name
-    port
-    port_end
-    proto_id
-    protocol: stm_ip_proto {
-      id: ip_proto_id
-      name: ip_proto_name
-    }
+    ...serviceDetails
   }
 }

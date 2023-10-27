@@ -40,4 +40,15 @@ namespace FWO.Api.Data
             };
         }
     }
+
+    public class ModellingServiceWrapper
+    {
+        [JsonProperty("service"), JsonPropertyName("service")]
+        public ModellingService Content { get; set; } = new();
+
+        public static ModellingService[] Resolve(List<ModellingServiceWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+    }
 }

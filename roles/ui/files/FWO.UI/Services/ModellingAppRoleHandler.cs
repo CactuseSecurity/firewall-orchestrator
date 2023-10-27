@@ -10,8 +10,8 @@ namespace FWO.Ui.Services
     public class ModellingAppRoleHandler
     {
         public FwoOwner Application { get; set; } = new();
-        public List<AppRole> AppRoles { get; set; } = new();
-        public AppRole ActAppRole { get; set; } = new();
+        public List<ModellingAppRole> AppRoles { get; set; } = new();
+        public ModellingAppRole ActAppRole { get; set; } = new();
         public List<NetworkObject> AvailableAppServer { get; set; } = new();
         public bool AddMode { get; set; } = false;
 
@@ -32,7 +32,7 @@ namespace FWO.Ui.Services
             this.apiConnection = apiConnection;
         }
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            List<AppRole> appRoles, AppRole appRole, List<NetworkObject> availableAppServer,
+            List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<NetworkObject> availableAppServer,
             bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ApiConnection = apiConnection;
@@ -87,7 +87,7 @@ namespace FWO.Ui.Services
                     appId = Application.Id,
                     comment = ActAppRole.Comment
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.newAppRole, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActAppRole.Id = returnIds[0].NewId;
@@ -98,7 +98,7 @@ namespace FWO.Ui.Services
                             appServerId = appServer.Id,
                             appRoleId = ActAppRole.Id
                         };
-                        await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.addAppServerToAppRole, Vars);
+                        await ApiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
                     }
                     AppRoles.Add(ActAppRole);
                 }
@@ -120,7 +120,7 @@ namespace FWO.Ui.Services
                     appId = Application.Id,
                     comment = ActAppRole.Comment
                 };
-                await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.updateAppRole, Variables);
+                await ApiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppRole, Variables);
                 foreach(var appServer in AppServerToDelete)
                 {
                     var Vars = new
@@ -128,7 +128,7 @@ namespace FWO.Ui.Services
                         appServerId = appServer.Id,
                         appRoleId = ActAppRole.Id
                     };
-                    await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.removeAppServerFromAppRole, Vars);
+                    await ApiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromAppRole, Vars);
                 }
                 foreach(var appServer in AppServerToAdd)
                 {
@@ -137,7 +137,7 @@ namespace FWO.Ui.Services
                         appServerId = appServer.Id,
                         appRoleId = ActAppRole.Id
                     };
-                    await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.addAppServerToAppRole, Vars);
+                    await ApiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
                 }
             }
             catch (Exception exception)

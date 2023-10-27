@@ -16,8 +16,8 @@ namespace FWO.Middleware.Server
         private readonly ApiConnection apiConnection;
         private GlobalConfig globalConfig;
         private string importFile { get; set; }
-        private List<NetworkArea> importedAreas = new();
-        private List<NetworkArea> existingAreas = new();
+        private List<ModellingNetworkArea> importedAreas = new();
+        private List<ModellingNetworkArea> existingAreas = new();
 
 
 
@@ -51,7 +51,7 @@ namespace FWO.Middleware.Server
             try
             {
                 ExtractFile();
-                existingAreas = await apiConnection.SendQueryAsync<List<NetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
+                existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
                 foreach(var incomingArea in importedAreas)
                 {
                     if(await saveArea(incomingArea))
@@ -90,9 +90,9 @@ namespace FWO.Middleware.Server
         private void ExtractFile()
         {
             // Todo: move to predefined import format
-            importedAreas = new List<NetworkArea>();
+            importedAreas = new List<ModellingNetworkArea>();
             var lines = importFile.Split('\n');
-            NetworkArea newArea = new();
+            ModellingNetworkArea newArea = new();
             foreach(var line in lines.Skip(1))
             {
                 var values = line.Split(',');
@@ -104,23 +104,23 @@ namespace FWO.Middleware.Server
                 IPAddressRange newRange = IPAddressRange.Parse($"{ipAddr}/{subnetMask}");
                 NetworkSubnet newSubnet = new NetworkSubnet(){ Name = subnetName, Network = newRange.ToCidrString() };
 
-                NetworkArea? startedArea = importedAreas.FirstOrDefault(x => x.Name == areaName);
+                ModellingNetworkArea? startedArea = importedAreas.FirstOrDefault(x => x.Name == areaName);
                 if(startedArea != null)
                 {
                     startedArea.Subnets.Add(newSubnet);
                 }
                 else
                 {
-                    importedAreas.Add(new NetworkArea(){ Name = areaName, Subnets = new List<NetworkSubnet>(){ newSubnet }});
+                    importedAreas.Add(new ModellingNetworkArea(){ Name = areaName, Subnets = new List<NetworkSubnet>(){ newSubnet }});
                 }
             }
         }
 
-        private async Task<bool> saveArea(NetworkArea incomingArea)
+        private async Task<bool> saveArea(ModellingNetworkArea incomingArea)
         {
             try
             {
-                NetworkArea? existingArea = existingAreas.FirstOrDefault(x => x.Name == incomingArea.Name);
+                ModellingNetworkArea? existingArea = existingAreas.FirstOrDefault(x => x.Name == incomingArea.Name);
                 if(existingArea == null)
                 {
                     await newArea(incomingArea);
@@ -138,7 +138,7 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task newArea(NetworkArea incomingArea)
+        private async Task newArea(ModellingNetworkArea incomingArea)
         {
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.newArea, new { name = incomingArea.Name })).ReturnIds;
             if (returnIds != null)
@@ -157,7 +157,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task updateArea(NetworkArea incomingArea, NetworkArea existingArea)
+        private async Task updateArea(ModellingNetworkArea incomingArea, ModellingNetworkArea existingArea)
         {
             List<NetworkSubnet> subnetsToAdd = new List<NetworkSubnet>(incomingArea.Subnets);
             List<NetworkSubnet> subnetsToDelete = new List<NetworkSubnet>(existingArea.Subnets);
@@ -188,7 +188,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task<bool> deleteArea(NetworkArea area)
+        private async Task<bool> deleteArea(ModellingNetworkArea area)
         {
             try
             {

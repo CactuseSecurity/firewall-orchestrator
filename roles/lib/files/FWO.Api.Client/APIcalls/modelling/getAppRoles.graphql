@@ -1,8 +1,5 @@
 query getAppRoles ($appId: Int!){
   modelling_app_role (where: { app_id: { _eq: $appId } } order_by: { name: asc }){
-    id
-    app_id
-    name
-    comment
+    ...appRoleDetails
   }
 }

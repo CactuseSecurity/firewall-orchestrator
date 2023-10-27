@@ -6,5 +6,35 @@ query getConnections ($appId: Int!){
     reason
     is_interface
     used_interface_id
+    source_app_roles: approle_connections (where: { connection_field: { _eq: 1 } }){
+      app_role{
+        ...appRoleDetails
+      }
+    }
+    source_app_servers: appserver_connections (where: { connection_field: { _eq: 1 } }){
+      app_server{
+        ...appServerDetails
+      }
+    }
+    destination_app_roles: approle_connections (where: { connection_field: { _eq: 2 } }){
+      app_role{
+        ...appRoleDetails
+      }
+    }
+    destination_app_servers: appserver_connections (where: { connection_field: { _eq: 2 } }){
+      app_server{
+        ...appServerDetails
+      }
+    }
+    service_groups: service_group_connections{
+      service_group{
+        ...serviceGroupDetails
+      }
+    }
+    services: service_connections{
+      service{
+        ...serviceDetails
+      }
+    }
   }
 }

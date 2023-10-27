@@ -1,15 +1,9 @@
 query getGlobalServiceGroups{
   modelling_service_group (where: { is_global: { _eq: true } } order_by: { name: asc }){
-    id
-    name
-    comment
-    services: service_service_group{
+    ...serviceGroupDetails
+    services: service_service_groups{
       service{
-        id
-	      name
-	      port
-	      port_end
-	      proto_id
+        ...serviceDetails
       }
     }
   }

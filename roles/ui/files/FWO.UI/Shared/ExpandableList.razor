@@ -9,19 +9,26 @@
 		@(userConfig.GetText("None"))
 	}
 }
-else if (Elements.Count() == 1)
+else if (Elements.Count() <= AlwaysShowElements)
 {
-	@(ElementTemplate(Elements.First()))
+	@foreach(var elem in Elements)
+	{
+		@(ElementTemplate(elem))<br>
+	}
 }
 else
 {
+	@foreach(var elem in Elements.Take(AlwaysShowElements - 1))
+	{
+		@(ElementTemplate(elem))<br>
+	}
 	<div>
 		<details>
 			<summary class="mb-1 text-truncate">
-				@(ElementTemplate(Elements.First())) @* (+@(Elements.Count() - 1)) *@ ...
+				@(ElementTemplate(Elements.Skip(AlwaysShowElements - 1).First())) @* (+@(Elements.Count() - 1)) *@ ...
 			</summary>
 			<ul>
-				@foreach (ElementType element in Elements)
+				@foreach (ElementType element in Elements.Skip(AlwaysShowElements - (AlwaysShowElements > 1 ? 0 : 1)))
 				{
 					<li>@(ElementTemplate(element))</li>
 				}
@@ -43,4 +50,7 @@ else
 
 	[Parameter]
 	public bool ShowTextIfEmpty { get; set; } = true;
+
+	[Parameter]
+	public int AlwaysShowElements { get; set; } = 1;
 }

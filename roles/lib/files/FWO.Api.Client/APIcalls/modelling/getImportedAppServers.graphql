@@ -1,0 +1,5 @@
+query getImportedAppServers ($importSource: String!){
+  modelling_app_server (where: { import_source: { _eq: $importSource } } order_by: { name: asc }){
+    ...appServerDetails
+  }
+}

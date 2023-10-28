@@ -15,7 +15,12 @@ namespace FWO.Api.Client.Queries
         public static readonly string newAreaSubnet;
         public static readonly string deleteAreaSubnet;
 
-        public static readonly string getAppServer;
+        public static readonly string getAppServers;
+        public static readonly string getImportedAppServers;
+        public static readonly string newAppServer;
+        public static readonly string updateAppServer;
+        public static readonly string markAppServerDeleted;
+        public static readonly string deleteAppServer;
 
         public static readonly string getInterfaces;
         public static readonly string getConnections;
@@ -68,7 +73,12 @@ namespace FWO.Api.Client.Queries
                 newAreaSubnet = File.ReadAllText(QueryPath + "modelling/newAreaSubnet.graphql");
                 deleteAreaSubnet = File.ReadAllText(QueryPath + "modelling/deleteAreaSubnet.graphql");
 
-                getAppServer = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServer.graphql");
+                getAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServers.graphql");
+                getImportedAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getImportedAppServers.graphql");
+                newAppServer = File.ReadAllText(QueryPath + "modelling/newAppServer.graphql");
+                updateAppServer = File.ReadAllText(QueryPath + "modelling/updateAppServer.graphql");
+                markAppServerDeleted = File.ReadAllText(QueryPath + "modelling/markAppServerDeleted.graphql");
+                deleteAppServer = File.ReadAllText(QueryPath + "modelling/deleteAppServer.graphql");
 
                 getInterfaces = File.ReadAllText(QueryPath + "modelling/getInterfaces.graphql");
                 getConnections = appServerDetailsFragment + appRoleDetailsFragment + serviceDetailsFragment + serviceGroupDetailsFragment+ 

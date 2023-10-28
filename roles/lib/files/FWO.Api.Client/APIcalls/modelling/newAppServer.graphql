@@ -1,0 +1,18 @@
+mutation newAppServer(
+  $name: String
+  $appId: Int
+  $ip: cidr
+  $importSource: String
+  ) {
+  insert_modelling_app_server(objects: {
+    name: $name
+    app_id: $appId
+    ip: $ip
+    import_source: $importSource
+    is_deleted: false
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

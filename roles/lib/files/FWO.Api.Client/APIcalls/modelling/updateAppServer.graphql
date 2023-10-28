@@ -1,0 +1,19 @@
+mutation updateAppServer(
+  $id: Int!
+  $name: String
+  $appId: Int
+  $ip: cidr
+  $importSource: String
+  ) {
+  update_modelling_app_server_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      name: $name
+      app_id: $appId
+      ip: $ip
+      import_source: $importSource
+      is_deleted: false
+  }) {
+    UpdatedId: id
+  }
+}

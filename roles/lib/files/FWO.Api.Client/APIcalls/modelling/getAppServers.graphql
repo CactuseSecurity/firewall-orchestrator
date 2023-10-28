@@ -1,4 +1,4 @@
-query getAppServer ($appId: Int!){
+query getAppServers ($appId: Int!){
   modelling_app_server (where: { app_id: { _eq: $appId } } order_by: { name: asc }){
     ...appServerDetails
   }

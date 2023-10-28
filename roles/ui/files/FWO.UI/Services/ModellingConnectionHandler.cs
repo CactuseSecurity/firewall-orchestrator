@@ -87,7 +87,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                AvailableAppServer = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServer, new { appId = Application.Id });
+                AvailableAppServer = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServers, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(FWO.Api.Client.Queries.ModellingQueries.getAppRoles, new { appId = Application.Id });
                 AvailableServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(FWO.Api.Client.Queries.ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id });
                 AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(FWO.Api.Client.Queries.ModellingQueries.getServicesForApp, new { appId = Application.Id });

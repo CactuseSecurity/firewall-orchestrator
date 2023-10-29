@@ -44,16 +44,16 @@
                     <select class="form-control form-control-sm" @bind="selectedAppServer" multiple>
                         @foreach (var appserver in ConnHandler.AvailableAppServer)
                         {
-                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedAppServer)))" value="@appserver.Id">@NwObjDisplay.DisplayWithName(appserver)</option>
+                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedAppServer)))" value="@appserver.Id">@ModellingDisplay.DisplayAppServer(appserver)</option>
                         }
                     </select>
                 </div>
                 <div class="col-sm-3">
-                @if(ToSrcAllowed && selectedAppServer.Length > 0)
+                @if(!ConnHandler.SrcDropForbidden() && selectedAppServer.Length > 0)
                 {
                     <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppServerToSource(ResolveElem(selectedAppServer));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
                 }
-                @if(ToDestAllowed && selectedAppServer.Length > 0)
+                @if(!ConnHandler.DstDropForbidden() && selectedAppServer.Length > 0)
                 {
                     <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppServerToDestination(ResolveElem(selectedAppServer));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
                 }
@@ -72,7 +72,7 @@
                             <div class="col-sm-12 dropzone" 
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
-                                @ondrop="() => HandleIpDropToAppRole(appRole)">
+                                @ondrop="() => HandleAppServerDropToAppRole(appRole)">
                                 @appRole.Name
                             </div>
                         </option>
@@ -80,11 +80,11 @@
                 </select>
             </div>
             <div class="col-sm-3">
-                @if(ToSrcAllowed && selectedAppRoles.Length > 0)
+                @if(!ConnHandler.SrcDropForbidden() && selectedAppRoles.Length > 0)
                 {
                     <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppRolesToSource(ResolveAppRole(selectedAppRoles));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
                 }
-                @if(ToDestAllowed && selectedAppRoles.Length > 0)
+                @if(!ConnHandler.DstDropForbidden() && selectedAppRoles.Length > 0)
                 {
                     <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppRolesToDestination(ResolveAppRole(selectedAppRoles));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
                 }
@@ -103,7 +103,7 @@
         <br><br>
         @if(userConfig.AllowServiceInConn)
         {
-            @if(ToSvcAllowed)
+            @if(!ConnHandler.svcReadOnly)
             {
                 <h5>@(userConfig.GetText("services"))</h5>
                 <div class="form-group row">
@@ -116,7 +116,7 @@
                         </select>
                     </div>
                     <div class="col-sm-3">
-                        @if(ToSvcAllowed && selectedServices.Length > 0)
+                        @if(!ConnHandler.svcReadOnly && selectedServices.Length > 0)
                         {
                             <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.ServicesToConn(ResolveSvc(selectedServices));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_service"))</button>
                         }
@@ -131,7 +131,7 @@
                 <br><br>
             }
         }
-        @if(ToSvcAllowed)
+        @if(!ConnHandler.svcReadOnly)
         {
             <h5>@(userConfig.GetText("services_groups"))</h5>
             <div class="form-group row">
@@ -144,7 +144,7 @@
                     </select>
                 </div>
                 <div class="col-sm-3">
-                    @if(ToSvcAllowed && selectedServiceGroups.Length > 0)
+                    @if(!ConnHandler.svcReadOnly && selectedServiceGroups.Length > 0)
                     {
                         <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.ServiceGrpsToConn(ResolveSvcGrp(selectedServiceGroups));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_service"))</button>
                     }
@@ -189,15 +189,6 @@
     [Parameter]
     public EventCallback<ModellingConnectionHandler> ConnHandlerChanged { get; set; }
 
-    [Parameter]
-    public bool ToSrcAllowed { get; set; } = true;
-
-    [Parameter]
-    public bool ToDestAllowed { get; set; } = true;
-
-    [Parameter]
-    public bool ToSvcAllowed { get; set; } = true;
-
 
     private long[] selectedAppServer = new long[]{};
     private long[] selectedAppRoles = new long[]{};
@@ -226,10 +217,10 @@
         Container.ConnElement = selectedConn;
     }
 
-    private void HandleDragStart(List<NetworkObject> selectedIps)
+    private void HandleDragStart(List<ModellingAppServer> selectedIps)
     {
         Container.Clear();
-        Container.IpElements = selectedIps;
+        Container.AppServerElements = selectedIps;
     }
 
     private void HandleDragStart(List<ModellingAppRole> selectedAppRoles)
@@ -250,13 +241,13 @@
         Container.SvcGrpElements = selectedSvcGrps;
     }
 
-    private async Task HandleIpDropToAppRole(ModellingAppRole appRole)
+    private async Task HandleAppServerDropToAppRole(ModellingAppRole appRole)
     {
-        if(Container.IpElements.Count > 0)
+        @* if(Container.AppServerElements.Count > 0)
         {
-            appRole.NetworkObjects.AddRange(Container.IpElements);
+            appRole.AppServers.AddRange(Container.AppServerElements);
             // save ???
-        }
+        } *@
         Container.Clear();
     }
 
@@ -265,9 +256,9 @@
         return ConnHandler.AvailableInterfaces.FirstOrDefault(x => x.Id == selectedConn);
     }
 
-    private List<NetworkObject> ResolveElem(long[] selectedIds)
+    private List<ModellingAppServer> ResolveElem(long[] selectedIds)
     {
-        List<NetworkObject> addedIps = new();
+        List<ModellingAppServer> addedIps = new();
         foreach(var id in selectedIds)
         {
             addedIps.Add(ConnHandler.AvailableAppServer.FirstOrDefault(x => x.Id == id));

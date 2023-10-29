@@ -14,12 +14,12 @@
             <select class="form-control form-control-sm" @bind="selectedIpAddresses" multiple>
                 @foreach (var appserver in AppRoleHandler.AvailableAppServer)
                 {
-                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedIpAddresses)))" value="@appserver.Id">@NwObjDisplay.DisplayWithName(appserver)</option>
+                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedIpAddresses)))" value="@appserver.Id">@ModellingDisplay.DisplayAppServer(appserver)</option>
                 }
             </select>
         </div>
         <div class="col-sm-2">
-            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => AppRoleHandler.AppServerToAppRole(ResolveElem(selectedIpAddresses))">@(userConfig.GetText("to_app_role"))</button>
+            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {AppRoleHandler.AppServerToAppRole(ResolveElem(selectedIpAddresses)); AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("to_app_role"))</button>
         </div>
     </div>
     <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
@@ -45,20 +45,22 @@
     [Parameter]
     public ModellingAppRoleHandler AppRoleHandler { get; set; }
 
+    [Parameter]
+    public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
 
     private long[] selectedIpAddresses = new long[]{};
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
 
-    private void HandleDragStart(List<NetworkObject> selectedIps)
+    private void HandleDragStart(List<ModellingAppServer> selectedAppServers)
     {
         Container.Clear();
-        Container.IpElements = selectedIps;
+        Container.AppServerElements = selectedAppServers;
     }
 
-    private List<NetworkObject> ResolveElem(long[] selectedIds)
+    private List<ModellingAppServer> ResolveElem(long[] selectedIds)
     {
-        List<NetworkObject> addedIps = new();
+        List<ModellingAppServer> addedIps = new();
         foreach(var id in selectedIds)
         {
             addedIps.Add(AppRoleHandler.AvailableAppServer.FirstOrDefault(x => x.Id == id));

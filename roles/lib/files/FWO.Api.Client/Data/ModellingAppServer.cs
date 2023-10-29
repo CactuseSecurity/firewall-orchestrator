@@ -25,6 +25,27 @@ namespace FWO.Api.Data
         public bool IsDeleted { get; set; }
 
         public string ExtAppId { get; set; } = "";
+        
+        public static NetworkObject ToNetworkObject(ModellingAppServer appServer)
+        {
+            return new NetworkObject()
+            {
+                Id = appServer.Id,
+                Name = appServer.Name,
+                IP = appServer.Ip,
+                IpEnd = appServer.Ip
+            };
+        }
+    }
 
+    public class ModellingAppServerWrapper
+    {
+        [JsonProperty("app_server"), JsonPropertyName("app_server")]
+        public ModellingAppServer Content { get; set; } = new();
+
+        public static ModellingAppServer[] Resolve(List<ModellingAppServerWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
     }
 }

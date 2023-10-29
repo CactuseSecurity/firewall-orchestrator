@@ -95,7 +95,7 @@ namespace FWO.Api.Client.Queries
                 addServiceGroupToConnection = File.ReadAllText(QueryPath + "modelling/addServiceGroupToConnection.graphql");
                 removeServiceGroupFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceGroupFromConnection.graphql");
 
-                getAppRoles = appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppRoles.graphql");
+                getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppRoles.graphql");
                 newAppRole = File.ReadAllText(QueryPath + "modelling/newAppRole.graphql");
                 updateAppRole = File.ReadAllText(QueryPath + "modelling/updateAppRole.graphql");
                 deleteAppRole = File.ReadAllText(QueryPath + "modelling/deleteAppRole.graphql");

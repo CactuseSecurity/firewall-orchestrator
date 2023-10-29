@@ -2,7 +2,7 @@
 {
     public class ModellingDnDContainer
     {
-        public List<NetworkObject> IpElements { get; set; } = new();
+        public List<ModellingAppServer> AppServerElements { get; set; } = new();
         public List<ModellingAppRole> AppRoleElements { get; set; } = new();
         public List<ModellingService> SvcElements { get; set; } = new();
         public List<ModellingServiceGroup> SvcGrpElements { get; set; } = new();
@@ -10,7 +10,7 @@
 
         public void Clear()
         {
-            IpElements = new();
+            AppServerElements = new();
             AppRoleElements = new();
             SvcElements = new();
             SvcGrpElements = new();

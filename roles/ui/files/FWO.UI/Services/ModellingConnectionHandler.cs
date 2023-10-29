@@ -2,7 +2,6 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 
 
 namespace FWO.Ui.Services
@@ -12,29 +11,26 @@ namespace FWO.Ui.Services
         public FwoOwner Application { get; set; } = new();
         public List<ModellingConnection> Connections { get; set; } = new();
         public ModellingConnection ActConn { get; set; } = new();
-        public List<NetworkObject> AvailableAppServer { get; set; } = new();
+        public List<ModellingAppServer> AvailableAppServer { get; set; } = new();
         public List<ModellingAppRole> AvailableAppRoles { get; set; } = new();
         public List<ModellingServiceGroup> AvailableServiceGroups { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
         public List<ModellingConnection> AvailableInterfaces { get; set; } = new();
 
-        public List<ModellingService> SvcToAdd { get; set; } = new();
-        public List<ModellingService> SvcToDelete { get; set; } = new();
-
-        // public bool DisplayInterfaces { get; set; } = false;
-        // public bool ToSrcAllowed { get; set; } = true;
-        // public bool ToDestAllowed { get; set; } = true;
-        // public bool ToSvcAllowed { get; set; } = true;
+        public string deleteMessage = "";
+        public bool ReadOnly = false;
+        public bool AddMode = false;
 
         public bool srcReadOnly { get; set; } = false;
         public bool dstReadOnly { get; set; } = false;
         public bool svcReadOnly { get; set; } = false;
 
-        public List<NetworkObject> SrcAppServerToAdd { get; set; } = new();
-        public List<NetworkObject> SrcAppServerToDelete { get; set; } = new();
-        public List<NetworkObject> DstAppServerToAdd { get; set; } = new();
-        public List<NetworkObject> DstAppServerToDelete { get; set; } = new();
+        public List<ModellingAppServer> SrcAppServerToAdd { get; set; } = new();
+        public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = new();
+        public List<ModellingAppServer> DstAppServerToAdd { get; set; } = new();
+        public List<ModellingAppServer> DstAppServerToDelete { get; set; } = new();
 
+        public ModellingAppRoleHandler AppRoleHandler;
         public List<ModellingAppRole> SrcAppRolesToAdd { get; set; } = new();
         public List<ModellingAppRole> SrcAppRolesToDelete { get; set; } = new();
         public List<ModellingAppRole> DstAppRolesToAdd { get; set; } = new();
@@ -42,23 +38,20 @@ namespace FWO.Ui.Services
         public bool AddAppRoleMode = false;
         public bool EditAppRoleMode = false;
         public bool DeleteAppRoleMode = false;
-        public ModellingAppRoleHandler AppRoleHandler;
 
+        public ModellingServiceHandler ServiceHandler;
+        public List<ModellingService> SvcToAdd { get; set; } = new();
+        public List<ModellingService> SvcToDelete { get; set; } = new();
+        public bool AddServiceMode = false;
+        public bool EditServiceMode = false;
+        public bool DeleteServiceMode = false;
+
+        public ModellingServiceGroupHandler SvcGrpHandler;
         public List<ModellingServiceGroup> SvcGrpToAdd { get; set; } = new();
         public List<ModellingServiceGroup> SvcGrpToDelete { get; set; } = new();
         public bool AddSvcGrpMode = false;
         public bool EditSvcGrpMode = false;
         public bool DeleteSvcGrpMode = false;
-        public ModellingServiceGroupHandler SvcGrpHandler;
-        public bool AddServiceMode = false;
-        public bool EditServiceMode = false;
-        public bool DeleteServiceMode = false;
-
-        public ModellingServiceHandler ServiceHandler;
-        public string deleteMessage = "";
-        public bool ReadOnly = false;
-        public bool AddMode = false;
-
 
         private ModellingAppRole actAppRole = new();
         private ModellingServiceGroup actServiceGroup = new();
@@ -87,11 +80,11 @@ namespace FWO.Ui.Services
         {
             try
             {
-                AvailableAppServer = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ModellingQueries.getAppServers, new { appId = Application.Id });
-                AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(FWO.Api.Client.Queries.ModellingQueries.getAppRoles, new { appId = Application.Id });
-                AvailableServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(FWO.Api.Client.Queries.ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id });
-                AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(FWO.Api.Client.Queries.ModellingQueries.getServicesForApp, new { appId = Application.Id });
-                AvailableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(FWO.Api.Client.Queries.ModellingQueries.getInterfaces);
+                AvailableAppServer = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
+                AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
+                AvailableServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id });
+                AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id });
+                AvailableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
             }
             catch (Exception exception)
             {
@@ -108,11 +101,11 @@ namespace FWO.Ui.Services
             ActConn.UsedInterfaceId = interf.Id;
             if(srcReadOnly)
             {
-                ActConn.SourceAppServers = new List<NetworkObject>(interf.SourceAppServers){};
+                ActConn.SourceAppServers = new List<ModellingAppServerWrapper>(interf.SourceAppServers){};
             }
             else
             {
-                ActConn.DestinationAppServers = new List<NetworkObject>(interf.DestinationAppServers){};
+                ActConn.DestinationAppServers = new List<ModellingAppServerWrapper>(interf.DestinationAppServers){};
             }
             ActConn.Services = new List<ModellingServiceWrapper>(interf.Services){};
         }
@@ -134,13 +127,13 @@ namespace FWO.Ui.Services
             svcReadOnly = false;
         }
         
-        public void AppServerToSource(List<NetworkObject> sources)
+        public void AppServerToSource(List<ModellingAppServer> sources)
         {
             if(!SrcDropForbidden())
             {
                 foreach(var source in sources)
                 {
-                    if(!ActConn.SourceAppServers.Contains(source) && !SrcAppServerToAdd.Contains(source))
+                    if(ActConn.SourceAppServers.FirstOrDefault(w => w.Content.Id == source.Id) == null && !SrcAppServerToAdd.Contains(source))
                     {
                         SrcAppServerToAdd.Add(source);
                     }
@@ -149,13 +142,13 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void AppServerToDestination(List<NetworkObject> dests)
+        public void AppServerToDestination(List<ModellingAppServer> dests)
         {
             if(!DstDropForbidden())
             {
                 foreach(var dest in dests)
                 {
-                    if(!ActConn.DestinationAppServers.Contains(dest) && !DstAppServerToAdd.Contains(dest))
+                    if(ActConn.DestinationAppServers.FirstOrDefault(w => w.Content.Id == dest.Id) == null && !DstAppServerToAdd.Contains(dest))
                     {
                         DstAppServerToAdd.Add(dest);
                     }
@@ -395,13 +388,13 @@ namespace FWO.Ui.Services
             {
                 if(!srcReadOnly)
                 {
-                    foreach(var ip in SrcAppServerToDelete)
+                    foreach(var appServer in SrcAppServerToDelete)
                     {
-                        ActConn.SourceAppServers.Remove(ip);
+                        ActConn.SourceAppServers.Remove(ActConn.SourceAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id));
                     }
-                    foreach(var ip in SrcAppServerToAdd)
+                    foreach(var appServer in SrcAppServerToAdd)
                     {
-                        ActConn.SourceAppServers.Add(ip);
+                        ActConn.SourceAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
                     }
                     foreach(var appRole in SrcAppRolesToDelete)
                     {
@@ -414,13 +407,13 @@ namespace FWO.Ui.Services
                 }
                 if(!dstReadOnly)
                 {
-                    foreach(var ip in DstAppServerToDelete)
+                    foreach(var appServer in DstAppServerToDelete)
                     {
-                        ActConn.DestinationAppServers.Remove(ip);
+                        ActConn.DestinationAppServers.Remove(ActConn.DestinationAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id));
                     }
-                    foreach(var ip in DstAppServerToAdd)
+                    foreach(var appServer in DstAppServerToAdd)
                     {
-                        ActConn.DestinationAppServers.Add(ip);
+                        ActConn.DestinationAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
                     }
                     foreach(var appRole in DstAppRolesToDelete)
                     {
@@ -490,12 +483,12 @@ namespace FWO.Ui.Services
                     ActConn.Id = returnIds[0].NewId;
                     foreach(var appServer in ActConn.SourceAppServers)
                     {
-                        var srcParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ConnectionField.Source };
+                        var srcParams = new { appServerId = appServer.Content.Id, connectionId = ActConn.Id, connectionField = (int)ConnectionField.Source };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, srcParams);
                     }
                     foreach(var appServer in ActConn.DestinationAppServers)
                     {
-                        var dstParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ConnectionField.Destination };
+                        var dstParams = new { appServerId = appServer.Content.Id, connectionId = ActConn.Id, connectionField = (int)ConnectionField.Destination };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, dstParams);
                     }
                     foreach(var appRole in ActConn.SourceAppRoles)
@@ -612,10 +605,10 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
-            SrcAppServerToAdd = new List<NetworkObject>();
-            SrcAppServerToDelete = new List<NetworkObject>();
-            DstAppServerToAdd = new List<NetworkObject>();
-            DstAppServerToDelete = new List<NetworkObject>();
+            SrcAppServerToAdd = new List<ModellingAppServer>();
+            SrcAppServerToDelete = new List<ModellingAppServer>();
+            DstAppServerToAdd = new List<ModellingAppServer>();
+            DstAppServerToDelete = new List<ModellingAppServer>();
             SrcAppRolesToAdd = new List<ModellingAppRole>();
             SrcAppRolesToDelete = new List<ModellingAppRole>();
             DstAppRolesToAdd = new List<ModellingAppRole>();

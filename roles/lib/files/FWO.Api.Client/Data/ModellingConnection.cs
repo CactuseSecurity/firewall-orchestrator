@@ -36,13 +36,13 @@ namespace FWO.Api.Data
         public List<ModellingServiceGroupWrapper> ServiceGroups { get; set; } = new();
 
         [JsonProperty("source_app_servers"), JsonPropertyName("source_app_servers")]
-        public List<NetworkObject> SourceAppServers { get; set; } = new();
+        public List<ModellingAppServerWrapper> SourceAppServers { get; set; } = new();
 
         [JsonProperty("source_app_roles"), JsonPropertyName("source_app_roles")]
         public List<ModellingAppRoleWrapper> SourceAppRoles { get; set; } = new();
 
         [JsonProperty("destination_app_servers"), JsonPropertyName("destination_app_servers")]
-        public List<NetworkObject> DestinationAppServers { get; set; } = new();
+        public List<ModellingAppServerWrapper> DestinationAppServers { get; set; } = new();
 
         [JsonProperty("destination_app_roles"), JsonPropertyName("destination_app_roles")]
         public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = new();

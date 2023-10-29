@@ -57,8 +57,8 @@ namespace FWO.Api.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
-        [JsonProperty("appServers"), JsonPropertyName("appServers")]
-        public List<NetworkObject> NetworkObjects { get; set; } = new List<NetworkObject>{};
+        [JsonProperty("app_servers"), JsonPropertyName("app_servers")]
+        public List<ModellingAppServerWrapper> AppServers { get; set; } = new();
 
         public ModellingNetworkArea Area { get; set; }
 

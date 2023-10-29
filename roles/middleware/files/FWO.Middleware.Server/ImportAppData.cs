@@ -35,7 +35,7 @@ namespace FWO.Middleware.Server
             try
             {
                 // /usr/local/fworch/etc/apps.csv
-                importFile = File.ReadAllText(globalConfig.ImportAppDataPath).TrimEnd();
+                importFile = File.ReadAllText(globalConfig.ImportAppDataPath).Trim();
             }
             catch (Exception fileReadException)
             {
@@ -74,9 +74,9 @@ namespace FWO.Middleware.Server
                 string appOwnerId = values[6].Replace("\"", "");
                 string appCriticality = values[8].Replace("\"", "");
 
-                string appServerName = values[12].Replace("\"", "");
-                string appServerSubnet = values[13].Replace("\"", "");
-                string appServerIpAddress = values[14].Replace("\"", "");
+                string appServerName = values[14].Replace("\"", "");
+                string appServerSubnet = values[15].Replace("\"", "");
+                string appServerIpAddress = values[16].Replace("\"", "");
 
                 if(importedApps.FirstOrDefault(x => x.Name == appName) == null)
                 {
@@ -256,7 +256,7 @@ namespace FWO.Middleware.Server
             {
                 name = incomingAppServer.Name,
                 appId = appID,
-                ip = incomingAppServer.Ip,   // todo ?
+                ip = IPAddressRange.Parse(incomingAppServer.Ip).ToCidrString(),   // todo ?
                 importSource = "import"  // todo
             };
             await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAppServer, Variables);
@@ -270,7 +270,7 @@ namespace FWO.Middleware.Server
                 id = existingAppServer.Id,
                 name = incomingAppServer.Name,
                 appId = appID, // todo ?
-                ip = incomingAppServer.Ip,   // todo ?
+                ip = IPAddressRange.Parse(incomingAppServer.Ip).ToCidrString(),   // todo ?
                 importSource = "import"  // todo
             };
             await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.updateAppServer, Variables);

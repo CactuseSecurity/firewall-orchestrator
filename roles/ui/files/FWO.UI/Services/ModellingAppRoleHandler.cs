@@ -12,27 +12,19 @@ namespace FWO.Ui.Services
         public FwoOwner Application { get; set; } = new();
         public List<ModellingAppRole> AppRoles { get; set; } = new();
         public ModellingAppRole ActAppRole { get; set; } = new();
-        public List<NetworkObject> AvailableAppServer { get; set; } = new();
+        public List<ModellingAppServer> AvailableAppServer { get; set; } = new();
         public bool AddMode { get; set; } = false;
 
-        public List<NetworkObject> AppServerToAdd { get; set; } = new();
-        public List<NetworkObject> AppServerToDelete { get; set; } = new();
+        public List<ModellingAppServer> AppServerToAdd { get; set; } = new();
+        public List<ModellingAppServer> AppServerToDelete { get; set; } = new();
 
         private readonly ApiConnection ApiConnection;
         private readonly UserConfig userConfig;
         private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
 
-
-        private readonly ApiConnection apiConnection;
-
-
-        public ModellingAppRoleHandler(ApiConnection apiConnection)
-        {
-            this.apiConnection = apiConnection;
-        }
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<NetworkObject> availableAppServer,
+            List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServer,
             bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ApiConnection = apiConnection;
@@ -45,26 +37,26 @@ namespace FWO.Ui.Services
             DisplayMessageInUi = displayMessageInUi;
         }
 
-        public void AppServerToAppRole(List<NetworkObject> nwObjects)
+        public void AppServerToAppRole(List<ModellingAppServer> appServers)
         {
-        foreach(var appServer in nwObjects)
-        {
-            if(!ActAppRole.NetworkObjects.Contains(appServer) && !AppServerToAdd.Contains(appServer))
+            foreach(var appServer in appServers)
             {
-                AppServerToAdd.Add(appServer);
+                if(ActAppRole.AppServers.FirstOrDefault(w => w.Content.Id == appServer.Id) == null && !AppServerToAdd.Contains(appServer))
+                {
+                    AppServerToAdd.Add(appServer);
+                }
             }
-        }
         }
 
         public async Task Save()
         {
             foreach(var appServer in AppServerToDelete)
             {
-                ActAppRole.NetworkObjects.Remove(appServer);
+                ActAppRole.AppServers.Remove(ActAppRole.AppServers.FirstOrDefault(x => x.Content.Id == appServer.Id));
             }
             foreach(var appServer in AppServerToAdd)
             {
-                ActAppRole.NetworkObjects.Add(appServer);
+                ActAppRole.AppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
             }
             if(AddMode)
             {
@@ -91,11 +83,11 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActAppRole.Id = returnIds[0].NewId;
-                    foreach(var appServer in ActAppRole.NetworkObjects)
+                    foreach(var appServer in ActAppRole.AppServers)
                     {
                         var Vars = new
                         {
-                            appServerId = appServer.Id,
+                            appServerId = appServer.Content.Id,
                             appRoleId = ActAppRole.Id
                         };
                         await ApiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
@@ -148,8 +140,8 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
-            AppServerToAdd = new List<NetworkObject>();
-            AppServerToDelete = new List<NetworkObject>();
+            AppServerToAdd = new List<ModellingAppServer>();
+            AppServerToDelete = new List<ModellingAppServer>();
         }
     }
 }

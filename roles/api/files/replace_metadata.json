@@ -9405,6 +9405,16 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "criticality",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "recert_check_params",
+                      "id",
+                      "recert_interval",
+                      "tenant_id",
                       "last_recert_check"
                     ],
                     "filter": {},

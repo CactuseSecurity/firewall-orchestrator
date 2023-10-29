@@ -33,7 +33,7 @@ namespace FWO.Middleware.Server
             try
             {
                 // /usr/local/fworch/etc/qip-export.csv
-                importFile = File.ReadAllText(globalConfig.ImportSubnetDataPath).TrimEnd();
+                importFile = File.ReadAllText(globalConfig.ImportSubnetDataPath).Trim();
             }
             catch (Exception fileReadException)
             {

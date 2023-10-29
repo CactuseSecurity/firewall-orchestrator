@@ -159,14 +159,14 @@
     private List<string> GetSrcNames(ModellingConnection conn)
     {
         List<string> names = ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.Name);
-        names.AddRange(conn.SourceAppServers.ConvertAll(s => s.IP));
+        names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.Ip));
         return names;
     }
     
     private List<string> GetDstNames(ModellingConnection conn)
     {
         List<string> names = ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.Name);
-        names.AddRange(conn.DestinationAppServers.ConvertAll(s => s.IP));
+        names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.Ip));
         return names;
     }
 

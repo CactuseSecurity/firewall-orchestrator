@@ -11,7 +11,7 @@ namespace FWO.Ui.Display
 
         public static string DisplayService(ModellingService service)
         {
-            return RuleDisplayBase.DisplayService(ModellingService.ToNetworkService(service), FWO.Report.Filter.ReportType.Rules, service.Name).ToString();
+            return DisplayService(ModellingService.ToNetworkService(service), Report.Filter.ReportType.Rules, service.Name).ToString();
         }
 
         public static string DisplayServiceGroup(ModellingServiceGroup grp)
@@ -25,6 +25,24 @@ namespace FWO.Ui.Display
                 return DisplayService(grp.Services[0].Content);
             }
             return "no name";
+        }
+
+        public static string DisplayAppServer(ModellingAppServer appServer)
+        {
+            return NwObjDisplay.DisplayWithName(ModellingAppServer.ToNetworkObject(appServer));
+        }
+
+        public static string DisplayAppRole(ModellingAppRole appRole)
+        {
+            if(appRole.Name != null && appRole.Name != "")
+            {
+                return appRole.Name;
+            }
+            if(appRole.AppServers.Count > 0)
+            {
+                return DisplayAppServer(appRole.AppServers[0].Content);
+            }
+            return "anything else";
         }
     }
 }

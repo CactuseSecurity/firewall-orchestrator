@@ -8,8 +8,7 @@
 {
     @if(!ConnHandler.ReadOnly)
     {
-        <EditConnLeftSide Application="@Application" @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-ConnHandler="ConnHandler"
-            ToSrcAllowed="@(!ConnHandler.SrcDropForbidden())" ToDestAllowed="@(!ConnHandler.DstDropForbidden())" ToSvcAllowed="!ConnHandler.svcReadOnly"/>
+        <EditConnLeftSide Application="@Application" @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-ConnHandler="ConnHandler"/>
     }
     <div style="margin-left: @($"{(ConnHandler.ReadOnly ? 0 : sidebarLeftWidth) + 10}px");">
         <h3>@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface") : userConfig.GetText("connection"))</h3>
@@ -29,11 +28,11 @@
                     {
                         foreach(var src in ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayAppRole(src)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppRole(src)</div>
                         }
-                        foreach(var src in ConnHandler.ActConn.SourceAppServers)
+                        foreach(var src in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(src)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppServer(src)</div>
                         }
                     }
                     else 
@@ -45,14 +44,14 @@
                             <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles)" ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayAppRole(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppRole(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.SourceAppServers.ToArray()" ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers)" ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppServer(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
@@ -101,11 +100,11 @@
                     {
                         foreach(var dst in ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayAppRole(dst)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppRole(dst)</div>
                         }
-                        foreach(var dst in ConnHandler.ActConn.DestinationAppServers)
+                        foreach(var dst in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(dst)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppServer(dst)</div>
                         }
                     }
                     else 
@@ -117,14 +116,14 @@
                             <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles)" ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayAppRole(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppRole(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="NetworkObject" Elements="ConnHandler.ActConn.DestinationAppServers.ToArray()" ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers)" ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppServer(context)</div>
                                     </div>
                                 </Display>
                             </EditList>
@@ -207,9 +206,9 @@
         }
         else if(!ConnHandler.SrcDropForbidden())
         {
-            if(Container.IpElements.Count > 0)
+            if(Container.AppServerElements.Count > 0)
             {
-                ConnHandler.AppServerToSource(Container.IpElements);
+                ConnHandler.AppServerToSource(Container.AppServerElements);
             }
             if(Container.AppRoleElements.Count > 0)
             {
@@ -227,9 +226,9 @@
         }
         else if(!ConnHandler.DstDropForbidden())
         {
-            if(Container.IpElements.Count > 0)
+            if(Container.AppServerElements.Count > 0)
             {
-                ConnHandler.AppServerToDestination(Container.IpElements);
+                ConnHandler.AppServerToDestination(Container.AppServerElements);
             }
             if(Container.AppRoleElements.Count > 0)
             {
@@ -261,19 +260,6 @@
         ConnHandler.Close();
         Display = false;
         DisplayChanged.InvokeAsync(Display);
-    }
-
-    private string DisplayAppRole(ModellingAppRole appRole)
-    {
-        if(appRole.Name != null && appRole.Name != "")
-        {
-            return appRole.Name;
-        }
-        if(appRole.NetworkObjects.Count > 0)
-        {
-            return NwObjDisplay.DisplayWithName(appRole.NetworkObjects[0]);
-        }
-        return "anything else";
     }
     
     private string SrcClass()

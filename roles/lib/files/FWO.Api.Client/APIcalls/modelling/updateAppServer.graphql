@@ -1,5 +1,5 @@
 mutation updateAppServer(
-  $id: Int!
+  $id: bigint!
   $name: String
   $appId: Int
   $ip: cidr

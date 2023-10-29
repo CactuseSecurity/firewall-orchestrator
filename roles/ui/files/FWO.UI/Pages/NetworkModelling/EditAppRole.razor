@@ -10,7 +10,7 @@
         <Body>
             <div class="row">
                 <div class="col-sm-6">
-                    <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" AppRoleHandler="AppRoleHandler"/>
+                    <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-AppRoleHandler="AppRoleHandler"/>
                 </div>
                 <div class="col-sm-6">
                     <h3>@(userConfig.GetText("app_role"))</h3>
@@ -41,10 +41,10 @@
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
                                 @ondrop="HandleServerDrop">
-                                <EditList ElementType="NetworkObject" Elements="AppRoleHandler.ActAppRole.NetworkObjects.ToArray()" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false">
+                                <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false">
                                     <Display>
                                         <div class="row">
-                                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayWithName(context)</div>
+                                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppServer(context)</div>
                                         </div>
                                     </Display>
                                 </EditList>
@@ -95,7 +95,7 @@
     int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
 
     private List<ModellingNetworkArea> areas = new();
-    private List<NetworkObject> actServers = new();
+    private List<ModellingAppServer> actServers = new();
     private bool firstTry = true;
 
     protected override async Task OnInitializedAsync()
@@ -134,9 +134,9 @@
 
     private async Task HandleServerDrop()
     {
-        if(Container.IpElements.Count > 0)
+        if(Container.AppServerElements.Count > 0)
         {
-            AppRoleHandler.AppServerToAppRole(Container.IpElements);
+            AppRoleHandler.AppServerToAppRole(Container.AppServerElements);
         }
         Container.Clear();
     }
@@ -160,7 +160,7 @@
 
     private void SelectAppServerFromArea(ModellingNetworkArea area)
     {
-        actServers = new List<NetworkObject>(){};
+        actServers = new List<ModellingAppServer>(){};
         foreach(var server in AppRoleHandler.AvailableAppServer)
         {
             if(IsInArea(server, area))
@@ -170,20 +170,21 @@
         }
     }
 
-    private bool IsInArea(NetworkObject server, ModellingNetworkArea area)
+    private bool IsInArea(ModellingAppServer server, ModellingNetworkArea area)
     {
-        foreach(var subnet in area.Subnets)
+        @* foreach(var subnet in area.Subnets)
         {
             var slashIdx = subnet.Network.IndexOf("/");
             if (slashIdx == -1)
             {
                 slashIdx = 31;
             }
-            if(server.IP.Substring(0, slashIdx) == subnet.Network.Substring(0, slashIdx)) // TODO: correct? IPv6??
+            if(server.Ip.Substring(0, slashIdx) == subnet.Network.Substring(0, slashIdx)) // TODO: correct? IPv6??
             {
                 return true;
             }
         }
-        return false;
+        return false; *@
+        return true;
     }
 }

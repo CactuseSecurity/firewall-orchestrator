@@ -14,17 +14,20 @@
         <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
         <CascadingValue Value="AnchorNavToRSB">
             <TabSet KeepPanelsAlive="true" @ref="Tabset">
-                <Tab Title="@(userConfig.GetText("all"))">
-                    <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
-                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
-                    </div>
-                    <div class="mt-2">
-                        <CascadingValue Value="collapseSidebarAll">
-                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.all" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                                NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
-                        </CascadingValue>
-                    </div>
-                </Tab>
+                @if(AllTabVisible)
+                {
+                    <Tab Title="@(userConfig.GetText("all"))">
+                        <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
+                            <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                        </div>
+                        <div class="mt-2">
+                            <CascadingValue Value="collapseSidebarAll">
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.all" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                                    NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                            </CascadingValue>
+                        </div>
+                    </Tab>
+                }
                 @if(ManagementsReport != null)
                 {
                     <Tab Title="Report">
@@ -89,6 +92,9 @@
 
     [Parameter]
     public Management[]? ManagementsReport { get; set; }
+
+    [Parameter]
+    public bool AllTabVisible { get; set; } = true;
 
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();

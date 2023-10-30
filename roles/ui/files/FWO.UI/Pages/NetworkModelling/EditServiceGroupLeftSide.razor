@@ -19,10 +19,19 @@
             </select>
         </div>
         <div class="col-sm-2">
-            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {SvcGroupHandler.ServicesToSvcGroup(ResolveSvc(selectedServices));SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("to_services_group"))</button>
+            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {SvcGroupHandler.ServicesToSvcGroup(ResolveSvc(selectedServices)); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("to_services_group"))</button>
         </div>
     </div>
+    <button type="button" class="btn btn-sm btn-success" @onclick="async () => {await SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("add_service"))</button>
+    @if(selectedServices.Length == 1)
+    {
+        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => { await SvcGroupHandler.EditService(ResolveSvc(selectedServices).First()); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("edit_service"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {SvcGroupHandler.RequestDeleteService(ResolveSvc(selectedServices).First());selectedServices = new long[]{}; SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("delete"))</button>
+    }
 </div>
+<EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AddMode="SvcGroupHandler.AddServiceMode"/>
+<ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}" Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.deleteMessage"/>
+
 
 @code
 {

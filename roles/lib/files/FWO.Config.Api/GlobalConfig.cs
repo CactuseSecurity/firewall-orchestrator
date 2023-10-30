@@ -27,6 +27,7 @@ namespace FWO.Config.Api
         public static readonly string kUi = "ui";
         public static readonly string kImportAppData = "importAppData";
         public static readonly string kImportSubnetData = "importSubnetData";
+        public static readonly string kManual = "manual";
     
         public string productVersion { get; set; }
 

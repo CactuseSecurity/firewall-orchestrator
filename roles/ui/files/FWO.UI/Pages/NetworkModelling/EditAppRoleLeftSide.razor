@@ -11,19 +11,33 @@
     <h5>@(userConfig.GetText("app_server"))</h5>
     <div class="form-group row">
         <div class="col-sm-9">
-            <select class="form-control form-control-sm" @bind="selectedIpAddresses" multiple>
-                @foreach (var appserver in AppRoleHandler.AvailableAppServer)
+            <select class="form-control form-control-sm" @bind="selectedAppServers" multiple>
+                @foreach (var appserver in AppRoleHandler.AvailableAppServers)
                 {
-                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedIpAddresses)))" value="@appserver.Id">@ModellingDisplay.DisplayAppServer(appserver)</option>
+                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveAppServer(selectedAppServers)))" value="@appserver.Id">@ModellingDisplay.DisplayAppServer(appserver)</option>
                 }
             </select>
         </div>
         <div class="col-sm-2">
-            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {AppRoleHandler.AppServerToAppRole(ResolveElem(selectedIpAddresses)); AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("to_app_role"))</button>
+            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {AppRoleHandler.AppServerToAppRole(ResolveAppServer(selectedAppServers)); AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("to_app_role"))</button>
         </div>
     </div>
-    <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
+    <AuthorizeView Roles="admin, auditor">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-success" @onclick="async () => {await AppRoleHandler.CreateAppServer(); AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("add_app_server"))</button>
+            @if(selectedAppServers.Length == 1 && ResolveAppServer(selectedAppServers).First().ImportSource == GlobalConfig.kManual)
+            {
+                <button type="button" class="btn btn-sm btn-warning" @onclick="async () => { await AppRoleHandler.EditAppServer(ResolveAppServer(selectedAppServers).First()); await AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("edit_app_server"))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="() => {AppRoleHandler.RequestDeleteAppServer(ResolveAppServer(selectedAppServers).First()); selectedAppServers = new long[]{}; AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("delete"))</button>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
+        </NotAuthorized> 
+    </AuthorizeView>
 </div>
+<EditAppServer @bind-Display="AppRoleHandler.EditAppServerMode" AppServerHandler="AppRoleHandler.AppServerHandler" AddMode="AppRoleHandler.AddAppServerMode"/>
+<ConfirmDelete @bind-Display="AppRoleHandler.DeleteAppServerMode" PerformAction="async () => { await AppRoleHandler.DeleteAppServer(); await AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}" Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@AppRoleHandler.deleteMessage"/>
 
 @code
 {
@@ -48,7 +62,7 @@
     [Parameter]
     public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
 
-    private long[] selectedIpAddresses = new long[]{};
+    private long[] selectedAppServers = new long[]{};
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
 
@@ -58,12 +72,12 @@
         Container.AppServerElements = selectedAppServers;
     }
 
-    private List<ModellingAppServer> ResolveElem(long[] selectedIds)
+    private List<ModellingAppServer> ResolveAppServer(long[] selectedIds)
     {
         List<ModellingAppServer> addedIps = new();
         foreach(var id in selectedIds)
         {
-            addedIps.Add(AppRoleHandler.AvailableAppServer.FirstOrDefault(x => x.Id == id));
+            addedIps.Add(AppRoleHandler.AvailableAppServers.FirstOrDefault(x => x.Id == id));
         }
         return addedIps;
     }

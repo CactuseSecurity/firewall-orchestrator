@@ -1,0 +1,5 @@
+query getConnectionsForAppServer ($id: bigint!){
+  modelling_appserver_connection (where: { appserver_id: { _eq: $id } }){
+    connection_id
+  }
+}

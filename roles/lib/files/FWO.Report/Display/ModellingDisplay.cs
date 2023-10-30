@@ -29,7 +29,7 @@ namespace FWO.Ui.Display
 
         public static string DisplayAppServer(ModellingAppServer appServer)
         {
-            return NwObjDisplay.DisplayWithName(ModellingAppServer.ToNetworkObject(appServer));
+            return (appServer.IsDeleted ? "*" : "") + NwObjDisplay.DisplayWithName(ModellingAppServer.ToNetworkObject(appServer));
         }
 
         public static string DisplayAppRole(ModellingAppRole appRole)

@@ -2,7 +2,6 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 
 
 namespace FWO.Ui.Services
@@ -12,11 +11,17 @@ namespace FWO.Ui.Services
         public FwoOwner Application { get; set; } = new();
         public List<ModellingAppRole> AppRoles { get; set; } = new();
         public ModellingAppRole ActAppRole { get; set; } = new();
-        public List<ModellingAppServer> AvailableAppServer { get; set; } = new();
+        public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         public bool AddMode { get; set; } = false;
 
+        public ModellingAppServerHandler AppServerHandler;
         public List<ModellingAppServer> AppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> AppServerToDelete { get; set; } = new();
+        public bool AddAppServerMode = false;
+        public bool EditAppServerMode = false;
+        public bool DeleteAppServerMode = false;
+        public string deleteMessage = "";
+        private ModellingAppServer actAppServer = new();
 
         private readonly ApiConnection ApiConnection;
         private readonly UserConfig userConfig;
@@ -24,7 +29,7 @@ namespace FWO.Ui.Services
 
 
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServer,
+            List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
             bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ApiConnection = apiConnection;
@@ -32,7 +37,7 @@ namespace FWO.Ui.Services
             Application = application;
             AppRoles = appRoles;
             ActAppRole = appRole;
-            AvailableAppServer = availableAppServer;
+            AvailableAppServers = availableAppServers;
             AddMode = addMode;
             DisplayMessageInUi = displayMessageInUi;
         }
@@ -41,10 +46,47 @@ namespace FWO.Ui.Services
         {
             foreach(var appServer in appServers)
             {
-                if(ActAppRole.AppServers.FirstOrDefault(w => w.Content.Id == appServer.Id) == null && !AppServerToAdd.Contains(appServer))
+                if(!appServer.IsDeleted && ActAppRole.AppServers.FirstOrDefault(w => w.Content.Id == appServer.Id) == null && !AppServerToAdd.Contains(appServer))
                 {
                     AppServerToAdd.Add(appServer);
                 }
+            }
+        }
+
+        public async Task CreateAppServer()
+        {
+            AddAppServerMode = true;
+            await HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConfig.kManual });
+        }
+
+        public async Task EditAppServer(ModellingAppServer appServer)
+        {
+            AddAppServerMode = false;
+            await HandleAppServer(appServer);
+        }
+
+        public async Task HandleAppServer(ModellingAppServer appServer)
+        {
+            AppServerHandler = new ModellingAppServerHandler(ApiConnection, userConfig, Application, appServer, AvailableAppServers, AddAppServerMode, DisplayMessageInUi);
+            EditAppServerMode = true;
+        }
+
+        public void RequestDeleteAppServer(ModellingAppServer appServer)
+        {
+            actAppServer = appServer;
+            deleteMessage = userConfig.GetText("U9003") + appServer.Name + "?";
+            DeleteAppServerMode = true;
+        }
+
+        public async Task DeleteAppServer()
+        {
+            try
+            {
+                DeleteAppServerMode = await ModellingAppServerHandler.DeleteAppServer(actAppServer, AvailableAppServers, ApiConnection);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_app_server"), "", true);
             }
         }
 

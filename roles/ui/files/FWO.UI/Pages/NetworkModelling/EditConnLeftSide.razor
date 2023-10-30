@@ -41,25 +41,37 @@
             <h5>@(userConfig.GetText("app_server"))</h5>
             <div class="form-group row">
                 <div class="col-sm-9">
-                    <select class="form-control form-control-sm" @bind="selectedAppServer" multiple>
-                        @foreach (var appserver in ConnHandler.AvailableAppServer)
+                    <select class="form-control form-control-sm" @bind="selectedAppServers" multiple>
+                        @foreach (var appserver in ConnHandler.AvailableAppServers)
                         {
-                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedAppServer)))" value="@appserver.Id">@ModellingDisplay.DisplayAppServer(appserver)</option>
+                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveAppServer(selectedAppServers)))" value="@appserver.Id">@ModellingDisplay.DisplayAppServer(appserver)</option>
                         }
                     </select>
                 </div>
                 <div class="col-sm-3">
-                @if(!ConnHandler.SrcDropForbidden() && selectedAppServer.Length > 0)
+                @if(!ConnHandler.SrcDropForbidden() && selectedAppServers.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppServerToSource(ResolveElem(selectedAppServer));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppServerToSource(ResolveAppServer(selectedAppServers));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
                 }
-                @if(!ConnHandler.DstDropForbidden() && selectedAppServer.Length > 0)
+                @if(!ConnHandler.DstDropForbidden() && selectedAppServers.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppServerToDestination(ResolveElem(selectedAppServer));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppServerToDestination(ResolveAppServer(selectedAppServers));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
                 }
                 </div>
             </div>
-            <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
+            <AuthorizeView Roles="admin, auditor">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => {await ConnHandler.CreateAppServer(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_app_server"))</button>
+                    @if(selectedAppServers.Length == 1 && ResolveAppServer(selectedAppServers).First().ImportSource == GlobalConfig.kManual)
+                    {
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => { await ConnHandler.EditAppServer(ResolveAppServer(selectedAppServers).First()); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_app_server"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteAppServer(ResolveAppServer(selectedAppServers).First()); selectedAppServers = new long[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                    }
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
             <br><br>
         }
         <h5>@(userConfig.GetText("app_roles"))</h5>
@@ -159,8 +171,13 @@
         }
     </div>
 </Sidebar>
+<EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="ConnHandler.AddAppRoleMode"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppRole)" Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.deleteMessage"/>
+<EditAppServer @bind-Display="ConnHandler.EditAppServerMode" AppServerHandler="ConnHandler.AppServerHandler" AddMode="ConnHandler.AddAppServerMode"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteAppServerMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppServer)" Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@ConnHandler.deleteMessage"/>
+<EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="ConnHandler.AddSvcGrpMode"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteServiceGroup)" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.deleteMessage"/>
+<EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)" Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.deleteMessage"/>
 
 @code
@@ -190,7 +207,7 @@
     public EventCallback<ModellingConnectionHandler> ConnHandlerChanged { get; set; }
 
 
-    private long[] selectedAppServer = new long[]{};
+    private long[] selectedAppServers = new long[]{};
     private long[] selectedAppRoles = new long[]{};
     private long[] selectedServices = new long[]{};
     private long[] selectedServiceGroups = new long[]{};
@@ -256,12 +273,12 @@
         return ConnHandler.AvailableInterfaces.FirstOrDefault(x => x.Id == selectedConn);
     }
 
-    private List<ModellingAppServer> ResolveElem(long[] selectedIds)
+    private List<ModellingAppServer> ResolveAppServer(long[] selectedIds)
     {
         List<ModellingAppServer> addedIps = new();
         foreach(var id in selectedIds)
         {
-            addedIps.Add(ConnHandler.AvailableAppServer.FirstOrDefault(x => x.Id == id));
+            addedIps.Add(ConnHandler.AvailableAppServers.FirstOrDefault(x => x.Id == id));
         }
         return addedIps;
     }

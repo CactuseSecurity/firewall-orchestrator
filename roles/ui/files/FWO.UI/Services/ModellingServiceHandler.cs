@@ -2,7 +2,6 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 
 
 namespace FWO.Ui.Services
@@ -11,6 +10,7 @@ namespace FWO.Ui.Services
     {
         public FwoOwner Application { get; set; } = new();
         public ModellingService ActService { get; set; } = new();
+        public List<ModellingService> AvailableServices { get; set; } = new();
         public bool AddMode { get; set; } = false;
         private readonly ApiConnection ApiConnection;
         private readonly UserConfig userConfig;
@@ -18,12 +18,13 @@ namespace FWO.Ui.Services
 
 
         public ModellingServiceHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            ModellingService service, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
+            ModellingService service, List<ModellingService> availableServices, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ApiConnection = apiConnection;
             this.userConfig = userConfig;
             Application = application;
             ActService = service;
+            AvailableServices = availableServices;
             AddMode = addMode;
             DisplayMessageInUi = displayMessageInUi;
         }
@@ -50,12 +51,13 @@ namespace FWO.Ui.Services
                     appId = Application.Id,
                     port = ActService.Port,
                     portEnd = ActService.PortEnd,
-                    protoId = ActService.ProtoId
+                    protoId = ActService.Protocol.Id
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newService, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActService.Id = returnIds[0].NewId;
+                    AvailableServices.Add(ActService);
                 }
             }
             catch (Exception exception)

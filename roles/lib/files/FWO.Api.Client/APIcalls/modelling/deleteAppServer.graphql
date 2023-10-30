@@ -1,4 +1,4 @@
-mutation deleteAppServer($id: Int!) {
+mutation deleteAppServer($id: bigint!) {
   delete_modelling_app_server(where: {id: {_eq: $id}}) {
     affected_rows
   }

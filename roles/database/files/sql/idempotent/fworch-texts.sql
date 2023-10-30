@@ -1014,6 +1014,13 @@ INSERT INTO txt VALUES ('edit_service_group', 	'German',	'Dienstgruppe bearbeite
 INSERT INTO txt VALUES ('edit_service_group', 	'English',	'Edit Service Group');
 INSERT INTO txt VALUES ('delete_service_group', 'German',	'Dienstgruppe l&ouml;schen');
 INSERT INTO txt VALUES ('delete_service_group', 'English',	'Delete Service Group');
+INSERT INTO txt VALUES ('add_app_server', 	    'German',	'Neue App Server definieren');
+INSERT INTO txt VALUES ('add_app_server', 	    'English',	'Define new App Server');
+INSERT INTO txt VALUES ('edit_app_server', 	    'German',	'App Server bearbeiten');
+INSERT INTO txt VALUES ('edit_app_server', 	    'English',	'Edit App Server');
+INSERT INTO txt VALUES ('delete_app_server', 	'German',	'App Server l&ouml;schen');
+INSERT INTO txt VALUES ('delete_app_server', 	'English',	'Delete App Server');
+
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

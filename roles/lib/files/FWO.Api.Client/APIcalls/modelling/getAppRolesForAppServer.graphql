@@ -1,0 +1,5 @@
+query getAppRolesForAppServer ($id: bigint!){
+  modelling_appserver_approle (where: { appserver_id: { _eq: $id } }){
+    approle_id
+  }
+}

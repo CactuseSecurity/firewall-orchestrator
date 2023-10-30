@@ -2,7 +2,6 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 
 
 namespace FWO.Ui.Services
@@ -15,8 +14,14 @@ namespace FWO.Ui.Services
         public List<ModellingService> AvailableServices { get; set; } = new();
         public bool AddMode { get; set; } = false;
 
+        public ModellingServiceHandler ServiceHandler;
         public List<ModellingService> SvcToAdd { get; set; } = new();
         public List<ModellingService> SvcToDelete { get; set; } = new();
+        public bool AddServiceMode = false;
+        public bool EditServiceMode = false;
+        public bool DeleteServiceMode = false;
+        public string deleteMessage = "";
+        private ModellingService actService = new();
 
         private readonly ApiConnection apiConnection;
         private readonly UserConfig userConfig;
@@ -48,6 +53,47 @@ namespace FWO.Ui.Services
             }
         }
         
+        public async Task CreateService()
+        {
+            AddServiceMode = true;
+            await HandleService(new ModellingService(){});
+        }
+
+        public async Task EditService(ModellingService service)
+        {
+            AddServiceMode = false;
+            await HandleService(service);
+        }
+
+        public async Task HandleService(ModellingService service)
+        {
+            ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi);
+            EditServiceMode = true;
+        }
+
+        public void RequestDeleteService(ModellingService service)
+        {
+            actService = service;
+            deleteMessage = userConfig.GetText("U9003") + service.Name + "?";
+            DeleteServiceMode = true;
+        }
+
+        public async Task DeleteService()
+        {
+            try
+            {
+                if((await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.deleteService, new { id = actService.Id })).AffectedRows > 0)
+                {
+                    AvailableServices.Remove(actService);
+                    DeleteServiceMode = false;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_service"), "", true);
+            }
+        }
+
         public async Task Save()
         {
             foreach(var svc in SvcToDelete)

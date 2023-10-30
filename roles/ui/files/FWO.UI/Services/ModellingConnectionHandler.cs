@@ -11,7 +11,7 @@ namespace FWO.Ui.Services
         public FwoOwner Application { get; set; } = new();
         public List<ModellingConnection> Connections { get; set; } = new();
         public ModellingConnection ActConn { get; set; } = new();
-        public List<ModellingAppServer> AvailableAppServer { get; set; } = new();
+        public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         public List<ModellingAppRole> AvailableAppRoles { get; set; } = new();
         public List<ModellingServiceGroup> AvailableServiceGroups { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
@@ -25,10 +25,14 @@ namespace FWO.Ui.Services
         public bool dstReadOnly { get; set; } = false;
         public bool svcReadOnly { get; set; } = false;
 
+        public ModellingAppServerHandler AppServerHandler;
         public List<ModellingAppServer> SrcAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = new();
         public List<ModellingAppServer> DstAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> DstAppServerToDelete { get; set; } = new();
+        public bool AddAppServerMode = false;
+        public bool EditAppServerMode = false;
+        public bool DeleteAppServerMode = false;
 
         public ModellingAppRoleHandler AppRoleHandler;
         public List<ModellingAppRole> SrcAppRolesToAdd { get; set; } = new();
@@ -53,9 +57,10 @@ namespace FWO.Ui.Services
         public bool EditSvcGrpMode = false;
         public bool DeleteSvcGrpMode = false;
 
+        private ModellingAppServer actAppServer = new();
         private ModellingAppRole actAppRole = new();
-        private ModellingServiceGroup actServiceGroup = new();
         private ModellingService actService = new();
+        private ModellingServiceGroup actServiceGroup = new();
 
         private readonly ApiConnection apiConnection;
         private readonly UserConfig userConfig;
@@ -80,7 +85,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                AvailableAppServer = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
+                AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
                 AvailableServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id });
                 AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id });
@@ -127,30 +132,67 @@ namespace FWO.Ui.Services
             svcReadOnly = false;
         }
         
-        public void AppServerToSource(List<ModellingAppServer> sources)
+        public async Task CreateAppServer()
+        {
+            AddAppServerMode = true;
+            await HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConfig.kManual });
+        }
+
+        public async Task EditAppServer(ModellingAppServer appServer)
+        {
+            AddAppServerMode = false;
+            await HandleAppServer(appServer);
+        }
+
+        public async Task HandleAppServer(ModellingAppServer appServer)
+        {
+            AppServerHandler = new ModellingAppServerHandler(apiConnection, userConfig, Application, appServer, AvailableAppServers, AddAppServerMode, DisplayMessageInUi);
+            EditAppServerMode = true;
+        }
+
+        public void RequestDeleteAppServer(ModellingAppServer appServer)
+        {
+            actAppServer = appServer;
+            deleteMessage = userConfig.GetText("U9003") + appServer.Name + "?";
+            DeleteAppServerMode = true;
+        }
+
+        public async Task DeleteAppServer()
+        {
+            try
+            {
+                DeleteAppServerMode = await ModellingAppServerHandler.DeleteAppServer(actAppServer, AvailableAppServers, apiConnection);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_app_server"), "", true);
+            }
+        }
+
+        public void AppServerToSource(List<ModellingAppServer> srcAppServers)
         {
             if(!SrcDropForbidden())
             {
-                foreach(var source in sources)
+                foreach(var srcAppServer in srcAppServers)
                 {
-                    if(ActConn.SourceAppServers.FirstOrDefault(w => w.Content.Id == source.Id) == null && !SrcAppServerToAdd.Contains(source))
+                    if(!srcAppServer.IsDeleted && ActConn.SourceAppServers.FirstOrDefault(w => w.Content.Id == srcAppServer.Id) == null && !SrcAppServerToAdd.Contains(srcAppServer))
                     {
-                        SrcAppServerToAdd.Add(source);
+                        SrcAppServerToAdd.Add(srcAppServer);
                     }
                 }
                 CalcVisibility();
             }
         }
 
-        public void AppServerToDestination(List<ModellingAppServer> dests)
+        public void AppServerToDestination(List<ModellingAppServer> dstAppServers)
         {
             if(!DstDropForbidden())
             {
-                foreach(var dest in dests)
+                foreach(var dstAppServer in dstAppServers)
                 {
-                    if(ActConn.DestinationAppServers.FirstOrDefault(w => w.Content.Id == dest.Id) == null && !DstAppServerToAdd.Contains(dest))
+                    if(!dstAppServer.IsDeleted && ActConn.DestinationAppServers.FirstOrDefault(w => w.Content.Id == dstAppServer.Id) == null && !DstAppServerToAdd.Contains(dstAppServer))
                     {
-                        DstAppServerToAdd.Add(dest);
+                        DstAppServerToAdd.Add(dstAppServer);
                     }
                 }
                 CalcVisibility();
@@ -171,7 +213,7 @@ namespace FWO.Ui.Services
 
         public async Task HandleAppRole(ModellingAppRole appRole)
         {
-            AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles, appRole, AvailableAppServer, AddAppRoleMode, DisplayMessageInUi);
+            AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles, appRole, AvailableAppServers, AddAppRoleMode, DisplayMessageInUi);
             EditAppRoleMode = true;
         }
 
@@ -295,7 +337,7 @@ namespace FWO.Ui.Services
 
         public async Task HandleService(ModellingService service)
         {
-            ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AddServiceMode, DisplayMessageInUi);
+            ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi);
             EditServiceMode = true;
         }
 

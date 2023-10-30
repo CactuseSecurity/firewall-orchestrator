@@ -1,5 +1,5 @@
 mutation markAppServerDeleted(
-  $id: Int!
+  $id: bigint!
   ) {
   update_modelling_app_server_by_pk(
     pk_columns: { id: $id }

@@ -16,7 +16,7 @@
             <TabSet KeepPanelsAlive="true" @ref="Tabset">
                 @if(AllTabVisible)
                 {
-                    <Tab Title="@(userConfig.GetText("all"))">
+                    <Tab Title="@(userConfig.GetText("all"))" Position=0>
                         <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
                             <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                         </div>

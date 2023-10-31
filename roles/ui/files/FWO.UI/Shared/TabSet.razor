@@ -37,13 +37,13 @@
 
     private bool _isDisposed;
 
-    internal void AddTab(Tab tab)
+    internal void AddTab(Tab tab, int pos = -1)
     {
         if (ActiveTab == null)
         {
             SetActiveTab(tab);
         }
-        Tabs.Add(tab);
+        Tabs.Insert(pos >= 0 && pos <= Tabs.Count ? pos : Tabs.Count, tab);
         StateHasChanged();
     }
 

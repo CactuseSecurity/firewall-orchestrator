@@ -30,9 +30,12 @@ else
     [Parameter]
     public bool Closeable { get; set; } = false;
 
+    [Parameter]
+    public int Position { get; set; } = -1;
+
     protected override void OnInitialized()
     {
-        ContainerTabSet?.AddTab(this);
+        ContainerTabSet?.AddTab(this, Position);
     }
 
     private void ActivateTab()

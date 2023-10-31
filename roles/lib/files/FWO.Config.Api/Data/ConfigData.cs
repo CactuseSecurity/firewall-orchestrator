@@ -200,11 +200,15 @@ namespace FWO.Config.Api.Data
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
 
+
         [JsonProperty("allowServerInConn"), JsonPropertyName("allowServerInConn")]
         public bool AllowServerInConn { get; set; } = true;
 
         [JsonProperty("allowServiceInConn"), JsonPropertyName("allowServiceInConn")]
         public bool AllowServiceInConn { get; set; } = true;
+
+        [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
+        public int OverviewDisplayLines { get; set; } = 3;
 
         [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
         public string ImportAppDataPath { get; set; } = "";

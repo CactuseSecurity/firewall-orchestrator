@@ -30,7 +30,7 @@
                 <div class="col-sm-3">
                     @if(selectedInterface > 0)
                     {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.InterfaceToConn(ResolveConn(selectedInterface));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("use"))</button>
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.InterfaceToConn(ResolveConn(selectedInterface)); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("use"))</button>
                     }
                 </div>
             </div>
@@ -44,27 +44,27 @@
                     <select class="form-control form-control-sm" @bind="selectedAppServers" multiple>
                         @foreach (var appserver in ConnHandler.AvailableAppServers)
                         {
-                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveAppServer(selectedAppServers)))" value="@appserver.Id">@ModellingDisplay.DisplayAppServer(appserver)</option>
+                            <option class="draggable" draggable="true" @ondragstart="() => HandleDragStart(ResolveAppServer(selectedAppServers))" value="@appserver.Id">@ModellingDisplay.DisplayAppServer(appserver)</option>
                         }
                     </select>
                 </div>
                 <div class="col-sm-3">
                 @if(!ConnHandler.SrcDropForbidden() && selectedAppServers.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppServerToSource(ResolveAppServer(selectedAppServers));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppServerToSource(ResolveAppServer(selectedAppServers)); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
                 }
                 @if(!ConnHandler.DstDropForbidden() && selectedAppServers.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppServerToDestination(ResolveAppServer(selectedAppServers));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppServerToDestination(ResolveAppServer(selectedAppServers)); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
                 }
                 </div>
             </div>
             <AuthorizeView Roles="admin, auditor">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => {await ConnHandler.CreateAppServer(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_app_server"))</button>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppServer(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_app_server"))</button>
                     @if(selectedAppServers.Length == 1 && ResolveAppServer(selectedAppServers).First().ImportSource == GlobalConfig.kManual)
                     {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => { await ConnHandler.EditAppServer(ResolveAppServer(selectedAppServers).First()); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_app_server"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => {ConnHandler.EditAppServer(ResolveAppServer(selectedAppServers).First()); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_app_server"))</button>
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteAppServer(ResolveAppServer(selectedAppServers).First()); selectedAppServers = new long[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                     }
                 </Authorized>
@@ -80,7 +80,7 @@
                 <select class="form-control form-control-sm" @bind="selectedAppRoles" multiple>
                     @foreach (var appRole in ConnHandler.AvailableAppRoles)
                     {
-                        <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveAppRole(selectedAppRoles)))" value="@appRole.Id">
+                        <option class="draggable" draggable="true" @ondragstart="() => HandleDragStart(ResolveAppRole(selectedAppRoles))" value="@appRole.Id">
                             <div class="col-sm-12 dropzone" 
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
@@ -94,21 +94,21 @@
             <div class="col-sm-3">
                 @if(!ConnHandler.SrcDropForbidden() && selectedAppRoles.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppRolesToSource(ResolveAppRole(selectedAppRoles));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.AppRolesToSource(ResolveAppRole(selectedAppRoles)); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
                 }
                 @if(!ConnHandler.DstDropForbidden() && selectedAppRoles.Length > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppRolesToDestination(ResolveAppRole(selectedAppRoles));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => {ConnHandler.AppRolesToDestination(ResolveAppRole(selectedAppRoles)); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
                 }
             </div>
         </div>
         <div class="form-group row">
             <div class="col-sm-12">
-                <button type="button" class="btn btn-sm btn-success" @onclick="async () => WrapAsync(ConnHandler.CreateAppRole)">@(userConfig.GetText("add_app_role"))</button>
+                <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_app_role"))</button>
                 @if(selectedAppRoles.Length == 1)
                 {
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="async () => {await ConnHandler.EditAppRole(ResolveAppRole(selectedAppRoles).First());await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_app_role"))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedAppRoles).First());selectedAppRoles = new long[]{};ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => {ConnHandler.EditAppRole(ResolveAppRole(selectedAppRoles).First()); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_app_role"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedAppRoles).First()); selectedAppRoles = new long[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                 }
             </div>
         </div>
@@ -123,22 +123,22 @@
                         <select class="form-control form-control-sm" @bind="selectedServices" multiple>
                             @foreach (var service in ConnHandler.AvailableServices)
                             {
-                                <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@ModellingDisplay.DisplayService(service)</option>
+                                <option class="draggable" draggable="true" @ondragstart="() => HandleDragStart(ResolveSvc(selectedServices))" value="@service.Id">@ModellingDisplay.DisplayService(service)</option>
                             }
                         </select>
                     </div>
                     <div class="col-sm-3">
                         @if(!ConnHandler.svcReadOnly && selectedServices.Length > 0)
                         {
-                            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.ServicesToConn(ResolveSvc(selectedServices));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_service"))</button>
+                            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.ServicesToConn(ResolveSvc(selectedServices)); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_service"))</button>
                         }
                     </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-success" @onclick="async () => WrapAsync(ConnHandler.CreateService)">@(userConfig.GetText("add_service"))</button>
+                <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateService(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_service"))</button>
                 @if(selectedServices.Length == 1)
                 {
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="async () => { await ConnHandler.EditService(ResolveSvc(selectedServices).First()); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service"))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteService(ResolveSvc(selectedServices).First());selectedServices = new long[]{};ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => {ConnHandler.EditService(ResolveSvc(selectedServices).First()); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteService(ResolveSvc(selectedServices).First()); selectedServices = new long[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                 }
                 <br><br>
             }
@@ -151,7 +151,7 @@
                     <select class="form-control form-control-sm" @bind="selectedServiceGroups" multiple>
                         @foreach (var grp in ConnHandler.AvailableServiceGroups)
                         {
-                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvcGrp(selectedServiceGroups)))" value="@grp.Id">@ModellingDisplay.DisplayServiceGroup(grp)</option>
+                            <option class="draggable" draggable="true" @ondragstart="() => HandleDragStart(ResolveSvcGrp(selectedServiceGroups))" value="@grp.Id">@ModellingDisplay.DisplayServiceGroup(grp)</option>
                         }
                     </select>
                 </div>
@@ -162,11 +162,11 @@
                     }
                 </div>
             </div>
-            <button type="button" class="btn btn-sm btn-success"@onclick="async () => WrapAsync(ConnHandler.CreateServiceGroup)">@(userConfig.GetText("add_service_group"))</button>
-            @if(selectedServiceGroups.Length == 1)
+            <button type="button" class="btn btn-sm btn-success"@onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_service_group"))</button>
+            @if(selectedServiceGroups.Length == 1 && ResolveSvcGrp(selectedServiceGroups).First().AppId == Application.Id)
             {
-                <button type="button" class="btn btn-sm btn-warning"@onclick="async () => { await ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedServiceGroups).First()); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service_group"))</button>
-                <button type="button" class="btn btn-sm btn-danger"@onclick="() => {ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedServiceGroups).First());selectedServiceGroups = new long[]{};ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                <button type="button" class="btn btn-sm btn-warning"@onclick="() => {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedServiceGroups).First()); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service_group"))</button>
+                <button type="button" class="btn btn-sm btn-danger"@onclick="() => {ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedServiceGroups).First()); selectedServiceGroups = new long[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
             }
         }
     </div>

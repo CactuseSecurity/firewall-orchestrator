@@ -88,6 +88,7 @@ namespace FWO.Ui.Services
                 AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
                 AvailableServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id });
+                AvailableServiceGroups.AddRange((await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups)).Where(x => x.AppId != Application.Id));
                 AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id });
                 AvailableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
             }
@@ -132,22 +133,29 @@ namespace FWO.Ui.Services
             svcReadOnly = false;
         }
         
-        public async Task CreateAppServer()
+        public void CreateAppServer()
         {
             AddAppServerMode = true;
-            await HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConfig.kManual });
+            HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConfig.kManual });
         }
 
-        public async Task EditAppServer(ModellingAppServer appServer)
+        public void EditAppServer(ModellingAppServer appServer)
         {
             AddAppServerMode = false;
-            await HandleAppServer(appServer);
+            HandleAppServer(appServer);
         }
 
-        public async Task HandleAppServer(ModellingAppServer appServer)
+        public void HandleAppServer(ModellingAppServer appServer)
         {
-            AppServerHandler = new ModellingAppServerHandler(apiConnection, userConfig, Application, appServer, AvailableAppServers, AddAppServerMode, DisplayMessageInUi);
-            EditAppServerMode = true;
+            try
+            {
+                AppServerHandler = new ModellingAppServerHandler(apiConnection, userConfig, Application, appServer, AvailableAppServers, AddAppServerMode, DisplayMessageInUi);
+                EditAppServerMode = true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
+            }
         }
 
         public void RequestDeleteAppServer(ModellingAppServer appServer)
@@ -199,22 +207,29 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task CreateAppRole()
+        public void CreateAppRole()
         {
             AddAppRoleMode = true;
-            await HandleAppRole(new ModellingAppRole(){});
+            HandleAppRole(new ModellingAppRole(){});
         }
 
-        public async Task EditAppRole(ModellingAppRole appRole)
+        public void EditAppRole(ModellingAppRole appRole)
         {
             AddAppRoleMode = false;
-            await HandleAppRole(appRole);
+            HandleAppRole(appRole);
         }
 
-        public async Task HandleAppRole(ModellingAppRole appRole)
+        public void HandleAppRole(ModellingAppRole appRole)
         {
-            AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles, appRole, AvailableAppServers, AddAppRoleMode, DisplayMessageInUi);
-            EditAppRoleMode = true;
+            try
+            {
+                AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles, appRole, AvailableAppServers, AddAppRoleMode, DisplayMessageInUi);
+                EditAppRoleMode = true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
+            }
         }
 
         public void RequestDeleteAppRole(ModellingAppRole appRole)
@@ -270,22 +285,29 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task CreateServiceGroup()
+        public void CreateServiceGroup()
         {
             AddSvcGrpMode = true;
-            await HandleServiceGroup(new ModellingServiceGroup(){});
+            HandleServiceGroup(new ModellingServiceGroup(){});
         }
 
-        public async Task EditServiceGroup(ModellingServiceGroup serviceGroup)
+        public void EditServiceGroup(ModellingServiceGroup serviceGroup)
         {
             AddSvcGrpMode = false;
-            await HandleServiceGroup(serviceGroup);
+            HandleServiceGroup(serviceGroup);
         }
 
-        public async Task HandleServiceGroup(ModellingServiceGroup serviceGroup)
+        public void HandleServiceGroup(ModellingServiceGroup serviceGroup)
         {
-            SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, Application, AvailableServiceGroups, serviceGroup, AvailableServices, AddSvcGrpMode, DisplayMessageInUi);
-            EditSvcGrpMode = true;
+            try
+            {
+                SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, Application, AvailableServiceGroups, serviceGroup, AvailableServices, AddSvcGrpMode, DisplayMessageInUi);
+                EditSvcGrpMode = true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_service_group"), "", true);
+            }
         }
 
         public void RequestDeleteServiceGrp(ModellingServiceGroup serviceGroup)
@@ -323,22 +345,29 @@ namespace FWO.Ui.Services
         }
 
 
-        public async Task CreateService()
+        public void CreateService()
         {
             AddServiceMode = true;
-            await HandleService(new ModellingService(){});
+            HandleService(new ModellingService(){});
         }
 
-        public async Task EditService(ModellingService service)
+        public void EditService(ModellingService service)
         {
             AddServiceMode = false;
-            await HandleService(service);
+            HandleService(service);
         }
 
-        public async Task HandleService(ModellingService service)
+        public void HandleService(ModellingService service)
         {
-            ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi);
-            EditServiceMode = true;
+            try
+            {
+                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi);
+                EditServiceMode = true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_service"), "", true);
+            }
         }
 
         public void RequestDeleteService(ModellingService service)
@@ -426,74 +455,85 @@ namespace FWO.Ui.Services
 
         public async Task Save()
         {
-            if(checkConn())
+            try
             {
-                if(!srcReadOnly)
+                if (ActConn.Sanitize())
                 {
-                    foreach(var appServer in SrcAppServerToDelete)
-                    {
-                        ActConn.SourceAppServers.Remove(ActConn.SourceAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id));
-                    }
-                    foreach(var appServer in SrcAppServerToAdd)
-                    {
-                        ActConn.SourceAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
-                    }
-                    foreach(var appRole in SrcAppRolesToDelete)
-                    {
-                        ActConn.SourceAppRoles.Remove(ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id));
-                    }
-                    foreach(var appRole in SrcAppRolesToAdd)
-                    {
-                        ActConn.SourceAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
-                    }
+                    DisplayMessageInUi(null, userConfig.GetText("save_connection"), userConfig.GetText("U0001"), true);
                 }
-                if(!dstReadOnly)
+                if(checkConn())
                 {
-                    foreach(var appServer in DstAppServerToDelete)
+                    if(!srcReadOnly)
                     {
-                        ActConn.DestinationAppServers.Remove(ActConn.DestinationAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id));
+                        foreach(var appServer in SrcAppServerToDelete)
+                        {
+                            ActConn.SourceAppServers.Remove(ActConn.SourceAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new Exception("Did not find app server."));
+                        }
+                        foreach(var appServer in SrcAppServerToAdd)
+                        {
+                            ActConn.SourceAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
+                        }
+                        foreach(var appRole in SrcAppRolesToDelete)
+                        {
+                            ActConn.SourceAppRoles.Remove(ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id) ?? throw new Exception("Did not find app role."));
+                        }
+                        foreach(var appRole in SrcAppRolesToAdd)
+                        {
+                            ActConn.SourceAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
+                        }
                     }
-                    foreach(var appServer in DstAppServerToAdd)
+                    if(!dstReadOnly)
                     {
-                        ActConn.DestinationAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
+                        foreach(var appServer in DstAppServerToDelete)
+                        {
+                            ActConn.DestinationAppServers.Remove(ActConn.DestinationAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id)  ?? throw new Exception("Did not find app server."));
+                        }
+                        foreach(var appServer in DstAppServerToAdd)
+                        {
+                            ActConn.DestinationAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
+                        }
+                        foreach(var appRole in DstAppRolesToDelete)
+                        {
+                            ActConn.DestinationAppRoles.Remove(ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id) ?? throw new Exception("Did not find app role."));
+                        }
+                        foreach(var appRole in DstAppRolesToAdd)
+                        {
+                            ActConn.DestinationAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
+                        }
                     }
-                    foreach(var appRole in DstAppRolesToDelete)
+                    if(!svcReadOnly)
                     {
-                        ActConn.DestinationAppRoles.Remove(ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id));
+                        foreach(var svc in SvcToDelete)
+                        {
+                            ActConn.Services.Remove(ActConn.Services.FirstOrDefault(x => x.Content.Id == svc.Id) ?? throw new Exception("Did not find service."));
+                        }
+                        foreach(var svc in SvcToAdd)
+                        {
+                            ActConn.Services.Add(new ModellingServiceWrapper(){ Content = svc });
+                        }
+                        foreach(var svcGrp in SvcGrpToDelete)
+                        {
+                            ActConn.ServiceGroups.Remove(ActConn.ServiceGroups.FirstOrDefault(x => x.Content.Id == svcGrp.Id) ?? throw new Exception("Did not find service group."));
+                        }
+                        foreach(var svcGrp in SvcGrpToAdd)
+                        {
+                            ActConn.ServiceGroups.Add(new ModellingServiceGroupWrapper(){ Content = svcGrp });
+                        }
                     }
-                    foreach(var appRole in DstAppRolesToAdd)
+                    if(AddMode)
                     {
-                        ActConn.DestinationAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
+                        await AddConnectionToDb();
                     }
+                    else
+                    {
+                        await UpdateConnectionInDb();
+                    }
+                    Close();
                 }
-                if(!svcReadOnly)
-                {
-                    foreach(var svc in SvcToDelete)
-                    {
-                        ActConn.Services.Remove(ActConn.Services.FirstOrDefault(x => x.Content.Id == svc.Id));
-                    }
-                    foreach(var svc in SvcToAdd)
-                    {
-                        ActConn.Services.Add(new ModellingServiceWrapper(){ Content = svc });
-                    }
-                    foreach(var svcGrp in SvcGrpToDelete)
-                    {
-                        ActConn.ServiceGroups.Remove(ActConn.ServiceGroups.FirstOrDefault(x => x.Content.Id == svcGrp.Id));
-                    }
-                    foreach(var svcGrp in SvcGrpToAdd)
-                    {
-                        ActConn.ServiceGroups.Add(new ModellingServiceGroupWrapper(){ Content = svcGrp });
-                    }
-                }
-                if(AddMode)
-                {
-                    await AddConnectionToDb();
-                }
-                else
-                {
-                    await UpdateConnectionInDb();
-                }
-                Close();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("save_connection"), "", true);
             }
         }
 
@@ -640,7 +680,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("add_connection"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
             }
         }
 

@@ -16,6 +16,16 @@ namespace FWO.Api.Data
         // -> cidr
         [JsonProperty("network"), JsonPropertyName("network")]
         public string? Network { get; set; }
+
+
+        public bool Sanitize()
+        {
+            bool shortened = false;
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Network = Sanitizer.SanitizeOpt(Network, ref shortened);
+            return shortened;
+        }
+
     }
 
     public class ModellingNetworkArea

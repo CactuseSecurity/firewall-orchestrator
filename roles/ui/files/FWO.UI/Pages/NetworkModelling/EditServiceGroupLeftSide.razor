@@ -14,7 +14,7 @@
             <select class="form-control form-control-sm" @bind="selectedServices" multiple>
                 @foreach (var service in SvcGroupHandler.AvailableServices)
                 {
-                    <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@ModellingDisplay.DisplayService(service)</option>
+                    <option class="draggable" draggable="true" @ondragstart="() => HandleDragStart(ResolveSvc(selectedServices))" value="@service.Id">@ModellingDisplay.DisplayService(service)</option>
                 }
             </select>
         </div>
@@ -22,11 +22,11 @@
             <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {SvcGroupHandler.ServicesToSvcGroup(ResolveSvc(selectedServices)); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("to_services_group"))</button>
         </div>
     </div>
-    <button type="button" class="btn btn-sm btn-success" @onclick="async () => {await SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("add_service"))</button>
+    <button type="button" class="btn btn-sm btn-success" @onclick="() => {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("add_service"))</button>
     @if(selectedServices.Length == 1)
     {
-        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => { await SvcGroupHandler.EditService(ResolveSvc(selectedServices).First()); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("edit_service"))</button>
-        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {SvcGroupHandler.RequestDeleteService(ResolveSvc(selectedServices).First());selectedServices = new long[]{}; SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("delete"))</button>
+        <button type="button" class="btn btn-sm btn-warning" @onclick="() => {SvcGroupHandler.EditService(ResolveSvc(selectedServices).First()); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("edit_service"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {SvcGroupHandler.RequestDeleteService(ResolveSvc(selectedServices).First()); selectedServices = new long[]{}; SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("delete"))</button>
     }
 </div>
 <EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AddMode="SvcGroupHandler.AddServiceMode"/>

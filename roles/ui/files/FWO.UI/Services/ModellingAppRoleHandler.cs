@@ -53,22 +53,29 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task CreateAppServer()
+        public void CreateAppServer()
         {
             AddAppServerMode = true;
-            await HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConfig.kManual });
+            HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConfig.kManual });
         }
 
-        public async Task EditAppServer(ModellingAppServer appServer)
+        public void EditAppServer(ModellingAppServer appServer)
         {
             AddAppServerMode = false;
-            await HandleAppServer(appServer);
+            HandleAppServer(appServer);
         }
 
-        public async Task HandleAppServer(ModellingAppServer appServer)
+        public void HandleAppServer(ModellingAppServer appServer)
         {
-            AppServerHandler = new ModellingAppServerHandler(ApiConnection, userConfig, Application, appServer, AvailableAppServers, AddAppServerMode, DisplayMessageInUi);
-            EditAppServerMode = true;
+            try
+            {
+                AppServerHandler = new ModellingAppServerHandler(ApiConnection, userConfig, Application, appServer, AvailableAppServers, AddAppServerMode, DisplayMessageInUi);
+                EditAppServerMode = true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
+            }
         }
 
         public void RequestDeleteAppServer(ModellingAppServer appServer)
@@ -92,26 +99,50 @@ namespace FWO.Ui.Services
 
         public async Task Save()
         {
-            foreach(var appServer in AppServerToDelete)
+            try
             {
-                ActAppRole.AppServers.Remove(ActAppRole.AppServers.FirstOrDefault(x => x.Content.Id == appServer.Id));
+                if (ActAppRole.Sanitize())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("save_app_role"), userConfig.GetText("U0001"), true);
+                }
+                if(checkAppRole())
+                {
+                    foreach(var appServer in AppServerToDelete)
+                    {
+                        ActAppRole.AppServers.Remove(ActAppRole.AppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new Exception("Did not find app server."));
+                    }
+                    foreach(var appServer in AppServerToAdd)
+                    {
+                        ActAppRole.AppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
+                    }
+                    if(AddMode)
+                    {
+                        await AddAppRoleToDb();
+                    }
+                    else
+                    {
+                        await UpdateAppRoleInDb();
+                    }
+                    Close();
+                }
             }
-            foreach(var appServer in AppServerToAdd)
+            catch (Exception exception)
             {
-                ActAppRole.AppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
+                DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
             }
-            if(AddMode)
-            {
-                await AddAppRoleToDb();
-            }
-            else
-            {
-                await UpdateAppRoleInDb();
-            }
-            Close();
         }
 
-        public async Task AddAppRoleToDb()
+        private bool checkAppRole()
+        {
+            if(ActAppRole.Name == "")
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("Exxxx"), true);
+                return false;
+            }
+            return true;
+        }
+
+        private async Task AddAppRoleToDb()
         {
             try
             {
@@ -143,7 +174,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateAppRoleInDb()
+        private async Task UpdateAppRoleInDb()
         {
             try
             {

@@ -61,9 +61,16 @@ namespace FWO.Api.Data
         public List<ModellingAppServerWrapper> AppServers { get; set; } = new();
 
         public ModellingNetworkArea Area { get; set; }
+        public const int FixedPartLength = 4;
 
-        public static int FixedPartLength = 4;
 
+        public bool Sanitize()
+        {
+            bool shortened = false;
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
+            return shortened;
+        }
     }
     
     public class ModellingAppRoleWrapper

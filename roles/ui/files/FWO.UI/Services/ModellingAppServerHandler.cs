@@ -32,14 +32,38 @@ namespace FWO.Ui.Services
         
         public async Task Save()
         {
-            if(AddMode)
+            try
             {
-                await AddAppServerToDb();
+                if (ActAppServer.Sanitize())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
+                }
+                if(checkAppServer())
+                {
+                    if(AddMode)
+                    {
+                        await AddAppServerToDb();
+                    }
+                    else
+                    {
+                        await UpdateAppServerInDb();
+                    }
+                }
             }
-            else
+            catch (Exception exception)
             {
-                await UpdateAppServerInDb();
+                DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
             }
+        }
+
+        private bool checkAppServer()
+        {
+            if(ActAppServer.Name == "")
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("Exxxx"), true);
+                return false;
+            }
+            return true;
         }
 
         private async Task AddAppServerToDb()

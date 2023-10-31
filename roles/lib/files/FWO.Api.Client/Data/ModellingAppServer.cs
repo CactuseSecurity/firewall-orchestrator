@@ -25,7 +25,17 @@ namespace FWO.Api.Data
         public bool IsDeleted { get; set; }
 
         public string ExtAppId { get; set; } = "";
-        
+
+
+        public bool Sanitize()
+        {
+            bool shortened = false;
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Ip = Sanitizer.SanitizeCidrMand(Ip, ref shortened);
+            ImportSource = Sanitizer.SanitizeMand(ImportSource, ref shortened);
+            return shortened;
+        }
+
         public static NetworkObject ToNetworkObject(ModellingAppServer appServer)
         {
             return new NetworkObject()

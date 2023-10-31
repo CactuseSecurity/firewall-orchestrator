@@ -113,7 +113,7 @@ namespace FWO.Api.Client.Queries
                 deleteService = File.ReadAllText(QueryPath + "modelling/deleteService.graphql");
 
                 getServiceGroupsForApp = serviceDetailsFragment + serviceGroupDetailsFragment + File.ReadAllText(QueryPath + "modelling/getServiceGroupsForApp.graphql");
-                // getGlobalServiceGroups = serviceDetailsFragment + serviceGroupDetailsFragment + File.ReadAllText(QueryPath + "modelling/getGlobalServiceGroups.graphql");
+                getGlobalServiceGroups = serviceDetailsFragment + serviceGroupDetailsFragment + File.ReadAllText(QueryPath + "modelling/getGlobalServiceGroups.graphql");
                 newServiceGroup = File.ReadAllText(QueryPath + "modelling/newServiceGroup.graphql");
                 updateServiceGroup = File.ReadAllText(QueryPath + "modelling/updateServiceGroup.graphql");
                 deleteServiceGroup = File.ReadAllText(QueryPath + "modelling/deleteServiceGroup.graphql");

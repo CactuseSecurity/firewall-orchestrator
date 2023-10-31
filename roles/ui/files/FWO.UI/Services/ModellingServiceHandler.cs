@@ -31,14 +31,38 @@ namespace FWO.Ui.Services
         
         public async Task Save()
         {
-            if(AddMode)
+            try
             {
-                await AddServiceToDb();
+                if (ActService.Sanitize())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("save_service"), userConfig.GetText("U0001"), true);
+                }
+                if(checkService())
+                {
+                    if(AddMode)
+                    {
+                        await AddServiceToDb();
+                    }
+                    else
+                    {
+                        await UpdateServiceInDb();
+                    }
+                }
             }
-            else
+            catch (Exception exception)
             {
-                await UpdateServiceInDb();
+                DisplayMessageInUi(exception, userConfig.GetText("edit_service"), "", true);
             }
+        }
+
+        private bool checkService()
+        {
+            if(ActService.Name == "")
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("Exxxx"), true);
+                return false;
+            }
+            return true;
         }
 
         private async Task AddServiceToDb()

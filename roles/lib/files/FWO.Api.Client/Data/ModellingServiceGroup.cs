@@ -8,6 +8,9 @@ namespace FWO.Api.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
 
+        [JsonProperty("app_id"), JsonPropertyName("app_id")]
+        public int? AppId { get; set; }
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
@@ -19,6 +22,15 @@ namespace FWO.Api.Data
 
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<ModellingServiceWrapper> Services { get; set; } = new();
+
+
+        public bool Sanitize()
+        {
+            bool shortened = false;
+            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
+            Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
+            return shortened;
+        }
     }
 
     public class ModellingServiceGroupWrapper

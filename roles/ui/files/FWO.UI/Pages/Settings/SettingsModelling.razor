@@ -27,6 +27,12 @@
             <input type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
         </div>
     </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("overviewDisplayLines")):</label>
+        <div class="col-sm-2">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.OverviewDisplayLines" />
+        </div>
+    </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>

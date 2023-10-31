@@ -12,7 +12,7 @@ namespace FWO.Api.Data
         public int? AppId { get; set; }
 
         [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
+        public string? Name { get; set; } = "";
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int? Port { get; set; }
@@ -24,19 +24,26 @@ namespace FWO.Api.Data
         public int? ProtoId { get; set; }
 
         [JsonProperty("protocol"), JsonPropertyName("protocol")]
-        public NetworkProtocol Protocol { get; set; } = new NetworkProtocol(){};
+        public NetworkProtocol? Protocol { get; set; } = new();
 
+
+        public bool Sanitize()
+        {
+            bool shortened = false;
+            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
+            return shortened;
+        }
 
         public static NetworkService ToNetworkService(ModellingService service)
         {
             return new NetworkService()
             {
                 Id = service.Id,
-                Name = service.Name,
-                DestinationPort = service.Port,
-                DestinationPortEnd = service.PortEnd,
-                ProtoId = service.ProtoId,
-                Protocol = service.Protocol
+                Name = service?.Name ?? "",
+                DestinationPort = service?.Port,
+                DestinationPortEnd = service?.PortEnd,
+                ProtoId = service?.ProtoId,
+                Protocol = service?.Protocol ?? new NetworkProtocol()
             };
         }
     }

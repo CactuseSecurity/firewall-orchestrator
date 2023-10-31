@@ -46,5 +46,14 @@ namespace FWO.Api.Data
 
         [JsonProperty("destination_app_roles"), JsonPropertyName("destination_app_roles")]
         public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = new();
+
+        
+        public bool Sanitize()
+        {
+            bool shortened = false;
+            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
+            Reason = Sanitizer.SanitizeCommentOpt(Reason, ref shortened);
+            return shortened;
+        }
     }
 }

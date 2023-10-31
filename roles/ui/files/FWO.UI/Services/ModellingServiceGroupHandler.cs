@@ -53,22 +53,29 @@ namespace FWO.Ui.Services
             }
         }
         
-        public async Task CreateService()
+        public void CreateService()
         {
             AddServiceMode = true;
-            await HandleService(new ModellingService(){});
+            HandleService(new ModellingService(){});
         }
 
-        public async Task EditService(ModellingService service)
+        public void EditService(ModellingService service)
         {
             AddServiceMode = false;
-            await HandleService(service);
+            HandleService(service);
         }
 
-        public async Task HandleService(ModellingService service)
+        public void HandleService(ModellingService service)
         {
-            ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi);
-            EditServiceMode = true;
+            try
+            {
+                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi);
+                EditServiceMode = true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_service"), "", true);
+            }
         }
 
         public void RequestDeleteService(ModellingService service)
@@ -96,26 +103,50 @@ namespace FWO.Ui.Services
 
         public async Task Save()
         {
-            foreach(var svc in SvcToDelete)
+            try
             {
-                ActServiceGroup.Services.Remove(ActServiceGroup.Services.FirstOrDefault(x => x.Content.Id == svc.Id));
+                if (ActServiceGroup.Sanitize())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("save_service_group"), userConfig.GetText("U0001"), true);
+                }
+                if(checkServiceGroup())
+                {
+                    foreach(var svc in SvcToDelete)
+                    {
+                        ActServiceGroup.Services.Remove(ActServiceGroup.Services.FirstOrDefault(x => x.Content.Id == svc.Id) ?? throw new Exception("Did not find app service."));
+                    }
+                    foreach(var svc in SvcToAdd)
+                    {
+                        ActServiceGroup.Services.Add(new ModellingServiceWrapper(){ Content = svc });
+                    }
+                    if(AddMode)
+                    {
+                        await AddServiceGroupToDb();
+                    }
+                    else
+                    {
+                        await UpdateServiceGroupInDb();
+                    }
+                    Close();
+                }
             }
-            foreach(var svc in SvcToAdd)
+            catch (Exception exception)
             {
-                ActServiceGroup.Services.Add(new ModellingServiceWrapper(){ Content = svc });
+                DisplayMessageInUi(exception, userConfig.GetText("edit_service_group"), "", true);
             }
-            if(AddMode)
-            {
-                await AddServiceGroupToDb();
-            }
-            else
-            {
-                await UpdateServiceGroupInDb();
-            }
-            Close();
         }
 
-        public async Task AddServiceGroupToDb()
+        private bool checkServiceGroup()
+        {
+            if(ActServiceGroup.Name == "")
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_service_group"), userConfig.GetText("Exxxx"), true);
+                return false;
+            }
+            return true;
+        }
+
+        private async Task AddServiceGroupToDb()
         {
             try
             {
@@ -148,7 +179,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateServiceGroupInDb()
+        private async Task UpdateServiceGroupInDb()
         {
             try
             {

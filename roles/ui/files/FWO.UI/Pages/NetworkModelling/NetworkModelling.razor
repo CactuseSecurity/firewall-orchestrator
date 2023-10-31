@@ -58,7 +58,7 @@
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <ExpandableList Elements="GetSrcNames(context)" Context="src" ShowTextIfEmpty="false" AlwaysShowElements="3">
+                        <ExpandableList Elements="GetSrcNames(context)" Context="src" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
                                 @src
                             </ElementTemplate>
@@ -67,7 +67,7 @@
                 </Column>
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("service"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <ExpandableList Elements="GetSvcNames(context)" Context="svc" ShowTextIfEmpty="false" AlwaysShowElements="3">
+                        <ExpandableList Elements="GetSvcNames(context)" Context="svc" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
                                 @svc
                             </ElementTemplate>
@@ -76,7 +76,7 @@
                 </Column>
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("destination"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <ExpandableList Elements="GetDstNames(context)" Context="dest" ShowTextIfEmpty="false" AlwaysShowElements="3">
+                        <ExpandableList Elements="GetDstNames(context)" Context="dest" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
                                 @dest
                             </ElementTemplate>

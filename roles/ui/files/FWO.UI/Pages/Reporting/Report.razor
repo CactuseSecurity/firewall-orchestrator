@@ -307,7 +307,7 @@
             {
                 displayedTimeSelection = userConfig.GetText("now");
                 unusedDays = userConfig.UnusedTolerance;
-                deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
                 if (tenantFilteringAllowed)
                 {
@@ -353,24 +353,44 @@
 
         // adjust device filter to newly selected tenant view
         selectedTenantView = newTenantView;
-        StateHasChanged(); // redisplay LSB
         if (selectedTenantView==null || selectedTenantView.Id == 1)   // tenant0 or no tenant selected
         {
-            deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+            List<ManagementSelect> visibleDevices = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+
+            foreach (ManagementSelect management in deviceFilter.Managements)
+            {
+                management.Visible = true;
+                foreach (DeviceSelect dev in management.Devices)
+                {
+                    dev.Visible = true;
+                }
+            }
         }
         else
         {
-            // reset  available devices according to tenant device filter
-            Tenant tenant = await Tenant.getTenantById(Connection, newTenantView.Id);
-            List<int> visibleDevicesForTenant = new List<int>();
-            foreach (TenantDevice tenantDevice in tenant.TenantDevices)
+            List<TenantDevice> tenantDeviceList = new List<TenantDevice>(selectedTenantView.TenantDevices);
+
+            foreach (ManagementSelect mgm in deviceFilter.Managements)
             {
-                visibleDevicesForTenant.Add(tenantDevice.VisibleDevice.Id);
+                bool mgmVisible = false;
+                foreach (DeviceSelect dev in mgm.Devices)
+                {
+                    dev.Visible = tenantDeviceList.Exists(d => d.VisibleDevice.Id == dev.Id);
+                    if (dev.Visible)
+                    {   // one device is visible, so the management must be visible
+                        mgmVisible = true;
+                    }
+                    else
+                    {   // make sure invisible devices are not selected
+                        dev.Selected = false;
+                    }
+                }
+                mgm.Visible = mgmVisible;
+                if (!mgm.Visible)
+                {   // make sure invisible managements are not selected
+                    mgm.Selected = false;
+                }
             }
-            deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(
-                DeviceQueries.getDevicesByManagements,
-                new { devIds = visibleDevicesForTenant.ToArray() }
-            );
         }
         selectAll = !deviceFilter.isAnyDeviceFilterSet();
         StateHasChanged(); // redisplay LSB

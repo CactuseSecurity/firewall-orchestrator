@@ -18,6 +18,8 @@ namespace FWO.Api.Data
 
         public ElementReference? UiReference { get; set; }
 
+        public bool Visible { get; set; } = true;
+
         public bool Selected { get; set; } = false;
     }
 
@@ -28,6 +30,8 @@ namespace FWO.Api.Data
 
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
+
+        public bool Visible { get; set; } = true;
 
         public bool Selected { get; set; } = false;
     }
@@ -81,7 +85,15 @@ namespace FWO.Api.Data
                 management.Selected = selectAll;
                 foreach (DeviceSelect device in management.Devices)
                 {
-                    device.Selected = selectAll;
+                    if (selectAll)
+                    {
+                        device.Selected = device.Visible;
+                    }
+                    else
+                    {
+                        device.Selected = false;
+                    }
+                    // device.Selected = selectAll;
                 }
             }
         }
@@ -153,6 +165,7 @@ namespace FWO.Api.Data
                         DeviceSelect? incomingDev = incomingMgt.Devices.Find(x => x.Id == device.Id);
                         if (incomingDev != null)
                         {
+                            // the next line could be the problem as it changes an object:
                             device.Selected = incomingDev.Selected;
                         }
                     }

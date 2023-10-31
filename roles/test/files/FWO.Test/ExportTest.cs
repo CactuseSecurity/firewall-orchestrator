@@ -602,7 +602,7 @@ namespace FWO.Test
             string expectedJsonResult = 
             "[{\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
             "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
-            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null,\"unfiltered_tenant_id\": -1," +
+            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null,\"unfiltered_tenant_id\":-1," +
             "\"devices\": [{\"id\": 0,\"name\": \"TestDev\",\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
             "\"management\": {\"id\": 0,\"name\": \"\",\"hostname\": \"\"," +
             "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +

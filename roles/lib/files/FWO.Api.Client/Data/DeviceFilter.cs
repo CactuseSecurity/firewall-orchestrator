@@ -64,7 +64,7 @@ namespace FWO.Api.Data
         {
             foreach (ManagementSelect management in Managements)
                 foreach (DeviceSelect device in management.Devices)
-                    if (!device.Selected)
+                    if (!device.Selected && device.Visible)
                         return false;
             return true;
         }
@@ -82,18 +82,12 @@ namespace FWO.Api.Data
         {
             foreach (ManagementSelect management in Managements)
             {
-                management.Selected = selectAll;
+                // only select visible managements
+                management.Selected = selectAll && management.Visible;
                 foreach (DeviceSelect device in management.Devices)
                 {
-                    if (selectAll)
-                    {
-                        device.Selected = device.Visible;
-                    }
-                    else
-                    {
-                        device.Selected = false;
-                    }
-                    // device.Selected = selectAll;
+                    // only select visible devices
+                    device.Selected = selectAll && device.Visible;
                 }
             }
         }
@@ -166,7 +160,10 @@ namespace FWO.Api.Data
                         if (incomingDev != null)
                         {
                             // the next line could be the problem as it changes an object:
-                            device.Selected = incomingDev.Selected;
+                            if (device.Visible)
+                            {
+                                device.Selected = incomingDev.Selected;
+                            }
                         }
                     }
                 }
@@ -179,7 +176,9 @@ namespace FWO.Api.Data
             foreach (ManagementSelect management in Managements)
             {
                 int selectedDevicesCount = management.Devices.Where(d => d.Selected).Count();
-                management.Selected = management.Devices.Count > 0 && selectedDevicesCount == management.Devices.Count;
+                int visibleDevicesCount = management.Devices.Where(d => d.Visible).Count();
+                // Management is selected if all visible devices are selected
+                management.Selected = management.Devices.Count > 0 && selectedDevicesCount == visibleDevicesCount;
             }
         }
 
@@ -188,10 +187,16 @@ namespace FWO.Api.Data
             int counter = 0;
             foreach (ManagementSelect management in Managements)
             {
-                counter ++;
-                foreach (DeviceSelect device in management.Devices)
+                if (management.Visible)
                 {
-                    counter ++;
+                    counter++;
+                    foreach (DeviceSelect device in management.Devices)
+                    {
+                        if (device.Visible)
+                        {
+                            counter++;
+                        }
+                    }
                 }
             }
             return counter;

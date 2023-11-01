@@ -315,15 +315,13 @@
                     tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
                 }
 
-                await InvokeAsync(StateHasChanged);
                 if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
                 {
                     collapseDevices = true;
-                    await InvokeAsync(StateHasChanged);
                 }
 
-                await InvokeAsync(StateHasChanged);
                 recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+                await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
             {

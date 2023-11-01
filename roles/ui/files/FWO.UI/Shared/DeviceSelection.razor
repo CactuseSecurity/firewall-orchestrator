@@ -124,14 +124,13 @@
     {
         foreach (ManagementSelect management in DeviceFilter.Managements)
         {
-            // if (management != null && management.Visible && management.UiReference != null && management.UiReference.HasValue)
-            if (false)
+            if (management != null && management.Visible && management.UiReference != null && management.UiReference.HasValue)
             {
                 try
                 {
                     await SetElementProperty(management.UiReference.Value, "indeterminate",
-                        management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => d.Selected)
-                        /* any but not all devices selected */ );
+                        management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => !d.Visible || d.Selected)
+                        /* some but not all visible devices are selected */ );
                 }
                 catch (Exception exception)
                 {
@@ -140,7 +139,7 @@
             }
         }
     }
-
+    
     public async Task SetElementProperty(ElementReference element, string property, object value)
     {
         await jsRuntime.InvokeVoidAsync("setProperty", element, property, value);

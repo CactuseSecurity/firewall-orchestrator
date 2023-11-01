@@ -178,7 +178,7 @@
             ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
             await CollectOwnerships();
 
-            deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+            deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             await InvokeAsync(StateHasChanged);
             if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
             {

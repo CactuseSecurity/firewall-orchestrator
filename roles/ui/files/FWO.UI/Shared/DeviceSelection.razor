@@ -9,16 +9,14 @@
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
         <div class="@cssClass">
-            <button type="button" class="btn btn-sm btn-dark"
-                    @onclick="@((async () => {
+            <button type="button" class="btn btn-sm btn-dark" @onclick="@((async () => {
                         DeviceFilter.applyFullDeviceSelection(SelectAll);
                         SelectAll = !SelectAll;
                         await SelectAllChanged.InvokeAsync(SelectAll);
                     }))">
                 @(SelectAll ? selectAllText : clearAllText)
             </button>
-            <button type="button" class="btn btn-sm btn-secondary"
-                    @onclick="@((async () => {
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="@((async () => {
                         CollapseAll = !CollapseAll;
                         if(CollapseAll)
                             collapseDevices.CollapseAll();
@@ -34,11 +32,11 @@
         <CascadingValue Value="collapseDevices">
             @foreach (ManagementSelect management in DeviceFilter.Managements)
             {
+                if (management.Visible)
+                {
                 <div class="form-check mb-1">
-                    <input class="form-check-input" type="checkbox" id="@management.Id"
-                            @bind="management.Selected"
-                            @ref="management.UiReference"
-                            @oninput="async () => {
+                    <input class="form-check-input" type="checkbox" id="@management.Id" @bind="management.Selected"
+                        @ref="management.UiReference" @oninput="async () => {
                                 management.Selected = !management.Selected;
                                 foreach (DeviceSelect device in management.Devices)
                                     device.Selected = management.Selected;
@@ -47,21 +45,24 @@
                     <Collapse Title="@(management.Name)" StartToggled="@(CollapseAll)" Style="@("primary")">
                         @foreach (DeviceSelect device in management.Devices)
                         {
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="@device.Id"
-                                        @bind="device.Selected"
+                            if (device.Visible)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="@device.Id" @bind="device.Selected"
                                         @oninput="@(async () => {
-                                            device.Selected = !device.Selected;
-                                            DeviceFilter.SynchronizeMgmtFilter();
-                                            await SetSelectAll();
-                                        })" />
-                                <label class="form-check-label" for="@device.Id">
-                                    @device.Name
-                                </label>
-                            </div>
+                                                device.Selected = !device.Selected;
+                                                DeviceFilter.SynchronizeMgmtFilter();
+                                                await SetSelectAll();
+                                            })" />
+                                    <label class="form-check-label" for="@device.Id">
+                                        @device.Name
+                                    </label>
+                                </div>
+                            }
                         }
                     </Collapse>
                 </div>
+                }
             }
         </CascadingValue>
     </div>
@@ -69,6 +70,9 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
     [Parameter]
     public string FilterInput { get; set; } = "";
 
@@ -110,7 +114,7 @@
         collapseAllText = userConfig.GetText("collapse_all");
         expandAllText = userConfig.GetText("expand_all");
         DeviceFilter.Managements?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
-        if(Environment == "Cert")
+        if (Environment == "Cert")
         {
             cssClass += "-35";
         }
@@ -120,15 +124,22 @@
     {
         foreach (ManagementSelect management in DeviceFilter.Managements)
         {
-            if (management.UiReference != null)
+            if (management != null && management.Visible && management.UiReference != null && management.UiReference.HasValue)
             {
-                await SetElementProperty(management.UiReference!.Value, "indeterminate",
-                management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => d.Selected)
-                /* any but not all devices selected */ );
+                try
+                {
+                    await SetElementProperty(management.UiReference.Value, "indeterminate",
+                        management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => !d.Visible || d.Selected)
+                        /* some but not all visible devices are selected */ );
+                }
+                catch (Exception exception)
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("device_select_error"), "", true);
+                }
             }
         }
     }
-
+    
     public async Task SetElementProperty(ElementReference element, string property, object value)
     {
         await jsRuntime.InvokeVoidAsync("setProperty", element, property, value);

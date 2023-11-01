@@ -141,6 +141,12 @@ bugfix release:
 # 7.2.6 - 06.10.2023 DEVELOP
 - importer Checkpoint: adding network object type support for 'CpmiVsClusterNetobj' (for VSX virtual switches)
 
-# 7.3 - 22.10.2023 DEVOP
+# 7.3 - 22.10.2023 DEVELOP
 - cleanup unused database views and functions
 - first working tenant ip-based filtering
+
+# 7.3.1 - 26.10.23 DEVELOP
+- introducing unfiltered_managements and devices for tenant filtering
+- fixing missing api perms fw-admin (management)
+- rename management & device tenat_id fields to unfiltered_tenant_id
+- fixing UI device selector crashes

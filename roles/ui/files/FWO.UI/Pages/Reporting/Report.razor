@@ -299,35 +299,32 @@
     private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
         || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("auditor");
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Task.Run(async () =>
+        try
         {
-            try
+            displayedTimeSelection = userConfig.GetText("now");
+            unusedDays = userConfig.UnusedTolerance;
+            deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+            ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            if (tenantFilteringAllowed)
             {
-                displayedTimeSelection = userConfig.GetText("now");
-                unusedDays = userConfig.UnusedTolerance;
-                deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-                ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-                if (tenantFilteringAllowed)
-                {
-                    tenantList = await Connection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
-                    tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
-                }
-
-                if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
-                {
-                    collapseDevices = true;
-                }
-
-                recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
-                await InvokeAsync(StateHasChanged);
+                tenantList = await Connection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+                tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
             }
-            catch (Exception exception)
+
+            if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+                collapseDevices = true;
             }
-        });
+
+            recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
     }
 
     private void ReportTypeChanged(ReportType newReportType)

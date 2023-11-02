@@ -164,7 +164,7 @@ namespace FWO.Middleware.Server
             var Variables = new 
             { 
                 name = incomingApp.Name,
-                // dn = incomingApp.Dn,  // todo
+                dn = incomingApp.Modellers.Count > 0 ? incomingApp.Modellers.First() : "",  // todo
                 groupDn = userGroupDn,
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
@@ -196,7 +196,7 @@ namespace FWO.Middleware.Server
             {
                 id = existingApp.Id,
                 name = incomingApp.Name,
-                // dn = incomingApp.Dn,  // todo
+                dn = incomingApp.Modellers.Count > 0 ? incomingApp.Modellers.First() : "",  // todo
                 groupDn = userGroupDn,
                 criticality = incomingApp.Criticality
             };

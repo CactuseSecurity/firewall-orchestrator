@@ -34,6 +34,7 @@ create table if not exists modelling.app_server
 	app_id int,
 	name Varchar,
 	ip cidr,
+	subnet Varchar,
 	import_source Varchar default 'manual', 
 	is_deleted boolean default false
 );

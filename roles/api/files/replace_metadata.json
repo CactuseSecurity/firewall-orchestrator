@@ -888,9 +888,12 @@
                     "check": {},
                     "columns": [
                       "comment",
+                      "creator",
+                      "id_string",
                       "name",
                       "app_id",
-                      "id"
+                      "id",
+                      "creation_date"
                     ]
                   },
                   "comment": ""
@@ -902,9 +905,12 @@
                   "permission": {
                     "columns": [
                       "comment",
+                      "creator",
+                      "id_string",
                       "name",
                       "app_id",
-                      "id"
+                      "id",
+                      "creation_date"
                     ],
                     "filter": {}
                   },
@@ -915,9 +921,12 @@
                   "permission": {
                     "columns": [
                       "comment",
+                      "creator",
+                      "id_string",
                       "name",
                       "app_id",
-                      "id"
+                      "id",
+                      "creation_date"
                     ],
                     "filter": {}
                   },
@@ -930,9 +939,12 @@
                   "permission": {
                     "columns": [
                       "comment",
+                      "creator",
+                      "id_string",
                       "name",
                       "app_id",
-                      "id"
+                      "id",
+                      "creation_date"
                     ],
                     "filter": {},
                     "check": {}
@@ -9120,11 +9132,13 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "active",
                       "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "import_source",
                       "name",
                       "recert_check_params",
                       "id",
@@ -9141,17 +9155,19 @@
                   "role": "approver",
                   "permission": {
                     "columns": [
+                      "active",
+                      "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
-                      "last_recert_check",
+                      "import_source",
                       "name",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -9160,11 +9176,13 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "active",
                       "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "import_source",
                       "name",
                       "recert_check_params",
                       "id",
@@ -9179,17 +9197,19 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "active",
+                      "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
-                      "last_recert_check",
+                      "import_source",
                       "name",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -9198,17 +9218,19 @@
                   "role": "implementer",
                   "permission": {
                     "columns": [
+                      "active",
+                      "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
-                      "last_recert_check",
+                      "import_source",
                       "name",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -9217,11 +9239,13 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "active",
                       "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "import_source",
                       "name",
                       "recert_check_params",
                       "id",
@@ -9236,11 +9260,13 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "active",
                       "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "import_source",
                       "name",
                       "recert_check_params",
                       "id",
@@ -9269,17 +9295,19 @@
                   "role": "planner",
                   "permission": {
                     "columns": [
+                      "active",
+                      "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
-                      "last_recert_check",
+                      "import_source",
                       "name",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -9288,17 +9316,19 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "active",
+                      "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
-                      "last_recert_check",
+                      "import_source",
                       "name",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {
                       "_or": [
@@ -9321,17 +9351,19 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "active",
+                      "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
-                      "last_recert_check",
+                      "import_source",
                       "name",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {
                       "tenant_id": {
@@ -9345,17 +9377,19 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "active",
+                      "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
-                      "last_recert_check",
+                      "import_source",
                       "name",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -9365,17 +9399,19 @@
                   "role": "requester",
                   "permission": {
                     "columns": [
+                      "active",
+                      "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
-                      "last_recert_check",
+                      "import_source",
                       "name",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -9384,17 +9420,19 @@
                   "role": "reviewer",
                   "permission": {
                     "columns": [
+                      "active",
+                      "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
-                      "last_recert_check",
+                      "import_source",
                       "name",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -9405,11 +9443,13 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "active",
                       "is_default",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "import_source",
                       "name",
                       "recert_check_params",
                       "id",
@@ -14535,6 +14575,18 @@
                       "table": {
                         "name": "service",
                         "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "servicesByProtoId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "proto_id",
+                      "table": {
+                        "name": "service",
+                        "schema": "modelling"
                       }
                     }
                   }

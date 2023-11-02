@@ -101,7 +101,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task Save()
+        public async Task<bool> Save()
         {
             try
             {
@@ -128,19 +128,21 @@ namespace FWO.Ui.Services
                         await UpdateServiceGroupInDb();
                     }
                     Close();
+                    return true;
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("edit_service_group"), "", true);
             }
+            return false;
         }
 
         private bool checkServiceGroup()
         {
-            if(ActServiceGroup.Name == "")
+            if(ActServiceGroup.Name == null || ActServiceGroup.Name == "")
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_service_group"), userConfig.GetText("Exxxx"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_service_group"), userConfig.GetText("E5102"), true);
                 return false;
             }
             return true;

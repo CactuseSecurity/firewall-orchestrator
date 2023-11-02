@@ -20,6 +20,7 @@ mutation updateOwner(
       app_id_external: $appIdExternal
       recert_check_params: $recertCheckParams
       criticality: $criticality
+      active: true
   }) {
     UpdatedId: id
   }

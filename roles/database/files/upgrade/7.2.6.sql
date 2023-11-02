@@ -8,6 +8,9 @@ insert into config (config_key, config_value, config_user) VALUES ('importAppDat
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '', 0) ON CONFLICT DO NOTHING;
 
 alter table owner add column if not exists criticality Varchar;
+alter table owner add column if not exists active boolean default true;
+alter table owner add column if not exists import_source Varchar;
+
 
 create schema if not exists modelling;
 
@@ -39,8 +42,11 @@ create table if not exists modelling.app_role
 (
  	id SERIAL PRIMARY KEY,
 	app_id int,
-	name Varchar, -- prefix format AR... -> settings 
-	comment Varchar -- e.g. for creator
+	id_string Varchar, -- prefix format AR... -> settings 
+	name Varchar,
+	comment Varchar,
+	creator Varchar,
+	creation_date timestamp default now()
 );
 
 create table if not exists modelling.connection

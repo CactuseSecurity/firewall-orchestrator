@@ -29,7 +29,7 @@ namespace FWO.Ui.Services
             DisplayMessageInUi = displayMessageInUi;
         }
         
-        public async Task Save()
+        public async Task<bool> Save()
         {
             try
             {
@@ -47,19 +47,21 @@ namespace FWO.Ui.Services
                     {
                         await UpdateServiceInDb();
                     }
+                    return true;
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("edit_service"), "", true);
             }
+            return false;
         }
 
         private bool checkService()
         {
-            if(ActService.Name == "")
+            if(ActService.Name == null || ActService.Name == "")
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("Exxxx"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5102"), true);
                 return false;
             }
             return true;
@@ -75,7 +77,7 @@ namespace FWO.Ui.Services
                     appId = Application.Id,
                     port = ActService.Port,
                     portEnd = ActService.PortEnd,
-                    protoId = ActService.Protocol.Id
+                    protoId = ActService.Protocol?.Id
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newService, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -101,7 +103,7 @@ namespace FWO.Ui.Services
                     appId = Application.Id,
                     port = ActService.Port,
                     portEnd = ActService.PortEnd,
-                    protoId = ActService.Protocol.Id
+                    protoId = ActService.Protocol?.Id
                 };
                 await ApiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateService, Variables);
             }

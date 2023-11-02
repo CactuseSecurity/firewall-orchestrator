@@ -25,7 +25,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin, modeller">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await AppServerHandler.Save(); Close();}">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await AppServerHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>

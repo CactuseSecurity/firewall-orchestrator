@@ -30,7 +30,7 @@ namespace FWO.Ui.Services
             DisplayMessageInUi = displayMessageInUi;
         }
         
-        public async Task Save()
+        public async Task<bool> Save()
         {
             try
             {
@@ -48,19 +48,21 @@ namespace FWO.Ui.Services
                     {
                         await UpdateAppServerInDb();
                     }
+                    return true;
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
             }
+            return false;
         }
 
         private bool checkAppServer()
         {
-            if(ActAppServer.Name == "")
+            if(ActAppServer.Name == null || ActAppServer.Name == "")
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("Exxxx"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E5102"), true);
                 return false;
             }
             return true;

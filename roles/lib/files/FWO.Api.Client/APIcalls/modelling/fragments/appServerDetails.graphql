@@ -2,6 +2,7 @@ fragment appServerDetails on modelling_app_server {
   id
   name
   ip
+  subnet
   import_source
   is_deleted
 }

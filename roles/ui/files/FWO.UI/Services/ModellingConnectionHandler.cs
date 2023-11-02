@@ -453,7 +453,7 @@ namespace FWO.Ui.Services
                 DstAppRolesToAdd != null && DstAppRolesToAdd.Count > 0;
         }
 
-        public async Task Save()
+        public async Task<bool> Save()
         {
             try
             {
@@ -529,16 +529,23 @@ namespace FWO.Ui.Services
                         await UpdateConnectionInDb();
                     }
                     Close();
+                    return true;
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("save_connection"), "", true);
             }
+            return false;
         }
 
         private bool checkConn()
         {
+            if(ActConn.Name == null || ActConn.Name == "" || ActConn.Reason == null || ActConn.Reason == "")
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E5102"), true);
+                return false;
+            }
             if(ActConn.IsInterface && !SrcFilled() && !DstFilled())
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("Exxxx"), true);

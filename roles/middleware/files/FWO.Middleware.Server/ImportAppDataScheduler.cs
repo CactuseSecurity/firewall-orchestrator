@@ -15,7 +15,6 @@ namespace FWO.Middleware.Server
     {
         private readonly ApiConnection apiConnection;
         private GlobalConfig globalConfig;
-        private long? lastMgmtAlertId;
         private List<Alert> openAlerts = new List<Alert>();
 
         private System.Timers.Timer ScheduleTimer = new();
@@ -94,7 +93,7 @@ namespace FWO.Middleware.Server
             {
                 openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
 
-                ImportAppData import = new ImportAppData(apiConnection, globalConfig);
+                AppDataImport import = new AppDataImport(apiConnection, globalConfig);
                 if(!await import.Run())
                 {
                     throw new Exception("Import App Data failed.");
@@ -103,9 +102,11 @@ namespace FWO.Middleware.Server
             catch (Exception exc)
             {
                 Log.WriteError("Import App Data", $"Ran into exception: ", exc);
+                string titletext = "Error encountered while trying to import App Data";
                 Log.WriteAlert($"source: \"{GlobalConfig.kImportAppData}\"",
-                    $"userId: \"0\", title: \"Error encountered while trying to import App Data\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAppData}\"");
+                    $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAppData}\"");
                 await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message);
+                await setAlert(globalConfig.GetText("scheduled_app_import"), titletext);
             }
         }
 

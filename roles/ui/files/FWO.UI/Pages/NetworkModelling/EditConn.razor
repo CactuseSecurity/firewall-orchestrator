@@ -137,7 +137,7 @@
             {
                 <AuthorizeView Roles="admin, modeller">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await ConnHandler.Save(); Close();}">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { if(await ConnHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>

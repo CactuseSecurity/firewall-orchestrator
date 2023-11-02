@@ -1030,7 +1030,9 @@ create table owner
     app_id_external varchar UNIQUE,
     last_recert_check Timestamp,
     recert_check_params Varchar,
-	criticality Varchar
+	criticality Varchar,
+	active boolean default true,
+	import_source Varchar
 );
 
 create table owner_network
@@ -1311,6 +1313,7 @@ create table modelling.app_server
 	app_id int,
 	name Varchar,
 	ip cidr,
+	subnet Varchar, -- necessary?
 	-- area_id int, --> calculated from subnet
 	import_source Varchar default 'manual', 
 	is_deleted boolean default false
@@ -1320,8 +1323,11 @@ create table modelling.app_role
 (
  	id SERIAL PRIMARY KEY,
 	app_id int,
-	name Varchar, -- prefix format AR... -> settings 
-	comment Varchar -- e.g. for creator
+	id_string Varchar, -- prefix format AR... -> settings 
+	name Varchar,
+	comment Varchar,
+	creator Varchar,
+	creation_date timestamp default now()
 );
 
 create table modelling.connection

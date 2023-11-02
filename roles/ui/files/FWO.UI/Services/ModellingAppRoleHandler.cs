@@ -97,7 +97,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task Save()
+        public async Task<bool> Save()
         {
             try
             {
@@ -124,19 +124,21 @@ namespace FWO.Ui.Services
                         await UpdateAppRoleInDb();
                     }
                     Close();
+                    return true;
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
             }
+            return false;
         }
 
         private bool checkAppRole()
         {
-            if(ActAppRole.Name == "")
+            if(ActAppRole.Name.Length <= ModellingAppRole.FixedPartLength)
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("Exxxx"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E5102"), true);
                 return false;
             }
             return true;

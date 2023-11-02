@@ -9,6 +9,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getOwners;
         public static readonly string newOwner;
         public static readonly string updateOwner;
+        public static readonly string deactivateOwner;
         public static readonly string deleteOwner;
         // public static readonly string setDefaultOwner;
         public static readonly string setOwnerLastCheck;
@@ -31,6 +32,7 @@ namespace FWO.Api.Client.Queries
                 getOwners = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwners.graphql");
                 newOwner = File.ReadAllText(QueryPath + "owner/newOwner.graphql");
                 updateOwner = File.ReadAllText(QueryPath + "owner/updateOwner.graphql");
+                deactivateOwner = File.ReadAllText(QueryPath + "owner/deactivateOwner.graphql");
                 deleteOwner = File.ReadAllText(QueryPath + "owner/deleteOwner.graphql");
                 //setDefaultOwner = File.ReadAllText(QueryPath + "owner/setDefaultOwner.graphql");
                 setOwnerLastCheck = File.ReadAllText(QueryPath + "owner/setOwnerLastCheck.graphql");

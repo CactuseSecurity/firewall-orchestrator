@@ -77,7 +77,7 @@ insert into config (config_key, config_value, config_user) VALUES ('importAppDat
 insert into config (config_key, config_value, config_user) VALUES ('importAppDataSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataSleepTime', '0', 0);
-insert into config (config_key, config_value, config_user) VALUES ('importAppDataPath', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importAppDataPath', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');

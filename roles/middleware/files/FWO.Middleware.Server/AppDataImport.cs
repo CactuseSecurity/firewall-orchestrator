@@ -10,55 +10,50 @@ using FWO.Middleware.RequestParameters;
 
 namespace FWO.Middleware.Server
 {
+        /// <summary>
+        /// Class handling the App Data Import
+        /// </summary>
     public class AppDataImport
     {
         private readonly ApiConnection apiConnection;
         private GlobalConfig globalConfig;
-        private string importFile { get; set; }
+        private string importFile { get; set; } = "";
 
-        // private List<FwoOwner> importedApps = new();
         private List<ModellingImportAppData> importedApps= new();
         private List<FwoOwner> existingApps = new();
-        // private List<ModellingAppServer> importedAppServers = new();
         private List<ModellingAppServer> existingAppServers = new();
 
-        private Ldap internalLdap;
+        private Ldap internalLdap = new();
         private string roleDn = "";
         List<GroupGetReturnParameters> allGroups = new();
 
+
+        /// <summary>
+        /// Constructor for App Data Import
+        /// </summary>
         public AppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            Read();
         }
 
-        private void Read()
-        {
-            try
-            {
-                // /usr/local/fworch/etc/apps.json
-                importFile = File.ReadAllText(globalConfig.ImportAppDataPath).Trim();
-            }
-            catch (Exception fileReadException)
-            {
-                Log.WriteError("Read file", $"File could not be found at {globalConfig.ImportAppDataPath}.", fileReadException);
-                throw;
-            }
-        }
-
+        /// <summary>
+        /// Run the App Data Import
+        /// </summary>
         public async Task<bool> Run()
         {
             try
             {
-                //ExtractFile();
-                importedApps = JsonSerializer.Deserialize<List<ModellingImportAppData>>(importFile) ?? throw new Exception("File could not be parsed.");
+                List<string> importfilePaths = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new Exception("Config Data could not be deserialized.");
                 await InitLdap();
-                await ImportApps();
+                foreach(var importfilePath in importfilePaths)
+                {
+                    await ImportSingleSource(importfilePath);
+                }
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import App Data", $"File could not be processed.", exc);
+                Log.WriteError("Import App Data", $"Import could not be processed.", exc);
                 return false;
             }
             return true;
@@ -72,37 +67,35 @@ namespace FWO.Middleware.Server
             allGroups = internalLdap.GetAllInternalGroups();
         }
 
-        private static string GroupName(string appName)
+        private async Task<bool> ImportSingleSource(string importfilePath)
         {
-            return "ModellerGroup_" + appName;
+            try
+            {
+                Read(importfilePath);
+                importedApps = JsonSerializer.Deserialize<List<ModellingImportAppData>>(importFile) ?? throw new Exception("File could not be parsed.");
+                await ImportApps();
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Import App Data", $"File {importfilePath} could not be processed.", exc);
+                return false;
+            }
+            return true;
         }
 
-        // private void ExtractFile()
-        // {
-            
-        //     // Todo: move to predefined import format
-        //     importedApps = new List<FwoOwner>();
-        //     var lines = importFile.Split('\n');
-        //     FwoOwner newApp = new();
-        //     foreach(var line in lines.Skip(1))
-        //     {
-        //         var values = line.Split(',');
-        //         string appName = values[1].Replace("\"", "");
-        //         string appExtId = values[2].Replace("\"", "");
-        //         string appOwnerId = values[6].Replace("\"", "");
-        //         string appCriticality = values[8].Replace("\"", "");
-
-        //         string appServerName = values[14].Replace("\"", "");
-        //         string appServerSubnet = values[15].Replace("\"", "");
-        //         string appServerIpAddress = values[16].Replace("\"", "");
-
-        //         if(importedApps.FirstOrDefault(x => x.Name == appName) == null)
-        //         {
-        //             importedApps.Add(new FwoOwner(){ Name = appName, ExtAppId = appExtId, Dn = appOwnerId, Criticality = appCriticality });
-        //         }
-        //         importedAppServers.Add(new ModellingAppServer(){ Name = appServerName, Ip = appServerIpAddress, ExtAppId = appExtId, IsDeleted = false });
-        //     }
-        // }
+        private void Read(string filepath)
+        {
+            try
+            {
+                // /usr/local/fworch/etc/apps-<ImportSource>.json
+                importFile = File.ReadAllText(filepath).Trim();
+            }
+            catch (Exception fileReadException)
+            {
+                Log.WriteError("Read file", $"File could not be found at {filepath}.", fileReadException);
+                throw;
+            }
+        }
 
         private async Task<bool> ImportApps()
         {
@@ -230,6 +223,11 @@ namespace FWO.Middleware.Server
                 return false;
             }
             return true;
+        }
+
+        private static string GroupName(string appName)
+        {
+            return "ModellerGroup_" + appName;
         }
 
         private string CreateUserGroup(ModellingImportAppData incomingApp)

@@ -1,6 +1,7 @@
 ﻿@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
+@using System.Text.Json
 
 @page "/settings/modelling"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -36,8 +37,20 @@
     <hr />
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>
-        <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm" @bind="configData!.ImportAppDataPath" />
+        <div class="col-sm-6">
+            <EditList ElementType="string" Elements="appDataPaths.ToArray()" ElementsToAdd="PathsToAdd" ElementsToDelete="PathsToDelete" StdLayout="false">
+                <Display>
+                    <div class="row">
+                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context</div>
+                    </div>
+                </Display>
+            </EditList>
+            <div class="row">
+                <div class="col-sm-11">
+                    <input type="text" class="col-sm-9" @bind="actPath" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                </div>
+            </div>
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
@@ -98,18 +111,30 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private Language selectedLanguage = new Language();
+    private List<string> appDataPaths = new();
+    private List<string> PathsToAdd = new();
+    private List<string> PathsToDelete = new();
+    private string actPath = "";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
+            appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private void AddPath()
+    {
+        if(actPath != "")
+        {
+            PathsToAdd.Add(actPath);
+            actPath = "";
         }
     }
 
@@ -119,8 +144,18 @@ else
         {
             if (configData != null)
             {
-                configData.DefaultLanguage = selectedLanguage.Name;
+                foreach(var path in PathsToDelete)
+                {
+                    appDataPaths.Remove(path);
+                }
+                foreach(var path in PathsToAdd)
+                {
+                    appDataPaths.Add(path);
+                }
+                configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
+                PathsToDelete = new();
+                PathsToAdd = new();
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
             else

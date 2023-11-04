@@ -1,5 +1,5 @@
-query getImportedAppServers ($importSource: String!, $appId Int){
-  modelling_app_server (where: { import_source: { _eq: $importSource }, { app_id: { _eq: $appId } }}){
+query getImportedAppServers ($importSource: String!, $appId: Int){
+  modelling_app_server (where: { import_source: { _eq: $importSource }, app_id: { _eq: $appId } }){
     ...appServerDetails
   }
 }

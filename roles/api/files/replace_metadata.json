@@ -1007,12 +1007,13 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "app_id",
                       "id",
-                      "is_deleted",
                       "import_source",
-                      "name",
                       "ip",
-                      "app_id"
+                      "is_deleted",
+                      "name",
+                      "subnet"
                     ]
                   },
                   "comment": ""
@@ -1023,12 +1024,13 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "app_id",
                       "id",
-                      "is_deleted",
                       "import_source",
-                      "name",
                       "ip",
-                      "app_id"
+                      "is_deleted",
+                      "name",
+                      "subnet"
                     ],
                     "filter": {}
                   },
@@ -1038,12 +1040,13 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "app_id",
                       "id",
-                      "is_deleted",
                       "import_source",
-                      "name",
                       "ip",
-                      "app_id"
+                      "is_deleted",
+                      "name",
+                      "subnet"
                     ],
                     "filter": {}
                   },
@@ -1053,12 +1056,13 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "app_id",
                       "id",
-                      "is_deleted",
                       "import_source",
-                      "name",
                       "ip",
-                      "app_id"
+                      "is_deleted",
+                      "name",
+                      "subnet"
                     ],
                     "filter": {}
                   },
@@ -1070,12 +1074,13 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "app_id",
                       "id",
-                      "is_deleted",
                       "import_source",
-                      "name",
                       "ip",
-                      "app_id"
+                      "is_deleted",
+                      "name",
+                      "subnet"
                     ],
                     "filter": {},
                     "check": {}

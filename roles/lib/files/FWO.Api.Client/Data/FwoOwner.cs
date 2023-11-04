@@ -17,6 +17,12 @@ namespace FWO.Api.Data
         [JsonProperty("criticality"), JsonPropertyName("criticality")]
         public string? Criticality { get; set; }
 
+        [JsonProperty("active"), JsonPropertyName("active")]
+        public bool Active { get; set; } = true;
+
+        [JsonProperty("import_source"), JsonPropertyName("import_source")]
+        public string? ImportSource { get; set; }
+
  
         public FwoOwner()
         { }

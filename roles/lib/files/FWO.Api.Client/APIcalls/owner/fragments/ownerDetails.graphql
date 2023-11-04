@@ -10,4 +10,6 @@ fragment ownerDetails on owner {
   recert_check_params
   last_recert_check
   criticality
+  active
+  import_source
 }

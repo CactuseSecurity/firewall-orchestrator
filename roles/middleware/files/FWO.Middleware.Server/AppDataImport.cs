@@ -72,6 +72,11 @@ namespace FWO.Middleware.Server
             allGroups = internalLdap.GetAllInternalGroups();
         }
 
+        private static string GroupName(string appName)
+        {
+            return "ModellerGroup_" + appName;
+        }
+
         // private void ExtractFile()
         // {
             
@@ -117,18 +122,18 @@ namespace FWO.Middleware.Server
                 {
                     ++failCounter;
                 }
-            }
-            foreach(var existingApp in existingApps)
-            {
-                if(importedApps.FirstOrDefault(x => x.Name == existingApp.Name) == null)
+                foreach(var existingApp in existingApps.Where(x => x.ImportSource == incomingApp.ImportSource && x.Active))
                 {
-                    if(await DeactivateApp(existingApp))
+                    if(importedApps.FirstOrDefault(x => x.Name == existingApp.Name) == null)
                     {
-                        ++deleteCounter;
-                    }
-                    else
-                    {
-                        ++deleteFailCounter;
+                        if(await DeactivateApp(existingApp))
+                        {
+                            ++deleteCounter;
+                        }
+                        else
+                        {
+                            ++deleteFailCounter;
+                        }
                     }
                 }
             }
@@ -186,7 +191,15 @@ namespace FWO.Middleware.Server
             string userGroupDn = existingApp.GroupDn;
             if(existingApp.GroupDn == null || existingApp.GroupDn == "")
             {
-                userGroupDn = CreateUserGroup(incomingApp);
+                GroupGetReturnParameters? groupWithSameName = allGroups.FirstOrDefault(x => new DistName(x.GroupDn).Group == GroupName(incomingApp.ExtAppId));
+                if(groupWithSameName != null)
+                {
+                    UpdateUserGroup(incomingApp, groupWithSameName.GroupDn);
+                }
+                else
+                {
+                    userGroupDn = CreateUserGroup(incomingApp);
+                }
             }
             else
             {
@@ -198,6 +211,7 @@ namespace FWO.Middleware.Server
                 name = incomingApp.Name,
                 dn = incomingApp.Modellers.Count > 0 ? incomingApp.Modellers.First() : "",  // todo
                 groupDn = userGroupDn,
+                appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality
             };
             await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.OwnerQueries.updateOwner, Variables);
@@ -223,7 +237,7 @@ namespace FWO.Middleware.Server
             string groupDn = "";
             if(incomingApp.Modellers.Count > 0 || incomingApp.ModellerGroups.Count > 0)
             {
-                string groupName = "ModellerGroup" + incomingApp.ExtAppId;
+                string groupName = GroupName(incomingApp.ExtAppId);
                 groupDn = internalLdap.AddGroup(groupName, true);
                 foreach(var modeller in incomingApp.Modellers)
                 {
@@ -233,7 +247,7 @@ namespace FWO.Middleware.Server
                 {
                     internalLdap.AddUserToEntry(modellerGrp, groupDn);
                 }
-                internalLdap.AddUserToEntry(groupName, roleDn);
+                internalLdap.AddUserToEntry(groupDn, roleDn);
             }
             return groupDn;
         }

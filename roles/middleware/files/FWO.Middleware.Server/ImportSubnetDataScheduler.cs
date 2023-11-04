@@ -15,7 +15,6 @@ namespace FWO.Middleware.Server
     {
         private readonly ApiConnection apiConnection;
         private GlobalConfig globalConfig;
-        private long? lastMgmtAlertId;
         private List<Alert> openAlerts = new List<Alert>();
 
         private System.Timers.Timer ScheduleTimer = new();
@@ -63,17 +62,17 @@ namespace FWO.Middleware.Server
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError("Import Subnet Data scheduler", "Could not calculate start time.", exception);
+                    Log.WriteError("Import Area Subnet Data scheduler", "Could not calculate start time.", exception);
                 }
                 TimeSpan interval = startTime - DateTime.Now;
 
                 ScheduleTimer = new();
-                ScheduleTimer.Elapsed += ImportSubnetData;
+                ScheduleTimer.Elapsed += ImportAreaSubnetData;
                 ScheduleTimer.Elapsed += StartImportSubnetDataTimer;
                 ScheduleTimer.Interval = interval.TotalMilliseconds;
                 ScheduleTimer.AutoReset = false;
                 ScheduleTimer.Start();
-                Log.WriteDebug("Import Subnet Data scheduler", "ImportSubnetDataScheduleTimer started.");
+                Log.WriteDebug("Import Area Subnet Data scheduler", "ImportSubnetDataScheduleTimer started.");
             }
         }
 
@@ -81,31 +80,31 @@ namespace FWO.Middleware.Server
         {
             ImportSubnetDataTimer.Stop();
             ImportSubnetDataTimer = new();
-            ImportSubnetDataTimer.Elapsed += ImportSubnetData;
+            ImportSubnetDataTimer.Elapsed += ImportAreaSubnetData;
             ImportSubnetDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * 3600000;  // convert hours to milliseconds
             ImportSubnetDataTimer.AutoReset = true;
             ImportSubnetDataTimer.Start();
-            Log.WriteDebug("Import Subnet Data scheduler", "ImportSubnetDataTimer started.");
+            Log.WriteDebug("Import Area Subnet Data scheduler", "ImportSubnetDataTimer started.");
         }
 
-        private async void ImportSubnetData(object? _, ElapsedEventArgs __)
+        private async void ImportAreaSubnetData(object? _, ElapsedEventArgs __)
         {
             try
             {
                 openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
-                ImportSubnetData import = new ImportSubnetData(apiConnection, globalConfig);
+                AreaSubnetDataImport import = new AreaSubnetDataImport(apiConnection, globalConfig);
                 if(!await import.Run())
                 {
-                    throw new Exception("Subnet Import failed.");
+                    throw new Exception("Area Subnet Import failed.");
                 }
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Subnet Data", $"Ran into exception: ", exc);
-                Log.WriteAlert($"source: \"{GlobalConfig.kImportSubnetData}\"",
-                    $"userId: \"0\", title: \"Error encountered while trying to import Subnet Data\", description: \"{exc}\", alertCode: \"{AlertCode.ImportSubnetData}\"");
+                Log.WriteError("Import Area Subnet Data", $"Ran into exception: ", exc);
+                Log.WriteAlert($"source: \"{GlobalConfig.kImportAreaSubnetData}\"",
+                    $"userId: \"0\", title: \"Error encountered while trying to import Area Subnet Data\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAreaSubnetData}\"");
                 await AddLogEntry(1, globalConfig.GetText("scheduled_subnet_import"), globalConfig.GetText("ran_into_exception") + exc.Message);
-                setAlert("Import Subnet Data failed", exc.Message);
+                setAlert("Import Area Subnet Data failed", exc.Message);
             }
         }
 
@@ -115,17 +114,17 @@ namespace FWO.Middleware.Server
             {
                 var Variables = new
                 {
-                    source = GlobalConfig.kImportSubnetData,
+                    source = GlobalConfig.kImportAreaSubnetData,
                     userId = 0,
                     title = title,
                     description = description,
-                    alertCode = (int)AlertCode.ImportSubnetData
+                    alertCode = (int)AlertCode.ImportAreaSubnetData
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     // Acknowledge older alert for same problem
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.ImportSubnetData);
+                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.ImportAreaSubnetData);
                     if(existingAlert != null)
                     {
                         await AcknowledgeAlert(existingAlert.Id);
@@ -135,12 +134,12 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
-                Log.WriteAlert ($"source: \"{GlobalConfig.kImportSubnetData}\"", 
-                    $"userId: \"0\", title: \"{title}\", description: \"{description}\", alertCode: \"{AlertCode.ImportSubnetData.ToString()}\"");
+                Log.WriteAlert ($"source: \"{GlobalConfig.kImportAreaSubnetData}\"", 
+                    $"userId: \"0\", title: \"{title}\", description: \"{description}\", alertCode: \"{AlertCode.ImportAreaSubnetData.ToString()}\"");
             }
             catch(Exception exc)
             {
-                Log.WriteError("Write Alert", $"Could not write Alert for import Subnet Data: ", exc);
+                Log.WriteError("Write Alert", $"Could not write Alert for import Area Subnet Data: ", exc);
             }
         }
 
@@ -158,7 +157,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for import Subnet Data: ", exception);
+                Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for import Area Subnet Data: ", exception);
             }
         }
 
@@ -168,7 +167,7 @@ namespace FWO.Middleware.Server
             {
                 var Variables = new
                 {
-                    source = GlobalConfig.kImportSubnetData,
+                    source = GlobalConfig.kImportAreaSubnetData,
                     discoverUser = 0,
                     severity = severity,
                     suspectedCause = cause,

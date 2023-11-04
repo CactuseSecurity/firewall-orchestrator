@@ -1,10 +1,36 @@
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using System.Net;
-using NetTools;
 
 namespace FWO.Api.Data
 {
+
+
+    public class ModellingNetworkArea
+    {
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; } = 0;
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("subnets"), JsonPropertyName("subnets")]
+        public List<NetworkSubnet> Subnets { get; set; } = new();
+
+        public bool Sanitize()
+        {
+            bool shortened = false;
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            foreach(var subnet in Subnets)
+            {
+                if(subnet.Sanitize())
+                {
+                    shortened = true;
+                }
+            }
+            return shortened;
+        }
+    }
+
     public class NetworkSubnet
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -25,18 +51,5 @@ namespace FWO.Api.Data
             Network = Sanitizer.SanitizeOpt(Network, ref shortened);
             return shortened;
         }
-
-    }
-
-    public class ModellingNetworkArea
-    {
-        [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; } = 0;
-
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
-
-        [JsonProperty("subnets"), JsonPropertyName("subnets")]
-        public List<NetworkSubnet> Subnets { get; set; }
     }
 }

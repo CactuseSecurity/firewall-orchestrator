@@ -25,7 +25,7 @@ namespace FWO.Api.Data
         WorkflowAlert = 31,
 
         ImportAppData = 41,
-        ImportSubnetData = 42
+        ImportAreaSubnetData = 42
     }
 
     public class Alert

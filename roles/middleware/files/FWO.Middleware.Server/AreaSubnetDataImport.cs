@@ -7,39 +7,35 @@ using System.Text.Json;
 
 namespace FWO.Middleware.Server
 {
+    /// <summary>
+    /// Class handling the Area Subnet Data Import
+    /// </summary>
     public class AreaSubnetDataImport
     {
         private readonly ApiConnection apiConnection;
         private GlobalConfig globalConfig;
-        private string importFile { get; set; }
+        private string importFile { get; set; } = "";
         private List<ModellingImportAreaData> importedAreas = new();
         private List<ModellingNetworkArea> existingAreas = new();
 
 
-
+        /// <summary>
+        /// Constructor for Area Subnet Data Import
+        /// </summary>
         public AreaSubnetDataImport(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            Read();
         }
 
-        private void Read()
-        {
-            try
-            {
-                // /usr/local/fworch/etc/qip-export.csv
-                importFile = File.ReadAllText(globalConfig.ImportSubnetDataPath).Trim();
-            }
-            catch (Exception fileReadException)
-            {
-                Log.WriteError("Read file", $"File could not be found at {globalConfig.ImportSubnetDataPath}.", fileReadException);
-                throw;
-            }
-        }
-
+        /// <summary>
+        /// Run the Area Subnet Data Import
+        /// </summary>
         public async Task<bool> Run()
         {
+            await RunImportScript(globalConfig.ImportSubnetDataPath + ".py");
+            ReadFile(globalConfig.ImportSubnetDataPath + ".json");
+
             int successCounter = 0;
             int failCounter = 0;
             int deleteCounter = 0;
@@ -47,8 +43,6 @@ namespace FWO.Middleware.Server
             try
             {
                 importedAreas = JsonSerializer.Deserialize<List<ModellingImportAreaData>>(importFile) ?? throw new Exception("File could not be parsed.");
-
-                // ExtractFile();
                 existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(Api.Client.Queries.ModellingQueries.getAreas);
                 foreach(var incomingArea in importedAreas)
                 {
@@ -85,34 +79,27 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        // private void ExtractFile()
-        // {
-        //     // Todo: move to predefined import format
-        //     importedAreas = new List<ModellingNetworkArea>();
-        //     var lines = importFile.Split('\n');
-        //     ModellingNetworkArea newArea = new();
-        //     foreach(var line in lines.Skip(1))
-        //     {
-        //         var values = line.Split(',');
-        //         string subnetName = values[0].Replace("\"", "");
-        //         string areaName = subnetName.Substring(0, 4).Remove(1, 1).Insert(1, "A");
-        //         string ipAddr = values[1].Replace("\"", "");
-        //         string subnetMask = values[7].Replace("\"", "");
+        private async Task RunImportScript(string importScriptFile)
+        {
+            if(File.Exists(importScriptFile))
+            {
 
-        //         IPAddressRange newRange = IPAddressRange.Parse($"{ipAddr}/{subnetMask}");
-        //         NetworkSubnet newSubnet = new NetworkSubnet(){ Name = subnetName, Network = newRange.ToCidrString() };
+            }
+        }
 
-        //         ModellingNetworkArea? startedArea = importedAreas.FirstOrDefault(x => x.Name == areaName);
-        //         if(startedArea != null)
-        //         {
-        //             startedArea.Subnets.Add(newSubnet);
-        //         }
-        //         else
-        //         {
-        //             importedAreas.Add(new ModellingNetworkArea(){ Name = areaName, Subnets = new List<NetworkSubnet>(){ newSubnet }});
-        //         }
-        //     }
-        // }
+        private void ReadFile(string filepath)
+        {
+            try
+            {
+                // /usr/local/fworch/etc/qip-export.json
+                importFile = File.ReadAllText(filepath).Trim();
+            }
+            catch (Exception fileReadException)
+            {
+                Log.WriteError("Read file", $"File could not be found at {filepath}.", fileReadException);
+                throw;
+            }
+        }
 
         private async Task<bool> SaveArea(ModellingImportAreaData incomingArea)
         {

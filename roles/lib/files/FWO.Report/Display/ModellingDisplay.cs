@@ -1,6 +1,5 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
-using System.Text;
 
 namespace FWO.Ui.Display
 {
@@ -8,6 +7,11 @@ namespace FWO.Ui.Display
     {
         public ModellingDisplay(UserConfig userConfig) : base(userConfig)
         { }
+
+        public static string DisplayApp(FwoOwner app)
+        {
+            return (app.Active ? "" : "*") + app.Name;
+        }
 
         public static string DisplayService(ModellingService service)
         {
@@ -34,15 +38,7 @@ namespace FWO.Ui.Display
 
         public static string DisplayAppRole(ModellingAppRole appRole)
         {
-            if(appRole.Name != null && appRole.Name != "")
-            {
-                return appRole.Name;
-            }
-            if(appRole.AppServers.Count > 0)
-            {
-                return DisplayAppServer(appRole.AppServers[0].Content);
-            }
-            return "anything else";
+            return appRole.Name + "(" + appRole.IdString + ")";
         }
     }
 }

@@ -1337,7 +1337,10 @@ create table modelling.connection
 	name Varchar,
 	reason Text,
 	is_interface boolean default false,
-	used_interface_id int
+	used_interface_id int,
+	common_service boolean default false,
+	creator Varchar,
+	creation_date timestamp default now()
 );
 
 create table modelling.app_zone -- necessary ?
@@ -1382,7 +1385,9 @@ create table modelling.service_group
 	app_id int,
 	name Varchar,
 	is_global boolean default false,
-	comment Varchar
+	comment Varchar,
+	creator Varchar,
+	creation_date timestamp default now()
 );
 
 create table modelling.service_service_group

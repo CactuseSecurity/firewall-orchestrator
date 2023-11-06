@@ -11,51 +11,60 @@ namespace FWO.Api.Data
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
         public int AppId { get; set; }
 
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
-        public string NameFixedPart 
+        [JsonProperty("id_string"), JsonPropertyName("id_string")]
+        public string IdString { get; set; } = "";
+        public string IdStringFixedPart 
         { 
             get 
             { 
-                return Name.Length >= FixedPartLength ? Name.Substring(0, FixedPartLength) : Name;
+                return IdString.Length >= FixedPartLength ? IdString.Substring(0, FixedPartLength) : IdString;
             }
             set 
             { 
-                if(Name.Length >= FixedPartLength)
+                if(IdString.Length >= FixedPartLength)
                 {
-                    Name = value + Name.Substring(FixedPartLength);
+                    IdString = value + IdString.Substring(FixedPartLength);
                 }
                 else
                 {
-                    Name = value;
+                    IdString = value;
                 }
             }
         }
-        public string NameFreePart
+        public string IdStringFreePart
         {
             get
             { 
-                return Name.Length >= FixedPartLength ? Name.Substring(FixedPartLength) : "";
+                return IdString.Length >= FixedPartLength ? IdString.Substring(FixedPartLength) : "";
             }
             set 
             {
-                if(Name.Length >= FixedPartLength)
+                if(IdString.Length >= FixedPartLength)
                 {
-                    Name = Name.Substring(0, FixedPartLength) + value;
+                    IdString = IdString.Substring(0, FixedPartLength) + value;
                 }
                 else
                 {
-                    for (int i = 0; i < FixedPartLength - Name.Length; i++)
+                    for (int i = 0; i < FixedPartLength - IdString.Length; i++)
                     {
-                        Name += " ";
+                        IdString += " ";
                     }
-                    Name += value;
+                    IdString += value;
                 }
             }
         }
 
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
+
+        [JsonProperty("creator"), JsonPropertyName("creator")]
+        public string? Creator { get; set; }
+
+        [JsonProperty("creation_date"), JsonPropertyName("creation_date")]
+        public DateTime? CreationDate { get; set; }
 
         [JsonProperty("app_servers"), JsonPropertyName("app_servers")]
         public List<ModellingAppServerWrapper> AppServers { get; set; } = new();
@@ -67,6 +76,7 @@ namespace FWO.Api.Data
         public bool Sanitize()
         {
             bool shortened = false;
+            IdString = Sanitizer.SanitizeMand(IdString, ref shortened);
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             return shortened;

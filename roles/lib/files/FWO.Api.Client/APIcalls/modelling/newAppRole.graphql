@@ -1,12 +1,16 @@
 mutation newAppRole(
   $name: String
+  $idString: String
   $appId: Int
   $comment: String
+  $creator: String
   ) {
   insert_modelling_app_role(objects: {
     name: $name
+    id_string: $idString
     app_id: $appId
     comment: $comment
+    creator: $creator
   }) {
     returning {
       newId: id

@@ -20,6 +20,12 @@ namespace FWO.Api.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
+        [JsonProperty("creator"), JsonPropertyName("creator")]
+        public string? Creator { get; set; }
+
+        [JsonProperty("creation_date"), JsonPropertyName("creation_date")]
+        public DateTime? CreationDate { get; set; }
+
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<ModellingServiceWrapper> Services { get; set; } = new();
 

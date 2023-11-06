@@ -131,6 +131,10 @@
                     }
                 </div>
             </div>
+            @if(!ConnHandler.AddMode)
+            {
+                <label class="col-sm-12 small">@(userConfig.GetText("created_by")): @(ConnHandler.ActConn.Creator), @(userConfig.GetText("creation_date")): @(ConnHandler.ActConn.CreationDate)</label>
+            }
         </div>
         <div class="btn-group">
             @if(!ConnHandler.ReadOnly)

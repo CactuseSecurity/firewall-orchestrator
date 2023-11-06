@@ -1032,6 +1032,8 @@ INSERT INTO txt VALUES ('save_app_server', 	    'German',	'App Server speichern'
 INSERT INTO txt VALUES ('save_app_server', 	    'English',	'Save App Server');
 INSERT INTO txt VALUES ('delete_app_server', 	'German',	'App Server l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_server', 	'English',	'Delete App Server');
+INSERT INTO txt VALUES ('created_by',		    'German', 	'Erstellt von');
+INSERT INTO txt VALUES ('created_by',		    'English', 	'Creatd by');
 
 
 -- settings
@@ -2354,6 +2356,8 @@ INSERT INTO txt VALUES ('E9001', 'German',  'Sie haben Modellier-Rechte für kei
 INSERT INTO txt VALUES ('E9001', 'English', 'You have no modeller rights for any application.');
 INSERT INTO txt VALUES ('E9002', 'German',  'Keine Area verf&uuml;gbar.');
 INSERT INTO txt VALUES ('E9002', 'English', 'No areas available.');
+INSERT INTO txt VALUES ('E9003', 'German',  'Id schon vergeben. Bitte eine andere ausw&auml;hlen');
+INSERT INTO txt VALUES ('E9003', 'English', 'Id already used. Please choose another');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

@@ -461,7 +461,7 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_connection"), userConfig.GetText("U0001"), true);
                 }
-                if(checkConn())
+                if(CheckConn())
                 {
                     if(!srcReadOnly)
                     {
@@ -539,7 +539,7 @@ namespace FWO.Ui.Services
             return false;
         }
 
-        private bool checkConn()
+        private bool CheckConn()
         {
             if(ActConn.Name == null || ActConn.Name == "" || ActConn.Reason == null || ActConn.Reason == "")
             {
@@ -564,7 +564,8 @@ namespace FWO.Ui.Services
                     appId = Application.Id,
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
-                    usedInterfaceId = ActConn.UsedInterfaceId
+                    usedInterfaceId = ActConn.UsedInterfaceId,
+                    creator = userConfig.User.Name
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newConnection, Variables)).ReturnIds;
                 if (returnIds != null)

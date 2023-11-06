@@ -38,6 +38,10 @@
                                 </EditList>
                             </div>                            
                         </div>
+                        @if(!AddMode)
+                        {
+                            <label class="col-sm-12 small">@(userConfig.GetText("created_by")): @(SvcGroupHandler.ActServiceGroup.Creator), @(userConfig.GetText("creation_date")): @(SvcGroupHandler.ActServiceGroup.CreationDate)</label>
+                        }
                     </div>
                 </div>
             </div>
@@ -84,18 +88,6 @@
 
     private bool firstTry = true;
 
-
-    protected override async Task OnParametersSetAsync()
-    {
-        if(Display && firstTry)
-        {
-            if(AddMode)
-            {
-                SvcGroupHandler.ActServiceGroup.Comment = userConfig.User.Name;
-            }
-            firstTry = false;
-        }
-    }
 
     private async Task HandleSvcDrop()
     {

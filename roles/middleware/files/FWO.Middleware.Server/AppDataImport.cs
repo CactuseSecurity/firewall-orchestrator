@@ -10,9 +10,9 @@ using FWO.Middleware.RequestParameters;
 
 namespace FWO.Middleware.Server
 {
-        /// <summary>
-        /// Class handling the App Data Import
-        /// </summary>
+    /// <summary>
+    /// Class handling the App Data Import
+    /// </summary>
     public class AppDataImport
     {
         private readonly ApiConnection apiConnection;
@@ -44,11 +44,12 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                List<string> importfilePaths = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new Exception("Config Data could not be deserialized.");
+                List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new Exception("Config Data could not be deserialized.");
                 await InitLdap();
-                foreach(var importfilePath in importfilePaths)
+                foreach(var importfilePathAndName in importfilePathAndNames)
                 {
-                    await ImportSingleSource(importfilePath);
+                    await RunImportScript(importfilePathAndName + ".py");
+                    await ImportSingleSource(importfilePathAndName + ".json");
                 }
             }
             catch (Exception exc)
@@ -67,23 +68,31 @@ namespace FWO.Middleware.Server
             allGroups = internalLdap.GetAllInternalGroups();
         }
 
-        private async Task<bool> ImportSingleSource(string importfilePath)
+        private async Task RunImportScript(string importScriptFile)
+        {
+            if(File.Exists(importScriptFile))
+            {
+
+            }
+        }
+
+        private async Task<bool> ImportSingleSource(string importfileName)
         {
             try
             {
-                Read(importfilePath);
+                ReadFile(importfileName);
                 importedApps = JsonSerializer.Deserialize<List<ModellingImportAppData>>(importFile) ?? throw new Exception("File could not be parsed.");
                 await ImportApps();
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import App Data", $"File {importfilePath} could not be processed.", exc);
+                Log.WriteError("Import App Data", $"File {importfileName} could not be processed.", exc);
                 return false;
             }
             return true;
         }
 
-        private void Read(string filepath)
+        private void ReadFile(string filepath)
         {
             try
             {

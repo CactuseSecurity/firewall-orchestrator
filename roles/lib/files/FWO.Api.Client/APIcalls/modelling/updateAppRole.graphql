@@ -1,6 +1,7 @@
 mutation updateAppRole(
   $id: Int!
   $name: String
+  $idString: String
   $appId: Int
   $comment: String
   ) {
@@ -8,6 +9,7 @@ mutation updateAppRole(
     pk_columns: { id: $id }
     _set: {
       name: $name
+      id_string: $idString
       app_id: $appId
       comment: $comment
   }) {

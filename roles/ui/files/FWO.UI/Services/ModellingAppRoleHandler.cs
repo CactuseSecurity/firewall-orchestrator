@@ -22,6 +22,7 @@ namespace FWO.Ui.Services
         public bool DeleteAppServerMode = false;
         public string deleteMessage = "";
         private ModellingAppServer actAppServer = new();
+        private string origId = "";
 
         private readonly ApiConnection ApiConnection;
         private readonly UserConfig userConfig;
@@ -36,10 +37,15 @@ namespace FWO.Ui.Services
             this.userConfig = userConfig;
             Application = application;
             AppRoles = appRoles;
-            ActAppRole = appRole;
             AvailableAppServers = availableAppServers;
             AddMode = addMode;
             DisplayMessageInUi = displayMessageInUi;
+            ActAppRole = appRole;
+            if(!AddMode)
+            {
+                ActAppRole.Area = new () { Name = ReconstructArea(appRole) };
+            }
+            origId = ActAppRole.IdString;
         }
 
         public void AppServerToAppRole(List<ModellingAppServer> appServers)
@@ -105,7 +111,7 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_app_role"), userConfig.GetText("U0001"), true);
                 }
-                if(checkAppRole())
+                if(CheckAppRole())
                 {
                     foreach(var appServer in AppServerToDelete)
                     {
@@ -134,14 +140,75 @@ namespace FWO.Ui.Services
             return false;
         }
 
-        private bool checkAppRole()
+        private bool CheckAppRole()
         {
-            if(ActAppRole.Name.Length <= ModellingAppRole.FixedPartLength)
+            if(ActAppRole.IdString.Length <= ModellingAppRole.FixedPartLength || ActAppRole.Name == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E5102"), true);
                 return false;
             }
+            if((AddMode || ActAppRole.IdString != origId) && IdStringAlreadyUsed(ActAppRole.IdString))
+            {
+                // popup for correction?
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E9003"), true);
+                return false;
+            }
             return true;
+        }
+
+        private bool IdStringAlreadyUsed(string appRoleIdString)
+        {
+            return AppRoles.FirstOrDefault(x => x.IdString == appRoleIdString) != null;
+        }
+
+        public string ProposeFreeAppRoleNumber(ModellingNetworkArea area)
+        {
+            int maxNumbers = 99999;
+            string idFix = GetFixedAppRolePart(area);
+            ModellingAppRole? newestAR = AppRoles.Where(x => x.IdStringFixedPart == idFix).MaxBy(x => x.Id);
+            if(newestAR != null)
+            {
+                if(Int32.TryParse(newestAR.IdStringFreePart, out int aRNumber))
+                {
+                    aRNumber++;
+                    while(aRNumber <= maxNumbers)
+                    {
+                        if(!IdStringAlreadyUsed(idFix + aRNumber.ToString("D5")))
+                        {
+                            return aRNumber.ToString("D5");
+                        }
+                        aRNumber++;
+                    }
+                }
+                aRNumber = 1;
+                while(aRNumber <= maxNumbers)
+                {
+                    if(!IdStringAlreadyUsed(idFix + aRNumber.ToString("D5")))
+                    {
+                        return aRNumber.ToString("D5");
+                    }
+                    aRNumber++;
+                }
+            }
+            return "00001";
+        }
+
+        public string GetFixedAppRolePart(ModellingNetworkArea area)
+        {
+            if(area.Name.Length >= ModellingAppRole.FixedPartLength)
+            {
+                return area.Name.Substring(0, ModellingAppRole.FixedPartLength).Remove(0, 2).Insert(0, "AR");
+            }
+            return area.Name;
+        }
+
+        public static string ReconstructArea(ModellingAppRole appRole)
+        {
+            if(appRole.IdString.Length >= ModellingAppRole.FixedPartLength)
+            {
+                return appRole.IdString.Substring(0, ModellingAppRole.FixedPartLength).Remove(0, 2).Insert(0, "NA");
+            }
+            return "";
         }
 
         private async Task AddAppRoleToDb()
@@ -151,8 +218,10 @@ namespace FWO.Ui.Services
                 var Variables = new
                 {
                     name = ActAppRole.Name,
+                    idString = ActAppRole.IdString,
                     appId = Application.Id,
-                    comment = ActAppRole.Comment
+                    comment = ActAppRole.Comment,
+                    creator = userConfig.User.Name
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -184,6 +253,7 @@ namespace FWO.Ui.Services
                 {
                     id = ActAppRole.Id,
                     name = ActAppRole.Name,
+                    idString = ActAppRole.IdString,
                     appId = Application.Id,
                     comment = ActAppRole.Comment
                 };

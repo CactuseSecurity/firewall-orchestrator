@@ -85,7 +85,7 @@
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
                                 @ondrop="() => HandleAppServerDropToAppRole(appRole)">
-                                @appRole.Name
+                                @ModellingDisplay.DisplayAppRole(appRole)
                             </div>
                         </option>
                     }

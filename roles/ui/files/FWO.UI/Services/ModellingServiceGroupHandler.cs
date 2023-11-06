@@ -37,6 +37,7 @@ namespace FWO.Ui.Services
             Application = application;
             ServiceGroups = serviceGroups;
             ActServiceGroup = serviceGroup;
+            ActServiceGroup.AppId = application.Id;
             AvailableServices = availableServices;
             AddMode = addMode;
             DisplayMessageInUi = displayMessageInUi;
@@ -157,7 +158,8 @@ namespace FWO.Ui.Services
                     name = ActServiceGroup.Name,
                     appId = Application.Id,
                     comment = ActServiceGroup.Comment,
-                    isGlobal = false
+                    isGlobal = false,
+                    creator = userConfig.User.Name
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newServiceGroup, svcGrpParams)).ReturnIds;
                 if (returnIds != null)

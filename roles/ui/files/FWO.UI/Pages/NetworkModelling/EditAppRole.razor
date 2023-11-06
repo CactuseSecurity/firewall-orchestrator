@@ -17,19 +17,30 @@
                     <div class="col-sm-11 border rounded m-2 p-2">
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
-                            <div class="col-sm-8">
-                                <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Name)" 
-                                        SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
-                                    <ElementTemplate Context="area">
-                                        @area.Name
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
+                            @if(AddMode)
+                            {
+                                <div class="col-sm-8">
+                                    <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Name)" 
+                                            SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
+                                        <ElementTemplate Context="area">
+                                            @area.Name
+                                        </ElementTemplate>
+                                    </Dropdown>
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.Area.Name" />
+                            }
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
+                            <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.IdStringFixedPart" />
+                            <input type="text" class=" col-sm-6 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.IdStringFreePart" />
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.NameFixedPart" />
-                            <input type="text" class=" col-sm-6 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.NameFreePart" />
+                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.Name" />
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
@@ -50,6 +61,10 @@
                                 </EditList>
                             </div>
                         </div>
+                        @if(!AddMode)
+                        {
+                            <label class="col-sm-12 small">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
+                        }
                     </div>
                 </div>
             </div>
@@ -115,11 +130,6 @@
     {
         if(Display && firstTry)
         {
-            if(AddMode)
-            {
-                AppRoleHandler.ActAppRole.Comment = userConfig.User.Name;
-            }
-
             if(areas.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("E9002"), "", true);
@@ -153,7 +163,8 @@
         AppRoleHandler.ActAppRole.Area = newArea;
         if(newArea != null && newArea.Name.Length >= ModellingAppRole.FixedPartLength && AddMode)
         {
-            AppRoleHandler.ActAppRole.NameFixedPart = newArea.Name.Substring(0, ModellingAppRole.FixedPartLength).Remove(0, 2).Insert(0, "AR");
+            AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
+            AppRoleHandler.ActAppRole.IdStringFreePart = AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
         }
         SelectAppServerFromArea(newArea);
     }

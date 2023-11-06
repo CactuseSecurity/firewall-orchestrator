@@ -38,7 +38,7 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
                 }
-                if(checkAppServer())
+                if(CheckAppServer())
                 {
                     if(AddMode)
                     {
@@ -58,7 +58,7 @@ namespace FWO.Ui.Services
             return false;
         }
 
-        private bool checkAppServer()
+        private bool CheckAppServer()
         {
             if(ActAppServer.Name == null || ActAppServer.Name == "")
             {

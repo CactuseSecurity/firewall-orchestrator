@@ -1,6 +1,9 @@
 fragment appRoleDetails on modelling_app_role {
   id
   app_id
+  id_string
   name
   comment
+  creator
+  creation_date
 }

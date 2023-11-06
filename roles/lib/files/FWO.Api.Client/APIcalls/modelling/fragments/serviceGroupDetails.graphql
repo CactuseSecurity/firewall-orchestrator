@@ -4,4 +4,6 @@ fragment serviceGroupDetails on modelling_service_group {
   name
   is_global
   comment
+  creator
+  creation_date
 }

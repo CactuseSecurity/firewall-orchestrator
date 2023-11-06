@@ -6,6 +6,8 @@ query getConnections ($appId: Int!){
     reason
     is_interface
     used_interface_id
+    creator
+    creation_date
     source_app_roles: approle_connections (where: { connection_field: { _eq: 1 } }){
       app_role{
         ...appRoleDetails

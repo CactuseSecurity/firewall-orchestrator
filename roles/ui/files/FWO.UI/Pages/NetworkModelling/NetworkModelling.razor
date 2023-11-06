@@ -1,4 +1,5 @@
 @using FWO.Config.Api
+@using FWO.Ui.Display
 
 @page "/networkmodelling"
 @attribute [Authorize(Roles = "admin, modeller, auditor")]
@@ -15,14 +16,14 @@
         <label class="col-form-label">@(userConfig.GetText("application")):</label>
         @if(singleApp)
         {
-            <label class="col-form-label text-primary ml-2">@selectedApp.Name</label>
+            <label class="col-form-label text-primary ml-2">@ModellingDisplay.DisplayApp(selectedApp)</label>
         }
         else
         {
             <div class="col-sm-2">
                 <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedApp" Elements="apps">
                     <ElementTemplate Context="app">
-                        @app.Name
+                        @ModellingDisplay.DisplayApp(app)
                     </ElementTemplate>
                 </Dropdown>
             </div>
@@ -36,8 +37,11 @@
     {
         <div class="form-group row m-2">
             <h5>@(userConfig.GetText("comm_profile"))</h5>
-            <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddConn">@(userConfig.GetText("add_connection"))</button>
-            <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddInterface">@(userConfig.GetText("add_interface"))</button>
+            @if(appActive)
+            {
+                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddConn">@(userConfig.GetText("add_connection"))</button>
+                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddInterface">@(userConfig.GetText("add_interface"))</button>
+            }
         </div>
         <div class="m-2">
             <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="coproOfApp" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
@@ -47,8 +51,11 @@
                         <Template>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowDetails(context)">@(userConfig.GetText("details"))</button>
-                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditConn(context)">@(userConfig.GetText("edit"))</button>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteConnection(context)">@(userConfig.GetText("delete"))</button>
+                                @if(appActive)
+                                {
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditConn(context)">@(userConfig.GetText("edit"))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteConnection(context)">@(userConfig.GetText("delete"))</button>
+                                }
                             </div>
                         </Template>
                     </Column>
@@ -111,6 +118,7 @@
     private bool DeleteConnMode = false;
     private bool readOnly = false;
     private string deleteMessage = "";
+    private bool appActive = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -149,6 +157,7 @@
             coproOfApp = await apiConnection.SendQueryAsync<List<ModellingConnection>>(FWO.Api.Client.Queries.ModellingQueries.getConnections, queryParam);
             actConn = coproOfApp.FirstOrDefault() ?? new ModellingConnection();
             appSelected = true;
+            appActive = selectedApp.Active;
         }
         catch (Exception exception)
         {

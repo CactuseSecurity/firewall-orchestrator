@@ -1033,7 +1033,15 @@ INSERT INTO txt VALUES ('save_app_server', 	    'English',	'Save App Server');
 INSERT INTO txt VALUES ('delete_app_server', 	'German',	'App Server l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_server', 	'English',	'Delete App Server');
 INSERT INTO txt VALUES ('created_by',		    'German', 	'Erstellt von');
-INSERT INTO txt VALUES ('created_by',		    'English', 	'Creatd by');
+INSERT INTO txt VALUES ('created_by',		    'English', 	'Created by');
+INSERT INTO txt VALUES ('log_change',		    'German', 	'&Auml;nderung loggen');
+INSERT INTO txt VALUES ('log_change',		    'English', 	'Log Change');
+INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie');
+INSERT INTO txt VALUES ('show_history',		    'English', 	'Show History');
+INSERT INTO txt VALUES ('changed_by',		    'German', 	'Ge&auml;ndert von');
+INSERT INTO txt VALUES ('changed_by',		    'English', 	'Changed by');
+INSERT INTO txt VALUES ('object_id',           'German', 	'Objekt-Id');
+INSERT INTO txt VALUES ('object_id',           'English', 	'Object Id');
 
 
 -- settings
@@ -1800,6 +1808,7 @@ INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
+
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
 INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');

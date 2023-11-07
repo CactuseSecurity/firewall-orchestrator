@@ -3,12 +3,6 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public enum ConnectionField
-    {
-        Source = 1,
-        Destination = 2
-    }
-
     public class ModellingConnection
     {
         [JsonProperty("id"), JsonPropertyName("id")]

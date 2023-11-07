@@ -1516,12 +1516,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "connection",
-                  "using": {
-                    "foreign_key_constraint_on": "connection_id"
-                  }
-                },
-                {
                   "name": "owner",
                   "using": {
                     "foreign_key_constraint_on": "app_id"
@@ -1534,11 +1528,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "id",
+                      "object_id",
+                      "changer",
+                      "change_text",
                       "app_id",
-                      "change",
-                      "change_time",
-                      "connection_id",
-                      "id"
+                      "change_type",
+                      "object_type",
+                      "change_time"
                     ]
                   },
                   "comment": ""
@@ -1549,10 +1546,13 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "connection_id",
                       "id",
-                      "change",
+                      "object_id",
+                      "changer",
+                      "change_text",
                       "app_id",
+                      "change_type",
+                      "object_type",
                       "change_time"
                     ],
                     "filter": {}
@@ -1563,10 +1563,13 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "connection_id",
                       "id",
-                      "change",
+                      "object_id",
+                      "changer",
+                      "change_text",
                       "app_id",
+                      "change_type",
+                      "object_type",
                       "change_time"
                     ],
                     "filter": {}
@@ -1614,18 +1617,6 @@
                       "column": "connection_id",
                       "table": {
                         "name": "appserver_connection",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "change_histories",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "connection_id",
-                      "table": {
-                        "name": "change_history",
                         "schema": "modelling"
                       }
                     }

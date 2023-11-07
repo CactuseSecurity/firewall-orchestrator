@@ -30,6 +30,11 @@
             <button type="button" class="btn btn-sm btn-primary" @onclick="InitApp">@(userConfig.GetText("select"))</button>
         }
         <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button>
+        <AuthorizeView Roles="admin, auditor">
+            <Authorized>
+                <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
+            </Authorized>
+        </AuthorizeView>
         @* <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
     </div>
     <hr />
@@ -96,6 +101,7 @@
 }
 <EditConn @bind-Display="EditConnMode" Application="@selectedApp" ConnHandler="connHandler"/>
 <ConfirmDelete @bind-Display="DeleteConnMode" PerformAction="DeleteConnection" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@deleteMessage"/>
+<ShowHistory @bind-Display="showHistory"/>
 
 @code
 {
@@ -119,6 +125,7 @@
     private bool readOnly = false;
     private string deleteMessage = "";
     private bool appActive = false;
+    private bool showHistory = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -234,6 +241,7 @@
         {
             if((await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.deleteConnection, new { id = actConn.Id })).AffectedRows > 0)
             {
+                await LogChange(ModellingTypes.ChangeType.Delete, actConn.Id, $"Deleted {(actConn.IsInterface? "Interface" : "Connection")}: {actConn.Name}");
                 coproOfApp.Remove(actConn);
                 DeleteConnMode = false;
             }
@@ -245,6 +253,27 @@
         StateHasChanged();
     }
 
+    private async Task LogChange(ModellingTypes.ChangeType changeType, long objId, string text)
+    {
+        try
+        {
+            var Variables = new
+            {
+                appId = selectedApp.Id,
+                changeType = (int)changeType,
+                objectType = (int)ModellingTypes.ObjectType.Connection,
+                objectId = objId,
+                changeText = text,
+                changer = userConfig.User.Name
+            };
+            await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addHistoryEntry, Variables);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("log_change"), "", true);
+        }
+    }
+
     private string getTableRowClass(ModellingConnection conn)
     {
         if(conn.IsInterface)
@@ -252,6 +281,11 @@
             return "bg-secondary";
         }
         return "";
+    }
+
+    private async Task ShowHistory()
+    {
+        showHistory = true;
     }
 
     private async Task Report()

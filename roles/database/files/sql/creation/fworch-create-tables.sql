@@ -1411,8 +1411,11 @@ create table modelling.service_connection -- (used only if settings flag is set)
 create table modelling.change_history
 (
 	id BIGSERIAL PRIMARY KEY,
-	change_time Timestamp,
 	app_id int,
-    connection_id bigint,
-	change Varchar
+	change_type int,
+	object_type int,
+    object_id bigint,
+	change_text Varchar,
+	changer Varchar,
+	change_time Timestamp default now()
 );

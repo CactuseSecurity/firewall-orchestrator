@@ -59,6 +59,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string addServiceToServiceGroup;
         public static readonly string removeServiceFromServiceGroup;
 
+        public static readonly string getHistory;
+        public static readonly string addHistoryEntry;
+
 
         static ModellingQueries()
         {
@@ -119,6 +122,9 @@ namespace FWO.Api.Client.Queries
                 deleteServiceGroup = File.ReadAllText(QueryPath + "modelling/deleteServiceGroup.graphql");
                 addServiceToServiceGroup = File.ReadAllText(QueryPath + "modelling/addServiceToServiceGroup.graphql");
                 removeServiceFromServiceGroup = File.ReadAllText(QueryPath + "modelling/removeServiceFromServiceGroup.graphql");
+
+                getHistory = File.ReadAllText(QueryPath + "modelling/getHistory.graphql");
+                addHistoryEntry = File.ReadAllText(QueryPath + "modelling/addHistoryEntry.graphql");
             }
             catch (Exception exception)
             {

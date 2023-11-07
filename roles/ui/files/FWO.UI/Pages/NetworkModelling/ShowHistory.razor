@@ -1,0 +1,72 @@
+﻿@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("show_history") )" Show="@Display" XLarge="true" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingHistoryEntry" Items="history" PageSize="0" ColumnReorder="true">
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_type"))" Field="@(x => x.ChangeType)" Sortable="true">
+                    <Template>
+                        @(Enum.GetName(typeof(ModellingTypes.ChangeType), context.ChangeType))
+                    </Template>
+                </Column>
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true">
+                    <Template>
+                        @(Enum.GetName(typeof(ModellingTypes.ObjectType), context.ObjectType))
+                    </Template>
+                </Column>
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.ChangeText)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("changed_by"))" Field="@(x => x.Changer)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_time"))" Field="@(x => x.ChangeTime)" Sortable="true" Filterable="true" />
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    private List<ModellingHistoryEntry> history = new();
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display)
+        {
+            try
+            {
+                history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistory);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

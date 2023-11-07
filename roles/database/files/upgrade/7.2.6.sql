@@ -131,10 +131,13 @@ create table if not exists modelling.service_connection -- (used only if setting
 create table if not exists modelling.change_history
 (
 	id BIGSERIAL PRIMARY KEY,
-	change_time Timestamp,
 	app_id int,
-    connection_id bigint,
-	change Varchar
+	change_type int,
+	object_type int,
+    object_id bigint,
+	change_text Varchar,
+	changer Varchar,
+	change_time Timestamp default now()
 );
 
 
@@ -158,7 +161,6 @@ ALTER TABLE modelling.service_group_connection DROP CONSTRAINT IF EXISTS modelli
 ALTER TABLE modelling.service_group_connection DROP CONSTRAINT IF EXISTS modelling_service_group_connection_connection_foreign_key;
 ALTER TABLE modelling.service_connection DROP CONSTRAINT IF EXISTS modelling_service_connection_service_foreign_key;
 ALTER TABLE modelling.service_connection DROP CONSTRAINT IF EXISTS modelling_service_connection_connection_foreign_key;
-ALTER TABLE modelling.change_history DROP CONSTRAINT IF EXISTS modelling_change_history_connection_foreign_key;
 ALTER TABLE modelling.change_history DROP CONSTRAINT IF EXISTS modelling_change_history_owner_foreign_key;
 
 ALTER TABLE modelling.area_subnet ADD CONSTRAINT modelling_area_subnet_area_foreign_key FOREIGN KEY (area_id) REFERENCES modelling.area(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -181,6 +183,5 @@ ALTER TABLE modelling.service_group_connection ADD CONSTRAINT modelling_service_
 ALTER TABLE modelling.service_group_connection ADD CONSTRAINT modelling_service_group_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_connection ADD CONSTRAINT modelling_service_connection_service_foreign_key FOREIGN KEY (service_id) REFERENCES modelling.service(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_connection ADD CONSTRAINT modelling_service_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE modelling.change_history ADD CONSTRAINT modelling_change_history_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.change_history ADD CONSTRAINT modelling_change_history_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 

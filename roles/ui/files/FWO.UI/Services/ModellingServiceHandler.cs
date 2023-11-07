@@ -6,27 +6,18 @@ using FWO.Api.Client.Queries;
 
 namespace FWO.Ui.Services
 {
-    public class ModellingServiceHandler
+    public class ModellingServiceHandler : ModellingHandlerBase
     {
-        public FwoOwner Application { get; set; } = new();
         public ModellingService ActService { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
-        public bool AddMode { get; set; } = false;
-        private readonly ApiConnection ApiConnection;
-        private readonly UserConfig userConfig;
-        private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
 
         public ModellingServiceHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             ModellingService service, List<ModellingService> availableServices, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi)
         {
-            ApiConnection = apiConnection;
-            this.userConfig = userConfig;
-            Application = application;
             ActService = service;
             AvailableServices = availableServices;
-            AddMode = addMode;
-            DisplayMessageInUi = displayMessageInUi;
         }
         
         public async Task<bool> Save()
@@ -79,10 +70,11 @@ namespace FWO.Ui.Services
                     portEnd = ActService.PortEnd,
                     protoId = ActService.Protocol?.Id
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newService, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newService, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActService.Id = returnIds[0].NewId;
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Service, ActService.Id, $"New Service: {ActService.Name}");
                     AvailableServices.Add(ActService);
                 }
             }
@@ -105,7 +97,8 @@ namespace FWO.Ui.Services
                     portEnd = ActService.PortEnd,
                     protoId = ActService.Protocol?.Id
                 };
-                await ApiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateService, Variables);
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateService, Variables);
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Service, ActService.Id, $"Updated Service: {ActService.Name}");
             }
             catch (Exception exception)
             {

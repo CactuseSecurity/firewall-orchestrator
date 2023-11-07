@@ -14,7 +14,8 @@
             Update = 2,
             Delete = 3,
             Assign = 4,
-            Disassign = 5
+            Disassign = 5,
+            MarkDeleted = 6
         }
 
         public enum ObjectType

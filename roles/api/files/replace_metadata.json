@@ -1091,36 +1091,6 @@
             },
             {
               "table": {
-                "name": "app_zone",
-                "schema": "modelling"
-              },
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "name",
-                      "id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "name",
-                      "id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
                 "name": "nwgroup_connection",
                 "schema": "modelling"
               },

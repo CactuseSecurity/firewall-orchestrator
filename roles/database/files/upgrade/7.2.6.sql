@@ -73,20 +73,20 @@ create table if not exists modelling.selected_objects
 	nwgroup_id bigint
 );
 
-create table modelling.nwobject_nwgroup
+create table if not exists modelling.nwobject_nwgroup
 (
     nwobject_id bigint,
     nwgroup_id bigint
 );
 
-create table modelling.nwgroup_connection
+create table if not exists modelling.nwgroup_connection
 (
     nwgroup_id bigint,
     connection_id int,
 	connection_field int -- enum src=1, dest=2, ...
 );
 
-create table modelling.nwobject_connection -- (used only if settings flag is set)
+create table if not exists modelling.nwobject_connection -- (used only if settings flag is set)
 (
     nwobject_id bigint,
     connection_id int,

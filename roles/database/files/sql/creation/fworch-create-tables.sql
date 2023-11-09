@@ -1345,7 +1345,7 @@ create table modelling.connection
 	creator Varchar,
 	creation_date timestamp default now()
 );
-create table if not exists modelling.selected_objects
+create table modelling.selected_objects
 (
 	app_id int,
 	nwgroup_id bigint

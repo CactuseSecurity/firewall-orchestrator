@@ -1,6 +1,7 @@
 fragment serviceDetails on modelling_service {
   id
   name
+  is_global
   port
   port_end
   proto_id

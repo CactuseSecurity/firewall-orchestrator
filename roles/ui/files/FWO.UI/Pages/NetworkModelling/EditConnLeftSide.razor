@@ -108,12 +108,12 @@
                 @if(selectedAppRoles.Length == 1)
                 {
                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => {ConnHandler.EditAppRole(ResolveAppRole(selectedAppRoles).First()); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_app_role"))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedAppRoles).First()); selectedAppRoles = new long[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedAppRoles).First()); selectedAppRoles = new int[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                 }
             </div>
         </div>
         <br><br>
-        @if(userConfig.AllowServiceInConn)
+        @* @if(userConfig.AllowServiceInConn)
         {
             @if(!ConnHandler.svcReadOnly)
             {
@@ -138,35 +138,53 @@
                 @if(selectedServices.Length == 1)
                 {
                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => {ConnHandler.EditService(ResolveSvc(selectedServices).First()); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service"))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteService(ResolveSvc(selectedServices).First()); selectedServices = new long[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteService(ResolveSvc(selectedServices).First()); selectedServices = new int[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                 }
                 <br><br>
             }
-        }
+        } *@
         @if(!ConnHandler.svcReadOnly)
         {
-            <h5>@(userConfig.GetText("services_groups"))</h5>
+            <h5>@(userConfig.GetText("services"))</h5>
             <div class="form-group row">
                 <div class="col-sm-9">
-                    <select class="form-control form-control-sm" @bind="selectedServiceGroups" multiple>
-                        @foreach (var grp in ConnHandler.AvailableServiceGroups)
+                    <select class="form-control form-control-sm" @bind="selectedSvcElems" multiple>
+                        @for (int index = 0 ; index < ConnHandler.AvailableSvcElems.Count ; index++)
                         {
-                            <option class="draggable" draggable="true" @ondragstart="() => HandleDragStart(ResolveSvcGrp(selectedServiceGroups))" value="@grp.Id">@ModellingDisplay.DisplayServiceGroup(grp)</option>
+                            <option class="draggable" draggable="true" @ondragstart="() => HandleDragStart(selectedSvcElems)" value="@index">
+                                @(ConnHandler.AvailableSvcElems[index].Key == (int)ModellingTypes.ObjectType.ServiceGroup ? 
+                                ModellingDisplay.DisplayServiceGroup(ResolveSvcGrp(ConnHandler.AvailableSvcElems[index].Value)) : 
+                                ModellingDisplay.DisplayService(ResolveSvc(ConnHandler.AvailableSvcElems[index].Value)))
+                            </option>
                         }
                     </select>
                 </div>
                 <div class="col-sm-3">
-                    @if(!ConnHandler.svcReadOnly && selectedServiceGroups.Length > 0)
+                    @if(selectedSvcElems.Length > 0)
                     {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.ServiceGrpsToConn(ResolveSvcGrp(selectedServiceGroups));ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_service"))</button>
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ServiceElemsToConn(selectedSvcElems); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_service"))</button>
                     }
                 </div>
             </div>
             <button type="button" class="btn btn-sm btn-success"@onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_service_group"))</button>
-            @if(selectedServiceGroups.Length == 1 && ResolveSvcGrp(selectedServiceGroups).First().AppId == Application.Id)
+            @if(selectedSvcElems.Length == 1)
             {
-                <button type="button" class="btn btn-sm btn-warning"@onclick="() => {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedServiceGroups).First()); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service_group"))</button>
-                <button type="button" class="btn btn-sm btn-danger"@onclick="() => {ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedServiceGroups).First()); selectedServiceGroups = new long[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                @if(ConnHandler.AvailableSvcElems[selectedSvcElems[0]].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+                {
+                    if(!ResolveSvcGrp(ConnHandler.AvailableSvcElems[selectedSvcElems[0]].Value).IsGlobal)
+                    {
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => {ConnHandler.EditServiceGroup(ResolveSvcGrp(ConnHandler.AvailableSvcElems[selectedSvcElems[0]].Value)); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service_group"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(ConnHandler.AvailableSvcElems[selectedSvcElems[0]].Value)); selectedSvcElems = new int[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                    }
+                }
+                else
+                {
+                    if(!ResolveSvc(ConnHandler.AvailableSvcElems[selectedSvcElems[0]].Value).IsGlobal)
+                    {
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => {ConnHandler.EditService(ResolveSvc(ConnHandler.AvailableSvcElems[selectedSvcElems[0]].Value)); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ConnHandler.RequestDeleteService(ResolveSvc(ConnHandler.AvailableSvcElems[selectedSvcElems[0]].Value)); selectedSvcElems = new int[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                    }
+                }
             }
         }
     </div>
@@ -208,10 +226,11 @@
 
 
     private long[] selectedAppServers = new long[]{};
-    private long[] selectedAppRoles = new long[]{};
-    private long[] selectedServices = new long[]{};
-    private long[] selectedServiceGroups = new long[]{};
-    private long selectedInterface = 0;
+    private int[] selectedAppRoles = new int[]{};
+    // private int[] selectedServices = new int[]{};
+    // private int[] selectedServiceGroups = new int[]{};
+    private int[] selectedSvcElems = new int[]{};
+    private int selectedInterface = 0;
     private bool FirstTry = true;
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
@@ -225,6 +244,47 @@
                 selectedInterface = ConnHandler.AvailableInterfaces.First().Id;
             }
             FirstTry = false;
+        }
+    }
+
+    private void ServiceElemsToConn(int[] selectedSvcElems)
+    {
+        List<ModellingServiceGroup> serviceGroups = new();
+        List<ModellingService> services = new();
+        foreach(int elem in selectedSvcElems)
+        {
+            if(ConnHandler.AvailableSvcElems[elem].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+            {
+                serviceGroups.Add(ResolveSvcGrp(ConnHandler.AvailableSvcElems[elem].Value));
+            }
+            else
+            {
+                services.Add(ResolveSvc(ConnHandler.AvailableSvcElems[elem].Value));
+            }
+        }
+        if(serviceGroups.Count > 0)
+        {
+            ConnHandler.ServiceGrpsToConn(serviceGroups);
+        }
+        if(services.Count > 0)
+        {
+            ConnHandler.ServicesToConn(services);
+        }
+    }
+
+    private void HandleDragStart(int[] selectedSvcElems)
+    {
+        Container.Clear();
+        foreach(int elem in selectedSvcElems)
+        {
+            if(ConnHandler.AvailableSvcElems[elem].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+            {
+                Container.SvcGrpElements.Add(ResolveSvcGrp(ConnHandler.AvailableSvcElems[elem].Value));
+            }
+            else
+            {
+                Container.SvcElements.Add(ResolveSvc(ConnHandler.AvailableSvcElems[elem].Value));
+            }
         }
     }
 
@@ -246,7 +306,7 @@
         Container.AppRoleElements = selectedAppRoles;
     }
 
-    private void HandleDragStart(List<ModellingService> selectedSvcs)
+    @* private void HandleDragStart(List<ModellingService> selectedSvcs)
     {
         Container.Clear();
         Container.SvcElements = selectedSvcs;
@@ -256,7 +316,7 @@
     {
         Container.Clear();
         Container.SvcGrpElements = selectedSvcGrps;
-    }
+    } *@
 
     private async Task HandleAppServerDropToAppRole(ModellingAppRole appRole)
     {
@@ -268,7 +328,7 @@
         Container.Clear();
     }
 
-    private ModellingConnection ResolveConn(long selectedConn)
+    private ModellingConnection ResolveConn(int selectedConn)
     {
         return ConnHandler.AvailableInterfaces.FirstOrDefault(x => x.Id == selectedConn);
     }
@@ -283,7 +343,7 @@
         return addedIps;
     }
 
-    private List<ModellingAppRole> ResolveAppRole(long[] selectedIds)
+    private List<ModellingAppRole> ResolveAppRole(int[] selectedIds)
     {
         List<ModellingAppRole> addedAppRoles = new();
         foreach(var id in selectedIds)
@@ -293,24 +353,26 @@
         return addedAppRoles;
     }
 
-    private List<ModellingService> ResolveSvc(long[] selectedIds)
+    private ModellingService ResolveSvc(int selectedId)
     {
-        List<ModellingService> addedSvcs = new();
+        return ConnHandler.AvailableServices.FirstOrDefault(x => x.Id == selectedId);
+        @* List<ModellingService> addedSvcs = new();
         foreach(var id in selectedIds)
         {
             addedSvcs.Add(ConnHandler.AvailableServices.FirstOrDefault(x => x.Id == id));
         }
-        return addedSvcs;
+        return addedSvcs; *@
     }
 
-    private List<ModellingServiceGroup> ResolveSvcGrp(long[] selectedIds)
+    private ModellingServiceGroup? ResolveSvcGrp(int selectedId)
     {
-        List<ModellingServiceGroup> addedSvcGrps = new();
+        return ConnHandler.AvailableServiceGroups.FirstOrDefault(x => x.Id == selectedId);
+        @* List<ModellingServiceGroup> addedSvcGrps = new();
         foreach(var id in selectedIds)
         {
             addedSvcGrps.Add(ConnHandler.AvailableServiceGroups.FirstOrDefault(x => x.Id == id));
         }
-        return addedSvcGrps;
+        return addedSvcGrps; *@
     }
 
     private async Task DataInconsistent()

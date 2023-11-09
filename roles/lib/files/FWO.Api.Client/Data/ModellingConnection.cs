@@ -6,7 +6,7 @@ namespace FWO.Api.Data
     public class ModellingConnection
     {
         [JsonProperty("id"), JsonPropertyName("id")]
-        public long Id { get; set; }
+        public int Id { get; set; }
 
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
         public int AppId { get; set; }

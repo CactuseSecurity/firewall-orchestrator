@@ -2,6 +2,7 @@
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 @using System.Text.Json
+@using FWO.Ui.Pages.NetworkModelling
 
 @page "/settings/modelling"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -16,6 +17,8 @@
 
 @if (configData != null)
 {
+    <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="PredefServices">@(userConfig.GetText("predef_services"))</button>
+
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("allowServerInConn")):</label>
         <div class="col-sm-2">
@@ -102,6 +105,7 @@ else
         <span class="sr-only">Loading...</span>
     </div>
 }
+<PredefServices @bind-Display="predefServices"/>
 
 
 
@@ -115,6 +119,8 @@ else
     private List<string> PathsToAdd = new();
     private List<string> PathsToDelete = new();
     private string actPath = "";
+    private bool predefServices = false;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -136,6 +142,11 @@ else
             PathsToAdd.Add(actPath);
             actPath = "";
         }
+    }
+
+    private void PredefServices()
+    {
+        predefServices = true;
     }
 
     private async Task Save()

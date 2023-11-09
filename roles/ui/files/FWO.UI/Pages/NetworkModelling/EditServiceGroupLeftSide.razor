@@ -18,9 +18,12 @@
                 }
             </select>
         </div>
-        <div class="col-sm-2">
-            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {SvcGroupHandler.ServicesToSvcGroup(ResolveSvc(selectedServices)); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("to_services_group"))</button>
-        </div>
+        @if(selectedServices.Length > 0)
+        {
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {SvcGroupHandler.ServicesToSvcGroup(ResolveSvc(selectedServices)); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("to_services_group"))</button>
+            </div>
+        }
     </div>
     <button type="button" class="btn btn-sm btn-success" @onclick="() => {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("add_service"))</button>
     @if(selectedServices.Length == 1)

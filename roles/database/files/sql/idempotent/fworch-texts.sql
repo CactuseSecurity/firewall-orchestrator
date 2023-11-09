@@ -1040,8 +1040,10 @@ INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie'
 INSERT INTO txt VALUES ('show_history',		    'English', 	'Show History');
 INSERT INTO txt VALUES ('changed_by',		    'German', 	'Ge&auml;ndert von');
 INSERT INTO txt VALUES ('changed_by',		    'English', 	'Changed by');
-INSERT INTO txt VALUES ('object_id',           'German', 	'Objekt-Id');
-INSERT INTO txt VALUES ('object_id',           'English', 	'Object Id');
+INSERT INTO txt VALUES ('object_id',            'German', 	'Objekt-Id');
+INSERT INTO txt VALUES ('object_id',            'English', 	'Object Id');
+INSERT INTO txt VALUES ('predef_services',      'German', 	'Vordefinierte Dienste');
+INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined services');
 
 
 -- settings
@@ -1593,14 +1595,14 @@ INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in 
 INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen in &Uuml;bersicht');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
-INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad zur Appdaten-Importskript');
-INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path to App data import script');
+INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad und Name von Appdaten-Import (ohne Endung)');
+INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path and Name of App data import (without ending)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'English', 	'Import App data start at');
-INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad zur Subnetzdaten-Importskript');
-INSERT INTO txt VALUES ('importSubnetDataPath', 'English', 	'Path to subnet data import script');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad und Name von Subnetzdaten-Import (ohne Endung)');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'English', 	'Path and Name of subnet data import (without ending)');
 INSERT INTO txt VALUES ('importSubnetDataSleepTime','German','Import Subnetzdaten-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('importSubnetDataSleepTime','English','Import Subnet data sleep time (in hours)');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten-Start');

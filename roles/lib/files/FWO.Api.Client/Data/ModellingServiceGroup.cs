@@ -3,20 +3,8 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ModellingServiceGroup
+    public class ModellingServiceGroup : ModellingSvcElem
     {
-        [JsonProperty("id"), JsonPropertyName("id")]
-        public long Id { get; set; }
-
-        [JsonProperty("app_id"), JsonPropertyName("app_id")]
-        public int? AppId { get; set; }
-
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string? Name { get; set; }
-
-        [JsonProperty("is_global"), JsonPropertyName("is_global")]
-        public bool IsGlobal { get; set; }
-
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
@@ -32,8 +20,7 @@ namespace FWO.Api.Data
 
         public bool Sanitize()
         {
-            bool shortened = false;
-            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
+            bool shortened = base.Sanitize();
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             return shortened;
         }

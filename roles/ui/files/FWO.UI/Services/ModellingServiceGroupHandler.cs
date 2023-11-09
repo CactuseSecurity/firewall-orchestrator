@@ -11,7 +11,7 @@ namespace FWO.Ui.Services
         public List<ModellingServiceGroup> ServiceGroups { get; set; } = new();
         public ModellingServiceGroup ActServiceGroup { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
-
+        public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
         public ModellingServiceHandler ServiceHandler;
         public List<ModellingService> SvcToAdd { get; set; } = new();
         public List<ModellingService> SvcToDelete { get; set; } = new();
@@ -24,13 +24,14 @@ namespace FWO.Ui.Services
 
         public ModellingServiceGroupHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingServiceGroup> serviceGroups, ModellingServiceGroup serviceGroup, List<ModellingService> availableServices,
-            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
+            List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
             : base (apiConnection, userConfig, application, addMode, displayMessageInUi)
         {
             ServiceGroups = serviceGroups;
             ActServiceGroup = serviceGroup;
             ActServiceGroup.AppId = application.Id;
             AvailableServices = availableServices;
+            AvailableSvcElems = availableSvcElems;
         }
 
         public void ServicesToSvcGroup(List<ModellingService> services)
@@ -60,6 +61,7 @@ namespace FWO.Ui.Services
         {
             try
             {
+                service.IsGlobal = ActServiceGroup.IsGlobal;
                 ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi);
                 EditServiceMode = true;
             }
@@ -82,7 +84,7 @@ namespace FWO.Ui.Services
             {
                 if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteService, new { id = actService.Id })).AffectedRows > 0)
                 {
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Service, actService.Id, $"Deleted Service: {actService.Name}");
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Service, actService.Id, $"Deleted Service: {actService.Name}", Application.Id);
                     AvailableServices.Remove(actService);
                     DeleteServiceMode = false;
                 }
@@ -101,7 +103,7 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_service_group"), userConfig.GetText("U0001"), true);
                 }
-                if(checkServiceGroup())
+                if(CheckServiceGroup())
                 {
                     foreach(var svc in SvcToDelete)
                     {
@@ -130,7 +132,7 @@ namespace FWO.Ui.Services
             return false;
         }
 
-        private bool checkServiceGroup()
+        private bool CheckServiceGroup()
         {
             if(ActServiceGroup.Name == null || ActServiceGroup.Name == "")
             {
@@ -144,19 +146,20 @@ namespace FWO.Ui.Services
         {
             try
             {
+                int? applicationId = ActServiceGroup.IsGlobal ? null : Application.Id;
                 var svcGrpParams = new
                 {
                     name = ActServiceGroup.Name,
-                    appId = Application.Id,
+                    appId = applicationId,
                     comment = ActServiceGroup.Comment,
-                    isGlobal = false,
+                    isGlobal = ActServiceGroup.IsGlobal,
                     creator = userConfig.User.Name
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newServiceGroup, svcGrpParams)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActServiceGroup.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"New Service Group: {ActServiceGroup.Name}");
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"New Service Group: {ActServiceGroup.Name}", Application.Id);
                     foreach(var service in ActServiceGroup.Services)
                     {
                         var svcParams = new
@@ -165,9 +168,10 @@ namespace FWO.Ui.Services
                             serviceGroupId = ActServiceGroup.Id
                         };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceToServiceGroup, svcParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"Added Service {service.Content.Name} to Service Group: {ActServiceGroup.Name}");
+                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"Added Service {service.Content.Name} to Service Group: {ActServiceGroup.Name}", Application.Id);
                     }
                     ServiceGroups.Add(ActServiceGroup);
+                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id));
                 }
             }
             catch (Exception exception)
@@ -184,12 +188,10 @@ namespace FWO.Ui.Services
                 {
                     id = ActServiceGroup.Id,
                     name = ActServiceGroup.Name,
-                    appId = Application.Id,
                     comment = ActServiceGroup.Comment,
-                    isGlobal = false
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateServiceGroup, svcGrpParams);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"Updated Service Group: {ActServiceGroup.Name}");
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"Updated Service Group: {ActServiceGroup.Name}", Application.Id);
                 foreach(var service in SvcToDelete)
                 {
                     var svcParams = new
@@ -198,7 +200,7 @@ namespace FWO.Ui.Services
                         serviceGroupId = ActServiceGroup.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceFromServiceGroup, svcParams);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"Removed Service {service.Name} from Service Group: {ActServiceGroup.Name}");
+                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"Removed Service {service.Name} from Service Group: {ActServiceGroup.Name}", Application.Id);
                 }
                 foreach(var service in SvcToAdd)
                 {
@@ -208,7 +210,7 @@ namespace FWO.Ui.Services
                         serviceGroupId = ActServiceGroup.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceToServiceGroup, svcParams);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"Added Service {service.Name} to Service Group: {ActServiceGroup.Name}");
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, $"Added Service {service.Name} to Service Group: {ActServiceGroup.Name}", Application.Id);
                 }
             }
             catch (Exception exception)

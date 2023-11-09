@@ -241,7 +241,8 @@
         {
             if((await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.deleteConnection, new { id = actConn.Id })).AffectedRows > 0)
             {
-                await LogChange(ModellingTypes.ChangeType.Delete, actConn.Id, $"Deleted {(actConn.IsInterface? "Interface" : "Connection")}: {actConn.Name}");
+                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Connection, actConn.Id, 
+                    $"Deleted {(actConn.IsInterface? "Interface" : "Connection")}: {actConn.Name}", apiConnection, userConfig, selectedApp.Id, DisplayMessageInUi);
                 coproOfApp.Remove(actConn);
                 DeleteConnMode = false;
             }
@@ -251,27 +252,6 @@
             DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
         }
         StateHasChanged();
-    }
-
-    private async Task LogChange(ModellingTypes.ChangeType changeType, long objId, string text)
-    {
-        try
-        {
-            var Variables = new
-            {
-                appId = selectedApp.Id,
-                changeType = (int)changeType,
-                objectType = (int)ModellingTypes.ObjectType.Connection,
-                objectId = objId,
-                changeText = text,
-                changer = userConfig.User.Name
-            };
-            await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addHistoryEntry, Variables);
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("log_change"), "", true);
-        }
     }
 
     private string getTableRowClass(ModellingConnection conn)

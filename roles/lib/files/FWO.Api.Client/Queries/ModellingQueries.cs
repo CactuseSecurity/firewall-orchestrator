@@ -47,6 +47,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string removeAppServerFromAppRole;
 
         public static readonly string getServicesForApp;
+        public static readonly string getGlobalServices;
         public static readonly string newService;
         public static readonly string updateService;
         public static readonly string deleteService;
@@ -111,6 +112,7 @@ namespace FWO.Api.Client.Queries
                 removeAppServerFromAppRole = File.ReadAllText(QueryPath + "modelling/removeAppServerFromAppRole.graphql");
 
                 getServicesForApp = serviceDetailsFragment + File.ReadAllText(QueryPath + "modelling/getServicesForApp.graphql");
+                getGlobalServices = serviceDetailsFragment + File.ReadAllText(QueryPath + "modelling/getGlobalServices.graphql");
                 newService = File.ReadAllText(QueryPath + "modelling/newService.graphql");
                 updateService = File.ReadAllText(QueryPath + "modelling/updateService.graphql");
                 deleteService = File.ReadAllText(QueryPath + "modelling/deleteService.graphql");

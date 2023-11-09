@@ -217,7 +217,7 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActAppRole.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"New App Role: {ActAppRole.Name}");
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"New App Role: {ActAppRole.Name}", Application.Id);
                     foreach(var appServer in ActAppRole.AppServers)
                     {
                         var Vars = new
@@ -226,7 +226,7 @@ namespace FWO.Ui.Services
                             appRoleId = ActAppRole.Id
                         };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Added App Server {appServer.Content.Name} to App Role: {ActAppRole.Name}");
+                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Added App Server {appServer.Content.Name} to App Role: {ActAppRole.Name}", Application.Id);
                     }
                     AppRoles.Add(ActAppRole);
                 }
@@ -250,7 +250,7 @@ namespace FWO.Ui.Services
                     comment = ActAppRole.Comment
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppRole, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Updated App Role: {ActAppRole.Name}");
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Updated App Role: {ActAppRole.Name}", Application.Id);
                 foreach(var appServer in AppServerToDelete)
                 {
                     var Vars = new
@@ -259,7 +259,7 @@ namespace FWO.Ui.Services
                         appRoleId = ActAppRole.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromAppRole, Vars);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Removed App Server {appServer.Name} from App Role: {ActAppRole.Name}");
+                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Removed App Server {appServer.Name} from App Role: {ActAppRole.Name}", Application.Id);
                 }
                 foreach(var appServer in AppServerToAdd)
                 {
@@ -269,7 +269,7 @@ namespace FWO.Ui.Services
                         appRoleId = ActAppRole.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Added App Server {appServer.Name} to App Role: {ActAppRole.Name}");
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Added App Server {appServer.Name} to App Role: {ActAppRole.Name}", Application.Id);
                 }
             }
             catch (Exception exception)

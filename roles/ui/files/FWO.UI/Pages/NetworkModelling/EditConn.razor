@@ -245,13 +245,16 @@
         {
             ConnHandler.InterfaceToConn(Container.ConnElement);
         }
-        else if(Container.SvcElements.Count > 0)
+        else 
         {
-            ConnHandler.ServicesToConn(Container.SvcElements);
-        }
-        else if(Container.SvcGrpElements.Count > 0)
-        {
-            ConnHandler.ServiceGrpsToConn(Container.SvcGrpElements);
+            if(Container.SvcElements.Count > 0)
+            {
+                ConnHandler.ServicesToConn(Container.SvcElements);
+            }
+            if(Container.SvcGrpElements.Count > 0)
+            {
+                ConnHandler.ServiceGrpsToConn(Container.SvcGrpElements);
+            }
         }
         Container.Clear();
     }

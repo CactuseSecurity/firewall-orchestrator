@@ -1793,11 +1793,30 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "app_id",
+                      "id",
+                      "port",
+                      "port_end",
+                      "proto_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "is_global",
                       "name",
                       "app_id",
                       "id",
@@ -1813,6 +1832,7 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "is_global",
                       "name",
                       "app_id",
                       "id",
@@ -1820,6 +1840,34 @@
                       "port_end",
                       "proto_id"
                     ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "app_id",
+                      "id",
+                      "port",
+                      "port_end",
+                      "proto_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
                     "filter": {}
                   },
                   "comment": ""

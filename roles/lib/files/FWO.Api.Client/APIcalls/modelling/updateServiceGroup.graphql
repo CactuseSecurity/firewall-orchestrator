@@ -1,16 +1,12 @@
 mutation updateServiceGroup(
   $id: Int!
   $name: String
-  $appId: Int
-  $isGlobal: Boolean
   $comment: String
   ) {
   update_modelling_service_group_by_pk(
     pk_columns: { id: $id }
     _set: {
       name: $name
-      app_id: $appId
-      is_global: $isGlobal
       comment: $comment
   }) {
     UpdatedId: id

@@ -28,7 +28,7 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_service"), userConfig.GetText("U0001"), true);
                 }
-                if(checkService())
+                if(CheckService())
                 {
                     if(AddMode)
                     {
@@ -48,7 +48,7 @@ namespace FWO.Ui.Services
             return false;
         }
 
-        private bool checkService()
+        private bool CheckService()
         {
             if(ActService.Name == null || ActService.Name == "")
             {
@@ -62,10 +62,12 @@ namespace FWO.Ui.Services
         {
             try
             {
+                int? applicationId = ActService.IsGlobal ? null : Application.Id;
                 var Variables = new
                 {
                     name = ActService.Name,
-                    appId = Application.Id,
+                    appId = applicationId,
+                    isGlobal = ActService.IsGlobal,
                     port = ActService.Port,
                     portEnd = ActService.PortEnd,
                     protoId = ActService.Protocol?.Id
@@ -74,7 +76,7 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActService.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Service, ActService.Id, $"New Service: {ActService.Name}");
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Service, ActService.Id, $"New Service: {ActService.Name}", Application.Id);
                     AvailableServices.Add(ActService);
                 }
             }
@@ -92,13 +94,12 @@ namespace FWO.Ui.Services
                 {
                     id = ActService.Id,
                     name = ActService.Name,
-                    appId = Application.Id,
                     port = ActService.Port,
                     portEnd = ActService.PortEnd,
                     protoId = ActService.Protocol?.Id
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateService, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Service, ActService.Id, $"Updated Service: {ActService.Name}");
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Service, ActService.Id, $"Updated Service: {ActService.Name}", Application.Id);
             }
             catch (Exception exception)
             {

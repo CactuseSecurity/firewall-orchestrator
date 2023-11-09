@@ -9,7 +9,7 @@ namespace FWO.Api.Data
         public long Id { get; set; }
 
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
-        public int AppId { get; set; }
+        public int? AppId { get; set; }
 
         [JsonProperty("change_type"), JsonPropertyName("change_type")]
         public int ChangeType { get; set; }

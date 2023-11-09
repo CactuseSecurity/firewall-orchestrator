@@ -25,13 +25,13 @@ namespace FWO.Ui.Services
             DisplayMessageInUi = displayMessageInUi;
         }
         
-        protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text)
+        protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text, int? applicationId)
         {
             try
             {
                 var Variables = new
                 {
-                    appId = Application.Id,
+                    appId = applicationId,
                     changeType = (int)changeType,
                     objectType = (int)objectType,
                     objectId = objId,
@@ -46,18 +46,40 @@ namespace FWO.Ui.Services
             }
         }
 
+        public static async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text,
+            ApiConnection apiConnection, UserConfig userConfig, int? applicationId, Action<Exception?, string, string, bool> displayMessageInUi)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    appId = applicationId,
+                    changeType = (int)changeType,
+                    objectType = (int)objectType,
+                    objectId = objId,
+                    changeText = text,
+                    changer = userConfig.User.Name
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addHistoryEntry, Variables);
+            }
+            catch (Exception exception)
+            {
+                displayMessageInUi(exception, userConfig.GetText("log_change"), "", true);
+            }
+        }
+
         public async Task<bool> DeleteAppServer(ModellingAppServer appServer, List<ModellingAppServer> AvailableAppServers)
         {
             if(await CheckAlreadyUsed(appServer))
             {
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.markAppServerDeleted, new { id = appServer.Id });
-                await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ObjectType.AppServer, appServer.Id, $"Mark App Server as deleted: {appServer.Name}");
+                await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ObjectType.AppServer, appServer.Id, $"Mark App Server as deleted: {appServer.Name}", Application.Id);
                 appServer.IsDeleted = true;
                 return false;
             }
             else if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppServer, new { id = appServer.Id })).AffectedRows > 0)
             {
-                await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.AppServer, appServer.Id, $"Deleted App Server: {appServer.Name}");
+                await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.AppServer, appServer.Id, $"Deleted App Server: {appServer.Name}", Application.Id);
                 AvailableAppServers.Remove(appServer);
                 return false;
             }

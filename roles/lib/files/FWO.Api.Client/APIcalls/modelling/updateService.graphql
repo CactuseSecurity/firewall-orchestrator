@@ -1,7 +1,6 @@
 mutation updateService(
   $id: Int!
   $name: String
-  $appId: Int
   $port: Int
   $portEnd: Int
   $protoId: Int
@@ -10,7 +9,6 @@ mutation updateService(
     pk_columns: { id: $id }
     _set: {
       name: $name
-      app_id: $appId
       port: $port
       port_end: $portEnd
       proto_id: $protoId

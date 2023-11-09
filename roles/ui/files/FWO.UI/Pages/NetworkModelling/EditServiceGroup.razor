@@ -101,6 +101,7 @@
     private void Close()
     {
         firstTry = true;
+        SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

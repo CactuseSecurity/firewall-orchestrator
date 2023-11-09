@@ -3,7 +3,7 @@ mutation removeAppRoleFromConnection(
   $connectionId: Int!
   $connectionField: Int!
   ) {
-  delete_modelling_approle_connection(where: {approle_id: {_eq: $appRoleId}, connection_id: {_eq: $connectionId}, connection_field: {_eq: $connectionField}}) {
+  delete_modelling_nwgroup_connection(where: {nwgroup_id: {_eq: $appRoleId}, connection_id: {_eq: $connectionId}, connection_field: {_eq: $connectionField}}) {
     affected_rows
   }
 }

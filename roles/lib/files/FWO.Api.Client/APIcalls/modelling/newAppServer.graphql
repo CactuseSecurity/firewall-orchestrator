@@ -5,7 +5,7 @@ mutation newAppServer(
   $subnet: String
   $importSource: String
   ) {
-  insert_modelling_app_server(objects: {
+  insert_modelling_nwobject(objects: {
     name: $name
     app_id: $appId
     ip: $ip

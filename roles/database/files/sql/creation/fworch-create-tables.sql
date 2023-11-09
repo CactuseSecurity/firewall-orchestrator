@@ -1296,7 +1296,8 @@ create schema modelling;
 create table modelling.area
 (
  	id SERIAL PRIMARY KEY,
-	name Varchar NOT NULL UNIQUE
+	name Varchar NOT NULL UNIQUE,
+	is_deleted boolean default false
 );
 
 create table modelling.area_subnet
@@ -1307,25 +1308,27 @@ create table modelling.area_subnet
 	network cidr
 );
 
-create table modelling.app_server
+create table modelling.nwobject
 (
  	id BIGSERIAL PRIMARY KEY,
 	app_id int,
 	name Varchar,
 	ip cidr,
-	subnet Varchar, -- necessary?
-	-- area_id int, --> calculated from subnet
+	ip_end cidr,
+	nw_type int,
 	import_source Varchar default 'manual', 
 	is_deleted boolean default false
 );
 
-create table modelling.app_role
+create table modelling.nwgroup
 (
- 	id SERIAL PRIMARY KEY,
+ 	id BIGSERIAL PRIMARY KEY,
 	app_id int,
-	id_string Varchar, -- prefix format AR... -> settings 
+	id_string Varchar,
 	name Varchar,
 	comment Varchar,
+	group_type int,
+	is_deleted boolean default false,
 	creator Varchar,
 	creation_date timestamp default now()
 );
@@ -1342,29 +1345,28 @@ create table modelling.connection
 	creator Varchar,
 	creation_date timestamp default now()
 );
-
-create table modelling.app_zone -- necessary ?
+create table if not exists modelling.selected_objects
 (
-	id SERIAL PRIMARY KEY,
-	name Varchar
+	app_id int,
+	nwgroup_id bigint
 );
 
-create table modelling.appserver_approle
+create table modelling.nwobject_nwgroup
 (
-    appserver_id bigint,
-    approle_id int
+    nwobject_id bigint,
+    nwgroup_id bigint
 );
 
-create table modelling.approle_connection
+create table modelling.nwgroup_connection
 (
-    approle_id int,
+    nwgroup_id bigint,
     connection_id int,
 	connection_field int -- enum src=1, dest=2, ...
 );
 
-create table modelling.appserver_connection -- (used only if settings flag is set)
+create table modelling.nwobject_connection -- (used only if settings flag is set)
 (
-    appserver_id bigint,
+    nwobject_id bigint,
     connection_id int,
 	connection_field int -- enum src=1, dest=2, ...
 );
@@ -1374,6 +1376,7 @@ create table modelling.service
  	id SERIAL PRIMARY KEY,
 	app_id int,
 	name Varchar,
+	is_global boolean default false,
 	port int,
 	port_end int,
 	proto_id int

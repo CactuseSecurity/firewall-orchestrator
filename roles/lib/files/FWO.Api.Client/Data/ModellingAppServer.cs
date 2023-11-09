@@ -52,7 +52,7 @@ namespace FWO.Api.Data
 
     public class ModellingAppServerWrapper
     {
-        [JsonProperty("app_server"), JsonPropertyName("app_server")]
+        [JsonProperty("nwobject"), JsonPropertyName("nwobject")]
         public ModellingAppServer Content { get; set; } = new();
 
         public static ModellingAppServer[] Resolve(List<ModellingAppServerWrapper> wrappedList)

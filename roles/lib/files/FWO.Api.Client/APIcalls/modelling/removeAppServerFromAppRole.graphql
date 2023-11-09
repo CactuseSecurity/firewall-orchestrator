@@ -2,7 +2,7 @@ mutation removeAppServerFromAppRole(
   $appServerId: bigint!
   $appRoleId: Int!
   ) {
-  delete_modelling_appserver_approle(where: {appserver_id: {_eq: $appServerId}, approle_id: {_eq: $appRoleId}}) {
+  delete_modelling_nwobject_nwgroup(where: {nwobject_id: {_eq: $appServerId}, nwgroup_id: {_eq: $appRoleId}}) {
     affected_rows
   }
 }

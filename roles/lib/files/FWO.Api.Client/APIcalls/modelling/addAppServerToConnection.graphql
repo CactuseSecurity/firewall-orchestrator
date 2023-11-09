@@ -3,13 +3,13 @@ mutation addAppServerToConnection(
   $connectionId: Int!
   $connectionField: Int!
   ) {
-  insert_modelling_appserver_connection(objects: {
-    appserver_id: $appServerId
+  insert_modelling_nwobject_connection(objects: {
+    nwobject_id: $appServerId
     connection_id: $connectionId
     connection_field: $connectionField
   }) {
     returning {
-      newId: appserver_id
+      newId: nwobject_id
     }
   }
 }

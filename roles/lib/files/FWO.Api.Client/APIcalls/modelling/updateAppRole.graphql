@@ -5,7 +5,7 @@ mutation updateAppRole(
   $appId: Int
   $comment: String
   ) {
-  update_modelling_app_role_by_pk(
+  update_modelling_nwgroup_by_pk(
     pk_columns: { id: $id }
     _set: {
       name: $name

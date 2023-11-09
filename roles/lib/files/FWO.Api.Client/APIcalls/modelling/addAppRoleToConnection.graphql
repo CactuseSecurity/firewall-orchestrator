@@ -3,13 +3,13 @@ mutation addAppRoleToConnection(
   $connectionId: Int!
   $connectionField: Int!
   ) {
-  insert_modelling_approle_connection(objects: {
-    approle_id: $appRoleId
+  insert_modelling_nwgroup_connection(objects: {
+    nwgroup_id: $appRoleId
     connection_id: $connectionId
     connection_field: $connectionField
   }) {
     returning {
-      newId: approle_id
+      newId: nwgroup_id
     }
   }
 }

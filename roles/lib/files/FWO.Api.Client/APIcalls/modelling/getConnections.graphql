@@ -8,23 +8,23 @@ query getConnections ($appId: Int!){
     used_interface_id
     creator
     creation_date
-    source_app_roles: approle_connections (where: { connection_field: { _eq: 1 } }){
-      app_role{
+    source_nwgroups: nwgroup_connections (where: { connection_field: { _eq: 1 } }){
+      nwgroup{
         ...appRoleDetails
       }
     }
-    source_app_servers: appserver_connections (where: { connection_field: { _eq: 1 } }){
-      app_server{
+    source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){
+      nwobject{
         ...appServerDetails
       }
     }
-    destination_app_roles: approle_connections (where: { connection_field: { _eq: 2 } }){
-      app_role{
+    destination_nwgroups: nwgroup_connections (where: { connection_field: { _eq: 2 } }){
+      nwgroup{
         ...appRoleDetails
       }
     }
-    destination_app_servers: appserver_connections (where: { connection_field: { _eq: 2 } }){
-      app_server{
+    destination_nwobjects: nwobject_connections (where: { connection_field: { _eq: 2 } }){
+      nwobject{
         ...appServerDetails
       }
     }

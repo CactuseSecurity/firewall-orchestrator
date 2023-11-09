@@ -1,4 +1,4 @@
-fragment appServerDetails on modelling_app_server {
+fragment appServerDetails on modelling_nwobject {
   id
   name
   ip

@@ -1,6 +1,6 @@
 query getAppServerForAppRole ($appRoleId: Int!){
-  modelling_appserver_approle (where: { approle_id: { _eq: $appRoleId } } order_by: { name: asc }){
-    app_server{
+  modelling_nwobject_nwgroup (where: { nwgroup_id: { _eq: $appRoleId } } order_by: { name: asc }){
+    nwobject{
       ...appServerDetails
     }
   }

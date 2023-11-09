@@ -35,16 +35,16 @@ namespace FWO.Api.Data
         [JsonProperty("service_groups"), JsonPropertyName("service_groups")]
         public List<ModellingServiceGroupWrapper> ServiceGroups { get; set; } = new();
 
-        [JsonProperty("source_app_servers"), JsonPropertyName("source_app_servers")]
+        [JsonProperty("source_nwobjects"), JsonPropertyName("source_nwobjects")]
         public List<ModellingAppServerWrapper> SourceAppServers { get; set; } = new();
 
-        [JsonProperty("source_app_roles"), JsonPropertyName("source_app_roles")]
+        [JsonProperty("source_nwgroups"), JsonPropertyName("source_nwgroups")]
         public List<ModellingAppRoleWrapper> SourceAppRoles { get; set; } = new();
 
-        [JsonProperty("destination_app_servers"), JsonPropertyName("destination_app_servers")]
+        [JsonProperty("destination_nwobjects"), JsonPropertyName("destination_nwobjects")]
         public List<ModellingAppServerWrapper> DestinationAppServers { get; set; } = new();
 
-        [JsonProperty("destination_app_roles"), JsonPropertyName("destination_app_roles")]
+        [JsonProperty("destination_nwgroups"), JsonPropertyName("destination_nwgroups")]
         public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = new();
 
         

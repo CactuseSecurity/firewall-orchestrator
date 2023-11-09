@@ -5,7 +5,7 @@ mutation newAppRole(
   $comment: String
   $creator: String
   ) {
-  insert_modelling_app_role(objects: {
+  insert_modelling_nwgroup(objects: {
     name: $name
     id_string: $idString
     app_id: $appId

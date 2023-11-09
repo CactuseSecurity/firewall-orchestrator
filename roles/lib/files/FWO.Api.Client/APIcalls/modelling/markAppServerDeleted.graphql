@@ -1,7 +1,7 @@
 mutation markAppServerDeleted(
   $id: bigint!
   ) {
-  update_modelling_app_server_by_pk(
+  update_modelling_nwobject_by_pk(
     pk_columns: { id: $id }
     _set: {
       is_deleted: true

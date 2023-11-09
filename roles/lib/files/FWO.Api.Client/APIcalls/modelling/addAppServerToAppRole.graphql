@@ -2,12 +2,12 @@ mutation addAppServerToAppRole(
   $appServerId: bigint!
   $appRoleId: Int!
   ) {
-  insert_modelling_appserver_approle(objects: {
-    appserver_id: $appServerId
-    approle_id: $appRoleId
+  insert_modelling_nwobject_nwgroup(objects: {
+    nwobject_id: $appServerId
+    nwgroup_id: $appRoleId
   }) {
     returning {
-      newId: appserver_id
+      newId: nwobject_id
     }
   }
 }

@@ -66,7 +66,7 @@ namespace FWO.Api.Data
         [JsonProperty("creation_date"), JsonPropertyName("creation_date")]
         public DateTime? CreationDate { get; set; }
 
-        [JsonProperty("app_servers"), JsonPropertyName("app_servers")]
+        [JsonProperty("nwobjects"), JsonPropertyName("nwobjects")]
         public List<ModellingAppServerWrapper> AppServers { get; set; } = new();
 
         public ModellingNetworkArea Area { get; set; }
@@ -85,7 +85,7 @@ namespace FWO.Api.Data
     
     public class ModellingAppRoleWrapper
     {
-        [JsonProperty("app_role"), JsonPropertyName("app_role")]
+        [JsonProperty("nwgroup"), JsonPropertyName("nwgroup")]
         public ModellingAppRole Content { get; set; } = new();
 
         public static ModellingAppRole[] Resolve(List<ModellingAppRoleWrapper> wrappedList)

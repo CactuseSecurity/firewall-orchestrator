@@ -1,5 +1,5 @@
 query getAppRolesForAppServer ($id: bigint!){
-  modelling_appserver_approle (where: { appserver_id: { _eq: $id } }){
-    approle_id
+  modelling_nwobject_nwgroup (where: { nwobject_id: { _eq: $id } }){
+    nwgroup_id
   }
 }

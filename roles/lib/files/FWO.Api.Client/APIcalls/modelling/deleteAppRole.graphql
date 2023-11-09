@@ -1,5 +1,5 @@
 mutation deleteAppRole($id: Int!) {
-  delete_modelling_app_role(where: {id: {_eq: $id}}) {
+  delete_modelling_nwgroup(where: {id: {_eq: $id}}) {
     affected_rows
   }
 }

@@ -63,11 +63,11 @@ namespace FWO.Middleware.Server
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
-        /// <summary>
-        /// App Server Subnet
-        /// </summary>
-        [JsonProperty("subnet"), JsonPropertyName("subnet")]
-        public string Subnet { get; set; } = "";
+        // /// <summary>
+        // /// App Server Subnet
+        // /// </summary>
+        // [JsonProperty("subnet"), JsonPropertyName("subnet")]
+        // public string Subnet { get; set; } = "";
 
         /// <summary>
         /// App Server Ip

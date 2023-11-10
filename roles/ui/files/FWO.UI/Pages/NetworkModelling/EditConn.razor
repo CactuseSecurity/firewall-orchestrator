@@ -141,7 +141,7 @@
             {
                 <AuthorizeView Roles="admin, modeller">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { if(await ConnHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await ConnHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -158,6 +158,7 @@
             }
         </div>
     </div>
+    <InProgress Display="workInProgress"/>
 }
 
 @code
@@ -189,7 +190,7 @@
 
     private static string dropzoneClass = "minheight-dropzone bg-secondary dropzone";
     private static string forbiddenDropzoneClass = "minheight-dropzone bg-white";
-
+    private bool workInProgress = false;
 
     protected override void OnParametersSet()
     {
@@ -262,6 +263,7 @@
     private void Close()
     {
         ConnHandler.Close();
+        workInProgress = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

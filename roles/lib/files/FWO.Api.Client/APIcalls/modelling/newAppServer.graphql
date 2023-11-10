@@ -2,16 +2,15 @@ mutation newAppServer(
   $name: String
   $appId: Int
   $ip: cidr
-  $subnet: String
   $importSource: String
   ) {
   insert_modelling_nwobject(objects: {
     name: $name
     app_id: $appId
     ip: $ip
-    subnet: $subnet
     import_source: $importSource
     is_deleted: false
+    nw_type: 1
   }) {
     returning {
       newId: id

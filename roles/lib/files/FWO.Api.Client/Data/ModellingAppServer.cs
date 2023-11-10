@@ -17,9 +17,6 @@ namespace FWO.Api.Data
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string Ip { get; set; } = "";
 
-        [JsonProperty("subnet"), JsonPropertyName("subnet")]
-        public string Subnet { get; set; } = "";
-
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string ImportSource { get; set; } = "";
 

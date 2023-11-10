@@ -615,6 +615,8 @@ namespace FWO.Ui.Services
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceGroupToConnection, svcGrpParams);
                         await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id, $"Added Service Group {serviceGrp.Content.Name} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                     }
+                    ActConn.Creator = userConfig.User.Name;
+                    ActConn.CreationDate = DateTime.Now;
                     Connections.Add(ActConn);
                 }
             }

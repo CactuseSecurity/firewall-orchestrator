@@ -41,7 +41,8 @@
     </Footer>
 </PopUp>
 <EditServiceGroup @bind-Display="EditSvcGrpMode" @bind-SvcGroupHandler="SvcGrpHandler" AddMode="AddSvcGrpMode"/>
-<ConfirmDelete @bind-Display="DeleteSvcGrpMode" PerformAction="async () => {await DeleteServiceGroup(); await Refresh();}" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="DeleteSvcGrpMode" PerformAction="async () => {await DeleteServiceGroup(); StateHasChanged();}" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@deleteMessage"/>
+<InProgress Display="workInProgress"/>
 
 
 @code
@@ -57,7 +58,7 @@
 
 
     public ModellingServiceGroupHandler SvcGrpHandler;
-    FwoOwner dummyApplication = new();  // Todo: Special App for predef Services?
+    private FwoOwner dummyApplication = new();  // Todo: Special App for predef Services?
     public List<ModellingServiceGroup> PredefServiceGroups { get; set; } = new();
     public List<ModellingService> AvailableServices { get; set; } = new();
     public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
@@ -66,18 +67,22 @@
     public bool DeleteSvcGrpMode = false;
     public ModellingServiceGroup ActServiceGroup { get; set; } = new();
     public string deleteMessage = "";
+    private bool workInProgress = false;
+    private bool firstTry = true;
 
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Display)
+        if (Display && firstTry)
         {
             await Refresh();
+            firstTry = false;
         }
     }
 
     public async Task Refresh()
     {
+        workInProgress = true;
         try
         {
             PredefServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups);
@@ -98,6 +103,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
+        workInProgress = false;
     }
 
     public void CreateServiceGroup()
@@ -153,6 +159,7 @@
 
     private void Close()
     {
+        firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

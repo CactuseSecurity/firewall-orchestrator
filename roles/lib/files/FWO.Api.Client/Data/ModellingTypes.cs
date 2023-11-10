@@ -2,6 +2,20 @@
 {
     public static class ModellingTypes
     {
+        public enum NwObjType
+        {
+            AppServer = 1,
+            Network = 2
+        }
+
+        public enum NwGroupType
+        {
+            AppRole = 1,
+            AppZone = 2,
+            NetworkZone = 3,
+            NetworkArea = 4
+        }
+
         public enum ConnectionField
         {
             Source = 1,

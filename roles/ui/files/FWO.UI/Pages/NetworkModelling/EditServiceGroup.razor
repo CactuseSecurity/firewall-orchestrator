@@ -50,7 +50,7 @@
             <div class="btn-group">
                 <AuthorizeView Roles="admin, modeller">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {if(await SvcGroupHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await SvcGroupHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -60,6 +60,7 @@
             </div>
         </Footer>
     </PopUp>
+    <InProgress Display="workInProgress"/>
 }
 
 @code
@@ -82,11 +83,9 @@
     [Parameter]
     public bool AddMode { get; set; } = false;
 
-
     private ModellingDnDContainer Container { get; set; } = new();
     int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
-
-    private bool firstTry = true;
+    private bool workInProgress = false;
 
 
     private async Task HandleSvcDrop()
@@ -100,8 +99,8 @@
 
     private void Close()
     {
-        firstTry = true;
         SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);
+        workInProgress = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

@@ -2,7 +2,6 @@ fragment appServerDetails on modelling_nwobject {
   id
   name
   ip
-  subnet
   import_source
   is_deleted
 }

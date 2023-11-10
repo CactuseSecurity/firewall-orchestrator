@@ -166,10 +166,10 @@
             AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
             AppRoleHandler.ActAppRole.IdStringFreePart = AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
         }
-        SelectAppServerFromArea(newArea);
+        SelectAppServersFromArea(newArea);
     }
 
-    private void SelectAppServerFromArea(ModellingNetworkArea area)
+    private void SelectAppServersFromArea(ModellingNetworkArea area)
     {
         actServers = new List<ModellingAppServer>(){};
         foreach(var server in AppRoleHandler.AvailableAppServers)

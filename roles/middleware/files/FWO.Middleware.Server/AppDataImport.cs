@@ -286,7 +286,7 @@ namespace FWO.Middleware.Server
             return groupDn;
         }
 
-        private async Task<bool> ImportAppServers(ModellingImportAppData incomingApp, int applId)
+        private async Task ImportAppServers(ModellingImportAppData incomingApp, int applId)
         {
             int successCounter = 0;
             int failCounter = 0;
@@ -325,7 +325,6 @@ namespace FWO.Middleware.Server
                 }
             }
             Log.WriteDebug($"Import App Server Data for App {incomingApp.Name}", $"Imported {successCounter} app servers, {failCounter} failed. {deleteCounter} app servers marked as deleted, {deleteFailCounter} failed.");
-            return true;
         }
 
         private async Task<bool> SaveAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource)
@@ -335,12 +334,33 @@ namespace FWO.Middleware.Server
                 ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => x.Name == incomingAppServer.Name);
                 if(existingAppServer == null)
                 {
-                    await NewAppServer(incomingAppServer, appID, impSource);
+                    return await NewAppServer(incomingAppServer, appID, impSource);
                 }
                 else
                 {
-                    await UpdateAppServer(incomingAppServer, appID, impSource, existingAppServer.Id);
+                    return await UpdateAppServer(incomingAppServer, appID, impSource, existingAppServer.Id);
                 }
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Import App Server Data", $"App Server {incomingAppServer.Name} could not be processed.", exc);
+                return false;
+            }
+        }
+
+        private async Task<bool> NewAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource)
+        {
+            try
+            {
+                var Variables = new 
+                {
+                    name = incomingAppServer.Name,
+                    appId = appID,
+                    ip = IPAddressRange.Parse(incomingAppServer.Ip).ToCidrString(),   // todo ?
+                    // subnet = incomingAppServer.Subnet,
+                    importSource = impSource
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAppServer, Variables);
             }
             catch (Exception exc)
             {
@@ -350,31 +370,27 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task NewAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource)
+        private async Task<bool> UpdateAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource, long appServerId)
         {
-            var Variables = new 
+            try
             {
-                name = incomingAppServer.Name,
-                appId = appID,
-                ip = IPAddressRange.Parse(incomingAppServer.Ip).ToCidrString(),   // todo ?
-                subnet = incomingAppServer.Subnet,
-                importSource = impSource
-            };
-            await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAppServer, Variables);
-        }
-
-        private async Task UpdateAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource, long appServerId)
-        {
-            var Variables = new 
+                var Variables = new 
+                {
+                    id = appServerId,
+                    name = incomingAppServer.Name,
+                    appId = appID,
+                    ip = IPAddressRange.Parse(incomingAppServer.Ip).ToCidrString(),   // todo ?
+                    // subnet = incomingAppServer.Subnet,
+                    importSource = impSource
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.updateAppServer, Variables);
+            }
+            catch (Exception exc)
             {
-                id = appServerId,
-                name = incomingAppServer.Name,
-                appId = appID,
-                ip = IPAddressRange.Parse(incomingAppServer.Ip).ToCidrString(),   // todo ?
-                subnet = incomingAppServer.Subnet,
-                importSource = impSource
-            };
-            await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.updateAppServer, Variables);
+                Log.WriteError("Import App Server Data", $"App Server {incomingAppServer.Name} could not be processed.", exc);
+                return false;
+            }
+            return true;
         }
 
         private async Task<bool> MarkDeletedAppServer(ModellingAppServer appServer)

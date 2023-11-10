@@ -844,457 +844,6 @@
             },
             {
               "table": {
-                "name": "nwgroup",
-                "schema": "modelling"
-              },
-              "object_relationships": [
-                {
-                  "name": "owner",
-                  "using": {
-                    "foreign_key_constraint_on": "app_id"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "nwgroup_connections",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nwgroup_id",
-                      "table": {
-                        "name": "nwgroup_connection",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "nwobject_nwgroups",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nwgroup_id",
-                      "table": {
-                        "name": "nwobject_nwgroup",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "comment",
-                      "creator",
-                      "id_string",
-                      "name",
-                      "app_id",
-                      "id",
-                      "creation_date"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "comment",
-                      "creator",
-                      "id_string",
-                      "name",
-                      "app_id",
-                      "id",
-                      "creation_date"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "comment",
-                      "creator",
-                      "id_string",
-                      "name",
-                      "app_id",
-                      "id",
-                      "creation_date"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "update_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "comment",
-                      "creator",
-                      "id_string",
-                      "name",
-                      "app_id",
-                      "id",
-                      "creation_date"
-                    ],
-                    "filter": {},
-                    "check": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "delete_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "nwobject",
-                "schema": "modelling"
-              },
-              "object_relationships": [
-                {
-                  "name": "owner",
-                  "using": {
-                    "foreign_key_constraint_on": "app_id"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "nwobject_nwgroups",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nwobject_id",
-                      "table": {
-                        "name": "nwobject_nwgroup",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "nwobject_connections",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nwobject_id",
-                      "table": {
-                        "name": "nwobject_connection",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "app_id",
-                      "id",
-                      "import_source",
-                      "ip",
-                      "is_deleted",
-                      "name",
-                      "subnet"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "app_id",
-                      "id",
-                      "import_source",
-                      "ip",
-                      "is_deleted",
-                      "name",
-                      "subnet"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "app_id",
-                      "id",
-                      "import_source",
-                      "ip",
-                      "is_deleted",
-                      "name",
-                      "subnet"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "is_deleted",
-                      "import_source",
-                      "name",
-                      "subnet",
-                      "ip",
-                      "app_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "update_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "app_id",
-                      "id",
-                      "import_source",
-                      "ip",
-                      "is_deleted",
-                      "name",
-                      "subnet"
-                    ],
-                    "filter": {},
-                    "check": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "nwgroup_connection",
-                "schema": "modelling"
-              },
-              "object_relationships": [
-                {
-                  "name": "nwgroup",
-                  "using": {
-                    "foreign_key_constraint_on": "nwgroup_id"
-                  }
-                },
-                {
-                  "name": "connection",
-                  "using": {
-                    "foreign_key_constraint_on": "connection_id"
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "nwgroup_id",
-                      "connection_field",
-                      "connection_id"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "nwgroup_id",
-                      "connection_field",
-                      "connection_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "nwgroup_id",
-                      "connection_field",
-                      "connection_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "delete_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "nwobject_nwgroup",
-                "schema": "modelling"
-              },
-              "object_relationships": [
-                {
-                  "name": "nwgroup",
-                  "using": {
-                    "foreign_key_constraint_on": "nwgroup_id"
-                  }
-                },
-                {
-                  "name": "nwobject",
-                  "using": {
-                    "foreign_key_constraint_on": "nwobject_id"
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "nwobject_id",
-                      "nwgroup_id"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "nwobject_id",
-                      "nwgroup_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "nwobject_id",
-                      "nwgroup_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "delete_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "nwobject_connection",
-                "schema": "modelling"
-              },
-              "object_relationships": [
-                {
-                  "name": "nwobject",
-                  "using": {
-                    "foreign_key_constraint_on": "nwobject_id"
-                  }
-                },
-                {
-                  "name": "connection",
-                  "using": {
-                    "foreign_key_constraint_on": "connection_id"
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "nwobject_id",
-                      "connection_field",
-                      "connection_id"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "nwobject_id",
-                      "connection_field",
-                      "connection_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "nwobject_id",
-                      "connection_field",
-                      "connection_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "delete_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
                 "name": "area",
                 "schema": "modelling"
               },
@@ -1318,6 +867,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "is_deleted",
                       "name",
                       "id"
                     ]
@@ -1330,8 +880,9 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "name",
-                      "id"
+                      "id",
+                      "is_deleted",
+                      "name"
                     ],
                     "filter": {}
                   },
@@ -1341,8 +892,9 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "name",
-                      "id"
+                      "id",
+                      "is_deleted",
+                      "name"
                     ],
                     "filter": {}
                   },
@@ -1352,6 +904,7 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "is_deleted",
                       "name",
                       "id"
                     ],
@@ -1365,8 +918,9 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "name",
-                      "id"
+                      "id",
+                      "is_deleted",
+                      "name"
                     ],
                     "filter": {},
                     "check": {}
@@ -1569,6 +1123,18 @@
               ],
               "array_relationships": [
                 {
+                  "name": "connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "used_interface_id",
+                      "table": {
+                        "name": "connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "nwgroup_connections",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -1587,18 +1153,6 @@
                       "column": "connection_id",
                       "table": {
                         "name": "nwobject_connection",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "connections",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "used_interface_id",
-                      "table": {
-                        "name": "connection",
                         "schema": "modelling"
                       }
                     }
@@ -1717,6 +1271,476 @@
                   "comment": ""
                 }
               ]
+            },
+            {
+              "table": {
+                "name": "nwgroup",
+                "schema": "modelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "nwgroup_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwgroup_id",
+                      "table": {
+                        "name": "nwgroup_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "nwobject_nwgroups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwgroup_id",
+                      "table": {
+                        "name": "nwobject_nwgroup",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "comment",
+                      "creator",
+                      "id_string",
+                      "name",
+                      "app_id",
+                      "group_type",
+                      "creation_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "comment",
+                      "creator",
+                      "id_string",
+                      "name",
+                      "app_id",
+                      "group_type",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "comment",
+                      "creator",
+                      "id_string",
+                      "name",
+                      "app_id",
+                      "group_type",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "comment",
+                      "creator",
+                      "id_string",
+                      "name",
+                      "app_id",
+                      "group_type",
+                      "creation_date"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "nwgroup_connection",
+                "schema": "modelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                },
+                {
+                  "name": "nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "nwgroup_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "nwgroup_id",
+                      "connection_field",
+                      "connection_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwgroup_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "nwgroup_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "nwobject",
+                "schema": "modelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "nwobject_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwobject_id",
+                      "table": {
+                        "name": "nwobject_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "nwobject_nwgroups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwobject_id",
+                      "table": {
+                        "name": "nwobject_nwgroup",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "app_id",
+                      "nw_type"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "app_id",
+                      "nw_type"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "app_id",
+                      "nw_type"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "app_id",
+                      "nw_type"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "app_id",
+                      "nw_type"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "nwobject_connection",
+                "schema": "modelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                },
+                {
+                  "name": "nwobject",
+                  "using": {
+                    "foreign_key_constraint_on": "nwobject_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "nwobject_id",
+                      "connection_field",
+                      "connection_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "nwobject_nwgroup",
+                "schema": "modelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "nwgroup_id"
+                  }
+                },
+                {
+                  "name": "nwobject",
+                  "using": {
+                    "foreign_key_constraint_on": "nwobject_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "nwobject_id",
+                      "nwgroup_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "nwgroup_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "nwgroup_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "selected_objects",
+                "schema": "modelling"
+              }
             },
             {
               "table": {
@@ -9040,30 +9064,6 @@
               ],
               "array_relationships": [
                 {
-                  "name": "nwgroups",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "app_id",
-                      "table": {
-                        "name": "nwgroup",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "nwobjects",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "app_id",
-                      "table": {
-                        "name": "nwobject",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "change_histories",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9082,6 +9082,30 @@
                       "column": "app_id",
                       "table": {
                         "name": "connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "nwgroups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "app_id",
+                      "table": {
+                        "name": "nwgroup",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "nwobjects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "app_id",
+                      "table": {
+                        "name": "nwobject",
                         "schema": "modelling"
                       }
                     }

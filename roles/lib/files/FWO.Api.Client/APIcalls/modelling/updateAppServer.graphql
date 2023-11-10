@@ -3,7 +3,6 @@ mutation updateAppServer(
   $name: String
   $appId: Int
   $ip: cidr
-  $subnet: String
   $importSource: String
   ) {
   update_modelling_nwobject_by_pk(
@@ -12,7 +11,6 @@ mutation updateAppServer(
       name: $name
       app_id: $appId
       ip: $ip
-      subnet: $subnet
       import_source: $importSource
       is_deleted: false
   }) {

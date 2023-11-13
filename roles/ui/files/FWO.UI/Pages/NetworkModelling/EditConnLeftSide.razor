@@ -346,7 +346,7 @@
         return ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
     }
 
-    private ModellingAppServer ResolveNwObject(long selectedId)
+    private ModellingNwObject ResolveNwObject(long selectedId)
     {
         return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Id == selectedId);
     }

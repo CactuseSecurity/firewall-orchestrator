@@ -2,7 +2,7 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-
+using FWO.Ui.Display;
 
 namespace FWO.Ui.Services
 {
@@ -11,6 +11,7 @@ namespace FWO.Ui.Services
         public List<ModellingAppRole> AppRoles { get; set; } = new();
         public ModellingAppRole ActAppRole { get; set; } = new();
         public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
+        public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = new();
 
         public ModellingAppServerHandler AppServerHandler;
         public List<ModellingAppServer> AppServerToAdd { get; set; } = new();
@@ -25,11 +26,12 @@ namespace FWO.Ui.Services
 
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
-            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
+            List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
             : base (apiConnection, userConfig, application, addMode, displayMessageInUi)
         {
             AppRoles = appRoles;
             AvailableAppServers = availableAppServers;
+            AvailableNwElems = availableNwElems;
             ActAppRole = appRole;
             if(!AddMode)
             {
@@ -158,7 +160,7 @@ namespace FWO.Ui.Services
             ModellingAppRole? newestAR = AppRoles.Where(x => x.IdStringFixedPart == idFix).MaxBy(x => x.Id);
             if(newestAR != null)
             {
-                if(Int32.TryParse(newestAR.IdStringFreePart, out int aRNumber))
+                if(int.TryParse(newestAR.IdStringFreePart, out int aRNumber))
                 {
                     aRNumber++;
                     while(aRNumber <= maxNumbers)
@@ -185,7 +187,8 @@ namespace FWO.Ui.Services
 
         public string GetFixedAppRolePart(ModellingNetworkArea area)
         {
-            if(area.Name.Length >= ModellingAppRole.FixedPartLength)
+            // Todo: parametrize in settings
+            if(ModellingAppRole.FixedPartLength >= 2 && area.Name.Length >= ModellingAppRole.FixedPartLength)
             {
                 return area.Name.Substring(0, ModellingAppRole.FixedPartLength).Remove(0, 2).Insert(0, "AR");
             }
@@ -217,7 +220,8 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActAppRole.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"New App Role: {ActAppRole.Name}", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                        $"New App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
                     foreach(var appServer in ActAppRole.AppServers)
                     {
                         var Vars = new
@@ -226,9 +230,11 @@ namespace FWO.Ui.Services
                             appRoleId = ActAppRole.Id
                         };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Added App Server {appServer.Content.Name} to App Role: {ActAppRole.Name}", Application.Id);
+                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                            $"Added App Server {ModellingDisplay.DisplayAppServer(appServer.Content)} to App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
                     }
                     AppRoles.Add(ActAppRole);
+                    AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ObjectType.AppRole, ActAppRole.Id));
                 }
             }
             catch (Exception exception)
@@ -250,7 +256,8 @@ namespace FWO.Ui.Services
                     comment = ActAppRole.Comment
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppRole, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Updated App Role: {ActAppRole.Name}", Application.Id);
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                    $"Updated App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
                 foreach(var appServer in AppServerToDelete)
                 {
                     var Vars = new
@@ -259,7 +266,8 @@ namespace FWO.Ui.Services
                         appRoleId = ActAppRole.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromAppRole, Vars);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Removed App Server {appServer.Name} from App Role: {ActAppRole.Name}", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                        $"Removed App Server {ModellingDisplay.DisplayAppServer(appServer)} from App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
                 }
                 foreach(var appServer in AppServerToAdd)
                 {
@@ -269,7 +277,8 @@ namespace FWO.Ui.Services
                         appRoleId = ActAppRole.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id, $"Added App Server {appServer.Name} to App Role: {ActAppRole.Name}", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                        $"Added App Server {ModellingDisplay.DisplayAppServer(appServer)} to App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
                 }
             }
             catch (Exception exception)

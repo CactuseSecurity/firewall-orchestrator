@@ -4,6 +4,7 @@ fragment appRoleDetails on modelling_nwgroup {
   id_string
   name
   comment
+  is_deleted
   creator
   creation_date
 }

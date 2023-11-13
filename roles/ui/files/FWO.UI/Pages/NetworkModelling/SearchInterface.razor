@@ -1,0 +1,71 @@
+﻿@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, auditor, modeller")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("search_interface"))" Show="@Display" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
+                <div class="col-sm-9">
+                    <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="selectedInterface" ElementToString="@(i => i.Name)" Elements="availableInterfaces" Nullable="true">
+                        <ElementTemplate Context="inter">
+                            @inter.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-success" @onclick="() => {Interface = selectedInterface; InterfaceChanged.InvokeAsync(Interface); Close();}">@(userConfig.GetText("select"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public ModellingConnection? Interface { get; set; }
+
+    [Parameter]
+    public EventCallback<ModellingConnection> InterfaceChanged { get; set; }
+
+    private List<ModellingConnection> availableInterfaces { get; set; } = new();
+    private ModellingConnection? selectedInterface;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            availableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

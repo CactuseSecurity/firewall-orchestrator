@@ -3,23 +3,17 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ModellingAppRole
+    public class ModellingAppRole : ModellingNwObject
     {
-        [JsonProperty("id"), JsonPropertyName("id")]
-        public long Id { get; set; }
-
-        [JsonProperty("app_id"), JsonPropertyName("app_id")]
-        public int AppId { get; set; }
-
         [JsonProperty("id_string"), JsonPropertyName("id_string")]
         public string IdString { get; set; } = "";
-        public string IdStringFixedPart 
+        public string IdStringFixedPart
         { 
-            get 
+            get
             { 
                 return IdString.Length >= FixedPartLength ? IdString.Substring(0, FixedPartLength) : IdString;
             }
-            set 
+            set
             { 
                 if(IdString.Length >= FixedPartLength)
                 {
@@ -34,10 +28,10 @@ namespace FWO.Api.Data
         public string IdStringFreePart
         {
             get
-            { 
+            {
                 return IdString.Length >= FixedPartLength ? IdString.Substring(FixedPartLength) : "";
             }
-            set 
+            set
             {
                 if(IdString.Length >= FixedPartLength)
                 {
@@ -53,9 +47,6 @@ namespace FWO.Api.Data
                 }
             }
         }
-
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
 
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
@@ -75,9 +66,8 @@ namespace FWO.Api.Data
 
         public bool Sanitize()
         {
-            bool shortened = false;
+            bool shortened = base.Sanitize();
             IdString = Sanitizer.SanitizeMand(IdString, ref shortened);
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             return shortened;
         }

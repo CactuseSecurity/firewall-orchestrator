@@ -1,5 +1,5 @@
 mutation removeAppRoleFromConnection(
-  $appRoleId: Int!
+  $appRoleId: bigint!
   $connectionId: Int!
   $connectionField: Int!
   ) {

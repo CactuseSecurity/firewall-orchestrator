@@ -1,42 +1,5 @@
 query getConnections ($appId: Int!){
   modelling_connection (where: { app_id: { _eq: $appId } } order_by: { name: asc }){
-    id
-    app_id
-    name
-    reason
-    is_interface
-    used_interface_id
-    creator
-    creation_date
-    source_nwgroups: nwgroup_connections (where: { connection_field: { _eq: 1 } }){
-      nwgroup{
-        ...appRoleDetails
-      }
-    }
-    source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){
-      nwobject{
-        ...appServerDetails
-      }
-    }
-    destination_nwgroups: nwgroup_connections (where: { connection_field: { _eq: 2 } }){
-      nwgroup{
-        ...appRoleDetails
-      }
-    }
-    destination_nwobjects: nwobject_connections (where: { connection_field: { _eq: 2 } }){
-      nwobject{
-        ...appServerDetails
-      }
-    }
-    service_groups: service_group_connections{
-      service_group{
-        ...serviceGroupDetails
-      }
-    }
-    services: service_connections{
-      service{
-        ...serviceDetails
-      }
-    }
+    ...connectionDetails
   }
 }

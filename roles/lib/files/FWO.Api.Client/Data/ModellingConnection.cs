@@ -47,7 +47,31 @@ namespace FWO.Api.Data
         [JsonProperty("destination_nwgroups"), JsonPropertyName("destination_nwgroups")]
         public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = new();
 
-        
+
+        public bool SrcFromInterface { get; set; } = false;
+        public bool DstFromInterface { get; set; } = false;
+
+        public ModellingConnection()
+        {}
+
+        public ModellingConnection(ModellingConnection conn)
+        {
+           Id = conn.Id;
+           AppId = conn.AppId;
+           Name = conn.Name;
+           Reason = conn.Reason;
+           IsInterface = conn.IsInterface;
+           UsedInterfaceId = conn.UsedInterfaceId;
+           Creator = conn.Creator;
+           CreationDate = conn.CreationDate;
+           Services = new List<ModellingServiceWrapper>(conn.Services);
+           ServiceGroups = new List<ModellingServiceGroupWrapper>(conn.ServiceGroups);
+           SourceAppServers = new List<ModellingAppServerWrapper>(conn.SourceAppServers);
+           SourceAppRoles = new List<ModellingAppRoleWrapper>(conn.SourceAppRoles);
+           DestinationAppServers = new List<ModellingAppServerWrapper>(conn.DestinationAppServers);
+           DestinationAppRoles = new List<ModellingAppRoleWrapper>(conn.DestinationAppRoles);
+        }
+
         public bool Sanitize()
         {
             bool shortened = false;

@@ -1,5 +1,5 @@
 mutation addAppRoleToConnection(
-  $appRoleId: Int!
+  $appRoleId: bigint!
   $connectionId: Int!
   $connectionField: Int!
   ) {

@@ -3,6 +3,7 @@ using FWO.Config.Api;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Ui.Display;
 
 
 namespace FWO.Ui.Services
@@ -74,7 +75,8 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActAppServer.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppServer, ActAppServer.Id, $"New App Server: {ActAppServer.Name}", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppServer, ActAppServer.Id,
+                        $"New App Server: {ModellingDisplay.DisplayAppServer(ActAppServer)}", Application.Id);
                     AvailableAppServers.Add(ActAppServer);
                 }
             }
@@ -97,7 +99,8 @@ namespace FWO.Ui.Services
                     importSource = GlobalConfig.kManual  // todo
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppServer, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppServer, ActAppServer.Id, $"Updated App Server: {ActAppServer.Name}", Application.Id);
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppServer, ActAppServer.Id,
+                    $"Updated App Server: {ModellingDisplay.DisplayAppServer(ActAppServer)}", Application.Id);
             }
             catch (Exception exception)
             {

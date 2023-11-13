@@ -2,6 +2,7 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Ui.Display;
 
 
 namespace FWO.Ui.Services
@@ -76,7 +77,8 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActService.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Service, ActService.Id, $"New Service: {ActService.Name}", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Service, ActService.Id,
+                        $"New Service: {ModellingDisplay.DisplayService(ActService)}", Application.Id);
                     AvailableServices.Add(ActService);
                 }
             }
@@ -99,7 +101,8 @@ namespace FWO.Ui.Services
                     protoId = ActService.Protocol?.Id
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateService, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Service, ActService.Id, $"Updated Service: {ActService.Name}", Application.Id);
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Service, ActService.Id,
+                    $"Updated Service: {ModellingDisplay.DisplayService(ActService)}", Application.Id);
             }
             catch (Exception exception)
             {

@@ -12,6 +12,10 @@
     }
     <div style="margin-left: @($"{(ConnHandler.ReadOnly ? 0 : sidebarLeftWidth) + 10}px");">
         <h3>@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface") : userConfig.GetText("connection"))</h3>
+        @if(ConnHandler.ActConn.UsedInterfaceId != null)
+        {
+            <label class="col-sm-12">@(userConfig.GetText("used_interface")): @ConnHandler.InterfaceName</label>
+        }
         <div class="col-sm-11 border rounded m-2 p-2">
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
@@ -148,7 +152,7 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
             @if(!ConnHandler.ReadOnly)
             {
                 @if(ConnHandler.srcReadOnly || ConnHandler.dstReadOnly)
@@ -258,6 +262,12 @@
             }
         }
         Container.Clear();
+    }
+
+    private void Cancel()
+    {
+        ConnHandler.Reset();
+        Close();
     }
 
     private void Close()

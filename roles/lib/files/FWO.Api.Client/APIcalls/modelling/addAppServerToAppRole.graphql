@@ -1,6 +1,6 @@
 mutation addAppServerToAppRole(
   $appServerId: bigint!
-  $appRoleId: Int!
+  $appRoleId: bigint!
   ) {
   insert_modelling_nwobject_nwgroup(objects: {
     nwobject_id: $appServerId

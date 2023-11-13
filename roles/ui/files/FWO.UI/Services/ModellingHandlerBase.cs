@@ -2,6 +2,7 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Ui.Display;
 
 
 namespace FWO.Ui.Services
@@ -68,25 +69,28 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task<bool> DeleteAppServer(ModellingAppServer appServer, List<ModellingAppServer> AvailableAppServers)
+        public async Task<bool> DeleteAppServer(ModellingAppServer appServer, List<ModellingAppServer> availableAppServers, List<KeyValuePair<int, long>>? availableNwElems = null)
         {
-            if(await CheckAlreadyUsed(appServer))
+            if(await CheckAppServerInUse(appServer))
             {
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.markAppServerDeleted, new { id = appServer.Id });
-                await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ObjectType.AppServer, appServer.Id, $"Mark App Server as deleted: {appServer.Name}", Application.Id);
+                await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ObjectType.AppServer, appServer.Id,
+                    $"Mark App Server as deleted: {ModellingDisplay.DisplayAppServer(appServer)}", Application.Id);
                 appServer.IsDeleted = true;
                 return false;
             }
             else if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppServer, new { id = appServer.Id })).AffectedRows > 0)
             {
-                await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.AppServer, appServer.Id, $"Deleted App Server: {appServer.Name}", Application.Id);
-                AvailableAppServers.Remove(appServer);
+                await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.AppServer, appServer.Id,
+                    $"Deleted App Server: {ModellingDisplay.DisplayAppServer(appServer)}", Application.Id);
+                availableAppServers.Remove(appServer);
+                availableNwElems?.Remove(availableNwElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.AppServer && x.Value == appServer.Id));
                 return false;
             }
             return true;
         }
 
-        private async Task<bool> CheckAlreadyUsed(ModellingAppServer appServer)
+        private async Task<bool> CheckAppServerInUse(ModellingAppServer appServer)
         {
             List<ModellingAppRole> foundAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRolesForAppServer, new { id = appServer.Id });
             if (foundAppRoles.Count == 0)
@@ -96,6 +100,26 @@ namespace FWO.Ui.Services
                 {
                     return false;
                 }
+            }
+            return true;
+        }
+
+        public async Task<bool> DeleteService(ModellingService service, List<ModellingService> availableServices, List<KeyValuePair<int, int>>? availableSvcElems = null)
+        {
+            try
+            {
+                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteService, new { id = service.Id })).AffectedRows > 0)
+                {
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Service, service.Id,
+                        $"Deleted Service: {ModellingDisplay.DisplayService(service)}", Application.Id);
+                    availableServices.Remove(service);
+                    availableSvcElems?.Remove(availableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.Service && x.Value == service.Id));
+                    return false;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_service"), "", true);
             }
             return true;
         }

@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ModellingSvcElem
+    public class ModellingSvcObject
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }

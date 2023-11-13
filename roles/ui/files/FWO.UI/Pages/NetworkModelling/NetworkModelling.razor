@@ -101,7 +101,7 @@
 }
 <EditConn @bind-Display="EditConnMode" Application="@selectedApp" ConnHandler="connHandler"/>
 <ConfirmDelete @bind-Display="DeleteConnMode" PerformAction="DeleteConnection" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@deleteMessage"/>
-<ShowHistory @bind-Display="showHistory"/>
+<ShowHistory @bind-Display="showHistory" Applications="apps"/>
 
 @code
 {
@@ -174,22 +174,22 @@
 
     private List<string> GetSrcNames(ModellingConnection conn)
     {
-        List<string> names = ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.Name);
-        names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.Ip));
+        List<string> names = ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => ModellingDisplay.DisplayAppRole(s));
+        names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => ModellingDisplay.DisplayAppServer(s)));
         return names;
     }
     
     private List<string> GetDstNames(ModellingConnection conn)
     {
-        List<string> names = ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.Name);
-        names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.Ip));
+        List<string> names = ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => ModellingDisplay.DisplayAppRole(s));
+        names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => ModellingDisplay.DisplayAppServer(s)));
         return names;
     }
 
     private List<string> GetSvcNames(ModellingConnection conn)
     {
-        List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.Name);
-        names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.Name));
+        List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => ModellingDisplay.DisplayServiceGroup(s));
+        names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ModellingDisplay.DisplayService(s)));
         return names;
     }
 
@@ -241,7 +241,7 @@
         {
             if((await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.deleteConnection, new { id = actConn.Id })).AffectedRows > 0)
             {
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Connection, actConn.Id, 
+                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Connection, actConn.Id,
                     $"Deleted {(actConn.IsInterface? "Interface" : "Connection")}: {actConn.Name}", apiConnection, userConfig, selectedApp.Id, DisplayMessageInUi);
                 coproOfApp.Remove(actConn);
                 DeleteConnMode = false;

@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using FWO.Ui.Display
 
 @attribute [Authorize(Roles = "admin, auditor")]
 
@@ -145,8 +146,8 @@
         {
             if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
             {
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id, 
-                    $"Deleted Predefined Service Group: {ActServiceGroup.Name}", apiConnection, userConfig, null, DisplayMessageInUi);
+                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
+                    $"Deleted Predefined Service Group: {ModellingDisplay.DisplayServiceGroup(ActServiceGroup)}", apiConnection, userConfig, null, DisplayMessageInUi);
                 PredefServiceGroups.Remove(ActServiceGroup);
                 DeleteSvcGrpMode = false;
             }

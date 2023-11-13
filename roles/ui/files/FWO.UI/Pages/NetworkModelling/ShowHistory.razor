@@ -11,7 +11,11 @@
         @if (Display)
         {
             <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingHistoryEntry" Items="history" PageSize="100" ColumnReorder="true">
-                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true">
+                    <Template>
+                        @(Applications.FirstOrDefault(x => x.Id == context.AppId)?.Name ?? context.AppId.ToString())
+                    </Template>
+                </Column>
                 <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_type"))" Field="@(x => x.ChangeType)" Sortable="true">
                     <Template>
                         @(Enum.GetName(typeof(ModellingTypes.ChangeType), context.ChangeType))
@@ -46,6 +50,9 @@
 
     [Parameter]
     public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public List<FwoOwner> Applications { get; set; } = new();
 
     private List<ModellingHistoryEntry> history = new();
 

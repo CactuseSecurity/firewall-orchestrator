@@ -1,5 +1,5 @@
 mutation updateAppRole(
-  $id: Int!
+  $id: bigint!
   $name: String
   $idString: String
   $appId: Int

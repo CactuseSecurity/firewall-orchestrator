@@ -13,19 +13,21 @@ namespace FWO.Ui.Services
         public ModellingConnection ActConn { get; set; } = new();
         public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         public List<ModellingAppRole> AvailableAppRoles { get; set; } = new();
+        public List<ModellingNwObject> AvailableSelectedObjects { get; set; } = new();
         public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = new();
         public List<ModellingServiceGroup> AvailableServiceGroups { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
         public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
-        // public List<ModellingConnection> AvailableInterfaces { get; set; } = new();
 
         public string InterfaceName = "";
-        public string deleteMessage = "";
+        public string Message = "";
         public bool ReadOnly = false;
 
         public bool srcReadOnly { get; set; } = false;
         public bool dstReadOnly { get; set; } = false;
         public bool svcReadOnly { get; set; } = false;
+
+        public bool SearchNWObjectMode = false;
 
         public ModellingAppServerHandler AppServerHandler;
         public List<ModellingAppServer> SrcAppServerToAdd { get; set; } = new();
@@ -35,6 +37,7 @@ namespace FWO.Ui.Services
         public bool AddAppServerMode = false;
         public bool EditAppServerMode = false;
         public bool DeleteAppServerMode = false;
+        public bool ReactivateAppServerMode = false;
 
         public ModellingAppRoleHandler AppRoleHandler;
         public List<ModellingAppRole> SrcAppRolesToAdd { get; set; } = new();
@@ -83,6 +86,7 @@ namespace FWO.Ui.Services
             {
                 AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
+                //AvailableSelectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwObject>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
                 AvailableServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id });
                 AvailableServiceGroups.AddRange((await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups)).Where(x => x.AppId != Application.Id));
                 AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id });
@@ -130,7 +134,6 @@ namespace FWO.Ui.Services
                         }
                     }  
                 }
-                // AvailableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
             }
             catch (Exception exception)
             {
@@ -213,7 +216,7 @@ namespace FWO.Ui.Services
         public void RequestDeleteAppServer(ModellingAppServer appServer)
         {
             actAppServer = appServer;
-            deleteMessage = userConfig.GetText("U9003") + appServer.Name + "?";
+            Message = userConfig.GetText("U9003") + appServer.Name + "?";
             DeleteAppServerMode = true;
         }
 
@@ -222,6 +225,25 @@ namespace FWO.Ui.Services
             try
             {
                 DeleteAppServerMode = await DeleteAppServer(actAppServer, AvailableAppServers, AvailableNwElems);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_app_server"), "", true);
+            }
+        }
+
+        public void RequestReactivateAppServer(ModellingAppServer appServer)
+        {
+            actAppServer = appServer;
+            Message = userConfig.GetText("U9005") + appServer.Name + "?";
+            ReactivateAppServerMode = true;
+        }
+
+        public async Task ReactivateAppServer()
+        {
+            try
+            {
+                ReactivateAppServerMode = await ReactivateAppServer(actAppServer);
             }
             catch (Exception exception)
             {
@@ -259,6 +281,11 @@ namespace FWO.Ui.Services
             }
         }
 
+        public void SearchNWObject()
+        {
+            SearchNWObjectMode = true;
+        }
+
         public void CreateAppRole()
         {
             AddAppRoleMode = true;
@@ -288,7 +315,7 @@ namespace FWO.Ui.Services
         public void RequestDeleteAppRole(ModellingAppRole appRole)
         {
             actAppRole = appRole;
-            deleteMessage = userConfig.GetText("U9002") + appRole.Name + "?";
+            Message = userConfig.GetText("U9002") + appRole.Name + "?";
             DeleteAppRoleMode = true;
         }
 
@@ -299,7 +326,7 @@ namespace FWO.Ui.Services
                 if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppRole, new { id = actAppRole.Id })).AffectedRows > 0)
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.AppRole, actAppRole.Id,
-                        $"Deleted App Role: {ModellingDisplay.DisplayAppRole(actAppRole)}", Application.Id);
+                        $"Deleted App Role: {actAppRole.Display()}", Application.Id);
                     AvailableAppRoles.Remove(actAppRole);
                     AvailableNwElems.Remove(AvailableNwElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.AppRole && x.Value == actAppRole.Id));
                     DeleteAppRoleMode = false;
@@ -370,7 +397,7 @@ namespace FWO.Ui.Services
         public void RequestDeleteServiceGrp(ModellingServiceGroup serviceGroup)
         {
             actServiceGroup = serviceGroup;
-            deleteMessage = userConfig.GetText("U9004") + serviceGroup.Name + "?";
+            Message = userConfig.GetText("U9004") + serviceGroup.Name + "?";
             DeleteSvcGrpMode = true;
         }
 
@@ -433,7 +460,7 @@ namespace FWO.Ui.Services
         public void RequestDeleteService(ModellingService service)
         {
             actService = service;
-            deleteMessage = userConfig.GetText("U9003") + service.Name + "?";
+            Message = userConfig.GetText("U9003") + service.Name + "?";
             DeleteServiceMode = true;
         }
 
@@ -642,28 +669,28 @@ namespace FWO.Ui.Services
                         var srcParams = new { appServerId = appServer.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, srcParams);
                         await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added App Server {ModellingDisplay.DisplayAppServer(appServer.Content)} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                            $"Added App Server {appServer.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
                     }
                     foreach(var appServer in ActConn.DestinationAppServers)
                     {
                         var dstParams = new { appServerId = appServer.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, dstParams);
                         await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added App Server {ModellingDisplay.DisplayAppServer(appServer.Content)} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                            $"Added App Server {appServer.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
                     }
                     foreach(var appRole in ActConn.SourceAppRoles)
                     {
                         var srcParams = new { appRoleId = appRole.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppRoleToConnection, srcParams);
                         await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added App Role {ModellingDisplay.DisplayAppRole(appRole.Content)} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                            $"Added App Role {appRole.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
                     }
                     foreach(var appRole in ActConn.DestinationAppRoles)
                     {
                         var dstParams = new { appRoleId = appRole.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppRoleToConnection, dstParams);
                         await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added App Role {ModellingDisplay.DisplayAppRole(appRole.Content)} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                            $"Added App Role {appRole.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
                     }
                     foreach(var service in ActConn.Services)
                     {
@@ -711,63 +738,63 @@ namespace FWO.Ui.Services
                 {
                     var srcParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, srcParams);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed App Server {ModellingDisplay.DisplayAppServer(appServer)} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                        $"Removed App Server {appServer.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
                 }
                 foreach(var appServer in SrcAppServerToAdd)
                 {
                     var srcParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, srcParams);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added App Server {ModellingDisplay.DisplayAppServer(appServer)} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                        $"Added App Server {appServer.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
                 }
                 foreach(var appServer in DstAppServerToDelete)
                 {
                     var dstParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, dstParams);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed App Server {ModellingDisplay.DisplayAppServer(appServer)} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                        $"Removed App Server {appServer.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
                 }
                 foreach(var appServer in DstAppServerToAdd)
                 {
                     var dstParams = new { appServerId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, dstParams);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added App Server {ModellingDisplay.DisplayAppServer(appServer)} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                        $"Added App Server {appServer.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
                 }
                 foreach(var appRole in SrcAppRolesToDelete)
                 {
                     var srcParams = new { appRoleId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppRoleFromConnection, srcParams);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed App Role {ModellingDisplay.DisplayAppRole(appRole)} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                        $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
                 }
                 foreach(var appRole in SrcAppRolesToAdd)
                 {
                     var srcParams = new { appRoleId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppRoleToConnection, srcParams);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added App Role {ModellingDisplay.DisplayAppRole(appRole)} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                        $"Added App Role {appRole.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
                 }
                 foreach(var appRole in DstAppRolesToDelete)
                 {
                     var dstParams = new { appRoleId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppRoleFromConnection, dstParams);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed App Role {ModellingDisplay.DisplayAppRole(appRole)} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                        $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
                 }
                 foreach(var appRole in DstAppRolesToAdd)
                 {
                     var dstParams = new { appRoleId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppRoleToConnection, dstParams);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added App Role {ModellingDisplay.DisplayAppRole(appRole)} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                        $"Added App Role {appRole.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
                 }
                 foreach(var service in SvcToDelete)
                 {
                     var svcParams = new { serviceId = service.Id, connectionId = ActConn.Id };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceFromConnection, svcParams);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
                         $"Removed Service {ModellingDisplay.DisplayService(service)} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                 }
                 foreach(var service in SvcToAdd)
@@ -781,7 +808,7 @@ namespace FWO.Ui.Services
                 {
                     var svcGrpParams = new { serviceGroupId = serviceGrp.Id, connectionId = ActConn.Id };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceGroupFromConnection, svcGrpParams);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
                         $"Removed Service Group {ModellingDisplay.DisplayServiceGroup(serviceGrp)} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                 }
                 foreach(var serviceGrp in SvcGrpToAdd)
@@ -821,6 +848,7 @@ namespace FWO.Ui.Services
             SvcToDelete = new List<ModellingService>();
             SvcGrpToAdd = new List<ModellingServiceGroup>();
             SvcGrpToDelete = new List<ModellingServiceGroup>();
+            SearchNWObjectMode = false;
             AddAppRoleMode = false;
             EditAppRoleMode = false;
             DeleteAppRoleMode = false;

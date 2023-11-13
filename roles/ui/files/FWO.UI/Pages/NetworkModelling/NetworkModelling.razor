@@ -100,7 +100,7 @@
     }
 }
 <EditConn @bind-Display="EditConnMode" Application="@selectedApp" ConnHandler="connHandler"/>
-<ConfirmDelete @bind-Display="DeleteConnMode" PerformAction="DeleteConnection" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="DeleteConnMode" PerformAction="DeleteConnection" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@Message"/>
 <ShowHistory @bind-Display="showHistory" Applications="apps"/>
 
 @code
@@ -123,7 +123,7 @@
     private bool EditConnMode = false;
     private bool DeleteConnMode = false;
     private bool readOnly = false;
-    private string deleteMessage = "";
+    private string Message = "";
     private bool appActive = false;
     private bool showHistory = false;
 
@@ -174,15 +174,15 @@
 
     private List<string> GetSrcNames(ModellingConnection conn)
     {
-        List<string> names = ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => ModellingDisplay.DisplayAppRole(s));
-        names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => ModellingDisplay.DisplayAppServer(s)));
+        List<string> names = ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.Display());
+        names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.Display()));
         return names;
     }
     
     private List<string> GetDstNames(ModellingConnection conn)
     {
-        List<string> names = ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => ModellingDisplay.DisplayAppRole(s));
-        names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => ModellingDisplay.DisplayAppServer(s)));
+        List<string> names = ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.Display());
+        names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.Display()));
         return names;
     }
 
@@ -231,7 +231,7 @@
     private void RequestDeleteConnection(ModellingConnection conn)
     {
         actConn = conn;
-        deleteMessage = userConfig.GetText("U9001") + actConn.Name + "?";
+        Message = userConfig.GetText("U9001") + actConn.Name + "?";
         DeleteConnMode = true;
     }
 

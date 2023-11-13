@@ -41,9 +41,7 @@
                     @for (int index = 0 ; index < ConnHandler.AvailableNwElems.Count ; index++)
                     {
                         <option class="draggable" draggable="true" @ondragstart="() => HandleNwDragStart(selectedNwElems)" value="@index">
-                            @(ConnHandler.AvailableNwElems[index].Key == (int)ModellingTypes.ObjectType.AppRole ? 
-                            ModellingDisplay.DisplayAppRole(ResolveAppRole(ConnHandler.AvailableNwElems[index].Value)) : 
-                            ModellingDisplay.DisplayAppServer(ResolveAppServer(ConnHandler.AvailableNwElems[index].Value)))
+                            @ResolveNwObject(ConnHandler.AvailableNwElems[index]).Display()
                         </option>
                     }
                 </select>
@@ -65,6 +63,7 @@
         </div>
         <div class="form-group row">
             <div class="col-sm-12">
+                <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">@(userConfig.GetText("search_nw_object"))</button>
                 <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_app_role"))</button>
                 <AuthorizeView Roles="admin, auditor">
                     <Authorized>
@@ -79,7 +78,7 @@
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => 
                                 {ConnHandler.EditAppRole(ResolveAppRole(ConnHandler.AvailableNwElems[selectedNwElems[0]].Value));
-                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_app_role"))</button>
+                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit"))</button>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
                                 {ConnHandler.RequestDeleteAppRole(ResolveAppRole(ConnHandler.AvailableNwElems[selectedNwElems[0]].Value));
                                 selectedNwElems = new int[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
@@ -94,14 +93,14 @@
                                     @if(ResolveAppServer(ConnHandler.AvailableNwElems[selectedNwElems[0]].Value).IsDeleted)
                                     {
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
-                                            {ConnHandler.ReactivateAppServer(ResolveAppServer(ConnHandler.AvailableNwElems[selectedNwElems[0]].Value));
+                                            {ConnHandler.RequestReactivateAppServer(ResolveAppServer(ConnHandler.AvailableNwElems[selectedNwElems[0]].Value));
                                             ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("reactivate"))</button>
                                     }
                                     else
                                     {
                                         <button type="button" class="btn btn-sm btn-warning" @onclick="() => 
                                             {ConnHandler.EditAppServer(ResolveAppServer(ConnHandler.AvailableNwElems[selectedNwElems[0]].Value));
-                                            ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_app_server"))</button>
+                                            ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit"))</button>
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
                                             {ConnHandler.RequestDeleteAppServer(ResolveAppServer(ConnHandler.AvailableNwElems[selectedNwElems[0]].Value));
                                             selectedNwElems = new int[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
@@ -173,14 +172,16 @@
     </div>
 </Sidebar>
 <EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="ConnHandler.AddAppRoleMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppRole)" Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.deleteMessage"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppRole)" Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message"/>
 <EditAppServer @bind-Display="ConnHandler.EditAppServerMode" AppServerHandler="ConnHandler.AppServerHandler" AddMode="ConnHandler.AddAppServerMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteAppServerMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppServer)" Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@ConnHandler.deleteMessage"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteAppServerMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppServer)" Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@ConnHandler.Message"/>
+<Confirm @bind-Display="ConnHandler.ReactivateAppServerMode" PerformAction="async () => WrapAsync(ConnHandler.ReactivateAppServer)" Title="@userConfig.GetText("reactivate")" Message="@ConnHandler.Message"/>
 <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="ConnHandler.AddSvcGrpMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteServiceGroup)" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.deleteMessage"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteServiceGroup)" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message"/>
 <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)" Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.deleteMessage"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)" Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message"/>
 <SearchInterface @bind-Display="SearchInterfaceMode" @bind-Interface="actInterface"/>
+<SearchNwObject @bind-Display="SearchNwObjectMode"/>
 
 @code
 {
@@ -213,6 +214,7 @@
     private int[] selectedSvcElems = new int[]{};
     private ModellingConnection? actInterface;
     private bool SearchInterfaceMode = false;
+    private bool SearchNwObjectMode = false;
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
 
@@ -318,6 +320,22 @@
         Container.ConnElement = selectedConn;
     }
 
+    private ModellingNwObject ResolveNwObject(KeyValuePair<int, long> selectedObj)
+    {
+        if(selectedObj.Key == (int)ModellingTypes.ObjectType.AppRole)
+        {
+            return ResolveAppRole(selectedObj.Value);
+        }
+        else if(selectedObj.Key == (int)ModellingTypes.ObjectType.AppServer)
+        {
+            return ResolveAppServer(selectedObj.Value);
+        }
+        else
+        {
+            return ResolveNwObject(selectedObj.Value);
+        }
+    }
+
     private ModellingAppServer ResolveAppServer(long selectedId)
     {
         return ConnHandler.AvailableAppServers.FirstOrDefault(x => x.Id == selectedId);
@@ -326,6 +344,11 @@
     private ModellingAppRole ResolveAppRole(long selectedId)
     {
         return ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
+    }
+
+    private ModellingAppServer ResolveNwObject(long selectedId)
+    {
+        return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Id == selectedId);
     }
 
     private ModellingService ResolveSvc(int selectedId)
@@ -341,6 +364,11 @@
     private async Task SearchInterface()
     {
         SearchInterfaceMode = true;
+    }
+
+    private async Task SearchNwObject()
+    {
+        SearchNwObjectMode = true;
     }
 
     private async Task DataInconsistent()

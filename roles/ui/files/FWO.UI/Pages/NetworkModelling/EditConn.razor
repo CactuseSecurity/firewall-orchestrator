@@ -32,11 +32,11 @@
                     {
                         foreach(var src in ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppRole(src)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@src.Display()</div>
                         }
                         foreach(var src in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppServer(src)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@src.Display()</div>
                         }
                     }
                     else 
@@ -48,14 +48,14 @@
                             <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles)" ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppRole(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context.Display()</div>
                                     </div>
                                 </Display>
                             </EditList>
                             <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers)" ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppServer(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context.Display()</div>
                                     </div>
                                 </Display>
                             </EditList>
@@ -104,11 +104,11 @@
                     {
                         foreach(var dst in ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppRole(dst)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@dst.Display()</div>
                         }
                         foreach(var dst in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppServer(dst)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@dst.Display()</div>
                         }
                     }
                     else 
@@ -120,14 +120,14 @@
                             <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles)" ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppRole(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context.Display()</div>
                                     </div>
                                 </Display>
                             </EditList>
                             <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers)" ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayAppServer(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context.Display()</div>
                                     </div>
                                 </Display>
                             </EditList>

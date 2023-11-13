@@ -76,7 +76,7 @@ namespace FWO.Ui.Services
                 {
                     ActAppServer.Id = returnIds[0].NewId;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppServer, ActAppServer.Id,
-                        $"New App Server: {ModellingDisplay.DisplayAppServer(ActAppServer)}", Application.Id);
+                        $"New App Server: {ActAppServer.Display()}", Application.Id);
                     AvailableAppServers.Add(ActAppServer);
                 }
             }
@@ -100,7 +100,7 @@ namespace FWO.Ui.Services
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppServer, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppServer, ActAppServer.Id,
-                    $"Updated App Server: {ModellingDisplay.DisplayAppServer(ActAppServer)}", Application.Id);
+                    $"Updated App Server: {ActAppServer.Display()}", Application.Id);
             }
             catch (Exception exception)
             {

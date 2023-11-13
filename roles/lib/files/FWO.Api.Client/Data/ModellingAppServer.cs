@@ -13,6 +13,10 @@ namespace FWO.Api.Data
 
         public string ExtAppId { get; set; } = "";
 
+        public override string Display()
+        {
+            return (IsDeleted ? "*" : "") + DisplayBase.DisplayIpWithName(ToNetworkObject());
+        }
 
         public bool Sanitize()
         {
@@ -22,14 +26,14 @@ namespace FWO.Api.Data
             return shortened;
         }
 
-        public static NetworkObject ToNetworkObject(ModellingAppServer appServer)
+        public NetworkObject ToNetworkObject()
         {
             return new NetworkObject()
             {
-                Id = appServer.Id,
-                Name = appServer.Name,
-                IP = appServer.Ip,
-                IpEnd = appServer.Ip
+                Id = Id,
+                Name = Name,
+                IP = Ip,
+                IpEnd = Ip
             };
         }
     }

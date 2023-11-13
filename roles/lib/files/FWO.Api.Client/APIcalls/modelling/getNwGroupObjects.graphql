@@ -1,0 +1,6 @@
+query getNwGroupObjects ($grpType: Int!){
+  modelling_nwgroup (where: { group_type: { _eq: $grpType }, is_deleted: { _eq: false } } order_by: { name: asc }){
+    id
+    name
+  }
+}

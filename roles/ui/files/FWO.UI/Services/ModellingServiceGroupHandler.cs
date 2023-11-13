@@ -2,7 +2,6 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Ui.Display;
 
 
 namespace FWO.Ui.Services
@@ -19,7 +18,7 @@ namespace FWO.Ui.Services
         public bool AddServiceMode = false;
         public bool EditServiceMode = false;
         public bool DeleteServiceMode = false;
-        public string deleteMessage = "";
+        public string Message = "";
         private ModellingService actService = new();
 
 
@@ -75,7 +74,7 @@ namespace FWO.Ui.Services
         public void RequestDeleteService(ModellingService service)
         {
             actService = service;
-            deleteMessage = userConfig.GetText("U9003") + service.Name + "?";
+            Message = userConfig.GetText("U9003") + service.Name + "?";
             DeleteServiceMode = true;
         }
 
@@ -199,7 +198,7 @@ namespace FWO.Ui.Services
                         serviceGroupId = ActServiceGroup.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceFromServiceGroup, svcParams);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
                         $"Removed Service {ModellingDisplay.DisplayService(service)} from Service Group: {ModellingDisplay.DisplayServiceGroup(ActServiceGroup)}", Application.Id);
                 }
                 foreach(var service in SvcToAdd)

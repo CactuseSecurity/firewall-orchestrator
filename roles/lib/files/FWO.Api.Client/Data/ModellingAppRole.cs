@@ -64,6 +64,11 @@ namespace FWO.Api.Data
         public const int FixedPartLength = 4;
 
 
+        public override string Display()
+        {
+            return Name + "(" + IdString + ")";
+        }
+
         public bool Sanitize()
         {
             bool shortened = base.Sanitize();

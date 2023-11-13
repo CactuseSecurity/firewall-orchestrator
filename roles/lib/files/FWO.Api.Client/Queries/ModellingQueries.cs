@@ -20,7 +20,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getImportedAppServers;
         public static readonly string newAppServer;
         public static readonly string updateAppServer;
-        public static readonly string markAppServerDeleted;
+        public static readonly string setAppServerDeletedState;
         public static readonly string deleteAppServer;
         public static readonly string getAppRolesForAppServer;
         public static readonly string getConnectionsForAppServer;
@@ -40,6 +40,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string addServiceGroupToConnection;
         public static readonly string removeServiceGroupFromConnection;
 
+        public static readonly string getNwGroupObjects;
+        public static readonly string getSelectedNwGroupObjects;
         public static readonly string getAppRoles;
         public static readonly string newAppRole;
         public static readonly string updateAppRole;
@@ -87,7 +89,7 @@ namespace FWO.Api.Client.Queries
                 getImportedAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getImportedAppServers.graphql");
                 newAppServer = File.ReadAllText(QueryPath + "modelling/newAppServer.graphql");
                 updateAppServer = File.ReadAllText(QueryPath + "modelling/updateAppServer.graphql");
-                markAppServerDeleted = File.ReadAllText(QueryPath + "modelling/markAppServerDeleted.graphql");
+                setAppServerDeletedState = File.ReadAllText(QueryPath + "modelling/setAppServerDeletedState.graphql");
                 deleteAppServer = File.ReadAllText(QueryPath + "modelling/deleteAppServer.graphql");
                 getAppRolesForAppServer = File.ReadAllText(QueryPath + "modelling/getAppRolesForAppServer.graphql");
                 getConnectionsForAppServer = File.ReadAllText(QueryPath + "modelling/getConnectionsForAppServer.graphql");                
@@ -107,6 +109,8 @@ namespace FWO.Api.Client.Queries
                 addServiceGroupToConnection = File.ReadAllText(QueryPath + "modelling/addServiceGroupToConnection.graphql");
                 removeServiceGroupFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceGroupFromConnection.graphql");
 
+                getNwGroupObjects = File.ReadAllText(QueryPath + "modelling/getNwGroupObjects.graphql");
+                getSelectedNwGroupObjects = File.ReadAllText(QueryPath + "modelling/getSelectedNwGroupObjects.graphql");
                 getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppRoles.graphql");
                 newAppRole = File.ReadAllText(QueryPath + "modelling/newAppRole.graphql");
                 updateAppRole = File.ReadAllText(QueryPath + "modelling/updateAppRole.graphql");

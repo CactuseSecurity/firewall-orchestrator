@@ -73,18 +73,31 @@ namespace FWO.Ui.Services
         {
             if(await CheckAppServerInUse(appServer))
             {
-                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.markAppServerDeleted, new { id = appServer.Id });
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = appServer.Id, deleted = true });
                 await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ObjectType.AppServer, appServer.Id,
-                    $"Mark App Server as deleted: {ModellingDisplay.DisplayAppServer(appServer)}", Application.Id);
+                    $"Mark App Server as deleted: {appServer.Display()}", Application.Id);
                 appServer.IsDeleted = true;
                 return false;
             }
             else if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppServer, new { id = appServer.Id })).AffectedRows > 0)
             {
                 await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.AppServer, appServer.Id,
-                    $"Deleted App Server: {ModellingDisplay.DisplayAppServer(appServer)}", Application.Id);
+                    $"Deleted App Server: {appServer.Display()}", Application.Id);
                 availableAppServers.Remove(appServer);
                 availableNwElems?.Remove(availableNwElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.AppServer && x.Value == appServer.Id));
+                return false;
+            }
+            return true;
+        }
+
+        public async Task<bool> ReactivateAppServer(ModellingAppServer appServer)
+        {
+            if(appServer.IsDeleted)
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = appServer.Id, deleted = false });
+                await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ObjectType.AppServer, appServer.Id,
+                    $"Reactivate App Server: {appServer.Display()}", Application.Id);
+                appServer.IsDeleted = false;
                 return false;
             }
             return true;

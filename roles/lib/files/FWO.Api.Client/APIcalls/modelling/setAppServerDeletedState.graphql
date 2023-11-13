@@ -1,10 +1,11 @@
-mutation markAppServerDeleted(
+mutation setAppServerDeletedState(
   $id: bigint!
+  $deleted: Boolean!
   ) {
   update_modelling_nwobject_by_pk(
     pk_columns: { id: $id }
     _set: {
-      is_deleted: true
+      is_deleted: $deleted
   }) {
     UpdatedId: id
   }

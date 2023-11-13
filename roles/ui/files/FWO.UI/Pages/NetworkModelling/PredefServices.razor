@@ -42,7 +42,7 @@
     </Footer>
 </PopUp>
 <EditServiceGroup @bind-Display="EditSvcGrpMode" @bind-SvcGroupHandler="SvcGrpHandler" AddMode="AddSvcGrpMode"/>
-<ConfirmDelete @bind-Display="DeleteSvcGrpMode" PerformAction="async () => {await DeleteServiceGroup(); StateHasChanged();}" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="DeleteSvcGrpMode" PerformAction="async () => {await DeleteServiceGroup(); StateHasChanged();}" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@Message"/>
 <InProgress Display="workInProgress"/>
 
 
@@ -67,7 +67,7 @@
     public bool EditSvcGrpMode = false;
     public bool DeleteSvcGrpMode = false;
     public ModellingServiceGroup ActServiceGroup { get; set; } = new();
-    public string deleteMessage = "";
+    public string Message = "";
     private bool workInProgress = false;
     private bool firstTry = true;
 
@@ -136,7 +136,7 @@
     public void RequestDeleteServiceGrp(ModellingServiceGroup serviceGroup)
     {
         ActServiceGroup = serviceGroup;
-        deleteMessage = userConfig.GetText("U9004") + serviceGroup.Name + "?";
+        Message = userConfig.GetText("U9004") + serviceGroup.Name + "?";
         DeleteSvcGrpMode = true;
     }
 

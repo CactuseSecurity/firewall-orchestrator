@@ -19,7 +19,8 @@ namespace FWO.Ui.Services
         public bool AddAppServerMode = false;
         public bool EditAppServerMode = false;
         public bool DeleteAppServerMode = false;
-        public string deleteMessage = "";
+        public bool ReactivateAppServerMode = false;
+        public string Message = "";
         private ModellingAppServer actAppServer = new();
         private string origId = "";
 
@@ -79,7 +80,7 @@ namespace FWO.Ui.Services
         public void RequestDeleteAppServer(ModellingAppServer appServer)
         {
             actAppServer = appServer;
-            deleteMessage = userConfig.GetText("U9003") + appServer.Name + "?";
+            Message = userConfig.GetText("U9003") + appServer.Name + "?";
             DeleteAppServerMode = true;
         }
 
@@ -88,6 +89,25 @@ namespace FWO.Ui.Services
             try
             {
                 DeleteAppServerMode = await DeleteAppServer(actAppServer, AvailableAppServers);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_app_server"), "", true);
+            }
+        }
+
+        public void RequestReactivateAppServer(ModellingAppServer appServer)
+        {
+            actAppServer = appServer;
+            Message = userConfig.GetText("U9005") + appServer.Name + "?";
+            ReactivateAppServerMode = true;
+        }
+
+        public async Task ReactivateAppServer()
+        {
+            try
+            {
+                ReactivateAppServerMode = await ReactivateAppServer(actAppServer);
             }
             catch (Exception exception)
             {
@@ -221,7 +241,7 @@ namespace FWO.Ui.Services
                 {
                     ActAppRole.Id = returnIds[0].NewId;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
-                        $"New App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
+                        $"New App Role: {ActAppRole.Display()}", Application.Id);
                     foreach(var appServer in ActAppRole.AppServers)
                     {
                         var Vars = new
@@ -231,7 +251,7 @@ namespace FWO.Ui.Services
                         };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
                         await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
-                            $"Added App Server {ModellingDisplay.DisplayAppServer(appServer.Content)} to App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
+                            $"Added App Server {appServer.Content.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                     }
                     AppRoles.Add(ActAppRole);
                     AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ObjectType.AppRole, ActAppRole.Id));
@@ -257,7 +277,7 @@ namespace FWO.Ui.Services
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppRole, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
-                    $"Updated App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
+                    $"Updated App Role: {ActAppRole.Display()}", Application.Id);
                 foreach(var appServer in AppServerToDelete)
                 {
                     var Vars = new
@@ -266,8 +286,8 @@ namespace FWO.Ui.Services
                         appRoleId = ActAppRole.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromAppRole, Vars);
-                    await LogChange(ModellingTypes.ChangeType.Disassign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
-                        $"Removed App Server {ModellingDisplay.DisplayAppServer(appServer)} from App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                        $"Removed App Server {appServer.Display()} from App Role: {ActAppRole.Display()}", Application.Id);
                 }
                 foreach(var appServer in AppServerToAdd)
                 {
@@ -278,7 +298,7 @@ namespace FWO.Ui.Services
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
-                        $"Added App Server {ModellingDisplay.DisplayAppServer(appServer)} to App Role: {ModellingDisplay.DisplayAppRole(ActAppRole)}", Application.Id);
+                        $"Added App Server {appServer.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                 }
             }
             catch (Exception exception)

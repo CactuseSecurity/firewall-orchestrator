@@ -18,12 +18,12 @@
                 </Column>
                 <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_type"))" Field="@(x => x.ChangeType)" Sortable="true">
                     <Template>
-                        @(Enum.GetName(typeof(ModellingTypes.ChangeType), context.ChangeType))
+                        @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ChangeType), context.ChangeType)))
                     </Template>
                 </Column>
                 <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true">
                     <Template>
-                        @(Enum.GetName(typeof(ModellingTypes.ObjectType), context.ObjectType))
+                        @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ObjectType), context.ObjectType)))
                     </Template>
                 </Column>
                 <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />

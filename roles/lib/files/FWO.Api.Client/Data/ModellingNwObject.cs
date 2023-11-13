@@ -17,6 +17,11 @@ namespace FWO.Api.Data
         [JsonProperty("is_deleted"), JsonPropertyName("is_deleted")]
         public bool IsDeleted { get; set; }
 
+        public virtual string Display()
+        {
+            return Name;
+        }
+
         public bool Sanitize()
         {
             bool shortened = false;

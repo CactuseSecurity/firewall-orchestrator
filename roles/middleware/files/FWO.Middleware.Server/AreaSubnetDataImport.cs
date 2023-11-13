@@ -10,11 +10,8 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Class handling the Area Subnet Data Import
     /// </summary>
-    public class AreaSubnetDataImport
+    public class AreaSubnetDataImport : DataImportBase
     {
-        private readonly ApiConnection apiConnection;
-        private GlobalConfig globalConfig;
-        private string importFile { get; set; } = "";
         private List<ModellingImportAreaData> importedAreas = new();
         private List<ModellingNetworkArea> existingAreas = new();
 
@@ -22,11 +19,8 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Constructor for Area Subnet Data Import
         /// </summary>
-        public AreaSubnetDataImport(ApiConnection apiConnection, GlobalConfig globalConfig)
-        {
-            this.apiConnection = apiConnection;
-            this.globalConfig = globalConfig;
-        }
+        public AreaSubnetDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : base (apiConnection, globalConfig)
+        {}
 
         /// <summary>
         /// Run the Area Subnet Data Import
@@ -34,7 +28,7 @@ namespace FWO.Middleware.Server
         public async Task<bool> Run()
         {
             await RunImportScript(globalConfig.ImportSubnetDataPath + ".py");
-            ReadFile(globalConfig.ImportSubnetDataPath + ".json");
+            ReadFile(globalConfig.ImportSubnetDataPath + ".json"); // /usr/local/fworch/etc/qip-export.json
 
             int successCounter = 0;
             int failCounter = 0;
@@ -77,28 +71,6 @@ namespace FWO.Middleware.Server
             }
             Log.WriteDebug("Import Area Subnet Data", $"Imported {successCounter} areas, {failCounter} failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
             return true;
-        }
-
-        private async Task RunImportScript(string importScriptFile)
-        {
-            if(File.Exists(importScriptFile))
-            {
-
-            }
-        }
-
-        private void ReadFile(string filepath)
-        {
-            try
-            {
-                // /usr/local/fworch/etc/qip-export.json
-                importFile = File.ReadAllText(filepath).Trim();
-            }
-            catch (Exception fileReadException)
-            {
-                Log.WriteError("Read file", $"File could not be found at {filepath}.", fileReadException);
-                throw;
-            }
         }
 
         private async Task<bool> SaveArea(ModellingImportAreaData incomingArea)

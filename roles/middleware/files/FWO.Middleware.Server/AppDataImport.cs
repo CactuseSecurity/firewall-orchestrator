@@ -6,19 +6,13 @@ using FWO.Config.Api;
 using System.Text.Json;
 using FWO.Middleware.RequestParameters;
 
-
-
 namespace FWO.Middleware.Server
 {
     /// <summary>
     /// Class handling the App Data Import
     /// </summary>
-    public class AppDataImport
+    public class AppDataImport : DataImportBase
     {
-        private readonly ApiConnection apiConnection;
-        private GlobalConfig globalConfig;
-        private string importFile { get; set; } = "";
-
         private List<ModellingImportAppData> importedApps= new();
         private List<FwoOwner> existingApps = new();
         private List<ModellingAppServer> existingAppServers = new();
@@ -31,11 +25,8 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Constructor for App Data Import
         /// </summary>
-        public AppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig)
-        {
-            this.apiConnection = apiConnection;
-            this.globalConfig = globalConfig;
-        }
+        public AppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : base (apiConnection, globalConfig)
+        {}
 
         /// <summary>
         /// Run the App Data Import
@@ -68,19 +59,11 @@ namespace FWO.Middleware.Server
             allGroups = internalLdap.GetAllInternalGroups();
         }
 
-        private async Task RunImportScript(string importScriptFile)
-        {
-            if(File.Exists(importScriptFile))
-            {
-
-            }
-        }
-
         private async Task<bool> ImportSingleSource(string importfileName)
         {
             try
             {
-                ReadFile(importfileName);
+                ReadFile(importfileName); // /usr/local/fworch/etc/apps-<ImportSource>.json
                 importedApps = JsonSerializer.Deserialize<List<ModellingImportAppData>>(importFile) ?? throw new Exception("File could not be parsed.");
                 await ImportApps();
             }
@@ -90,20 +73,6 @@ namespace FWO.Middleware.Server
                 return false;
             }
             return true;
-        }
-
-        private void ReadFile(string filepath)
-        {
-            try
-            {
-                // /usr/local/fworch/etc/apps-<ImportSource>.json
-                importFile = File.ReadAllText(filepath).Trim();
-            }
-            catch (Exception fileReadException)
-            {
-                Log.WriteError("Read file", $"File could not be found at {filepath}.", fileReadException);
-                throw;
-            }
         }
 
         private async Task<bool> ImportApps()
@@ -397,7 +366,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.markAppServerDeleted, new { id = appServer.Id });
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAppServerDeletedState, new { id = appServer.Id, deleted = true });
             }
             catch (Exception exc)
             {

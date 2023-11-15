@@ -1082,6 +1082,8 @@ INSERT INTO txt VALUES ('reactivate',           'German', 	'Reaktivieren');
 INSERT INTO txt VALUES ('reactivate',           'English', 	'Reactivate');
 INSERT INTO txt VALUES ('search_nw_object',     'German', 	'Netzwerkobjekt suchen');
 INSERT INTO txt VALUES ('search_nw_object',     'English', 	'Search Network Object');
+INSERT INTO txt VALUES ('delete_nw_object', 	'German',	'Netzwerkobjekt l&ouml;schen');
+INSERT INTO txt VALUES ('delete_nw_object', 	'English',	'Delete Network Object');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -2117,6 +2119,8 @@ INSERT INTO txt VALUES ('U9004', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U9004', 'English', 'Are you sure you want to delete service group: ');
 INSERT INTO txt VALUES ('U9005', 'German',  'Sind sie sicher, dass sie folgende App Server reaktivieren wollen: ');
 INSERT INTO txt VALUES ('U9005', 'English', 'Are you sure you want to reactivate App Server: ');
+INSERT INTO txt VALUES ('U9006', 'German',  'Sind sie sicher, dass sie folgendes Objekt aus der Auswahlliste l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9006', 'English', 'Are you sure you want to delete following object from selection list: ');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');

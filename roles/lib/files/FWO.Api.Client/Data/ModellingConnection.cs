@@ -38,14 +38,20 @@ namespace FWO.Api.Data
         [JsonProperty("source_nwobjects"), JsonPropertyName("source_nwobjects")]
         public List<ModellingAppServerWrapper> SourceAppServers { get; set; } = new();
 
-        [JsonProperty("source_nwgroups"), JsonPropertyName("source_nwgroups")]
+        [JsonProperty("source_approles"), JsonPropertyName("source_approles")]
         public List<ModellingAppRoleWrapper> SourceAppRoles { get; set; } = new();
+
+        [JsonProperty("source_nwgroups"), JsonPropertyName("source_nwgroups")]
+        public List<ModellingNwGroupObjectWrapper> SourceNwGroups { get; set; } = new();
 
         [JsonProperty("destination_nwobjects"), JsonPropertyName("destination_nwobjects")]
         public List<ModellingAppServerWrapper> DestinationAppServers { get; set; } = new();
 
-        [JsonProperty("destination_nwgroups"), JsonPropertyName("destination_nwgroups")]
+        [JsonProperty("destination_approles"), JsonPropertyName("destination_approles")]
         public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = new();
+
+        [JsonProperty("destination_nwgroups"), JsonPropertyName("destination_nwgroups")]
+        public List<ModellingNwGroupObjectWrapper> DestinationNwGroups { get; set; } = new();
 
 
         public bool SrcFromInterface { get; set; } = false;
@@ -68,8 +74,10 @@ namespace FWO.Api.Data
            ServiceGroups = new List<ModellingServiceGroupWrapper>(conn.ServiceGroups);
            SourceAppServers = new List<ModellingAppServerWrapper>(conn.SourceAppServers);
            SourceAppRoles = new List<ModellingAppRoleWrapper>(conn.SourceAppRoles);
+           SourceNwGroups = new List<ModellingNwGroupObjectWrapper>(conn.SourceNwGroups);
            DestinationAppServers = new List<ModellingAppServerWrapper>(conn.DestinationAppServers);
            DestinationAppRoles = new List<ModellingAppRoleWrapper>(conn.DestinationAppRoles);
+           DestinationNwGroups = new List<ModellingNwGroupObjectWrapper>(conn.DestinationNwGroups);
         }
 
         public bool Sanitize()

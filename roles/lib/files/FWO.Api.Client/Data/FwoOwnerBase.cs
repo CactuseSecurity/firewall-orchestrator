@@ -47,6 +47,11 @@ namespace FWO.Api.Data
             ExtAppId = owner.ExtAppId;
         }
 
+        public virtual string Display()
+        {
+            return Name + " (" + ExtAppId + ")";
+        }
+
         public virtual bool Sanitize()
         {
             bool shortened = false;

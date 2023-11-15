@@ -18,7 +18,7 @@
                 else
                 {
                     <div class="col-sm-2">
-                        <Dropdown ElementType="ModellingTypes.NwGroupType" ElementToString="@(a => userConfig.GetText(a.ToString()))" @bind-SelectedElement="selectedType" Elements="availableTypes">
+                        <Dropdown ElementType="ModellingTypes.ObjectType" ElementToString="@(a => userConfig.GetText(a.ToString()))" @bind-SelectedElement="selectedType" Elements="availableTypes">
                             <ElementTemplate Context="type">
                                 @userConfig.GetText(type.ToString())
                             </ElementTemplate>
@@ -32,7 +32,7 @@
                 <div class="form-group row">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
                     <div class="col-sm-9">
-                        <Dropdown ElementType="ModellingNwObject" @bind-SelectedElement="selectedObject" ElementToString="@(o => o.Name)" Elements="nwObjects" Nullable="true">
+                        <Dropdown ElementType="ModellingNwGroupObject" @bind-SelectedElement="selectedObject" ElementToString="@(o => o.Name)" Elements="nwObjects" Nullable="true">
                             <ElementTemplate Context="obj">
                                 @obj.Name
                             </ElementTemplate>
@@ -44,7 +44,10 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            @* <button type="button" class="btn btn-sm btn-success" @onclick="() => {Interface = selectedInterface; InterfaceChanged.InvokeAsync(Interface); Close();}">@(userConfig.GetText("select"))</button> *@
+            @if(selectedObject != null)
+            {
+                <button type="button" class="btn btn-sm btn-success" @onclick="AddObject">@(userConfig.GetText("select"))</button>
+            }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
@@ -62,14 +65,22 @@
     [Parameter]
     public EventCallback<bool> DisplayChanged { get; set; }
 
+    [Parameter]
+    public List<ModellingNwGroupObjectWrapper> ObjectList { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<ModellingNwGroupObjectWrapper> > ObjectListChanged { get; set; }
+
+    [Parameter]
+    public Func<bool> Refresh { get; set; } = DefaultInit.DoNothingSync;
 
 
-    private List<ModellingTypes.NwGroupType> availableTypes = new(){ ModellingTypes.NwGroupType.NetworkArea };
-    private ModellingTypes.NwGroupType selectedType = ModellingTypes.NwGroupType.NetworkArea;
+    private List<ModellingTypes.ObjectType> availableTypes = new(){ ModellingTypes.ObjectType.NetworkArea };
+    private ModellingTypes.ObjectType selectedType = ModellingTypes.ObjectType.NetworkArea;
     private bool singleType = false;
     private bool typeSelected = false;
-    private List<ModellingNwObject> nwObjects = new();
-    private ModellingNwObject? selectedObject;
+    private List<ModellingNwGroupObject> nwObjects = new();
+    private ModellingNwGroupObject? selectedObject;
     private bool FirstTry = true;
 
     protected override async Task OnParametersSetAsync()
@@ -96,12 +107,33 @@
     {
         try
         {
-            var queryParam = new
+            var Variables = new
             {
                 grpType = (int)selectedType
             };
-            nwObjects = await apiConnection.SendQueryAsync<List<ModellingNwObject>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, queryParam);
+            nwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupObject>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, Variables);
             typeSelected = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task AddObject()
+    {
+        try
+        {
+            var Variables = new
+            {
+                appId = selectedObject?.AppId,
+                nwGroupId = selectedObject?.Id
+            };
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedNwGroupObject, Variables);
+            ObjectList.Add(new ModellingNwGroupObjectWrapper(){ Content = selectedObject });
+            await ObjectListChanged.InvokeAsync(ObjectList);
+            Refresh();
+            Close();
         }
         catch (Exception exception)
         {

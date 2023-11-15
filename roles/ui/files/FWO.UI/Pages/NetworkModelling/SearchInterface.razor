@@ -49,22 +49,28 @@
 
     private List<ModellingConnection> availableInterfaces { get; set; } = new();
     private ModellingConnection? selectedInterface;
+    private bool FirstTry = true;
 
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        try
+        if(Display && FirstTry)
         {
-            availableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            try
+            {
+                FirstTry = false;
+                availableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
         }
     }
 
     private void Close()
     {
+        FirstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

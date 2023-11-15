@@ -124,7 +124,7 @@ namespace FWO.Ui.Services
                 if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteService, new { id = service.Id })).AffectedRows > 0)
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Service, service.Id,
-                        $"Deleted Service: {ModellingDisplay.DisplayService(service)}", Application.Id);
+                        $"Deleted Service: {service.Display()}", Application.Id);
                     availableServices.Remove(service);
                     availableSvcElems?.Remove(availableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.Service && x.Value == service.Id));
                     return false;

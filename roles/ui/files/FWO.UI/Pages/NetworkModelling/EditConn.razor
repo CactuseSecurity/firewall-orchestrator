@@ -30,13 +30,17 @@
                     <h6>@(userConfig.GetText("source"))</h6>
                     @if(ConnHandler.ReadOnly || ConnHandler.srcReadOnly)
                     {
+                        foreach(var src in ModellingNwGroupObjectWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups))
+                        {
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon())</div>
+                        }
                         foreach(var src in ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@src.Display()</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon())</div>
                         }
                         foreach(var src in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@src.Display()</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon())</div>
                         }
                     }
                     else 
@@ -45,17 +49,24 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleSrcDrop">
+                            <EditList ElementType="ModellingNwGroupObject" Elements="ModellingNwGroupObjectWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups)" ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                                <Display>
+                                    <div class="row">
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
                             <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles)" ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context.Display()</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
                                     </div>
                                 </Display>
                             </EditList>
                             <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers)" ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context.Display()</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
                                     </div>
                                 </Display>
                             </EditList>
@@ -68,11 +79,11 @@
                     {
                         foreach(var grp in ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayServiceGroup(grp)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)grp.DisplayWithIcon())</div>
                         }
                         foreach(var svc in ModellingServiceWrapper.Resolve(ConnHandler.ActConn.Services))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayService(svc)</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)svc.DisplayWithIcon())</div>
                         }
                     }
                     else 
@@ -84,14 +95,14 @@
                             <EditList ElementType="ModellingServiceGroup" Elements="ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups)" ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayServiceGroup(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
                                     </div>
                                 </Display>
                             </EditList>
                             <EditList ElementType="ModellingService" Elements="ModellingServiceWrapper.Resolve(ConnHandler.ActConn.Services)" ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@ModellingDisplay.DisplayService(context)</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
                                     </div>
                                 </Display>
                             </EditList>
@@ -102,13 +113,17 @@
                     <h6>@(userConfig.GetText("destination"))</h6>
                     @if(ConnHandler.ReadOnly || ConnHandler.dstReadOnly)
                     {
+                        foreach(var dst in ModellingNwGroupObjectWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups))
+                        {
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon())</div>
+                        }
                         foreach(var dst in ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@dst.Display()</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon())</div>
                         }
                         foreach(var dst in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers))
                         {
-                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@dst.Display()</div>
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon())</div>
                         }
                     }
                     else 
@@ -117,17 +132,24 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleDstDrop">
+                            <EditList ElementType="ModellingNwGroupObject" Elements="ModellingNwGroupObjectWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups)" ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                                <Display>
+                                    <div class="row">
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
                             <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles)" ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context.Display()</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
                                     </div>
                                 </Display>
                             </EditList>
                             <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers)" ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
-                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context.Display()</div>
+                                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
                                     </div>
                                 </Display>
                             </EditList>
@@ -187,7 +209,8 @@
 
 
     private ModellingDnDContainer Container { get; set; } = new();
-    int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
+    private int sidebarInitWidth = GlobalConfig.kSidebarLeftWidth + 300;
+    private int sidebarLeftWidth;
     
     private List<ModellingService> services = new();
     private List<ModellingServiceGroup> serviceGroups = new();
@@ -195,6 +218,11 @@
     private static string dropzoneClass = "minheight-dropzone bg-secondary dropzone";
     private static string forbiddenDropzoneClass = "minheight-dropzone bg-white";
     private bool workInProgress = false;
+
+    protected override void OnInitialized()
+    {
+        sidebarLeftWidth = sidebarInitWidth;
+    }
 
     protected override void OnParametersSet()
     {
@@ -212,13 +240,17 @@
         }
         else if(!ConnHandler.SrcDropForbidden())
         {
-            if(Container.AppServerElements.Count > 0)
-            {
-                ConnHandler.AppServerToSource(Container.AppServerElements);
-            }
             if(Container.AppRoleElements.Count > 0)
             {
                 ConnHandler.AppRolesToSource(Container.AppRoleElements);
+            }
+            if(Container.NwGroupElements.Count > 0)
+            {
+                ConnHandler.NwGroupToSource(Container.NwGroupElements);
+            }
+            if(Container.AppServerElements.Count > 0)
+            {
+                ConnHandler.AppServerToSource(Container.AppServerElements);
             }
         }
         Container.Clear();
@@ -232,13 +264,17 @@
         }
         else if(!ConnHandler.DstDropForbidden())
         {
-            if(Container.AppServerElements.Count > 0)
-            {
-                ConnHandler.AppServerToDestination(Container.AppServerElements);
-            }
             if(Container.AppRoleElements.Count > 0)
             {
                 ConnHandler.AppRolesToDestination(Container.AppRoleElements);
+            }
+            if(Container.NwGroupElements.Count > 0)
+            {
+                ConnHandler.NwGroupToDestination(Container.NwGroupElements);
+            }
+            if(Container.AppServerElements.Count > 0)
+            {
+                ConnHandler.AppServerToDestination(Container.AppServerElements);
             }
         }
         Container.Clear();
@@ -266,6 +302,7 @@
 
     private void Cancel()
     {
+        sidebarLeftWidth = sidebarInitWidth;
         ConnHandler.Reset();
         Close();
     }

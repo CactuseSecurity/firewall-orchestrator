@@ -33,6 +33,16 @@ namespace FWO.Api.Data
             LastRecertCheck = owner.LastRecertCheck;
             RecertCheckParamString = owner.RecertCheckParamString;
             Criticality = owner.Criticality;
+            Active = owner.Active;
+            ImportSource = owner.ImportSource;
+        }
+
+        public override bool Sanitize()
+        {
+            bool shortened = base.Sanitize();
+            Criticality = Sanitizer.SanitizeOpt(Criticality, ref shortened);
+            ImportSource = Sanitizer.SanitizeCommentOpt(ImportSource, ref shortened);
+            return shortened;
         }
     }
 

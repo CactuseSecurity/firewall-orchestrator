@@ -18,11 +18,14 @@ namespace FWO.Api.Data
         public NetworkProtocol? Protocol { get; set; } = new();
 
 
-        public bool Sanitize()
+        public override string Display()
         {
-            bool shortened = base.Sanitize();
-            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
-            return shortened;
+            return DisplayBase.DisplayService(ToNetworkService(this), false, Name).ToString();
+        }
+
+        public override string DisplayWithIcon()
+        {
+            return $"<span class=\"oi oi-wrench\"></span> " + Display();
         }
 
         public static NetworkService ToNetworkService(ModellingService service)

@@ -18,7 +18,12 @@ namespace FWO.Api.Data
         public List<ModellingServiceWrapper> Services { get; set; } = new();
 
 
-        public bool Sanitize()
+        public override string DisplayWithIcon()
+        {
+            return $"<span class=\"oi oi-list-rich\"></span> " + Display();
+        }
+
+        public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);

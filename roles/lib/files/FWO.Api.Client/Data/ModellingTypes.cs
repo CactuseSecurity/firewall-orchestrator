@@ -2,20 +2,6 @@
 {
     public static class ModellingTypes
     {
-        public enum NwObjType
-        {
-            AppServer = 1,
-            Network = 2
-        }
-
-        public enum NwGroupType
-        {
-            AppRole = 1,
-            AppZone = 2,
-            NetworkZone = 3,
-            NetworkArea = 4
-        }
-
         public enum ConnectionField
         {
             Source = 1,
@@ -36,10 +22,44 @@
         public enum ObjectType
         {
             Connection = 1,
-            AppRole = 2,
-            AppServer = 3,
-            ServiceGroup = 4,
-            Service = 5
+
+            AppServer = 10,
+            Network = 11,
+
+            AppRole = 20,
+            AppZone = 21,
+            NetworkZone = 22,
+            NetworkArea = 23,
+
+            Service = 30,
+            ServiceGroup = 31,
         }
+
+        public static bool IsNwGroup(this ObjectType objectType)
+        {
+            switch(objectType)
+            {
+                case ObjectType.AppRole:
+                case ObjectType.AppZone:
+                case ObjectType.NetworkZone:
+                case ObjectType.NetworkArea:
+                    return true;
+                default: 
+                    return false;
+            }
+        }
+
+        public static bool IsNwObject(this ObjectType objectType)
+        {
+            switch(objectType)
+            {
+                case ObjectType.AppServer:
+                case ObjectType.Network:
+                    return true;
+                default: 
+                    return false;
+            }
+        }
+
     }
 }

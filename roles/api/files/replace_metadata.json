@@ -1309,6 +1309,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "selected_objects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwgroup_id",
+                      "table": {
+                        "name": "selected_objects",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
                 }
               ],
               "insert_permissions": [
@@ -1740,7 +1752,21 @@
               "table": {
                 "name": "selected_objects",
                 "schema": "modelling"
-              }
+              },
+              "object_relationships": [
+                {
+                  "name": "nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "nwgroup_id"
+                  }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
+                }
+              ]
             },
             {
               "table": {

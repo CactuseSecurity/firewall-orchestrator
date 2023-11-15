@@ -11,7 +11,7 @@
             <h3>@(userConfig.GetText("library"))</h3>
         </div>
         <div class="mt-3 col-sm-5 justify-content-end">
-            <label class="col-form-label text-success">@Application.Name</label>
+            <label class="col-form-label text-success">@Application.Display()</label>
         </div>
     </div>
     <div class="col-sm-11 border rounded m-2 p-2">
@@ -41,7 +41,7 @@
                     @for (int index = 0 ; index < ConnHandler.AvailableNwElems.Count ; index++)
                     {
                         <option class="draggable" draggable="true" @ondragstart="() => HandleNwDragStart(selectedNwElems)" value="@index">
-                            @ResolveNwObject(ConnHandler.AvailableNwElems[index]).Display()
+                            @((MarkupString)ResolveNwObject(ConnHandler.AvailableNwElems[index]).DisplayWithIcon())
                         </option>
                     }
                 </select>
@@ -84,7 +84,7 @@
                                 selectedNwElems = new int[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                         }
                     }
-                    else
+                    else if(ConnHandler.AvailableNwElems[selectedNwElems[0]].Key == (int)ModellingTypes.ObjectType.AppServer)
                     {
                         <AuthorizeView Roles="admin, auditor">
                             <Authorized>
@@ -112,6 +112,16 @@
                             </NotAuthorized> 
                         </AuthorizeView>
                     }
+                    else
+                    {
+                        if(!ResolveNwGroupObject(ConnHandler.AvailableNwElems[selectedNwElems[0]].Value).IsDeleted)
+                        {
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
+                                {ConnHandler.RequestDeleteNwGrpObject(ResolveNwGroupObject(ConnHandler.AvailableNwElems[selectedNwElems[0]].Value));
+                                selectedNwElems = new int[]{}; ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                        }
+                    }
+
                 }
             </div>
         </div>
@@ -126,8 +136,8 @@
                         {
                             <option class="draggable" draggable="true" @ondragstart="() => HandleSvcDragStart(selectedSvcElems)" value="@index">
                                 @(ConnHandler.AvailableSvcElems[index].Key == (int)ModellingTypes.ObjectType.ServiceGroup ? 
-                                ModellingDisplay.DisplayServiceGroup(ResolveSvcGrp(ConnHandler.AvailableSvcElems[index].Value)) : 
-                                ModellingDisplay.DisplayService(ResolveSvc(ConnHandler.AvailableSvcElems[index].Value)))
+                                (MarkupString)ResolveSvcGrp(ConnHandler.AvailableSvcElems[index].Value).DisplayWithIcon() : 
+                                (MarkupString)ResolveSvc(ConnHandler.AvailableSvcElems[index].Value).DisplayWithIcon())
                             </option>
                         }
                     </select>
@@ -181,7 +191,8 @@
 <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)" Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message"/>
 <SearchInterface @bind-Display="SearchInterfaceMode" @bind-Interface="actInterface"/>
-<SearchNwObject @bind-Display="SearchNwObjectMode"/>
+<SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteNwObjectMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteNwGrpObject)" Title="@userConfig.GetText("delete_nw_object")" DeleteMessage="@ConnHandler.Message"/>
 
 @code
 {
@@ -220,6 +231,7 @@
 
     private void NetworkElemsToConn(int[] selectedNwElems, bool toSource)
     {
+        List<ModellingNwGroupObject> nwGroups = new();
         List<ModellingAppRole> appRoles = new();
         List<ModellingAppServer> appServer = new();
         foreach(int elem in selectedNwElems)
@@ -228,7 +240,11 @@
             {
                 appRoles.Add(ResolveAppRole(ConnHandler.AvailableNwElems[elem].Value));
             }
-            else
+            else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)ConnHandler.AvailableNwElems[elem].Key))
+            {
+                nwGroups.Add(ResolveNwGroupObject(ConnHandler.AvailableNwElems[elem].Value));
+            }
+            else if(ConnHandler.AvailableNwElems[elem].Key == (int)ModellingTypes.ObjectType.AppServer)
             {
                 appServer.Add(ResolveAppServer(ConnHandler.AvailableNwElems[elem].Value));
             }
@@ -242,6 +258,17 @@
             else
             {
                 ConnHandler.AppRolesToDestination(appRoles);
+            }
+        }
+        if(nwGroups.Count > 0)
+        {
+            if(toSource)
+            {
+                ConnHandler.NwGroupToSource(nwGroups);
+            }
+            else
+            {
+                ConnHandler.NwGroupToDestination(nwGroups);
             }
         }
         if(appServer.Count > 0)
@@ -307,7 +334,11 @@
             {
                 Container.AppRoleElements.Add(ResolveAppRole(ConnHandler.AvailableNwElems[elem].Value));
             }
-            else
+            else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)ConnHandler.AvailableNwElems[elem].Key))
+            {
+                Container.NwGroupElements.Add(ResolveNwGroupObject(ConnHandler.AvailableNwElems[elem].Value));
+            }
+            else if(ConnHandler.AvailableNwElems[elem].Key == (int)ModellingTypes.ObjectType.AppServer)
             {
                 Container.AppServerElements.Add(ResolveAppServer(ConnHandler.AvailableNwElems[elem].Value));
             }
@@ -326,13 +357,17 @@
         {
             return ResolveAppRole(selectedObj.Value);
         }
+        else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)selectedObj.Key))
+        {
+            return ResolveNwGroupObject(selectedObj.Value);
+        }
         else if(selectedObj.Key == (int)ModellingTypes.ObjectType.AppServer)
         {
             return ResolveAppServer(selectedObj.Value);
         }
         else
         {
-            return ResolveNwObject(selectedObj.Value);
+            return new ModellingNwObject();
         }
     }
 
@@ -346,9 +381,9 @@
         return ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
     }
 
-    private ModellingNwObject ResolveNwObject(long selectedId)
+    private ModellingNwGroupObject ResolveNwGroupObject(long selectedId)
     {
-        return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Id == selectedId);
+        return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId).Content;
     }
 
     private ModellingService ResolveSvc(int selectedId)

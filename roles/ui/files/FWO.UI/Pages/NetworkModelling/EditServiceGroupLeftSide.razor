@@ -14,7 +14,7 @@
             <select class="form-control form-control-sm" @bind="selectedServices" multiple>
                 @foreach (var service in SvcGroupHandler.AvailableServices)
                 {
-                    <option class="draggable" draggable="true" @ondragstart="() => HandleDragStart(ResolveSvc(selectedServices))" value="@service.Id">@ModellingDisplay.DisplayService(service)</option>
+                    <option class="draggable" draggable="true" @ondragstart="() => HandleDragStart(ResolveSvc(selectedServices))" value="@service.Id">@((MarkupString)service.DisplayWithIcon())</option>
                 }
             </select>
         </div>

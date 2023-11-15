@@ -1345,6 +1345,7 @@ create table modelling.connection
 	creator Varchar,
 	creation_date timestamp default now()
 );
+
 create table modelling.selected_objects
 (
 	app_id int,

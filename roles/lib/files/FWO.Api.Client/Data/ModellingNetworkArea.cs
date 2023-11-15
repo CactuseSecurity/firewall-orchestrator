@@ -5,21 +5,26 @@ namespace FWO.Api.Data
 {
 
 
-    public class ModellingNetworkArea
+    public class ModellingNetworkArea : ModellingNwGroupObject
     {
-        [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; } = 0;
-
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
-
         [JsonProperty("subnets"), JsonPropertyName("subnets")]
         public List<NetworkSubnet> Subnets { get; set; } = new();
 
-        public bool Sanitize()
+
+        public override string Display()
         {
-            bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            return (IsDeleted ? "*" : "") + Name; // + " (" + IdString + ")"
+        }
+
+        public override string DisplayWithIcon()
+        {
+            return $"<span class=\"oi oi-folder\"></span> " + Display();
+        }
+
+
+        public override bool Sanitize()
+        {
+            bool shortened = base.Sanitize();
             foreach(var subnet in Subnets)
             {
                 if(subnet.Sanitize())

@@ -3,30 +3,22 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ModellingNwObject
+    public class ModellingNwObject: ModellingObject
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
 
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
-
-        [JsonProperty("app_id"), JsonPropertyName("app_id")]
-        public int AppId { get; set; }
-
         [JsonProperty("is_deleted"), JsonPropertyName("is_deleted")]
         public bool IsDeleted { get; set; }
 
-        public virtual string Display()
+        public override string Display()
         {
-            return Name;
+            return (IsDeleted ? "*" : "") + Name;
         }
 
-        public bool Sanitize()
+        public override string DisplayWithIcon()
         {
-            bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
-            return shortened;
+            return $"<span class=\"oi oi-tag\"></span> " + Display();
         }
     }
 }

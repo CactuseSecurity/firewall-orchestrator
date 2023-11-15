@@ -11,7 +11,7 @@ mutation newAppRole(
     app_id: $appId
     comment: $comment
     creator: $creator
-    group_type: 1
+    group_type: 20
   }) {
     returning {
       newId: id

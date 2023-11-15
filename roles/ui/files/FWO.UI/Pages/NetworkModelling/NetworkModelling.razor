@@ -16,14 +16,14 @@
         <label class="col-form-label">@(userConfig.GetText("application")):</label>
         @if(singleApp)
         {
-            <label class="col-form-label text-primary ml-2">@ModellingDisplay.DisplayApp(selectedApp)</label>
+            <label class="col-form-label text-primary ml-2">@selectedApp.Display()</label>
         }
         else
         {
             <div class="col-sm-2">
-                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedApp" Elements="apps">
+                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display())" @bind-SelectedElement="selectedApp" Elements="apps">
                     <ElementTemplate Context="app">
-                        @ModellingDisplay.DisplayApp(app)
+                        @app.Display()
                     </ElementTemplate>
                 </Dropdown>
             </div>
@@ -72,7 +72,7 @@
                     <Template>
                         <ExpandableList Elements="GetSrcNames(context)" Context="src" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
-                                @src
+                                @((MarkupString)src)
                             </ElementTemplate>
                         </ExpandableList>
                     </Template>
@@ -81,7 +81,7 @@
                     <Template>
                         <ExpandableList Elements="GetSvcNames(context)" Context="svc" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
-                                @svc
+                                @((MarkupString)svc)
                             </ElementTemplate>
                         </ExpandableList>
                     </Template>
@@ -90,7 +90,7 @@
                     <Template>
                         <ExpandableList Elements="GetDstNames(context)" Context="dest" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
-                                @dest
+                                @((MarkupString)dest)
                             </ElementTemplate>
                         </ExpandableList>
                     </Template>
@@ -174,22 +174,24 @@
 
     private List<string> GetSrcNames(ModellingConnection conn)
     {
-        List<string> names = ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.Display());
-        names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.Display()));
+        List<string> names = ModellingNwGroupObjectWrapper.Resolve(conn.SourceNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon());
+        names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon()));
+        names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.DisplayWithIcon()));
         return names;
     }
     
     private List<string> GetDstNames(ModellingConnection conn)
     {
-        List<string> names = ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.Display());
-        names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.Display()));
+        List<string> names = ModellingNwGroupObjectWrapper.Resolve(conn.DestinationNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon());
+        names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon()));
+        names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.DisplayWithIcon()));
         return names;
     }
 
     private List<string> GetSvcNames(ModellingConnection conn)
     {
-        List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => ModellingDisplay.DisplayServiceGroup(s));
-        names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ModellingDisplay.DisplayService(s)));
+        List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon());
+        names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon()));
         return names;
     }
 

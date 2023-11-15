@@ -18,7 +18,13 @@ namespace FWO.Api.Data
             return (IsDeleted ? "*" : "") + DisplayBase.DisplayIpWithName(ToNetworkObject());
         }
 
-        public bool Sanitize()
+        public override string DisplayWithIcon()
+        {
+            return $"<span class=\"oi oi-laptop\"></span> " + Display();
+            // return $"<span class=\"oi {(ImportSource == "manual" ? "" : "oi-data-transfer-download")}\"></span> " + Display();
+        }
+
+        public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
             Ip = Sanitizer.SanitizeCidrMand(Ip, ref shortened);

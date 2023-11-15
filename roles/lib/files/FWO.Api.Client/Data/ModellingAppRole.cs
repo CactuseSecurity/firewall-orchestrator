@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ModellingAppRole : ModellingNwObject
+    public class ModellingAppRole : ModellingNwGroupObject
     {
         [JsonProperty("id_string"), JsonPropertyName("id_string")]
         public string IdString { get; set; } = "";
@@ -66,10 +66,15 @@ namespace FWO.Api.Data
 
         public override string Display()
         {
-            return Name + "(" + IdString + ")";
+            return Name + " (" + IdString + ")";
         }
 
-        public bool Sanitize()
+        public override string DisplayWithIcon()
+        {
+            return $"<span class=\"oi oi-list-rich\"></span> " + Display();
+        }
+
+        public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
             IdString = Sanitizer.SanitizeMand(IdString, ref shortened);

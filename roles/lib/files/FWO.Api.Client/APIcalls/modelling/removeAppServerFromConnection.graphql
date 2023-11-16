@@ -1,9 +1,9 @@
 mutation removeAppServerFromConnection(
-  $appServerId: bigint!
+  $nwObjectId: bigint!
   $connectionId: Int!
   $connectionField: Int!
   ) {
-  delete_modelling_nwobject_connection(where: {nwobject_id: {_eq: $appServerId}, connection_id: {_eq: $connectionId}, connection_field: {_eq: $connectionField}}) {
+  delete_modelling_nwobject_connection(where: {nwobject_id: {_eq: $nwObjectId}, connection_id: {_eq: $connectionId}, connection_field: {_eq: $connectionField}}) {
     affected_rows
   }
 }

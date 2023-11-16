@@ -3,12 +3,10 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-
-
     public class ModellingNetworkArea : ModellingNwGroupObject
     {
         [JsonProperty("subnets"), JsonPropertyName("subnets")]
-        public List<NetworkSubnet> Subnets { get; set; } = new();
+        public List<NetworkSubnetWrapper> Subnets { get; set; } = new();
 
 
         public override string Display()
@@ -27,7 +25,7 @@ namespace FWO.Api.Data
             bool shortened = base.Sanitize();
             foreach(var subnet in Subnets)
             {
-                if(subnet.Sanitize())
+                if(subnet.Content.Sanitize())
                 {
                     shortened = true;
                 }
@@ -57,4 +55,16 @@ namespace FWO.Api.Data
             return shortened;
         }
     }
+
+    public class NetworkSubnetWrapper
+    {
+        [JsonProperty("nwobject"), JsonPropertyName("nwobject")]
+        public NetworkSubnet Content { get; set; } = new();
+
+        public static NetworkSubnet[] Resolve(List<NetworkSubnetWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+    }
+
 }

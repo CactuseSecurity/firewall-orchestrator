@@ -1,11 +1,13 @@
 query getAreas {
-  modelling_area (order_by: { name: asc }){
+  modelling_nwgroup (where: { group_type: { _eq: 23 } } order_by: { name: asc }){
     id
     name
-    subnets: area_subnets{
-      id
-      name
-      network
+    subnets: nwobject_nwgroups{
+      nwobject{
+        id
+        name
+        network
+      }
     }
   }
 }

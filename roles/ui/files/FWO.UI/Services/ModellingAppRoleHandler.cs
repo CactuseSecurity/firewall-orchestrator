@@ -176,10 +176,10 @@ namespace FWO.Ui.Services
                     {
                         var Vars = new
                         {
-                            appServerId = appServer.Content.Id,
-                            appRoleId = ActAppRole.Id
+                            nwObjectId = appServer.Content.Id,
+                            nwGroupId = ActAppRole.Id
                         };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
                         await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
                             $"Added App Server {appServer.Content.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                     }
@@ -212,10 +212,10 @@ namespace FWO.Ui.Services
                 {
                     var Vars = new
                     {
-                        appServerId = appServer.Id,
-                        appRoleId = ActAppRole.Id
+                        nwObjectId = appServer.Id,
+                        nwGroupId = ActAppRole.Id
                     };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromAppRole, Vars);
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwObjectFromNwGroup, Vars);
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
                         $"Removed App Server {appServer.Display()} from App Role: {ActAppRole.Display()}", Application.Id);
                 }
@@ -223,10 +223,10 @@ namespace FWO.Ui.Services
                 {
                     var Vars = new
                     {
-                        appServerId = appServer.Id,
-                        appRoleId = ActAppRole.Id
+                        nwObjectId = appServer.Id,
+                        nwGroupId = ActAppRole.Id
                     };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToAppRole, Vars);
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
                         $"Added App Server {appServer.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                 }

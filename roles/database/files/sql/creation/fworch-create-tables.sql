@@ -1293,21 +1293,6 @@ create table compliance.ip_range
 --- Network modelling ---
 create schema modelling;
 
-create table modelling.area
-(
- 	id SERIAL PRIMARY KEY,
-	name Varchar NOT NULL UNIQUE,
-	is_deleted boolean default false
-);
-
-create table modelling.area_subnet
-(
- 	id SERIAL PRIMARY KEY,
-	name Varchar,
-	area_id int,
-	network cidr
-);
-
 create table modelling.nwobject
 (
  	id BIGSERIAL PRIMARY KEY,

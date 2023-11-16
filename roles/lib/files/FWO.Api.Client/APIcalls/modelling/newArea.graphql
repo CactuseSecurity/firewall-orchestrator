@@ -1,8 +1,11 @@
 mutation newArea(
   $name: String
+  $creator: String
   ) {
-  insert_modelling_area(objects: {
+  insert_modelling_nwgroup(objects: {
     name: $name
+    creator: $creator
+    group_type: 23
   }) {
     returning {
       newId: id

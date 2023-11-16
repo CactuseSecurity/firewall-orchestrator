@@ -1,12 +1,14 @@
 mutation newAreaSubnet(
   $name: String
-  $areaId: Int
-  $network: cidr
+  $ip: cidr
+  $importSource: String
   ) {
-  insert_modelling_area_subnet(objects: {
+  insert_modelling_nwobject(objects: {
     name: $name
-    area_id: $areaId
-    network: $network
+    ip: $network
+    import_source: $importSource
+    is_deleted: false
+    nw_type: 11
   }) {
     returning {
       newId: id

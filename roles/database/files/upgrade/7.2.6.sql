@@ -14,21 +14,6 @@ alter table owner add column if not exists import_source Varchar;
 
 create schema if not exists modelling;
 
-create table if not exists modelling.area
-(
- 	id SERIAL PRIMARY KEY,
-	name Varchar NOT NULL UNIQUE,
-	is_deleted boolean default false
-);
-
-create table if not exists modelling.area_subnet
-(
- 	id SERIAL PRIMARY KEY,
-	name Varchar,
-	area_id int,
-	network cidr
-);
-
 create table if not exists modelling.nwobject
 (
  	id BIGSERIAL PRIMARY KEY,
@@ -146,7 +131,6 @@ create table if not exists modelling.change_history
 );
 
 
-ALTER TABLE modelling.area_subnet DROP CONSTRAINT IF EXISTS modelling_area_subnet_area_foreign_key;
 ALTER TABLE modelling.nwobject DROP CONSTRAINT IF EXISTS modelling_nwobject_owner_foreign_key;
 ALTER TABLE modelling.nwgroup DROP CONSTRAINT IF EXISTS modelling_nwgroup_owner_foreign_key;
 ALTER TABLE modelling.connection DROP CONSTRAINT IF EXISTS modelling_connection_owner_foreign_key;
@@ -170,7 +154,6 @@ ALTER TABLE modelling.change_history DROP CONSTRAINT IF EXISTS modelling_change_
 ALTER TABLE modelling.selected_objects DROP CONSTRAINT IF EXISTS modelling_selected_objects_owner_foreign_key;
 ALTER TABLE modelling.selected_objects DROP CONSTRAINT IF EXISTS modelling_selected_objects_nwgroup_foreign_key;
 
-ALTER TABLE modelling.area_subnet ADD CONSTRAINT modelling_area_subnet_area_foreign_key FOREIGN KEY (area_id) REFERENCES modelling.area(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.nwobject ADD CONSTRAINT modelling_nwobject_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.nwgroup ADD CONSTRAINT modelling_nwgroup_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.connection ADD CONSTRAINT modelling_connection_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;

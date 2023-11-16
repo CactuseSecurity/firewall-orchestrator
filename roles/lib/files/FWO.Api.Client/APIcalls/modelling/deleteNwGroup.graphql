@@ -1,4 +1,4 @@
-mutation deleteAppRole($id: bigint!) {
+mutation deleteNwGroup($id: bigint!) {
   delete_modelling_nwgroup(where: {id: {_eq: $id}}) {
     affected_rows
   }

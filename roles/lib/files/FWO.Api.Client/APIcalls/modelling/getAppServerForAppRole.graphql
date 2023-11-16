@@ -1,5 +1,5 @@
-query getAppServerForAppRole ($appRoleId: bigint!){
-  modelling_nwobject_nwgroup (where: { nwgroup_id: { _eq: $appRoleId } } order_by: { name: asc }){
+query getAppServerForAppRole ($nwGroupId: bigint!){
+  modelling_nwobject_nwgroup (where: { nwgroup_id: { _eq: $nwGroupId } } order_by: { name: asc }){
     nwobject{
       ...appServerDetails
     }

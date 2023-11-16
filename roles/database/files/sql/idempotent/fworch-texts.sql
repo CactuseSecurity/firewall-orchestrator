@@ -1084,6 +1084,8 @@ INSERT INTO txt VALUES ('search_nw_object',     'German', 	'Netzwerkobjekt suche
 INSERT INTO txt VALUES ('search_nw_object',     'English', 	'Search Network Object');
 INSERT INTO txt VALUES ('delete_nw_object', 	'German',	'Netzwerkobjekt l&ouml;schen');
 INSERT INTO txt VALUES ('delete_nw_object', 	'English',	'Delete Network Object');
+INSERT INTO txt VALUES ('is_in_use', 	        'German',	'Wird benutzt');
+INSERT INTO txt VALUES ('is_in_use', 	        'English',	'Is in use');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

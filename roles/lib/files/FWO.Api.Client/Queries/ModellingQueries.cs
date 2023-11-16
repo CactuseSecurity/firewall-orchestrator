@@ -12,9 +12,7 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getAreas;
         public static readonly string newArea;
-        public static readonly string deleteArea;
         public static readonly string newAreaSubnet;
-        public static readonly string deleteAreaSubnet;
 
         public static readonly string getAppServers;
         public static readonly string getImportedAppServers;
@@ -48,10 +46,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string getAppRoles;
         public static readonly string newAppRole;
         public static readonly string updateAppRole;
-        public static readonly string deleteAppRole;
+        public static readonly string deleteNwGroup;
         public static readonly string getAppServerForAppRole;
-        public static readonly string addAppServerToAppRole;
-        public static readonly string removeAppServerFromAppRole;
+        public static readonly string addNwObjectToNwGroup;
+        public static readonly string removeNwObjectFromNwGroup;
 
         public static readonly string getServicesForApp;
         public static readonly string getGlobalServices;
@@ -84,9 +82,7 @@ namespace FWO.Api.Client.Queries
 
                 getAreas = File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
                 newArea = File.ReadAllText(QueryPath + "modelling/newArea.graphql");
-                deleteArea = File.ReadAllText(QueryPath + "modelling/deleteArea.graphql");
                 newAreaSubnet = File.ReadAllText(QueryPath + "modelling/newAreaSubnet.graphql");
-                deleteAreaSubnet = File.ReadAllText(QueryPath + "modelling/deleteAreaSubnet.graphql");
 
                 getAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServers.graphql");
                 getImportedAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getImportedAppServers.graphql");
@@ -120,10 +116,10 @@ namespace FWO.Api.Client.Queries
                 getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppRoles.graphql");
                 newAppRole = File.ReadAllText(QueryPath + "modelling/newAppRole.graphql");
                 updateAppRole = File.ReadAllText(QueryPath + "modelling/updateAppRole.graphql");
-                deleteAppRole = File.ReadAllText(QueryPath + "modelling/deleteAppRole.graphql");
+                deleteNwGroup = File.ReadAllText(QueryPath + "modelling/deleteNwGroup.graphql");
                 // getAppServerForAppRole = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServerForAppRole.graphql");
-                addAppServerToAppRole = File.ReadAllText(QueryPath + "modelling/addAppServerToAppRole.graphql");
-                removeAppServerFromAppRole = File.ReadAllText(QueryPath + "modelling/removeAppServerFromAppRole.graphql");
+                addNwObjectToNwGroup = File.ReadAllText(QueryPath + "modelling/addNwObjectToNwGroup.graphql");
+                removeNwObjectFromNwGroup = File.ReadAllText(QueryPath + "modelling/removeNwObjectFromNwGroup.graphql");
 
                 getServicesForApp = serviceDetailsFragment + File.ReadAllText(QueryPath + "modelling/getServicesForApp.graphql");
                 getGlobalServices = serviceDetailsFragment + File.ReadAllText(QueryPath + "modelling/getGlobalServices.graphql");

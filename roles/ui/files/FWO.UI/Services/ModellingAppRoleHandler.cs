@@ -2,7 +2,6 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Ui.Display;
 
 namespace FWO.Ui.Services
 {
@@ -13,15 +12,9 @@ namespace FWO.Ui.Services
         public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = new();
 
-        public ModellingAppServerHandler AppServerHandler;
         public List<ModellingAppServer> AppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> AppServerToDelete { get; set; } = new();
-        public bool AddAppServerMode = false;
-        public bool EditAppServerMode = false;
-        public bool DeleteAppServerMode = false;
-        public bool ReactivateAppServerMode = false;
         public string Message = "";
-        private ModellingAppServer actAppServer = new();
         private string origId = "";
 
 
@@ -49,69 +42,6 @@ namespace FWO.Ui.Services
                 {
                     AppServerToAdd.Add(appServer);
                 }
-            }
-        }
-
-        public void CreateAppServer()
-        {
-            AddAppServerMode = true;
-            HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConfig.kManual });
-        }
-
-        public void EditAppServer(ModellingAppServer appServer)
-        {
-            AddAppServerMode = false;
-            HandleAppServer(appServer);
-        }
-
-        public void HandleAppServer(ModellingAppServer appServer)
-        {
-            try
-            {
-                AppServerHandler = new ModellingAppServerHandler(apiConnection, userConfig, Application, appServer, AvailableAppServers, AddAppServerMode, DisplayMessageInUi);
-                EditAppServerMode = true;
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
-            }
-        }
-
-        public void RequestDeleteAppServer(ModellingAppServer appServer)
-        {
-            actAppServer = appServer;
-            Message = userConfig.GetText("U9003") + appServer.Name + "?";
-            DeleteAppServerMode = true;
-        }
-
-        public async Task DeleteAppServer()
-        {
-            try
-            {
-                DeleteAppServerMode = await DeleteAppServer(actAppServer, AvailableAppServers);
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("delete_app_server"), "", true);
-            }
-        }
-
-        public void RequestReactivateAppServer(ModellingAppServer appServer)
-        {
-            actAppServer = appServer;
-            Message = userConfig.GetText("U9005") + appServer.Name + "?";
-            ReactivateAppServerMode = true;
-        }
-
-        public async Task ReactivateAppServer()
-        {
-            try
-            {
-                ReactivateAppServerMode = await ReactivateAppServer(actAppServer);
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("delete_app_server"), "", true);
             }
         }
 

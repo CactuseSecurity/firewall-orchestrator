@@ -29,15 +29,10 @@ namespace FWO.Ui.Services
         public bool SearchNWObjectMode = false;
         public bool DeleteNwObjectMode = false;
 
-        public ModellingAppServerHandler AppServerHandler;
         public List<ModellingAppServer> SrcAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = new();
         public List<ModellingAppServer> DstAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> DstAppServerToDelete { get; set; } = new();
-        public bool AddAppServerMode = false;
-        public bool EditAppServerMode = false;
-        public bool DeleteAppServerMode = false;
-        public bool ReactivateAppServerMode = false;
 
         public ModellingAppRoleHandler AppRoleHandler;
         public List<ModellingAppRole> SrcAppRolesToAdd { get; set; } = new();
@@ -66,7 +61,6 @@ namespace FWO.Ui.Services
         public bool EditSvcGrpMode = false;
         public bool DeleteSvcGrpMode = false;
 
-        private ModellingAppServer actAppServer = new();
         private ModellingAppRole actAppRole = new();
         private ModellingNwGroupObject actNwGrpObj = new();
         private ModellingService actService = new();
@@ -200,69 +194,6 @@ namespace FWO.Ui.Services
             srcReadOnly = false;
             dstReadOnly = false;
             svcReadOnly = false;
-        }
-        
-        public void CreateAppServer()
-        {
-            AddAppServerMode = true;
-            HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConfig.kManual });
-        }
-
-        public void EditAppServer(ModellingAppServer appServer)
-        {
-            AddAppServerMode = false;
-            HandleAppServer(appServer);
-        }
-
-        public void HandleAppServer(ModellingAppServer appServer)
-        {
-            try
-            {
-                AppServerHandler = new ModellingAppServerHandler(apiConnection, userConfig, Application, appServer, AvailableAppServers, AddAppServerMode, DisplayMessageInUi);
-                EditAppServerMode = true;
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
-            }
-        }
-
-        public void RequestDeleteAppServer(ModellingAppServer appServer)
-        {
-            actAppServer = appServer;
-            Message = userConfig.GetText("U9003") + appServer.Name + "?";
-            DeleteAppServerMode = true;
-        }
-
-        public async Task DeleteAppServer()
-        {
-            try
-            {
-                DeleteAppServerMode = await DeleteAppServer(actAppServer, AvailableAppServers, AvailableNwElems);
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("delete_app_server"), "", true);
-            }
-        }
-
-        public void RequestReactivateAppServer(ModellingAppServer appServer)
-        {
-            actAppServer = appServer;
-            Message = userConfig.GetText("U9005") + appServer.Name + "?";
-            ReactivateAppServerMode = true;
-        }
-
-        public async Task ReactivateAppServer()
-        {
-            try
-            {
-                ReactivateAppServerMode = await ReactivateAppServer(actAppServer);
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("delete_app_server"), "", true);
-            }
         }
 
         public void AppServerToSource(List<ModellingAppServer> srcAppServers)

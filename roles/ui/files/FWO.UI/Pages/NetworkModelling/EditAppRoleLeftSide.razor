@@ -26,38 +26,12 @@
         </div>
     </div>
     <AuthorizeView Roles="admin, auditor">
-        <Authorized>
-            <button type="button" class="btn btn-sm btn-success" @onclick="() =>
-                {AppRoleHandler.CreateAppServer(); AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("add_app_server"))</button>
-            @if(selectedAppServers.Length == 1 && ResolveAppServer(selectedAppServers).First().ImportSource == GlobalConfig.kManual)
-            {
-                @if(ResolveAppServer(selectedAppServers).First().IsDeleted)
-                {
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
-                        {AppRoleHandler.RequestReactivateAppServer(ResolveAppServer(selectedAppServers).First());
-                        AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("reactivate"))</button>
-                }
-                else
-                {
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
-                        {AppRoleHandler.EditAppServer(ResolveAppServer(selectedAppServers).First());
-                        AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("edit"))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() =>
-                        {AppRoleHandler.RequestDeleteAppServer(ResolveAppServer(selectedAppServers).First());
-                        selectedAppServers = new long[]{}; AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("delete"))</button>
-                }
-            }
-        </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
         </NotAuthorized> 
     </AuthorizeView>
 </div>
-<EditAppServer @bind-Display="AppRoleHandler.EditAppServerMode" AppServerHandler="AppRoleHandler.AppServerHandler" AddMode="AppRoleHandler.AddAppServerMode"/>
-<ConfirmDelete @bind-Display="AppRoleHandler.DeleteAppServerMode" PerformAction="async () =>
-    { await AppRoleHandler.DeleteAppServer(); await AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}" Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@AppRoleHandler.Message"/>
-<Confirm @bind-Display="AppRoleHandler.ReactivateAppServerMode" PerformAction="async () =>
-    { await AppRoleHandler.ReactivateAppServer(); await AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}" Title="@userConfig.GetText("reactivate")" Message="@AppRoleHandler.Message"/>
+
 
 @code
 {

@@ -7,7 +7,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-@if(!EditConnMode)
+@if(!appSelected || (appSelected && !appHandler.EditConnMode))
 {
     <h3>@(userConfig.GetText("network_modelling"))</h3>
     <hr />
@@ -44,22 +44,27 @@
             <h5>@(userConfig.GetText("comm_profile"))</h5>
             @if(appActive)
             {
-                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddConn">@(userConfig.GetText("add_connection"))</button>
-                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddInterface">@(userConfig.GetText("add_interface"))</button>
+                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddConn">@(userConfig.GetText("add_connection"))</button>
+                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
+                <AuthorizeView Roles="admin, auditor">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
+                    </Authorized>
+                </AuthorizeView>
             }
         </div>
         <div class="m-2">
-            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="coproOfApp" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
+            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.coproOfApp" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
                 @if(userConfig.AllowManualOwnerAdmin)
                 {
                     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowDetails(context)">@(userConfig.GetText("details"))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => appHandler.ShowDetails(context)">@(userConfig.GetText("details"))</button>
                                 @if(appActive)
                                 {
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditConn(context)">@(userConfig.GetText("edit"))</button>
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteConnection(context)">@(userConfig.GetText("delete"))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => appHandler.EditConn(context)">@(userConfig.GetText("edit"))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => appHandler.RequestDeleteConnection(context)">@(userConfig.GetText("delete"))</button>
                                 }
                             </div>
                         </Template>
@@ -70,7 +75,7 @@
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <ExpandableList Elements="GetSrcNames(context)" Context="src" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                        <ExpandableList Elements="appHandler.GetSrcNames(context)" Context="src" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
                                 @((MarkupString)src)
                             </ElementTemplate>
@@ -79,7 +84,7 @@
                 </Column>
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("service"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <ExpandableList Elements="GetSvcNames(context)" Context="svc" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                        <ExpandableList Elements="appHandler.GetSvcNames(context)" Context="svc" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
                                 @((MarkupString)svc)
                             </ElementTemplate>
@@ -88,7 +93,7 @@
                 </Column>
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("destination"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <ExpandableList Elements="GetDstNames(context)" Context="dest" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                        <ExpandableList Elements="appHandler.GetDstNames(context)" Context="dest" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
                                 @((MarkupString)dest)
                             </ElementTemplate>
@@ -99,8 +104,12 @@
         </div>
     }
 }
-<EditConn @bind-Display="EditConnMode" Application="@selectedApp" ConnHandler="connHandler"/>
-<ConfirmDelete @bind-Display="DeleteConnMode" PerformAction="DeleteConnection" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@Message"/>
+else
+{
+    <EditConn @bind-Display="appHandler.EditConnMode" Application="@selectedApp" ConnHandler="appHandler.connHandler"/>
+    <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="appHandler.DeleteConnection" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message"/>
+}
+<ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp"/>
 <ShowHistory @bind-Display="showHistory" Applications="apps"/>
 
 @code
@@ -111,19 +120,13 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    private ModellingAppHandler? appHandler;
     private List<FwoOwner> apps = new();
     private FwoOwner selectedApp = new();
     private bool singleApp = false;
     private bool appSelected = false;
+    private bool manualAppServer = false;
 
-    private ModellingConnectionHandler connHandler;
-    private List<ModellingConnection> coproOfApp = new();
-    private ModellingConnection actConn = new();
-    private bool AddConnMode = false;
-    private bool EditConnMode = false;
-    private bool DeleteConnMode = false;
-    private bool readOnly = false;
-    private string Message = "";
     private bool appActive = false;
     private bool showHistory = false;
 
@@ -157,12 +160,9 @@
     {
         try
         {
-            var queryParam = new
-            {
-                appId = selectedApp.Id
-            };
-            coproOfApp = await apiConnection.SendQueryAsync<List<ModellingConnection>>(FWO.Api.Client.Queries.ModellingQueries.getConnections, queryParam);
-            actConn = coproOfApp.FirstOrDefault() ?? new ModellingConnection();
+            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi);
+            await appHandler.Init();
+
             appSelected = true;
             appActive = selectedApp.Active;
         }
@@ -172,88 +172,9 @@
         }
     }
 
-    private List<string> GetSrcNames(ModellingConnection conn)
+    private void ManualAppServer()
     {
-        List<string> names = ModellingNwGroupObjectWrapper.Resolve(conn.SourceNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon());
-        names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon()));
-        names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.DisplayWithIcon()));
-        return names;
-    }
-    
-    private List<string> GetDstNames(ModellingConnection conn)
-    {
-        List<string> names = ModellingNwGroupObjectWrapper.Resolve(conn.DestinationNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon());
-        names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon()));
-        names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.DisplayWithIcon()));
-        return names;
-    }
-
-    private List<string> GetSvcNames(ModellingConnection conn)
-    {
-        List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon());
-        names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon()));
-        return names;
-    }
-
-    private async Task AddConn()
-    {
-        readOnly = false;
-        AddConnMode = true;
-        await HandleConn(new ModellingConnection() { AppId = selectedApp.Id });
-    }
-
-    private async Task AddInterface()
-    {
-        readOnly = false;
-        AddConnMode = true;
-        await HandleConn(new ModellingConnection(){ AppId = selectedApp.Id, IsInterface = true });
-    }
-
-    private async Task ShowDetails(ModellingConnection conn)
-    {
-        readOnly = true;
-        AddConnMode = false;
-        await HandleConn(conn);
-    }
-
-    private async Task EditConn(ModellingConnection conn)
-    {
-        readOnly = false;
-        AddConnMode = false;
-        await HandleConn(conn);
-    }
-
-    public async Task HandleConn(ModellingConnection conn)
-    {
-        connHandler = new ModellingConnectionHandler(apiConnection, userConfig, selectedApp, coproOfApp, conn, AddConnMode, readOnly, DisplayMessageInUi);
-        await connHandler.Init();
-        EditConnMode = true;
-    }
-
-    private void RequestDeleteConnection(ModellingConnection conn)
-    {
-        actConn = conn;
-        Message = userConfig.GetText("U9001") + actConn.Name + "?";
-        DeleteConnMode = true;
-    }
-
-    private async Task DeleteConnection()
-    {
-        try
-        {
-            if((await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ModellingQueries.deleteConnection, new { id = actConn.Id })).AffectedRows > 0)
-            {
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Connection, actConn.Id,
-                    $"Deleted {(actConn.IsInterface? "Interface" : "Connection")}: {actConn.Name}", apiConnection, userConfig, selectedApp.Id, DisplayMessageInUi);
-                coproOfApp.Remove(actConn);
-                DeleteConnMode = false;
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
-        }
-        StateHasChanged();
+        manualAppServer = true;
     }
 
     private string getTableRowClass(ModellingConnection conn)

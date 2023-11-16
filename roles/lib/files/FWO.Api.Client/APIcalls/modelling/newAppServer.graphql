@@ -10,7 +10,7 @@ mutation newAppServer(
     ip: $ip
     import_source: $importSource
     is_deleted: false
-    nw_type: 1
+    nw_type: 10
   }) {
     returning {
       newId: id

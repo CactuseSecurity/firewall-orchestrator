@@ -199,7 +199,7 @@
 
     private void NetworkElemsToConn(int[] selectedNwElems, bool toSource)
     {
-        List<ModellingNwGroupObject> nwGroups = new();
+        List<ModellingNwGroup> nwGroups = new();
         List<ModellingAppRole> appRoles = new();
         List<ModellingAppServer> appServer = new();
         foreach(int elem in selectedNwElems)
@@ -349,7 +349,7 @@
         return ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
     }
 
-    private ModellingNwGroupObject ResolveNwGroupObject(long selectedId)
+    private ModellingNwGroup ResolveNwGroupObject(long selectedId)
     {
         return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId).Content;
     }

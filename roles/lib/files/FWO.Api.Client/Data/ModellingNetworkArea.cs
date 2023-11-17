@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ModellingNetworkArea : ModellingNwGroupObject
+    public class ModellingNetworkArea : ModellingNwGroup
     {
         [JsonProperty("subnets"), JsonPropertyName("subnets")]
         public List<NetworkSubnetWrapper> Subnets { get; set; } = new();

@@ -41,18 +41,16 @@ namespace FWO.Api.Data
         [JsonProperty("source_approles"), JsonPropertyName("source_approles")]
         public List<ModellingAppRoleWrapper> SourceAppRoles { get; set; } = new();
 
-        [JsonProperty("source_nwgroups"), JsonPropertyName("source_nwgroups")]
-        public List<ModellingNwGroupObjectWrapper> SourceNwGroups { get; set; } = new();
-
         [JsonProperty("destination_nwobjects"), JsonPropertyName("destination_nwobjects")]
         public List<ModellingAppServerWrapper> DestinationAppServers { get; set; } = new();
 
         [JsonProperty("destination_approles"), JsonPropertyName("destination_approles")]
         public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = new();
 
-        [JsonProperty("destination_nwgroups"), JsonPropertyName("destination_nwgroups")]
+        
+        public List<ModellingNwGroupObjectWrapper> SourceNwGroups { get; set; } = new();
         public List<ModellingNwGroupObjectWrapper> DestinationNwGroups { get; set; } = new();
-
+        
 
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
@@ -78,6 +76,28 @@ namespace FWO.Api.Data
            DestinationAppServers = new List<ModellingAppServerWrapper>(conn.DestinationAppServers);
            DestinationAppRoles = new List<ModellingAppRoleWrapper>(conn.DestinationAppRoles);
            DestinationNwGroups = new List<ModellingNwGroupObjectWrapper>(conn.DestinationNwGroups);
+        }
+
+        public void ExtractNwGroups()
+        {
+            SourceNwGroups = new();
+            foreach(var nwGroup in SourceAppRoles)
+            {
+                if(nwGroup.Content.GroupType != (int)ModellingTypes.ObjectType.AppRole)
+                {
+                    SourceNwGroups.Add(new ModellingNwGroupObjectWrapper() { Content = nwGroup.Content.ToBase() });
+                }
+            }
+            SourceAppRoles = SourceAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ObjectType.AppRole).ToList();
+            DestinationNwGroups = new();
+            foreach(var nwGroup in DestinationAppRoles)
+            {
+                if(nwGroup.Content.GroupType != (int)ModellingTypes.ObjectType.AppRole)
+                {
+                    DestinationNwGroups.Add(new ModellingNwGroupObjectWrapper() { Content = nwGroup.Content.ToBase() });
+                }
+            }
+            DestinationAppRoles = DestinationAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ObjectType.AppRole).ToList();
         }
 
         public bool Sanitize()

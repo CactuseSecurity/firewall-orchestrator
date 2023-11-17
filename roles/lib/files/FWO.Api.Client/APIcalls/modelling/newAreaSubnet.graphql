@@ -5,7 +5,7 @@ mutation newAreaSubnet(
   ) {
   insert_modelling_nwobject(objects: {
     name: $name
-    ip: $network
+    ip: $ip
     import_source: $importSource
     is_deleted: false
     nw_type: 11

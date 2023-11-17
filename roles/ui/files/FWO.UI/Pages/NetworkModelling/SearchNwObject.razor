@@ -32,7 +32,7 @@
                 <div class="form-group row">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
                     <div class="col-sm-9">
-                        <Dropdown ElementType="ModellingNwGroupObject" @bind-SelectedElement="selectedObject" ElementToString="@(o => o.Name)" Elements="nwObjects" Nullable="true">
+                        <Dropdown ElementType="ModellingNwGroup" @bind-SelectedElement="selectedObject" ElementToString="@(o => o.Name)" Elements="nwObjects" Nullable="true">
                             <ElementTemplate Context="obj">
                                 @obj.Name
                             </ElementTemplate>
@@ -79,8 +79,8 @@
     private ModellingTypes.ObjectType selectedType = ModellingTypes.ObjectType.NetworkArea;
     private bool singleType = false;
     private bool typeSelected = false;
-    private List<ModellingNwGroupObject> nwObjects = new();
-    private ModellingNwGroupObject? selectedObject;
+    private List<ModellingNwGroup> nwObjects = new();
+    private ModellingNwGroup? selectedObject;
     private bool FirstTry = true;
 
     protected override async Task OnParametersSetAsync()
@@ -111,7 +111,7 @@
             {
                 grpType = (int)selectedType
             };
-            nwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupObject>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, Variables);
+            nwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, Variables);
             typeSelected = true;
         }
         catch (Exception exception)

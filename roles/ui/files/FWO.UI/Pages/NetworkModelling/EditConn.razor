@@ -49,7 +49,7 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleSrcDrop">
-                            <EditList ElementType="ModellingNwGroupObject" Elements="ModellingNwGroupObjectWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups)" ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupObjectWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups)" ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -132,7 +132,7 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleDstDrop">
-                            <EditList ElementType="ModellingNwGroupObject" Elements="ModellingNwGroupObjectWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups)" ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
+                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupObjectWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups)" ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false" AfterRemoveAction="ConnHandler.CalcVisibility">
                                 <Display>
                                     <div class="row">
                                         <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>

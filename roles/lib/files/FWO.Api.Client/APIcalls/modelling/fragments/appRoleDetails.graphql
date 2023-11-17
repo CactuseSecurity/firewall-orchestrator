@@ -2,6 +2,7 @@ fragment appRoleDetails on modelling_nwgroup {
   id
   app_id
   id_string
+  group_type
   name
   comment
   is_deleted

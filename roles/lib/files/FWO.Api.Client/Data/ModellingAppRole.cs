@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ModellingAppRole : ModellingNwGroupObject
+    public class ModellingAppRole : ModellingNwGroup
     {
         [JsonProperty("id_string"), JsonPropertyName("id_string")]
         public string IdString { get; set; } = "";
@@ -63,6 +63,18 @@ namespace FWO.Api.Data
         public ModellingNetworkArea Area { get; set; }
         public const int FixedPartLength = 4;
 
+
+        public ModellingNwGroup ToBase()
+        {
+            return new ModellingNwGroup()
+            {
+                Id = Id,
+                GroupType = GroupType,
+                Name = Name,
+                AppId = AppId,
+                IsDeleted = IsDeleted
+            };
+        }
 
         public override string Display()
         {

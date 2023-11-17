@@ -16,9 +16,14 @@ namespace FWO.Api.Data
             return Name;
         }
 
+        public virtual string DisplayHtml()
+        {
+            return $"<span class=\"\">{Display()}</span>";
+        }
+
         public virtual string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-tag\"></span> " + Display();
+            return $"<span class=\"oi oi-tag\"></span> " + DisplayHtml();
         }
 
         public virtual bool Sanitize()

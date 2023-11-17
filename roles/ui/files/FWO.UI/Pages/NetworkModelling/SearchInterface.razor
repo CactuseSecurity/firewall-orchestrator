@@ -60,6 +60,10 @@
             {
                 FirstTry = false;
                 availableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
+                foreach(var interf in availableInterfaces)
+                {
+                    interf.ExtractNwGroups();
+                }
             }
             catch (Exception exception)
             {

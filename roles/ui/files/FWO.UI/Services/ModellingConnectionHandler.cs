@@ -39,10 +39,10 @@ namespace FWO.Ui.Services
         public List<ModellingAppRole> SrcAppRolesToDelete { get; set; } = new();
         public List<ModellingAppRole> DstAppRolesToAdd { get; set; } = new();
         public List<ModellingAppRole> DstAppRolesToDelete { get; set; } = new();
-        public List<ModellingNwGroupObject> SrcNwGroupsToAdd { get; set; } = new();
-        public List<ModellingNwGroupObject> SrcNwGroupsToDelete { get; set; } = new();
-        public List<ModellingNwGroupObject> DstNwGroupsToAdd { get; set; } = new();
-        public List<ModellingNwGroupObject> DstNwGroupsToDelete { get; set; } = new();
+        public List<ModellingNwGroup> SrcNwGroupsToAdd { get; set; } = new();
+        public List<ModellingNwGroup> SrcNwGroupsToDelete { get; set; } = new();
+        public List<ModellingNwGroup> DstNwGroupsToAdd { get; set; } = new();
+        public List<ModellingNwGroup> DstNwGroupsToDelete { get; set; } = new();
         public bool AddAppRoleMode = false;
         public bool EditAppRoleMode = false;
         public bool DeleteAppRoleMode = false;
@@ -62,7 +62,7 @@ namespace FWO.Ui.Services
         public bool DeleteSvcGrpMode = false;
 
         private ModellingAppRole actAppRole = new();
-        private ModellingNwGroupObject actNwGrpObj = new();
+        private ModellingNwGroup actNwGrpObj = new();
         private ModellingService actService = new();
         private ModellingServiceGroup actServiceGroup = new();
         private ModellingConnection ActConnOrig { get; set; } = new();
@@ -231,7 +231,7 @@ namespace FWO.Ui.Services
             SearchNWObjectMode = true;
         }
 
-        public void RequestDeleteNwGrpObject(ModellingNwGroupObject nwGrpObj)
+        public void RequestDeleteNwGrpObject(ModellingNwGroup nwGrpObj)
         {
             actNwGrpObj = nwGrpObj;
             Message = userConfig.GetText("U9006") + nwGrpObj.Name + "?";
@@ -257,7 +257,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void NwGroupToSource(List<ModellingNwGroupObject> nwGroups)
+        public void NwGroupToSource(List<ModellingNwGroup> nwGroups)
         {
             if(!SrcDropForbidden())
             {
@@ -272,7 +272,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void NwGroupToDestination(List<ModellingNwGroupObject> nwGroups)
+        public void NwGroupToDestination(List<ModellingNwGroup> nwGroups)
         {
             if(!DstDropForbidden())
             {
@@ -906,10 +906,10 @@ namespace FWO.Ui.Services
             SrcAppRolesToDelete = new List<ModellingAppRole>();
             DstAppRolesToAdd = new List<ModellingAppRole>();
             DstAppRolesToDelete = new List<ModellingAppRole>();
-            SrcNwGroupsToAdd = new List<ModellingNwGroupObject>();
-            SrcNwGroupsToDelete = new List<ModellingNwGroupObject>();
-            DstNwGroupsToAdd = new List<ModellingNwGroupObject>();
-            DstNwGroupsToDelete = new List<ModellingNwGroupObject>();
+            SrcNwGroupsToAdd = new List<ModellingNwGroup>();
+            SrcNwGroupsToDelete = new List<ModellingNwGroup>();
+            DstNwGroupsToAdd = new List<ModellingNwGroup>();
+            DstNwGroupsToDelete = new List<ModellingNwGroup>();
             SvcToAdd = new List<ModellingService>();
             SvcToDelete = new List<ModellingService>();
             SvcGrpToAdd = new List<ModellingServiceGroup>();

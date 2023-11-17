@@ -7,17 +7,12 @@ fragment connectionDetails on modelling_connection {
   used_interface_id
   creator
   creation_date
-  source_nwgroups: nwgroup_connections (where: { connection_field: { _eq: 1 } }){
-    nwgroup{
-      ...appRoleDetails
-    }
-  }
   source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){
     nwobject{
       ...appServerDetails
     }
   }
-  destination_nwgroups: nwgroup_connections (where: { connection_field: { _eq: 2 } }){
+  source_approles: nwgroup_connections (where: { connection_field: { _eq: 1 } }){
     nwgroup{
       ...appRoleDetails
     }
@@ -25,6 +20,11 @@ fragment connectionDetails on modelling_connection {
   destination_nwobjects: nwobject_connections (where: { connection_field: { _eq: 2 } }){
     nwobject{
       ...appServerDetails
+    }
+  }
+  destination_approles: nwgroup_connections (where: { connection_field: { _eq: 2 } }){
+    nwgroup{
+      ...appRoleDetails
     }
   }
   service_groups: service_group_connections{

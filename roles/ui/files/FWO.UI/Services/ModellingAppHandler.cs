@@ -33,6 +33,10 @@ namespace FWO.Ui.Services
                     appId = Application.Id
                 };
                 coproOfApp = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, queryParam);
+                foreach(var conn in coproOfApp)
+                {
+                    conn.ExtractNwGroups();
+                }
                 actConn = coproOfApp.FirstOrDefault() ?? new ModellingConnection();
             }
             catch (Exception exception)

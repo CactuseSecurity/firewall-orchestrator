@@ -21,7 +21,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string setAppServerDeletedState;
         public static readonly string deleteAppServer;
         public static readonly string getAppRolesForAppServer;
-        public static readonly string getConnectionsForAppServer;
+        public static readonly string getConnectionIdsForAppServer;
 
         public static readonly string getInterfaces;
         public static readonly string getInterfaceById;
@@ -91,7 +91,7 @@ namespace FWO.Api.Client.Queries
                 setAppServerDeletedState = File.ReadAllText(QueryPath + "modelling/setAppServerDeletedState.graphql");
                 deleteAppServer = File.ReadAllText(QueryPath + "modelling/deleteAppServer.graphql");
                 getAppRolesForAppServer = File.ReadAllText(QueryPath + "modelling/getAppRolesForAppServer.graphql");
-                getConnectionsForAppServer = File.ReadAllText(QueryPath + "modelling/getConnectionsForAppServer.graphql");                
+                getConnectionIdsForAppServer = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForAppServer.graphql");                
 
                 getInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaces.graphql");
                 getInterfaceById = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaceById.graphql");                

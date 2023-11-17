@@ -16,9 +16,14 @@ namespace FWO.Api.Data
             return (IsDeleted ? "*" : "") + Name;
         }
 
+        public override string DisplayHtml()
+        {
+            return $"<span class=\"{(IsDeleted ? "text-secondary" : "")}\">{(IsDeleted ? "<i>" : "")}{Display()}{(IsDeleted ? "</i>" : "")}</span>";
+        }
+
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-tag\"></span> " + Display();
+            return $"<span class=\"oi oi-tag\"></span> " + DisplayHtml();
         }
     }
 }

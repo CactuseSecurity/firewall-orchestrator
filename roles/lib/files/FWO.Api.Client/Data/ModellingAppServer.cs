@@ -20,7 +20,7 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-laptop\"></span> " + Display();
+            return $"<span class=\"oi oi-laptop\"></span> " + DisplayHtml();
             // return $"<span class=\"oi {(ImportSource == "manual" ? "" : "oi-data-transfer-download")}\"></span> " + Display();
         }
 

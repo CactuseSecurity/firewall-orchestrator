@@ -25,7 +25,7 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-wrench\"></span> " + Display();
+            return $"<span class=\"oi oi-wrench\"></span> " + DisplayHtml();
         }
 
         public static NetworkService ToNetworkService(ModellingService service)

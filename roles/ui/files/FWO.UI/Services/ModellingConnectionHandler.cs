@@ -12,7 +12,7 @@ namespace FWO.Ui.Services
         public ModellingConnection ActConn { get; set; } = new();
         public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         public List<ModellingAppRole> AvailableAppRoles { get; set; } = new();
-        public List<ModellingNwGroupObjectWrapper> AvailableSelectedObjects { get; set; } = new();
+        public List<ModellingNwGroupWrapper> AvailableSelectedObjects { get; set; } = new();
         public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = new();
         public List<ModellingServiceGroup> AvailableServiceGroups { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
@@ -85,9 +85,9 @@ namespace FWO.Ui.Services
             {
                 AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
-                AvailableSelectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupObjectWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
-                AvailableServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id });
-                AvailableServiceGroups.AddRange((await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups)).Where(x => x.AppId != Application.Id));
+                AvailableSelectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
+                AvailableServiceGroups = (await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups)).Where(x => x.AppId != Application.Id).ToList();
+                AvailableServiceGroups.AddRange(await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id }));
                 AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id });
                 foreach(var svcGrp in AvailableServiceGroups)
                 {
@@ -101,22 +101,7 @@ namespace FWO.Ui.Services
                     }
                 }
                 RefreshSelectedNwObjects();
-                if(ActConn.UsedInterfaceId != null)
-                {
-                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = ActConn.UsedInterfaceId});
-                    if(interf.Count > 0)
-                    {
-                        InterfaceName = interf[0].Name ?? "";
-                        if(interf[0].SourceAppServers.Count > 0 || interf[0].SourceNwGroups.Count > 0)
-                        {
-                            ActConn.SrcFromInterface = true;
-                        }
-                        if(interf[0].DestinationAppServers.Count > 0 || interf[0].DestinationNwGroups.Count > 0)
-                        {
-                            ActConn.DstFromInterface = true;
-                        }
-                    }  
-                }
+                InterfaceName = await ExtractUsedInterface(ActConn);
             }
             catch (Exception exception)
             {
@@ -148,8 +133,8 @@ namespace FWO.Ui.Services
         public void InterfaceToConn(ModellingConnection interf)
         {
             InterfaceName = interf.Name ?? "";
-            srcReadOnly = interf.SourceAppServers.Count > 0 || interf.SourceNwGroups.Count > 0;
-            dstReadOnly = !srcReadOnly;
+            srcReadOnly = interf.SourceFilled();
+            dstReadOnly = interf.DestinationFilled();
             svcReadOnly = true;
             ActConn.IsInterface = false;
             ActConn.UsedInterfaceId = interf.Id;
@@ -157,14 +142,14 @@ namespace FWO.Ui.Services
             {
                 ActConn.SourceAppServers = new List<ModellingAppServerWrapper>(interf.SourceAppServers){};
                 ActConn.SourceAppRoles = new List<ModellingAppRoleWrapper>(interf.SourceAppRoles){};
-                ActConn.SourceNwGroups = new List<ModellingNwGroupObjectWrapper>(interf.SourceNwGroups){};
+                ActConn.SourceNwGroups = new List<ModellingNwGroupWrapper>(interf.SourceNwGroups){};
                 ActConn.SrcFromInterface = true;
             }
             else
             {
                 ActConn.DestinationAppServers = new List<ModellingAppServerWrapper>(interf.DestinationAppServers){};
                 ActConn.DestinationAppRoles = new List<ModellingAppRoleWrapper>(interf.DestinationAppRoles){};
-                ActConn.DestinationNwGroups = new List<ModellingNwGroupObjectWrapper>(interf.DestinationNwGroups){};
+                ActConn.DestinationNwGroups = new List<ModellingNwGroupWrapper>(interf.DestinationNwGroups){};
                 ActConn.DstFromInterface = true;
             }
             ActConn.Services = new List<ModellingServiceWrapper>(interf.Services){};
@@ -245,7 +230,7 @@ namespace FWO.Ui.Services
                 if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeSelectedNwGroupObject, new { appId = Application.Id, nwGroupId = actNwGrpObj.Id })).AffectedRows > 0)
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, (ModellingTypes.ObjectType)actNwGrpObj.GroupType, actNwGrpObj.Id,
-                        $"Deleted {actNwGrpObj.GroupType} Object: {actNwGrpObj.Display()}", Application.Id);
+                        $"Deleted {(ModellingTypes.ObjectType)actNwGrpObj.GroupType} Object: {actNwGrpObj.Display()}", Application.Id);
                     AvailableSelectedObjects.Remove(AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == actNwGrpObj.Id) ?? throw new Exception("Did not find object."));
                     AvailableNwElems.Remove(AvailableNwElems.FirstOrDefault(x => x.Key == actNwGrpObj.GroupType && x.Value == actNwGrpObj.Id));
                     DeleteNwObjectMode = false;
@@ -493,8 +478,8 @@ namespace FWO.Ui.Services
         {
             if(ActConn.IsInterface)
             {
-                dstReadOnly = ActConn.SourceAppServers.Count > 0 || SrcAppServerToAdd.Count > 0;
-                srcReadOnly = ActConn.DestinationAppServers.Count > 0 || DstAppServerToAdd.Count > 0;
+                dstReadOnly = SrcFilledInWork();
+                srcReadOnly = DstFilledInWork();
                 svcReadOnly = false;
             }
             else if (ActConn.UsedInterfaceId != null)
@@ -514,33 +499,35 @@ namespace FWO.Ui.Services
 
         public bool SrcDropForbidden()
         {
-            return srcReadOnly || (ActConn.IsInterface && DstFilled());
+            return srcReadOnly || (ActConn.IsInterface && DstFilledInWork());
         }
 
         public bool DstDropForbidden()
         {
-            return dstReadOnly || (ActConn.IsInterface && SrcFilled());
+            return dstReadOnly || (ActConn.IsInterface && SrcFilledInWork());
         }
 
-        public bool SrcFilled()
+        public bool SrcFilledInWork()
         {
-            return ActConn.SourceNwGroups.Count - SrcAppRolesToDelete.Count > 0 || 
+            return ActConn.SourceNwGroups.Count - SrcNwGroupsToDelete.Count > 0 || 
+                ActConn.SourceAppRoles.Count - SrcAppRolesToDelete.Count > 0 ||
                 ActConn.SourceAppServers.Count - SrcAppServerToDelete.Count > 0 ||
-                SrcNwGroupsToAdd != null && SrcNwGroupsToAdd.Count > 0 ||
-                SrcAppServerToAdd != null && SrcAppServerToAdd.Count > 0 ||
-                SrcAppRolesToAdd != null && SrcAppRolesToAdd.Count > 0;
+                SrcNwGroupsToAdd.Count > 0 ||
+                SrcAppServerToAdd.Count > 0 ||
+                SrcAppRolesToAdd.Count > 0;
         }
 
-        public bool DstFilled()
+        public bool DstFilledInWork()
         {
-            return ActConn.DestinationNwGroups.Count - DstAppRolesToDelete.Count > 0 || 
+            return ActConn.DestinationNwGroups.Count - DstNwGroupsToDelete.Count > 0 || 
+                ActConn.DestinationAppRoles.Count- DstAppRolesToDelete.Count > 0 || 
                 ActConn.DestinationAppServers.Count - DstAppServerToDelete.Count > 0 ||
-                DstNwGroupsToAdd != null && DstNwGroupsToAdd.Count > 0 ||
-                DstAppServerToAdd != null && DstAppServerToAdd.Count > 0 ||
-                DstAppRolesToAdd != null && DstAppRolesToAdd.Count > 0;
+                DstNwGroupsToAdd.Count > 0 ||
+                DstAppServerToAdd.Count > 0 ||
+                DstAppRolesToAdd.Count > 0;
         }
 
-        public bool SvcFilled()
+        public bool SvcFilledInWork()
         {
             return ActConn.Services.Count - SvcToDelete.Count > 0 || 
                 ActConn.ServiceGroups.Count - SvcGrpToDelete.Count > 0 ||
@@ -582,7 +569,7 @@ namespace FWO.Ui.Services
                         }
                         foreach(var nwGroup in SrcNwGroupsToAdd)
                         {
-                            ActConn.SourceNwGroups.Add(new ModellingNwGroupObjectWrapper(){ Content = nwGroup });
+                            ActConn.SourceNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
                         }
                     }
                     if(!dstReadOnly)
@@ -609,7 +596,7 @@ namespace FWO.Ui.Services
                         }
                         foreach(var nwGroup in SrcNwGroupsToAdd)
                         {
-                            ActConn.DestinationNwGroups.Add(new ModellingNwGroupObjectWrapper(){ Content = nwGroup });
+                            ActConn.DestinationNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
                         }
                     }
                     if(!svcReadOnly)
@@ -657,7 +644,7 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if(ActConn.IsInterface && (!(SrcFilled() || DstFilled()) || !SvcFilled()))
+            if(ActConn.IsInterface && (!(SrcFilledInWork() || DstFilledInWork()) || !SvcFilledInWork()))
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9004"), true);
                 return false;

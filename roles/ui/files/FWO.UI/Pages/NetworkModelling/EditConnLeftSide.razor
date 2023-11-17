@@ -159,7 +159,7 @@
 <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)" Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message"/>
 <SearchInterface @bind-Display="SearchInterfaceMode" @bind-Interface="actInterface"/>
-<SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
+<SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects" Application="Application" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteNwObjectMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteNwGrpObject)" Title="@userConfig.GetText("delete_nw_object")" DeleteMessage="@ConnHandler.Message"/>
 
 @code

@@ -26,6 +26,11 @@ namespace FWO.Api.Data
             return $"<span class=\"oi oi-tag\"></span> " + DisplayHtml();
         }
 
+        public virtual string DisplayWithIcon(bool displayGrey)
+        {
+            return $"<span class=\"{(displayGrey ? "text-secondary" : "")}\">{DisplayWithIcon()}</span>";
+        }
+
         public virtual bool Sanitize()
         {
             bool shortened = false;

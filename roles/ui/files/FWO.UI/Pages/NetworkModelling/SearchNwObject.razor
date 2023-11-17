@@ -66,10 +66,13 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public List<ModellingNwGroupObjectWrapper> ObjectList { get; set; } = new();
+    public List<ModellingNwGroupWrapper> ObjectList { get; set; } = new();
 
     [Parameter]
-    public EventCallback<List<ModellingNwGroupObjectWrapper> > ObjectListChanged { get; set; }
+    public EventCallback<List<ModellingNwGroupWrapper> > ObjectListChanged { get; set; }
+
+    [Parameter] 
+    public FwoOwner Application { get; set; } = new();
 
     [Parameter]
     public Func<bool> Refresh { get; set; } = DefaultInit.DoNothingSync;
@@ -126,11 +129,11 @@
         {
             var Variables = new
             {
-                appId = selectedObject?.AppId,
+                appId = Application.Id,
                 nwGroupId = selectedObject?.Id
             };
             await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedNwGroupObject, Variables);
-            ObjectList.Add(new ModellingNwGroupObjectWrapper(){ Content = selectedObject });
+            ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject });
             await ObjectListChanged.InvokeAsync(ObjectList);
             Refresh();
             Close();

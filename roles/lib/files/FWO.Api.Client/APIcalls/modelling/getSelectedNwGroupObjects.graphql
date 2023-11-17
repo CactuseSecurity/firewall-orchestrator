@@ -3,6 +3,7 @@ query getSelectedNwGroupObjects ($appId: Int!){
     nwgroup {
       id
       name
+      group_type
     }
   }
 }

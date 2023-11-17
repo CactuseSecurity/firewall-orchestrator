@@ -9,17 +9,6 @@ namespace FWO.Api.Data
         public List<NetworkSubnetWrapper> Subnets { get; set; } = new();
 
 
-        public override string Display()
-        {
-            return (IsDeleted ? "*" : "") + Name; // + " (" + IdString + ")"
-        }
-
-        public override string DisplayWithIcon()
-        {
-            return $"<span class=\"oi oi-folder\"></span> " + Display();
-        }
-
-
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();

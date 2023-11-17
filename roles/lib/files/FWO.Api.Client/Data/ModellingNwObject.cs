@@ -18,7 +18,7 @@ namespace FWO.Api.Data
 
         public override string DisplayHtml()
         {
-            return $"<span class=\"{(IsDeleted ? "text-secondary" : "")}\">{(IsDeleted ? "<i>" : "")}{Display()}{(IsDeleted ? "</i>" : "")}</span>";
+            return $"<span class=\"{(IsDeleted ? "text-danger" : "")}\">{(IsDeleted ? "<i>" : "")}{Display()}{(IsDeleted ? "</i>" : "")}</span>";
         }
 
         public override string DisplayWithIcon()

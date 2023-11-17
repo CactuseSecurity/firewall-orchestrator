@@ -1,5 +1,5 @@
 query getConnections ($appId: Int!){
-  modelling_connection (where: { app_id: { _eq: $appId } } order_by: { name: asc }){
+  modelling_connection (where: { app_id: { _eq: $appId } } order_by: { is_interface: desc, name: asc }){
     ...connectionDetails
   }
 }

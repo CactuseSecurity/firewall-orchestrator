@@ -87,5 +87,34 @@ namespace FWO.Ui.Services
             }
             return true;
         }
+
+        public async Task<string> ExtractUsedInterface(ModellingConnection conn)
+        {
+            string interfaceName = "";
+            try
+            {
+                if(conn.UsedInterfaceId != null)
+                {
+                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
+                    if(interf.Count > 0)
+                    {
+                        interfaceName = interf[0].Name ?? "";
+                        if(interf[0].SourceFilled())
+                        {
+                            conn.SrcFromInterface = true;
+                        }
+                        if(interf[0].DestinationFilled())
+                        {
+                            conn.DstFromInterface = true;
+                        }
+                    }  
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+            return interfaceName;
+        }
     }
 }

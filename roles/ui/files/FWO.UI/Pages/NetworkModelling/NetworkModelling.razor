@@ -102,12 +102,12 @@
                 </Column>
             </Table>
         </div>
+        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="appHandler.DeleteConnection" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message"/>
     }
 }
 else
 {
     <EditConn @bind-Display="appHandler.EditConnMode" Application="@selectedApp" ConnHandler="appHandler.connHandler"/>
-    <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="appHandler.DeleteConnection" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message"/>
 }
 <ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp"/>
 <ShowHistory @bind-Display="showHistory" Applications="apps"/>
@@ -162,7 +162,6 @@ else
         {
             appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi);
             await appHandler.Init();
-
             appSelected = true;
             appActive = selectedApp.Active;
         }

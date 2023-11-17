@@ -36,6 +36,7 @@ namespace FWO.Ui.Services
                 foreach(var conn in coproOfApp)
                 {
                     conn.ExtractNwGroups();
+                    await ExtractUsedInterface(conn);
                 }
                 actConn = coproOfApp.FirstOrDefault() ?? new ModellingConnection();
             }
@@ -47,24 +48,24 @@ namespace FWO.Ui.Services
 
         public List<string> GetSrcNames(ModellingConnection conn)
         {
-            List<string> names = ModellingNwGroupObjectWrapper.Resolve(conn.SourceNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon());
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon()));
-            names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.DisplayWithIcon()));
+            List<string> names = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface));
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
             return names;
         }
         
         public List<string> GetDstNames(ModellingConnection conn)
         {
-            List<string> names = ModellingNwGroupObjectWrapper.Resolve(conn.DestinationNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon());
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon()));
-            names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.DisplayWithIcon()));
+            List<string> names = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface));
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
             return names;
         }
 
         public List<string> GetSvcNames(ModellingConnection conn)
         {
-            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon());
-            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon()));
+            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
+            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
             return names;
         }
 

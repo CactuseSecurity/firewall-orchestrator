@@ -48,8 +48,8 @@ namespace FWO.Api.Data
         public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = new();
 
         
-        public List<ModellingNwGroupObjectWrapper> SourceNwGroups { get; set; } = new();
-        public List<ModellingNwGroupObjectWrapper> DestinationNwGroups { get; set; } = new();
+        public List<ModellingNwGroupWrapper> SourceNwGroups { get; set; } = new();
+        public List<ModellingNwGroupWrapper> DestinationNwGroups { get; set; } = new();
         
 
         public bool SrcFromInterface { get; set; } = false;
@@ -72,10 +72,20 @@ namespace FWO.Api.Data
            ServiceGroups = new List<ModellingServiceGroupWrapper>(conn.ServiceGroups);
            SourceAppServers = new List<ModellingAppServerWrapper>(conn.SourceAppServers);
            SourceAppRoles = new List<ModellingAppRoleWrapper>(conn.SourceAppRoles);
-           SourceNwGroups = new List<ModellingNwGroupObjectWrapper>(conn.SourceNwGroups);
+           SourceNwGroups = new List<ModellingNwGroupWrapper>(conn.SourceNwGroups);
            DestinationAppServers = new List<ModellingAppServerWrapper>(conn.DestinationAppServers);
            DestinationAppRoles = new List<ModellingAppRoleWrapper>(conn.DestinationAppRoles);
-           DestinationNwGroups = new List<ModellingNwGroupObjectWrapper>(conn.DestinationNwGroups);
+           DestinationNwGroups = new List<ModellingNwGroupWrapper>(conn.DestinationNwGroups);
+        }
+
+        public bool SourceFilled()
+        {
+            return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0 || SourceNwGroups.Count > 0;
+        }
+
+        public bool DestinationFilled()
+        {
+            return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationNwGroups.Count > 0;
         }
 
         public void ExtractNwGroups()
@@ -85,7 +95,7 @@ namespace FWO.Api.Data
             {
                 if(nwGroup.Content.GroupType != (int)ModellingTypes.ObjectType.AppRole)
                 {
-                    SourceNwGroups.Add(new ModellingNwGroupObjectWrapper() { Content = nwGroup.Content.ToBase() });
+                    SourceNwGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup.Content.ToBase() });
                 }
             }
             SourceAppRoles = SourceAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ObjectType.AppRole).ToList();
@@ -94,7 +104,7 @@ namespace FWO.Api.Data
             {
                 if(nwGroup.Content.GroupType != (int)ModellingTypes.ObjectType.AppRole)
                 {
-                    DestinationNwGroups.Add(new ModellingNwGroupObjectWrapper() { Content = nwGroup.Content.ToBase() });
+                    DestinationNwGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup.Content.ToBase() });
                 }
             }
             DestinationAppRoles = DestinationAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ObjectType.AppRole).ToList();

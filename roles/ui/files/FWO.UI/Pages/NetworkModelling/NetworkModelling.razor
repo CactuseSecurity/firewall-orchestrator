@@ -54,7 +54,7 @@
             }
         </div>
         <div class="m-2">
-            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.coproOfApp" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
+            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
                 @if(userConfig.AllowManualOwnerAdmin)
                 {
                     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -102,7 +102,7 @@
                 </Column>
             </Table>
         </div>
-        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="appHandler.DeleteConnection" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message"/>
+        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); StateHasChanged();}" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message"/>
     }
 }
 else

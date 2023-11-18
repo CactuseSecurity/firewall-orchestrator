@@ -9,7 +9,7 @@ namespace FWO.Ui.Services
     public class ModellingAppHandler : ModellingHandlerBase
     {
         public ModellingConnectionHandler connHandler;
-        public List<ModellingConnection> coproOfApp = new();
+        public List<ModellingConnection> Connections = new();
         public ModellingConnection actConn = new();
         public bool AddConnMode = false;
         public bool EditConnMode = false;
@@ -32,13 +32,13 @@ namespace FWO.Ui.Services
                 {
                     appId = Application.Id
                 };
-                coproOfApp = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, queryParam);
-                foreach(var conn in coproOfApp)
+                Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, queryParam);
+                foreach(var conn in Connections)
                 {
                     conn.ExtractNwGroups();
                     await ExtractUsedInterface(conn);
                 }
-                actConn = coproOfApp.FirstOrDefault() ?? new ModellingConnection();
+                actConn = Connections.FirstOrDefault() ?? new ModellingConnection();
             }
             catch (Exception exception)
             {
@@ -99,7 +99,7 @@ namespace FWO.Ui.Services
 
         public async Task HandleConn(ModellingConnection conn)
         {
-            connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, coproOfApp, conn, AddConnMode, readOnly, DisplayMessageInUi);
+            connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, readOnly, DisplayMessageInUi);
             await connHandler.Init();
             EditConnMode = true;
         }
@@ -119,7 +119,7 @@ namespace FWO.Ui.Services
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Connection, actConn.Id,
                         $"Deleted {(actConn.IsInterface? "Interface" : "Connection")}: {actConn.Name}", Application.Id);
-                    coproOfApp.Remove(actConn);
+                    Connections.Remove(actConn);
                     DeleteConnMode = false;
                 }
             }

@@ -167,7 +167,7 @@
             {
                 <AuthorizeView Roles="admin, modeller">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await ConnHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -177,7 +177,7 @@
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
             @if(!ConnHandler.ReadOnly)
             {
-                @if(ConnHandler.srcReadOnly || ConnHandler.dstReadOnly)
+                @if(ConnHandler.ActConn.UsedInterfaceId != null)
                 {
                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(userConfig.GetText("remove_interface"))</button>
                 }
@@ -298,6 +298,19 @@
             }
         }
         Container.Clear();
+    }
+
+    private async Task Save()
+    {
+        workInProgress = true;
+        if(await ConnHandler.Save())
+        {
+            Close();
+        }
+        else
+        {
+            workInProgress = false;
+        }
     }
 
     private void Cancel()

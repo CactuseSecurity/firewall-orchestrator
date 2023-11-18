@@ -547,76 +547,15 @@ namespace FWO.Ui.Services
                 {
                     if(!srcReadOnly)
                     {
-                        foreach(var appServer in SrcAppServerToDelete)
-                        {
-                            ActConn.SourceAppServers.Remove(ActConn.SourceAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new Exception("Did not find app server."));
-                        }
-                        foreach(var appServer in SrcAppServerToAdd)
-                        {
-                            ActConn.SourceAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
-                        }
-                        foreach(var appRole in SrcAppRolesToDelete)
-                        {
-                            ActConn.SourceAppRoles.Remove(ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id) ?? throw new Exception("Did not find app role."));
-                        }
-                        foreach(var appRole in SrcAppRolesToAdd)
-                        {
-                            ActConn.SourceAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
-                        }
-                        foreach(var nwGroup in SrcNwGroupsToDelete)
-                        {
-                            ActConn.SourceNwGroups.Remove(ActConn.SourceNwGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new Exception("Did not find nwgroup."));
-                        }
-                        foreach(var nwGroup in SrcNwGroupsToAdd)
-                        {
-                            ActConn.SourceNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
-                        }
+                        SyncSrcChanges();
                     }
                     if(!dstReadOnly)
                     {
-                        foreach(var appServer in DstAppServerToDelete)
-                        {
-                            ActConn.DestinationAppServers.Remove(ActConn.DestinationAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id)  ?? throw new Exception("Did not find app server."));
-                        }
-                        foreach(var appServer in DstAppServerToAdd)
-                        {
-                            ActConn.DestinationAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
-                        }
-                        foreach(var appRole in DstAppRolesToDelete)
-                        {
-                            ActConn.DestinationAppRoles.Remove(ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id) ?? throw new Exception("Did not find app role."));
-                        }
-                        foreach(var appRole in DstAppRolesToAdd)
-                        {
-                            ActConn.DestinationAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
-                        }
-                        foreach(var nwGroup in SrcNwGroupsToDelete)
-                        {
-                            ActConn.DestinationNwGroups.Remove(ActConn.DestinationNwGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new Exception("Did not find nwgroup."));
-                        }
-                        foreach(var nwGroup in SrcNwGroupsToAdd)
-                        {
-                            ActConn.DestinationNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
-                        }
+                        SyncDstChanges();
                     }
                     if(!svcReadOnly)
                     {
-                        foreach(var svc in SvcToDelete)
-                        {
-                            ActConn.Services.Remove(ActConn.Services.FirstOrDefault(x => x.Content.Id == svc.Id) ?? throw new Exception("Did not find service."));
-                        }
-                        foreach(var svc in SvcToAdd)
-                        {
-                            ActConn.Services.Add(new ModellingServiceWrapper(){ Content = svc });
-                        }
-                        foreach(var svcGrp in SvcGrpToDelete)
-                        {
-                            ActConn.ServiceGroups.Remove(ActConn.ServiceGroups.FirstOrDefault(x => x.Content.Id == svcGrp.Id) ?? throw new Exception("Did not find service group."));
-                        }
-                        foreach(var svcGrp in SvcGrpToAdd)
-                        {
-                            ActConn.ServiceGroups.Add(new ModellingServiceGroupWrapper(){ Content = svcGrp });
-                        }
+                        SyncSvcChanges();
                     }
                     if(AddMode)
                     {
@@ -644,12 +583,93 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E5102"), true);
                 return false;
             }
+            if(ActConn.IsInterface && !AddMode && (SrcFilledInWork() != ActConnOrig.SourceFilled() || DstFilledInWork() != ActConnOrig.DestinationFilled()))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9005"), true);
+                return false;
+            }
             if(ActConn.IsInterface && (!(SrcFilledInWork() || DstFilledInWork()) || !SvcFilledInWork()))
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9004"), true);
                 return false;
             }
             return true;
+        }
+
+        private void SyncSrcChanges()
+        {
+            foreach(var appServer in SrcAppServerToDelete)
+            {
+                ActConn.SourceAppServers.Remove(ActConn.SourceAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new Exception("Did not find app server."));
+            }
+            foreach(var appServer in SrcAppServerToAdd)
+            {
+                ActConn.SourceAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
+            }
+            foreach(var appRole in SrcAppRolesToDelete)
+            {
+                ActConn.SourceAppRoles.Remove(ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id) ?? throw new Exception("Did not find app role."));
+            }
+            foreach(var appRole in SrcAppRolesToAdd)
+            {
+                ActConn.SourceAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
+            }
+            foreach(var nwGroup in SrcNwGroupsToDelete)
+            {
+                ActConn.SourceNwGroups.Remove(ActConn.SourceNwGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new Exception("Did not find nwgroup."));
+            }
+            foreach(var nwGroup in SrcNwGroupsToAdd)
+            {
+                ActConn.SourceNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
+            }
+        }
+
+        private void SyncDstChanges()
+        {
+            foreach(var appServer in DstAppServerToDelete)
+            {
+                ActConn.DestinationAppServers.Remove(ActConn.DestinationAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id)  ?? throw new Exception("Did not find app server."));
+            }
+            foreach(var appServer in DstAppServerToAdd)
+            {
+                ActConn.DestinationAppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
+            }
+            foreach(var appRole in DstAppRolesToDelete)
+            {
+                ActConn.DestinationAppRoles.Remove(ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id) ?? throw new Exception("Did not find app role."));
+            }
+            foreach(var appRole in DstAppRolesToAdd)
+            {
+                ActConn.DestinationAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
+            }
+            foreach(var nwGroup in DstNwGroupsToDelete)
+            {
+                ActConn.DestinationNwGroups.Remove(ActConn.DestinationNwGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new Exception("Did not find nwgroup."));
+            }
+            foreach(var nwGroup in DstNwGroupsToAdd)
+            {
+                ActConn.DestinationNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
+            }
+        }
+
+        private void SyncSvcChanges()
+        {
+            foreach(var svc in SvcToDelete)
+            {
+                ActConn.Services.Remove(ActConn.Services.FirstOrDefault(x => x.Content.Id == svc.Id) ?? throw new Exception("Did not find service."));
+            }
+            foreach(var svc in SvcToAdd)
+            {
+                ActConn.Services.Add(new ModellingServiceWrapper(){ Content = svc });
+            }
+            foreach(var svcGrp in SvcGrpToDelete)
+            {
+                ActConn.ServiceGroups.Remove(ActConn.ServiceGroups.FirstOrDefault(x => x.Content.Id == svcGrp.Id) ?? throw new Exception("Did not find service group."));
+            }
+            foreach(var svcGrp in SvcGrpToAdd)
+            {
+                ActConn.ServiceGroups.Add(new ModellingServiceGroupWrapper(){ Content = svcGrp });
+            }
         }
 
         private async Task AddConnectionToDb()
@@ -671,61 +691,24 @@ namespace FWO.Ui.Services
                     ActConn.Id = returnIds[0].NewId;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Connection, ActConn.Id,
                         $"New {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
-                    foreach(var appServer in ActConn.SourceAppServers)
+                    if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                     {
-                        var srcParams = new { nwObjectId = appServer.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, srcParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added App Server {appServer.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                        await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers).ToList(), 
+                            ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles).ToList(),
+                            ModellingNwGroupWrapper.Resolve(ActConn.SourceNwGroups).ToList(),
+                            ModellingTypes.ConnectionField.Source);
                     }
-                    foreach(var appServer in ActConn.DestinationAppServers)
+                    if(ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
                     {
-                        var dstParams = new { nwObjectId = appServer.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, dstParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added App Server {appServer.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                        await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.DestinationAppServers).ToList(),
+                            ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles).ToList(),
+                            ModellingNwGroupWrapper.Resolve(ActConn.DestinationNwGroups).ToList(),
+                            ModellingTypes.ConnectionField.Destination); 
                     }
-                    foreach(var appRole in ActConn.SourceAppRoles)
+                    if(ActConn.UsedInterfaceId == null)
                     {
-                        var srcParams = new { nwGroupId = appRole.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, srcParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added App Role {appRole.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
-                    }
-                    foreach(var nwGroup in ActConn.SourceNwGroups)
-                    {
-                        var srcParams = new { nwGroupId = nwGroup.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, srcParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added Object {nwGroup.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
-                    }
-                    foreach(var appRole in ActConn.DestinationAppRoles)
-                    {
-                        var dstParams = new { nwGroupId = appRole.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, dstParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added App Role {appRole.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
-                    }
-                    foreach(var nwGroup in ActConn.DestinationNwGroups)
-                    {
-                        var dstParams = new { nwGroupId = nwGroup.Content.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, dstParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added Object {nwGroup.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
-                    }
-                    foreach(var service in ActConn.Services)
-                    {
-                        var svcParams = new { serviceId = service.Content.Id, connectionId = ActConn.Id };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceToConnection, svcParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added Service {service.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
-                    }
-                    foreach(var serviceGrp in ActConn.ServiceGroups)
-                    {
-                        var svcGrpParams = new { serviceGroupId = serviceGrp.Content.Id, connectionId = ActConn.Id };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceGroupToConnection, svcGrpParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                            $"Added Service Group {serviceGrp.Content.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
+                        await AddSvcObjects(ModellingServiceWrapper.Resolve(ActConn.Services).ToList(),
+                            ModellingServiceGroupWrapper.Resolve(ActConn.ServiceGroups).ToList());          
                     }
                     ActConn.Creator = userConfig.User.Name;
                     ActConn.CreationDate = DateTime.Now;
@@ -755,90 +738,122 @@ namespace FWO.Ui.Services
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Connection, ActConn.Id,
                     $"Updated {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
 
-                foreach(var appServer in SrcAppServerToDelete)
+                if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                 {
-                    var srcParams = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, srcParams);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed App Server {appServer.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                    await RemoveNwObjects(SrcAppServerToDelete, SrcAppRolesToDelete, SrcNwGroupsToDelete, ModellingTypes.ConnectionField.Source);
+                    await AddNwObjects(SrcAppServerToAdd, SrcAppRolesToAdd, SrcNwGroupsToAdd, ModellingTypes.ConnectionField.Source);
                 }
-                foreach(var appServer in SrcAppServerToAdd)
+                if(ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
                 {
-                    var srcParams = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, srcParams);
+                    await RemoveNwObjects(DstAppServerToDelete, DstAppRolesToDelete, DstNwGroupsToDelete, ModellingTypes.ConnectionField.Destination);
+                    await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
+                }
+                if(ActConn.UsedInterfaceId == null)
+                {
+                    await RemoveSvcObjects();
+                    await AddSvcObjects(SvcToAdd, SvcGrpToAdd);
+                }
+                Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConn;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
+            }
+        }
+
+        private async Task AddNwObjects(List<ModellingAppServer> appServers, List<ModellingAppRole> appRoles, List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
+        {
+            try
+            {
+                foreach(var appServer in appServers)
+                {
+                    var Variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, Variables);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added App Server {appServer.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                        $"Added App Server {appServer.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
-                foreach(var appServer in DstAppServerToDelete)
+                foreach(var appRole in appRoles)
                 {
-                    var dstParams = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, dstParams);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed App Server {appServer.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
-                }
-                foreach(var appServer in DstAppServerToAdd)
-                {
-                    var dstParams = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, dstParams);
+                    var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added App Server {appServer.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                        $"Added App Role {appRole.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
-                foreach(var appRole in SrcAppRolesToDelete)
+                foreach(var nwGroup in nwGroups)
                 {
-                    var srcParams = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, srcParams);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
-                }
-                foreach(var appRole in SrcAppRolesToAdd)
-                {
-                    var srcParams = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, srcParams);
+                    var Variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added App Role {appRole.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                        $"Added Object {nwGroup.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
-                foreach(var appRole in DstAppRolesToDelete)
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
+            }
+        }
+
+        private async Task RemoveNwObjects(List<ModellingAppServer> appServers, List<ModellingAppRole> appRoles, List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
+        {
+            try
+            {
+                foreach(var appServer in appServers)
                 {
-                    var dstParams = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, dstParams);
+                    var Variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, Variables);
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                        $"Removed App Server {appServer.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
-                foreach(var appRole in DstAppRolesToAdd)
+                foreach(var appRole in appRoles)
                 {
-                    var dstParams = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, dstParams);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added App Role {appRole.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
-                }
-                foreach(var nwGroup in SrcNwGroupsToDelete)
-                {
-                    var srcParams = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, srcParams);
+                    var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed Object {nwGroup.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
+                        $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
-                foreach(var nwGroup in SrcNwGroupsToAdd)
+                foreach(var nwGroup in nwGroups)
                 {
-                    var srcParams = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Source };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, srcParams);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added Object {nwGroup.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Source", Application.Id);
-                }
-                foreach(var nwGroup in DstNwGroupsToDelete)
-                {
-                    var dstParams = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, dstParams);
+                    var Variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Removed Object {nwGroup.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
+                        $"Removed Object {nwGroup.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
-                foreach(var nwGroup in DstNwGroupsToAdd)
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
+            }
+        }
+
+        private async Task AddSvcObjects(List<ModellingService> services, List<ModellingServiceGroup> serviceGroups)
+        {
+            try
+            {
+                foreach(var service in services)
                 {
-                    var dstParams = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)ModellingTypes.ConnectionField.Destination };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, dstParams);
+                    var svcParams = new { serviceId = service.Id, connectionId = ActConn.Id };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceToConnection, svcParams);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added Object {nwGroup.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: Destination", Application.Id);
-                }                
+                        $"Added Service {service.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
+                }
+                foreach(var serviceGrp in serviceGroups)
+                {
+                    var svcGrpParams = new { serviceGroupId = serviceGrp.Id, connectionId = ActConn.Id };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceGroupToConnection, svcGrpParams);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                        $"Added Service Group {serviceGrp.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
+            }
+        }
+
+        private async Task RemoveSvcObjects()
+        {
+            try
+            {
                 foreach(var service in SvcToDelete)
                 {
                     var svcParams = new { serviceId = service.Id, connectionId = ActConn.Id };
@@ -846,26 +861,12 @@ namespace FWO.Ui.Services
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
                         $"Removed Service {service.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                 }
-                foreach(var service in SvcToAdd)
-                {
-                    var svcParams = new { serviceId = service.Id, connectionId = ActConn.Id };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceToConnection, svcParams);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added Service {service.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
-                }
                 foreach(var serviceGrp in SvcGrpToDelete)
                 {
                     var svcGrpParams = new { serviceGroupId = serviceGrp.Id, connectionId = ActConn.Id };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceGroupFromConnection, svcGrpParams);
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
                         $"Removed Service Group {serviceGrp.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
-                }
-                foreach(var serviceGrp in SvcGrpToAdd)
-                {
-                    var svcGrpParams = new { serviceGroupId = serviceGrp.Id, connectionId = ActConn.Id };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceGroupToConnection, svcGrpParams);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
-                        $"Added Service Group {serviceGrp.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                 }
             }
             catch (Exception exception)

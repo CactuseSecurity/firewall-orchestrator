@@ -1334,27 +1334,31 @@ create table modelling.connection
 create table modelling.selected_objects
 (
 	app_id int,
-	nwgroup_id bigint
+	nwgroup_id bigint,
+	primary key (app_id, nwgroup_id)
 );
 
 create table modelling.nwobject_nwgroup
 (
     nwobject_id bigint,
-    nwgroup_id bigint
+    nwgroup_id bigint,
+	primary key (nwobject_id, nwgroup_id)
 );
 
 create table modelling.nwgroup_connection
 (
     nwgroup_id bigint,
     connection_id int,
-	connection_field int -- enum src=1, dest=2, ...
+	connection_field int, -- enum src=1, dest=2, ...
+	primary key (nwgroup_id, connection_id, connection_field)
 );
 
 create table modelling.nwobject_connection -- (used only if settings flag is set)
 (
     nwobject_id bigint,
     connection_id int,
-	connection_field int -- enum src=1, dest=2, ...
+	connection_field int, -- enum src=1, dest=2, ...
+	primary key (nwobject_id, connection_id, connection_field)
 );
 
 create table modelling.service
@@ -1382,19 +1386,22 @@ create table modelling.service_group
 create table modelling.service_service_group
 (
 	service_id int,
-    service_group_id int
+    service_group_id int,
+	primary key (service_id, service_group_id)
 );
 
 create table modelling.service_group_connection
 (
     service_group_id int,
-	connection_id int
+	connection_id int,
+	primary key (service_group_id, connection_id)
 );
 
 create table modelling.service_connection -- (used only if settings flag is set)
 (
     service_id int,
-    connection_id int
+    connection_id int,
+	primary key (service_id, connection_id)
 );
 
 create table modelling.change_history

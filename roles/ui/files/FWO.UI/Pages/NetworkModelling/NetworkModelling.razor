@@ -75,29 +75,29 @@
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <ExpandableList Elements="appHandler.GetSrcNames(context)" Context="src" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                        <ExpandableList2 Elements="appHandler.GetSrcNames(context)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
                                 @((MarkupString)src)
                             </ElementTemplate>
-                        </ExpandableList>
+                        </ExpandableList2>
                     </Template>
                 </Column>
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("service"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <ExpandableList Elements="appHandler.GetSvcNames(context)" Context="svc" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                        <ExpandableList2 Elements="appHandler.GetSvcNames(context)" Context="svc" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
                                 @((MarkupString)svc)
                             </ElementTemplate>
-                        </ExpandableList>
+                        </ExpandableList2>
                     </Template>
                 </Column>
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("destination"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        <ExpandableList Elements="appHandler.GetDstNames(context)" Context="dest" ShowTextIfEmpty="false" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                        <ExpandableList2 Elements="appHandler.GetDstNames(context)" Context="dest" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                             <ElementTemplate>
                                 @((MarkupString)dest)
                             </ElementTemplate>
-                        </ExpandableList>
+                        </ExpandableList2>
                     </Template>
                 </Column>
             </Table>

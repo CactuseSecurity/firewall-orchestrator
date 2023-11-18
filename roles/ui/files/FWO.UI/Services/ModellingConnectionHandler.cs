@@ -754,6 +754,10 @@ namespace FWO.Ui.Services
                     await AddSvcObjects(SvcToAdd, SvcGrpToAdd);
                 }
                 Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConn;
+                foreach(var conn in Connections.Where(x => x.UsedInterfaceId == ActConn.Id))
+                {
+                    await ExtractUsedInterface(conn);
+                }
             }
             catch (Exception exception)
             {

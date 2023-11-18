@@ -102,11 +102,19 @@ namespace FWO.Ui.Services
                         if(interf[0].SourceFilled())
                         {
                             conn.SrcFromInterface = true;
+                            conn.SourceAppServers = interf[0].SourceAppServers;
+                            conn.SourceAppRoles = interf[0].SourceAppRoles;
+                            conn.SourceNwGroups = interf[0].SourceNwGroups;
                         }
                         if(interf[0].DestinationFilled())
                         {
                             conn.DstFromInterface = true;
+                            conn.DestinationAppServers = interf[0].DestinationAppServers;
+                            conn.DestinationAppRoles = interf[0].DestinationAppRoles;
+                            conn.DestinationNwGroups = interf[0].DestinationNwGroups;
                         }
+                        conn.Services = interf[0].Services;
+                        conn.ServiceGroups = interf[0].ServiceGroups;
                     }  
                 }
             }

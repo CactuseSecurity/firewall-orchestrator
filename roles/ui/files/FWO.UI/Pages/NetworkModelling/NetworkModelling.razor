@@ -1,7 +1,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Display
 
-@page "/networkmodelling"
+@page "/networkmodelling/{appId?}"
 @attribute [Authorize(Roles = "admin, modeller, auditor")]
 
 @inject ApiConnection apiConnection
@@ -120,6 +120,9 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    [Parameter]
+    public string? AppId { get; set; }
+
     private ModellingAppHandler? appHandler;
     private List<FwoOwner> apps = new();
     private FwoOwner selectedApp = new();
@@ -140,10 +143,24 @@ else
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
             }
+            else if(AppId != null)
+            {
+                FwoOwner? existingApp = apps.FirstOrDefault(a => a.ExtAppId == AppId);
+                if(existingApp != null)
+                {
+                    selectedApp = existingApp;
+                    await InitApp();
+                }
+                else
+                {
+                    selectedApp = apps.First();
+                }
+            }
             else
             {
                 selectedApp = apps.First();
             }
+
             if (apps.Count == 1)
             {
                 singleApp = true;

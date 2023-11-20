@@ -4165,7 +4165,7 @@
                 {
                   "name": "tenant",
                   "using": {
-                    "foreign_key_constraint_on": "tenant_id"
+                    "foreign_key_constraint_on": "unfiltered_tenant_id"
                   }
                 }
               ],
@@ -4349,7 +4349,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4377,7 +4377,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4407,7 +4407,7 @@
                       "mgm_id",
                       "dev_name",
                       "dev_typ_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_active",
                       "dev_comment",
                       "dev_create",
@@ -4446,7 +4446,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4474,7 +4474,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4504,7 +4504,7 @@
                       "mgm_id",
                       "dev_name",
                       "dev_typ_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_active",
                       "dev_comment",
                       "dev_create",
@@ -4538,7 +4538,7 @@
                       "package_name",
                       "package_uid",
                       "dev_typ_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_active",
                       "dev_comment",
                       "dev_create",
@@ -4570,7 +4570,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4611,7 +4611,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4652,7 +4652,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4693,7 +4693,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4723,7 +4723,7 @@
                       "mgm_id",
                       "dev_name",
                       "dev_typ_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_active",
                       "dev_comment",
                       "dev_create",
@@ -4762,7 +4762,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4803,7 +4803,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4846,7 +4846,7 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -7624,7 +7624,7 @@
                 {
                   "name": "tenant",
                   "using": {
-                    "foreign_key_constraint_on": "tenant_id"
+                    "foreign_key_constraint_on": "unfiltered_tenant_id"
                   }
                 }
               ],
@@ -7891,30 +7891,33 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
+                      "mgm_id",
+                      "dev_typ_id",
+                      "mgm_name",
+                      "mgm_comment",
+                      "unfiltered_tenant_id",
+                      "cloud_tenant_id",
+                      "cloud_subscription_id",
+                      "mgm_create",
+                      "mgm_update",
+                      "import_credential_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
                       "last_import_attempt_successful",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
                       "config_path",
                       "domain_uid",
+                      "hide_in_gui",
                       "importer_hostname",
-                      "last_import_md5_complete_config",
-                      "mgm_name",
-                      "ssh_hostname",
                       "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "tenant_id",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "multi_device_manager_id"
                     ]
-                  }
+                  },
+                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -7930,7 +7933,7 @@
                       "mgm_id",
                       "mgm_name",
                       "multi_device_manager_id",
-                      "tenant_id"
+                      "unfiltered_tenant_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -7963,7 +7966,7 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -7996,7 +7999,7 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -8018,7 +8021,7 @@
                       "mgm_id",
                       "mgm_name",
                       "multi_device_manager_id",
-                      "tenant_id"
+                      "unfiltered_tenant_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8051,7 +8054,7 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -8084,7 +8087,7 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -8105,7 +8108,7 @@
                       "mgm_id",
                       "mgm_name",
                       "multi_device_manager_id",
-                      "tenant_id"
+                      "unfiltered_tenant_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8127,7 +8130,7 @@
                       "mgm_id",
                       "mgm_name",
                       "multi_device_manager_id",
-                      "tenant_id"
+                      "unfiltered_tenant_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8160,7 +8163,7 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "tenant_id",
+                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -8185,7 +8188,7 @@
                       "mgm_id",
                       "mgm_name",
                       "multi_device_manager_id",
-                      "tenant_id"
+                      "unfiltered_tenant_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8207,7 +8210,7 @@
                       "mgm_id",
                       "mgm_name",
                       "multi_device_manager_id",
-                      "tenant_id"
+                      "unfiltered_tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -8224,7 +8227,7 @@
                       "mgm_id",
                       "mgm_name",
                       "multi_device_manager_id",
-                      "tenant_id"
+                      "unfiltered_tenant_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8246,7 +8249,7 @@
                       "mgm_id",
                       "mgm_name",
                       "multi_device_manager_id",
-                      "tenant_id"
+                      "unfiltered_tenant_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8262,32 +8265,35 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
+                      "mgm_id",
+                      "dev_typ_id",
+                      "mgm_name",
+                      "mgm_comment",
+                      "unfiltered_tenant_id",
+                      "cloud_tenant_id",
+                      "cloud_subscription_id",
+                      "mgm_create",
+                      "mgm_update",
+                      "import_credential_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
                       "last_import_attempt_successful",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
                       "config_path",
                       "domain_uid",
+                      "hide_in_gui",
                       "importer_hostname",
-                      "last_import_md5_complete_config",
-                      "mgm_name",
-                      "ssh_hostname",
                       "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "tenant_id",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "multi_device_manager_id"
                     ],
                     "filter": {},
                     "check": {}
-                  }
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "importer",
@@ -8515,18 +8521,6 @@
                   }
                 }
               ],
-              "computed_fields": [
-                {
-                  "name": "object_relevant_for_tenant",
-                  "definition": {
-                    "function": {
-                      "name": "object_relevant_for_tenant",
-                      "schema": "public"
-                    },
-                    "session_argument": "hasura_session"
-                  }
-                }
-              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -8642,18 +8636,9 @@
                       "obj_last_seen"
                     ],
                     "filter": {
-                      "_and": [
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "object_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
                     },
                     "allow_aggregations": true
                   }
@@ -8694,18 +8679,9 @@
                       "obj_last_seen"
                     ],
                     "filter": {
-                      "_and": [
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "object_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
                     },
                     "allow_aggregations": true
                   }
@@ -15362,7 +15338,7 @@
                   "name": "devices",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "tenant_id",
+                      "column": "unfiltered_tenant_id",
                       "table": {
                         "name": "device",
                         "schema": "public"
@@ -15386,7 +15362,7 @@
                   "name": "management",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "tenant_id",
+                      "column": "unfiltered_tenant_id",
                       "table": {
                         "name": "management",
                         "schema": "public"
@@ -15546,6 +15522,45 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -15801,6 +15816,33 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "device_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "device_id",
+                      "tenant_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -17578,25 +17620,7 @@
             },
             {
               "table": {
-                "name": "view_change_counter",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
                 "name": "view_changes",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_changes_by_changed_element_id",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_documented_change_counter",
                 "schema": "public"
               }
             },
@@ -17919,302 +17943,6 @@
             {
               "table": {
                 "name": "view_svc_changes",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_tenant_rules",
-                "schema": "public"
-              },
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "fw-admin",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "tenant_id": {
-                            "_eq": "x-hasura-tenant-id"
-                          }
-                        },
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
-                          }
-                        }
-                      ]
-                    },
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "tenant_id": {
-                            "_eq": "x-hasura-tenant-id"
-                          }
-                        },
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
-                          }
-                        }
-                      ]
-                    },
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter-viewall",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "view_undocumented_change_counter",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_undocumented_changes",
                 "schema": "public"
               }
             },

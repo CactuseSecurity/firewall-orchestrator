@@ -1,6 +1,8 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 using FWO.Middleware.RequestParameters;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 
 namespace FWO.Api.Data
 {
@@ -121,6 +123,20 @@ namespace FWO.Api.Data
                 ViewAllDevices = this.ViewAllDevices
             };
             return tenantUpdateParams;
+        }
+
+        public static async Task<Tenant> getTenantById(ApiConnection conn, int tenantId)
+        {
+            Tenant[] tenants = Array.Empty<Tenant>(); 
+            tenants = await conn.SendQueryAsync<Tenant[]>(AuthQueries.getTenantById, new { tenant_id = tenantId });
+            if (tenants.Length>0)
+            {
+                return tenants[0];
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 

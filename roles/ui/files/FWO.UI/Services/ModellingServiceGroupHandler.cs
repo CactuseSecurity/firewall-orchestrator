@@ -167,6 +167,8 @@ namespace FWO.Ui.Services
                         await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
                             $"Added Service {service.Content.Display()} to Service Group: {ActServiceGroup.Display()}", Application.Id);
                     }
+                    ActServiceGroup.Creator = userConfig.User.Name;
+                    ActServiceGroup.CreationDate = DateTime.Now;
                     ServiceGroups.Add(ActServiceGroup);
                     AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id));
                 }

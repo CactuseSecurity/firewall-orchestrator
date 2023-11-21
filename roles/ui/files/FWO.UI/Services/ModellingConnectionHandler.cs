@@ -583,6 +583,12 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E5102"), true);
                 return false;
             }
+            if(!ActConn.IsInterface && (!(ActConn.SrcFromInterface || SrcFilledInWork()) || 
+                !(ActConn.DstFromInterface || DstFilledInWork()) || !(ActConn.UsedInterfaceId != null || SvcFilledInWork())))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9006"), true);
+                return false;
+            }
             if(ActConn.IsInterface && !AddMode && (SrcFilledInWork() != ActConnOrig.SourceFilled() || DstFilledInWork() != ActConnOrig.DestinationFilled()))
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9005"), true);

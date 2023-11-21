@@ -8899,6 +8899,18 @@
                   }
                 },
                 {
+                  "name": "selected_objects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "app_id",
+                      "table": {
+                        "name": "selected_objects",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "service_groups",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9279,20 +9291,123 @@
                   }
                 }
               ],
+              "array_relationships": [
+                {
+                  "name": "nwobject_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwobject_id",
+                      "table": {
+                        "name": "nwobject_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "nwobject_nwgroups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwobject_id",
+                      "table": {
+                        "name": "nwobject_nwgroup",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "ip",
                       "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
                       "ip_proto_id",
+                      "nw_type",
                       "owner_id",
                       "port"
                     ],
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "is_deleted"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
                 }
               ]
             },

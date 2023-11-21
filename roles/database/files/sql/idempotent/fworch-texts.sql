@@ -2434,6 +2434,8 @@ INSERT INTO txt VALUES ('E9004', 'German',  'Dienst und Quelle oder Ziel m&uuml;
 INSERT INTO txt VALUES ('E9004', 'English', 'Service and source or Destination have to be filled.');
 INSERT INTO txt VALUES ('E9005', 'German',  'Der Schnittstellentyp kann nicht zwischen Quelle und Ziel ge&auml;ndert werden.');
 INSERT INTO txt VALUES ('E9005', 'English', 'The Interface type cannot be changed between Source and Destination.');
+INSERT INTO txt VALUES ('E9006', 'German',  'Quelle, Dienst und Ziel m&uuml;ssen gef&uuml;llt sein.');
+INSERT INTO txt VALUES ('E9006', 'English', 'Source, Service and Destination have to be filled.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

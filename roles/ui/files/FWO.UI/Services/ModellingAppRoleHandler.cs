@@ -195,6 +195,8 @@ namespace FWO.Ui.Services
                         await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
                             $"Added App Server {appServer.Content.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                     }
+                    ActAppRole.Creator = userConfig.User.Name;
+                    ActAppRole.CreationDate = DateTime.Now;
                     AppRoles.Add(ActAppRole);
                     AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ObjectType.AppRole, ActAppRole.Id));
                 }

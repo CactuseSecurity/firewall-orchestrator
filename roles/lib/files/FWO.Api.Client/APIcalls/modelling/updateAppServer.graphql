@@ -9,7 +9,7 @@ mutation updateAppServer(
     pk_columns: { id: $id }
     _set: {
       name: $name
-      app_id: $appId
+      owner_id: $appId
       ip: $ip
       import_source: $importSource
       is_deleted: false

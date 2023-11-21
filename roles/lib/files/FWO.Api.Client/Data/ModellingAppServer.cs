@@ -11,7 +11,8 @@ namespace FWO.Api.Data
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string ImportSource { get; set; } = "";
 
-        public string ExtAppId { get; set; } = "";
+        public bool InUse { get; set; } = false;
+
 
         public override string Display()
         {

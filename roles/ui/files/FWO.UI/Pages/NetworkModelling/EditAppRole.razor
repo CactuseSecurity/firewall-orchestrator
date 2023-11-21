@@ -15,28 +15,38 @@
                 <div class="col-sm-6">
                     <h3>@(userConfig.GetText("app_role"))</h3>
                     <div class="col-sm-11 border rounded m-2 p-2">
+                        @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
+                        {
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
+                                @if(AddMode)
+                                {
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Name)" 
+                                                SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
+                                            <ElementTemplate Context="area">
+                                                @area.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.Area.Name" />
+                                }
+                            </div>
+                        }
                         <div class="form-group row">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
-                            @if(AddMode)
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
+                            @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
                             {
-                                <div class="col-sm-8">
-                                    <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Name)" 
-                                            SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
-                                        <ElementTemplate Context="area">
-                                            @area.Name
-                                        </ElementTemplate>
-                                    </Dropdown>
-                                </div>
+                                <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.IdStringFixedPart" />
+                                <input type="text" class=" col-sm-6 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.IdStringFreePart" />
                             }
                             else
                             {
-                                <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.Area.Name" />
+                                <input type="text" class=" col-sm-6 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.IdString" />
                             }
-                        </div>
-                        <div class="form-group row">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
-                            <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.IdStringFixedPart" />
-                            <input type="text" class=" col-sm-6 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.IdStringFreePart" />
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
@@ -134,7 +144,7 @@
             {
                 DisplayMessageInUi(null, userConfig.GetText("E9002"), "", true);
             }
-            else
+            else if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
                 SelectedAreaChanged(AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
             }
@@ -161,7 +171,7 @@
     private void SelectedAreaChanged(ModellingNetworkArea newArea)
     {
         AppRoleHandler.ActAppRole.Area = newArea;
-        if(newArea != null && newArea.Name.Length >= ModellingAppRole.FixedPartLength && AddMode)
+        if(newArea != null && newArea.Name.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
         {
             AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
             AppRoleHandler.ActAppRole.IdStringFreePart = AppRoleHandler.ProposeFreeAppRoleNumber(newArea);

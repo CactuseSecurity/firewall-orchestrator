@@ -38,6 +38,41 @@
         </div>
     </form>
     <hr />
+    <div class="form-group row">
+        <form class="form-inline col-sm-4" onsubmit="return false">
+            <label class="col-form-label col-sm-7">@(userConfig.GetText("networkAreaRequired")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="namingConvention.NetworkAreaRequired">
+            </div>
+        </form>
+        <form class="form-inline col-sm-4" onsubmit="return false">
+            <label class="col-form-label col-sm-7">@userConfig.GetText("fixedPartLength"):</label>
+            <div class="col-sm-4">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="namingConvention.FixedPartLength" />
+            </div>
+        </form>
+        <form class="form-inline col-sm-4" onsubmit="return false">
+            <label class="col-form-label col-sm-7">@userConfig.GetText("freePartLength"):</label>
+            <div class="col-sm-4">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="namingConvention.FreePartLength" />
+            </div>
+        </form>
+    </div>
+    <div class="form-group row">
+        <form class="form-inline col-sm-6" onsubmit="return false">
+            <label class="col-form-label col-sm-6">@userConfig.GetText("networkAreaPattern"):</label>
+            <div class="col-sm-4">
+                <input type="text" class="col-sm-11" @bind="namingConvention.NetworkAreaPattern" />
+            </div>
+        </form>
+        <form class="form-inline col-sm-6" onsubmit="return false">
+            <label class="col-form-label col-sm-6">@userConfig.GetText("appRolePattern"):</label>
+            <div class="col-sm-4">
+                <input type="text" class="col-sm-11" @bind="namingConvention.AppRolePattern" />
+            </div>
+        </form>
+    </div>
+    <hr />
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>
         <div class="col-sm-6">
@@ -120,6 +155,7 @@ else
     private List<string> PathsToDelete = new();
     private string actPath = "";
     private bool predefServices = false;
+    private ModellingNamingConvention namingConvention = new();
 
 
     protected override async Task OnInitializedAsync()
@@ -128,6 +164,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath);
+            namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention);
         }
         catch (Exception exception)
         {
@@ -164,6 +201,7 @@ else
                     appDataPaths.Add(path);
                 }
                 configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
+                configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 PathsToDelete = new();
                 PathsToAdd = new();

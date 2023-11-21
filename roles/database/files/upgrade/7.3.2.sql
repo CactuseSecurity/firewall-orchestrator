@@ -6,6 +6,7 @@ insert into config (config_key, config_value, config_user) VALUES ('importSubnet
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataSleepTime', '0', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('importAppDataPath', '[]', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('modNamingConvention', '{"networkAreaRequired":false,"fixedPartLength":0,"freePartLength":0,"networkAreaPattern":"","appRolePattern":""}', 0) ON CONFLICT DO NOTHING;
 
 alter table owner add column if not exists criticality Varchar;
 alter table owner add column if not exists active boolean default true;

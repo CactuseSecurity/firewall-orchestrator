@@ -228,6 +228,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importSubnetDataStartAt"), JsonPropertyName("importSubnetDataStartAt")]
         public DateTime ImportSubnetDataStartAt { get; set; } = new DateTime();
 
+        [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
+        public string ModNamingConvention { get; set; } = "";
+
 
         public ConfigData(bool editable = false)
         {

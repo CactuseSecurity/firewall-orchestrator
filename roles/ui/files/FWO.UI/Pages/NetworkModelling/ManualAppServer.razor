@@ -25,7 +25,7 @@
                             else
                             {
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditAppServer(context)">@(userConfig.GetText("edit"))</button>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteAppServer(context)">@(userConfig.GetText("delete"))</button>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteAppServer(context)">@(userConfig.GetText(context.InUse ? "deactivate" : "delete"))</button>
                             }
                         </div>
                     </Template>
@@ -39,7 +39,7 @@
                 <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
                 <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
-                        @(GlobalConfig.ShowBool(Task.Run(async () => await CheckAppServerInUse(context)).Result))
+                        @(GlobalConfig.ShowBool(context.InUse))
                     </Template>
                 </Column>
                 <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -99,7 +99,10 @@
         try
         {
             ManualAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getImportedAppServers, new { importSource = GlobalConfig.kManual, appId = Application.Id });
-
+            foreach(var appServer in ManualAppServers)
+            {
+                appServer.InUse = await CheckAppServerInUse(appServer);
+            }
         }
         catch (Exception exception)
         {
@@ -136,7 +139,7 @@
     public void RequestDeleteAppServer(ModellingAppServer appServer)
     {
         actAppServer = appServer;
-        Message = userConfig.GetText("U9003") + appServer.Name + "?";
+        Message = userConfig.GetText(appServer.InUse ? "U9007" : "U9008") + appServer.Name + "?";
         DeleteAppServerMode = true;
     }
 

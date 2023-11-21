@@ -60,9 +60,14 @@ namespace FWO.Api.Data
         [JsonProperty("nwobjects"), JsonPropertyName("nwobjects")]
         public List<ModellingAppServerWrapper> AppServers { get; set; } = new();
 
-        public ModellingNetworkArea Area { get; set; }
-        public const int FixedPartLength = 4;
+        public ModellingNetworkArea Area { get; set; } = new();
+        public int FixedPartLength;
 
+
+        public void SetFixedPartLength(int fixedPartLength)
+        {
+            FixedPartLength = fixedPartLength;
+        }
 
         public ModellingNwGroup ToBase()
         {

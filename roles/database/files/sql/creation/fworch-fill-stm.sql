@@ -79,6 +79,7 @@ insert into config (config_key, config_value, config_user) VALUES ('importSubnet
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importAppDataPath', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modNamingConvention', '{"networkAreaRequired":false,"fixedPartLength":0,"freePartLength":0,"networkAreaPattern":"","appRolePattern":""}', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

@@ -2,6 +2,7 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using System.Text.Json;
 
 namespace FWO.Ui.Services
 {
@@ -15,7 +16,8 @@ namespace FWO.Ui.Services
         public List<ModellingAppServer> AppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> AppServerToDelete { get; set; } = new();
         public string Message = "";
-        private string origId = "";
+        private readonly string origId = "";
+        public ModellingNamingConvention NamingConvention = new();
 
 
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -23,10 +25,16 @@ namespace FWO.Ui.Services
             List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
             : base (apiConnection, userConfig, application, addMode, displayMessageInUi)
         {
+            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             AppRoles = appRoles;
+            foreach(var aR in AppRoles)
+            {
+                aR.SetFixedPartLength(NamingConvention.FixedPartLength);
+            }
             AvailableAppServers = availableAppServers;
             AvailableNwElems = availableNwElems;
             ActAppRole = appRole;
+            ActAppRole.SetFixedPartLength(NamingConvention.FixedPartLength);
             if(!AddMode)
             {
                 ActAppRole.Area = new () { Name = ReconstructArea(appRole) };
@@ -84,7 +92,7 @@ namespace FWO.Ui.Services
 
         private bool CheckAppRole()
         {
-            if(ActAppRole.IdString.Length <= ModellingAppRole.FixedPartLength || ActAppRole.Name == "")
+            if(ActAppRole.IdString.Length <= NamingConvention.FixedPartLength || ActAppRole.Name == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E5102"), true);
                 return false;
@@ -100,12 +108,17 @@ namespace FWO.Ui.Services
 
         private bool IdStringAlreadyUsed(string appRoleIdString)
         {
-            return AppRoles.FirstOrDefault(x => x.IdString == appRoleIdString) != null;
+            ModellingAppRole? existAR = AppRoles.FirstOrDefault(x => x.IdString == appRoleIdString);
+            if(existAR != null && existAR.Id != ActAppRole.Id)
+            {
+                return true;
+            }
+            return false;
         }
 
         public string ProposeFreeAppRoleNumber(ModellingNetworkArea area)
         {
-            int maxNumbers = 99999;
+            int maxNumbers = 10^NamingConvention.FreePartLength - 1;
             string idFix = GetFixedAppRolePart(area);
             ModellingAppRole? newestAR = AppRoles.Where(x => x.IdStringFixedPart == idFix).MaxBy(x => x.Id);
             if(newestAR != null)
@@ -115,9 +128,9 @@ namespace FWO.Ui.Services
                     aRNumber++;
                     while(aRNumber <= maxNumbers)
                     {
-                        if(!IdStringAlreadyUsed(idFix + aRNumber.ToString("D5")))
+                        if(!IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
                         {
-                            return aRNumber.ToString("D5");
+                            return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
                         }
                         aRNumber++;
                     }
@@ -125,31 +138,30 @@ namespace FWO.Ui.Services
                 aRNumber = 1;
                 while(aRNumber <= maxNumbers)
                 {
-                    if(!IdStringAlreadyUsed(idFix + aRNumber.ToString("D5")))
+                    if(!IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
                     {
-                        return aRNumber.ToString("D5");
+                        return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
                     }
                     aRNumber++;
                 }
             }
-            return "00001";
+            return 1.ToString($"D{NamingConvention.FreePartLength}");
         }
 
         public string GetFixedAppRolePart(ModellingNetworkArea area)
         {
-            // Todo: parametrize in settings
-            if(ModellingAppRole.FixedPartLength >= 2 && area.Name.Length >= ModellingAppRole.FixedPartLength)
+            if(area.Name.Length >= NamingConvention.FixedPartLength)
             {
-                return area.Name.Substring(0, ModellingAppRole.FixedPartLength).Remove(0, 2).Insert(0, "AR");
+                return area.Name.Substring(0, NamingConvention.FixedPartLength).Remove(0, NamingConvention.NetworkAreaPattern.Length).Insert(0, NamingConvention.AppRolePattern);
             }
             return area.Name;
         }
 
-        public static string ReconstructArea(ModellingAppRole appRole)
+        public string ReconstructArea(ModellingAppRole appRole)
         {
-            if(appRole.IdString.Length >= ModellingAppRole.FixedPartLength)
+            if(appRole.IdString.Length >= NamingConvention.FixedPartLength)
             {
-                return appRole.IdString.Substring(0, ModellingAppRole.FixedPartLength).Remove(0, 2).Insert(0, "NA");
+                return appRole.IdString.Substring(0, NamingConvention.FixedPartLength).Remove(0, NamingConvention.AppRolePattern.Length).Insert(0, NamingConvention.NetworkAreaPattern);
             }
             return "";
         }

@@ -1086,6 +1086,8 @@ INSERT INTO txt VALUES ('delete_nw_object', 	'German',	'Netzwerkobjekt l&ouml;sc
 INSERT INTO txt VALUES ('delete_nw_object', 	'English',	'Delete Network Object');
 INSERT INTO txt VALUES ('is_in_use', 	        'German',	'Wird benutzt');
 INSERT INTO txt VALUES ('is_in_use', 	        'English',	'Is in use');
+INSERT INTO txt VALUES ('deactivate',           'German', 	'Deaktivieren');
+INSERT INTO txt VALUES ('deactivate',           'English', 	'Deactivate');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -1648,6 +1650,16 @@ INSERT INTO txt VALUES ('importSubnetDataSleepTime','German','Import Subnetzdate
 INSERT INTO txt VALUES ('importSubnetDataSleepTime','English','Import Subnet data sleep time (in hours)');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten-Start');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','English','Import Subnet data start at');
+INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorgeschrieben');
+INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
+INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
+INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
+INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
+INSERT INTO txt VALUES ('freePartLength',       'English',  'Free Part Length');
+INSERT INTO txt VALUES ('networkAreaPattern',   'German',   'Muster Netzwerkarea');
+INSERT INTO txt VALUES ('networkAreaPattern',   'English',  'Network Area Pattern');
+INSERT INTO txt VALUES ('appRolePattern',       'German',   'Muster App Rolle');
+INSERT INTO txt VALUES ('appRolePattern',       'English',  'App Role Pattern');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -2123,6 +2135,10 @@ INSERT INTO txt VALUES ('U9005', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U9005', 'English', 'Are you sure you want to reactivate App Server: ');
 INSERT INTO txt VALUES ('U9006', 'German',  'Sind sie sicher, dass sie folgendes Objekt aus der Auswahlliste l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U9006', 'English', 'Are you sure you want to delete following object from selection list: ');
+INSERT INTO txt VALUES ('U9007', 'German',  'Der folgende App Server wird verwendet. Sind sie sicher, dass sie ihn deaktivieren wollen: ');
+INSERT INTO txt VALUES ('U9007', 'English', 'Following App Server is in use. Are you sure you want to deactivate it: ');
+INSERT INTO txt VALUES ('U9008', 'German',  'Sind sie sicher, dass sie folgenden App Server l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9008', 'English', 'Are you sure you want to delete App Server: ');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');

@@ -4,7 +4,7 @@ mutation newAppServer(
   $ip: cidr
   $importSource: String
   ) {
-  insert_modelling_nwobject(objects: {
+  insert_owner_network(objects: {
     name: $name
     app_id: $appId
     ip: $ip

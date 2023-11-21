@@ -12,20 +12,18 @@ alter table owner add column if not exists criticality Varchar;
 alter table owner add column if not exists active boolean default true;
 alter table owner add column if not exists import_source Varchar;
 
+alter table owner_network alter column id type bigint;
+alter table owner_network add column if not exists name Varchar;
+alter table owner_network add column if not exists nw_type int;
+alter table owner_network add column if not exists import_source Varchar default 'manual';
+alter table owner_network add column if not exists is_deleted boolean default false;
+
+-- temp
+-- ALTER TABLE modelling.nwobject DROP CONSTRAINT IF EXISTS modelling_nwobject_owner_foreign_key;
+-- drop table if exists modelling.nwobject;
+
 
 create schema if not exists modelling;
-
-create table if not exists modelling.nwobject
-(
- 	id BIGSERIAL PRIMARY KEY,
-	app_id int,
-	name Varchar,
-	ip cidr,
-	ip_end cidr,
-	nw_type int,
-	import_source Varchar default 'manual', 
-	is_deleted boolean default false
-);
 
 create table if not exists modelling.nwgroup
 (
@@ -139,7 +137,6 @@ create table if not exists modelling.change_history
 );
 
 
-ALTER TABLE modelling.nwobject DROP CONSTRAINT IF EXISTS modelling_nwobject_owner_foreign_key;
 ALTER TABLE modelling.nwgroup DROP CONSTRAINT IF EXISTS modelling_nwgroup_owner_foreign_key;
 ALTER TABLE modelling.connection DROP CONSTRAINT IF EXISTS modelling_connection_owner_foreign_key;
 ALTER TABLE modelling.connection DROP CONSTRAINT IF EXISTS modelling_connection_used_interface_foreign_key;
@@ -162,15 +159,14 @@ ALTER TABLE modelling.change_history DROP CONSTRAINT IF EXISTS modelling_change_
 ALTER TABLE modelling.selected_objects DROP CONSTRAINT IF EXISTS modelling_selected_objects_owner_foreign_key;
 ALTER TABLE modelling.selected_objects DROP CONSTRAINT IF EXISTS modelling_selected_objects_nwgroup_foreign_key;
 
-ALTER TABLE modelling.nwobject ADD CONSTRAINT modelling_nwobject_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.nwgroup ADD CONSTRAINT modelling_nwgroup_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.connection ADD CONSTRAINT modelling_connection_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.connection ADD CONSTRAINT modelling_connection_used_interface_foreign_key FOREIGN KEY (used_interface_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE modelling.nwobject_nwgroup ADD CONSTRAINT modelling_nwobject_nwgroup_nwobject_foreign_key FOREIGN KEY (nwobject_id) REFERENCES modelling.nwobject(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.nwobject_nwgroup ADD CONSTRAINT modelling_nwobject_nwgroup_nwobject_foreign_key FOREIGN KEY (nwobject_id) REFERENCES owner_network(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.nwobject_nwgroup ADD CONSTRAINT modelling_nwobject_nwgroup_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES modelling.nwgroup(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.nwgroup_connection ADD CONSTRAINT modelling_nwgroup_connection_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES modelling.nwgroup(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.nwgroup_connection ADD CONSTRAINT modelling_nwgroup_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE modelling.nwobject_connection ADD CONSTRAINT modelling_nwobject_connection_nwobject_foreign_key FOREIGN KEY (nwobject_id) REFERENCES modelling.nwobject(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.nwobject_connection ADD CONSTRAINT modelling_nwobject_connection_nwobject_foreign_key FOREIGN KEY (nwobject_id) REFERENCES owner_network(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.nwobject_connection ADD CONSTRAINT modelling_nwobject_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service ADD CONSTRAINT modelling_service_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service ADD CONSTRAINT modelling_service_protocol_foreign_key FOREIGN KEY (proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;

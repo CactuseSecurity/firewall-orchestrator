@@ -3,7 +3,7 @@ mutation newAreaSubnet(
   $ip: cidr
   $importSource: String
   ) {
-  insert_modelling_nwobject(objects: {
+  insert_owner_network(objects: {
     name: $name
     ip: $ip
     import_source: $importSource

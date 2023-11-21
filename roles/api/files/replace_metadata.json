@@ -1335,147 +1335,6 @@
             },
             {
               "table": {
-                "name": "nwobject",
-                "schema": "modelling"
-              },
-              "object_relationships": [
-                {
-                  "name": "owner",
-                  "using": {
-                    "foreign_key_constraint_on": "app_id"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "nwobject_connections",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nwobject_id",
-                      "table": {
-                        "name": "nwobject_connection",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "nwobject_nwgroups",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nwobject_id",
-                      "table": {
-                        "name": "nwobject_nwgroup",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "id",
-                      "is_deleted",
-                      "import_source",
-                      "name",
-                      "ip",
-                      "ip_end",
-                      "app_id",
-                      "nw_type"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "is_deleted",
-                      "import_source",
-                      "name",
-                      "ip",
-                      "ip_end",
-                      "app_id",
-                      "nw_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "is_deleted",
-                      "import_source",
-                      "name",
-                      "ip",
-                      "ip_end",
-                      "app_id",
-                      "nw_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "is_deleted",
-                      "import_source",
-                      "name",
-                      "ip",
-                      "ip_end",
-                      "app_id",
-                      "nw_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "update_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "is_deleted",
-                      "import_source",
-                      "name",
-                      "ip",
-                      "ip_end",
-                      "app_id",
-                      "nw_type"
-                    ],
-                    "filter": {},
-                    "check": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "delete_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
                 "name": "nwobject_connection",
                 "schema": "modelling"
               },
@@ -1487,7 +1346,7 @@
                   }
                 },
                 {
-                  "name": "nwobject",
+                  "name": "owner_network",
                   "using": {
                     "foreign_key_constraint_on": "nwobject_id"
                   }
@@ -1556,7 +1415,7 @@
                   }
                 },
                 {
-                  "name": "nwobject",
+                  "name": "owner_network",
                   "using": {
                     "foreign_key_constraint_on": "nwobject_id"
                   }
@@ -8986,18 +8845,6 @@
                       "column": "app_id",
                       "table": {
                         "name": "nwgroup",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "nwobjects",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "app_id",
-                      "table": {
-                        "name": "nwobject",
                         "schema": "modelling"
                       }
                     }

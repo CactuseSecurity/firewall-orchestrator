@@ -1,5 +1,5 @@
 query getAppServers ($appId: Int!){
-  modelling_nwobject (where: { app_id: { _eq: $appId }, nw_type: { _eq: 10 } } order_by: { name: asc }){
+  owner_network (where: { app_id: { _eq: $appId }, nw_type: { _eq: 10 } } order_by: { name: asc }){
     ...appServerDetails
   }
 }

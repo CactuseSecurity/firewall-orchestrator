@@ -3,7 +3,7 @@ query getAreas {
     id
     name
     subnets: nwobject_nwgroups{
-      nwobject{
+      owner_network{
         id
         name
         network: ip

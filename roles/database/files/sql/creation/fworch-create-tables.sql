@@ -1037,12 +1037,16 @@ create table owner
 
 create table owner_network
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     owner_id int,
+	name Varchar,
     ip cidr NOT NULL,
     ip_end cidr NOT NULL,
     port int,
-    ip_proto_id int
+    ip_proto_id int,
+	nw_type int,
+	import_source Varchar default 'manual', 
+	is_deleted boolean default false
 );
 
 create table reqtask_owner
@@ -1292,18 +1296,6 @@ create table compliance.ip_range
 
 --- Network modelling ---
 create schema modelling;
-
-create table modelling.nwobject
-(
- 	id BIGSERIAL PRIMARY KEY,
-	app_id int,
-	name Varchar,
-	ip cidr,
-	ip_end cidr,
-	nw_type int,
-	import_source Varchar default 'manual', 
-	is_deleted boolean default false
-);
 
 create table modelling.nwgroup
 (

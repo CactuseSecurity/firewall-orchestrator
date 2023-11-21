@@ -2,7 +2,7 @@ query getAppRoles ($appId: Int!){
   modelling_nwgroup (where: { app_id: { _eq: $appId }, group_type: { _eq: 20 } } order_by: { name: asc }){
     ...appRoleDetails
     nwobjects: nwobject_nwgroups{
-      nwobject{
+      owner_network{
         ...appServerDetails
       }
     }

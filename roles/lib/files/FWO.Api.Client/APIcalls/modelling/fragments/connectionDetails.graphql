@@ -8,7 +8,7 @@ fragment connectionDetails on modelling_connection {
   creator
   creation_date
   source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){
-    nwobject{
+    owner_network{
       ...appServerDetails
     }
   }
@@ -18,7 +18,7 @@ fragment connectionDetails on modelling_connection {
     }
   }
   destination_nwobjects: nwobject_connections (where: { connection_field: { _eq: 2 } }){
-    nwobject{
+    owner_network{
       ...appServerDetails
     }
   }

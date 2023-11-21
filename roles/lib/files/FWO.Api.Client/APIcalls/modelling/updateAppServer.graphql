@@ -5,7 +5,7 @@ mutation updateAppServer(
   $ip: cidr
   $importSource: String
   ) {
-  update_modelling_nwobject_by_pk(
+  update_owner_network_by_pk(
     pk_columns: { id: $id }
     _set: {
       name: $name

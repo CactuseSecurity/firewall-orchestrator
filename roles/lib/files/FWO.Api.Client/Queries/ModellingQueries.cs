@@ -44,6 +44,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string removeSelectedNwGroupObject;
 
         public static readonly string getAppRoles;
+        public static readonly string getNewestAppRoles;
         public static readonly string newAppRole;
         public static readonly string updateAppRole;
         public static readonly string deleteNwGroup;
@@ -114,6 +115,7 @@ namespace FWO.Api.Client.Queries
                 removeSelectedNwGroupObject = File.ReadAllText(QueryPath + "modelling/removeSelectedNwGroupObject.graphql");
 
                 getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppRoles.graphql");
+                getNewestAppRoles = File.ReadAllText(QueryPath + "modelling/getNewestAppRoles.graphql");
                 newAppRole = File.ReadAllText(QueryPath + "modelling/newAppRole.graphql");
                 updateAppRole = File.ReadAllText(QueryPath + "modelling/updateAppRole.graphql");
                 deleteNwGroup = File.ReadAllText(QueryPath + "modelling/deleteNwGroup.graphql");

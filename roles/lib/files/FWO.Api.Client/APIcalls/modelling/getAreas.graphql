@@ -6,7 +6,8 @@ query getAreas {
       owner_network{
         id
         name
-        network: ip
+        ip
+        ip_end
       }
     }
   }

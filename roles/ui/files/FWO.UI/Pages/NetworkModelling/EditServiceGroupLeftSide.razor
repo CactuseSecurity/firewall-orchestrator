@@ -32,8 +32,8 @@
         <button type="button" class="btn btn-sm btn-danger" @onclick="() => {SvcGroupHandler.RequestDeleteService(ResolveSvc(selectedServices).First()); selectedServices = new long[]{}; SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("delete"))</button>
     }
 </div>
-<EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AddMode="SvcGroupHandler.AddServiceMode"/>
-<ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}" Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message"/>
+<EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AddMode="SvcGroupHandler.AddServiceMode" AsAdmin="AsAdmin"/>
+<ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}" Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? "admin" : "modeller")"/>
 
 
 @code
@@ -58,6 +58,9 @@
 
     [Parameter]
     public EventCallback<ModellingServiceGroupHandler> SvcGroupHandlerChanged { get; set; }
+
+    [Parameter]
+    public bool AsAdmin { get; set; } = false;
 
 
     private long[] selectedServices = new long[]{};

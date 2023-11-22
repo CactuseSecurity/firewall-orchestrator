@@ -165,7 +165,7 @@
         <div class="btn-group">
             @if(!ConnHandler.ReadOnly)
             {
-                <AuthorizeView Roles="admin, modeller">
+                <AuthorizeView Roles="modeller">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     </Authorized>

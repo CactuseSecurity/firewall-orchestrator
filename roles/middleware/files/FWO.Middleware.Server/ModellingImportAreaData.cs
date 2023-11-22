@@ -34,9 +34,16 @@ namespace FWO.Middleware.Server
         public string Name { get; set; } = "";
 
         /// <summary>
-        /// Area Subnet Network (in cidr notation)
+        /// Area Subnet Network Start IP (in cidr notation)
         /// </summary>
-        [JsonProperty("network"), JsonPropertyName("network")]
-        public string Network { get; set; } = "";
+        [JsonProperty("ip"), JsonPropertyName("ip")]
+        public string Ip { get; set; } = "";
+
+        /// <summary>
+        /// Area Subnet Network End IP (in cidr notation)
+        /// </summary>
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string IpEnd { get; set; } = "";
+
     }
 }

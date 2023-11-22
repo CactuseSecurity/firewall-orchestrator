@@ -23,7 +23,10 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-success" @onclick="() => {Interface = selectedInterface; InterfaceChanged.InvokeAsync(Interface); Close();}">@(userConfig.GetText("select"))</button>
+            @if(selectedInterface != null)
+            {
+                <button type="button" class="btn btn-sm btn-success" @onclick="() => {Interface = selectedInterface; InterfaceChanged.InvokeAsync(Interface); Close();}">@(userConfig.GetText("select"))</button>
+            }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>

@@ -81,7 +81,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin, modeller">
+                <AuthorizeView Roles="modeller">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {if(await AppRoleHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -146,7 +146,7 @@
             }
             else if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
-                SelectedAreaChanged(AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
+                await SelectedAreaChanged(AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
             }
             firstTry = false;
         }
@@ -168,13 +168,13 @@
         DisplayChanged.InvokeAsync(Display);
     }
 
-    private void SelectedAreaChanged(ModellingNetworkArea newArea)
+    private async Task SelectedAreaChanged(ModellingNetworkArea newArea)
     {
         AppRoleHandler.ActAppRole.Area = newArea;
         if(newArea != null && newArea.Name.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
         {
             AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
-            AppRoleHandler.ActAppRole.IdStringFreePart = AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
+            AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
         }
         SelectAppServersFromArea(newArea);
     }

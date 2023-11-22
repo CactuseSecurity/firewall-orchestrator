@@ -61,7 +61,7 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_app_role"), userConfig.GetText("U0001"), true);
                 }
-                if(CheckAppRole())
+                if(await CheckAppRole())
                 {
                     foreach(var appServer in AppServerToDelete)
                     {
@@ -90,14 +90,14 @@ namespace FWO.Ui.Services
             return false;
         }
 
-        private bool CheckAppRole()
+        private async Task<bool> CheckAppRole()
         {
             if(ActAppRole.IdString.Length <= NamingConvention.FixedPartLength || ActAppRole.Name == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if((AddMode || ActAppRole.IdString != origId) && IdStringAlreadyUsed(ActAppRole.IdString))
+            if((AddMode || ActAppRole.IdString != origId) && await IdStringAlreadyUsed(ActAppRole.IdString))
             {
                 // popup for correction?
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E9003"), true);
@@ -106,29 +106,36 @@ namespace FWO.Ui.Services
             return true;
         }
 
-        private bool IdStringAlreadyUsed(string appRoleIdString)
+        private async Task<bool> IdStringAlreadyUsed(string appRoleIdString)
         {
-            ModellingAppRole? existAR = AppRoles.FirstOrDefault(x => x.IdString == appRoleIdString);
-            if(existAR != null && existAR.Id != ActAppRole.Id)
+            List<ModellingAppRole>? existAR = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = appRoleIdString });
+            if(existAR != null)
             {
-                return true;
+                foreach(var aR in existAR)
+                {
+                    if(aR.Id  != ActAppRole.Id)
+                    {
+                        return true;
+                    }
+                }
             }
             return false;
         }
 
-        public string ProposeFreeAppRoleNumber(ModellingNetworkArea area)
+        public async Task<string> ProposeFreeAppRoleNumber(ModellingNetworkArea area)
         {
             int maxNumbers = 10^NamingConvention.FreePartLength - 1;
             string idFix = GetFixedAppRolePart(area);
-            ModellingAppRole? newestAR = AppRoles.Where(x => x.IdStringFixedPart == idFix).MaxBy(x => x.Id);
+            ModellingAppRole? newestAR = (await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = idFix + "%" }))[0];
             if(newestAR != null)
             {
+                newestAR.SetFixedPartLength(NamingConvention.FixedPartLength);
                 if(int.TryParse(newestAR.IdStringFreePart, out int aRNumber))
                 {
                     aRNumber++;
                     while(aRNumber <= maxNumbers)
                     {
-                        if(!IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
+                        if(!await IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
                         {
                             return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
                         }
@@ -138,7 +145,7 @@ namespace FWO.Ui.Services
                 aRNumber = 1;
                 while(aRNumber <= maxNumbers)
                 {
-                    if(!IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
+                    if(!await IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
                     {
                         return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
                     }

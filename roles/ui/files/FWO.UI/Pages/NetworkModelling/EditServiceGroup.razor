@@ -10,7 +10,7 @@
         <Body>
             <div class="row">
                 <div class="col-sm-6">
-                    <EditServiceGroupLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-SvcGroupHandler="SvcGroupHandler"/>
+                    <EditServiceGroupLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-SvcGroupHandler="SvcGroupHandler" AsAdmin="AsAdmin"/>
                 </div>
                 <div class="col-sm-6">
                     <h3>@(userConfig.GetText("services_group"))</h3>
@@ -48,7 +48,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin, modeller">
+                <AuthorizeView Roles="@(AsAdmin? "admin" : "modeller")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await SvcGroupHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -82,6 +82,9 @@
 
     [Parameter]
     public bool AddMode { get; set; } = false;
+
+    [Parameter]
+    public bool AsAdmin { get; set; } = false;
 
     private ModellingDnDContainer Container { get; set; } = new();
     int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;

@@ -110,7 +110,8 @@ namespace FWO.Middleware.Server
                     var SubnetVar = new
                     {
                         name = subnet.Name,
-                        ip = subnet.Network,
+                        ip = subnet.Ip,
+                        ipEnd = subnet.IpEnd,
                         importSource = GlobalConfig.kImportAreaSubnetData
                     };
                     ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
@@ -135,7 +136,7 @@ namespace FWO.Middleware.Server
             {
                 foreach(var incomingSubnet in incomingArea.Subnets)
                 {
-                    if(incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Network == existingSubnet.Content.Network)
+                    if(incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip && incomingSubnet.IpEnd == existingSubnet.Content.IpEnd)
                     {
                         subnetsToAdd.Remove(incomingSubnet);
                         subnetsToDelete.Remove(existingSubnet);
@@ -151,7 +152,8 @@ namespace FWO.Middleware.Server
                 var SubnetVar = new
                 {
                     name = subnet.Name,
-                    ip = subnet.Network,
+                    ip = subnet.Ip,
+                    ipEnd = subnet.IpEnd,
                     importSource = GlobalConfig.kImportAreaSubnetData
                 };
                 ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;

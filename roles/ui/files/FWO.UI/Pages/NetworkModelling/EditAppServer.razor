@@ -23,7 +23,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, modeller">
+            <AuthorizeView Roles="admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await AppServerHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
                 </Authorized>

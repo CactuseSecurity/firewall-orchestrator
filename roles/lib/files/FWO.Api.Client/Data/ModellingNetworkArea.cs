@@ -32,15 +32,19 @@ namespace FWO.Api.Data
         public string Name { get; set; } = "";
 
         // -> cidr
-        [JsonProperty("network"), JsonPropertyName("network")]
-        public string? Network { get; set; }
+        [JsonProperty("ip"), JsonPropertyName("ip")]
+        public string? Ip { get; set; }
+
+       [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string? IpEnd { get; set; }
 
 
         public bool Sanitize()
         {
             bool shortened = false;
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
-            Network = Sanitizer.SanitizeOpt(Network, ref shortened);
+            Ip = Sanitizer.SanitizeOpt(Ip, ref shortened);
+            IpEnd = Sanitizer.SanitizeOpt(IpEnd, ref shortened);
             return shortened;
         }
     }

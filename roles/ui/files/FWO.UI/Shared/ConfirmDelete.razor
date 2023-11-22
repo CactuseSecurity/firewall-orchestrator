@@ -16,7 +16,7 @@
         <div class="btn-group">
             @if (DeleteAllowed)
             {
-                <AuthorizeView Roles="admin, modeller">
+                <AuthorizeView Roles="@AllowedRoles">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("delete"))</button>
                     </Authorized>
@@ -50,6 +50,9 @@
 
     [Parameter]
     public bool DeleteAllowed { get; set; } = true;
+
+    [Parameter]
+    public string AllowedRoles { get; set; } = "admin";
 
     private void Cancel()
     {

@@ -9448,10 +9448,27 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "is_deleted"
+                      "import_source",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "is_deleted",
+                      "name",
+                      "nw_type",
+                      "owner_id",
+                      "port"
                     ],
                     "filter": {},
                     "check": null
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
                   },
                   "comment": ""
                 }

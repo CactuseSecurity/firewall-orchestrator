@@ -145,7 +145,7 @@ namespace FWO.Middleware.Server
             }
             foreach(var subnet in subnetsToDelete)
             {
-                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.deleteNwGroup, new { id = subnet.Content.Id });
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.OwnerQueries.deleteAreaSubnet, new { id = subnet.Content.Id });
             }
             foreach(var subnet in subnetsToAdd)
             {

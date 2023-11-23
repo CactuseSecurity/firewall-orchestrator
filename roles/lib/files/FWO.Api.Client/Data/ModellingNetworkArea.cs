@@ -51,7 +51,7 @@ namespace FWO.Api.Data
 
     public class NetworkSubnetWrapper
     {
-        [JsonProperty("nwobject"), JsonPropertyName("nwobject")]
+        [JsonProperty("owner_network"), JsonPropertyName("owner_network")]
         public NetworkSubnet Content { get; set; } = new();
 
         public static NetworkSubnet[] Resolve(List<NetworkSubnetWrapper> wrappedList)

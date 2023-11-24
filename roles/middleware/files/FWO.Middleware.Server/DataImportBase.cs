@@ -56,21 +56,28 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected async Task<bool> RunImportScript(string importScriptFile)
         {
-            if(File.Exists(importScriptFile))
+            try
             {
-                ProcessStartInfo start = new ProcessStartInfo()
+                if(File.Exists(importScriptFile))
                 {
-                    FileName = importScriptFile,
-                    Arguments = "", // args,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true
-                };
-                Process? process = Process.Start(start);
-                StreamReader? reader = process?.StandardOutput;
-                string? result = reader?.ReadToEnd();
-                process?.WaitForExit(); 
-                process?.Close();
-                return true;
+                    ProcessStartInfo start = new ProcessStartInfo()
+                    {
+                        FileName = importScriptFile,
+                        Arguments = "", // args,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true
+                    };
+                    Process? process = Process.Start(start);
+                    StreamReader? reader = process?.StandardOutput;
+                    string? result = reader?.ReadToEnd();
+                    process?.WaitForExit(); 
+                    process?.Close();
+                    return true;
+                }
+            }
+            catch (Exception Exception)
+            {
+                Log.WriteError("Run Import Script", $"File {importScriptFile} could not be executed.", Exception);
             }
             return false;
         }

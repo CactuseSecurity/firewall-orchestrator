@@ -39,7 +39,10 @@ namespace FWO.Middleware.Server
                 await InitLdap();
                 foreach(var importfilePathAndName in importfilePathAndNames)
                 {
-                    await RunImportScript(importfilePathAndName + ".py");
+                    if(!await RunImportScript(importfilePathAndName + ".py"))
+                    {
+                        Log.WriteInfo("Import App Data", $"Script failed but trying to import from existing file.");
+                    }
                     await ImportSingleSource(importfilePathAndName + ".json");
                 }
             }

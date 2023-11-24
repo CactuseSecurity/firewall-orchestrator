@@ -32,12 +32,12 @@
                     }
                 </div>
             </div>
-            <br><br>
+            <br>
         }
         <h5>@(userConfig.GetText("network_objects"))</h5>
         <div class="form-group row">
             <div class="col-sm-9">
-                <select class="form-control form-control-sm" @bind="selectedNwElems" multiple>
+                <select class="form-control form-control-sm" @bind="selectedNwElems" size="7" multiple>
                     @for (int index = 0 ; index < ConnHandler.AvailableNwElems.Count ; index++)
                     {
                         <option class="draggable" draggable="true" @ondragstart="() => HandleNwDragStart(selectedNwElems)" value="@index">
@@ -96,13 +96,13 @@
                 }
             </div>
         </div>
-        <br><br>
+        <br>
         @if(!ConnHandler.svcReadOnly)
         {
             <h5>@(userConfig.GetText("services"))</h5>
             <div class="form-group row">
                 <div class="col-sm-9">
-                    <select class="form-control form-control-sm" @bind="selectedSvcElems" multiple>
+                    <select class="form-control form-control-sm" @bind="selectedSvcElems" size="7" multiple>
                         @for (int index = 0 ; index < ConnHandler.AvailableSvcElems.Count ; index++)
                         {
                             <option class="draggable" draggable="true" @ondragstart="() => HandleSvcDragStart(selectedSvcElems)" value="@index">

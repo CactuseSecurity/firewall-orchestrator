@@ -5,11 +5,10 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-
-<PopUp Title="@(AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Show="@Display" OnClose="Close">
-    <Body>
-        @if (Display)
-        {
+@if(Display && InitComplete)
+{
+    <PopUp Title="@(AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Show="@Display" OnClose="Close">
+        <Body>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                 <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="ServiceHandler.ActService.Name" />
@@ -30,22 +29,23 @@
                     </Dropdown>
                 </div>
             </div>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="@(AsAdmin? "admin" : "modeller")">
-                <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await ServiceHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="@(AsAdmin? "admin" : "modeller")">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await ServiceHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+    <InProgress Display="!InitComplete"/>
+}
 
 
 @code
@@ -70,7 +70,7 @@
 
 
     private List<NetworkProtocol> ipProtos = new List<NetworkProtocol>();
-
+    private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,6 +78,7 @@
         {
             List<IpProtocol> ipProtosOrig = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
             ipProtos = CustomSort(ipProtosOrig);
+            InitComplete = true;
         }
         catch (Exception exception)
         {

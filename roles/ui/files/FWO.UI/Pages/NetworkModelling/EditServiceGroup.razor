@@ -25,7 +25,7 @@
                         </div>
                         <div class="col-sm-12">
                             <h6>@(userConfig.GetText("services"))</h6>
-                            <div class="minheight-dropzone bg-secondary dropzone" 
+                            <div class="minheight-dropzone bg-secondary dropzone" dropzone="move"
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
                                 @ondrop="HandleSvcDrop">

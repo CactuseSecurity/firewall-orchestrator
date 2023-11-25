@@ -11,6 +11,7 @@ namespace FWO.Ui.Services
     {
         public ModellingAppServer ActAppServer { get; set; } = new();
         public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
+        private ModellingAppServer ActAppServerOrig { get; set; } = new();
 
 
         public ModellingAppServerHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -19,6 +20,7 @@ namespace FWO.Ui.Services
         {
             ActAppServer = appServer;
             AvailableAppServers = availableAppServers;
+            ActAppServerOrig = new ModellingAppServer(ActAppServer);
         }
         
         public async Task<bool> Save()
@@ -49,14 +51,34 @@ namespace FWO.Ui.Services
             return false;
         }
 
+        public void Reset()
+        {
+            ActAppServer = ActAppServerOrig;
+            if(!AddMode)
+            {
+                AvailableAppServers[AvailableAppServers.FindIndex(x => x.Id == ActAppServer.Id)] = ActAppServerOrig;
+            }
+        }
+
         private bool CheckAppServer()
         {
-            if(ActAppServer.Name == null || ActAppServer.Name == "")
+            if(ActAppServer.Ip == null || ActAppServer.Ip == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E5102"), true);
                 return false;
             }
+            if(!checkIpAdress(ActAppServer.Ip))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("wrong_ip_address"), true);
+                return false;
+            }
             return true;
+        }
+
+        private bool checkIpAdress(string ip)
+        {
+            IPAddressRange dummyOut;
+            return IPAddressRange.TryParse(ip, out dummyOut);
         }
 
         private async Task AddAppServerToDb()

@@ -41,7 +41,7 @@ namespace FWO.Middleware.Server
                 {
                     if(!await RunImportScript(importfilePathAndName + ".py"))
                     {
-                        Log.WriteInfo("Import App Data", $"Script failed but trying to import from existing file.");
+                        Log.WriteInfo("Import App Data", $"Script {importfilePathAndName} failed but trying to import from existing file.");
                     }
                     await ImportSingleSource(importfilePathAndName + ".json");
                 }

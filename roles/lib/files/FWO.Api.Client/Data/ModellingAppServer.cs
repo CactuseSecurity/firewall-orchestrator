@@ -43,6 +43,19 @@ namespace FWO.Api.Data
                 IpEnd = Ip
             };
         }
+
+        public ModellingAppServer()
+        {}
+
+        public ModellingAppServer(ModellingAppServer appServer)
+        {
+            Id = appServer.Id;
+            AppId = appServer.AppId;
+            Name = appServer.Name;
+            IsDeleted = appServer.IsDeleted;
+            Ip = appServer.Ip;
+            ImportSource = appServer.ImportSource;
+        }
     }
 
     public class ModellingAppServerWrapper

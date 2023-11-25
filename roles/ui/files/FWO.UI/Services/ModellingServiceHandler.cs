@@ -10,6 +10,7 @@ namespace FWO.Ui.Services
     {
         public ModellingService ActService { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
+        private ModellingService ActServiceOrig { get; set; } = new();
 
 
         public ModellingServiceHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -18,6 +19,7 @@ namespace FWO.Ui.Services
         {
             ActService = service;
             AvailableServices = availableServices;
+            ActServiceOrig = new ModellingService(ActService);
         }
         
         public async Task<bool> Save()
@@ -48,11 +50,26 @@ namespace FWO.Ui.Services
             return false;
         }
 
+        public void Reset()
+        {
+            ActService = ActServiceOrig;
+            if(!AddMode)
+            {
+                AvailableServices[AvailableServices.FindIndex(x => x.Id == ActService.Id)] = ActServiceOrig;
+            }
+        }
+
         private bool CheckService()
         {
-            if(ActService.Name == null || ActService.Name == "")
+            if(ActService.Protocol == null || ActService.Port == null)
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5102"), true);
+                return false;
+            }
+            if(ActService.Port < 1 || ActService.Port > 65535 || (ActService.PortEnd != null && 
+                (ActService.PortEnd < 1 || ActService.PortEnd > 65535 || ActService.PortEnd < ActService.Port)))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5103"), true);
                 return false;
             }
             return true;

@@ -740,7 +740,7 @@ namespace FWO.Ui.Services
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.updateConnection, Variables);
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Connection, ActConn.Id,
                     $"Updated {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
 

@@ -44,9 +44,9 @@ namespace FWO.Middleware.Server
             {
                 importFile = File.ReadAllText(filepath).Trim();
             }
-            catch (Exception fileReadException)
+            catch (Exception)
             {
-                Log.WriteError("Read file", $"File could not be found at {filepath}.", fileReadException);
+                Log.WriteError("Read file", $"File could not be read from {filepath}.");
                 throw;
             }
         }
@@ -80,6 +80,63 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Run Import Script", $"File {importScriptFile} could not be executed.", Exception);
             }
             return false;
+        }
+
+
+
+        private void run_cmd(string cmd, string args)
+        {
+            // full path of python interpreter 
+            string python = @"C:\Continuum\Anaconda\python.exe"; 
+
+            // python app to call 
+            string myPythonApp = "sum.py"; 
+
+            // dummy parameters to send Python script 
+            int x = 2; 
+            int y = 5; 
+
+            // Create new process start info 
+            ProcessStartInfo myProcessStartInfo = new ProcessStartInfo(python); 
+
+            // make sure we can read the output from stdout 
+            myProcessStartInfo.UseShellExecute = false; 
+            myProcessStartInfo.RedirectStandardOutput = true; 
+
+            // start python app with 3 arguments  
+            // 1st arguments is pointer to itself,  
+            // 2nd and 3rd are actual arguments we want to send 
+            myProcessStartInfo.Arguments = myPythonApp + " " + x + " " + y; 
+
+            Process myProcess = new Process(); 
+            myProcess.StartInfo = myProcessStartInfo; 
+
+            Console.WriteLine("Calling Python script with arguments {0} and {1}", x,y); 
+            myProcess.Start(); 
+
+            StreamReader myStreamReader = myProcess.StandardOutput; 
+            string myString = myStreamReader.ReadLine(); 
+            myProcess.WaitForExit(); 
+            myProcess.Close(); 
+            Console.WriteLine("Value received from script: " + myString); 
+        }
+
+
+        private void run_cmd1(string cmd, string args)
+        {
+            ProcessStartInfo start = new ProcessStartInfo();
+            start.FileName = cmd;
+            start.Arguments = args;
+            start.UseShellExecute = false;
+            start.RedirectStandardOutput = true;
+            using (Process process = Process.Start(start))
+            {
+                using (StreamReader reader = process.StandardOutput)
+                {
+                    string result = reader.ReadToEnd();
+                    Console.Write(result);
+                }
+            }
         }
     }
 }

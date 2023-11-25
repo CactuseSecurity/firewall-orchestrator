@@ -11,17 +11,12 @@
     <h5>@(userConfig.GetText("app_server"))</h5>
     <div class="form-group row">
         <div class="col-sm-9">
-            <select class="form-control form-control-sm" @bind="selectedAppServers" size="12" multiple>
-                @foreach (var appserver in AppRoleHandler.AvailableAppServers)
-                {
-                    <option class="draggable" draggable="true" @ondragstart="() =>
-                        HandleDragStart(ResolveAppServer(selectedAppServers))" value="@appserver.Id">@appserver.Display()</option>
-                }
-            </select>
+            <DraggableList AllElements="AppRoleHandler.AvailableAppServers" @bind-SelectedElements="selectedAppServers" 
+                HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
         </div>
         <div class="col-sm-2">
             <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
-                {AppRoleHandler.AppServerToAppRole(ResolveAppServer(selectedAppServers));
+                {AppRoleHandler.AppServerToAppRole(selectedAppServers);
                 AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("to_app_role"))</button>
         </div>
     </div>
@@ -56,24 +51,20 @@
     [Parameter]
     public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
 
-    private long[] selectedAppServers = new long[]{};
+    private List<ModellingAppServer> selectedAppServers = new();
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
 
-    private void HandleDragStart(List<ModellingAppServer> selectedAppServers)
+    private bool HandleDragStart(DragEventArgs e, ModellingAppServer appServer)
     {
+        if(!selectedAppServers.Contains(appServer))
+        {
+            selectedAppServers.Add(appServer);
+        }
         Container.Clear();
         Container.AppServerElements = selectedAppServers;
-    }
-
-    private List<ModellingAppServer> ResolveAppServer(long[] selectedIds)
-    {
-        List<ModellingAppServer> addedIps = new();
-        foreach(var id in selectedIds)
-        {
-            addedIps.Add(AppRoleHandler.AvailableAppServers.FirstOrDefault(x => x.Id == id));
-        }
-        return addedIps;
+        selectedAppServers = new();
+        return true;
     }
 
     private async Task DataInconsistent()

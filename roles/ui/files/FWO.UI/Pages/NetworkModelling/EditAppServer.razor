@@ -6,7 +6,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(AddMode ? userConfig.GetText("add_app_server") : userConfig.GetText("edit_app_server"))" Show="@Display" OnClose="Close">
+<PopUp Title="@(AddMode ? userConfig.GetText("add_app_server") : userConfig.GetText("edit_app_server"))" Show="@Display" OnClose="Cancel">
     <Body>
         @if (Display)
         {
@@ -15,7 +15,7 @@
                 <input type="text" class="col-sm-9 form-control form-control-sm" @bind="AppServerHandler.ActAppServer.Name" />
             </div>
             <div class="form-group row">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
                 <input type="text" class="col-sm-9 form-control form-control-sm" @bind="AppServerHandler.ActAppServer.Ip" />
             </div>
             @* claculated area *@
@@ -31,7 +31,7 @@
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -66,8 +66,15 @@
         }
     }
 
+    private void Cancel()
+    {
+        AppServerHandler.Reset();
+        Close();
+    }
+
     private void Close()
     {
+        AppServerHandler.Reset();
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

@@ -40,6 +40,21 @@ namespace FWO.Api.Data
                 Protocol = service?.Protocol ?? new NetworkProtocol()
             };
         }
+
+        public ModellingService()
+        {}
+
+        public ModellingService(ModellingService service)
+        {
+            Id = service.Id;
+            AppId = service.AppId;
+            Name = service.Name;
+            Port = service.Port;
+            PortEnd = service.PortEnd;
+            ProtoId = service.ProtoId;
+            Protocol = service.Protocol;
+            IsGlobal = service.IsGlobal;
+        }
     }
 
     public class ModellingServiceWrapper

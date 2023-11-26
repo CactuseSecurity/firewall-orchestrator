@@ -2,5 +2,6 @@
     "username": "abc",
     "password": "def",
     "ldapPath": "CN={USERID},OU=Benutzer,DC=CACTUS,DC=DE",
-    "apiBaseUri": "/home/tim/dev/firewall-orchestrator/roles/middleware/files/FWO.Middleware.Server/scripts/nwmodelling/sampleOwnerDataOrig.json"
+    "subnetData": "/home/tim/dev/firewall-orchestrator/scripts/customizing/modelling/SubnetDataOrig.csv",
+    "apiBaseUri": "/home/tim/dev/firewall-orchestrator/scripts/customizing/modelling/sampleOwnerDataOrig.json"
 }

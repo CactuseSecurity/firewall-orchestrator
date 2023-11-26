@@ -120,7 +120,6 @@
     int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
 
     private List<ModellingNetworkArea> areas = new();
-    private List<ModellingAppServer> actServers = new();
     private bool firstTry = true;
 
     protected override async Task OnInitializedAsync()
@@ -168,44 +167,17 @@
         DisplayChanged.InvokeAsync(Display);
     }
 
-    private async Task SelectedAreaChanged(ModellingNetworkArea newArea)
+    private async Task SelectedAreaChanged(ModellingNetworkArea? newArea)
     {
         AppRoleHandler.ActAppRole.Area = newArea;
-        if(newArea != null && newArea.Name.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
+        if(newArea != null)
         {
-            AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
-            AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
-        }
-        SelectAppServersFromArea(newArea);
-    }
-
-    private void SelectAppServersFromArea(ModellingNetworkArea area)
-    {
-        actServers = new List<ModellingAppServer>(){};
-        foreach(var server in AppRoleHandler.AvailableAppServers)
-        {
-            if(IsInArea(server, area))
+            if(newArea.Name.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
             {
-                actServers.Add(server);
+                AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
+                AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
             }
         }
-    }
-
-    private bool IsInArea(ModellingAppServer server, ModellingNetworkArea area)
-    {
-        @* foreach(var subnet in area.Subnets)
-        {
-            var slashIdx = subnet.Network.IndexOf("/");
-            if (slashIdx == -1)
-            {
-                slashIdx = 31;
-            }
-            if(server.Ip.Substring(0, slashIdx) == subnet.Network.Substring(0, slashIdx)) // TODO: correct? IPv6??
-            {
-                return true;
-            }
-        }
-        return false; *@
-        return true;
+        AppRoleHandler.SelectAppServersFromArea(newArea);
     }
 }

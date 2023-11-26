@@ -11,7 +11,7 @@
     <h5>@(userConfig.GetText("app_server"))</h5>
     <div class="form-group row">
         <div class="col-sm-9">
-            <DraggableList AllElements="AppRoleHandler.AvailableAppServers" @bind-SelectedElements="selectedAppServers" 
+            <DraggableList AllElements="AppRoleHandler.AppServersInArea" @bind-SelectedElements="selectedAppServers" 
                 HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
         </div>
         <div class="col-sm-2">

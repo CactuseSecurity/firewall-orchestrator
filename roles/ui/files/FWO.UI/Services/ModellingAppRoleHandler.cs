@@ -3,6 +3,10 @@ using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using System.Text.Json;
+using System.Net;
+using System.Net.Sockets;
+using System.Collections;
+using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Services
 {
@@ -11,6 +15,7 @@ namespace FWO.Ui.Services
         public List<ModellingAppRole> AppRoles { get; set; } = new();
         public ModellingAppRole ActAppRole { get; set; } = new();
         public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
+        public List<ModellingAppServer> AppServersInArea { get; set; } = new();
         public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = new();
 
         public List<ModellingAppServer> AppServerToAdd { get; set; } = new();
@@ -262,6 +267,90 @@ namespace FWO.Ui.Services
         {
             AppServerToAdd = new List<ModellingAppServer>();
             AppServerToDelete = new List<ModellingAppServer>();
+        }
+
+        public void SelectAppServersFromArea(ModellingNetworkArea? area)
+        {
+            AppServersInArea = new List<ModellingAppServer>(){};
+            if(area != null)
+            {
+                foreach(var server in AvailableAppServers)
+                {
+                    if(IsInArea(server, area))
+                    {
+                        AppServersInArea.Add(server);
+                    }
+                }
+            }
+        }
+
+        private static string StripOffNetmask(string ip)
+        {
+            Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");
+            if (match.Success)
+            {
+                string matchedString = match.Value;
+                return matchedString.Remove( matchedString.Length - 1 );
+            }
+            return ip;
+        }
+
+        private static bool IsInArea(ModellingAppServer server, ModellingNetworkArea area)
+        {
+            foreach(var subnet in area.Subnets)
+            {
+                if(IsInSubnet(IPAddress.Parse(StripOffNetmask(server.Ip)), subnet.Content.Ip))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool IsInSubnet(IPAddress address, string subnetMask)
+        {
+            var slashIdx = subnetMask.IndexOf("/");
+            var maskAddress = IPAddress.Parse(slashIdx == -1 ? subnetMask : subnetMask.Substring(0, slashIdx));
+            if (maskAddress.AddressFamily != address.AddressFamily)
+            {
+                return false;
+            }
+
+            int maskLength = slashIdx == -1 ? (maskAddress.AddressFamily == AddressFamily.InterNetwork ? 31 : 127) : int.Parse(subnetMask.Substring(slashIdx + 1));
+            if (maskLength == 0)
+            {
+                return true;
+            }
+
+            if (maskAddress.AddressFamily == AddressFamily.InterNetwork)
+            {
+                var maskAddressBits = BitConverter.ToUInt32(maskAddress.GetAddressBytes().Reverse().ToArray(), 0);
+                var ipAddressBits = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
+                uint mask = uint.MaxValue << (32 - maskLength);
+                return (maskAddressBits & mask) == (ipAddressBits & mask);
+            }
+
+            if (maskAddress.AddressFamily == AddressFamily.InterNetworkV6)
+            {
+                var maskAddressBits = new BitArray(maskAddress.GetAddressBytes().Reverse().ToArray());
+                var ipAddressBits = new BitArray(address.GetAddressBytes().Reverse().ToArray());
+                var ipAddressLength = ipAddressBits.Length;
+
+                if (maskAddressBits.Length != ipAddressBits.Length)
+                {
+                    throw new ArgumentException("Length of IP Address and Subnet Mask do not match.");
+                }
+
+                for (var i = ipAddressLength - 1; i >= ipAddressLength - maskLength; i--)
+                {
+                    if (ipAddressBits[i] != maskAddressBits[i])
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
         }
     }
 }

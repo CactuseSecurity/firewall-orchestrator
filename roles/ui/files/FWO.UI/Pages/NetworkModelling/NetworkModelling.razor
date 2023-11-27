@@ -16,18 +16,18 @@
         <label class="col-form-label">@(userConfig.GetText("application")):</label>
         @if(singleApp)
         {
-            <label class="col-form-label text-primary ml-2">@selectedApp.Display()</label>
+            <label class="col-form-label text-primary ml-3">@selectedApp.Display()</label>
         }
         else
         {
-            <div class="col-sm-2">
-                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display())" @bind-SelectedElement="selectedApp" Elements="apps">
+            <div class="col-sm-3">
+                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display())" SelectedElement="selectedApp" 
+                        SelectedElementChanged="InitApp" Elements="apps">
                     <ElementTemplate Context="app">
                         @app.Display()
                     </ElementTemplate>
                 </Dropdown>
             </div>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="InitApp">@(userConfig.GetText("select"))</button>
         }
         <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button>
         <AuthorizeView Roles="admin, auditor">
@@ -149,7 +149,7 @@ else
                 if(existingApp != null)
                 {
                     selectedApp = existingApp;
-                    await InitApp();
+                    await InitApp(selectedApp);
                 }
                 else
                 {
@@ -164,7 +164,7 @@ else
             if (apps.Count == 1)
             {
                 singleApp = true;
-                await InitApp();
+                await InitApp(selectedApp);
             }
         }
         catch (Exception exception)
@@ -173,10 +173,11 @@ else
         }
     }
 
-    private async Task InitApp()
+    private async Task InitApp(FwoOwner newApp)
     {
         try
         {
+            selectedApp = newApp;
             appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi);
             await appHandler.Init();
             appSelected = true;

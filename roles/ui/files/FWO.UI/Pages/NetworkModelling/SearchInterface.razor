@@ -25,7 +25,7 @@
         <div class="btn-group">
             @if(selectedInterface != null)
             {
-                <button type="button" class="btn btn-sm btn-success" @onclick="() => {Interface = selectedInterface; InterfaceChanged.InvokeAsync(Interface); Close();}">@(userConfig.GetText("select"))</button>
+                <button type="button" class="btn btn-sm btn-success" @onclick="SelectInterface">@(userConfig.GetText("select"))</button>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -50,6 +50,10 @@
     [Parameter]
     public EventCallback<ModellingConnection> InterfaceChanged { get; set; }
 
+    [Parameter]
+    public Func <ModellingConnection, bool> SelectAction { get; set; }
+
+
     private List<ModellingConnection> availableInterfaces { get; set; } = new();
     private ModellingConnection? selectedInterface;
     private bool FirstTry = true;
@@ -73,6 +77,14 @@
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
         }
+    }
+
+    private void SelectInterface()
+    {
+        Interface = selectedInterface;
+        InterfaceChanged.InvokeAsync(Interface);
+        SelectAction(Interface); 
+        Close();
     }
 
     private void Close()

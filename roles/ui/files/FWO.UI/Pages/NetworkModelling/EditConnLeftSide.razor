@@ -140,7 +140,7 @@
 <ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteServiceGroup)" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
 <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)" Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
-<SearchInterface @bind-Display="SearchInterfaceMode" @bind-Interface="actInterface"/>
+<SearchInterface @bind-Display="SearchInterfaceMode" @bind-Interface="actInterface" SelectAction="InterfaceToConn"/>
 <SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects" Application="Application" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteNwObjectMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteNwGrpObject)" Title="@userConfig.GetText("delete_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
 
@@ -178,6 +178,13 @@
     private bool SearchNwObjectMode = false;
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
+
+    private bool InterfaceToConn(ModellingConnection interf)
+    {
+        ConnHandler.InterfaceToConn(interf);
+        ConnHandlerChanged.InvokeAsync(ConnHandler);
+        return true;
+    }
 
     private void NetworkElemsToConn(bool toSource)
     {

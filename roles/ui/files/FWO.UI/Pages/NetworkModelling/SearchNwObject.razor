@@ -32,9 +32,9 @@
                 <div class="form-group row">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
                     <div class="col-sm-9">
-                        <Dropdown ElementType="ModellingNwGroup" @bind-SelectedElement="selectedObject" ElementToString="@(o => o.Name)" Elements="nwObjects" Nullable="true">
+                        <Dropdown ElementType="ModellingNwGroup" @bind-SelectedElement="selectedObject" ElementToString="@(o => o.Display())" Elements="nwObjects" Nullable="true">
                             <ElementTemplate Context="obj">
-                                @obj.Name
+                                @((MarkupString)obj.DisplayHtml())
                             </ElementTemplate>
                         </Dropdown>
                     </div>

@@ -22,17 +22,17 @@
                                 @if(AddMode)
                                 {
                                     <div class="col-sm-8">
-                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Name)" 
+                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display())" 
                                                 SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
                                             <ElementTemplate Context="area">
-                                                @area.Name
+                                                @((MarkupString)area.DisplayHtml())
                                             </ElementTemplate>
                                         </Dropdown>
                                     </div>
                                 }
                                 else
                                 {
-                                    <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.Area.Name" />
+                                    <label class=" col-sm-8 form-control form-control-sm bg-secondary">@AppRoleHandler.ActAppRole.Area.Display()</label>
                                 }
                             </div>
                         }
@@ -139,13 +139,25 @@
     {
         if(Display && firstTry)
         {
-            if(areas.Count == 0)
+            if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
-                DisplayMessageInUi(null, userConfig.GetText("E9002"), "", true);
+                if(areas.Count == 0)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("E9002"), "", true);
+                }
+                else
+                {
+                    ModellingNetworkArea? existArea = areas.FirstOrDefault(a => a.IdString == AppRoleHandler.ActAppRole.Area?.IdString);
+                    if(existArea != null)
+                    {
+                        AppRoleHandler.ActAppRole.Area = existArea;
+                    }
+                    await SelectedAreaChanged(AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
+                }
             }
-            else if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
+            else
             {
-                await SelectedAreaChanged(AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
+                AppRoleHandler.AppServersInArea = AppRoleHandler.AvailableAppServers.Where(x => !x.IsDeleted).ToList();
             }
             firstTry = false;
         }
@@ -172,7 +184,7 @@
         AppRoleHandler.ActAppRole.Area = newArea;
         if(newArea != null)
         {
-            if(newArea.Name.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
+            if(newArea.IdString.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
             {
                 AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
                 AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);

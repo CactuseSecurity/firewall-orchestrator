@@ -42,7 +42,7 @@ namespace FWO.Ui.Services
             ActAppRole.SetFixedPartLength(NamingConvention.FixedPartLength);
             if(!AddMode)
             {
-                ActAppRole.Area = new () { Name = ReconstructArea(appRole) };
+                ActAppRole.Area = new () { IdString = ReconstructAreaIdString(appRole) };
             }
             origId = ActAppRole.IdString;
         }
@@ -162,14 +162,14 @@ namespace FWO.Ui.Services
 
         public string GetFixedAppRolePart(ModellingNetworkArea area)
         {
-            if(area.Name.Length >= NamingConvention.FixedPartLength)
+            if(area.IdString.Length >= NamingConvention.FixedPartLength)
             {
-                return area.Name.Substring(0, NamingConvention.FixedPartLength).Remove(0, NamingConvention.NetworkAreaPattern.Length).Insert(0, NamingConvention.AppRolePattern);
+                return area.IdString.Substring(0, NamingConvention.FixedPartLength).Remove(0, NamingConvention.NetworkAreaPattern.Length).Insert(0, NamingConvention.AppRolePattern);
             }
-            return area.Name;
+            return area.IdString;
         }
 
-        public string ReconstructArea(ModellingAppRole appRole)
+        public string ReconstructAreaIdString(ModellingAppRole appRole)
         {
             if(appRole.IdString.Length >= NamingConvention.FixedPartLength)
             {
@@ -274,7 +274,7 @@ namespace FWO.Ui.Services
             AppServersInArea = new List<ModellingAppServer>(){};
             if(area != null)
             {
-                foreach(var server in AvailableAppServers)
+                foreach(var server in AvailableAppServers.Where(x => !x.IsDeleted))
                 {
                     if(IsInArea(server, area))
                     {

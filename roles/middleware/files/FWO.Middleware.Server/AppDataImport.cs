@@ -41,7 +41,7 @@ namespace FWO.Middleware.Server
                 {
                     if(!await RunImportScript(importfilePathAndName + ".py"))
                     {
-                        Log.WriteInfo("Import App Data", $"Script {importfilePathAndName} failed but trying to import from existing file.");
+                        Log.WriteInfo("Import App Data", $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
                     }
                     await ImportSingleSource(importfilePathAndName + ".json");
                 }
@@ -66,9 +66,9 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                ReadFile(importfileName); // /usr/local/fworch/etc/apps-<ImportSource>.json
+                ReadFile(importfileName);
                 importedApps = JsonSerializer.Deserialize<List<ModellingImportAppData>>(importFile) ?? throw new Exception("File could not be parsed.");
-                await ImportApps();
+                await ImportApps(importfileName);
             }
             catch (Exception exc)
             {
@@ -78,7 +78,7 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task<bool> ImportApps()
+        private async Task ImportApps(string importfileName)
         {
             int successCounter = 0;
             int failCounter = 0;
@@ -111,8 +111,7 @@ namespace FWO.Middleware.Server
                     }
                 }
             }
-            Log.WriteDebug("Import App Data", $"Imported {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.");
-            return true;
+            Log.WriteInfo("Import App Data", $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.");
         }
 
         private async Task<bool> SaveApp(ModellingImportAppData incomingApp)

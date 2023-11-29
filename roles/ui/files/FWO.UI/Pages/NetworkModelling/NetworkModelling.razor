@@ -29,7 +29,7 @@
                 </Dropdown>
             </div>
         }
-        <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button>
+        @* <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
         <AuthorizeView Roles="admin, auditor">
             <Authorized>
                 <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>

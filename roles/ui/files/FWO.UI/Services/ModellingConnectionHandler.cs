@@ -122,7 +122,7 @@ namespace FWO.Ui.Services
             }
             if(userConfig.AllowServerInConn)
             {
-                foreach(var appServer in AvailableAppServers)
+                foreach(var appServer in AvailableAppServers.Where(x => !x.IsDeleted))
                 {
                     AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ObjectType.AppServer, appServer.Id));
                 }

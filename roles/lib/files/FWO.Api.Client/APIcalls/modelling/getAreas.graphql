@@ -2,6 +2,7 @@ query getAreas {
   modelling_nwgroup (where: { group_type: { _eq: 23 } } order_by: { name: asc }){
     id
     name
+    id_string
     subnets: nwobject_nwgroups{
       owner_network{
         id

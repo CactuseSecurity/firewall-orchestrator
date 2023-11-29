@@ -27,8 +27,11 @@ namespace FWO.Middleware.Server
         /// </summary>
         public async Task<bool> Run()
         {
-            await RunImportScript(globalConfig.ImportSubnetDataPath + ".py");
-            ReadFile(globalConfig.ImportSubnetDataPath + ".json"); // /usr/local/fworch/etc/qip-export.json
+            if(!await RunImportScript(globalConfig.ImportSubnetDataPath + ".py"))
+            {
+                Log.WriteInfo("Import Area Subnet Data", $"Script {globalConfig.ImportSubnetDataPath}.py failed but trying to import from existing file.");
+            }
+            ReadFile(globalConfig.ImportSubnetDataPath + ".json");
 
             int successCounter = 0;
             int failCounter = 0;
@@ -69,7 +72,7 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Import Area Subnet Data", $"File could not be processed.", exc);
                 return false;
             }
-            Log.WriteDebug("Import Area Subnet Data", $"Imported {successCounter} areas, {failCounter} failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
+            Log.WriteInfo("Import Area Subnet Data", $"Imported {successCounter} areas, {failCounter} failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
             return true;
         }
 
@@ -89,7 +92,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Area Subnet Data", $"Area {incomingArea.Name} could not be processed.", exc);
+                Log.WriteError("Import Area Subnet Data", $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.", exc);
                 return false;
             }
             return true;
@@ -100,6 +103,7 @@ namespace FWO.Middleware.Server
             var AreaVar = new
             { 
                 name = incomingArea.Name,
+                idString = incomingArea.IdString,
                 creator = GlobalConfig.kImportAreaSubnetData
             };
             ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newArea, AreaVar)).ReturnIds;

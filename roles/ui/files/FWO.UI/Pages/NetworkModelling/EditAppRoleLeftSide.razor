@@ -20,11 +20,11 @@
                 AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("to_app_role"))</button>
         </div>
     </div>
-    <AuthorizeView Roles="admin, auditor">
+    @* <AuthorizeView Roles="admin, auditor">
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
         </NotAuthorized> 
-    </AuthorizeView>
+    </AuthorizeView> *@
 </div>
 
 

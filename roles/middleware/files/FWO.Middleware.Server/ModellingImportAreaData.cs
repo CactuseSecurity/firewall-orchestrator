@@ -16,6 +16,12 @@ namespace FWO.Middleware.Server
         public string Name { get; set; } = "";
 
         /// <summary>
+        /// Area Id String
+        /// </summary>
+        [JsonProperty("id_string"), JsonPropertyName("id_string")]
+        public string IdString { get; set; } = "";
+
+        /// <summary>
         /// List of all associated Subnets
         /// </summary>
         [JsonProperty("subnets"), JsonPropertyName("subnets")]
@@ -43,7 +49,7 @@ namespace FWO.Middleware.Server
         /// Area Subnet Network End IP (in cidr notation)
         /// </summary>
         [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
-        public string IpEnd { get; set; } = "";
+        public string? IpEnd { get; set; } = "";
 
     }
 }

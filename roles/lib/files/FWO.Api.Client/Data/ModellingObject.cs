@@ -11,6 +11,8 @@ namespace FWO.Api.Data
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
         public int? AppId { get; set; }
 
+        public string TooltipText = "";
+
         public virtual string Display()
         {
             return Name;

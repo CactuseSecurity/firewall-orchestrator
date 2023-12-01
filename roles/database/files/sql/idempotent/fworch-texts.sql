@@ -1920,6 +1920,7 @@ INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones ex
 -- E: error texts
 -- A: Api errors
 -- T: texts from external sources (Ldap, other database tables)
+-- C: Contextual Info (Tooltips)
 -- H: help pages
 -- 0000-0999: General
 -- 1000-1999: Reporting
@@ -2496,6 +2497,13 @@ INSERT INTO txt VALUES ('T0106', 'German',  'Aktuell aktive unbenutzte Regeln al
 INSERT INTO txt VALUES ('T0106', 'English', 'Currently active unused rules of all gateways');
 INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Rezertifizierung anstehen');
 INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
+
+-- Contextual Info (Tooltips)
+INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
+INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
+INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');
+INSERT INTO txt VALUES ('C9001', 'English', 'This object was deactivated and should be removed from Connection.');
+
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -5117,3 +5125,4 @@ INSERT INTO txt VALUES ('H8717', 'English', '<H4>7) Activate Planning phase</H4>
         </li>
     </ul>
 ');
+

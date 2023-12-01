@@ -18,7 +18,8 @@ namespace FWO.Api.Data
 
         public override string DisplayHtml()
         {
-            return $"<span class=\"{(IsDeleted ? "text-danger" : "")}\">{(IsDeleted ? "<i>" : "")}{Display()}{(IsDeleted ? "</i>" : "")}</span>";
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{TooltipText}\"";
+            return $"<span class=\"{(IsDeleted ? "text-danger" : "")}\" {(IsDeleted && TooltipText != "" ? tooltip : "")}>{(IsDeleted ? "<i>" : "")}{Display()}{(IsDeleted ? "</i>" : "")}</span>";
         }
 
         public override string DisplayWithIcon()

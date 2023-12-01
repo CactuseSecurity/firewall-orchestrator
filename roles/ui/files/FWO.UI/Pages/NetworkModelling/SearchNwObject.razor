@@ -121,7 +121,9 @@
             {
                 grpType = (int)selectedType
             };
-            nwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, Variables);
+            List<ModellingNwGroup> allNwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, Variables);
+            List<ModellingNwGroupWrapper> selectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
+            nwObjects = allNwObjects.Where(o => selectedObjects.FirstOrDefault(sel => sel.Content.Id == o.Id) == null).ToList();
             typeSelected = true;
         }
         catch (Exception exception)
@@ -153,6 +155,7 @@
 
     private void Close()
     {
+        selectedObject = null;
         FirstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);

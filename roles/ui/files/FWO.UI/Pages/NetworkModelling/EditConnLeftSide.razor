@@ -11,25 +11,6 @@
         <label class="col-form-label text-success">@Application.Display()</label>
     </div>
     <div class="col-sm-11 border rounded m-2 p-2">
-        @if(!ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.UsedInterfaceId == null)
-        {
-            <h5>@(userConfig.GetText("interfaces"))</h5>
-            <div class="form-group row">
-                <div class="col-sm-3">
-                    <button type="button" class="btn btn-sm btn-success w-100" @onclick="SearchInterface">@(userConfig.GetText("search"))</button>
-                </div>
-                <div class="col-sm-6">
-                    <label class="draggable col-form-label col-sm-12" draggable="true" @ondragstart="@(() => {if(actInterface != null) HandleConnDragStart(actInterface);})">@(actInterface != null ? @actInterface.Name : "")</label>
-                </div>
-                <div class="col-sm-3">
-                    @if(actInterface != null)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.InterfaceToConn(actInterface); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("use"))</button>
-                    }
-                </div>
-            </div>
-            <br>
-        }
         <h5>@(userConfig.GetText("network_objects"))</h5>
         <div class="form-group row">
             <div class="col-sm-9">
@@ -131,6 +112,26 @@
                     }
                 }
             }
+        }
+        @if(!ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.UsedInterfaceId == null)
+        {
+            <br><br>
+            <h5>@(userConfig.GetText("interfaces"))</h5>
+            <div class="form-group row">
+                <div class="col-sm-3">
+                    <button type="button" class="btn btn-sm btn-success w-100" @onclick="SearchInterface">@(userConfig.GetText("search"))</button>
+                </div>
+                <div class="col-sm-6">
+                    <label class="draggable col-form-label col-sm-12" draggable="true" @ondragstart="@(() => {if(actInterface != null) HandleConnDragStart(actInterface);})">@(actInterface != null ? @actInterface.Name : "")</label>
+                </div>
+                <div class="col-sm-3">
+                    @if(actInterface != null)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.InterfaceToConn(actInterface); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("use"))</button>
+                    }
+                </div>
+            </div>
+            <br>
         }
     </div>
 </Sidebar>
@@ -358,7 +359,12 @@
 
     private ModellingAppRole ResolveAppRole(long selectedId)
     {
-        return ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
+        ModellingAppRole appRole = ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
+        foreach (var appServerWrapper in appRole.AppServers)
+        {
+            appServerWrapper.Content.TooltipText = userConfig.GetText("C9000");
+        }
+        return appRole;
     }
 
     private ModellingNwGroup ResolveNwGroupObject(long selectedId)

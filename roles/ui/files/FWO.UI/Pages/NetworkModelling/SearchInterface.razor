@@ -5,16 +5,16 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_interface"))" Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_interface"))" Large="true" Show="@Display" OnClose="Close">
     <Body>
         @if (Display)
         {
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
                 <div class="col-sm-9">
-                    <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="selectedInterface" ElementToString="@(i => i.Name)" Elements="availableInterfaces" Nullable="true">
+                    <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="selectedInterface" ElementToString="@(i => DisplayInterface(i))" Elements="availableInterfaces" Nullable="true">
                         <ElementTemplate Context="inter">
-                            @inter.Name
+                            @DisplayInterface(inter)
                         </ElementTemplate>
                     </Dropdown>
                 </div>
@@ -56,6 +56,7 @@
 
     private List<ModellingConnection> availableInterfaces { get; set; } = new();
     private ModellingConnection? selectedInterface;
+    private List<FwoOwner> apps = new();
     private bool FirstTry = true;
 
 
@@ -67,6 +68,8 @@
             {
                 FirstTry = false;
                 availableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
+                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+                
                 foreach(var interf in availableInterfaces)
                 {
                     interf.ExtractNwGroups();
@@ -77,6 +80,16 @@
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
         }
+    }
+
+    private string DisplayInterface(ModellingConnection inter)
+    {
+        FwoOwner? app = apps.FirstOrDefault(x => x.Id == inter.AppId);
+        if(app != null)
+        {
+            return inter.DisplayWithOwner(app);
+        }
+        return inter.Name;
     }
 
     private void SelectInterface()

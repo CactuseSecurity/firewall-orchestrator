@@ -239,3 +239,7 @@ app {
     margin-right:10px;
     margin-left:20px;
 }
+
+.bg-light-grey {
+    background-color: #f8f7f7;
+}

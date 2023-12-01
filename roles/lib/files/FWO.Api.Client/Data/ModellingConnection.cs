@@ -78,6 +78,11 @@ namespace FWO.Api.Data
            DestinationNwGroups = new List<ModellingNwGroupWrapper>(conn.DestinationNwGroups);
         }
 
+        public string DisplayWithOwner(FwoOwner owner)
+        {
+            return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";
+        }
+        
         public bool SourceFilled()
         {
             return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0 || SourceNwGroups.Count > 0;

@@ -72,6 +72,7 @@ namespace FWO.Middleware.Server
                     string? result = reader?.ReadToEnd();
                     process?.WaitForExit(); 
                     process?.Close();
+                    Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}.");
                     return true;
                 }
             }

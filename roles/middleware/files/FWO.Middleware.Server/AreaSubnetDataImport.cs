@@ -39,10 +39,10 @@ namespace FWO.Middleware.Server
             int deleteFailCounter = 0;
             try
             {
-                List<ModellingImportNwData>? importedNwData = JsonSerializer.Deserialize<List<ModellingImportNwData>>(importFile) ?? throw new Exception("File could not be parsed.");
-                if(importedNwData != null && importedNwData.Count > 0 && importedNwData[0].Areas != null)
+                ModellingImportNwData? importedNwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new Exception("File could not be parsed.");
+                if(importedNwData != null && importedNwData.Areas != null)
                 {
-                    importedAreas = importedNwData[0].Areas;
+                    importedAreas = importedNwData.Areas;
                     existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(Api.Client.Queries.ModellingQueries.getAreas);
                     foreach(var incomingArea in importedAreas)
                     {
@@ -123,7 +123,7 @@ namespace FWO.Middleware.Server
                     {
                         name = subnet.Name,
                         ip = subnet.Ip,
-                        ipEnd = subnet.IpEnd,
+                        ipEnd = subnet.IpEnd != "" ? subnet.IpEnd : subnet.Ip,
                         importSource = GlobalConfig.kImportAreaSubnetData
                     };
                     ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
@@ -165,7 +165,7 @@ namespace FWO.Middleware.Server
                 {
                     name = subnet.Name,
                     ip = subnet.Ip,
-                    ipEnd = subnet.IpEnd,
+                    ipEnd = subnet.IpEnd != "" ? subnet.IpEnd : subnet.Ip,
                     importSource = GlobalConfig.kImportAreaSubnetData
                 };
                 ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;

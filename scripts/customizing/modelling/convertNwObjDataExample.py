@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 import csv
 
-defaultConfigFilename = "/usr/local/fworch/etc/secrets/modelling_customizing_config.json"
+defaultConfigFilename = "/usr/local/fworch/etc/secrets/customizingConfig.json"
 
 
 def getLogger(debug_level_in=0):
@@ -108,17 +108,12 @@ if __name__ == "__main__":
         logger.error("error while trying to read subnets from csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
-# Subnetzname,"Subnetzadresse","Used","Netz","Area Netz","Subnet Organization","Netz","Subnetzmaske","Change"
-# NZ91029_MGT_COMPANY.IP_Storage_Mgmt.Netz1,"10.123.221.0","Y","Direktion","10.123.0.0","NZ91029_MGT_COMPANY.IP_Storage_Mgmt","direktion","255.255.255.0",""
-# NZ91030_MGT_COMPANY.Cisco_Smart_Licensing,"10.123.222.0","Y","Direktion","10.123.0.0","NZ91030_MGT_COMPANY.Cisco_Smart_Licensing","direktion","255.255.255.224",""
-
     # normalizing subnet data
 
     subnetAr = []
     with open(subnetDataFilename, 'r') as file:
         csv_reader = csv.DictReader(file)
         for row in csv_reader:
-#            subnetAr.append(list(row.keys()))
             subnetAr.append(row)
 
     normSubnetData = { "subnets": {}, "zones": {}, "areas": {} }
@@ -145,8 +140,8 @@ if __name__ == "__main__":
             "na-name": areaName,
             "zone-id": zoneId,
             "zone-name": zoneName,
-            "subnet-ip": cidr,
-            "subnet-name": subnetName
+            "ip": cidr,
+            "name": subnetName
         }
         normSubnetData['subnets'].update({ snId: normSubnet})
         snId += 1;
@@ -160,9 +155,7 @@ if __name__ == "__main__":
         # filling zones
         if not zoneId in normSubnetData['zones']:
             normSubnetData['zones'].update({ zoneId: { "zone-name": zoneName, "subnets": [] }})
-        normSubnetData['zones'][zoneId]['subnets'].append({"subnet-ip": cidr, "subnet-name": subnetName })
-
-    logger.info("normalized data")
+        normSubnetData['zones'][zoneId]['subnets'].append({"ip": cidr, "name": subnetName })
 
     # transform output
     transfSubnetData = { "areas": [] }

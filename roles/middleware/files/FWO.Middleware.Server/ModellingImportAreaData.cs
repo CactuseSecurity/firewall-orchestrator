@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Middleware.Server
 {
-        /// <summary>
+    /// <summary>
     /// Structure for imported network data 
     /// </summary>
     public class ModellingImportNwData

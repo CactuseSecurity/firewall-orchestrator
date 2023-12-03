@@ -67,8 +67,12 @@ namespace FWO.Middleware.Server
             try
             {
                 ReadFile(importfileName);
-                importedApps = JsonSerializer.Deserialize<List<ModellingImportAppData>>(importFile) ?? throw new Exception("File could not be parsed.");
-                await ImportApps(importfileName);
+                ModellingImportOwnerData? importedOwnerData = JsonSerializer.Deserialize<ModellingImportOwnerData>(importFile) ?? throw new Exception("File could not be parsed.");
+                if(importedOwnerData != null && importedOwnerData.Owners != null)
+                {
+                    importedApps = importedOwnerData.Owners;
+                    await ImportApps(importfileName);
+                }
             }
             catch (Exception exc)
             {
@@ -233,23 +237,30 @@ namespace FWO.Middleware.Server
         private string UpdateUserGroup(ModellingImportAppData incomingApp, string groupDn)
         {
             List<string> existingMembers = (allGroups.FirstOrDefault(x => x.GroupDn == groupDn) ?? throw new Exception("Group could not be found.")).Members;
-            foreach(var modeller in incomingApp.Modellers)
+            if(incomingApp.Modellers != null)
             {
-                if(!existingMembers.Contains(modeller))
+                foreach(var modeller in incomingApp.Modellers)
                 {
-                    internalLdap.AddUserToEntry(modeller, groupDn);
+                    if(!existingMembers.Contains(modeller))
+                    {
+                        internalLdap.AddUserToEntry(modeller, groupDn);
+                    }
                 }
             }
-            foreach(var modellerGrp in incomingApp.ModellerGroups)
+            if(incomingApp.ModellerGroups != null)
             {
-                if(!existingMembers.Contains(modellerGrp))
+                foreach(var modellerGrp in incomingApp.ModellerGroups)
                 {
-                    internalLdap.AddUserToEntry(modellerGrp, groupDn);
+                    if(!existingMembers.Contains(modellerGrp))
+                    {
+                        internalLdap.AddUserToEntry(modellerGrp, groupDn);
+                    }
                 }
             }
             foreach(var member in existingMembers)
             {
-                if(!incomingApp.Modellers.Contains(member) && !incomingApp.ModellerGroups.Contains(member))
+                if(!(incomingApp.Modellers != null && incomingApp.Modellers.Contains(member)) 
+                    && !(incomingApp.ModellerGroups != null && incomingApp.ModellerGroups.Contains(member)))
                 {
                     internalLdap.RemoveUserFromEntry(member, groupDn);
                 }

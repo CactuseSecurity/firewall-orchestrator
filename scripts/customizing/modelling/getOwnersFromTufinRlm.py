@@ -84,13 +84,13 @@ def extractSocketInfo(asset, services):
     if 'assets' in asset and 'values' in asset['assets']:
         for ip in asset['assets']['values']:
             ip1, ip2, nwtype = getNetworkBorders(ip)
-            sockets.append({ "ip": ip1, "ip-end": ip2, "type": nwtype })
+            sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype })
     if 'objects' in asset:
         for obj in asset['objects']:
             if 'values' in obj:
                 for cidr in obj['values']:
                     ip1, ip2, nwtype = getNetworkBorders(cidr)
-                    sockets.append({ "ip": ip1, "ip-end": ip2, "type": nwtype })
+                    sockets.append({ "name": obj['name'], "ip": ip1, "ip_end": ip2, "type": nwtype })
     return sockets
 
 
@@ -213,11 +213,12 @@ if __name__ == "__main__":
             users.append(buildDN(uid, ldapPath))
 
         ownNorm = {
-            "external-owner-id": owner['owner']['name'],
+            "app_id_external": owner['owner']['name'],
             "name": owner['description'],
             "main-user": None,
-            "users": users,
-            "sockets": extractSocketInfo(owner['asset'], owner['services']),
+            "modellers": users,
+            "import_source": "tufinRlm",
+            "app_servers": extractSocketInfo(owner['asset'], owner['services']),
         }
         normOwners['owners'].append(ownNorm)
     

@@ -5,6 +5,18 @@ using Newtonsoft.Json;
 namespace FWO.Middleware.Server
 {
     /// <summary>
+    /// Structure for imported owner data 
+    /// </summary>
+    public class ModellingImportOwnerData
+    {
+        /// <summary>
+        /// List of all Owners
+        /// </summary>
+        [JsonProperty("owners"), JsonPropertyName("owners")]
+        public List<ModellingImportAppData>? Owners { get; set; }
+    }
+
+    /// <summary>
     /// Structure for imported app data 
     /// </summary>
     public class ModellingImportAppData
@@ -25,13 +37,13 @@ namespace FWO.Middleware.Server
         /// List of allowed modellers (Dn)
         /// </summary>
         [JsonProperty("modellers"), JsonPropertyName("modellers")]
-        public List<string> Modellers { get; set; } = new();
+        public List<string>? Modellers { get; set; } = new();
 
         /// <summary>
         /// List of Ldap Groups of allowed modellers (Dn)
         /// </summary>
         [JsonProperty("modeller_groups"), JsonPropertyName("modeller_groups")]
-        public List<string> ModellerGroups { get; set; } = new();
+        public List<string>? ModellerGroups { get; set; } = new();
 
         /// <summary>
         /// Criticality of App
@@ -74,5 +86,11 @@ namespace FWO.Middleware.Server
         /// </summary>
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string Ip { get; set; } = "";
+
+        /// <summary>
+        /// App Server IpEnd
+        /// </summary>
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string IpEnd { get; set; } = "";
     }
 }

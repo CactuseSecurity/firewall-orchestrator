@@ -18,7 +18,7 @@ from pathlib import Path
 
 api_url_path_rlm_login = 'apps/public/rlm/oauth/token'
 api_url_path_rlm_apps = 'apps/public/rlm/api/owners'
-defaultConfigFileName = "/usr/local/fworch/etc/secrets/modelling_customizing_config.json"
+defaultConfigFileName = "/usr/local/fworch/etc/secrets/customizingConfig.json"
 
 class ApiLoginFailed(Exception):
     """Raised when login to API failed"""

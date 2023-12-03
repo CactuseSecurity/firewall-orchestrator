@@ -4,6 +4,18 @@ using Newtonsoft.Json;
 
 namespace FWO.Middleware.Server
 {
+        /// <summary>
+    /// Structure for imported network data 
+    /// </summary>
+    public class ModellingImportNwData
+    {
+        /// <summary>
+        /// List of all Areas
+        /// </summary>
+        [JsonProperty("areas"), JsonPropertyName("areas")]
+        public List<ModellingImportAreaData>? Areas { get; set; }
+    }
+
     /// <summary>
     /// Structure for imported area data 
     /// </summary>

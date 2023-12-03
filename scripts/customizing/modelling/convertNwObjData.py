@@ -153,8 +153,8 @@ if __name__ == "__main__":
 
         # filling areas
         if not naId in normSubnetData['areas']:
-            normSubnetData['areas'].update({ naId: {"area-name": areaName, "subnets": [], "zones": [] }})
-        normSubnetData['areas'][naId]['subnets'].append({"subnet-ip": cidr, "subnet-name": subnetName })
+            normSubnetData['areas'].update({ naId: {"area-name": areaName, "area-id": naId, "subnets": [], "zones": [] }})
+        normSubnetData['areas'][naId]['subnets'].append({"ip": cidr, "name": subnetName })
         normSubnetData['areas'][naId]['zones'].append({"zone-id": zoneId, "zone-name": zoneName })
 
         # filling zones
@@ -162,8 +162,19 @@ if __name__ == "__main__":
             normSubnetData['zones'].update({ zoneId: { "zone-name": zoneName, "subnets": [] }})
         normSubnetData['zones'][zoneId]['subnets'].append({"subnet-ip": cidr, "subnet-name": subnetName })
 
+    logger.info("normalized data")
+
+    # transform output
+    transfSubnetData = { "areas": [] }
+    for area in normSubnetData['areas'].values():
+        areaIdString = "NA" + area['area-id']
+        areaName = area['area-name']
+        transfarea = { "name": areaName, "id_string": areaIdString, "subnets": area['subnets'] }
+        transfSubnetData['areas'].append(transfarea)
+
     path = os.path.dirname(__file__)
     fileOut = path + '/' + Path(os.path.basename(__file__)).stem + ".json"
+    logger.info("dumping into file " + fileOut)
     with open(fileOut, "w") as outFH:
-        json.dump(normSubnetData, outFH, indent=3)
+        json.dump(transfSubnetData, outFH, indent=3)
     sys.exit(0)

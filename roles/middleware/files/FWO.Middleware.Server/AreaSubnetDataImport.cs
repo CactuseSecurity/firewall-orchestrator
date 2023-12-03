@@ -39,32 +39,40 @@ namespace FWO.Middleware.Server
             int deleteFailCounter = 0;
             try
             {
-                importedAreas = JsonSerializer.Deserialize<List<ModellingImportAreaData>>(importFile) ?? throw new Exception("File could not be parsed.");
-                existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(Api.Client.Queries.ModellingQueries.getAreas);
-                foreach(var incomingArea in importedAreas)
+                List<ModellingImportNwData>? importedNwData = JsonSerializer.Deserialize<List<ModellingImportNwData>>(importFile) ?? throw new Exception("File could not be parsed.");
+                if(importedNwData != null && importedNwData.Count > 0 && importedNwData[0].Areas != null)
                 {
-                    if(await SaveArea(incomingArea))
+                    importedAreas = importedNwData[0].Areas;
+                    existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(Api.Client.Queries.ModellingQueries.getAreas);
+                    foreach(var incomingArea in importedAreas)
                     {
-                        ++successCounter;
-                    }
-                    else
-                    {
-                        ++failCounter;
-                    }
-                }
-                foreach(var existingArea in existingAreas)
-                {
-                    if(importedAreas.FirstOrDefault(x => x.Name == existingArea.Name) == null)
-                    {
-                        if(await DeleteArea(existingArea))
+                        if(await SaveArea(incomingArea))
                         {
-                            ++deleteCounter;
+                            ++successCounter;
                         }
                         else
                         {
-                            ++deleteFailCounter;
+                            ++failCounter;
                         }
                     }
+                    foreach(var existingArea in existingAreas)
+                    {
+                        if(importedAreas.FirstOrDefault(x => x.Name == existingArea.Name) == null)
+                        {
+                            if(await DeleteArea(existingArea))
+                            {
+                                ++deleteCounter;
+                            }
+                            else
+                            {
+                                ++deleteFailCounter;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Log.WriteInfo("Import Area Subnet Data", $"No Area Data found in {importFile} No changes done. ");
                 }
             }
             catch (Exception exc)

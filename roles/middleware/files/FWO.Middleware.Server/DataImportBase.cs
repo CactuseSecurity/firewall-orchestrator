@@ -60,7 +60,7 @@ namespace FWO.Middleware.Server
             {
                 if(File.Exists(importScriptFile))
                 {
-                    ProcessStartInfo start = new ProcessStartInfo()
+                    ProcessStartInfo start = new ()
                     {
                         FileName = importScriptFile,
                         Arguments = "", // args,
@@ -72,7 +72,7 @@ namespace FWO.Middleware.Server
                     string? result = reader?.ReadToEnd();
                     process?.WaitForExit(); 
                     process?.Close();
-                    Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}.");
+                    Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}. Result: {result ?? ""}");
                     return true;
                 }
             }

@@ -12,7 +12,9 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getAreas;
         public static readonly string newArea;
+        public static readonly string setAreaDeletedState;
         public static readonly string newAreaSubnet;
+        public static readonly string getConnectionIdsForNwGroup;
 
         public static readonly string getAppServers;
         public static readonly string getImportedAppServers;
@@ -42,6 +44,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getSelectedNwGroupObjects;
         public static readonly string addSelectedNwGroupObject;
         public static readonly string removeSelectedNwGroupObject;
+        public static readonly string removeSelectedNwGroupObjectFromAllApps;
 
         public static readonly string getAppRoles;
         public static readonly string getNewestAppRoles;
@@ -83,7 +86,9 @@ namespace FWO.Api.Client.Queries
 
                 getAreas = File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
                 newArea = File.ReadAllText(QueryPath + "modelling/newArea.graphql");
+                setAreaDeletedState = File.ReadAllText(QueryPath + "modelling/setAreaDeletedState.graphql");
                 newAreaSubnet = File.ReadAllText(QueryPath + "modelling/newAreaSubnet.graphql");
+                getConnectionIdsForNwGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForNwGroup.graphql");
 
                 getAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServers.graphql");
                 getImportedAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getImportedAppServers.graphql");
@@ -113,6 +118,7 @@ namespace FWO.Api.Client.Queries
                 getSelectedNwGroupObjects = File.ReadAllText(QueryPath + "modelling/getSelectedNwGroupObjects.graphql");
                 addSelectedNwGroupObject = File.ReadAllText(QueryPath + "modelling/addSelectedNwGroupObject.graphql");
                 removeSelectedNwGroupObject = File.ReadAllText(QueryPath + "modelling/removeSelectedNwGroupObject.graphql");
+                removeSelectedNwGroupObjectFromAllApps = File.ReadAllText(QueryPath + "modelling/removeSelectedNwGroupObjectFromAllApps.graphql");
 
                 getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppRoles.graphql");
                 getNewestAppRoles = File.ReadAllText(QueryPath + "modelling/getNewestAppRoles.graphql");

@@ -48,8 +48,15 @@ namespace FWO.Ui.Services
 
         public List<string> GetSrcNames(ModellingConnection conn)
         {
-            List<string> names = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface));
+            List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList();
+            foreach(var nwGroup in nwGroups)
+            {
+                nwGroup.TooltipText = userConfig.GetText("C9001");
+            }
+            List<string> names = nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface));
+
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+
             List<ModellingAppServer> appServers = ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList();
             foreach(var appServer in appServers)
             {
@@ -61,8 +68,15 @@ namespace FWO.Ui.Services
         
         public List<string> GetDstNames(ModellingConnection conn)
         {
-            List<string> names = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface));
+            List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList();
+            foreach(var nwGroup in nwGroups)
+            {
+                nwGroup.TooltipText = userConfig.GetText("C9001");
+            }
+            List<string> names = nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface));
+
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+
             List<ModellingAppServer> appServers = ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList();
             foreach(var appServer in appServers)
             {

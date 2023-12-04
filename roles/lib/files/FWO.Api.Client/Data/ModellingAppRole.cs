@@ -35,7 +35,7 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-list-rich\"></span> " + Display();
+            return $"<span class=\"oi oi-list-rich\"></span> " + DisplayHtml();
         }
 
         public override bool Sanitize()

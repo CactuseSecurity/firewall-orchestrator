@@ -60,12 +60,12 @@ namespace FWO.Api.Data
 
         public override string Display()
         {
-            return Name + " (" + IdString + ")";
+            return base.Display() + " (" + IdString + ")";
         }
 
         public override string DisplayHtml()
         {
-            return $"<span><b>{Display()}</b></span>";
+            return $"<span><b>{base.DisplayHtml()}</b></span>";
         }
 
         public override string DisplayWithIcon()

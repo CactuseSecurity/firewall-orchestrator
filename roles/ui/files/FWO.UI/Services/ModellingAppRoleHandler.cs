@@ -131,11 +131,11 @@ namespace FWO.Ui.Services
         {
             int maxNumbers = 10^NamingConvention.FreePartLength - 1;
             string idFix = GetFixedAppRolePart(area);
-            ModellingAppRole? newestAR = (await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = idFix + "%" }))[0];
-            if(newestAR != null)
+            List<ModellingAppRole>? newestARs = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = idFix + "%" });
+            if(newestARs != null && newestARs.Count > 0)
             {
-                newestAR.SetFixedPartLength(NamingConvention.FixedPartLength);
-                if(int.TryParse(newestAR.IdStringFreePart, out int aRNumber))
+                newestARs[0].SetFixedPartLength(NamingConvention.FixedPartLength);
+                if(int.TryParse(newestARs[0].IdStringFreePart, out int aRNumber))
                 {
                     aRNumber++;
                     while(aRNumber <= maxNumbers)

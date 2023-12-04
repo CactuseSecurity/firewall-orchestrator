@@ -14,11 +14,14 @@
             <DraggableList AllElements="AppRoleHandler.AppServersInArea" @bind-SelectedElements="selectedAppServers" 
                 HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
         </div>
-        <div class="col-sm-2">
-            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
-                {AppRoleHandler.AppServerToAppRole(selectedAppServers);
-                AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("to_app_role"))</button>
-        </div>
+        @if(selectedAppServers.Count > 0)
+        {
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                    {AppRoleHandler.AppServerToAppRole(selectedAppServers);
+                    AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("to_app_role"))</button>
+            </div>
+        }
     </div>
     @* <AuthorizeView Roles="admin, auditor">
         <NotAuthorized>

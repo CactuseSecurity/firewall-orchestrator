@@ -16,7 +16,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string getOwnerIdsForUser;
         public static readonly string getNetworkOwnerships;
         public static readonly string newNetworkOwnership;
-        public static readonly string deleteNetworkOwnerships;
+        public static readonly string deleteNetworkOwnership;
+        public static readonly string getRuleOwnerships;
+        public static readonly string newRuleOwnership;
+        public static readonly string deleteRuleOwnership;
 
 
         static OwnerQueries()
@@ -35,7 +38,10 @@ namespace FWO.Api.Client.Queries
                 getOwnerIdsForUser = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnerIdsForUser.graphql");
                 getNetworkOwnerships = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getNetworkOwnerships.graphql");
                 newNetworkOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/newNetworkOwnership.graphql");
-                deleteNetworkOwnerships = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/deleteNetworkOwnerships.graphql");
+                deleteNetworkOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/deleteNetworkOwnership.graphql");
+                getRuleOwnerships = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getRuleOwnerships.graphql");
+                newRuleOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/newRuleOwnership.graphql");
+                deleteRuleOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/deleteRuleOwnership.graphql");
             }
             catch (Exception exception)
             {

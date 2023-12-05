@@ -1,0 +1,8 @@
+mutation delete_customtxt_by_pk ($id: String!, $lang: String!) {
+  delete_customtxt_by_pk (
+    id: $id
+    language: $lang
+  ) {
+    DeletedId: id
+  }
+}

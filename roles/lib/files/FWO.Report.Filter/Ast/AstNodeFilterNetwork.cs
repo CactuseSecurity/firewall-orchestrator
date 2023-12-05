@@ -115,46 +115,18 @@ namespace FWO.Report.Filter.Ast
             query.QueryVariables[QueryVarNameLast2] = lastFilterIp;
             query.QueryParameters.Add($"${QueryVarNameFirst1}: cidr! ");
             query.QueryParameters.Add($"${QueryVarNameLast2}: cidr! ");
-            // covering the following cases: 
-                // 1 - current ip is fully contained in filter ip range
-                // 2 - current ip fully contains filter ip range - does not work
-                // 3 - current ip overlaps with lower boundary of filter ip range
-                // 4 - current ip overlaps with upper boundary of filter ip range
             // TODO: might simply set all header IP addresses to 0.0.0.0/32 instead of 0.0.0.0/0 to filter them out
+
+            // logic: end_ip1 >= start_ip2 and start_ip1 <= end_ip2
+                // end_ip1 = obj_ip_end
+                // start_ip2 = QueryVarNameFirst1
+                // start_ip1 = obj_ip
+                // end_ip2 = QueryVarNameLast2
+            // obj_ip_end >= QueryVarNameFirst1 and obj_ip <= QueryVarNameLast2
+            
             string ipFilterString =
-                    $@" _or: [
-                            {{ _and: 
-                                    [ 
-                                        {{ obj_ip: {{ _gte: ${QueryVarNameFirst1} }} }}
-                                        {{ obj_ip: {{ _lte: ${QueryVarNameLast2} }} }}
-                                    ]
-                            }}
-                            {{ _and: 
-                                    [ 
-                                        {{ obj_ip: {{ _lte: ${QueryVarNameFirst1} }} }}
-                                        {{ obj_ip: {{ _gte: ${QueryVarNameFirst1} }} }}
-                                    ]
-                            }} 
-                            {{ _and: 
-                                    [ 
-                                        {{ obj_ip: {{ _lte: ${QueryVarNameLast2} }} }}
-                                        {{ obj_ip: {{ _gte: ${QueryVarNameLast2} }} }}
-                                    ]
-                            }}
-                            {{ _and: 
-                                    [ 
-                                        {{ obj_ip: {{ _lte: ${QueryVarNameFirst1} }} }}
-                                        {{ obj_ip: {{ _gte: ${QueryVarNameLast2} }} }}
-                                    ]
-                            }}
-                            {{
-                            _and:
-                            [
-                                {{ network_object_limits: {{ first_ip: {{ _lte: ${QueryVarNameFirst1} }} }} }}
-                                {{ network_object_limits: {{ last_ip: {{ _gte: ${QueryVarNameLast2} }} }} }}
-                            ]
-                        }}
-                    ]";
+                    $@" obj_ip_end: {{ _gte: ${QueryVarNameFirst1} }} 
+                        obj_ip: {{ _lte: ${QueryVarNameLast2} }}";
             query.ruleWhereStatement +=
                 $@" {locationTable}: 
                         {{ object: 

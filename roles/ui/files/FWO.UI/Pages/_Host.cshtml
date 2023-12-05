@@ -23,7 +23,7 @@
 
     <div id="blazor-error-ui">
         <environment include="Staging,Production">
-            An error has occurred. This application may no longer respond until reloaded. Please report error: <a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=bug_report.md&title=">GitHub</a> or <a href="mailto:support@cactus.de">Email</a>
+            An error has occurred. This application may no longer respond until reloaded. Please report errors via <a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=bug_report.md&title=">GitHub</a> or <a href="mailto:support@cactus.de">Email</a>
         </environment>
         <environment include="Development">
             An unhandled exception has occurred. See browser dev tools for details.
@@ -37,10 +37,6 @@
     <script src="~/js/window.js"></script>
     <script src="~/js/scrollIntoView.js"></script>
     <script src="~/js/downloadFile.js"></script>
-    <script>
-        Blazor.start({
-            environment: "Development"
-        });
-    </script>
+    <script>Blazor.start();</script>
 </body>
 </html>

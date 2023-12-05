@@ -30,11 +30,17 @@
 
       when: not force_install|bool and not run_on_github|bool
 
-    - name: update operating system packages .deb based (for github actions or enforced run)
-      apt:
-        upgrade: dist
-        update_cache: true
-      when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian" and run_on_github|bool
+    # - name: fix grub-efi (for github actions)
+    #   apt:
+    #     upgrade: dist
+    #     update_cache: true
+    #   when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian" and run_on_github|bool
+
+    # - name: update operating system packages .deb based (for github actions)
+    #   apt:
+    #     upgrade: dist
+    #     update_cache: true
+    #   when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian" and run_on_github|bool
 
     - name: update operating system packages .rpm based (untested)
       yum:
@@ -169,7 +175,7 @@
     - set_fact:
         wsgi_package_name: "{{ wsgi_package_name }}-py3"
       when: | 
-        (ansible_facts['distribution_release']|lower == 'bookworm')
+        (ansible_facts['distribution_release']|lower == debian_testing_release_name)
         or 
         (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version']|int is version('10', '>'))
         or 

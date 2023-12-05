@@ -124,8 +124,7 @@ BEGIN
 	RETURN;
 END; 
 $BODY$
-  LANGUAGE 'plpgsql' VOLATILE
-  COST 100;
+  LANGUAGE 'plpgsql';
 
 ----------------------------------------------------
 -- FUNCTION:  import_nwobj_refhandler_change

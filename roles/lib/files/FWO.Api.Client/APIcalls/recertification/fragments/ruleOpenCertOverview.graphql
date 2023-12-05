@@ -35,6 +35,15 @@ fragment ruleOpenCertOverview on rule {
         name
       }
     }
+    recert_history: recertifications (where: { owner: $ownerWhere, recert_date: {_is_null: false}}, order_by: { recert_date: desc }) {
+      recert_date
+      recertified
+      user_dn
+      comment
+      owner {
+        name
+      }
+    }
   }
   rule_src_neg
   rule_dst_neg

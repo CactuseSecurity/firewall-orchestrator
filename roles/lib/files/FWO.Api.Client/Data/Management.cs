@@ -18,7 +18,7 @@ namespace FWO.Api.Data
         public ImportCredential ImportCredential { get; set; } = new ImportCredential();
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
-        public string ConfigPath { get; set; } = "";
+        public string? ConfigPath { get; set; } = "";
 
         [JsonProperty("domainUid"), JsonPropertyName("domainUid")]
         public string? DomainUid { get; set; } = "";
@@ -53,8 +53,8 @@ namespace FWO.Api.Data
         [JsonProperty("debugLevel"), JsonPropertyName("debugLevel")]
         public int? DebugLevel { get; set; }
 
-        [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
-        public int TenantId { get; set; }
+        [JsonProperty("unfiltered_tenant_id"), JsonPropertyName("unfiltered_tenant_id")]
+        public int UnfilteredTenantId { get; set; } = -1;
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public Device[] Devices { get; set; } = new Device[]{};
@@ -128,7 +128,7 @@ namespace FWO.Api.Data
             HideInUi = management.HideInUi;
             Comment = management.Comment;
             DebugLevel = management.DebugLevel;
-            TenantId = management.TenantId;
+            UnfilteredTenantId = management.UnfilteredTenantId;
             Devices = management.Devices;
             Objects = management.Objects;
             Services = management.Services;
@@ -170,10 +170,9 @@ namespace FWO.Api.Data
         public bool Sanitize()
         {
             bool shortened = false;
-            shortened = ImportCredential.Sanitize();
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             Hostname = Sanitizer.SanitizeMand(Hostname, ref shortened);
-            ConfigPath = Sanitizer.SanitizeMand(ConfigPath, ref shortened);
+            ConfigPath = Sanitizer.SanitizeOpt(ConfigPath, ref shortened);
             DomainUid = Sanitizer.SanitizeOpt(DomainUid, ref shortened);
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);

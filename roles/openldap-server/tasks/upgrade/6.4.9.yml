@@ -1,0 +1,11 @@
+- name: copy associated ldif files to system
+  template:
+    src: upgrade/6.4.9.ldif.j2
+    dest: "{{ middleware_ldif_dir }}/6.4.9.ldif"
+    force: true
+  become: true
+
+- name: upgrade sample group roles
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/6.4.9.ldif -c"
+  become: true
+  ignore_errors: true

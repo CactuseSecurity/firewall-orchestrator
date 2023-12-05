@@ -19,25 +19,25 @@
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationPeriod" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RecertificationPeriod" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationNoticePeriod")):</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationNoticePeriod" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RecertificationNoticePeriod" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod"))*:</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationDisplayPeriod" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RecertificationDisplayPeriod" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleRemovalGracePeriod")):</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RuleRemovalGracePeriod" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RuleRemovalGracePeriod" />
         </div>
     </form>
     <form class="form-inline">
@@ -173,7 +173,7 @@
                 <Authorized>
                     @if (!recertCalcInProgress)
                     {
-                        <button class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
+                        <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
                             recertCalcInProgress = true; 
                             if (await recertRefresh.RecalcRecerts())
                             {
@@ -189,7 +189,7 @@
                     <br>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-info" disabled>@(userConfig.GetText("recalc_now"))</button>
+                    <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("recalc_now"))</button>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
@@ -197,10 +197,10 @@
     <hr />
     <AuthorizeView Roles="admin">
         <Authorized>
-            <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
-            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized>
     </AuthorizeView>
     <br><br>

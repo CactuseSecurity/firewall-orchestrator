@@ -15,47 +15,23 @@ namespace FWO.Report
     {
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
-        public bool GotReportedRuleIds { get; protected set; } = false;
         private const int ColumnCount = 12;
 
-        public async Task GetReportedRuleIds(ApiConnection apiConnection)
-        {
-            List<int> relevantDevIds = DeviceFilter.ExtractSelectedDevIds(Managements);
-            if (relevantDevIds.Count == 0)
-                relevantDevIds = DeviceFilter.ExtractAllDevIds(Managements);
-
-            for (int i = 0; i < Managements.Length; i++)
-            {
-                Dictionary<string, object> ruleQueryVariables = new Dictionary<string, object>();
-                if (Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                {
-                    ruleQueryVariables["importId"] = Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId!;
-                    ruleQueryVariables["devIds"] = relevantDevIds;
-                    Rule[] rules = await apiConnection.SendQueryAsync<Rule[]>(RuleQueries.getRuleIdsOfImport, ruleQueryVariables);
-                    Managements[i].ReportedRuleIds = rules.Select(x => x.Id).Distinct().ToList();
-                }
-            }
-            GotReportedRuleIds = true;
-        }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
         {
-            // get rule ids per import (= management)
-            if (!GotReportedRuleIds)
-                await GetReportedRuleIds(apiConnection);
-
             bool gotAllObjects = true; //whether the fetch count limit was reached during fetching
 
             if (!GotObjectsInReport)
             {
-                for (int i = 0; i < Managements.Length; i++)
+                foreach (Management management in Managements)
                 {
-                    if (Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId is not null)
+                    if (management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId is not null)
                     {
                         // set query variables for object query
                         var objQueryVariables = new Dictionary<string, object>
                         {
-                            { "mgmIds", Managements[i].Id },
+                            { "mgmIds", management.Id },
                             { "limit", objectsPerFetch },
                             { "offset", 0 },
                         };
@@ -77,9 +53,6 @@ namespace FWO.Report
 
             int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds")!;
             Management management = Managements.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
-
-            if (!GotReportedRuleIds)
-                await GetReportedRuleIds(apiConnection);
 
             objQueryVariables.Add("ruleIds", "{" + string.Join(", ", management.ReportedRuleIds) + "}");
             objQueryVariables.Add("importId", management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
@@ -170,6 +143,7 @@ namespace FWO.Report
                 }
                 await callback(Managements);
             }
+            SetReportedRuleIds();
         }
 
         public override string SetDescription()
@@ -188,6 +162,21 @@ namespace FWO.Report
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
+        }
+
+        private void SetReportedRuleIds()
+        {
+            foreach (Management mgt in Managements)
+            {
+                foreach (Device dev in mgt.Devices.Where(d => (d.Rules != null && d.Rules.Length > 0)))
+                {
+                    foreach (Rule rule in dev.Rules)
+                    {
+                        mgt.ReportedRuleIds.Add(rule.Id);
+                    }
+                }
+                mgt.ReportedRuleIds = mgt.ReportedRuleIds.Distinct().ToList();
+            }
         }
 
         public override string ExportToCsv()
@@ -367,6 +356,10 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
+            if(ReportType == ReportType.UnusedRules)
+            {
+                report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
+            }
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
@@ -400,6 +393,10 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayNextRecert(rule)}</td>");
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayOwner(rule)}</td>");
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayRecertIpMatches(rule)}</td>");
+                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
+                        }
+                        if(ReportType == ReportType.UnusedRules)
+                        {
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
                         }
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayName(rule)}</td>");
@@ -456,7 +453,7 @@ namespace FWO.Report
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name=nwobj{nwobj.Id}>{nwobj.Name}</a></td>");
                     report.AppendLine($"<td>{nwobj.Type.Name}</td>");
-                    report.AppendLine($"<td>{nwobj.IP}{(nwobj.IpEnd != null && nwobj.IpEnd != "" && nwobj.IpEnd != nwobj.IP ? $"-{nwobj.IpEnd}" : "")}</td>");
+                    report.AppendLine($"<td>{NwObjDisplay.DisplayIp(nwobj.IP, nwobj.IpEnd, nwobj.Type.Name)}</td>");
                     if (nwobj.MemberNames != null && nwobj.MemberNames.Contains('|'))
                         report.AppendLine($"<td>{string.Join("<br>", nwobj.MemberNames.Split('|'))}</td>");
                     else

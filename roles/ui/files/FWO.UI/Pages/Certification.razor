@@ -9,6 +9,7 @@
 @using FWO.Middleware.Client
 
 @page "/certification"
+@attribute [Authorize(Roles = "admin, recertifier, auditor")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -20,11 +21,11 @@
     <div class="btn-group sticky-marker pl-3 pr-3 w-100">
         @if (processing == false)
         {
-            <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
         }
         else
         {
-            <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
         }
         <br>
     </div>
@@ -73,22 +74,22 @@
                 <Authorized>
                     @if(rulesFound)
                     {
-                        <button class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
                     }
                     else
                     {
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
                     }
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
                 </NotAuthorized>
             </AuthorizeView>
         }
     </div>
     <hr />
     <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managements" RulesPerPage="rulesPerPage" 
-        ReportParams="reportParams" @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
+        @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
 </div>
 
 <PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Large="true" OnClose="() => AddCommentMode = false">
@@ -107,8 +108,8 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-primary" @onclick="() => ExecuteSelected()">@(userConfig.GetText("ok"))</button>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ExecuteSelected()">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -158,8 +159,6 @@
     private Sidebar? deviceSelectionSidebar;
     private bool AddCommentMode = false;
     private string actComment = "";
-    private bool recertShowAnyMatch = true;
-    private bool recertSingleLinePerRule = false;
     private int recertLookAheadDays = 0;
 
     private List<Rule> Certifications = new List<Rule>();
@@ -172,26 +171,14 @@
 
         try
         {
-            if(authenticationStateTask!.Result.User.IsInRole("recertifier"))
-            {
-                apiConnection.SetRole("recertifier");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("admin"))
-            {
-                apiConnection.SetRole("admin");
-            }
-            else
-            {
-                apiConnection.SetRole("auditor");
-            }
-
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "recertifier", "admin", "auditor"});
             rulesFound = false;
             ticketCreator = new TicketCreator(apiConnection, userConfig);
 
             ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
             await CollectOwnerships();
 
-            deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+            deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             await InvokeAsync(StateHasChanged);
             if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
             {
@@ -315,15 +302,14 @@
             ownerList.Add(selectedOwner.Id);
         }
 
-        RecertFilter recertFilter = new RecertFilter()
+        ReportParams reportParams = new ReportParams((int) ReportType.Recertification, deviceFilter);
+        reportParams.RecertFilter = new RecertFilter()
         {
             RecertOwnerList = ownerList,
-            RecertShowAnyMatch = recertShowAnyMatch,
-            RecertSingleLinePerRule = recertSingleLinePerRule,
+            RecertShowAnyMatch = true,
             RecertificationDisplayPeriod = recertLookAheadDays
         };
-        reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
-        currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+        currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
     }
 
     private void SyncFilterToDisplay()
@@ -380,9 +366,12 @@
             await DoRecerts();
 
             // create delete tickets
-            foreach(var device in deleteList)
+            if(userConfig.RecAutoCreateDeleteTicket)
             {
-                await ticketCreator.CreateRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+                foreach(var device in deleteList)
+                {
+                    await ticketCreator.CreateDecertRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+                }
             }
 
             // reload updated report
@@ -407,7 +396,6 @@
                 {
                     foreach (Rule rule in device.Rules)
                     {
-                        // await InitRecert(rule); // just for test
                         if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
                         {
                             rule.DeviceId = device.Id;

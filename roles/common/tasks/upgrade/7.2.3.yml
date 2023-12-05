@@ -1,0 +1,24 @@
+- name: Read config file
+  slurp:
+    path: "{{ fworch_conf_file }}"
+  register: config_file
+
+- name: Parse JSON content
+  set_fact: 
+    json_data: "{{ config_file.content | b64decode | from_json }}"
+  
+- name: Modify config file if remote_addresses property is not present
+  block:     
+  - name: Add remote_addresses property
+    set_fact:
+      modified_json_data: "{{ json_data | combine({'remote_addresses': []}) }}"        
+        
+  - name: Save updated config to file
+    copy:
+      content: "{{ modified_json_data | to_nice_json }}"
+      dest: "{{ fworch_conf_file }}"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+        
+  when: "'remote_addresses' not in json_data"
+  

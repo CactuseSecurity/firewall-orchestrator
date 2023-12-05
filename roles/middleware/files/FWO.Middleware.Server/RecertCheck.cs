@@ -159,17 +159,16 @@ namespace FWO.Middleware.Server
                 UserConfig userConfig = new UserConfig(globalConfig);
 
                 DeviceFilter deviceFilter = new DeviceFilter();
-                deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
                 deviceFilter.applyFullDeviceSelection(true);
 
-                RecertFilter recertFilter = new RecertFilter()
+                ReportParams reportParams = new ReportParams((int) ReportType.Recertification, deviceFilter);
+                reportParams.RecertFilter = new RecertFilter()
                 {
                     RecertOwnerList = new List<int>() { owner.Id },
-                    RecertOverdueOnly = overdueOnly,
                     RecertificationDisplayPeriod = globalConfig.RecertificationNoticePeriod
                 };
-                ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
-                ReportBase? currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+                ReportBase? currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
 
                 Management[] managements = new Management[0];
 

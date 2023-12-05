@@ -18,29 +18,42 @@
     <form class="form-inline" onsubmit="return false">
         <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch")):</label>
         <div class="col-sm-2">
-            <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="configData!.ElementsPerFetch" />
+            <input id="elementsPerFetch" type="number" min="0" class="form-control form-control-sm" @bind="configData!.ElementsPerFetch" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices")):</label>
         <div class="col-sm-2">
-            <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm" @bind="configData!.MinCollapseAllDevices">
+            <input id="minCollapseAllDevices" type="number" min="0" class="form-control form-control-sm" @bind="configData!.MinCollapseAllDevices">
         </div>
     </form>
     @* <form class="form-inline" onsubmit="return false">
         <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages")):</label>
         <div class="col-sm-2">
-            <input id="maxMessages" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxMessages">
+            <input id="maxMessages" type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MaxMessages">
         </div>
     </form> *@
     <form class="form-inline" onsubmit="return false">
         <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime")):</label>
         <div class="col-sm-2">
-            <input id="messageViewTime" type="number" class="form-control form-control-sm" @bind="configData!.MessageViewTime">
+            <input id="messageViewTime" type="number" min="0" class="form-control form-control-sm" @bind="configData!.MessageViewTime">
         </div>
     </form>
     <hr />
-    <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+    <form class="form-inline" onsubmit="return false">
+        <label for="unusedTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance")):</label>
+        <div class="col-sm-2">
+            <input id="unusedTolerance" type="number" min="0" class="form-control form-control-sm" @bind="configData!.UnusedTolerance" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="creationTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance")):</label>
+        <div class="col-sm-2">
+            <input id="creationTolerance" type="number" min="0" class="form-control form-control-sm" @bind="configData!.CreationTolerance" />
+        </div>
+    </form>
+    <hr />
+    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
 }
 else
 {

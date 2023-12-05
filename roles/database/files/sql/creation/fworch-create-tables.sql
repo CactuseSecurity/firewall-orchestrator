@@ -1,6 +1,6 @@
 /*
 Created			29.04.2005
-Last modified	13.12.2020
+Last modified	14.07.2023
 Project			Firewall Orchestrator
 Contact			https://cactus.de/fworch
 Database		PostgreSQL 9-13
@@ -40,7 +40,7 @@ Create table "device" -- contains an entry for each firewall gateway
 	"package_name" Varchar,
 	"package_uid" Varchar,
 	"dev_typ_id" Integer NOT NULL,
-	"tenant_id" Integer,
+	"unfiltered_tenant_id" Integer,
 	"dev_active" Boolean NOT NULL Default true,
 	"dev_comment" Text,
 	"dev_create" Timestamp NOT NULL Default now(),
@@ -58,7 +58,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"dev_typ_id" Integer NOT NULL,
 	"mgm_name" Varchar NOT NULL,
 	"mgm_comment" Text,
-	"tenant_id" Integer,
+	"unfiltered_tenant_id" Integer,
  	"cloud_tenant_id" VARCHAR,
 	"cloud_subscription_id" VARCHAR,	
 	"mgm_create" Timestamp NOT NULL Default now(),
@@ -196,7 +196,7 @@ Create table "rule_metadata"
 	"rule_last_certified" Timestamp,
 	"rule_last_certifier" Integer,
 	"rule_last_certifier_dn" VARCHAR,
-	"rule_owner" Integer,
+	"rule_owner" Integer, -- points to a uiuser (not an owner)
 	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
 	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
 	"last_change_admin" Integer,
@@ -438,6 +438,14 @@ Create table "txt"
  primary key ("id", "language")
 );
 
+Create table "customtxt"
+(
+	"id" Varchar NOT NULL,
+	"language" Varchar NOT NULL,
+	"txt" Varchar NOT NULL,
+ 	primary key ("id", "language")
+);
+
 Create table "error"
 (
 	"error_id" Varchar NOT NULL UNIQUE,
@@ -451,7 +459,7 @@ Create table "error"
 Create table "tenant"
 (
 	"tenant_id" SERIAL,
-	"tenant_name" Varchar NOT NULL,
+	"tenant_name" Varchar NOT NULL UNIQUE,
 	"tenant_projekt" Varchar,
 	"tenant_comment" Text,
 	"tenant_report" Boolean Default true,
@@ -474,8 +482,8 @@ Create table "tenant_network"
 	"tenant_id" Integer NOT NULL,
 	"tenant_net_name" Varchar,
 	"tenant_net_comment" Text,
-	"tenant_net_ip" Cidr,
-	"tenant_net_ip_end" Cidr,
+	"tenant_net_ip" Cidr NOT NULL,
+	"tenant_net_ip_end" Cidr NOT NULL,
 	"tenant_net_create" Timestamp NOT NULL Default now(),
  primary key ("tenant_net_id")
 );
@@ -1029,6 +1037,7 @@ create table owner_network
     id SERIAL PRIMARY KEY,
     owner_id int,
     ip cidr NOT NULL,
+    ip_end cidr NOT NULL,
     port int,
     ip_proto_id int
 );
@@ -1249,3 +1258,31 @@ create table request.impltask
 	target_begin_date Timestamp,
 	target_end_date Timestamp
 );
+
+
+--- Compliance ---
+create schema compliance;
+
+create table compliance.network_zone
+(
+    id BIGSERIAL PRIMARY KEY,
+	name VARCHAR NOT NULL,
+	description VARCHAR NOT NULL,
+	super_network_zone_id bigint,
+	owner_id bigint
+);
+
+create table compliance.network_zone_communication
+(
+    from_network_zone_id bigint NOT NULL,
+	to_network_zone_id bigint NOT NULL
+);
+
+create table compliance.ip_range
+(
+    network_zone_id bigint NOT NULL,
+	ip_range_start inet NOT NULL,
+	ip_range_end inet NOT NULL,
+	PRIMARY KEY(network_zone_id, ip_range_start, ip_range_end)
+);
+

@@ -10,7 +10,8 @@
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
 
-@page "/report"
+@page "/report/generation"
+@attribute [Authorize(Roles = "admin, fw-admin, reporter, reporter-viewall, auditor")]
 
 @inject ApiConnection Connection
 @inject UserConfig userConfig
@@ -29,7 +30,7 @@
     @if (selectedReportType==ReportType.Recertification)
     {
         <div class="p-3">
-            <h6 class="text-left">@(userConfig.GetText("recert_parameter"))</h6>
+            <h5 class="text-left">@(userConfig.GetText("recert_parameter"))</h5>
             <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
             <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="recertLookAheadDays" />
             <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
@@ -66,6 +67,13 @@
             </div>
         </div>
     }
+    else if(selectedReportType==ReportType.UnusedRules)
+    {
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("unused_days"))</h5>
+            <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="unusedDays" />
+        </div>
+    }
     else
     {
         <div class="p-3">
@@ -73,24 +81,49 @@
             <div class="input-group">
                 <input type="text" class="form-control form-control-sm" value="@displayedTimeSelection" />
                 <div class="input-group-append">
-                    <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+                    <button type="button" class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
                 </div>
             </div>
         </div>
     }
+    @if (selectedReportType != ReportType.Statistics && tenantList.Count > 1)
+    {
+        if (tenantFilteringAllowed)
+        {
+            <div class="p-3">
+                <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
+                <Dropdown
+                    @ref="tenantSelector"
+                    SelectedElementChanged="TenantViewChanged"
+                    ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
+                    Elements="tenantList">
+                    <ElementTemplate Context="tenant">
+                        @tenant.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant.Name</h5>
+        </div>
+    }
+
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
 </Sidebar>
 
 @* ==== Middle div ==== *@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
-<h3>@(userConfig.GetText("reporting"))</h3>
+<ReportTabset></ReportTabset>
 
-@* ==== Filter line ==== *@
+    @* ==== Filter line ==== *@
     <form class="m-1 position-relative" @onsubmit="GenerateReport">
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
-               class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
+                class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
         <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
-             class="form-control position-absolute whitespace-div" spellcheck="false">
+                class="form-control position-absolute whitespace-div" spellcheck="false">
             <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
         </div>
     </form>
@@ -98,58 +131,39 @@
     <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
         @if (processing == false)
         {
-            <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
         }
         else
         {
-            <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
         }
         <ReportExport ReportToExport="currentReport"></ReportExport>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(userConfig.GetText("save_as_template"))</button>
+        @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
+            && (authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("requester") || authenticationStateTask!.Result.User.IsInRole("auditor")))
+        {
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
+        }
     </div>
 
     <hr />
 
-@* ==== Templates ==== *@
-    <ReportTemplateComponent OnTemplateLoad="
-        template => {
-            filterInput = template.Filter;
-            if(template.ReportParams.ReportType != null)
-                selectedReportType = (ReportType)template.ReportParams.ReportType;
-            if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
-                deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
-            if (deviceFilter.isAnyDeviceFilterSet())
-                selectAll = false;
-            else
-                selectAll = true;
-            if(template.ReportParams.TimeFilter != null)
-                InitTimes(template.ReportParams.TimeFilter);
-            DisplayTime();
-            StateHasChanged();
-        }"
-    @ref="reportTemplateControl" />
+    @* ==== Templates ==== *@
+    <ReportTemplateComponent OnTemplateLoad="async template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
 
-@* ==== Report main div ==== *@
+    @* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
         <div class="card-body">
-
             @if (currentReport != null)
             {
                 @switch (currentReport.ReportType)
                 {
-                    case ReportType.Recertification:
-                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage"
-                            ReportParams="reportParams" @bind-SelectedRules="selectedItemsRuleReportTable" />
-                        break;
-
-                    case ReportType.NatRules:
-                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" 
-                            RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable" />
-                        break;
-
                     case ReportType.Rules:
                     case ReportType.ResolvedRules:
                     case ReportType.ResolvedRulesTech:
+                    case ReportType.Recertification:
+                    case ReportType.UnusedRules:
+                    case ReportType.NatRules:
                         <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" 
                             @bind-SelectedRules="selectedItemsRuleReportTable" />
                         break;
@@ -215,140 +229,20 @@
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@
-<RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport"/>
+<RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport" AllTabVisible="(tenantFilteringAllowed && selectedTenantView == null)"/>
 <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
-<PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@ShowSelectTimeDialog">
-    <Body>
-        <div>
-            @if (selectedReportType.IsChangeReport())
-            {
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Shortcut)" name="shortcutRange" id="true" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Shortcut;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="rangeshortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
-                            <div class="col-sm-3">
-                                <Dropdown @bind-SelectedElement="actTimeFilter.TimeRangeShortcut" ElementToString="@(s => userConfig.GetText(s))" Elements="TimeRangeShortcuts.Ranges" >
-                                    <ElementTemplate Context="shortcut">
-                                        @(userConfig.GetText(shortcut))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Interval)" name="shortcutRange" id="true" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Interval;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="lastInterval" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("last")):</label>
-                            <div class="col-sm-3">
-                                <input id="lastInterval" type="text" class="form-control form-control-sm" @bind="actTimeFilter.Offset" />
-                            </div>
-                            <div class="col-sm-3">
-                                <Dropdown @bind-SelectedElement="actTimeFilter.Interval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never))" >
-                                    <ElementTemplate Context="interval">
-                                        @(userConfig.GetText(interval.ToString()))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input " type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates)" name="shortcutRange" id="false" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Fixeddates;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="startTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("start_time")):</label>
-                            <div class="col-sm-3">
-                                <input id="startTimeDate" type="date" class="form-control form-control-sm" @bind="actStartDate" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input id="startTime" type="time" step="60" class="form-control form-control-sm" @bind="actStartTime" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input class="form-check-input" id="openStart" type="checkbox" @bind="actTimeFilter.OpenStart" >
-                                <label class="col-form-label col-form-label-sm" for="openStart">@(userConfig.GetText("open"))</label>
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label for="endTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("end_time")):</label>
-                            <div class="col-sm-3">
-                                <input id="endTimeDate" type="date" class="form-control form-control-sm" @bind="actEndDate" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input id="endTime" type="time" step="60" class="form-control form-control-sm" @bind="actEndTime" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input class="form-check-input" id="openEnd" type="checkbox" @bind="actTimeFilter.OpenEnd" >
-                                <label class="col-form-label col-form-label-sm" for="openEnd">@(userConfig.GetText("open"))</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="form-group row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.IsShortcut)" name="shortcut" id="true" @onchange="() => {actTimeFilter.IsShortcut = true;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="shortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
-                            <div class="col-sm-3">
-                                <label class="col-form-label col-form-label-sm">@userConfig.GetText(actTimeFilter.TimeShortcut)</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input " type="radio" checked="@(!actTimeFilter.IsShortcut)" name="shortcut" id="false" @onchange="() => {actTimeFilter.IsShortcut = false;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="reportTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("time")):</label>
-                            <div class="col-sm-4">
-                                <input id="reportTimeDate" type="date" class="form-control form-control-sm" @bind="actDate" />
-                            </div>
-                            <div class="col-sm-4">
-                                <input id="reportTime" type="time" step="60" class="form-control form-control-sm" @bind="actTime" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    </Body>
-    <Footer>
-        <button class="btn btn-sm btn-primary" @onclick="SetTimeSelection">@(userConfig.GetText("ok"))</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowSelectTimeDialog = false">@(userConfig.GetText("cancel"))</button>
-    </Footer>
-</PopUp>
-
+@* ==== POPUPS ==== *@
+<ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="selectedReportType" @bind-ActTimeFilter="actTimeFilter" @bind-SavedTimeFilter="savedTimeFilter" DisplayTime="DisplaySelectedTime"/>
+<ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/>
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     public double reportGenerationDuration;
     private bool processing = false;
@@ -363,23 +257,24 @@
     private ReportType selectedReportType = ReportType.Rules;
     private FwoOwner? selectedOwner = null;
     private List<FwoOwner> ownerList = new List<FwoOwner>();
+    private Tenant? selectedTenantView = null;
+    private List<Tenant> tenantList = new List<Tenant>();
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
+    private List<string> unsupportedList = new List<string>();
+    private DeviceFilter reducedDeviceFilter = new DeviceFilter();
 
-    private DateTime actDate = DateTime.Now;
-    private DateTime actTime = DateTime.Now;
-    private DateTime actStartDate = DateTime.Now;
-    private DateTime actStartTime = DateTime.Now;
-    private DateTime actEndDate = DateTime.Now;
-    private DateTime actEndTime = DateTime.Now;
+    private Dropdown<Tenant> tenantSelector;
+
     private TimeFilter actTimeFilter = new TimeFilter();
     private TimeFilter savedTimeFilter = new TimeFilter();
     private string displayedTimeSelection = "";
     private bool ShowSelectTimeDialog = false;
     private bool recertShowAnyMatch = true;
     private int recertLookAheadDays = 0;
-    private bool recertSingleLinePerRule = true;
+    private int unusedDays = 0;
+    private bool ShowCreateTicketDialog = false;
 
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
@@ -387,7 +282,6 @@
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
 
     private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
-    private ReportTemplate reportParams = new ReportTemplate();
 
     private ReportBase? currentReport;
 
@@ -402,6 +296,9 @@
 
     private bool collapseDevices = false;
 
+    private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
+        || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("auditor");
+
     protected override void OnInitialized()
     {
         Task.Run(async () =>
@@ -409,19 +306,22 @@
             try
             {
                 displayedTimeSelection = userConfig.GetText("now");
-
-                deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                unusedDays = userConfig.UnusedTolerance;
+                deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+                if (tenantFilteringAllowed)
+                {
+                    tenantList = await Connection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+                    tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
+                }
 
-                await InvokeAsync(StateHasChanged);
                 if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
                 {
                     collapseDevices = true;
-                    await InvokeAsync(StateHasChanged);
                 }
 
-                await InvokeAsync(StateHasChanged);
                 recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+                await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
             {
@@ -437,21 +337,100 @@
         managementsReport = new Management[] {};
         globalStats = null;
         selectedReportType = newReportType;
-        if (selectedReportType == ReportType.Recertification)
-        {
-            //filterInput = "remove=false and recertdisplay=0";
-        }
-        DisplayTime();
+        DisplaySelectedTime();
         StateHasChanged();
         reportGenerationDuration = 0;
     }
 
-    private void InitTimes(TimeFilter timeFilter)
+    private async Task TenantViewChanged(Tenant newTenantView)
     {
-        actTimeFilter = timeFilter;
-        actDate = actTime = timeFilter.ReportTime;
-        actStartDate = actStartTime = timeFilter.StartTime;
-        actEndDate = actEndTime = timeFilter.EndTime;
+        // clear report data when switching Tenant
+        // as we would be missing src/dst/svc information in some cases           
+        managementsReport = new Management[] {};
+        globalStats = null;
+
+        // adjust device filter to newly selected tenant view
+        selectedTenantView = newTenantView;
+        if (selectedTenantView==null || selectedTenantView.Id == 1)   // tenant0 or no tenant selected
+        {
+            List<ManagementSelect> visibleDevices = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+
+            foreach (ManagementSelect management in deviceFilter.Managements)
+            {
+                management.Visible = true;
+                foreach (DeviceSelect dev in management.Devices)
+                {
+                    dev.Visible = true;
+                }
+            }
+        }
+        else
+        {
+            List<TenantDevice> tenantDeviceList = new List<TenantDevice>(selectedTenantView.TenantDevices);
+
+            foreach (ManagementSelect mgm in deviceFilter.Managements)
+            {
+                bool mgmVisible = false;
+                foreach (DeviceSelect dev in mgm.Devices)
+                {
+                    dev.Visible = tenantDeviceList.Exists(d => d.VisibleDevice.Id == dev.Id);
+                    if (dev.Visible)
+                    {   // one device is visible, so the management must be visible
+                        mgmVisible = true;
+                    }
+                    else
+                    {   // make sure invisible devices are not selected
+                        dev.Selected = false;
+                    }
+                }
+                mgm.Visible = mgmVisible;
+                if (!mgm.Visible)
+                {   // make sure invisible managements are not selected
+                    mgm.Selected = false;
+                }
+            }
+        }
+        selectAll = !deviceFilter.isAnyDeviceFilterSet();
+        StateHasChanged(); // redisplay LSB
+    }
+
+    private async Task SyncFiltersFromTemplate(ReportTemplate template)
+    {
+        filterInput = template.Filter;
+        selectedReportType = (ReportType)template.ReportParams.ReportType;
+
+        if (template.ReportParams.TenantFilter.IsActive)
+        {
+            Tenant tenantFromTemplate = await Tenant.getTenantById(Connection, template.ReportParams.TenantFilter.TenantId);
+            await tenantSelector.SelectElement(tenantFromTemplate);
+            await TenantViewChanged(tenantFromTemplate);
+        }
+        else
+        {
+            await tenantSelector.SelectElement(null);
+            await TenantViewChanged(null);
+        }
+
+        if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
+        {
+            deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
+            StateHasChanged();
+        }
+        selectAll = !deviceFilter.isAnyDeviceFilterSet();
+        StateHasChanged();
+
+        if(template.ReportParams.TimeFilter != null)
+        {
+            actTimeFilter = template.ReportParams.TimeFilter;
+        }
+        DisplaySelectedTime();
+        if(template.ReportParams.RecertFilter.RecertOwnerList.Count > 0)
+        {
+            selectedOwner = ownerList.FirstOrDefault(o => o.Id == template.ReportParams.RecertFilter.RecertOwnerList.First());
+        }
+        recertShowAnyMatch = template.ReportParams.RecertFilter.RecertShowAnyMatch;
+        recertLookAheadDays = template.ReportParams.RecertFilter.RecertificationDisplayPeriod;
+        unusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
     }
 
     private void SelectTime()
@@ -459,69 +438,7 @@
         ShowSelectTimeDialog = true;
     }
 
-    private void SetTimeSelection()
-    {
-        if (selectedReportType.IsChangeReport())
-        {
-            switch(actTimeFilter.TimeRangeType)
-            {
-                case TimeRangeType.Shortcut:
-                    savedTimeFilter.TimeRangeShortcut = actTimeFilter.TimeRangeShortcut;
-                    break;
-                case TimeRangeType.Interval:
-                    savedTimeFilter.Offset = actTimeFilter.Offset;
-                    savedTimeFilter.Interval = actTimeFilter.Interval;
-                    break;
-                case TimeRangeType.Fixeddates:
-                    actTimeFilter.StartTime = actStartDate.Date.Add(actStartTime.TimeOfDay);
-                    actTimeFilter.EndTime = actEndDate.Date.Add(actEndTime.TimeOfDay);
-                    if(checkTimeRange())
-                    {
-                        savedTimeFilter.StartTime = actTimeFilter.StartTime;
-                        savedTimeFilter.EndTime = actTimeFilter.EndTime;
-                        savedTimeFilter.OpenStart = actTimeFilter.OpenStart;
-                        savedTimeFilter.OpenEnd = actTimeFilter.OpenEnd;
-                    }
-                    else return;
-                    break;
-                default:
-                    throw new NotSupportedException($"Found unexpected TimeRangeType");
-            }
-            savedTimeFilter.TimeRangeType = actTimeFilter.TimeRangeType;
-        }
-        else
-        {
-            if (actTimeFilter.IsShortcut)
-            {
-                savedTimeFilter.TimeShortcut = actTimeFilter.TimeShortcut;
-            }
-            else
-            {
-                actTimeFilter.ReportTime = actDate.Date.Add(actTime.TimeOfDay);
-                savedTimeFilter.ReportTime = actTimeFilter.ReportTime;
-            }
-            savedTimeFilter.IsShortcut = actTimeFilter.IsShortcut;
-        }
-        DisplayTime();
-        ShowSelectTimeDialog = false;
-    }
-
-    @* private void SyncFilterToDisplay()
-    {
-        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
-    } *@
-
-    private bool checkTimeRange()
-    {
-        if(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates && actTimeFilter.StartTime > actTimeFilter.EndTime)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("check_times"), userConfig.GetText("E1011"), true);
-            return false;
-        }
-        return true;
-    }
-
-    private void DisplayTime()
+    private bool DisplaySelectedTime()
     {
         if (selectedReportType.IsChangeReport())
         {
@@ -568,6 +485,7 @@
                 displayedTimeSelection = actTimeFilter.ReportTime.ToString();
             }
         }
+        return true;
     }
 
     private async Task GenerateReport()
@@ -592,25 +510,7 @@
             }
             processing = true;
 
-            // collapse report templates
-            reportTemplateControl.Collapse();
-            List<int> ownerList = new List<int>();
-            if (selectedOwner != null)
-            {
-                ownerList.Add(selectedOwner.Id);
-            }
-
-            List<int> ownerIdList = ((selectedOwner!=null)? new List<int>() { selectedOwner.Id } : new List<int>());
-
-
-            RecertFilter recertFilter = new RecertFilter()
-            {
-                RecertOwnerList = ownerList,
-                RecertShowAnyMatch = recertShowAnyMatch,
-                RecertificationDisplayPeriod = recertLookAheadDays
-            };
-            reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
-            currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+            await PrepareReportGeneration();
 
             // save selected managements before resetting
             List<int> relevantManagements = deviceFilter.getSelectedManagements();
@@ -620,49 +520,40 @@
 
             try
             {
-                switch (currentReport.ReportType)
+                if(currentReport!.ReportType == ReportType.Statistics)
                 {
-                    case ReportType.NatRules:
-                    case ReportType.Rules:
-                    case ReportType.Changes:
-                    case ReportType.ResolvedChanges:
-                    case ReportType.ResolvedChangesTech:
-                    case ReportType.ResolvedRules:
-                    case ReportType.ResolvedRulesTech:
-                    case ReportType.Recertification:
-                        await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
+                    globalStats = new Management();
+                    await currentReport.Generate(0, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
                             setRelevantManagements(relevantManagements);
-                            return InvokeAsync(StateHasChanged);
-                        }, token);
-                        if (currentReport.ReportType == ReportType.Recertification)
-                        {
-                            PrepareMetadata(managementsReport);
-                        }
-                        break;
-
-                    case ReportType.Statistics:
-                        globalStats = new Management();
-                        await currentReport.Generate(0, Connection,
-                            managementsReportIntermediate =>
+                            return InvokeAsync(() =>
                             {
-                                managementsReport = managementsReportIntermediate;
-                                setRelevantManagements(relevantManagements);
-                                return InvokeAsync(() =>
+                                foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
                                 {
-                                    foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
-                                    {
-                                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                                    }
-                                    StateHasChanged();
-                                });
-                            }, token);
-                        break;
+                                    globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                                }
+                                StateHasChanged();
+                            });
+                        }, token);
+                }
+                else
+                {
+                    await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
+                    managementsReportIntermediate =>
+                    {
+                        managementsReport = managementsReportIntermediate;
+                        setRelevantManagements(relevantManagements);
+                        return InvokeAsync(StateHasChanged);
+                    }, token);
+                    if (currentReport.ReportType == ReportType.Recertification)
+                    {
+                        PrepareMetadata(managementsReport);
+                    }
                 }
             }
             catch (OperationCanceledException e)
@@ -699,6 +590,25 @@
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
     }
 
+    private async Task PrepareReportGeneration()
+    {
+        // collapse report templates
+        reportTemplateControl.Collapse();
+
+        // check for unsupported devices
+        if(selectedReportType == ReportType.UnusedRules)
+        {
+            var result = await ReportBase.GetUsageDataUnsupportedDevices(Connection, deviceFilter);
+            reducedDeviceFilter = result.reducedDeviceFilter;
+            unsupportedList = result.unsupportedList;
+            if(unsupportedList.Count > 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", unsupportedList), true);
+            }
+        }
+        currentReport = ReportBase.ConstructReport(ConstructReportTemplate(), userConfig);
+    }
+
     private bool PrepareMetadata(Management[] Managements)
     {
         bool rulesFound = false;
@@ -729,26 +639,49 @@
         }
     }
 
-    private void TryFilter(ChangeEventArgs changeArgs)
+    private ReportTemplate ConstructReportTemplate()
     {
-        string input = (changeArgs.Value ?? "").ToString() ?? "";
         List<int> ownerList = new List<int>();
         if (selectedOwner != null)
         {
             ownerList.Add(selectedOwner.Id);
         }
 
+        ReportParams reportParams = new ReportParams((int)selectedReportType, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter);
+        reportParams.TimeFilter = savedTimeFilter;
+        if (selectedReportType != ReportType.Statistics)
+        {
+            // also make sure the report a user belonging to a tenant <> 1 sees, gets the additional filters in DynGraphqlQuery.cs
+            if (selectedTenantView==null && userConfig.User.Tenant.Id>1)
+            {
+                selectedTenantView = userConfig.User.Tenant;
+                // TODO: when admin selects a tenant filter, add the corresponding device filter to make sure only those devices are reported that the tenant is allowed to see
+
+            }
+            reportParams.TenantFilter = new TenantFilter(selectedTenantView);
+
+        }
+        reportParams.RecertFilter = new RecertFilter()
+        {
+            RecertOwnerList = ownerList,
+            RecertShowAnyMatch = recertShowAnyMatch,
+            RecertificationDisplayPeriod = recertLookAheadDays
+        };
+        reportParams.UnusedFilter = new UnusedFilter() 
+        {
+            UnusedForDays = unusedDays, 
+            CreationTolerance = userConfig.CreationTolerance
+        };
+
+        return new ReportTemplate(filterInput, reportParams);
+    }
+
+    private void TryFilter(ChangeEventArgs changeArgs)
+    {
+        string input = (changeArgs.Value ?? "").ToString() ?? "";
         try
         {
-            RecertFilter recertFilter = new RecertFilter()
-            {
-                RecertOwnerList = ownerList,
-                RecertShowAnyMatch = recertShowAnyMatch, 
-                RecertSingleLinePerRule = recertSingleLinePerRule
-            };
-            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
-
-            DynGraphqlQuery query = Compiler.Compile(reportParams);
+            DynGraphqlQuery query = Compiler.Compile(ConstructReportTemplate());
 
             filterFeedbackStart = input;
             filterFeedbackError = "";
@@ -798,7 +731,7 @@
         List<ReportType> ListOut = new List<ReportType>();
         List<ReportType> orderedReportTypeList = new List<ReportType>()
         {
-            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, 
+            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
             ReportType.Recertification,
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
             ReportType.Statistics

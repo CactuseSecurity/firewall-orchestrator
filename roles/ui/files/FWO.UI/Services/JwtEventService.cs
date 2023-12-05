@@ -42,7 +42,7 @@ namespace FWO.Ui.Services
                 jwtExpiredTimers[userDn].Dispose();
             }
             // Create new timers
-            if (timeUntilyExpiry - notificationTime > 0)
+            if (notificationTime > 0 && timeUntilyExpiry - notificationTime > 0)
             {
                 jwtAboutToExpireTimers[userDn] = new Timer(_ => JwtAboutToExpire(userDn), null, timeUntilyExpiry - notificationTime, int.MaxValue);
             }

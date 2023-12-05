@@ -1,0 +1,44 @@
+﻿@using NetTools;
+
+@inject UserConfig userConfig
+
+<input type="text" class="form-control @(ipAddressInputClass)" placeholder="@userConfig.GetText("ip_addresses")"
+@oninput="@(e => {TryParseIpRange(e.Value?.ToString() ?? ""); })">
+
+@code
+{
+	private string ipAddressInputClass = "";
+
+	private IPAddressRange? ipRange;
+
+	[Parameter]
+	public IPAddressRange? IpRange
+	{
+		get => ipRange;
+		set
+		{
+			if (ipRange != value)
+			{
+				ipRange = value;
+				IpRangeChanged.InvokeAsync(ipRange);
+			}
+		}
+	}
+
+	[Parameter]
+	public EventCallback<IPAddressRange?> IpRangeChanged { get; set; }
+
+	private void TryParseIpRange(string ipAddressInput)
+	{
+		if (IPAddressRange.TryParse(ipAddressInput, out IPAddressRange parsedIpRange))
+		{
+			IpRange = parsedIpRange;
+			ipAddressInputClass = "is-valid";
+		}
+		else
+		{
+			IpRange = null;
+			ipAddressInputClass = "is-invalid";
+		}
+	}
+}

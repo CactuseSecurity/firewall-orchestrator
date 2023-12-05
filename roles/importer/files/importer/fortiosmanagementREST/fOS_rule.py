@@ -9,7 +9,7 @@ import fOS_zone, fOS_getter
 from fwo_log import getFwoLogger
 from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
 import ipaddress
-from fwcommon import resolve_objects
+from fOS_common import resolve_objects
 import time
 
 
@@ -29,6 +29,9 @@ def initializeRulebases(raw_config):
 
 def getAccessPolicy(sid, fm_api_url, raw_config, limit):
     fOS_getter.update_config_with_fortiOS_api_call(raw_config['rules'], fm_api_url + "/cmdb/firewall/policy" + "?access_token=" + sid, 'rules', limit=limit)
+    if 'rules' not in raw_config or 'rules' not in raw_config['rules']:
+        logger = getFwoLogger()
+        logger.warning('did not receive any access rules via API')
 
 
 def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
@@ -52,92 +55,96 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
     rule_number = 0
     # rule_number, first_v4, first_v6 = insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number)
 
-    for rule_orig in full_config['rules']['rules']:
-        rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
-        rule.update({ 'control_id': import_id})
-        rule.update({ 'rulebase_name': 'access_rules'})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
-        rule.update({ 'rule_ruleid': rule_orig['policyid']})
-        rule.update({ 'rule_uid': rule_orig['uuid']})
-        rule.update({ 'rule_num': rule_number})
-        if 'name' in rule_orig:
-            rule.update({ 'rule_name': rule_orig['name']})
-        rule.update({ 'rule_installon': None })
-        rule.update({ 'rule_implied': False })
-        rule.update({ 'rule_time': None })
-        rule.update({ 'rule_type': 'access' })
-        rule.update({ 'parent_rule_id': None })
+    if 'rules' in full_config and 'rules' in full_config['rules']:
+        for rule_orig in full_config['rules']['rules']:
+            rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
+            rule.update({ 'control_id': import_id})
+            rule.update({ 'rulebase_name': 'access_rules'})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
+            rule.update({ 'rule_ruleid': rule_orig['policyid']})
+            rule.update({ 'rule_uid': rule_orig['uuid']})
+            rule.update({ 'rule_num': rule_number})
+            if 'name' in rule_orig:
+                rule.update({ 'rule_name': rule_orig['name']})
+            rule.update({ 'rule_installon': None })
+            rule.update({ 'rule_implied': False })
+            rule.update({ 'rule_time': None })
+            rule.update({ 'rule_type': 'access' })
+            rule.update({ 'parent_rule_id': None })
 
-        if 'comments' in rule_orig:
-            rule.update({ 'rule_comment': rule_orig['comments']})
-        else:
-            rule.update({ 'rule_comment': None })
-        if rule_orig['action']==0:
-            rule.update({ 'rule_action': 'Drop' })
-        else:
-            rule.update({ 'rule_action': 'Accept' })
-        if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
-            rule.update({ 'rule_disabled': False })
-        else:
-            rule.update({ 'rule_disabled': True })
-        if rule_orig['logtraffic'] == 'disable':
-            rule.update({ 'rule_track': 'None'})
-        else:
-            rule.update({ 'rule_track': 'Log'})
-
-        if '_last_hit' not in rule_orig or rule_orig['_last_hit'] == 0:
-            rule.update({ 'last_hit': None})
-        else:                      	
-            rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
-
-        rule['rule_src'] = list_delimiter.join([d['name'] for d in rule_orig['srcaddr']])
-        rule['rule_dst'] = list_delimiter.join([d['name'] for d in rule_orig['dstaddr']])
-        rule['rule_svc'] = list_delimiter.join([d['name'] for d in rule_orig['service']])
-
-        # handling internet-service rules - no mixed mode between (src/dst) and internet service (src), so overwriting)
-        if 'internet-service-src-name' in rule_orig and len(rule_orig['internet-service-src-name'])>0:
-            rule['rule_src'] = list_delimiter.join([d['name'] for d in rule_orig['internet-service-src-name']])
-            set_service_field_internet_service(rule, config2import, import_id)
-        if 'internet-service-name' in rule_orig and len(rule_orig['internet-service-name'])>0:
-            rule['rule_dst'] = list_delimiter.join([d['name'] for d in rule_orig['internet-service-name']])
-            set_service_field_internet_service(rule, config2import, import_id)
-
-        # add ipv6 addresses
-        rule_src_v6 = [d['name'] for d in rule_orig['srcaddr6']]
-        rule_dst_v6 = [d['name'] for d in rule_orig['dstaddr6']]
-        if len(rule_src_v6)>0:
-            if len(rule['rule_src'])>0:
-                rule['rule_src'] = list_delimiter.join(rule['rule_src'].split(list_delimiter) + rule_src_v6)
+            if 'comments' in rule_orig:
+                rule.update({ 'rule_comment': rule_orig['comments']})
             else:
-                rule['rule_src'] = list_delimiter.join(rule_src_v6)
-        if len(rule_dst_v6)>0:
-            if len(rule['rule_dst'])>0:
-                rule['rule_dst'] = list_delimiter.join(rule['rule_dst'].split(list_delimiter) + rule_dst_v6)
+                rule.update({ 'rule_comment': None })
+            if rule_orig['action']=='deny':
+                rule.update({ 'rule_action': 'Drop' })
             else:
-                rule['rule_dst'] = list_delimiter.join(rule_dst_v6)
+                rule.update({ 'rule_action': 'Accept' })
+            if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
+                rule.update({ 'rule_disabled': False })
+            else:
+                rule.update({ 'rule_disabled': True })
+            if rule_orig['logtraffic'] == 'disable':
+                rule.update({ 'rule_track': 'None'})
+            else:
+                rule.update({ 'rule_track': 'Log'})
 
-        # add zone information
-        if len(rule_orig['srcintf'])>0:
-            src_obj_zone = fOS_zone.add_zone_if_missing (config2import, rule_orig['srcintf'][0]['name'], import_id)
-            rule.update({ 'rule_from_zone': src_obj_zone }) # todo: currently only using the first zone
-        if len(rule_orig['dstintf'])>0:
-            dst_obj_zone = fOS_zone.add_zone_if_missing (config2import, rule_orig['dstintf'][0]['name'], import_id)
-            rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
+            if '_last_hit' not in rule_orig or rule_orig['_last_hit'] == 0:
+                rule.update({ 'last_hit': None})
+            else:                      	
+                rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
 
-        rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']!='disable'})
-        rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']!='disable'})
-        rule.update({ 'rule_svc_neg': rule_orig['service-negate']!='disable'})
+            rule['rule_src'] = list_delimiter.join([d['name'] for d in rule_orig['srcaddr']])
+            rule['rule_dst'] = list_delimiter.join([d['name'] for d in rule_orig['dstaddr']])
+            rule['rule_svc'] = list_delimiter.join([d['name'] for d in rule_orig['service']])
 
-        rule.update({ 'rule_src_refs': list_delimiter.join(resolve_objects(d, lookup_dict=full_config['nw_obj_lookup_dict'],jwt=jwt) for d in rule['rule_src'].split(list_delimiter))})
-        rule.update({ 'rule_dst_refs': list_delimiter.join(resolve_objects(d, lookup_dict=full_config['nw_obj_lookup_dict'],jwt=jwt) for d in rule['rule_dst'].split(list_delimiter))})
-        rule.update({ 'rule_svc_refs': rule['rule_svc']}) # for service name and uid are identical
+            # handling internet-service rules - no mixed mode between (src/dst) and internet service (src), so overwriting)
+            if 'internet-service-src-name' in rule_orig and len(rule_orig['internet-service-src-name'])>0:
+                rule['rule_src'] = list_delimiter.join([d['name'] for d in rule_orig['internet-service-src-name']])
+                set_service_field_internet_service(rule, config2import, import_id)
+            if 'internet-service-name' in rule_orig and len(rule_orig['internet-service-name'])>0:
+                rule['rule_dst'] = list_delimiter.join([d['name'] for d in rule_orig['internet-service-name']])
+                set_service_field_internet_service(rule, config2import, import_id)
 
-        add_users_to_rule(rule_orig, rule)
+            # add ipv6 addresses
+            rule_src_v6 = [d['name'] for d in rule_orig['srcaddr6']]
+            rule_dst_v6 = [d['name'] for d in rule_orig['dstaddr6']]
+            if len(rule_src_v6)>0:
+                if len(rule['rule_src'])>0:
+                    rule['rule_src'] = list_delimiter.join(rule['rule_src'].split(list_delimiter) + rule_src_v6)
+                else:
+                    rule['rule_src'] = list_delimiter.join(rule_src_v6)
+            if len(rule_dst_v6)>0:
+                if len(rule['rule_dst'])>0:
+                    rule['rule_dst'] = list_delimiter.join(rule['rule_dst'].split(list_delimiter) + rule_dst_v6)
+                else:
+                    rule['rule_dst'] = list_delimiter.join(rule_dst_v6)
 
-        # xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, dev_id)
-        rules.append(rule)
-        # if xlate_rule is not None:
-        #     rules.append(xlate_rule)
-        rule_number += 1    # nat rules have their own numbering
+            # add zone information
+            if len(rule_orig['srcintf'])>0:
+                src_obj_zone = fOS_zone.add_zone_if_missing (config2import, rule_orig['srcintf'][0]['name'], import_id)
+                rule.update({ 'rule_from_zone': src_obj_zone }) # todo: currently only using the first zone
+            if len(rule_orig['dstintf'])>0:
+                dst_obj_zone = fOS_zone.add_zone_if_missing (config2import, rule_orig['dstintf'][0]['name'], import_id)
+                rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
+
+            rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']!='disable'})
+            rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']!='disable'})
+            rule.update({ 'rule_svc_neg': rule_orig['service-negate']!='disable'})
+
+            rule.update({ 'rule_src_refs': list_delimiter.join(resolve_objects(d, lookup_dict=full_config['nw_obj_lookup_dict'],jwt=jwt) for d in rule['rule_src'].split(list_delimiter))})
+            rule.update({ 'rule_dst_refs': list_delimiter.join(resolve_objects(d, lookup_dict=full_config['nw_obj_lookup_dict'],jwt=jwt) for d in rule['rule_dst'].split(list_delimiter))})
+            rule.update({ 'rule_svc_refs': rule['rule_svc']}) # for service name and uid are identical
+
+            add_users_to_rule(rule_orig, rule)
+
+            # xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, dev_id)
+            rules.append(rule)
+            # if xlate_rule is not None:
+            #     rules.append(xlate_rule)
+            rule_number += 1    # nat rules have their own numbering
+    else:
+        logger.warning('did not find any access rules')
+
     config2import.update({'rules': rules})
 
 

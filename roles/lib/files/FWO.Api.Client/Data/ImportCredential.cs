@@ -54,7 +54,6 @@ namespace FWO.Api.Data
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             ImportUser = Sanitizer.SanitizeOpt(ImportUser, ref shortened);
             PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey, ref shortened);
-            // Secret = (DevType.IsLegacyDevType() ? Sanitizer.SanitizeKeyMand(Secret, ref shortened) : Sanitizer.SanitizePasswMand(Secret, ref shortened));
             Secret = Sanitizer.SanitizeKeyMand(Secret, ref shortened);
             CloudClientId = Sanitizer.SanitizeOpt(CloudClientId, ref shortened);
             CloudClientSecret = Sanitizer.SanitizeKeyOpt(CloudClientSecret, ref shortened);

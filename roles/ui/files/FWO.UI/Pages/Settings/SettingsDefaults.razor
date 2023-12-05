@@ -28,13 +28,13 @@
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeout")):</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
+            <input type="number" min="1" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeoutNoticePeriod")):</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeoutNoticePeriod" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeoutNoticePeriod" />
         </div>
     </form>
     @* <form class="form-inline" onsubmit="return false">
@@ -46,14 +46,14 @@
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
         </div>
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.ElementsPerFetch" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ElementsPerFetch" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
@@ -67,57 +67,45 @@
         <div class="col-sm-2">
             @if (configData!.AutoFillRightSidebar)
             {
-                <input disabled type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
+                <input disabled type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
             }
             else
             {
-                <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
             }
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance"))*:</label>
+        <div class="col-sm-2">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.UnusedTolerance" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance"))*:</label>
+        <div class="col-sm-2">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.CreationTolerance" />
         </div>
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.DataRetentionTime" />
-        </div>
-    </form>
-    <hr />
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
-        <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
-        </div>
-    </form> 
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
-        <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.DataRetentionTime" />
         </div>
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverSleepTime")):</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverSleepTime" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverSleepTime" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
@@ -136,13 +124,13 @@
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportDuration")):</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxImportDuration" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MaxImportDuration" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportInterval")):</label>
         <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxImportInterval" />
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MaxImportInterval" />
         </div>
     </form>
     <hr />
@@ -152,13 +140,23 @@
             <input type="checkbox" class="w-100" @bind="configData!.AllowManualOwnerAdmin">
         </div>
     </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleOwnershipMode")):</label>
+        <div class="col-sm-2">
+            <Dropdown @bind-SelectedElement="configData!.RuleOwnershipMode" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()" >
+                <ElementTemplate Context="opt">
+                    @(userConfig.GetText(opt.ToString()))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </form>
     <hr />
     <AuthorizeView Roles="admin">
         <Authorized>
-            <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
-            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized> 
     </AuthorizeView>
     <br><br>

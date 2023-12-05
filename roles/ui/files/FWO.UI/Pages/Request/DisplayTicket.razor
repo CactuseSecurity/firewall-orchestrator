@@ -93,7 +93,7 @@
                         <div class="form-group row justify-content-center">
                             @foreach(var action in offeredActions)
                             {
-                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                                <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
                         </div>
                     </div>
@@ -122,10 +122,10 @@
             {
                 <AuthorizeView Roles="admin, requester, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -133,14 +133,14 @@
             {
                 <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("change_state"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -154,8 +154,8 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-danger" @onclick="ConfirmCancel">@(userConfig.GetText("ok"))</button>
-            <button class="btn btn-sm btn-secondary" @onclick="() => ConfirmCancelMode = false">@(userConfig.GetText("back_to_ticket"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="ConfirmCancel">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ConfirmCancelMode = false">@(userConfig.GetText("back_to_ticket"))</button>
         </div>
     </Footer>
 </PopUp>

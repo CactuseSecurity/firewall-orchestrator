@@ -28,10 +28,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRelevantImportIdsAtTime;
         public static readonly string statisticsReportCurrent;
 
+        public static readonly string subscribeGeneratedReportsChanges;
         public static readonly string getGeneratedReport;
         public static readonly string getGeneratedReports;
         public static readonly string deleteGeneratedReport;
         public static readonly string addGeneratedReport;
+
+        public static readonly string getUsageDataCount;
 
         static ReportQueries() 
         {
@@ -53,10 +56,12 @@ namespace FWO.Api.Client.Queries
                 editReportTemplate = File.ReadAllText(QueryPath + "report/editReportTemplate.graphql");
                 deleteReportTemplate = File.ReadAllText(QueryPath + "report/deleteReportTemplate.graphql");
                 subscribeReportScheduleChanges = File.ReadAllText(QueryPath + "report/subscribeReportScheduleChanges.graphql");
+                subscribeGeneratedReportsChanges = File.ReadAllText(QueryPath + "report/subscribeGeneratedReportsChanges.graphql");
                 getGeneratedReports = File.ReadAllText(QueryPath + "report/getGeneratedReports.graphql");
                 getGeneratedReport = File.ReadAllText(QueryPath + "report/getGeneratedReport.graphql");
                 deleteGeneratedReport = File.ReadAllText(QueryPath + "report/deleteGeneratedReport.graphql");
                 addGeneratedReport = File.ReadAllText(QueryPath + "report/addGeneratedReport.graphql");
+                getUsageDataCount = File.ReadAllText(QueryPath + "report/getUsageDataCount.graphql");
             }
             catch (Exception exception)
             {

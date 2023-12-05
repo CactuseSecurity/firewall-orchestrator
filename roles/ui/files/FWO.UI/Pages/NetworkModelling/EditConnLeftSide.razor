@@ -8,7 +8,7 @@
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
     <div class="form-group row col-sm-12 mt-3 ml-2 w-100 justify-content-between">
         <h3>@(userConfig.GetText("library"))</h3>
-        <label class="col-form-label text-success">@Application.Display()</label>
+        <label class="col-form-label text-success">@ConnHandler.Application.Display()</label>
     </div>
     <div class="col-sm-11 border rounded m-2 p-2">
         <h5>@(userConfig.GetText("network_objects"))</h5>
@@ -59,8 +59,8 @@
                         if(!ResolveNwGroupObject(selectedNwElems[0].Value).IsDeleted)
                         {
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
-                                {ConnHandler.RequestDeleteNwGrpObject(ResolveNwGroupObject(selectedNwElems[0].Value));
-                                selectedNwElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                                {ConnHandler.RequestRemoveNwGrpObject(ResolveNwGroupObject(selectedNwElems[0].Value));
+                                selectedNwElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("remove"))</button>
                         }
                     }
 
@@ -118,40 +118,55 @@
             <br><br>
             <h5>@(userConfig.GetText("interfaces"))</h5>
             <div class="form-group row">
+                <div class="col-sm-9">
+                    <DraggableList AllElements="ConnHandler.PreselectedInterfaces" @bind-SelectedElements="selectedInterfaces" 
+                        HandleDragStart="HandleConnDragStart" Display="@ConnHandler.DisplayInterface" MaxHeight="7" Multiselect="false"/>
+                </div>
+                <div class="col-sm-3">
+                    @if(selectedInterfaces.Count > 0)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                            {ConnHandler.InterfaceToConn(selectedInterfaces[0]); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("use"))</button>
+                    }
+                </div>
+            </div>
+            <div class="form-group row">
                 <div class="col-sm-3">
                     <button type="button" class="btn btn-sm btn-success w-100" @onclick="SearchInterface">@(userConfig.GetText("search"))</button>
                 </div>
-                <div class="col-sm-6">
-                    <label class="draggable col-form-label col-sm-12" draggable="true" @ondragstart="@(() => {if(actInterface != null) HandleConnDragStart(actInterface);})">@(actInterface != null ? @actInterface.Name : "")</label>
-                </div>
-                <div class="col-sm-3">
-                    @if(actInterface != null)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {ConnHandler.InterfaceToConn(actInterface); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("use"))</button>
-                    }
-                </div>
+                @if(selectedInterfaces.Count == 1)
+                {
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
+                        {ConnHandler.RequestRemovePreselectedInterface(selectedInterfaces[0]);
+                        selectedInterfaces = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("remove"))</button>
+                }
             </div>
             <br>
         }
     </div>
 </Sidebar>
 <EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="ConnHandler.AddAppRoleMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppRole)" Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppRole)"
+    Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
 <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="ConnHandler.AddSvcGrpMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteServiceGroup)" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteServiceGroup)"
+    Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
 <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)" Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
-<SearchInterface @bind-Display="SearchInterfaceMode" @bind-Interface="actInterface" SelectAction="InterfaceToConn"/>
-<SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects" Application="Application" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteNwObjectMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteNwGrpObject)" Title="@userConfig.GetText("delete_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)"
+    Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
+<SearchInterface @bind-Display="SearchInterfaceMode" @bind-PreselectedInterfaces="ConnHandler.PreselectedInterfaces" SelectAction="InterfaceToConn"
+    DisplayInterface="ConnHandler.DisplayInterface" Application="ConnHandler.Application"/>
+<ConfirmDelete @bind-Display="ConnHandler.RemovePreselectedInterfaceMode" PerformAction="async () => WrapAsync(ConnHandler.RemovePreselectedInterface)" 
+    Title="@userConfig.GetText("remove_connection")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller" Remove="true"/>
+<SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects"
+    Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
+<ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => WrapAsync(ConnHandler.RemoveNwGrpObject)"
+    Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller" Remove="true"/>
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
-
-    [Parameter] 
-    public FwoOwner Application { get; set; } = new FwoOwner();
 
     [Parameter] 
     public ModellingDnDContainer Container { get; set; } = new();
@@ -174,7 +189,7 @@
 
     private List<KeyValuePair<int, long>> selectedNwElems = new();
     private List<KeyValuePair<int, int>> selectedSvcElems = new();
-    private ModellingConnection? actInterface;
+    private List<ModellingConnection> selectedInterfaces = new();
     private bool SearchInterfaceMode = false;
     private bool SearchNwObjectMode = false;
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
@@ -316,10 +331,11 @@
         return true;
     }
 
-    private void HandleConnDragStart(ModellingConnection selectedConn)
+    private bool HandleConnDragStart(DragEventArgs e, ModellingConnection selectedConn)
     {
         Container.Clear();
         Container.ConnElement = selectedConn;
+        return true;
     }
 
     public string DisplayNwObject(KeyValuePair<int, long> nwObject)

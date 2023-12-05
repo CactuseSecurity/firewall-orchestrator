@@ -1330,6 +1330,13 @@ create table modelling.selected_objects
 	primary key (app_id, nwgroup_id)
 );
 
+create table modelling.selected_connections
+(
+	app_id int,
+	connection_id int,
+	primary key (app_id, connection_id)
+);
+
 create table modelling.nwobject_nwgroup
 (
     nwobject_id bigint,

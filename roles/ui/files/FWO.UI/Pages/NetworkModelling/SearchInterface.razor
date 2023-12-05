@@ -45,18 +45,23 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public ModellingConnection? Interface { get; set; }
+    public List<ModellingConnection>? PreselectedInterfaces { get; set; }
 
     [Parameter]
-    public EventCallback<ModellingConnection> InterfaceChanged { get; set; }
+    public EventCallback<List<ModellingConnection>> PreselectedInterfacesChanged { get; set; }
 
     [Parameter]
     public Func <ModellingConnection, bool> SelectAction { get; set; }
 
+    [Parameter]
+    public Func <ModellingConnection, string> DisplayInterface { get; set; }
+
+    [Parameter]
+    public FwoOwner Application { get; set; } = new();
+
 
     private List<ModellingConnection> availableInterfaces { get; set; } = new();
     private ModellingConnection? selectedInterface;
-    private List<FwoOwner> apps = new();
     private bool FirstTry = true;
 
 
@@ -68,7 +73,6 @@
             {
                 FirstTry = false;
                 availableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
                 
                 foreach(var interf in availableInterfaces)
                 {
@@ -82,22 +86,30 @@
         }
     }
 
-    private string DisplayInterface(ModellingConnection inter)
-    {
-        FwoOwner? app = apps.FirstOrDefault(x => x.Id == inter.AppId);
-        if(app != null)
-        {
-            return inter.DisplayWithOwner(app);
-        }
-        return inter.Name;
-    }
-
     private void SelectInterface()
     {
-        Interface = selectedInterface;
-        InterfaceChanged.InvokeAsync(Interface);
-        SelectAction(Interface); 
+        AddInterface();
+        SelectAction(selectedInterface); 
         Close();
+    }
+
+    private async Task AddInterface()
+    {
+        try
+        {
+            var Variables = new
+            {
+                appId = Application.Id,
+                connectionId = selectedInterface?.Id
+            };
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedConnection, Variables);
+            PreselectedInterfaces.Add(selectedInterface);
+            await PreselectedInterfacesChanged.InvokeAsync(PreselectedInterfaces);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("search_interface"), "", true);
+        }
     }
 
     private void Close()

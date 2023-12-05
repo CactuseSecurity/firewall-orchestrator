@@ -9,6 +9,7 @@ namespace FWO.Ui.Services
     public class ModellingConnectionHandler : ModellingHandlerBase
     {
         public List<ModellingConnection> Connections { get; set; } = new();
+        public List<ModellingConnection> PreselectedInterfaces { get; set; } = new();
         public ModellingConnection ActConn { get; set; } = new();
         public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         public List<ModellingAppRole> AvailableAppRoles { get; set; } = new();
@@ -27,7 +28,8 @@ namespace FWO.Ui.Services
         public bool svcReadOnly { get; set; } = false;
 
         public bool SearchNWObjectMode = false;
-        public bool DeleteNwObjectMode = false;
+        public bool RemoveNwObjectMode = false;
+        public bool RemovePreselectedInterfaceMode = false;
 
         public List<ModellingAppServer> SrcAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = new();
@@ -61,8 +63,10 @@ namespace FWO.Ui.Services
         public bool EditSvcGrpMode = false;
         public bool DeleteSvcGrpMode = false;
 
+        private List<FwoOwner> apps = new();
         private ModellingAppRole actAppRole = new();
         private ModellingNwGroup actNwGrpObj = new();
+        private ModellingConnection actInterface = new();
         private ModellingService actService = new();
         private ModellingServiceGroup actServiceGroup = new();
         private ModellingConnection ActConnOrig { get; set; } = new();
@@ -83,6 +87,7 @@ namespace FWO.Ui.Services
         {
             try
             {
+                PreselectedInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id });
                 AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
                 AvailableSelectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
@@ -102,11 +107,22 @@ namespace FWO.Ui.Services
                 }
                 RefreshSelectedNwObjects();
                 InterfaceName = await ExtractUsedInterface(ActConn);
+                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
+        }
+
+        public string DisplayInterface(ModellingConnection inter)
+        {
+            FwoOwner? app = apps.FirstOrDefault(x => x.Id == inter.AppId);
+            if(app != null)
+            {
+                return inter.DisplayWithOwner(app);
+            }
+            return inter.Name;
         }
 
         public bool RefreshSelectedNwObjects()
@@ -181,6 +197,29 @@ namespace FWO.Ui.Services
             svcReadOnly = false;
         }
 
+        public void RequestRemovePreselectedInterface(ModellingConnection interf)
+        {
+            actInterface = interf;
+            Message = userConfig.GetText("U9006") + interf.Name + "?";
+            RemovePreselectedInterfaceMode = true;
+        }
+
+        public async Task RemovePreselectedInterface()
+        {
+            try
+            {
+                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeSelectedConnection, new { appId = Application.Id, connectionId = actInterface.Id })).AffectedRows > 0)
+                {
+                    PreselectedInterfaces.Remove(PreselectedInterfaces.FirstOrDefault(x => x.Id == actInterface.Id) ?? throw new Exception("Did not find object."));
+                    RemovePreselectedInterfaceMode = false;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("remove_interface"), "", true);
+            }
+        }
+
         public void AppServerToSource(List<ModellingAppServer> srcAppServers)
         {
             if(!SrcDropForbidden())
@@ -216,29 +255,27 @@ namespace FWO.Ui.Services
             SearchNWObjectMode = true;
         }
 
-        public void RequestDeleteNwGrpObject(ModellingNwGroup nwGrpObj)
+        public void RequestRemoveNwGrpObject(ModellingNwGroup nwGrpObj)
         {
             actNwGrpObj = nwGrpObj;
             Message = userConfig.GetText("U9006") + nwGrpObj.Name + "?";
-            DeleteNwObjectMode = true;
+            RemoveNwObjectMode = true;
         }
 
-        public async Task DeleteNwGrpObject()
+        public async Task RemoveNwGrpObject()
         {
             try
             {
                 if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeSelectedNwGroupObject, new { appId = Application.Id, nwGroupId = actNwGrpObj.Id })).AffectedRows > 0)
                 {
-                    await LogChange(ModellingTypes.ChangeType.Delete, (ModellingTypes.ObjectType)actNwGrpObj.GroupType, actNwGrpObj.Id,
-                        $"Deleted {(ModellingTypes.ObjectType)actNwGrpObj.GroupType} Object: {actNwGrpObj.Display()}", Application.Id);
                     AvailableSelectedObjects.Remove(AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == actNwGrpObj.Id) ?? throw new Exception("Did not find object."));
                     AvailableNwElems.Remove(AvailableNwElems.FirstOrDefault(x => x.Key == actNwGrpObj.GroupType && x.Value == actNwGrpObj.Id));
-                    DeleteNwObjectMode = false;
+                    RemoveNwObjectMode = false;
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("delete_nw_object"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("remove_nw_object"), "", true);
             }
         }
 
@@ -913,7 +950,8 @@ namespace FWO.Ui.Services
             SvcGrpToAdd = new List<ModellingServiceGroup>();
             SvcGrpToDelete = new List<ModellingServiceGroup>();
             SearchNWObjectMode = false;
-            DeleteNwObjectMode = false;
+            RemoveNwObjectMode = false;
+            RemovePreselectedInterfaceMode = false;
             AddAppRoleMode = false;
             EditAppRoleMode = false;
             DeleteAppRoleMode = false;

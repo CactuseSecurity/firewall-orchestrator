@@ -40,6 +40,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string addServiceGroupToConnection;
         public static readonly string removeServiceGroupFromConnection;
 
+        public static readonly string getSelectedConnections;
+        public static readonly string addSelectedConnection;
+        public static readonly string removeSelectedConnection;
+
         public static readonly string getNwGroupObjects;
         public static readonly string getSelectedNwGroupObjects;
         public static readonly string addSelectedNwGroupObject;
@@ -113,6 +117,10 @@ namespace FWO.Api.Client.Queries
                 removeServiceFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceFromConnection.graphql");
                 addServiceGroupToConnection = File.ReadAllText(QueryPath + "modelling/addServiceGroupToConnection.graphql");
                 removeServiceGroupFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceGroupFromConnection.graphql");
+
+                getSelectedConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getSelectedConnections.graphql");
+                addSelectedConnection = File.ReadAllText(QueryPath + "modelling/addSelectedConnection.graphql");
+                removeSelectedConnection = File.ReadAllText(QueryPath + "modelling/removeSelectedConnection.graphql");
 
                 getNwGroupObjects = File.ReadAllText(QueryPath + "modelling/getNwGroupObjects.graphql");
                 getSelectedNwGroupObjects = File.ReadAllText(QueryPath + "modelling/getSelectedNwGroupObjects.graphql");

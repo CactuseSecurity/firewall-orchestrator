@@ -31,6 +31,9 @@
 	[Parameter]
 	public int MaxHeight { get; set; } = 50;
 
+	[Parameter]
+	public bool Multiselect { get; set; } = true;
+
 
 	private void ToggleSelect(int index)
 	{
@@ -40,6 +43,10 @@
 		}
 		else
 		{
+			if(!Multiselect)
+			{
+				SelectedElements = new();
+			}
 			SelectedElements.Add(AllElements[index]);
 		}
 		SelectedElementsChanged.InvokeAsync(SelectedElements);

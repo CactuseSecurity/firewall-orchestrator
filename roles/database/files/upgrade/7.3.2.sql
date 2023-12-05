@@ -58,6 +58,13 @@ create table if not exists modelling.selected_objects
 	primary key (app_id, nwgroup_id)
 );
 
+create table if not exists modelling.selected_connections
+(
+	app_id int,
+	connection_id int,
+	primary key (app_id, connection_id)
+);
+
 create table if not exists modelling.nwobject_nwgroup
 (
     nwobject_id bigint,
@@ -158,6 +165,8 @@ ALTER TABLE modelling.service_connection DROP CONSTRAINT IF EXISTS modelling_ser
 ALTER TABLE modelling.change_history DROP CONSTRAINT IF EXISTS modelling_change_history_owner_foreign_key;
 ALTER TABLE modelling.selected_objects DROP CONSTRAINT IF EXISTS modelling_selected_objects_owner_foreign_key;
 ALTER TABLE modelling.selected_objects DROP CONSTRAINT IF EXISTS modelling_selected_objects_nwgroup_foreign_key;
+ALTER TABLE modelling.selected_connections DROP CONSTRAINT IF EXISTS modelling_selected_connections_owner_foreign_key;
+ALTER TABLE modelling.selected_connections DROP CONSTRAINT IF EXISTS modelling_selected_connections_connection_foreign_key;
 
 ALTER TABLE modelling.nwgroup ADD CONSTRAINT modelling_nwgroup_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.connection ADD CONSTRAINT modelling_connection_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -180,4 +189,6 @@ ALTER TABLE modelling.service_connection ADD CONSTRAINT modelling_service_connec
 ALTER TABLE modelling.change_history ADD CONSTRAINT modelling_change_history_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.selected_objects ADD CONSTRAINT modelling_selected_objects_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.selected_objects ADD CONSTRAINT modelling_selected_objects_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES modelling.nwgroup(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.selected_connections ADD CONSTRAINT modelling_selected_connections_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.selected_connections ADD CONSTRAINT modelling_selected_connections_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 

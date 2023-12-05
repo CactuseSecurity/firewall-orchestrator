@@ -8,7 +8,7 @@
 {
     @if(!ConnHandler.ReadOnly)
     {
-        <EditConnLeftSide Application="@Application" @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-ConnHandler="ConnHandler"/>
+        <EditConnLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-ConnHandler="ConnHandler"/>
     }
     <div style="margin-left: @($"{(ConnHandler.ReadOnly ? 0 : sidebarLeftWidth) + 10}px");">
         <h3>@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface") : userConfig.GetText("connection"))</h3>
@@ -197,9 +197,6 @@
         
     [Parameter]
     public EventCallback<bool> DisplayChanged { get; set; }
-
-    [Parameter] 
-    public FwoOwner Application { get; set; } = new();
 
     [Parameter] 
     public ModellingConnectionHandler ConnHandler { get; set; }

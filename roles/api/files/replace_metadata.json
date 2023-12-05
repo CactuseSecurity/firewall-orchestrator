@@ -968,6 +968,18 @@
                   }
                 },
                 {
+                  "name": "selected_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "selected_connections",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "service_connections",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -1513,6 +1525,20 @@
                 "name": "selected_connections",
                 "schema": "modelling"
               },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "app_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "modeller",

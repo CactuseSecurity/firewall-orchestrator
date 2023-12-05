@@ -87,7 +87,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                PreselectedInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id });
+                PreselectedInterfaces = ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();
                 AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
                 AvailableSelectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
@@ -115,14 +115,18 @@ namespace FWO.Ui.Services
             }
         }
 
-        public string DisplayInterface(ModellingConnection inter)
+        public string DisplayInterface(ModellingConnection? inter)
         {
-            FwoOwner? app = apps.FirstOrDefault(x => x.Id == inter.AppId);
-            if(app != null)
+            if(inter != null)
             {
-                return inter.DisplayWithOwner(app);
+                FwoOwner? app = apps.FirstOrDefault(x => x.Id == inter.AppId);
+                if(app != null)
+                {
+                    return inter.DisplayWithOwner(app);
+                }
+                return inter.Name;
             }
-            return inter.Name;
+            return "";
         }
 
         public bool RefreshSelectedNwObjects()

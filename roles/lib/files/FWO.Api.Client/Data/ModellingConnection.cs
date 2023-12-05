@@ -123,4 +123,15 @@ namespace FWO.Api.Data
             return shortened;
         }
     }
+
+    public class ModellingConnectionWrapper
+    {
+        [JsonProperty("connection"), JsonPropertyName("connection")]
+        public ModellingConnection Content { get; set; } = new();
+
+        public static ModellingConnection[] Resolve(List<ModellingConnectionWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+    }
 }

@@ -120,7 +120,7 @@
             <div class="form-group row">
                 <div class="col-sm-9">
                     <DraggableList AllElements="ConnHandler.PreselectedInterfaces" @bind-SelectedElements="selectedInterfaces" 
-                        HandleDragStart="HandleConnDragStart" Display="@ConnHandler.DisplayInterface" MaxHeight="7" Multiselect="false"/>
+                        HandleDragStart="HandleConnDragStart" Display="@ConnHandler.DisplayInterface" MaxHeight="10" Multiselect="false"/>
                 </div>
                 <div class="col-sm-3">
                     @if(selectedInterfaces.Count > 0)
@@ -335,6 +335,7 @@
     {
         Container.Clear();
         Container.ConnElement = selectedConn;
+        selectedInterfaces = new();
         return true;
     }
 

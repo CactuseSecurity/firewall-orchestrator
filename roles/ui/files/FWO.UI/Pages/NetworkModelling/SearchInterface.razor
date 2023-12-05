@@ -12,7 +12,7 @@
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
                 <div class="col-sm-9">
-                    <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="selectedInterface" ElementToString="@(i => DisplayInterface(i))" Elements="availableInterfaces" Nullable="true">
+                    <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="selectedInterface" ElementToString="@(i => DisplayInterface(i))" Elements="selectableInterfaces" Nullable="true">
                         <ElementTemplate Context="inter">
                             @DisplayInterface(inter)
                         </ElementTemplate>
@@ -60,7 +60,8 @@
     public FwoOwner Application { get; set; } = new();
 
 
-    private List<ModellingConnection> availableInterfaces { get; set; } = new();
+    private List<ModellingConnection> selectableInterfaces { get; set; } = new();
+    private List<ModellingConnection> allInterfaces { get; set; } = new();
     private ModellingConnection? selectedInterface;
     private bool FirstTry = true;
 
@@ -72,12 +73,8 @@
             try
             {
                 FirstTry = false;
-                availableInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
-                
-                foreach(var interf in availableInterfaces)
-                {
-                    interf.ExtractNwGroups();
-                }
+                allInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
+                RefreshSelectionList();
             }
             catch (Exception exception)
             {
@@ -86,10 +83,25 @@
         }
     }
 
-    private void SelectInterface()
+    private void RefreshSelectionList()
     {
-        AddInterface();
-        SelectAction(selectedInterface); 
+        selectableInterfaces = new();
+        if(allInterfaces != null && allInterfaces.Count > 0)
+        {
+            selectableInterfaces = PreselectedInterfaces != null && PreselectedInterfaces.Count > 0 ?
+                allInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null)?.ToList() ?? new() : allInterfaces;
+            
+            foreach(var interf in selectableInterfaces)
+            {
+                interf.ExtractNwGroups();
+            }
+        }
+    }
+
+    private async Task SelectInterface()
+    {
+        await AddInterface();
+        // SelectAction(selectedInterface); 
         Close();
     }
 
@@ -97,14 +109,18 @@
     {
         try
         {
-            var Variables = new
+            if(selectedInterface != null)
             {
-                appId = Application.Id,
-                connectionId = selectedInterface?.Id
-            };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedConnection, Variables);
-            PreselectedInterfaces.Add(selectedInterface);
-            await PreselectedInterfacesChanged.InvokeAsync(PreselectedInterfaces);
+                var Variables = new
+                {
+                    appId = Application.Id,
+                    connectionId = selectedInterface?.Id
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedConnection, Variables);
+                PreselectedInterfaces.Add(selectedInterface);
+                RefreshSelectionList();
+                await PreselectedInterfacesChanged.InvokeAsync(PreselectedInterfaces);
+            }
         }
         catch (Exception exception)
         {
@@ -114,6 +130,7 @@
 
     private void Close()
     {
+        selectedInterface = null;
         FirstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);

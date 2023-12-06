@@ -21,7 +21,7 @@
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(userConfig.GetText("edit"))</button>
                             <AuthorizeView Roles="admin" Context="ctx">
                                 <Authorized>
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteServiceGrp(context)">@(userConfig.GetText("delete"))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(userConfig.GetText("delete"))</button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
@@ -42,7 +42,7 @@
     </Footer>
 </PopUp>
 <EditServiceGroup @bind-Display="EditSvcGrpMode" @bind-SvcGroupHandler="SvcGrpHandler" AddMode="AddSvcGrpMode" AsAdmin="true"/>
-<ConfirmDelete @bind-Display="DeleteSvcGrpMode" PerformAction="async () => {await DeleteServiceGroup(); StateHasChanged();}" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@Message"/>
+<ConfirmDelete @bind-Display="DeleteSvcGrpMode" PerformAction="async () => {await DeleteServiceGroup(); StateHasChanged();}" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@Message" DeleteAllowed="DeleteAllowed"/>
 <InProgress Display="workInProgress"/>
 
 
@@ -58,7 +58,7 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
 
-    public ModellingServiceGroupHandler SvcGrpHandler;
+    public ModellingServiceGroupHandler? SvcGrpHandler;
     private FwoOwner dummyApplication = new();  // Todo: Special App for predef Services?
     public List<ModellingServiceGroup> PredefServiceGroups { get; set; } = new();
     public List<ModellingService> AvailableServices { get; set; } = new();
@@ -68,6 +68,7 @@
     public bool DeleteSvcGrpMode = false;
     public ModellingServiceGroup ActServiceGroup { get; set; } = new();
     public string Message = "";
+    public bool DeleteAllowed { get; set; } = true;
     private bool workInProgress = false;
     private bool firstTry = true;
 
@@ -133,11 +134,30 @@
         }
     }
 
-    public void RequestDeleteServiceGrp(ModellingServiceGroup serviceGroup)
+    public async Task RequestDeleteServiceGrp(ModellingServiceGroup serviceGroup)
     {
         ActServiceGroup = serviceGroup;
-        Message = userConfig.GetText("U9004") + serviceGroup.Name + "?";
+        DeleteAllowed = !await CheckServiceGroupIsInUse();
+        Message = DeleteAllowed ? userConfig.GetText("U9004") + serviceGroup.Name + "?" : userConfig.GetText("E9008") + serviceGroup.Name;
         DeleteSvcGrpMode = true;
+    }
+
+    private async Task<bool> CheckServiceGroupIsInUse()
+    {
+        try
+        {
+            List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForServiceGroup, new { serviceGroupId = ActServiceGroup.Id });
+            if (foundConnections.Count == 0)
+            {
+                return false;
+            }
+            return true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
+            return true;
+        }
     }
 
     public async Task DeleteServiceGroup()

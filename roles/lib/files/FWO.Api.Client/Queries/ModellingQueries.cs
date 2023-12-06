@@ -39,6 +39,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string removeServiceFromConnection;
         public static readonly string addServiceGroupToConnection;
         public static readonly string removeServiceGroupFromConnection;
+        public static readonly string getConnectionIdsForService;
+        public static readonly string getConnectionIdsForServiceGroup;
 
         public static readonly string getSelectedConnections;
         public static readonly string addSelectedConnection;
@@ -55,7 +57,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string newAppRole;
         public static readonly string updateAppRole;
         public static readonly string deleteNwGroup;
-        public static readonly string getAppServerForAppRole;
+        // public static readonly string getAppServerForAppRole;
         public static readonly string addNwObjectToNwGroup;
         public static readonly string removeNwObjectFromNwGroup;
 
@@ -72,6 +74,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteServiceGroup;
         public static readonly string addServiceToServiceGroup;
         public static readonly string removeServiceFromServiceGroup;
+        public static readonly string getServiceGroupIdsForService;
 
         public static readonly string getHistory;
         public static readonly string addHistoryEntry;
@@ -101,7 +104,7 @@ namespace FWO.Api.Client.Queries
                 setAppServerDeletedState = File.ReadAllText(QueryPath + "modelling/setAppServerDeletedState.graphql");
                 deleteAppServer = File.ReadAllText(QueryPath + "modelling/deleteAppServer.graphql");
                 getAppRolesForAppServer = File.ReadAllText(QueryPath + "modelling/getAppRolesForAppServer.graphql");
-                getConnectionIdsForAppServer = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForAppServer.graphql");                
+                getConnectionIdsForAppServer = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForAppServer.graphql");
 
                 getInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaces.graphql");
                 getInterfaceById = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaceById.graphql");                
@@ -117,6 +120,8 @@ namespace FWO.Api.Client.Queries
                 removeServiceFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceFromConnection.graphql");
                 addServiceGroupToConnection = File.ReadAllText(QueryPath + "modelling/addServiceGroupToConnection.graphql");
                 removeServiceGroupFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceGroupFromConnection.graphql");
+                getConnectionIdsForService = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForService.graphql");
+                getConnectionIdsForServiceGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForServiceGroup.graphql");
 
                 getSelectedConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getSelectedConnections.graphql");
                 addSelectedConnection = File.ReadAllText(QueryPath + "modelling/addSelectedConnection.graphql");
@@ -150,6 +155,7 @@ namespace FWO.Api.Client.Queries
                 deleteServiceGroup = File.ReadAllText(QueryPath + "modelling/deleteServiceGroup.graphql");
                 addServiceToServiceGroup = File.ReadAllText(QueryPath + "modelling/addServiceToServiceGroup.graphql");
                 removeServiceFromServiceGroup = File.ReadAllText(QueryPath + "modelling/removeServiceFromServiceGroup.graphql");
+                getServiceGroupIdsForService = File.ReadAllText(QueryPath + "modelling/getServiceGroupIdsForService.graphql");
 
                 getHistory = File.ReadAllText(QueryPath + "modelling/getHistory.graphql");
                 addHistoryEntry = File.ReadAllText(QueryPath + "modelling/addHistoryEntry.graphql");

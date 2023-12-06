@@ -8,7 +8,7 @@ namespace FWO.Ui.Services
 {
     public class ModellingAppHandler : ModellingHandlerBase
     {
-        public ModellingConnectionHandler connHandler;
+        public ModellingConnectionHandler? connHandler;
         public List<ModellingConnection> Connections = new();
         public ModellingConnection actConn = new();
         public bool AddConnMode = false;
@@ -16,8 +16,7 @@ namespace FWO.Ui.Services
         public bool DeleteConnMode = false;
 
         public bool readOnly = false;
-        public string Message = "";
-
+    
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             Action<Exception?, string, string, bool> displayMessageInUi)

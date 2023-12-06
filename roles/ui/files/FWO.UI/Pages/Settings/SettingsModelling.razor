@@ -163,8 +163,8 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath);
-            namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention);
+            appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? new();
+            namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
         }
         catch (Exception exception)
         {

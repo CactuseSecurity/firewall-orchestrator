@@ -39,7 +39,7 @@ namespace FWO.Middleware.Server
                 await InitLdap();
                 foreach(var importfilePathAndName in importfilePathAndNames)
                 {
-                    if(!await RunImportScript(importfilePathAndName + ".py"))
+                    if(!RunImportScript(importfilePathAndName + ".py"))
                     {
                         Log.WriteInfo("Import App Data", $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
                     }
@@ -146,7 +146,7 @@ namespace FWO.Middleware.Server
             var Variables = new 
             { 
                 name = incomingApp.Name,
-                dn = incomingApp.MainUser,
+                dn = incomingApp.MainUser ?? "",
                 groupDn = userGroupDn,
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
@@ -190,7 +190,7 @@ namespace FWO.Middleware.Server
             {
                 id = existingApp.Id,
                 name = incomingApp.Name,
-                dn = incomingApp.MainUser,
+                dn = incomingApp.MainUser ?? "",
                 groupDn = userGroupDn,
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality
@@ -221,17 +221,24 @@ namespace FWO.Middleware.Server
         private string CreateUserGroup(ModellingImportAppData incomingApp)
         {
             string groupDn = "";
-            if(incomingApp.Modellers.Count > 0 || incomingApp.ModellerGroups.Count > 0)
+            if(incomingApp.Modellers != null && incomingApp.Modellers.Count > 0
+                || incomingApp.ModellerGroups != null && incomingApp.ModellerGroups.Count > 0)
             {
                 string groupName = GroupName(incomingApp.ExtAppId);
                 groupDn = internalLdap.AddGroup(groupName, true);
-                foreach(var modeller in incomingApp.Modellers)
+                if(incomingApp.Modellers != null)
                 {
-                    internalLdap.AddUserToEntry(modeller, groupDn);
+                    foreach(var modeller in incomingApp.Modellers)
+                    {
+                        internalLdap.AddUserToEntry(modeller, groupDn);
+                    }
                 }
-                foreach(var modellerGrp in incomingApp.ModellerGroups)
+                if(incomingApp.ModellerGroups != null)
                 {
-                    internalLdap.AddUserToEntry(modellerGrp, groupDn);
+                    foreach(var modellerGrp in incomingApp.ModellerGroups)
+                    {
+                        internalLdap.AddUserToEntry(modellerGrp, groupDn);
+                    }
                 }
                 internalLdap.AddUserToEntry(groupDn, roleDn);
             }

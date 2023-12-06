@@ -25,11 +25,12 @@
     @if(selectedServices.Count == 1)
     {
         <button type="button" class="btn btn-sm btn-warning" @onclick="() => {SvcGroupHandler.EditService(selectedServices.First()); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("edit_service"))</button>
-        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {SvcGroupHandler.RequestDeleteService(selectedServices.First()); selectedServices = new(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("delete"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await SvcGroupHandler.RequestDeleteService(selectedServices.First()); selectedServices = new(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("delete"))</button>
     }
 </div>
 <EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AddMode="SvcGroupHandler.AddServiceMode" AsAdmin="AsAdmin"/>
-<ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}" Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? "admin" : "modeller")"/>
+<ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}"
+    Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? "admin" : "modeller")" DeleteAllowed="SvcGroupHandler.DeleteAllowed"/>
 
 
 @code

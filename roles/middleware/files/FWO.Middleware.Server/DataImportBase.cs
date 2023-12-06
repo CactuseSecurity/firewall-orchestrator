@@ -54,7 +54,7 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Execute the Data Import Script
         /// </summary>
-        protected async Task<bool> RunImportScript(string importScriptFile)
+        protected bool RunImportScript(string importScriptFile)
         {
             try
             {

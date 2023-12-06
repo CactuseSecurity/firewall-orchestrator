@@ -40,14 +40,14 @@
                 {
                     @if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppRole)
                     {
-                        if(!ResolveAppRole(selectedNwElems[0].Value).IsDeleted)
+                        if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => 
                                 {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value));
                                 ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit"))</button>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
-                                {ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value));
-                                selectedNwElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                                {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value));
+                                selectedNwElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                         }
                     }
                     else if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppServer)
@@ -56,7 +56,7 @@
                     }
                     else
                     {
-                        if(!ResolveNwGroupObject(selectedNwElems[0].Value).IsDeleted)
+                        if(!(ResolveNwGroupObject(selectedNwElems[0].Value)?.IsDeleted ?? true))
                         {
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
                                 {ConnHandler.RequestRemoveNwGrpObject(ResolveNwGroupObject(selectedNwElems[0].Value));
@@ -89,26 +89,26 @@
             {
                 @if(selectedSvcElems[0].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
                 {
-                    if(!ResolveSvcGrp(selectedSvcElems[0].Value).IsGlobal)
+                    if(!ResolveSvcGrp(selectedSvcElems[0].Value)?.IsGlobal ?? true)
                     {
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
                             {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value));
                             ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service_group"))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() =>
-                            {ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedSvcElems[0].Value));
-                            selectedSvcElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                            {await ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedSvcElems[0].Value));
+                            selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                     }
                 }
                 else
                 {
-                    if(!ResolveSvc(selectedSvcElems[0].Value).IsGlobal)
+                    if(!(ResolveSvc(selectedSvcElems[0].Value)?.IsGlobal ?? true))
                     {
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
                             {ConnHandler.EditService(ResolveSvc(selectedSvcElems[0].Value));
                             ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service"))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() =>
-                            {ConnHandler.RequestDeleteService(ResolveSvc(selectedSvcElems[0].Value));
-                            selectedSvcElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                            {await ConnHandler.RequestDeleteService(ResolveSvc(selectedSvcElems[0].Value));
+                            selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                     }
                 }
             }
@@ -146,21 +146,21 @@
     </div>
 </Sidebar>
 <EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="ConnHandler.AddAppRoleMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteAppRole)"
-    Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteAppRole)"
+    Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller" DeleteAllowed="ConnHandler.DeleteAllowed"/>
 <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="ConnHandler.AddSvcGrpMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteServiceGroup)"
-    Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteServiceGroup)"
+    Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller" DeleteAllowed="ConnHandler.DeleteAllowed"/>
 <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
-<ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => WrapAsync(ConnHandler.DeleteService)"
-    Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteService)"
+    Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller" DeleteAllowed="ConnHandler.DeleteAllowed"/>
 <SearchInterface @bind-Display="SearchInterfaceMode" @bind-PreselectedInterfaces="ConnHandler.PreselectedInterfaces" SelectAction="InterfaceToConn"
     DisplayInterface="ConnHandler.DisplayInterface" Application="ConnHandler.Application"/>
-<ConfirmDelete @bind-Display="ConnHandler.RemovePreselectedInterfaceMode" PerformAction="async () => WrapAsync(ConnHandler.RemovePreselectedInterface)" 
+<ConfirmDelete @bind-Display="ConnHandler.RemovePreselectedInterfaceMode" PerformAction="async () => await WrapAsync(ConnHandler.RemovePreselectedInterface)" 
     Title="@userConfig.GetText("remove_connection")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller" Remove="true"/>
 <SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects"
     Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
-<ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => WrapAsync(ConnHandler.RemoveNwGrpObject)"
+<ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
     Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="modeller" Remove="true"/>
 
 @code
@@ -206,20 +206,32 @@
     {
         List<ModellingNwGroup> nwGroups = new();
         List<ModellingAppRole> appRoles = new();
-        List<ModellingAppServer> appServer = new();
+        List<ModellingAppServer> appServers = new();
         foreach(var elem in selectedNwElems)
         {
             if(elem.Key == (int)ModellingTypes.ObjectType.AppRole)
             {
-                appRoles.Add(ResolveAppRole(elem.Value));
+                ModellingAppRole? AppRole = ResolveAppRole(elem.Value);
+                if(AppRole != null)
+                {
+                    appRoles.Add(AppRole);
+                }
             }
             else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)elem.Key))
             {
-                nwGroups.Add(ResolveNwGroupObject(elem.Value));
+                ModellingNwGroup? nwGroup = ResolveNwGroupObject(elem.Value);
+                if(nwGroup != null)
+                {
+                    nwGroups.Add(nwGroup);
+                }
             }
             else if(elem.Key == (int)ModellingTypes.ObjectType.AppServer)
             {
-                appServer.Add(ResolveAppServer(elem.Value));
+                ModellingAppServer? appServer = ResolveAppServer(elem.Value);
+                if(appServer != null)
+                {
+                    appServers.Add(appServer);
+                }
             }
         }
         if(appRoles.Count > 0)
@@ -244,15 +256,15 @@
                 ConnHandler.NwGroupToDestination(nwGroups);
             }
         }
-        if(appServer.Count > 0)
+        if(appServers.Count > 0)
         {
             if(toSource)
             {
-                ConnHandler.AppServerToSource(appServer);
+                ConnHandler.AppServerToSource(appServers);
             }
             else
             {
-                ConnHandler.AppServerToDestination(appServer);
+                ConnHandler.AppServerToDestination(appServers);
             }
         }
         selectedNwElems = new();
@@ -266,11 +278,19 @@
         {
             if(elem.Key == (int)ModellingTypes.ObjectType.ServiceGroup)
             {
-                serviceGroups.Add(ResolveSvcGrp(elem.Value));
+                ModellingServiceGroup? svcGrp = ResolveSvcGrp(elem.Value);
+                if (svcGrp != null)
+                {
+                    serviceGroups.Add(svcGrp);
+                }
             }
             else
             {
-                services.Add(ResolveSvc(elem.Value));
+                ModellingService? svc = ResolveSvc(elem.Value);
+                if (svc != null)
+                {
+                    services.Add(svc);
+                }
             }
         }
         if(serviceGroups.Count > 0)
@@ -294,15 +314,27 @@
         {
             if(elem.Key == (int)ModellingTypes.ObjectType.AppRole)
             {
-                Container.AppRoleElements.Add(ResolveAppRole(elem.Value));
+                ModellingAppRole? AppRole = ResolveAppRole(elem.Value);
+                if(AppRole != null)
+                {
+                    Container.AppRoleElements.Add(AppRole);
+                }
             }
             else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)elem.Key))
             {
-                Container.NwGroupElements.Add(ResolveNwGroupObject(elem.Value));
+                ModellingNwGroup? nwGroup = ResolveNwGroupObject(elem.Value);
+                if(nwGroup != null)
+                {
+                    Container.NwGroupElements.Add(nwGroup);
+                }
             }
             else if(elem.Key == (int)ModellingTypes.ObjectType.AppServer)
             {
-                Container.AppServerElements.Add(ResolveAppServer(elem.Value));
+                ModellingAppServer? appServer = ResolveAppServer(elem.Value);
+                if(appServer != null)
+                {
+                    Container.AppServerElements.Add(appServer);
+                }
             }
         }
         selectedNwElems = new();
@@ -320,11 +352,19 @@
         {
             if(elem.Key == (int)ModellingTypes.ObjectType.ServiceGroup)
             {
-                Container.SvcGrpElements.Add(ResolveSvcGrp(elem.Value));
+                ModellingServiceGroup? svcGrp = ResolveSvcGrp(elem.Value);
+                if (svcGrp != null)
+                {
+                    Container.SvcGrpElements.Add(svcGrp);
+                }
             }
             else
             {
-                Container.SvcElements.Add(ResolveSvc(elem.Value));
+                ModellingService? svc = ResolveSvc(elem.Value);
+                if (svc != null)
+                {
+                    Container.SvcElements.Add(svc);
+                }
             }
         }
         selectedSvcElems = new();
@@ -341,15 +381,15 @@
 
     public string DisplayNwObject(KeyValuePair<int, long> nwObject)
     {
-        return ResolveNwObject(ConnHandler.AvailableNwElems[ConnHandler.AvailableNwElems.FindIndex(x => x.Key == nwObject.Key && x.Value == nwObject.Value)]).DisplayWithIcon();
+        return ResolveNwObject(ConnHandler.AvailableNwElems[ConnHandler.AvailableNwElems.FindIndex(x => x.Key == nwObject.Key && x.Value == nwObject.Value)])?.DisplayWithIcon() ?? "";
     }
 
     public string DisplaySvcObject(KeyValuePair<int, int> svcObject)
     {
-        return ResolveSvcObject(ConnHandler.AvailableSvcElems[ConnHandler.AvailableSvcElems.FindIndex(x => x.Key == svcObject.Key && x.Value == svcObject.Value)]).DisplayWithIcon();
+        return ResolveSvcObject(ConnHandler.AvailableSvcElems[ConnHandler.AvailableSvcElems.FindIndex(x => x.Key == svcObject.Key && x.Value == svcObject.Value)])?.DisplayWithIcon() ?? "";
     }
 
-    private ModellingNwObject ResolveNwObject(KeyValuePair<int, long> selectedObj)
+    private ModellingNwObject? ResolveNwObject(KeyValuePair<int, long> selectedObj)
     {
         if(selectedObj.Key == (int)ModellingTypes.ObjectType.AppRole)
         {
@@ -369,27 +409,30 @@
         }
     }
 
-    private ModellingAppServer ResolveAppServer(long selectedId)
+    private ModellingAppServer? ResolveAppServer(long selectedId)
     {
         return ConnHandler.AvailableAppServers.FirstOrDefault(x => x.Id == selectedId);
     }
 
-    private ModellingAppRole ResolveAppRole(long selectedId)
+    private ModellingAppRole? ResolveAppRole(long selectedId)
     {
-        ModellingAppRole appRole = ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
-        foreach (var appServerWrapper in appRole.AppServers)
+        ModellingAppRole? appRole = ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
+        if(appRole != null)
         {
-            appServerWrapper.Content.TooltipText = userConfig.GetText("C9000");
+            foreach (var appServerWrapper in appRole.AppServers)
+            {
+                appServerWrapper.Content.TooltipText = userConfig.GetText("C9000");
+            }
         }
         return appRole;
     }
 
-    private ModellingNwGroup ResolveNwGroupObject(long selectedId)
+    private ModellingNwGroup? ResolveNwGroupObject(long selectedId)
     {
-        return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId).Content;
+        return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId)?.Content;
     }
 
-    private ModellingSvcObject ResolveSvcObject(KeyValuePair<int, int> selectedObj)
+    private ModellingSvcObject? ResolveSvcObject(KeyValuePair<int, int> selectedObj)
     {
         if(selectedObj.Key == (int)ModellingTypes.ObjectType.ServiceGroup)
         {
@@ -405,7 +448,7 @@
         }
     }
 
-    private ModellingService ResolveSvc(int selectedId)
+    private ModellingService? ResolveSvc(int selectedId)
     {
         return ConnHandler.AvailableServices.FirstOrDefault(x => x.Id == selectedId);
     }
@@ -415,12 +458,12 @@
         return ConnHandler.AvailableServiceGroups.FirstOrDefault(x => x.Id == selectedId);
     }
 
-    private async Task SearchInterface()
+    private void SearchInterface()
     {
         SearchInterfaceMode = true;
     }
 
-    private async Task SearchNwObject()
+    private void SearchNwObject()
     {
         SearchNwObjectMode = true;
     }

@@ -12,13 +12,11 @@ namespace FWO.Ui.Services
         public ModellingServiceGroup ActServiceGroup { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
         public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
-        public ModellingServiceHandler ServiceHandler;
-        public List<ModellingService> SvcToAdd { get; set; } = new();
+        public ModellingServiceHandler? ServiceHandler;
         public List<ModellingService> SvcToDelete { get; set; } = new();
         public bool AddServiceMode = false;
         public bool EditServiceMode = false;
         public bool DeleteServiceMode = false;
-        public string Message = "";
         private ModellingService actService = new();
 
 
@@ -71,10 +69,9 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void RequestDeleteService(ModellingService service)
+        public async Task RequestDeleteService(ModellingService service)
         {
-            actService = service;
-            Message = userConfig.GetText("U9003") + service.Name + "?";
+            await RequestDeleteServiceBase(service);
             DeleteServiceMode = true;
         }
 
@@ -82,7 +79,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                DeleteServiceMode = await DeleteService(actService, AvailableServices);
+                DeleteServiceMode = await DeleteService(AvailableServices);
             }
             catch (Exception exception)
             {
@@ -223,6 +220,7 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
+            DeleteServiceMode = false;
             SvcToAdd = new List<ModellingService>();
             SvcToDelete = new List<ModellingService>();
         }

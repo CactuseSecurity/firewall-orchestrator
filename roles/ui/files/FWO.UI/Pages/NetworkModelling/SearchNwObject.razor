@@ -136,16 +136,19 @@
     {
         try
         {
-            var Variables = new
+            if(selectedObject != null)
             {
-                appId = Application.Id,
-                nwGroupId = selectedObject?.Id
-            };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedNwGroupObject, Variables);
-            ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject });
-            await ObjectListChanged.InvokeAsync(ObjectList);
-            Refresh();
-            Close();
+                var Variables = new
+                {
+                    appId = Application.Id,
+                    nwGroupId = selectedObject?.Id
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedNwGroupObject, Variables);
+                ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject ?? throw new Exception("No Object selected.") });
+                await ObjectListChanged.InvokeAsync(ObjectList);
+                Refresh();
+                Close();
+            }
         }
         catch (Exception exception)
         {

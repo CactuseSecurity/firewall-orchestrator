@@ -27,7 +27,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         public async Task<bool> Run()
         {
-            if(!await RunImportScript(globalConfig.ImportSubnetDataPath + ".py"))
+            if(!RunImportScript(globalConfig.ImportSubnetDataPath + ".py"))
             {
                 Log.WriteInfo("Import Area Subnet Data", $"Script {globalConfig.ImportSubnetDataPath}.py failed but trying to import from existing file.");
             }

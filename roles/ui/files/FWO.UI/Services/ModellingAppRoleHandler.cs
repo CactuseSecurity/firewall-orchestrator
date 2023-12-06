@@ -20,7 +20,6 @@ namespace FWO.Ui.Services
 
         public List<ModellingAppServer> AppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> AppServerToDelete { get; set; } = new();
-        public string Message = "";
         private readonly string origId = "";
         public ModellingNamingConvention NamingConvention = new();
 
@@ -297,14 +296,21 @@ namespace FWO.Ui.Services
 
         private static bool IsInArea(ModellingAppServer server, ModellingNetworkArea area)
         {
-            foreach(var subnet in area.Subnets)
+            try
             {
-                if(IsInSubnet(IPAddress.Parse(StripOffNetmask(server.Ip)), subnet.Content.Ip))
+                foreach(var subnet in area.Subnets)
                 {
-                    return true;
+                    if(IsInSubnet(IPAddress.Parse(StripOffNetmask(server.Ip)), subnet.Content.Ip ?? throw new Exception()))
+                    {
+                        return true;
+                    }
                 }
+                return false;
             }
-            return false;
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         private static bool IsInSubnet(IPAddress address, string subnetMask)

@@ -181,15 +181,22 @@
 
     private async Task SelectedAreaChanged(ModellingNetworkArea? newArea)
     {
-        AppRoleHandler.ActAppRole.Area = newArea;
-        if(newArea != null)
+        try
         {
-            if(newArea.IdString.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
+            AppRoleHandler.ActAppRole.Area = newArea;
+            if(newArea != null)
             {
-                AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
-                AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
+                if(newArea.IdString.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
+                {
+                    AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
+                    AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
+                }
             }
+            AppRoleHandler.SelectAppServersFromArea(newArea);
         }
-        AppRoleHandler.SelectAppServersFromArea(newArea);
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
     }
 }

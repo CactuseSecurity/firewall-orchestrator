@@ -14,6 +14,10 @@ namespace FWO.Ui.Services
         protected readonly UserConfig userConfig;
         protected Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+        public string Message { get; set; } = "";
+        public bool DeleteAllowed { get; set; } = true;
+        public List<ModellingService> SvcToAdd { get; set; } = new();
+        private ModellingService actService = new();
 
         public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
@@ -68,16 +72,48 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task<bool> DeleteService(ModellingService service, List<ModellingService> availableServices, List<KeyValuePair<int, int>>? availableSvcElems = null)
+        public async Task RequestDeleteServiceBase(ModellingService service)
+        {
+            actService = service;
+            DeleteAllowed = !await CheckServiceIsInUse();
+            Message = DeleteAllowed ? userConfig.GetText("U9003") + service.Name + "?" : userConfig.GetText("E9007") + service.Name;
+        }
+
+        private async Task<bool> CheckServiceIsInUse()
         {
             try
             {
-                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteService, new { id = service.Id })).AffectedRows > 0)
+                if(SvcToAdd.FirstOrDefault(s => s.Id == actService.Id) == null)
                 {
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Service, service.Id,
-                        $"Deleted Service: {service.Display()}", Application.Id);
-                    availableServices.Remove(service);
-                    availableSvcElems?.Remove(availableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.Service && x.Value == service.Id));
+                    List<ModellingServiceGroup> foundServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupIdsForService, new { serviceId = actService.Id });
+                    if (foundServiceGroups.Count == 0)
+                    {
+                        List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForService, new { serviceId = actService.Id });
+                        if (foundConnections.Count == 0)
+                        {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
+                return true;
+            }
+        }
+
+        public async Task<bool> DeleteService(List<ModellingService> availableServices, List<KeyValuePair<int, int>>? availableSvcElems = null)
+        {
+            try
+            {
+                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteService, new { id = actService.Id })).AffectedRows > 0)
+                {
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Service, actService.Id,
+                        $"Deleted Service: {actService.Display()}", Application.Id);
+                    availableServices.Remove(actService);
+                    availableSvcElems?.Remove(availableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.Service && x.Value == actService.Id));
                     return false;
                 }
             }

@@ -51,7 +51,7 @@
     public EventCallback<List<ModellingConnection>> PreselectedInterfacesChanged { get; set; }
 
     [Parameter]
-    public Func <ModellingConnection, bool> SelectAction { get; set; }
+    public Func <ModellingConnection, bool>? SelectAction { get; set; }
 
     [Parameter]
     public Func <ModellingConnection, string> DisplayInterface { get; set; }
@@ -117,7 +117,11 @@
                     connectionId = selectedInterface?.Id
                 };
                 await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedConnection, Variables);
-                PreselectedInterfaces.Add(selectedInterface);
+                if(PreselectedInterfaces == null)
+                {
+                    PreselectedInterfaces = new();
+                }
+                PreselectedInterfaces.Add(selectedInterface ?? throw new Exception("No Interface selected."));
                 RefreshSelectionList();
                 await PreselectedInterfacesChanged.InvokeAsync(PreselectedInterfaces);
             }

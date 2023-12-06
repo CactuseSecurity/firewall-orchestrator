@@ -20,7 +20,6 @@ namespace FWO.Ui.Services
         public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
 
         public string InterfaceName = "";
-        public string Message = "";
         public bool ReadOnly = false;
 
         public bool srcReadOnly { get; set; } = false;
@@ -36,7 +35,7 @@ namespace FWO.Ui.Services
         public List<ModellingAppServer> DstAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> DstAppServerToDelete { get; set; } = new();
 
-        public ModellingAppRoleHandler AppRoleHandler;
+        public ModellingAppRoleHandler? AppRoleHandler;
         public List<ModellingAppRole> SrcAppRolesToAdd { get; set; } = new();
         public List<ModellingAppRole> SrcAppRolesToDelete { get; set; } = new();
         public List<ModellingAppRole> DstAppRolesToAdd { get; set; } = new();
@@ -49,14 +48,13 @@ namespace FWO.Ui.Services
         public bool EditAppRoleMode = false;
         public bool DeleteAppRoleMode = false;
 
-        public ModellingServiceHandler ServiceHandler;
-        public List<ModellingService> SvcToAdd { get; set; } = new();
+        public ModellingServiceHandler? ServiceHandler;
         public List<ModellingService> SvcToDelete { get; set; } = new();
         public bool AddServiceMode = false;
         public bool EditServiceMode = false;
         public bool DeleteServiceMode = false;
 
-        public ModellingServiceGroupHandler SvcGrpHandler;
+        public ModellingServiceGroupHandler? SvcGrpHandler;
         public List<ModellingServiceGroup> SvcGrpToAdd { get; set; } = new();
         public List<ModellingServiceGroup> SvcGrpToDelete { get; set; } = new();
         public bool AddSvcGrpMode = false;
@@ -67,7 +65,6 @@ namespace FWO.Ui.Services
         private ModellingAppRole actAppRole = new();
         private ModellingNwGroup actNwGrpObj = new();
         private ModellingConnection actInterface = new();
-        private ModellingService actService = new();
         private ModellingServiceGroup actServiceGroup = new();
         private ModellingConnection ActConnOrig { get; set; } = new();
 
@@ -124,7 +121,7 @@ namespace FWO.Ui.Services
                 {
                     return inter.DisplayWithOwner(app);
                 }
-                return inter.Name;
+                return inter.Name ?? "";
             }
             return "";
         }
@@ -259,11 +256,14 @@ namespace FWO.Ui.Services
             SearchNWObjectMode = true;
         }
 
-        public void RequestRemoveNwGrpObject(ModellingNwGroup nwGrpObj)
+        public void RequestRemoveNwGrpObject(ModellingNwGroup? nwGrpObj)
         {
-            actNwGrpObj = nwGrpObj;
-            Message = userConfig.GetText("U9006") + nwGrpObj.Name + "?";
-            RemoveNwObjectMode = true;
+            if(nwGrpObj != null)
+            {
+                actNwGrpObj = nwGrpObj;
+                Message = userConfig.GetText("U9006") + nwGrpObj.Name + "?";
+                RemoveNwObjectMode = true;
+            }
         }
 
         public async Task RemoveNwGrpObject()
@@ -319,10 +319,13 @@ namespace FWO.Ui.Services
             HandleAppRole(new ModellingAppRole(){});
         }
 
-        public void EditAppRole(ModellingAppRole appRole)
+        public void EditAppRole(ModellingAppRole? appRole)
         {
-            AddAppRoleMode = false;
-            HandleAppRole(appRole);
+            if(appRole != null)
+            {
+                AddAppRoleMode = false;
+                HandleAppRole(appRole);
+            }
         }
 
         public void HandleAppRole(ModellingAppRole appRole)
@@ -339,11 +342,36 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void RequestDeleteAppRole(ModellingAppRole appRole)
+        public async Task RequestDeleteAppRole(ModellingAppRole? appRole)
         {
-            actAppRole = appRole;
-            Message = userConfig.GetText("U9002") + appRole.Name + "?";
-            DeleteAppRoleMode = true;
+            if(appRole != null)
+            {
+                actAppRole = appRole;
+                DeleteAllowed = !await CheckAppRoleIsInUse();
+                Message = DeleteAllowed ? userConfig.GetText("U9002") + actAppRole.Name + "?" : userConfig.GetText("E9009") + actAppRole.Name;
+                DeleteAppRoleMode = true;
+            }
+        }
+
+        private async Task<bool> CheckAppRoleIsInUse()
+        {
+            try
+            {
+                if(SrcAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null && DstAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null)
+                {
+                    List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForNwGroup, new { id = actAppRole.Id });
+                    if (foundConnections.Count == 0)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
+                return true;
+            }
         }
 
         public async Task DeleteAppRole()
@@ -402,10 +430,13 @@ namespace FWO.Ui.Services
             HandleServiceGroup(new ModellingServiceGroup(){});
         }
 
-        public void EditServiceGroup(ModellingServiceGroup serviceGroup)
+        public void EditServiceGroup(ModellingServiceGroup? serviceGroup)
         {
-            AddSvcGrpMode = false;
-            HandleServiceGroup(serviceGroup);
+            if(serviceGroup != null)
+            {
+                AddSvcGrpMode = false;
+                HandleServiceGroup(serviceGroup);
+            }
         }
 
         public void HandleServiceGroup(ModellingServiceGroup serviceGroup)
@@ -422,11 +453,36 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void RequestDeleteServiceGrp(ModellingServiceGroup serviceGroup)
+        public async Task RequestDeleteServiceGrp(ModellingServiceGroup? serviceGroup)
         {
-            actServiceGroup = serviceGroup;
-            Message = userConfig.GetText("U9004") + serviceGroup.Name + "?";
-            DeleteSvcGrpMode = true;
+            if(serviceGroup != null)
+            {
+                actServiceGroup = serviceGroup;
+                DeleteAllowed = !await CheckServiceGroupIsInUse();
+                Message = DeleteAllowed ? userConfig.GetText("U9004") + serviceGroup.Name + "?" : userConfig.GetText("E9008") + serviceGroup.Name;
+                DeleteSvcGrpMode = true;
+            }
+        }
+
+        private async Task<bool> CheckServiceGroupIsInUse()
+        {
+            try
+            {
+                if(SvcGrpToAdd.FirstOrDefault(s => s.Id == actServiceGroup.Id) == null)
+                {
+                    List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForServiceGroup, new { serviceGroupId = actServiceGroup.Id });
+                    if (foundConnections.Count == 0)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
+                return true;
+            }
         }
 
         public async Task DeleteServiceGroup()
@@ -466,10 +522,13 @@ namespace FWO.Ui.Services
             HandleService(new ModellingService(){});
         }
 
-        public void EditService(ModellingService service)
+        public void EditService(ModellingService? service)
         {
-            AddServiceMode = false;
-            HandleService(service);
+            if(service != null)
+            {
+                AddServiceMode = false;
+                HandleService(service);
+            }
         }
 
         public void HandleService(ModellingService service)
@@ -485,18 +544,20 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void RequestDeleteService(ModellingService service)
+        public async Task RequestDeleteService(ModellingService? service)
         {
-            actService = service;
-            Message = userConfig.GetText("U9003") + service.Name + "?";
-            DeleteServiceMode = true;
+            if(service != null)
+            {
+                await RequestDeleteServiceBase(service);
+                DeleteServiceMode = true;
+            }
         }
 
         public async Task DeleteService()
         {
             try
             {
-                DeleteServiceMode = await DeleteService(actService, AvailableServices, AvailableSvcElems);
+                DeleteServiceMode = await DeleteService(AvailableServices, AvailableSvcElems);
             }
             catch (Exception exception)
             {

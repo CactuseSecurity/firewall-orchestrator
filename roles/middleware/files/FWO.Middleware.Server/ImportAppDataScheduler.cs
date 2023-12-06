@@ -34,7 +34,7 @@ namespace FWO.Middleware.Server
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfig_OnChange;
-            startScheduleTimer();
+            StartScheduleTimer();
         }
 
         private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
@@ -43,11 +43,11 @@ namespace FWO.Middleware.Server
             if(globalConfig.ImportAppDataSleepTime > 0)
             {
                 ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * 3600000; // convert hours to milliseconds
-                startScheduleTimer();
+                StartScheduleTimer();
             }
         }
 
-        private void startScheduleTimer()
+        private void StartScheduleTimer()
         {
             if (globalConfig.ImportAppDataSleepTime > 0)
             {
@@ -106,11 +106,11 @@ namespace FWO.Middleware.Server
                 Log.WriteAlert($"source: \"{GlobalConfig.kImportAppData}\"",
                     $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAppData}\"");
                 await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message);
-                await setAlert(globalConfig.GetText("scheduled_app_import"), titletext);
+                await SetAlert(globalConfig.GetText("scheduled_app_import"), titletext);
             }
         }
 
-        private async Task setAlert(string title, string description)
+        private async Task SetAlert(string title, string description)
         {
             try
             {

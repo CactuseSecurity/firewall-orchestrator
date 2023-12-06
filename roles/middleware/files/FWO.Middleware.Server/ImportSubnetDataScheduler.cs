@@ -34,7 +34,7 @@ namespace FWO.Middleware.Server
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfig_OnChange;
-            startScheduleTimer();
+            StartScheduleTimer();
         }
 
         private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
@@ -43,11 +43,11 @@ namespace FWO.Middleware.Server
             if (globalConfig.ImportSubnetDataSleepTime > 0)
             {
                 ImportSubnetDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * 3600000; // convert hours to milliseconds
-                startScheduleTimer();
+                StartScheduleTimer();
             }
         }
 
-        private void startScheduleTimer()
+        private void StartScheduleTimer()
         {
             if (globalConfig.ImportSubnetDataSleepTime > 0)
             {
@@ -104,11 +104,11 @@ namespace FWO.Middleware.Server
                 Log.WriteAlert($"source: \"{GlobalConfig.kImportAreaSubnetData}\"",
                     $"userId: \"0\", title: \"Error encountered while trying to import Area Subnet Data\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAreaSubnetData}\"");
                 await AddLogEntry(1, globalConfig.GetText("scheduled_subnet_import"), globalConfig.GetText("ran_into_exception") + exc.Message);
-                setAlert("Import Area Subnet Data failed", exc.Message);
+                await SetAlert("Import Area Subnet Data failed", exc.Message);
             }
         }
 
-        private async Task setAlert(string title, string description)
+        private async Task SetAlert(string title, string description)
         {
             try
             {

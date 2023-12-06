@@ -7,7 +7,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-@if(!appSelected || (appSelected && !appHandler.EditConnMode))
+@if(!appSelected || (appSelected && !(appHandler?.EditConnMode ?? true)))
 {
     <h3>@(userConfig.GetText("network_modelling"))</h3>
     <hr />

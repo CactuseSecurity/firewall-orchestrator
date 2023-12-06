@@ -61,7 +61,7 @@ namespace FWO.Ui.Services
 
         private bool CheckService()
         {
-            if(ActService.Protocol == null || ActService.Port == null)
+            if(ActService.Protocol == null || ActService.Protocol.Id == 0 || ActService.Port == null)
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5102"), true);
                 return false;

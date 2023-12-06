@@ -215,7 +215,7 @@ if __name__ == "__main__":
         ownNorm = {
             "app_id_external": owner['owner']['name'],
             "name": owner['description'],
-            "main-user": None,
+            "main_user": None,
             "modellers": users,
             "import_source": "tufinRlm",
             "app_servers": extractSocketInfo(owner['asset'], owner['services']),

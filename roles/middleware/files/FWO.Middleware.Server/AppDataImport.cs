@@ -146,7 +146,7 @@ namespace FWO.Middleware.Server
             var Variables = new 
             { 
                 name = incomingApp.Name,
-                dn = incomingApp.Modellers.Count > 0 ? incomingApp.Modellers.First() : "",  // todo
+                dn = incomingApp.MainUser,
                 groupDn = userGroupDn,
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
@@ -171,6 +171,10 @@ namespace FWO.Middleware.Server
                 GroupGetReturnParameters? groupWithSameName = allGroups.FirstOrDefault(x => new DistName(x.GroupDn).Group == GroupName(incomingApp.ExtAppId));
                 if(groupWithSameName != null)
                 {
+                    if(userGroupDn == "")
+                    {
+                        userGroupDn = groupWithSameName.GroupDn;
+                    }
                     UpdateUserGroup(incomingApp, groupWithSameName.GroupDn);
                 }
                 else
@@ -186,7 +190,7 @@ namespace FWO.Middleware.Server
             {
                 id = existingApp.Id,
                 name = incomingApp.Name,
-                dn = incomingApp.Modellers.Count > 0 ? incomingApp.Modellers.First() : "",  // todo
+                dn = incomingApp.MainUser,
                 groupDn = userGroupDn,
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality

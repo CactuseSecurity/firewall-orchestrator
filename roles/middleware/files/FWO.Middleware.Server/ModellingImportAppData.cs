@@ -34,13 +34,19 @@ namespace FWO.Middleware.Server
         public string ExtAppId { get; set; } = "";
 
         /// <summary>
+        /// Main User (Dn)
+        /// </summary>
+        [JsonProperty("main_user"), JsonPropertyName("main_user")]
+        public string? MainUser { get; set; } = "";
+
+        /// <summary>
         /// List of allowed modellers (Dn)
         /// </summary>
         [JsonProperty("modellers"), JsonPropertyName("modellers")]
         public List<string>? Modellers { get; set; } = new();
 
         /// <summary>
-        /// List of Ldap Groups of allowed modellers (Dn)
+        /// List of Ldap Groups of allowed modellers (Dn): (currently handled same as modellers)
         /// </summary>
         [JsonProperty("modeller_groups"), JsonPropertyName("modeller_groups")]
         public List<string>? ModellerGroups { get; set; } = new();

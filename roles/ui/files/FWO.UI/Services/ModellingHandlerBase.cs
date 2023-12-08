@@ -160,5 +160,27 @@ namespace FWO.Ui.Services
             }
             return interfaceName;
         }
+
+        protected async Task<bool> CheckAppServerInUse(ModellingAppServer appServer)
+        {
+            try
+            {
+                List<ModellingAppRole> foundAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRolesForAppServer, new { id = appServer.Id });
+                if (foundAppRoles.Count == 0)
+                {
+                    List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForAppServer, new { id = appServer.Id });
+                    if (foundConnections.Count == 0)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
+                return true;
+            }
+        }
     }
 }

@@ -25,7 +25,14 @@
         <div class="btn-group">
             @if(selectedInterface != null)
             {
-                <button type="button" class="btn btn-sm btn-success" @onclick="SelectInterface">@(userConfig.GetText("select"))</button>
+                <AuthorizeView Roles="modeller">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-success" @onclick="SelectInterface">@(userConfig.GetText("select"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("select"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>

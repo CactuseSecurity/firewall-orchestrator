@@ -268,7 +268,7 @@ namespace FWO.Ui.Services
             AppServerToDelete = new List<ModellingAppServer>();
         }
 
-        public void SelectAppServersFromArea(ModellingNetworkArea? area)
+        public async Task SelectAppServersFromArea(ModellingNetworkArea? area)
         {
             AppServersInArea = new List<ModellingAppServer>(){};
             if(area != null)
@@ -277,6 +277,8 @@ namespace FWO.Ui.Services
                 {
                     if(IsInArea(server, area))
                     {
+                        server.InUse = await CheckAppServerInUse(server);
+                        server.TooltipText = userConfig.GetText("C9002");
                         AppServersInArea.Add(server);
                     }
                 }

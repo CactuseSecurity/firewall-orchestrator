@@ -28,6 +28,7 @@ namespace FWO.Config.Api
         public static readonly string kImportAppData = "importAppData";
         public static readonly string kImportAreaSubnetData = "importAreaSubnetData";
         public static readonly string kManual = "manual";
+        public static readonly string kModellerGroup = "ModellerGroup_";
     
         public string productVersion { get; set; }
 

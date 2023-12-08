@@ -13,7 +13,7 @@ namespace FWO.Api.Data
 
         public override string Display()
         {
-            return (IsDeleted ? "*" : "") + Name;
+            return (IsDeleted ? "!" : "") + Name;
         }
 
         public override string DisplayHtml()

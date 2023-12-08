@@ -2509,6 +2509,8 @@ INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und
 INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
 INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');
 INSERT INTO txt VALUES ('C9001', 'English', 'This object was deactivated and should be removed from Connection.');
+INSERT INTO txt VALUES ('C9002', 'German',  'Dieser App Server wurde noch in keiner App Rolle oder Verbindung verwendet.');
+INSERT INTO txt VALUES ('C9002', 'English', 'This App Server was not used in any App Role or Connection.');
 
 
 -- help pages

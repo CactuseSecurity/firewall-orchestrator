@@ -11,12 +11,18 @@ namespace FWO.Api.Data
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string ImportSource { get; set; } = "";
 
-        public bool InUse { get; set; } = false;
+        public bool InUse { get; set; } = true;
 
 
         public override string Display()
         {
-            return (IsDeleted ? "*" : "") + DisplayBase.DisplayIpWithName(ToNetworkObject());
+            return (IsDeleted ? "!" : "") + (InUse ? "" : "*") + DisplayBase.DisplayIpWithName(ToNetworkObject());
+        }
+
+        public override string DisplayHtml()
+        {
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{TooltipText}\"";
+            return $"<span class=\"{(InUse ? "" : "text-success")}\" {(!InUse && TooltipText != "" ? tooltip : "")}>{base.DisplayHtml()}</span>";
         }
 
         public override string DisplayWithIcon()
@@ -55,6 +61,7 @@ namespace FWO.Api.Data
             IsDeleted = appServer.IsDeleted;
             Ip = appServer.Ip;
             ImportSource = appServer.ImportSource;
+            InUse = appServer.InUse;
         }
     }
 

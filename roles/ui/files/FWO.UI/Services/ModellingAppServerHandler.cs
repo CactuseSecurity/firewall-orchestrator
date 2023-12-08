@@ -67,7 +67,7 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if(!checkIpAdress(ActAppServer.Ip))
+            if(!CheckIpAdress(ActAppServer.Ip))
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("wrong_ip_address"), true);
                 return false;
@@ -75,7 +75,7 @@ namespace FWO.Ui.Services
             return true;
         }
 
-        private bool checkIpAdress(string ip)
+        private static bool CheckIpAdress(string ip)
         {
             IPAddressRange dummyOut;
             return IPAddressRange.TryParse(ip, out dummyOut);

@@ -9236,15 +9236,24 @@
                       "last_recert_check"
                     ],
                     "filter": {
-                      "_or": [
+                      "_and": [
                         {
-                          "tenant_id": {
-                            "_is_null": true
-                          }
+                          "_or": [
+                            {
+                              "tenant_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "tenant_id": {
+                                "_eq": "x-hasura-tenant-id"
+                              }
+                            }
+                          ]
                         },
                         {
-                          "tenant_id": {
-                            "_eq": "x-hasura-tenant-id"
+                          "app_id_external": {
+                            "_in": "x-hasura-visible-owners"
                           }
                         }
                       ]

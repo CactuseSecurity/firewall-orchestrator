@@ -1,0 +1,7 @@
+mutation removeSelectedNwGroupObjectFromAllApps(
+  $nwGroupId: bigint!
+  ) {
+  delete_modelling_selected_objects(where: {nwgroup_id: {_eq: $nwGroupId}}) {
+    affected_rows
+  }
+}

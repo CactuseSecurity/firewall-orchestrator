@@ -55,15 +55,6 @@
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"
 
-- name: copy fworch config export and import scripts
-  copy:
-    src: scripts
-    dest: "{{ fworch_home }}"
-    mode: "0755"
-    owner: "{{ fworch_user}}"
-    group: "{{ fworch_user}}"
-  become: true
-
 - name: copy fwo_api.py for scripting from importer
   copy:
     src: roles/importer/files/importer/fwo_api.py

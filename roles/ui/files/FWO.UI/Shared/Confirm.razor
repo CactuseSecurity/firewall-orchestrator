@@ -1,0 +1,53 @@
+﻿@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(Title)" Show="@Display" OnClose="Cancel">
+    <Body>
+        @if (Display)
+        {
+            <p>@(Message)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("confirm"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("confirm"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> PerformAction { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Message { get; set; } = "";
+
+    private void Cancel()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

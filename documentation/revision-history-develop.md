@@ -150,3 +150,6 @@ bugfix release:
 - fixing missing api perms fw-admin (management)
 - rename management & device tenat_id fields to unfiltered_tenant_id
 - fixing UI device selector crashes
+
+# 7.3.2 - 19.10.2023 DEVELOP
+- Modelling first version

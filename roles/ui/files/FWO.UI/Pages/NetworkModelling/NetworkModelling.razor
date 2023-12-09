@@ -1,0 +1,220 @@
+@using FWO.Config.Api
+@using FWO.Ui.Display
+
+@page "/networkmodelling/{appId?}"
+@attribute [Authorize(Roles = "admin, modeller, auditor")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if(!appSelected || (appSelected && !(appHandler?.EditConnMode ?? true)))
+{
+    <h3>@(userConfig.GetText("network_modelling"))</h3>
+    <hr />
+
+    <div class="form-group row col-sm-12">
+        <label class="col-form-label">@(userConfig.GetText("application")):</label>
+        @if(singleApp)
+        {
+            <label class="col-form-label text-primary ml-3">@selectedApp.Display()</label>
+        }
+        else
+        {
+            <div class="col-sm-3">
+                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display())" SelectedElement="selectedApp" 
+                        SelectedElementChanged="InitApp" Elements="apps">
+                    <ElementTemplate Context="app">
+                        @app.Display()
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        }
+        @* <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
+        <AuthorizeView Roles="admin, auditor">
+            <Authorized>
+                <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
+            </Authorized>
+        </AuthorizeView>
+        @* <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
+    </div>
+    <hr />
+    @if(singleApp || appSelected)
+    {
+        <div class="form-group row m-2">
+            <h5>@(userConfig.GetText("comm_profile"))</h5>
+            @if(appActive)
+            {
+                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddConn">@(userConfig.GetText("add_connection"))</button>
+                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
+                <AuthorizeView Roles="admin, auditor">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
+                    </Authorized>
+                </AuthorizeView>
+            }
+        </div>
+        <div class="m-2">
+            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
+                @if(userConfig.AllowManualOwnerAdmin)
+                {
+                    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => appHandler.ShowDetails(context)">@(userConfig.GetText("details"))</button>
+                                @if(appActive)
+                                {
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => appHandler.EditConn(context)">@(userConfig.GetText("edit"))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => appHandler.RequestDeleteConnection(context)">@(userConfig.GetText("delete"))</button>
+                                }
+                            </div>
+                        </Template>
+                    </Column>
+                }
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                    <Template>
+                        <ExpandableList2 Elements="appHandler.GetSrcNames(context)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                            <ElementTemplate>
+                                @((MarkupString)src)
+                            </ElementTemplate>
+                        </ExpandableList2>
+                    </Template>
+                </Column>
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("service"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                    <Template>
+                        <ExpandableList2 Elements="appHandler.GetSvcNames(context)" Context="svc" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                            <ElementTemplate>
+                                @((MarkupString)svc)
+                            </ElementTemplate>
+                        </ExpandableList2>
+                    </Template>
+                </Column>
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("destination"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                    <Template>
+                        <ExpandableList2 Elements="appHandler.GetDstNames(context)" Context="dest" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                            <ElementTemplate>
+                                @((MarkupString)dest)
+                            </ElementTemplate>
+                        </ExpandableList2>
+                    </Template>
+                </Column>
+            </Table>
+        </div>
+        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); StateHasChanged();}" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="modeller"/>
+    }
+}
+else
+{
+    <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler"/>
+}
+<ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp"/>
+<ShowHistory @bind-Display="showHistory" Applications="apps"/>
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public string? AppId { get; set; }
+
+    private ModellingAppHandler? appHandler;
+    private List<FwoOwner> apps = new();
+    private FwoOwner selectedApp = new();
+    private bool singleApp = false;
+    private bool appSelected = false;
+    private bool manualAppServer = false;
+
+    private bool appActive = false;
+    private bool showHistory = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            if (apps.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
+            }
+            else if(AppId != null)
+            {
+                FwoOwner? existingApp = apps.FirstOrDefault(a => a.ExtAppId == AppId);
+                if(existingApp != null)
+                {
+                    selectedApp = existingApp;
+                    await InitApp(selectedApp);
+                }
+                else
+                {
+                    selectedApp = apps.First();
+                }
+            }
+            else
+            {
+                selectedApp = apps.First();
+            }
+
+            if (apps.Count == 1)
+            {
+                singleApp = true;
+                await InitApp(selectedApp);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task InitApp(FwoOwner newApp)
+    {
+        try
+        {
+            selectedApp = newApp;
+            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi);
+            await appHandler.Init();
+            appSelected = true;
+            appActive = selectedApp.Active;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void ManualAppServer()
+    {
+        manualAppServer = true;
+    }
+
+    private string getTableRowClass(ModellingConnection conn)
+    {
+        if(conn.IsInterface)
+        {
+            return "bg-light-grey";
+        }
+        return "";
+    }
+
+    private async Task ShowHistory()
+    {
+        showHistory = true;
+    }
+
+    private async Task Report()
+    {
+
+    }
+
+    private async Task ExtRequest()
+    {
+
+    }
+}

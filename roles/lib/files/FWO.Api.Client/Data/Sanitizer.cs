@@ -99,6 +99,15 @@ namespace FWO.Api.Data
             return output;
         }
 
+        public static string? SanitizeKeyOpt(string? input, ref bool shortened)
+        {
+            if (input != null)
+            {
+                return SanitizeKeyMand(input, ref shortened);
+            }
+            else return null;
+        }
+
         // Comments may contain everything but quotes (EOL chars are allowed)
         public static string? SanitizeCommentOpt(string? input, ref bool shortened)
         {
@@ -127,14 +136,24 @@ namespace FWO.Api.Data
             return output;
         }
 
-        public static string? SanitizeKeyOpt(string? input, ref bool shortened)
+        // Cidrs may contain Numbers[a-f]:./
+        public static string SanitizeCidrMand(string input, ref bool shortened)
+        {
+            string output = Regex.Replace(input, @"[^a-fA-F0-9\.\:/]", "").Trim();
+            if(output.Length < input.Length)
+            {
+                shortened = true;
+            }
+            return output;
+        }
+
+        public static string? SanitizeCidrOpt(string? input, ref bool shortened)
         {
             if (input != null)
             {
-                return SanitizeKeyMand(input, ref shortened);
+                return SanitizeCidrMand(input, ref shortened);
             }
             else return null;
         }
-
     }
 }

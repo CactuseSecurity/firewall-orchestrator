@@ -1,0 +1,10 @@
+query getServiceGroupsForApp ($appId: Int!){
+  modelling_service_group (where: { app_id: { _eq: $appId } } order_by: { name: asc }){
+    ...serviceGroupDetails
+    services: service_service_groups{
+      service{
+        ...serviceDetails
+      }
+    }
+  }
+}

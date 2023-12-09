@@ -1,0 +1,166 @@
+﻿@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, auditor, modeller")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("search_nw_object"))" Large="true" Show="@Display" OnClose="Close">
+    <Body>
+        @if(Display)
+        {
+            <div class="form-group row col-sm-12">
+                <label class="col-form-label">@(userConfig.GetText("object_type")):</label>
+                @if(singleType)
+                {
+                    <label class="col-form-label text-primary ml-2">@userConfig.GetText(selectedType.ToString())</label>
+                }
+                else
+                {
+                    <div class="col-sm-2">
+                        <Dropdown ElementType="ModellingTypes.ObjectType" ElementToString="@(a => userConfig.GetText(a.ToString()))" @bind-SelectedElement="selectedType" Elements="availableTypes">
+                            <ElementTemplate Context="type">
+                                @userConfig.GetText(type.ToString())
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="InitType">@(userConfig.GetText("select"))</button>
+                }
+            </div>
+            @if(typeSelected)
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
+                    <div class="col-sm-9">
+                        <Dropdown ElementType="ModellingNwGroup" @bind-SelectedElement="selectedObject" ElementToString="@(o => o.Display())" Elements="nwObjects" Nullable="true">
+                            <ElementTemplate Context="obj">
+                                @((MarkupString)obj.DisplayHtml())
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if(selectedObject != null)
+            {
+                <AuthorizeView Roles="modeller">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-success" @onclick="AddObject">@(userConfig.GetText("select"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("select"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public List<ModellingNwGroupWrapper> ObjectList { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<ModellingNwGroupWrapper> > ObjectListChanged { get; set; }
+
+    [Parameter] 
+    public FwoOwner Application { get; set; } = new();
+
+    [Parameter]
+    public Func<bool> Refresh { get; set; } = DefaultInit.DoNothingSync;
+
+
+    private List<ModellingTypes.ObjectType> availableTypes = new(){ ModellingTypes.ObjectType.NetworkArea };
+    private ModellingTypes.ObjectType selectedType = ModellingTypes.ObjectType.NetworkArea;
+    private bool singleType = false;
+    private bool typeSelected = false;
+    private List<ModellingNwGroup> nwObjects = new();
+    private ModellingNwGroup? selectedObject;
+    private bool FirstTry = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Display && FirstTry)
+        {
+            try
+            {
+                FirstTry = false;
+                if (availableTypes.Count == 1)
+                {
+                    singleType = true;
+                    await InitType();
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+    }
+
+    private async Task InitType()
+    {
+        try
+        {
+            var Variables = new
+            {
+                grpType = (int)selectedType
+            };
+            List<ModellingNwGroup> allNwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, Variables);
+            List<ModellingNwGroupWrapper> selectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
+            nwObjects = allNwObjects.Where(o => selectedObjects.FirstOrDefault(sel => sel.Content.Id == o.Id) == null).ToList();
+            typeSelected = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task AddObject()
+    {
+        try
+        {
+            if(selectedObject != null)
+            {
+                var Variables = new
+                {
+                    appId = Application.Id,
+                    nwGroupId = selectedObject?.Id
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedNwGroupObject, Variables);
+                ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject ?? throw new Exception("No Object selected.") });
+                await ObjectListChanged.InvokeAsync(ObjectList);
+                Refresh();
+                Close();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        selectedObject = null;
+        FirstTry = true;
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

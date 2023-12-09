@@ -17,6 +17,8 @@ object changesLock = new object(); // LOCK
 ReportScheduler reportScheduler;
 AutoDiscoverScheduler autoDiscoverScheduler;
 DailyCheckScheduler dailyCheckScheduler;
+ImportAppDataScheduler importAppDataScheduler;
+ImportSubnetDataScheduler importSubnetDataScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
@@ -67,6 +69,19 @@ Task.Factory.StartNew(async() =>
 {
     dailyCheckScheduler = await DailyCheckScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
+
+// Create and start import app data scheduler
+Task.Factory.StartNew(async() =>
+{
+    importAppDataScheduler = await ImportAppDataScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start import subnet data scheduler
+Task.Factory.StartNew(async() =>
+{
+    importSubnetDataScheduler = await ImportSubnetDataScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
 
 // Add services to the container.
 builder.Services.AddControllers()

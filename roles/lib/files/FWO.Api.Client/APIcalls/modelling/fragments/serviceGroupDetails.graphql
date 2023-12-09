@@ -1,0 +1,9 @@
+fragment serviceGroupDetails on modelling_service_group {
+  id
+  app_id
+  name
+  is_global
+  comment
+  creator
+  creation_date
+}

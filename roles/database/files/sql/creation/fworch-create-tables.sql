@@ -40,7 +40,6 @@ Create table "device" -- contains an entry for each firewall gateway
 	"package_name" Varchar,
 	"package_uid" Varchar,
 	"dev_typ_id" Integer NOT NULL,
-	-- "unfiltered_tenant_id" Integer,
 	"dev_active" Boolean NOT NULL Default true,
 	"dev_comment" Text,
 	"dev_create" Timestamp NOT NULL Default now(),
@@ -58,7 +57,6 @@ Create table "management" -- contains an entry for each firewall management syst
 	"dev_typ_id" Integer NOT NULL,
 	"mgm_name" Varchar NOT NULL,
 	"mgm_comment" Text,
-	-- "unfiltered_tenant_id" Integer,
  	"cloud_tenant_id" VARCHAR,
 	"cloud_subscription_id" VARCHAR,	
 	"mgm_create" Timestamp NOT NULL Default now(),
@@ -467,6 +465,14 @@ Create table "tenant"
 	"tenant_is_superadmin" Boolean NOT NULL default false,	
 	"tenant_create" Timestamp NOT NULL Default now(),
  primary key ("tenant_id")
+);
+
+Create table tenant_to_management
+(
+	tenant_id Integer NOT NULL,
+	management_id Integer NOT NULL,
+  	shared BOOLEAN NOT NULL DEFAULT TRUE,
+  	primary key ("tenant_id", "management_id")
 );
 
 Create table "tenant_to_device"

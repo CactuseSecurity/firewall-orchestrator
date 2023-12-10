@@ -22,7 +22,7 @@
     <h3>@(userConfig.GetText("owners"))</h3>
     @(userConfig.GetText("U5216"))
     <hr />
-    <div class="form-group row">
+    <div class="form-group row w-content">
         @if(userConfig.AllowManualOwnerAdmin)
         {
             <button type="button" class="btn btn-sm btn-success m-2" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>

@@ -20,7 +20,7 @@
 @(userConfig.GetText("U5213"))
 <hr />
 
-<div class="form-group row">
+<div class="form-group row w-content">
     <button type="button" class="btn btn-success m-2" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
     <AuthorizeView Roles="admin">
         <Authorized>

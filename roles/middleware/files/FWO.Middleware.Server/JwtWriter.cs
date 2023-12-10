@@ -120,13 +120,10 @@ namespace FWO.Middleware.Server
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
                 
-            if (user.Tenant != null && user.Tenant.TenantVisibleGateways != null && user.Tenant.TenantVisibleManagements != null)
-            { 
-                // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
-                claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
-                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagementIds)} }}"));
-                claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleGatewayIds)} }}"));
-            }
+            // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
+            claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
+            claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagementIds)} }}"));
+            claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleGatewayIds)} }}"));
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-owners", $"{{ {GetOwners(user)} }}"));
 
             // we need to create an extra list because hasura only accepts an array of roles even if there is only one

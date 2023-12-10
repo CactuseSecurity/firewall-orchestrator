@@ -1,6 +1,6 @@
 # library for FWORCH API calls
 from asyncio.log import logger
-from distutils.log import debug
+# from distutils.log import debug
 import re
 import traceback
 from sqlite3 import Timestamp

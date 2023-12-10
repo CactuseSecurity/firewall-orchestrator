@@ -55,7 +55,7 @@ http_proxy_import_parameter: ""
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
 # OS 
-debian_testing_version: "12"
+debian_testing_version: "13"
 debian_testing_release_name: trixie
 arch: x86_64
 redhat_major_version: "8"

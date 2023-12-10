@@ -1,10 +1,10 @@
 ﻿@using FWO.Config.Api
 @inject UserConfig userConfig
 
-<nav class="sidebar fixed sidebar-dark bg-dark shadow">
-    <div class="sidebar-main d-flex flex-row" style="left:0px;">
-        <div class="sidebar-dark bg-dark" style="width:250px; overflow-x:scroll;">
-            <ul class="sidebar-nav mr-auto">
+<nav class="sidebar fixed sidebar-help shadow">
+    <div class="sidebar-help d-flex flex-row" style="left:0px;">
+        <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
+            <ul class="sidebar-help mr-auto">
                 <p></p>
                 <h5>@(userConfig.GetText("workflow"))</h5>
                 <a class="nav-link" href="/help/workflow/objects/?lang=@($"{userConfig.GetUserLanguage()}")">

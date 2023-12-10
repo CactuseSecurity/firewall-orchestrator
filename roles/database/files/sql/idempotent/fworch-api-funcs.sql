@@ -197,8 +197,8 @@ RETURNS boolean AS $$
         ELSIF t_id = 1 THEN
             show := true;
         ELSE
-            SELECT INTO mgm_unfiltered_tenant_id unfiltered_tenant_id FROM rule LEFT JOIN management USING (mgm_id);
-		    SELECT INTO gw_unfiltered_tenant_id unfiltered_tenant_id FROM rule LEFT JOIN device USING (dev_id);
+            SELECT INTO mgm_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN management USING (mgm_id) LEFT JOIN tenant_to_management USING (mgm_id) WHERE shared=false AND tenant_id=t_id;
+            SELECT INTO gw_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN device USING (dev_id) LEFT JOIN tenant_to_device ON (shared=false AND tenant_id=t_id);
             IF mgm_unfiltered_tenant_id IS NOT NULL AND mgm_unfiltered_tenant_id=t_id OR gw_unfiltered_tenant_id IS NOT NULL AND gw_unfiltered_tenant_id=t_id THEN
                show := true;
 			ELSE
@@ -248,8 +248,8 @@ RETURNS boolean AS $$
         ELSIF t_id = 1 THEN
             show := true;
         ELSE
-            SELECT INTO mgm_unfiltered_tenant_id unfiltered_tenant_id FROM rule LEFT JOIN management USING (mgm_id);
-		    SELECT INTO gw_unfiltered_tenant_id unfiltered_tenant_id FROM rule LEFT JOIN device USING (dev_id);
+            SELECT INTO mgm_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN management USING (mgm_id) LEFT JOIN tenant_to_management USING (mgm_id) WHERE shared=false AND tenant_id=t_id;
+            SELECT INTO gw_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN device USING (dev_id) LEFT JOIN tenant_to_device ON (shared=false AND tenant_id=t_id);
             IF mgm_unfiltered_tenant_id IS NOT NULL AND mgm_unfiltered_tenant_id=t_id OR gw_unfiltered_tenant_id IS NOT NULL AND gw_unfiltered_tenant_id=t_id THEN
                show := true;
 			ELSE
@@ -305,8 +305,8 @@ RETURNS boolean AS $$
         ELSIF t_id = 1 THEN
             show := true;
         ELSE
-            SELECT INTO mgm_unfiltered_tenant_id unfiltered_tenant_id FROM rule LEFT JOIN management USING (mgm_id);
-		    SELECT INTO gw_unfiltered_tenant_id unfiltered_tenant_id FROM rule LEFT JOIN device USING (dev_id);
+            SELECT INTO mgm_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN management USING (mgm_id) LEFT JOIN tenant_to_management USING (mgm_id) WHERE shared=false AND tenant_id=t_id;
+            SELECT INTO gw_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN device USING (dev_id) LEFT JOIN tenant_to_device ON (shared=false AND tenant_id=t_id);
             IF mgm_unfiltered_tenant_id IS NOT NULL AND mgm_unfiltered_tenant_id=t_id OR gw_unfiltered_tenant_id IS NOT NULL AND gw_unfiltered_tenant_id=t_id THEN
                show := true;
 			ELSE
@@ -478,8 +478,8 @@ RETURNS boolean AS $$
         ELSIF t_id = 1 THEN
             show := true;
         ELSE
-            SELECT INTO mgm_unfiltered_tenant_id unfiltered_tenant_id FROM rule LEFT JOIN management USING (mgm_id);
-			SELECT INTO gw_unfiltered_tenant_id unfiltered_tenant_id FROM rule LEFT JOIN device USING (dev_id);
+            SELECT INTO mgm_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN management USING (mgm_id) LEFT JOIN tenant_to_management USING (mgm_id) WHERE shared=false AND tenant_id=t_id;
+            SELECT INTO gw_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN device USING (dev_id) LEFT JOIN tenant_to_device ON (shared=false AND tenant_id=t_id);
             IF mgm_unfiltered_tenant_id IS NOT NULL AND mgm_unfiltered_tenant_id=t_id OR gw_unfiltered_tenant_id IS NOT NULL AND gw_unfiltered_tenant_id=t_id THEN
                 show := true;
 			ELSE
@@ -526,8 +526,8 @@ RETURNS SETOF rule AS $$
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant0 cannot be simulated.';
         ELSE
-            SELECT INTO mgm_unfiltered_tenant_id management.unfiltered_tenant_id FROM device LEFT JOIN management USING (mgm_id) WHERE device.dev_id=device_row.dev_id;
-            SELECT INTO gw_unfiltered_tenant_id device.unfiltered_tenant_id FROM device WHERE dev_id=device_row.dev_id;
+            SELECT INTO mgm_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN management USING (mgm_id) LEFT JOIN tenant_to_management USING (mgm_id) WHERE shared=false AND tenant_id=t_id;
+            SELECT INTO gw_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN device USING (dev_id) LEFT JOIN tenant_to_device ON (shared=false AND tenant_id=t_id);
 
             IF mgm_unfiltered_tenant_id IS NOT NULL AND mgm_unfiltered_tenant_id=tenant OR
 				gw_unfiltered_tenant_id IS NOT NULL AND gw_unfiltered_tenant_id=tenant
@@ -572,8 +572,8 @@ RETURNS SETOF rule_from AS $$
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant0 cannot be simulated.';
         ELSE
-            SELECT INTO mgm_unfiltered_tenant_id management.unfiltered_tenant_id FROM device LEFT JOIN management USING (mgm_id) WHERE device.dev_id=rule.dev_id;
-            SELECT INTO gw_unfiltered_tenant_id device.unfiltered_tenant_id FROM device WHERE dev_id=rule.dev_id;
+            SELECT INTO mgm_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN management USING (mgm_id) LEFT JOIN tenant_to_management USING (mgm_id) WHERE shared=false AND tenant_id=t_id;
+            SELECT INTO gw_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN device USING (dev_id) LEFT JOIN tenant_to_device ON (shared=false AND tenant_id=t_id);
 
             IF mgm_unfiltered_tenant_id IS NOT NULL AND mgm_unfiltered_tenant_id=tenant OR
 				gw_unfiltered_tenant_id IS NOT NULL AND gw_unfiltered_tenant_id=tenant
@@ -619,8 +619,8 @@ RETURNS SETOF rule_to AS $$
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant0 cannot be simulated.';
         ELSE
-            SELECT INTO mgm_unfiltered_tenant_id management.unfiltered_tenant_id FROM device LEFT JOIN management USING (mgm_id) WHERE device.dev_id=rule.dev_id;
-            SELECT INTO gw_unfiltered_tenant_id device.unfiltered_tenant_id FROM device WHERE dev_id=rule.dev_id;
+            SELECT INTO mgm_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN management USING (mgm_id) LEFT JOIN tenant_to_management USING (mgm_id) WHERE shared=false AND tenant_id=t_id;
+            SELECT INTO gw_unfiltered_tenant_id tenant_id FROM rule LEFT JOIN device USING (dev_id) LEFT JOIN tenant_to_device ON (shared=false AND tenant_id=t_id);
 
             IF mgm_unfiltered_tenant_id IS NOT NULL AND mgm_unfiltered_tenant_id=tenant OR
 				gw_unfiltered_tenant_id IS NOT NULL AND gw_unfiltered_tenant_id=tenant

@@ -1,10 +1,17 @@
 @import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 
-html, body {
+/* 
+    we are currently using bootstrap 5.3.2  
+    all configs in this file are related to this base config
+*/
+
+html,
+body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-a, .btn-link {
+a,
+.btn-link {
     color: #0366d6;
 }
 
@@ -14,30 +21,247 @@ app {
     flex-direction: column;
 }
 
+.text-left {
+    text-align:left !important
+}
+
+header {
+    background-image: linear-gradient(#e4e8ec, #9b9797);
+}
+
+.w-content {
+    width: fit-content;
+}
+
 .top-row {
     height: 3.5rem;
     display: flex;
     align-items: center;
 }
 
+.button-container {
+    position: absolute;
+    bottom: 10px;
+}
+
+.button-container.left {
+    left: 10px;
+}
+
+.button-container.right {
+    right: 10px;
+}
+
+.button-container.center {
+    right: 50%;
+}
+
+
+.radioSpace {
+    margin-right: 10px;
+    margin-left: 20px;
+}
+
+.managementSelect {
+    position: relative;
+    width: 100%;
+}
+
+/* .managementSelect .deviceSelect {
+    position: absolute;
+    left: 0;
+    top: 40px;
+} */
+
+.deviceCell {
+    padding-left: 6px;
+    padding-right: 6px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    margin-left: 10px;
+    border-color: rgba(0, 0, 255, 0.527);
+    border-radius: 0.1rem;
+    border-style: hidden;
+    border-width: 1px;
+    width: 100%;
+}
+
+/* e.g. login page */
+.center-div {
+    margin: auto;
+    position: relative;
+    top: 50%;
+    width: 20%;
+}
+
+.nav-tabs {
+    background-color: #d6d5d5;
+}
+
+
+.modern-close {
+    display: inline-block;
+    border: none;
+    background-color: white;
+    font-weight: bold;
+    font-size: large;
+}
+
+/*
+.modern-close::content {
+    border: none;
+    background-color: white;
+    font-weight: bold;
+    display: inline-block;
+    content: "\00d7";
+    font-size: 30px;
+    z-index: 12;
+} */
+
+/* 
+.modern-close:before {
+    width: 40px;
+    height: 40px;
+    background-color: white;
+} */
+
+.no-border {
+    border: none;
+}
+
+.bg-white {
+    background-color: white;
+}
+
+.bg-blue {
+    z-index: 10;
+    background-image: linear-gradient(#054B8C, #03335E);
+}
+
+.bg-gray {
+    z-index: 10;
+    color: black;
+    background-image: linear-gradient(#e4e8ec, #9b9797);
+}
+
+.bg-secondary {
+    background-image: linear-gradient(#e4e8ec, #e4e8ef);
+}
+
+.navbar-nav .active {
+    font-weight: bold;
+    font-style: italic;
+}
+
+/* for collapsibles */
+.pad-10 {
+    padding: 10px;
+}
+
+/* for collapsibles */
+.btn-width-icon {
+    width: 40px
+}
+
+/* gray-out background when using pop-ups*/
+.popup-outer {
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+.popup {
+    padding: 2em;
+    min-width: 11cm;
+    margin-top: 2cm;
+    background-color: rgba(255, 255, 255, 1);
+    overflow-x: hidden;
+}
+
+
+h2,
+h3,
+h4,
+h5 {
+    color: #2FA5ED;
+    font-weight: bold;
+}
+
+.popup-body {
+    width: 100%;
+    height: fit-content;
+    margin: 2%;
+    overflow-y: scroll;
+    padding-right: 17px;
+    /* Increase/decrease this value for cross-browser compatibility */
+    box-sizing: content-box;
+    /* So the width will be 100% + 17px */
+}
+
+.popup-footer {
+    padding-top: 2em;
+}
+
+.button {
+    display: inline-block;
+    padding: 10px 20px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+.btn.three-state-button {
+    height: 2rem;
+    /* width: 33%; */
+}
+
 .main {
     flex: 1;
 }
-    .main .top-row {
-        background-color: #f7f7f7;
-        border-bottom: 1px solid #d6d5d5;
-        justify-content: flex-end;
-    }
 
-    .main .top-row > a, .main .top-row .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-    }
+.mr-auto {
+    margin-right: auto !important;
+}
 
-    .main .top-row a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+.nav-main-left {
+    float: left;
+    margin-right: 40px;
+}
+
+.nav-right {
+    float: right;
+    margin-right: 40px;
+}
+
+.main .top-row {
+    /* background-color: #f7f7f7; */
+    background-image: linear-gradient(#e4e8ec, #9b9797);
+    border-bottom: 1px solid #d6d5d5;
+    justify-content: flex-end;
+}
+
+.main .top-row>a,
+.main .top-row .btn-link {
+    white-space: nowrap;
+    margin-left: 1.5rem;
+}
+
+.main .top-row a:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.navbar-brand {
+    padding: 8px;
+}
+
+.sidebar-help {
+    padding-left: 8px;
+    position: fixed;
+    top: 70px;
+    height: 95%;
+    z-index: 10;
+    /* color: black; */
+    color-scheme: dark;
+    background-image: linear-gradient(#e4e8ec, #9b9797);
+}
 
 .sidebar-main {
     position: fixed;
@@ -84,15 +308,16 @@ app {
 }
 
 .alert-warning-override {
-    color:#732d00;
-    background-color:#ffe494;
-    border-color:#f5d0b8
+    color: #732d00;
+    background-color: #ffe494;
+    border-color: #f5d0b8
 }
 
 .col-form-label-marg7 {
-    margin-left: 7px; /* hier wird der Abstand zwischen Checkbox und Label definiert */
+    margin-left: 7px;
+    /* hier wird der Abstand zwischen Checkbox und Label definiert */
 }
-  
+
 #blazor-error-ui {
     background: lightyellow;
     bottom: 0;
@@ -105,12 +330,12 @@ app {
     z-index: 1000;
 }
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
 
 .footer {
     position: fixed;
@@ -120,7 +345,7 @@ app {
     width: 100%;
 }
 
-.hide-all-but-second-child :not(:nth-child(2))  {
+.hide-all-but-second-child :not(:nth-child(2)) {
     display: none;
 }
 
@@ -144,16 +369,27 @@ app {
 }
 
 .whitespace-div {
-    white-space: pre-wrap; /* css-3 */
-    white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
-    white-space: -pre-wrap; /* Opera 4-6 */
-    white-space: -o-pre-wrap; /* Opera 7 */
-    word-wrap: break-word; /* Internet Explorer 5.5+ */
+    white-space: pre-wrap;
+    /* css-3 */
+    white-space: -moz-pre-wrap;
+    /* Mozilla, since 1999 */
+    white-space: -pre-wrap;
+    /* Opera 4-6 */
+    white-space: -o-pre-wrap;
+    /* Opera 7 */
+    word-wrap: break-word;
+    /* Internet Explorer 5.5+ */
 }
+
+thead {
+    background-image: linear-gradient(#e4e8ec, #e4e8ef);
+}
+
 
 .sticky-header thead {
     position: sticky;
-    top: -1px; /* looks better in chrome */
+    top: -1px;
+    /* looks better in chrome */
     z-index: 1;
 }
 
@@ -198,7 +434,7 @@ app {
 }
 
 .fade-bg {
-    background-color: rgba(0,0,0,0);
+    background-color: rgba(0, 0, 0, 0);
     -webkit-transition: background-color 500ms linear;
     -ms-transition: background-color 500ms linear;
     transition: background-color 500ms linear;
@@ -206,15 +442,6 @@ app {
 
 .temp-highlight {
     background-color: #a4d7f5;
-}
-
-.nav-tabs {
-    background-color: #d6d5d5;
-}
-
-.navbar-nav .active {
-    font-weight: bold;
-    font-style: italic;
 }
 
 .fly-in-animation {
@@ -229,9 +456,4 @@ app {
     100% {
         transform: translateY(0%);
     }
-}
-
-.radioSpace {
-    margin-right:10px;
-    margin-left:20px;
 }

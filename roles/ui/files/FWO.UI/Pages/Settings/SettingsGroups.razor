@@ -93,13 +93,9 @@
                 <div class="form-group row">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("roles")):</label>
                     <div class="col-sm-10">
-                        @if (actGroup.OwnerGroup)
+                        @if (AddGroupMode)
                         {
-                            <label class="m-2">recertifier</label>
-                        }                  
-                        else if (AddGroupMode)
-                        {
-                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="availableRoles" Nullable="true">
+                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="@(actGroup.OwnerGroup ? ownerGroupRoles : availableRoles)" Nullable="true">
                                 <ElementTemplate Context="role">
                                     @role.Name
                                 </ElementTemplate>
@@ -209,6 +205,7 @@
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<Role> roles = new List<Role>();
     private List<Role> availableRoles = new List<Role>();
+    private List<Role> ownerGroupRoles = new List<Role>();
 
     private UiUser selectedUiUser = new UiUser();
     private UiUser selectedUserToDelete = new UiUser();
@@ -248,6 +245,7 @@
             SynchronizeGroupsToRoles();
 
             availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
+            ownerGroupRoles = roles.FindAll(x => (x.Name == "recertifier" || x.Name == "modeller"));
         }
         catch (System.Exception exception)
         {

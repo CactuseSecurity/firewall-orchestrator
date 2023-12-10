@@ -46,7 +46,6 @@ namespace FWO.Config.Api
         {
             User = new UiUser();
             Translate = globalConfig.langDict[globalConfig.DefaultLanguage];
-            Overwrite = Task.Run(async () => await GetCustomDict(globalConfig.DefaultLanguage)).Result;
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfigOnChange;
         }
@@ -205,10 +204,13 @@ namespace FWO.Config.Api
             Dictionary<string, string> dict = new();
             try
             {
-                UiText[] uiTexts = await apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getCustomTextsPerLanguage, new { language = languageName });
-                foreach (UiText text in uiTexts)
+                UiText[]? uiTexts = await apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getCustomTextsPerLanguage, new { language = languageName });
+                if (uiTexts != null)
                 {
-                    dict.Add(text.Id, text.Txt);
+                    foreach (UiText text in uiTexts)
+                    {
+                        dict.Add(text.Id, text.Txt);
+                    }
                 }
             }
             catch (Exception exception)

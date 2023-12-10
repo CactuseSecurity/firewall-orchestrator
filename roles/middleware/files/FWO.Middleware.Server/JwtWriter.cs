@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
 using FWO.Api.Data;
+using FWO.Config.Api;
 
 namespace FWO.Middleware.Server
 {
@@ -126,6 +127,7 @@ namespace FWO.Middleware.Server
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagementIds)} }}"));
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleGatewayIds)} }}"));
             }
+            claimsIdentity.AddClaim(new Claim("x-hasura-visible-owners", $"{{ {GetOwners(user)} }}"));
 
             // we need to create an extra list because hasura only accepts an array of roles even if there is only one
             List<string> hasuraRolesList = new List<string>();
@@ -167,6 +169,22 @@ namespace FWO.Middleware.Server
 
             claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
             return claimsIdentity;
+        }
+
+        private string GetOwners(UiUser user)
+        {
+            List<string> owners = new();
+            if(user.Groups != null)
+            {
+                foreach(var grp in user.Groups)
+                {
+                    if (grp.Contains(GlobalConfig.kModellerGroup))
+                    {
+                        owners.Add(new DistName(grp).Group.Substring(GlobalConfig.kModellerGroup.Length));
+                    }
+                }
+            }
+            return string.Join(",", owners);
         }
     }
 }

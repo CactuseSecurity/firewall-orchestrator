@@ -1,0 +1,12 @@
+query getHistory {
+  modelling_change_history (order_by: { change_time: desc }){
+    id
+    app_id
+    change_type
+    object_type
+    object_id
+    change_text
+    changer
+    change_time
+  }
+}

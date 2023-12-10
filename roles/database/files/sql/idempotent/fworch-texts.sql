@@ -12,6 +12,134 @@ INSERT INTO txt VALUES ('English', 				'English',	'English');
 INSERT INTO txt VALUES ('German', 				'German',	'Deutsch');
 INSERT INTO txt VALUES ('German', 				'English',	'German');
 
+-- enum values
+INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
+INSERT INTO txt VALUES ('master', 			    'English', 	'Master');
+INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
+INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
+INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
+INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
+INSERT INTO txt VALUES ('rule_modify',          'German',   'Regel &auml;ndern');
+INSERT INTO txt VALUES ('rule_modify',          'English',  'Modify Rule');
+INSERT INTO txt VALUES ('rule_delete',          'German',   'Regel l&ouml;schen');
+INSERT INTO txt VALUES ('rule_delete',          'English',  'Delete Rule');
+INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
+INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
+INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
+INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
+INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
+INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
+INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
+INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
+INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
+INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
+INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
+INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
+INSERT INTO txt VALUES ('DoNothing',			'German', 	'Keine Aktion');
+INSERT INTO txt VALUES ('DoNothing',			'English', 	'Do Nothing');
+INSERT INTO txt VALUES ('AutoPromote',			'German', 	'Autom. Weiterleitung');
+INSERT INTO txt VALUES ('AutoPromote',			'English', 	'Auto-forward');
+INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
+INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
+INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
+INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
+INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
+INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
+INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
+INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');
+INSERT INTO txt VALUES ('RequestTask',			'English', 	'Request Task');
+INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftrag');
+INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
+INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
+INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
+INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
+INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
+INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
+INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
+INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
+INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'Nach Pfadanalyse');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste eintragen');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
+INSERT INTO txt VALUES ('Sunday',               'German', 	'Sonntag');
+INSERT INTO txt VALUES ('Sunday',               'English', 	'Sunday');
+INSERT INTO txt VALUES ('Monday',               'German', 	'Montag');
+INSERT INTO txt VALUES ('Monday',               'English', 	'Monday');
+INSERT INTO txt VALUES ('Tuesday',              'German', 	'Dienstag');
+INSERT INTO txt VALUES ('Tuesday',              'English', 	'Tuesday');
+INSERT INTO txt VALUES ('Wednesday',            'German', 	'Mittwoch');
+INSERT INTO txt VALUES ('Wednesday',            'English', 	'Wednesday');
+INSERT INTO txt VALUES ('Thursday',             'German', 	'Donnerstag');
+INSERT INTO txt VALUES ('Thursday',             'English', 	'Thursday');
+INSERT INTO txt VALUES ('Friday',               'German', 	'Freitag');
+INSERT INTO txt VALUES ('Friday',               'English', 	'Friday');
+INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
+INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
+INSERT INTO txt VALUES ('Rules', 			    'German', 	'Regel-Report');
+INSERT INTO txt VALUES ('Rules', 			    'English', 	'Rules Report');
+INSERT INTO txt VALUES ('Changes', 			    'German', 	'Changes-Report');
+INSERT INTO txt VALUES ('Changes', 			    'English', 	'Changes Report');
+INSERT INTO txt VALUES ('Statistics', 			'German', 	'Statistik-Report');
+INSERT INTO txt VALUES ('Statistics', 			'English', 	'Statistics Report');
+INSERT INTO txt VALUES ('NatRules', 			'German', 	'NAT-Regel-Report');
+INSERT INTO txt VALUES ('NatRules', 			'English', 	'NAT Rules Report');
+INSERT INTO txt VALUES ('ResolvedRules', 	    'German', 	'Regel-Report (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('ResolvedRules', 		'English', 	'Rules Report (resolved)');
+INSERT INTO txt VALUES ('ResolvedRulesTech', 	'German', 	'Regel-Report (technisch)');
+INSERT INTO txt VALUES ('ResolvedRulesTech', 	'English', 	'Rules Report (technical)');
+INSERT INTO txt VALUES ('Recertification', 	    'German', 	'Rezertifizierungs-Report');
+INSERT INTO txt VALUES ('Recertification', 		'English', 	'Recertification Report');
+INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes-Report (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes Report (resolved)');
+INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (technisch)');
+INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
+INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Report');
+INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
+INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
+INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
+INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
+INSERT INTO txt VALUES ('exclusive', 	        'English', 	'Exclusive');
+INSERT INTO txt VALUES ('AppRole', 	            'German', 	'App Rolle');
+INSERT INTO txt VALUES ('AppRole', 	            'English', 	'App Role');
+INSERT INTO txt VALUES ('AppZone', 	            'German', 	'Anwendungszone');
+INSERT INTO txt VALUES ('AppZone', 	            'English', 	'App Zone');
+INSERT INTO txt VALUES ('NetworkZone', 	        'German', 	'Netzwerkzone');
+INSERT INTO txt VALUES ('NetworkZone', 	        'English', 	'Network Zone');
+INSERT INTO txt VALUES ('NetworkArea', 	        'German', 	'Netzwerkarea');
+INSERT INTO txt VALUES ('NetworkArea', 	        'English', 	'Network Area');
+INSERT INTO txt VALUES ('Connection', 	        'German', 	'Verbindung');
+INSERT INTO txt VALUES ('Connection', 	        'English', 	'Connection');
+INSERT INTO txt VALUES ('AppServer', 	        'German', 	'App Server');
+INSERT INTO txt VALUES ('AppServer', 	        'English', 	'App Server');
+INSERT INTO txt VALUES ('ServiceGroup', 	    'German', 	'Dienstgruppe');
+INSERT INTO txt VALUES ('ServiceGroup', 	    'English', 	'Service Group');
+INSERT INTO txt VALUES ('Service', 	            'German', 	'Dienst');
+INSERT INTO txt VALUES ('Service', 	            'English', 	'Service');
+INSERT INTO txt VALUES ('Insert', 	            'German', 	'Einf&uuml;gen');
+INSERT INTO txt VALUES ('Insert', 	            'English', 	'Insert');
+INSERT INTO txt VALUES ('Update', 	            'German', 	'&Auml;ndern');
+INSERT INTO txt VALUES ('Update', 	            'English', 	'Update');
+INSERT INTO txt VALUES ('Delete', 	            'German', 	'L&ouml;schen');
+INSERT INTO txt VALUES ('Delete', 	            'English', 	'Delete');
+INSERT INTO txt VALUES ('Assign', 	            'German', 	'Zuweisen');
+INSERT INTO txt VALUES ('Assign', 	            'English', 	'Assign');
+INSERT INTO txt VALUES ('Unassign', 	        'German', 	'Zuweisung aufheben');
+INSERT INTO txt VALUES ('Unassign', 	        'English', 	'Unassign');
+INSERT INTO txt VALUES ('MarkDeleted', 	        'German', 	'Als gel&ouml;scht markieren');
+INSERT INTO txt VALUES ('MarkDeleted', 	        'English', 	'Mark Deleted');
+INSERT INTO txt VALUES ('Reactivate', 	        'German', 	'Reaktivieren');
+INSERT INTO txt VALUES ('Reactivate', 	        'English', 	'Reactivate');
+
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
 INSERT INTO txt VALUES ('cancel', 				'English',	'Cancel');
@@ -769,104 +897,6 @@ INSERT INTO txt VALUES ('button_text',			'English', 	'Button Text');
 INSERT INTO txt VALUES ('path_analysis',		'German', 	'Pfadanalyse');
 INSERT INTO txt VALUES ('path_analysis',		'English', 	'Path analysis');
 
--- enum values
-INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
-INSERT INTO txt VALUES ('master', 			    'English', 	'Master');
-INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
-INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
-INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
-INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
-INSERT INTO txt VALUES ('rule_modify',          'German',   'Regel &auml;ndern');
-INSERT INTO txt VALUES ('rule_modify',          'English',  'Modify Rule');
-INSERT INTO txt VALUES ('rule_delete',          'German',   'Regel l&ouml;schen');
-INSERT INTO txt VALUES ('rule_delete',          'English',  'Delete Rule');
-INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
-INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
-INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
-INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
-INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
-INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
-INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
-INSERT INTO txt VALUES ('None',			        'English', 	'None');
-INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
-INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
-INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
-INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
-INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
-INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
-INSERT INTO txt VALUES ('DoNothing',			'German', 	'Keine Aktion');
-INSERT INTO txt VALUES ('DoNothing',			'English', 	'Do Nothing');
-INSERT INTO txt VALUES ('AutoPromote',			'German', 	'Autom. Weiterleitung');
-INSERT INTO txt VALUES ('AutoPromote',			'English', 	'Auto-forward');
-INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
-INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
-INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
-INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
-INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
-INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
-INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
-INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
-INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
-INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');
-INSERT INTO txt VALUES ('RequestTask',			'English', 	'Request Task');
-INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftrag');
-INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
-INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
-INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
-INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
-INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
-INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
-INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
-INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
-INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
-INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'Nach Pfadanalyse');
-INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
-INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste eintragen');
-INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
-INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
-INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
-INSERT INTO txt VALUES ('Sunday',               'German', 	'Sonntag');
-INSERT INTO txt VALUES ('Sunday',               'English', 	'Sunday');
-INSERT INTO txt VALUES ('Monday',               'German', 	'Montag');
-INSERT INTO txt VALUES ('Monday',               'English', 	'Monday');
-INSERT INTO txt VALUES ('Tuesday',              'German', 	'Dienstag');
-INSERT INTO txt VALUES ('Tuesday',              'English', 	'Tuesday');
-INSERT INTO txt VALUES ('Wednesday',            'German', 	'Mittwoch');
-INSERT INTO txt VALUES ('Wednesday',            'English', 	'Wednesday');
-INSERT INTO txt VALUES ('Thursday',             'German', 	'Donnerstag');
-INSERT INTO txt VALUES ('Thursday',             'English', 	'Thursday');
-INSERT INTO txt VALUES ('Friday',               'German', 	'Freitag');
-INSERT INTO txt VALUES ('Friday',               'English', 	'Friday');
-INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
-INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
-INSERT INTO txt VALUES ('Rules', 			    'German', 	'Regel-Report');
-INSERT INTO txt VALUES ('Rules', 			    'English', 	'Rules Report');
-INSERT INTO txt VALUES ('Changes', 			    'German', 	'Changes-Report');
-INSERT INTO txt VALUES ('Changes', 			    'English', 	'Changes Report');
-INSERT INTO txt VALUES ('Statistics', 			'German', 	'Statistik-Report');
-INSERT INTO txt VALUES ('Statistics', 			'English', 	'Statistics Report');
-INSERT INTO txt VALUES ('NatRules', 			'German', 	'NAT-Regel-Report');
-INSERT INTO txt VALUES ('NatRules', 			'English', 	'NAT Rules Report');
-INSERT INTO txt VALUES ('ResolvedRules', 	    'German', 	'Regel-Report (aufgel&ouml;st)');
-INSERT INTO txt VALUES ('ResolvedRules', 		'English', 	'Rules Report (resolved)');
-INSERT INTO txt VALUES ('ResolvedRulesTech', 	'German', 	'Regel-Report (technisch)');
-INSERT INTO txt VALUES ('ResolvedRulesTech', 	'English', 	'Rules Report (technical)');
-INSERT INTO txt VALUES ('Recertification', 	    'German', 	'Rezertifizierungs-Report');
-INSERT INTO txt VALUES ('Recertification', 		'English', 	'Recertification Report');
-INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes-Report (aufgel&ouml;st)');
-INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes Report (resolved)');
-INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (technisch)');
-INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
-INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Report');
-INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
-INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
-INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
-INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
-INSERT INTO txt VALUES ('exclusive', 	        'English', 	'Exclusive');
-
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
 INSERT INTO txt VALUES ('network_analysis', 	'English',	'Network Analysis');
@@ -946,6 +976,127 @@ INSERT INTO txt VALUES ('at_startup',           'German',   'Beim Hochfahren');
 INSERT INTO txt VALUES ('at_startup',           'English',  'At startup');
 INSERT INTO txt VALUES ('daily',                'German',   'T&auml;glich');
 INSERT INTO txt VALUES ('daily',                'English',  'Daily');
+
+-- network modelling
+INSERT INTO txt VALUES ('network_modelling', 	'German',	'Netzwerkmodellierung');
+INSERT INTO txt VALUES ('network_modelling', 	'English',	'Network Modelling');
+INSERT INTO txt VALUES ('modelling', 	        'German',	'Modellierung');
+INSERT INTO txt VALUES ('modelling', 	        'English',	'Modelling');
+INSERT INTO txt VALUES ('application', 	        'German',	'Applikation');
+INSERT INTO txt VALUES ('application', 	        'English',	'Application');
+INSERT INTO txt VALUES ('library', 	            'German',	'Bibliothek');
+INSERT INTO txt VALUES ('library', 	            'English',	'Library');
+INSERT INTO txt VALUES ('app_server', 	        'German',	'App Server');
+INSERT INTO txt VALUES ('app_server', 	        'English',	'App Server');
+INSERT INTO txt VALUES ('app_role', 	        'German',	'App Rolle');
+INSERT INTO txt VALUES ('app_role', 	        'English',	'App Role');
+INSERT INTO txt VALUES ('app_roles', 	        'German',	'App Rollen');
+INSERT INTO txt VALUES ('app_roles', 	        'English',	'App Roles');
+INSERT INTO txt VALUES ('preview', 	            'German',	'Vorschau');
+INSERT INTO txt VALUES ('preview', 	            'English',	'Preview');
+INSERT INTO txt VALUES ('comm_profile', 	    'German',	'Kommunikationsprofil');
+INSERT INTO txt VALUES ('comm_profile', 	    'English',	'Communication Profile');
+INSERT INTO txt VALUES ('connection', 	        'German',	'Verbindung');
+INSERT INTO txt VALUES ('connection', 	        'English',	'Connection');
+INSERT INTO txt VALUES ('add_connection', 	    'German',	'Verbindung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_connection', 	    'English',	'Add Connection');
+INSERT INTO txt VALUES ('edit_connection', 	    'German',	'Verbindung bearbeiten');
+INSERT INTO txt VALUES ('edit_connection', 	    'English',	'Edit Connection');
+INSERT INTO txt VALUES ('save_connection', 	    'German',	'Verbindung speichern');
+INSERT INTO txt VALUES ('save_connection', 	    'English',	'Save Connection');
+INSERT INTO txt VALUES ('delete_connection', 	'German',	'Verbindung l&ouml;schen');
+INSERT INTO txt VALUES ('delete_connection', 	'English',	'Delete Connection');
+INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
+INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
+INSERT INTO txt VALUES ('func_reason', 	        'English',	'Functional Reason');
+INSERT INTO txt VALUES ('to_source', 	        'German',	'Zu Quelle');
+INSERT INTO txt VALUES ('to_source', 	        'English',	'To Source');
+INSERT INTO txt VALUES ('to_dest', 	            'German',	'Zu Ziel');
+INSERT INTO txt VALUES ('to_dest', 	            'English',	'To Destination');
+INSERT INTO txt VALUES ('to_service', 	        'German',	'Zu Dienst');
+INSERT INTO txt VALUES ('to_service', 	        'English',	'To Service');
+INSERT INTO txt VALUES ('data_inconsistent',    'German', 	'Daten inkonsistent');
+INSERT INTO txt VALUES ('data_inconsistent',    'English', 	'Data inconsistent');
+INSERT INTO txt VALUES ('add_app_role', 	    'German',	'Neue App Rolle');
+INSERT INTO txt VALUES ('add_app_role', 	    'English',	'New App Role');
+INSERT INTO txt VALUES ('edit_app_role', 	    'German',	'App Rolle bearbeiten');
+INSERT INTO txt VALUES ('edit_app_role', 	    'English',	'Edit App Role');
+INSERT INTO txt VALUES ('save_app_role', 	    'German',	'App Rolle speichern');
+INSERT INTO txt VALUES ('save_app_role', 	    'English',	'Save App Role');
+INSERT INTO txt VALUES ('delete_app_role', 	    'German',	'App Rolle l&ouml;schen');
+INSERT INTO txt VALUES ('delete_app_role', 	    'English',	'Delete App Role');
+INSERT INTO txt VALUES ('to_app_role', 	        'German',	'Zu App Rolle');
+INSERT INTO txt VALUES ('to_app_role', 	        'English',	'To App Role');
+INSERT INTO txt VALUES ('add_service', 	        'German',	'Dienst hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_service', 	        'English',	'Add Service');
+INSERT INTO txt VALUES ('edit_service', 	    'German',	'Dienst bearbeiten');
+INSERT INTO txt VALUES ('edit_service', 	    'English',	'Edit Service');
+INSERT INTO txt VALUES ('save_service', 	    'German',	'Dienst speichern');
+INSERT INTO txt VALUES ('save_service', 	    'English',	'Save Service');
+INSERT INTO txt VALUES ('delete_service', 	    'German',	'Dienst l&ouml;schen');
+INSERT INTO txt VALUES ('delete_service', 	    'English',	'Delete Service');
+INSERT INTO txt VALUES ('ext_request', 	        'German',	'Externer Antrag');
+INSERT INTO txt VALUES ('ext_request', 	        'English',	'External Request');
+INSERT INTO txt VALUES ('area', 	            'German',	'Area');
+INSERT INTO txt VALUES ('area', 	            'English',	'Area');
+INSERT INTO txt VALUES ('interface', 	        'German',	'Schnittstelle');
+INSERT INTO txt VALUES ('interface', 	        'English',	'Interface');
+INSERT INTO txt VALUES ('interfaces', 	        'German',	'Schnittstellen');
+INSERT INTO txt VALUES ('interfaces', 	        'English',	'Interfaces');
+INSERT INTO txt VALUES ('remove_interface', 	'German',	'Schnittstelle entfernen');
+INSERT INTO txt VALUES ('remove_interface', 	'English',	'Remove Interface');
+INSERT INTO txt VALUES ('use',                  'German', 	'Benutzen');
+INSERT INTO txt VALUES ('use',                  'English', 	'Use');
+INSERT INTO txt VALUES ('services_group', 	    'German',	'Dienstgruppe');
+INSERT INTO txt VALUES ('services_group', 	    'English',	'Service Group');
+INSERT INTO txt VALUES ('services_groups', 	    'German',	'Dienstgruppen');
+INSERT INTO txt VALUES ('services_groups', 	    'English',	'Service Groups');
+INSERT INTO txt VALUES ('to_services_group', 	'German',	'Zu Dienstgruppe');
+INSERT INTO txt VALUES ('to_services_group', 	'English',	'To Service Group');
+INSERT INTO txt VALUES ('add_service_group', 	'German',	'Dienstgruppe hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_service_group', 	'English',	'Add Service Group');
+INSERT INTO txt VALUES ('edit_service_group', 	'German',	'Dienstgruppe bearbeiten');
+INSERT INTO txt VALUES ('edit_service_group', 	'English',	'Edit Service Group');
+INSERT INTO txt VALUES ('save_service_group', 	'German',	'Dienstgruppe speichern');
+INSERT INTO txt VALUES ('save_service_group', 	'English',	'Save Service Group');
+INSERT INTO txt VALUES ('delete_service_group', 'German',	'Dienstgruppe l&ouml;schen');
+INSERT INTO txt VALUES ('delete_service_group', 'English',	'Delete Service Group');
+INSERT INTO txt VALUES ('add_app_server', 	    'German',	'Neuer App Server');
+INSERT INTO txt VALUES ('add_app_server', 	    'English',	'New App Server');
+INSERT INTO txt VALUES ('edit_app_server', 	    'German',	'App Server bearbeiten');
+INSERT INTO txt VALUES ('edit_app_server', 	    'English',	'Edit App Server');
+INSERT INTO txt VALUES ('save_app_server', 	    'German',	'App Server speichern');
+INSERT INTO txt VALUES ('save_app_server', 	    'English',	'Save App Server');
+INSERT INTO txt VALUES ('delete_app_server', 	'German',	'App Server l&ouml;schen');
+INSERT INTO txt VALUES ('delete_app_server', 	'English',	'Delete App Server');
+INSERT INTO txt VALUES ('created_by',		    'German', 	'Erstellt von');
+INSERT INTO txt VALUES ('created_by',		    'English', 	'Created by');
+INSERT INTO txt VALUES ('log_change',		    'German', 	'&Auml;nderung loggen');
+INSERT INTO txt VALUES ('log_change',		    'English', 	'Log Change');
+INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie');
+INSERT INTO txt VALUES ('show_history',		    'English', 	'Show History');
+INSERT INTO txt VALUES ('changed_by',		    'German', 	'Ge&auml;ndert von');
+INSERT INTO txt VALUES ('changed_by',		    'English', 	'Changed by');
+INSERT INTO txt VALUES ('object_id',            'German', 	'Objekt-Id');
+INSERT INTO txt VALUES ('object_id',            'English', 	'Object Id');
+INSERT INTO txt VALUES ('predef_services',      'German', 	'Vordefinierte Dienste');
+INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined services');
+INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
+INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
+INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
+INSERT INTO txt VALUES ('used_interface',       'English', 	'Used Interface');
+INSERT INTO txt VALUES ('reactivate',           'German', 	'Reaktivieren');
+INSERT INTO txt VALUES ('reactivate',           'English', 	'Reactivate');
+INSERT INTO txt VALUES ('search_nw_object',     'German', 	'Netzwerkobjekt suchen');
+INSERT INTO txt VALUES ('search_nw_object',     'English', 	'Search Network Object');
+INSERT INTO txt VALUES ('remove_nw_object', 	'German',	'Netzwerkobjekt entfernen');
+INSERT INTO txt VALUES ('remove_nw_object', 	'English',	'Remove Network Object');
+INSERT INTO txt VALUES ('is_in_use', 	        'German',	'Wird benutzt');
+INSERT INTO txt VALUES ('is_in_use', 	        'English',	'Is in use');
+INSERT INTO txt VALUES ('deactivate',           'German', 	'Deaktivieren');
+INSERT INTO txt VALUES ('deactivate',           'English', 	'Deactivate');
+
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
 INSERT INTO txt VALUES ('devices',				'English', 	'Devices');
@@ -1489,6 +1640,34 @@ INSERT INTO txt VALUES ('text',                 'German', 	'Text');
 INSERT INTO txt VALUES ('text',                 'English', 	'Text');
 INSERT INTO txt VALUES ('custom_text',          'German', 	'Angepasster Text');
 INSERT INTO txt VALUES ('custom_text',          'English', 	'Custom Text');
+INSERT INTO txt VALUES ('allowServerInConn',    'German', 	'Server in Verbindung erlauben');
+INSERT INTO txt VALUES ('allowServerInConn',    'English', 	'Allow Servers in Connection');
+INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in Verbindung erlauben');
+INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
+INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen in &Uuml;bersicht');
+INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
+INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad und Name von Appdaten-Import (ohne Endung)');
+INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path and Name of App data import (without ending)');
+INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
+INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
+INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
+INSERT INTO txt VALUES ('importAppDataStartAt', 'English', 	'Import App data start at');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad und Name von Subnetzdaten-Import (ohne Endung)');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'English', 	'Path and Name of subnet data import (without ending)');
+INSERT INTO txt VALUES ('importSubnetDataSleepTime','German','Import Subnetzdaten-Intervall (in Stunden)');
+INSERT INTO txt VALUES ('importSubnetDataSleepTime','English','Import Subnet data sleep time (in hours)');
+INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten-Start');
+INSERT INTO txt VALUES ('importSubnetDataStartAt','English','Import Subnet data start at');
+INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorgeschrieben');
+INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
+INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
+INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
+INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
+INSERT INTO txt VALUES ('freePartLength',       'English',  'Free Part Length');
+INSERT INTO txt VALUES ('networkAreaPattern',   'German',   'Muster Netzwerkarea');
+INSERT INTO txt VALUES ('networkAreaPattern',   'English',  'Network Area Pattern');
+INSERT INTO txt VALUES ('appRolePattern',       'German',   'Muster App Rolle');
+INSERT INTO txt VALUES ('appRolePattern',       'English',  'App Role Pattern');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1605,6 +1784,10 @@ INSERT INTO txt VALUES ('changes_found',        'German', 	' &Auml;nderungen gef
 INSERT INTO txt VALUES ('changes_found',        'English',	' changes found');
 INSERT INTO txt VALUES ('found_no_changes',     'German', 	'keine &Auml;nderungen gefunden');
 INSERT INTO txt VALUES ('found_no_changes',     'English',	'no changes found');
+INSERT INTO txt VALUES ('scheduled_app_import', 'German',   'Termingesteuerter App-Import');
+INSERT INTO txt VALUES ('scheduled_app_import', 'English',  'Scheduled App Import');
+INSERT INTO txt VALUES ('scheduled_subnet_import','German', 'Termingesteuerter Subnetz-Import');
+INSERT INTO txt VALUES ('scheduled_subnet_import','English','Scheduled Subnet Import');
 
 
 -- help pages
@@ -1688,6 +1871,7 @@ INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
+
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
 INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
@@ -1744,6 +1928,7 @@ INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones ex
 -- E: error texts
 -- A: Api errors
 -- T: texts from external sources (Ldap, other database tables)
+-- C: Contextual Info (Tooltips)
 -- H: help pages
 -- 0000-0999: General
 -- 1000-1999: Reporting
@@ -1760,6 +1945,7 @@ INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones ex
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
+-- 9000-9999: Modelling
 
 -- generic success messages
 INSERT INTO txt VALUES ('S_add_title',          'German',   'Erstellen erfolgreich');
@@ -1901,6 +2087,8 @@ INSERT INTO txt VALUES ('U5320', 'German',  'Mehrere Email-Adressen mit Komma tr
 INSERT INTO txt VALUES ('U5320', 'English', 'Multiple email addresses can be separated by using commas');
 INSERT INTO txt VALUES ('U5321', 'German',  'Anzeige und &Uuml;berschreiben aller dargestellten Texte');
 INSERT INTO txt VALUES ('U5321', 'English', 'Show and overwrite all shown texts');
+INSERT INTO txt VALUES ('U5322', 'German',  'Verwaltung der Voreinstellungen f&uuml;r die Netzwerk-Modellierung');
+INSERT INTO txt VALUES ('U5322', 'English', 'Administration of default settings for network modelling');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -1944,6 +2132,22 @@ INSERT INTO txt VALUES ('U8002', 'English', 'New approval added to task.');
 INSERT INTO txt VALUES ('U8003', 'German',  'Sind sie sicher, dass sie abbrechen wollen? Bereits erzeugte Auftr&auml;ge gehen verloren.');
 INSERT INTO txt VALUES ('U8003', 'English', 'Are you sure you want to cancel? Already Created tasks will be lost.');
 
+INSERT INTO txt VALUES ('U9001', 'German',  'Sind sie sicher, dass sie folgende Verbindung l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9001', 'English', 'Are you sure you want to delete connection: ');
+INSERT INTO txt VALUES ('U9002', 'German',  'Sind sie sicher, dass sie folgende App Rolle l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9002', 'English', 'Are you sure you want to delete App Role: ');
+INSERT INTO txt VALUES ('U9003', 'German',  'Sind sie sicher, dass sie folgenden Dienst l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9003', 'English', 'Are you sure you want to delete service: ');
+INSERT INTO txt VALUES ('U9004', 'German',  'Sind sie sicher, dass sie folgende Dienstgruppe l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9004', 'English', 'Are you sure you want to delete service group: ');
+INSERT INTO txt VALUES ('U9005', 'German',  'Sind sie sicher, dass sie folgende App Server reaktivieren wollen: ');
+INSERT INTO txt VALUES ('U9005', 'English', 'Are you sure you want to reactivate App Server: ');
+INSERT INTO txt VALUES ('U9006', 'German',  'Sind sie sicher, dass sie folgendes Objekt aus der Auswahlliste l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9006', 'English', 'Are you sure you want to delete following object from selection list: ');
+INSERT INTO txt VALUES ('U9007', 'German',  'Der folgende App Server wird verwendet. Sind sie sicher, dass sie ihn deaktivieren wollen: ');
+INSERT INTO txt VALUES ('U9007', 'English', 'Following App Server is in use. Are you sure you want to deactivate it: ');
+INSERT INTO txt VALUES ('U9008', 'German',  'Sind sie sicher, dass sie folgenden App Server l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9008', 'English', 'Are you sure you want to delete App Server: ');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
@@ -1965,7 +2169,6 @@ INSERT INTO txt VALUES ('E_delete_title',       'German',   'Fehler beim L&ouml;
 INSERT INTO txt VALUES ('E_delete_title',       'English',  'Deletion error');
 INSERT INTO txt VALUES ('E_delete_message',     'German',   'Bei der L&ouml;schung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
 INSERT INTO txt VALUES ('E_delete_message',     'English',  'An unexpected error occurred while deleting the item. Please report the error if it cannot be resolved.');
-
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -2230,8 +2433,24 @@ INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is n
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
 
-
-
+INSERT INTO txt VALUES ('E9001', 'German',  'Sie haben Modellier-Rechte f&uuml;r keine Applikation.');
+INSERT INTO txt VALUES ('E9001', 'English', 'You have no modeller rights for any application.');
+INSERT INTO txt VALUES ('E9002', 'German',  'Keine Area verf&uuml;gbar.');
+INSERT INTO txt VALUES ('E9002', 'English', 'No areas available.');
+INSERT INTO txt VALUES ('E9003', 'German',  'Id schon vergeben. Bitte eine andere ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E9003', 'English', 'Id already used. Please choose another.');
+INSERT INTO txt VALUES ('E9004', 'German',  'Dienst und Quelle oder Ziel m&uuml;ssen ausgef&uuml;llt sein.');
+INSERT INTO txt VALUES ('E9004', 'English', 'Service and source or Destination have to be filled.');
+INSERT INTO txt VALUES ('E9005', 'German',  'Der Schnittstellentyp kann nicht zwischen Quelle und Ziel ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('E9005', 'English', 'The Interface type cannot be changed between Source and Destination.');
+INSERT INTO txt VALUES ('E9006', 'German',  'Quelle, Dienst und Ziel m&uuml;ssen gef&uuml;llt sein.');
+INSERT INTO txt VALUES ('E9006', 'English', 'Source, Service and Destination have to be filled.');
+INSERT INTO txt VALUES ('E9007', 'German',  'Dienst kann nicht gel&ouml;scht werden, da er in Benutzung ist: ');
+INSERT INTO txt VALUES ('E9007', 'English', 'Service cannot be deleted because it is in use: ');
+INSERT INTO txt VALUES ('E9008', 'German',  'Dienstgruppe kann nicht gel&ouml;scht werden, da sie in Benutzung ist: ');
+INSERT INTO txt VALUES ('E9008', 'English', 'Service Group cannot be deleted because it is in use: ');
+INSERT INTO txt VALUES ('E9009', 'German',  'App Rolle kann nicht gel&ouml;scht werden, da sie in Benutzung ist: ');
+INSERT INTO txt VALUES ('E9009', 'English', 'App Role cannot be deleted because it is in use: ');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -2292,6 +2511,15 @@ INSERT INTO txt VALUES ('T0106', 'German',  'Aktuell aktive unbenutzte Regeln al
 INSERT INTO txt VALUES ('T0106', 'English', 'Currently active unused rules of all gateways');
 INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Rezertifizierung anstehen');
 INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
+
+-- Contextual Info (Tooltips)
+INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
+INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
+INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');
+INSERT INTO txt VALUES ('C9001', 'English', 'This object was deactivated and should be removed from Connection.');
+INSERT INTO txt VALUES ('C9002', 'German',  'Dieser App Server wurde noch in keiner App Rolle oder Verbindung verwendet.');
+INSERT INTO txt VALUES ('C9002', 'English', 'This App Server was not used in any App Role or Connection.');
+
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -4913,3 +5141,4 @@ INSERT INTO txt VALUES ('H8717', 'English', '<H4>7) Activate Planning phase</H4>
         </li>
     </ul>
 ');
+

@@ -1,0 +1,13 @@
+mutation addServiceToServiceGroup(
+  $serviceId: Int!
+  $serviceGroupId: Int!
+  ) {
+  insert_modelling_service_service_group(objects: {
+    service_id: $serviceId
+    service_group_id: $serviceGroupId
+  }) {
+    returning {
+      newId: service_id
+    }
+  }
+}

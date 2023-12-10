@@ -1,0 +1,77 @@
+@using FWO.Config.Api
+@using FWO.Ui.Display
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="ml-2">
+    <h3>@(userConfig.GetText("library"))</h3>
+</div>
+<div class="col-sm-11 border rounded m-2 p-2">
+    <h5>@(userConfig.GetText("app_server"))</h5>
+    <div class="form-group row">
+        <div class="col-sm-9">
+            <DraggableList AllElements="AppRoleHandler.AppServersInArea" @bind-SelectedElements="selectedAppServers" 
+                HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
+        </div>
+        @if(selectedAppServers.Count > 0)
+        {
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                    {AppRoleHandler.AppServerToAppRole(selectedAppServers);
+                    AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(userConfig.GetText("to_app_role"))</button>
+            </div>
+        }
+    </div>
+    @* <AuthorizeView Roles="admin, auditor">
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
+        </NotAuthorized> 
+    </AuthorizeView> *@
+</div>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter] 
+    public ModellingDnDContainer Container { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ModellingDnDContainer> ContainerChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public ModellingAppRoleHandler AppRoleHandler { get; set; }
+
+    [Parameter]
+    public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
+
+    private List<ModellingAppServer> selectedAppServers = new();
+    private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+
+
+    private bool HandleDragStart(DragEventArgs e, ModellingAppServer appServer)
+    {
+        if(!selectedAppServers.Contains(appServer))
+        {
+            selectedAppServers.Add(appServer);
+        }
+        Container.Clear();
+        Container.AppServerElements = selectedAppServers;
+        selectedAppServers = new();
+        return true;
+    }
+
+    private async Task DataInconsistent()
+    {
+
+    }
+}

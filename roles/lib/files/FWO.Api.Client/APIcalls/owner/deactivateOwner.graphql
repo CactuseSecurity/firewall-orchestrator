@@ -1,0 +1,11 @@
+mutation deactivateOwner(
+  $id: Int!
+  ) {
+  update_owner_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      active: false
+  }) {
+    UpdatedId: id
+  }
+}

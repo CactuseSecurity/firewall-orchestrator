@@ -1,0 +1,220 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using System.Text.Json
+@using FWO.Ui.Pages.NetworkModelling
+
+@page "/settings/modelling"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("network_modelling"))</h3>
+@(userConfig.GetText("U5322"))
+<hr />
+
+@if (configData != null)
+{
+    <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="PredefServices">@(userConfig.GetText("predef_services"))</button>
+
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("allowServerInConn")):</label>
+        <div class="col-sm-2">
+            <input type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("allowServiceInConn")):</label>
+        <div class="col-sm-2">
+            <input type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("overviewDisplayLines")):</label>
+        <div class="col-sm-2">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.OverviewDisplayLines" />
+        </div>
+    </form>
+    <hr />
+    <div class="form-group row">
+        <form class="form-inline col-sm-4" onsubmit="return false">
+            <label class="col-form-label col-sm-7">@(userConfig.GetText("networkAreaRequired")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="namingConvention.NetworkAreaRequired">
+            </div>
+        </form>
+        <form class="form-inline col-sm-4" onsubmit="return false">
+            <label class="col-form-label col-sm-7">@userConfig.GetText("fixedPartLength"):</label>
+            <div class="col-sm-4">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="namingConvention.FixedPartLength" />
+            </div>
+        </form>
+        <form class="form-inline col-sm-4" onsubmit="return false">
+            <label class="col-form-label col-sm-7">@userConfig.GetText("freePartLength"):</label>
+            <div class="col-sm-4">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="namingConvention.FreePartLength" />
+            </div>
+        </form>
+    </div>
+    <div class="form-group row">
+        <form class="form-inline col-sm-6" onsubmit="return false">
+            <label class="col-form-label col-sm-6">@userConfig.GetText("networkAreaPattern"):</label>
+            <div class="col-sm-4">
+                <input type="text" class="col-sm-11" @bind="namingConvention.NetworkAreaPattern" />
+            </div>
+        </form>
+        <form class="form-inline col-sm-6" onsubmit="return false">
+            <label class="col-form-label col-sm-6">@userConfig.GetText("appRolePattern"):</label>
+            <div class="col-sm-4">
+                <input type="text" class="col-sm-11" @bind="namingConvention.AppRolePattern" />
+            </div>
+        </form>
+    </div>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>
+        <div class="col-sm-6">
+            <EditList ElementType="string" Elements="appDataPaths.ToArray()" ElementsToAdd="PathsToAdd" ElementsToDelete="PathsToDelete" StdLayout="false">
+                <Display>
+                    <div class="row">
+                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context</div>
+                    </div>
+                </Display>
+            </EditList>
+            <div class="row">
+                <div class="col-sm-12">
+                    <input type="text" class="col-sm-9" @bind="actPath" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                </div>
+            </div>
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataSleepTime")):</label>
+        <div class="col-sm-2">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportAppDataSleepTime" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataStartAt")):</label>
+        <div class="col-sm-2">
+            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImportAppDataStartAt" />
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
+        <div class="col-sm-8">
+            <input type="text" class="col-sm-8" @bind="configData!.ImportSubnetDataPath" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataSleepTime")):</label>
+        <div class="col-sm-2">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportSubnetDataSleepTime" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataStartAt")):</label>
+        <div class="col-sm-2">
+            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImportSubnetDataStartAt" />
+        </div>
+    </form>
+    <hr />
+    <AuthorizeView Roles="admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized> 
+    </AuthorizeView>
+    <br><br>
+    @* <p>@(userConfig.GetText("U5303"))</p> *@
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+<PredefServices @bind-Display="predefServices"/>
+
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private List<string> appDataPaths = new();
+    private List<string> PathsToAdd = new();
+    private List<string> PathsToDelete = new();
+    private string actPath = "";
+    private bool predefServices = false;
+    private ModellingNamingConvention namingConvention = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? new();
+            namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private void AddPath()
+    {
+        if(actPath != "")
+        {
+            PathsToAdd.Add(actPath);
+            actPath = "";
+        }
+    }
+
+    private void PredefServices()
+    {
+        predefServices = true;
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData != null)
+            {
+                foreach(var path in PathsToDelete)
+                {
+                    appDataPaths.Remove(path);
+                }
+                foreach(var path in PathsToAdd)
+                {
+                    appDataPaths.Add(path);
+                }
+                configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
+                configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+                PathsToDelete = new();
+                PathsToAdd = new();
+                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new Exception("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+}

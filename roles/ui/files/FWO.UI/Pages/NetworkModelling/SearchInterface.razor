@@ -1,6 +1,6 @@
 ﻿@using FWO.Config.Api
 
-@attribute [Authorize(Roles = "admin, auditor, modeller")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kModeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -25,7 +25,7 @@
         <div class="btn-group">
             @if(selectedInterface != null)
             {
-                <AuthorizeView Roles="modeller">
+                <AuthorizeView Roles="@GlobalConst.kModeller">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-success" @onclick="SelectInterface">@(userConfig.GetText("select"))</button>
                     </Authorized>

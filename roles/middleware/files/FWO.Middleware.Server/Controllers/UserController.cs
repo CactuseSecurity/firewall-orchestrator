@@ -1,4 +1,5 @@
-﻿using FWO.Api.Data;
+﻿using FWO.Config.Api;
+using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
@@ -36,7 +37,7 @@ namespace FWO.Middleware.Controllers
         /// </summary>
         /// <returns>List of all locally known users</returns>
         [HttpGet]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
         public async Task<List<UserGetReturnParameters>> Get()
         {
             List<UiUser> users = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.Api.Client.Queries.AuthQueries.getUsers)).ToList();
@@ -62,7 +63,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">LdapUserGetParameters</param>
         /// <returns>List of users</returns>
         [HttpPost("Get")]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
         public async Task<List<LdapUserGetReturnParameters>> Get([FromBody] LdapUserGetParameters parameters)
         {
             List<LdapUserGetReturnParameters> allUsers = new List<LdapUserGetReturnParameters>();
@@ -98,7 +99,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">UserAddParameters</param>
         /// <returns>Id of new user, 0 if no user could be created</returns>
         [HttpPost]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}")]
         public async Task<int> Add([FromBody] UserAddParameters parameters)
         {
             string email = parameters.Email ?? "";
@@ -162,7 +163,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">UserEditParameters</param>
         /// <returns>true, if user could be updated</returns>
         [HttpPut]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}")]
         public async Task<bool> Change([FromBody] UserEditParameters parameters)
         {
             string email = parameters.Email ?? "";
@@ -221,7 +222,7 @@ namespace FWO.Middleware.Controllers
         public async Task<ActionResult<string>> ChangePassword([FromBody] UserChangePasswordParameters parameters)
         {
             // the demo user (currently auditor) can't change his password
-            if (User.IsInRole("auditor"))
+            if (User.IsInRole(GlobalConst.kAuditor))
                 return Unauthorized();
 
             UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");
@@ -262,7 +263,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">UserResetPasswordParameters</param>
         /// <returns>error message or Ok</returns>
         [HttpPatch("ResetPassword")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}")]
         public async Task<ActionResult<string>> ResetPassword([FromBody] UserResetPasswordParameters parameters)
         {
             UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");
@@ -280,7 +281,7 @@ namespace FWO.Middleware.Controllers
                         {
                             List<string> roles = currentLdap.GetRoles(new List<string>() { user.Dn }).ToList(); // TODO: Group roles are not included
                             // the demo user (currently auditor) can't be forced to change password as he is not allowed to do it. Everyone else has to change it though
-                            bool passwordMustBeChanged = !roles.Contains("auditor"); 
+                            bool passwordMustBeChanged = !roles.Contains(GlobalConst.kAuditor); 
                             await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.Dn, passwordMustBeChanged);
                         }
                     });
@@ -301,7 +302,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">UserDeleteAllEntriesParameters</param>
         /// <returns>true if user removed from all entries</returns>
         [HttpDelete("AllGroupsAndRoles")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}")]
         public async Task<bool> DeleteAllGroupsAndRoles([FromBody] UserDeleteAllEntriesParameters parameters)
         {
             UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");
@@ -341,7 +342,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">UserDeleteParameters</param>
         /// <returns>true if user deleted</returns>
         [HttpDelete]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}")]
         public async Task<bool> Delete([FromBody] UserDeleteParameters parameters)
         {
             UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");

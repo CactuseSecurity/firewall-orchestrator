@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 
 @page "/network_analysis"
-@attribute [Authorize(Roles = "admin, fw-admin, planner, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kPlanner}, {GlobalConst.kAuditor}")]
 
 <h3>@(userConfig.GetText("network_analysis"))</h3>
 

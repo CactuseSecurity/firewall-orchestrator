@@ -9,7 +9,7 @@
 <Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
     <div class="mr-2 ml-2 mt-4 mb-4">
         <ul class="navbar-nav flex-column">
-            <AuthorizeView Roles="admin, auditor, fw-admin">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("alerts"))</h5>
                 </li>
@@ -61,7 +61,7 @@
                     <span class="oi oi-monitor"></span> @(userConfig.GetText("ui_messages"))
                 </NavLink>
             </li>
-            <AuthorizeView Roles="admin, auditor">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/monitor_all">
                         <span class="oi oi-monitor"></span> @(userConfig.GetText("all"))

@@ -14,7 +14,7 @@ namespace FWO.Config.Api.Data
         public readonly bool Editable;
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
-        public virtual string DefaultLanguage { get; set; } = GlobalConfig.kEnglish;
+        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;
 
         [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout")]
         public int SessionTimeout { get; set; } = 720;

@@ -10,7 +10,7 @@
 @using FWO.Recert
 
 @page "/settings/owners"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -27,7 +27,7 @@
         {
             <button type="button" class="btn btn-sm btn-success m-2" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
         }
-        <AuthorizeView Roles="admin" Context="ctx">
+        <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
             <Authorized>
                 @if (!recertCalcInProgress)
                 {
@@ -67,7 +67,7 @@
                             <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditOwner(context)">@(userConfig.GetText("edit"))</button>
                             @if(!context.IsDefault)
                             {
-                                <AuthorizeView Roles="admin" Context="ctx">
+                                <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
                                     <Authorized>
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
                                     </Authorized>
@@ -200,7 +200,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin">
+                <AuthorizeView Roles="@GlobalConst.kAdmin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="SaveOwner">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -254,7 +254,7 @@
                                 </Dropdown>
                             </div>
                             <div class="col-sm-2">
-                                <AuthorizeView Roles="admin">
+                                <AuthorizeView Roles="@GlobalConst.kAdmin">
                                     <Authorized>
                                         <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUser(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                                     </Authorized>
@@ -277,7 +277,7 @@
                                 </Dropdown>
                             </div>
                             <div class="col-sm-2">
-                                <AuthorizeView Roles="admin">
+                                <AuthorizeView Roles="@GlobalConst.kAdmin">
                                     <Authorized>
                                         <button type="button" class="btn btn-sm btn-success" @onclick="() => AddGroup(selectedInternalGroup)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                                     </Authorized>
@@ -323,7 +323,7 @@
                                 </Dropdown>
                             }
                         </div>
-                        <AuthorizeView Roles="admin">
+                        <AuthorizeView Roles="@GlobalConst.kAdmin">
                             <Authorized>
                             @if(UserSearchMode)
                             {

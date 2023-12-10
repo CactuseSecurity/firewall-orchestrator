@@ -6,9 +6,9 @@
 
 @inject UserConfig userConfig
 
-<Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
+<Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="mr-2 ml-2 mt-4 mb-4">
-        <ul class="navbar-nav flex-column">
+        <ul class="navbar-nav navbar-dark flex-column">
             <AuthorizeView Roles="admin, importer, auditor, fw-admin">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>@(userConfig.GetText("devices"))</h5>

@@ -4,7 +4,7 @@
 @using FWO.Config.Api
 
 @page "/monitoring/import_status"
-@attribute [Authorize(Roles = "admin, importer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kImporter}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

@@ -1,4 +1,5 @@
-﻿using FWO.Api.Data;
+﻿using FWO.Config.Api;
+using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
@@ -102,7 +103,7 @@ namespace FWO.Middleware.Controllers
                 try
                 {
                     await authManager.AuthorizeUserAsync(adminUser, validatePassword: true);
-                    if (!adminUser.Roles.Contains("admin"))
+                    if (!adminUser.Roles.Contains(GlobalConst.kAdmin))
                     {
                         throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
                     }
@@ -211,7 +212,7 @@ namespace FWO.Middleware.Controllers
                             if (currentLdapEntry != null)
                             {
                                 // User was successfully authenticated via this LDAP
-                                if(user.Name == "importer")
+                                if(user.Name == GlobalConst.kImporter)
                                 {
                                     Log.WriteDebug("User Authentication", $"User {user.Name + " " + currentLdapEntry.Dn} found.");
                                 }
@@ -292,7 +293,7 @@ namespace FWO.Middleware.Controllers
             {
                 // Use anonymous role
                 Log.WriteWarning("Missing roles", $"No roles for user \"{user.Dn}\" could be found. Using anonymous role.");
-                userRoles.Add("anonymous");
+                userRoles.Add(GlobalConst.kAnonymous);
             }
 
             return userRoles;

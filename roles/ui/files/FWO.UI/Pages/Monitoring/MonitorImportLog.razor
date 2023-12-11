@@ -4,7 +4,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/import_logs"
-@attribute [Authorize(Roles = "admin, fw-admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")]
 
 <h3>@(userConfig.GetText("import_logs"))</h3>
 @(userConfig.GetText("U7201"))

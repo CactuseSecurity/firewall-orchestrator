@@ -30,7 +30,7 @@
 </div>
 <EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AddMode="SvcGroupHandler.AddServiceMode" AsAdmin="AsAdmin"/>
 <ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}"
-    Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? "admin" : "modeller")" DeleteAllowed="SvcGroupHandler.DeleteAllowed"/>
+    Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? GlobalConst.kAdmin : GlobalConst.kModeller)" DeleteAllowed="SvcGroupHandler.DeleteAllowed"/>
 
 
 @code

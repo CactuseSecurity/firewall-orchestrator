@@ -9,7 +9,7 @@
 
 
 @page "/settings/ldap"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -187,7 +187,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@GlobalConst.kAdmin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-dark" @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>

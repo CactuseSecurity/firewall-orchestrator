@@ -15,7 +15,7 @@
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">@(userConfig.GetText("load"))</button>
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                                @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
+                                @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin))
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = decodeComment(template); 
                                                                                              reportTypeInEdit = (ReportType)reportTemplateInEdit.ReportParams.ReportType;

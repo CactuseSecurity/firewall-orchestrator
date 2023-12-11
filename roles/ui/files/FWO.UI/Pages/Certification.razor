@@ -9,7 +9,7 @@
 @using FWO.Middleware.Client
 
 @page "/certification"
-@attribute [Authorize(Roles = "admin, recertifier, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -34,7 +34,7 @@
         <input  type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
     </div>
 
-    <AuthorizeView Roles="admin, auditor">
+    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
         <Authorized>
             <div class="p-3">
                 <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
@@ -70,7 +70,7 @@
     <div class="btn-group sticky-marker-60">
         @if(!readonlyMode)
         {
-            <AuthorizeView Roles="admin, recertifier">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRecertifier}")">
                 <Authorized>
                     @if(rulesFound)
                     {
@@ -171,7 +171,7 @@
 
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "recertifier", "admin", "auditor"});
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kRecertifier, GlobalConst.kAdmin, GlobalConst.kAuditor });
             rulesFound = false;
             ticketCreator = new TicketCreator(apiConnection, userConfig);
 
@@ -233,7 +233,7 @@
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        readonlyMode = !authenticationStateTask!.Result.User.IsInRole("recertifier") || selectedOwner == null;
+        readonlyMode = !authenticationStateTask!.Result.User.IsInRole(GlobalConst.kRecertifier) || selectedOwner == null;
         selectedRules.Clear();
 
         Management[] managementsOrig = managements;
@@ -437,6 +437,7 @@
                     }
                 }
             }
+            // refresh view ?
         }
         string txt = userConfig.GetText("recerts_executed") + recerts.ToString() + ", " +
                         userConfig.GetText("decerts_executed") + decerts.ToString();

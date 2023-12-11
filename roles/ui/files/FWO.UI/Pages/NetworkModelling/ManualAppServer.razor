@@ -1,7 +1,7 @@
 ﻿@using FWO.Config.Api
 @using FWO.Ui.Display
 
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

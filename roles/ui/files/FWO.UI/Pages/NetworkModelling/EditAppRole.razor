@@ -81,7 +81,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="modeller">
+                <AuthorizeView Roles="@GlobalConst.kModeller">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {if(await AppRoleHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
                     </Authorized>

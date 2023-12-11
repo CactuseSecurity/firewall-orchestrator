@@ -67,7 +67,7 @@ else
     {
         try
         {
-            seeAllUsers = authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("auditor");
+            seeAllUsers = authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor);
             if(seeAllUsers)
             {
                 uiUsers.Add(new UiUser(){ DbId = -1, Name = userConfig.GetText("all") });

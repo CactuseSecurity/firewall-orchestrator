@@ -103,7 +103,7 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("Import App Data", $"Ran into exception: ", exc);
                 string titletext = "Error encountered while trying to import App Data";
-                Log.WriteAlert($"source: \"{GlobalConfig.kImportAppData}\"",
+                Log.WriteAlert($"source: \"{GlobalConst.kImportAppData}\"",
                     $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAppData}\"");
                 await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message);
                 await SetAlert(globalConfig.GetText("scheduled_app_import"), titletext);
@@ -116,7 +116,7 @@ namespace FWO.Middleware.Server
             {
                 var Variables = new
                 {
-                    source = GlobalConfig.kImportAppData,
+                    source = GlobalConst.kImportAppData,
                     userId = 0,
                     title = title,
                     description = description,
@@ -136,7 +136,7 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
-                Log.WriteAlert ($"source: \"{GlobalConfig.kImportAppData}\"", 
+                Log.WriteAlert ($"source: \"{GlobalConst.kImportAppData}\"", 
                     $"userId: \"0\", title: \"{title}\", description: \"{description}\", alertCode: \"{AlertCode.ImportAppData.ToString()}\"");
             }
             catch(Exception exc)
@@ -169,7 +169,7 @@ namespace FWO.Middleware.Server
             {
                 var Variables = new
                 {
-                    source = GlobalConfig.kImportAppData,
+                    source = GlobalConst.kImportAppData,
                     discoverUser = 0,
                     severity = severity,
                     suspectedCause = cause,

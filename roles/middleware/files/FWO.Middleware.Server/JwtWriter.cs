@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server
             if (user != null)
                 subject = SetClaims(await uiUserHandler.HandleUiUserAtLogin(user));
             else
-                subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new List<string> { "anonymous" } });
+                subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = GlobalConst.kAnonymous, Roles = new List<string> { GlobalConst.kAnonymous } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
@@ -76,7 +76,7 @@ namespace FWO.Middleware.Server
         /// <returns>JWT for middleware-server role.</returns>
         public string CreateJWTMiddlewareServer()
         {
-            return CreateJWTInternal("middleware-server");
+            return CreateJWTInternal(GlobalConst.kMiddlewareServer);
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace FWO.Middleware.Server
         /// <returns>JWT for reporter-viewall role.</returns>
         public string CreateJWTReporterViewall()
         {
-            return CreateJWTInternal("reporter-viewall");
+            return CreateJWTInternal(GlobalConst.kReporterViewAll);
         }
 
         private string CreateJWTInternal(string role)
@@ -142,20 +142,20 @@ namespace FWO.Middleware.Server
             string defaultRole = "";
             if (user.Roles.Count > 0)
             {
-                if (hasuraRolesList.Contains("admin"))
-                    defaultRole = "admin";
-                else if (hasuraRolesList.Contains("auditor"))
-                    defaultRole = "auditor";
-                else if (hasuraRolesList.Contains("fw-admin"))
-                    defaultRole = "fw-admin";
-                else if (hasuraRolesList.Contains("reporter-viewall"))
-                    defaultRole = "reporter-viewall";
-                else if (hasuraRolesList.Contains("reporter"))
-                    defaultRole = "reporter";
-                else if (hasuraRolesList.Contains("recertifier"))
-                    defaultRole = "recertifier";
-                else if (hasuraRolesList.Contains("modeller"))
-                    defaultRole = "modeller";
+                if (hasuraRolesList.Contains(GlobalConst.kAdmin))
+                    defaultRole = GlobalConst.kAdmin;
+                else if (hasuraRolesList.Contains(GlobalConst.kAuditor))
+                    defaultRole = GlobalConst.kAuditor;
+                else if (hasuraRolesList.Contains(GlobalConst.kFwAdmin))
+                    defaultRole = GlobalConst.kFwAdmin;
+                else if (hasuraRolesList.Contains(GlobalConst.kReporterViewAll))
+                    defaultRole = GlobalConst.kReporterViewAll;
+                else if (hasuraRolesList.Contains(GlobalConst.kReporter))
+                    defaultRole = GlobalConst.kReporter;
+                else if (hasuraRolesList.Contains(GlobalConst.kRecertifier))
+                    defaultRole = GlobalConst.kRecertifier;
+                else if (hasuraRolesList.Contains(GlobalConst.kModeller))
+                    defaultRole = GlobalConst.kModeller;
                 else
                     defaultRole = user.Roles[0]; // pick first role at random (todo: might need to be changed)
             }
@@ -175,9 +175,9 @@ namespace FWO.Middleware.Server
             {
                 foreach(var grp in user.Groups)
                 {
-                    if (grp.Contains(GlobalConfig.kModellerGroup))
+                    if (grp.Contains(GlobalConst.kModellerGroup))
                     {
-                        owners.Add(new DistName(grp).Group.Substring(GlobalConfig.kModellerGroup.Length));
+                        owners.Add(new DistName(grp).Group.Substring(GlobalConst.kModellerGroup.Length));
                     }
                 }
             }

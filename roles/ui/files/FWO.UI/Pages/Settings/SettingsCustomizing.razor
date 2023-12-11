@@ -5,7 +5,7 @@
 
 
 @page "/settings/workflowcustomizing"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -79,7 +79,7 @@
     </form>
 
     <hr />
-    <AuthorizeView Roles="admin">
+    <AuthorizeView Roles="@GlobalConst.kAdmin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>

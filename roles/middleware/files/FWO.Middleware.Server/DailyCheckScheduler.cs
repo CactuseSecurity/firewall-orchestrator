@@ -108,7 +108,7 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("DailyCheck", $"Ran into exception: ", exc);
                 await AddDailyCheckLogEntry(2, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
-                await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
+                await setAlert(GlobalConst.kDailyCheck, AlertCode.DailyCheckError, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
             }
         }
 
@@ -207,7 +207,7 @@ namespace FWO.Middleware.Server
                                                         (sampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
                                                         (sampleGroupExisting ? globalConfig.GetText("groups") + " " : "") +
                                                         (sampleOwnerExisting ? globalConfig.GetText("owners") : "");
-                await setAlert(GlobalConfig.kDailyCheck, AlertCode.SampleDataExisting, globalConfig.GetText("sample_data"), description);
+                await setAlert(GlobalConst.kDailyCheck, AlertCode.SampleDataExisting, globalConfig.GetText("sample_data"), description);
             }
             await AddDailyCheckLogEntry((description != "" ? 1 : 0), globalConfig.GetText("daily_sample_data_check"), (description != "" ? description : globalConfig.GetText("no_sample_data_found")));
         }
@@ -224,20 +224,20 @@ namespace FWO.Middleware.Server
                     if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))  // too long
                     {
                         jsonData = imp.LastIncompleteImport;
-                        await setAlert(GlobalConfig.kDailyCheck, AlertCode.ImportRunningTooLong, globalConfig.GetText("import"), globalConfig.GetText("E7011"), imp.MgmId, jsonData);
+                        await setAlert(GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, globalConfig.GetText("import"), globalConfig.GetText("E7011"), imp.MgmId, jsonData);
                         importIssues++;
                     }
                 }
                 else if (imp.LastImport == null || imp.LastImport.Length == 0) // no import at all
                 {
                     jsonData = imp;
-                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.NoImport, globalConfig.GetText("import"), globalConfig.GetText("E7012"), imp.MgmId, jsonData);
+                    await setAlert(GlobalConst.kDailyCheck, AlertCode.NoImport, globalConfig.GetText("import"), globalConfig.GetText("E7012"), imp.MgmId, jsonData);
                     importIssues++;
                 }
                 else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval)) // too long ago (not working for legacy devices as LastImportAttempt is not written)
                 {
                     jsonData = imp;
-                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.SuccessfulImportOverdue, globalConfig.GetText("import"), globalConfig.GetText("E7013"), imp.MgmId, jsonData);
+                    await setAlert(GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, globalConfig.GetText("import"), globalConfig.GetText("E7013"), imp.MgmId, jsonData);
                     importIssues++;
                 }
             }
@@ -320,7 +320,7 @@ namespace FWO.Middleware.Server
             {
                 var Variables = new
                 {
-                    source = GlobalConfig.kDailyCheck,
+                    source = GlobalConst.kDailyCheck,
                     discoverUser = 0,
                     severity = severity,
                     suspectedCause = cause,

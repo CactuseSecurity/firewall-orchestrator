@@ -2,7 +2,7 @@
 @using FWO.Ui.Display
 
 @page "/networkmodelling/{appId?}"
-@attribute [Authorize(Roles = "admin, modeller, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kModeller}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -30,7 +30,7 @@
             </div>
         }
         @* <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
-        <AuthorizeView Roles="admin, auditor">
+        <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
             <Authorized>
                 <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
             </Authorized>
@@ -46,7 +46,7 @@
             {
                 <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddConn">@(userConfig.GetText("add_connection"))</button>
                 <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
-                <AuthorizeView Roles="admin, auditor">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
                     </Authorized>
@@ -102,7 +102,7 @@
                 </Column>
             </Table>
         </div>
-        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); StateHasChanged();}" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="modeller"/>
+        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); StateHasChanged();}" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="@GlobalConst.kModeller"/>
     }
 }
 else
@@ -182,6 +182,7 @@ else
             await appHandler.Init();
             appSelected = true;
             appActive = selectedApp.Active;
+            //appHandler.ChangesAllowed = userConfig.User.Roles.Contains(GlobalConst.kModeller) && userConfig.User.Groups.Contains(selectedApp.ExtAppId);
         }
         catch (Exception exception)
         {

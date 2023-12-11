@@ -2,7 +2,7 @@
 @using FWO.Config.Api
 
 @page "/settings/statedefinitions"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -77,7 +77,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin">
+                <AuthorizeView Roles="@GlobalConst.kAdmin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="SaveState">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -107,7 +107,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin">
+                <AuthorizeView Roles="@GlobalConst.kAdmin">
                     <Authorized>
                         @if(selectedAction != null)
                         {

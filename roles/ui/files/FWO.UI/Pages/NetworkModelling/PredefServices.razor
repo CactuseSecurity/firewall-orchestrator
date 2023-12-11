@@ -1,7 +1,7 @@
 ﻿@using FWO.Config.Api
 @using FWO.Ui.Display
 
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -19,7 +19,7 @@
                     <Template>
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(userConfig.GetText("edit"))</button>
-                            <AuthorizeView Roles="admin" Context="ctx">
+                            <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(userConfig.GetText("delete"))</button>
                                 </Authorized>

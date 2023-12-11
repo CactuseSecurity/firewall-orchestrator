@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/settings/recertificationpersonal"
-@attribute [Authorize(Roles = "admin, recertifier, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

@@ -112,7 +112,7 @@ namespace FWO.Middleware.Server
             { 
                 name = incomingArea.Name,
                 idString = incomingArea.IdString,
-                creator = GlobalConfig.kImportAreaSubnetData
+                creator = GlobalConst.kImportAreaSubnetData
             };
             ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newArea, AreaVar)).ReturnIds;
             if (areaIds != null)
@@ -124,7 +124,7 @@ namespace FWO.Middleware.Server
                         name = subnet.Name,
                         ip = subnet.Ip,
                         ipEnd = subnet.IpEnd != "" ? subnet.IpEnd : subnet.Ip,
-                        importSource = GlobalConfig.kImportAreaSubnetData
+                        importSource = GlobalConst.kImportAreaSubnetData
                     };
                     ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
                     if (subnetIds != null)
@@ -166,7 +166,7 @@ namespace FWO.Middleware.Server
                     name = subnet.Name,
                     ip = subnet.Ip,
                     ipEnd = subnet.IpEnd != "" ? subnet.IpEnd : subnet.Ip,
-                    importSource = GlobalConfig.kImportAreaSubnetData
+                    importSource = GlobalConst.kImportAreaSubnetData
                 };
                 ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
                 if (subnetIds != null)

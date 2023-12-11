@@ -11,7 +11,7 @@
 @using System.Diagnostics
 
 @page "/report/generation"
-@attribute [Authorize(Roles = "admin, fw-admin, reporter, reporter-viewall, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection Connection
 @inject UserConfig userConfig
@@ -140,7 +140,7 @@
         <ReportExport ReportToExport="currentReport"></ReportExport>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(userConfig.GetText("save_as_template"))</button>
         @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
-            && (authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("requester") || authenticationStateTask!.Result.User.IsInRole("auditor")))
+            && (authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kRequester) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor)))
         {
             <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
         }
@@ -296,8 +296,8 @@
 
     private bool collapseDevices = false;
 
-    private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
-        || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("auditor");
+    private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole(GlobalConst.kReporterViewAll) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin)
+        || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kFwAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor);
 
     protected override void OnInitialized()
     {

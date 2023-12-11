@@ -1,4 +1,5 @@
-﻿using FWO.Logging;
+﻿using FWO.Config.Api;
+using FWO.Logging;
 using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
@@ -31,7 +32,7 @@ namespace FWO.Middleware.Controllers
         /// </summary>
         /// <returns>List of roles</returns>
         [HttpGet]
-        [Authorize(Roles = "admin, auditor, fw-admin, requester, approver, planner, implementer, reviewer")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}")]
         public async Task<List<RoleGetReturnParameters>> Get()
         {
             // No parameters
@@ -68,7 +69,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">RoleAddDeleteUserParameters</param>
         /// <returns>true if user could be added to role</returns>
         [HttpPost("User")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}")]
         public async Task<bool> AddUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
             bool userAdded = false;
@@ -106,7 +107,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">RoleAddDeleteUserParameters</param>
         /// <returns>true if user could be removed from role</returns>
         [HttpDelete("User")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{GlobalConst.kAdmin}")]
         public async Task<bool> RemoveUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
             bool userRemoved = false;

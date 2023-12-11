@@ -48,7 +48,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@(AsAdmin? "admin" : "modeller")">
+                <AuthorizeView Roles="@(AsAdmin? GlobalConst.kAdmin : GlobalConst.kModeller)">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await SvcGroupHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
                     </Authorized>

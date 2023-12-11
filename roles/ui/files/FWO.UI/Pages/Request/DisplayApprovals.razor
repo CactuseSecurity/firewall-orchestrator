@@ -3,7 +3,7 @@
 @using FWO.Ui.Services
 
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -86,7 +86,7 @@
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
-    static List<string> validRoles = new List<string>(){"approver"};
+    static List<string> validRoles = new List<string>(){GlobalConst.kApprover};
 
 
     private async Task Close()

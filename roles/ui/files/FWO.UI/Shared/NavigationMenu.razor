@@ -18,42 +18,42 @@
 
     <div class="navbar-collapse @NavMenuCollapseClass">
         <ul class="navbar-nav mr-auto">
-            <AuthorizeView Roles="admin, fw-admin, reporter, reporter-viewall, auditor">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kAuditor}")">
                 <li class="nav-item px-2">
                     <a href="/report/generation" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
                         <span class="oi oi-spreadsheet"></span> @(userConfig.GetText("reporting"))
                     </a>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, requester, fw-admin, auditor, approver, planner, implementer, reviewer">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="@firstPage">
                         <span class="oi oi-comment-square"></span> @(userConfig.GetText("workflow"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, recertifier, auditor">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/certification">
                         <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, modeller, auditor">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kModeller}, {GlobalConst.kAuditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/networkmodelling">
                         <span class="oi oi-puzzle-piece"></span> @(userConfig.GetText("modelling"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, fw-admin, planner, auditor">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kPlanner}, {GlobalConst.kAuditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/network_analysis">
                         <span class="oi oi-spreadsheet"></span> @(userConfig.GetText("network_analysis"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, requester, fw-admin, reporter, auditor, approver, planner, implementer, reviewer, reporter-viewall">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kAuditor}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kReporterViewAll}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/compliance/zones/matrix">
                         <span class="oi oi-dashboard"></span> @(userConfig.GetText("compliance"))
@@ -111,25 +111,25 @@
     protected override void OnInitialized()
     {
         userConfig.OnChange += OnChange;
-        if(authenticationStateTask!.Result.User.IsInRole("admin") || 
-            authenticationStateTask!.Result.User.IsInRole("fw-admin") ||
-            authenticationStateTask!.Result.User.IsInRole("auditor"))
+        if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || 
+            authenticationStateTask!.Result.User.IsInRole(GlobalConst.kFwAdmin) ||
+            authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor))
         {
             firstPage = "/request/ticketsoverview";
         }
-        else if(authenticationStateTask!.Result.User.IsInRole("requester"))
+        else if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kRequester))
         {
             firstPage = "/request/tickets";
         }
-        else if(authenticationStateTask!.Result.User.IsInRole("approver"))
+        else if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kApprover))
         {
             firstPage = "/request/approvals";
         }
-        else if(authenticationStateTask!.Result.User.IsInRole("planner"))
+        else if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kPlanner))
         {
             firstPage = "/request/plannings";
         }
-        else if(authenticationStateTask!.Result.User.IsInRole("implementer"))
+        else if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kImplementer))
         {
             firstPage = "/request/implementations";
         }

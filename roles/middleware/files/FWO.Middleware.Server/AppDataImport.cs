@@ -215,7 +215,7 @@ namespace FWO.Middleware.Server
 
         private static string GroupName(string appName)
         {
-            return GlobalConfig.kModellerGroup + appName;
+            return GlobalConst.kModellerGroup + appName;
         }
 
         private string CreateUserGroup(ModellingImportAppData incomingApp)

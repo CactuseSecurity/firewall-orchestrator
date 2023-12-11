@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/tickets"
-@attribute [Authorize(Roles = "admin, requester, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -40,7 +40,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "admin", "requester", "auditor"});
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kAdmin, GlobalConst.kRequester, GlobalConst.kAuditor });
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
@@ -57,7 +57,7 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("requester") || authenticationStateTask!.Result.User.IsInRole("admin"));
+            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kRequester) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin));
             await reqHandler.Init();
         }
         catch (Exception exception)

@@ -114,11 +114,11 @@ namespace FWO.Config.Api
 
         public override string GetText(string key)
         {
-            if (Overwrite.ContainsKey(key))
+            if (Overwrite != null && Overwrite.ContainsKey(key))
             {
                 return Convert(Overwrite[key]);
             }
-            if (Translate.ContainsKey(key))
+            if (Translate != null && Translate.ContainsKey(key))
             {
                 return Convert(Translate[key]);
             }
@@ -127,15 +127,15 @@ namespace FWO.Config.Api
                 string defaultLanguage = globalConfig.DefaultLanguage;
                 if (defaultLanguage == "")
                 {
-                    defaultLanguage = GlobalConfig.kEnglish;
+                    defaultLanguage = GlobalConst.kEnglish;
                 }
                 if (globalConfig.langDict[defaultLanguage].ContainsKey(key))
                 {
                     return Convert(globalConfig.langDict[defaultLanguage][key]);
                 }
-                else if (defaultLanguage != GlobalConfig.kEnglish && globalConfig.langDict[GlobalConfig.kEnglish].ContainsKey(key))
+                else if (defaultLanguage != GlobalConst.kEnglish && globalConfig.langDict[GlobalConst.kEnglish].ContainsKey(key))
                 {
-                    return Convert(globalConfig.langDict[GlobalConfig.kEnglish][key]);
+                    return Convert(globalConfig.langDict[GlobalConst.kEnglish][key]);
                 }
                 else
                 {

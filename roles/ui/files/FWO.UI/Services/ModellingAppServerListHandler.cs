@@ -27,7 +27,7 @@ namespace FWO.Ui.Services
             try
             {
                 Application = application;
-                ManualAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getImportedAppServers, new { importSource = GlobalConfig.kManual, appId = Application.Id });
+                ManualAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getImportedAppServers, new { importSource = GlobalConst.kManual, appId = Application.Id });
                 foreach(var appServer in ManualAppServers)
                 {
                     appServer.InUse = await CheckAppServerInUse(appServer);
@@ -42,7 +42,7 @@ namespace FWO.Ui.Services
         public void CreateAppServer()
         {
             AddAppServerMode = true;
-            HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConfig.kManual, InUse = false });
+            HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConst.kManual, InUse = false });
         }
 
         public void EditAppServer(ModellingAppServer appServer)

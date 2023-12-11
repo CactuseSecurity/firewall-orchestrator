@@ -9,7 +9,7 @@
 @using RestSharp
 
 @page "/settings/roles"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -24,7 +24,7 @@
         <Column TableItem="Role" Title="@(userConfig.GetText("actions"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (context.Name != "middleware-server" && context.Name != "anonymous")
+                    @if (context.Name != GlobalConst.kMiddlewareServer && context.Name != GlobalConst.kAnonymous)
                     {
                         <button type="button" class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("assign_user_group"))</button>
                         @if(context.Users.Count > 0)
@@ -89,7 +89,7 @@
                         </Dropdown>
                     </div>
                     <div class="col-sm-2">
-                        <AuthorizeView Roles="admin">
+                        <AuthorizeView Roles="@GlobalConst.kAdmin">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                             </Authorized>
@@ -105,7 +105,7 @@
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedGroupDn" Elements="internalGroupList" />
                     </div>
                     <div class="col-sm-2">
-                        <AuthorizeView Roles="admin">
+                        <AuthorizeView Roles="@GlobalConst.kAdmin">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                             </Authorized>
@@ -145,7 +145,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@GlobalConst.kAdmin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser()" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
                 </Authorized>
@@ -172,7 +172,7 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <AuthorizeView Roles="admin">
+                    <AuthorizeView Roles="@GlobalConst.kAdmin">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
@@ -186,7 +186,7 @@
                     <div class="col-sm-8">
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedGroupDn" Elements="searchedGroupList" />
                     </div>
-                    <AuthorizeView Roles="admin">
+                    <AuthorizeView Roles="@GlobalConst.kAdmin">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
@@ -414,7 +414,7 @@
     {
         if (selectedUserToDelete.Dn != "")
         {
-            if (actRole.Name == "admin" && actRole.Users.Count < 2)
+            if (actRole.Name == GlobalConst.kAdmin && actRole.Users.Count < 2)
             {
                 DisplayMessageInUi(null, userConfig.GetText("remove_user_group_from_role"), userConfig.GetText("E5256"), true);
             }

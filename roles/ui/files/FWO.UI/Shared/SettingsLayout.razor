@@ -9,12 +9,12 @@
 <Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
     <div class="mr-2 ml-2 mt-4 mb-4">
         <ul class="navbar-nav flex-column">
-            <AuthorizeView Roles="admin, importer, auditor, fw-admin">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kImporter}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>@(userConfig.GetText("devices"))</h5>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, auditor, fw-admin">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/credentials">
                         <span class="oi oi-key"></span> @(userConfig.GetText("import_credential"))
@@ -32,26 +32,26 @@
                 </li>
             </AuthorizeView>
             <hr />
-            <AuthorizeView Roles="admin, auditor, fw-admin">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5012"))">
                     <h5>@(userConfig.GetText("authorization"))</h5>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, auditor">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/ldap">
                         <span class="oi oi-key"></span> @(userConfig.GetText("ldap_conns"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, auditor, fw-admin">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/tenants">
                         <span class="oi oi-command"></span> @(userConfig.GetText("tenants"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, auditor">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/users">
                         <span class="oi oi-person"></span> @(userConfig.GetText("users"))
@@ -147,13 +147,13 @@
                 <NavLink class="nav-link" href="settings/language">
                     <span class="oi oi-comment-square"></span> @(userConfig.GetText("language"))
                 </NavLink>
-                <AuthorizeView Roles="admin, reporter, reporter-viewall, recertifier, auditor, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                     <NavLink class="nav-link" href="settings/report">
                         <span class="oi oi-list"></span> @(userConfig.GetText("reporting"))
                     </NavLink>
                 </AuthorizeView>
             </li>
-            <AuthorizeView Roles="admin, recertifier, auditor">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/recertificationpersonal">
                         <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))

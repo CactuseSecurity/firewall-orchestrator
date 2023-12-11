@@ -182,7 +182,7 @@ else
             await appHandler.Init();
             appSelected = true;
             appActive = selectedApp.Active;
-            appHandler.ChangesAllowed = userConfig.User.Roles.Contains(GlobalConst.kModeller) && userConfig.User.Groups.Contains(selectedApp.ExtAppId);
+            //appHandler.ChangesAllowed = userConfig.User.Roles.Contains(GlobalConst.kModeller) && userConfig.User.Groups.Contains(selectedApp.ExtAppId);
         }
         catch (Exception exception)
         {

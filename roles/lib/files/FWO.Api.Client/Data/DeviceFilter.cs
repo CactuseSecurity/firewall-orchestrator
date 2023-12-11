@@ -19,8 +19,8 @@ namespace FWO.Api.Data
         public ElementReference? UiReference { get; set; }
 
         public bool Visible { get; set; } = true;
-
         public bool Selected { get; set; } = false;
+        public int TenantFilterState { get; set; } = 0;  // 0 = invisible for tenant, 1 = shared visibility, 2 = fully visible (without any filtering)
     }
 
     public class DeviceSelect
@@ -34,6 +34,7 @@ namespace FWO.Api.Data
         public bool Visible { get; set; } = true;
 
         public bool Selected { get; set; } = false;
+        public int TenantFilterState { get; set; } = 0;  // 0 = invisible for tenant, 1 = shared visibility, 2 = fully visible (without any filtering)
     }
 
     public class DeviceFilter
@@ -41,15 +42,24 @@ namespace FWO.Api.Data
         [JsonProperty("management"), JsonPropertyName("management")]
         public List<ManagementSelect> Managements { get; set; } = new List<ManagementSelect>();
 
+        [JsonProperty("visibleManagements"), JsonPropertyName("visibleManagements")]
+        public List<ManagementSelect> VisibleManagements { get; set; } = new List<ManagementSelect>();
+
+        [JsonProperty("visibleGateways"), JsonPropertyName("visibleGateways")]
+        public List<DeviceSelect> VisibleGateways { get; set; } = new List<DeviceSelect>();
 
         public DeviceFilter()
         {}
 
         public DeviceFilter(DeviceFilter devFilter)
         {
-            Managements = devFilter.Managements;
+            Managements = new List<ManagementSelect>(devFilter.Managements);
         }
 
+        public DeviceFilter(List<ManagementSelect> mgmSelect)
+         {
+            Managements =  new List<ManagementSelect>(mgmSelect);
+        }        
         public DeviceFilter(List<int> devIds)
         {
             ManagementSelect dummyManagement = new ManagementSelect();
@@ -59,7 +69,15 @@ namespace FWO.Api.Data
             }
             Managements.Add(dummyManagement);
         }
-
+        public DeviceFilter(int[] devIds)
+        {
+            ManagementSelect dummyManagement = new ManagementSelect();
+            foreach(int id in devIds)
+            {
+                dummyManagement.Devices.Add(new DeviceSelect(){Id = id});
+            }
+            Managements.Add(dummyManagement);
+        }
         public bool areAllDevicesSelected()
         {
             foreach (ManagementSelect management in Managements)

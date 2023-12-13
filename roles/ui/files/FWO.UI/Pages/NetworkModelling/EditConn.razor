@@ -165,14 +165,14 @@
         <div class="btn-group">
             @if(!ConnHandler.ReadOnly)
             {
-                <AuthorizeView Roles="@GlobalConst.kModeller">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
+                @if(ConnHandler.IsOwner)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                }
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
             @if(!ConnHandler.ReadOnly)

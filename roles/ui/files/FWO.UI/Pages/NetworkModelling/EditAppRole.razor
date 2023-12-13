@@ -81,14 +81,14 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@GlobalConst.kModeller">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {if(await AppRoleHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
+                @if(AppRoleHandler.IsOwner)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {if(await AppRoleHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                }
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>

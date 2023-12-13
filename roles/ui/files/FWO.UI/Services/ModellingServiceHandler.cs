@@ -14,8 +14,8 @@ namespace FWO.Ui.Services
 
 
         public ModellingServiceHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            ModellingService service, List<ModellingService> availableServices, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi)
+            ModellingService service, List<ModellingService> availableServices, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
             ActService = service;
             AvailableServices = availableServices;

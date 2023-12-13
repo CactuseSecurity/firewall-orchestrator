@@ -127,7 +127,7 @@ namespace FWO.Middleware.Server
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleDevices)} }}"));
             }
-            claimsIdentity.AddClaim(new Claim("x-hasura-visible-owners", $"{{ {GetOwners(user)} }}"));
+            claimsIdentity.AddClaim(new Claim("x-hasura-editable-owners", $"{{ {string.Join(",", user.Ownerships)} }}"));
 
             // we need to create an extra list because hasura only accepts an array of roles even if there is only one
             List<string> hasuraRolesList = new List<string>();

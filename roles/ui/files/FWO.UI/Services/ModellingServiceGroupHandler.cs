@@ -22,8 +22,8 @@ namespace FWO.Ui.Services
 
         public ModellingServiceGroupHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingServiceGroup> serviceGroups, ModellingServiceGroup serviceGroup, List<ModellingService> availableServices,
-            List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi)
+            List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
             ServiceGroups = serviceGroups;
             ActServiceGroup = serviceGroup;
@@ -60,7 +60,7 @@ namespace FWO.Ui.Services
             try
             {
                 service.IsGlobal = ActServiceGroup.IsGlobal;
-                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi);
+                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi, IsOwner);
                 EditServiceMode = true;
             }
             catch (Exception exception)

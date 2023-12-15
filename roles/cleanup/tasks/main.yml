@@ -51,8 +51,8 @@
     executable: python3
   become: true
   when: "'apiserver' in group_names"
-  with_fileglob: 
-    - "{{ fworch_home }}/scripts/customizing/api/*.py"
+  with_fileglob:
+    - "scripts/customizing/api/*.py"
 
 # Do general cleanup
 

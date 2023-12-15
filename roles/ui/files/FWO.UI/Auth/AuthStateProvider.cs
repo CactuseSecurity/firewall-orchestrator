@@ -168,13 +168,13 @@ namespace FWO.Ui.Auth
 
         public List<string> getAllowedRoles(string jwtString)
         {
-            return getClaims(jwtString, "x-hasura-allowed-roles");
+            return GetClaimList(jwtString, "x-hasura-allowed-roles");
         }
 
         public List<int> getAssignedOwners(string jwtString)
         {
             List<int> ownerIds = new();
-            List<string> ownerClaims = getClaims(jwtString, "x-hasura-editable-owners");
+            List<string> ownerClaims = GetClaimList(jwtString, "x-hasura-editable-owners");
             if(ownerClaims.Count > 0)
             {
                 string[] separatingStrings = { ",", "{", "}" };
@@ -184,7 +184,7 @@ namespace FWO.Ui.Auth
             return ownerIds;
         }
 
-        private List<string> getClaims(string jwtString, string claimType)
+        private List<string> GetClaimList(string jwtString, string claimType)
         {
             List<string> claimList = new List<string>();
             JwtReader jwtReader = new JwtReader(jwtString);

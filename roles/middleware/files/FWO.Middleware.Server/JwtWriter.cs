@@ -112,7 +112,7 @@ namespace FWO.Middleware.Server
             return GeneratedToken;
         }
 
-        private ClaimsIdentity SetClaims(UiUser user)
+        private static ClaimsIdentity SetClaims(UiUser user)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
@@ -141,7 +141,12 @@ namespace FWO.Middleware.Server
             // add hasura roles claim as array
             claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(hasuraRolesList.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
 
-            // deciding on default-role
+            claimsIdentity.AddClaim(new Claim("x-hasura-default-role", GetDefaultRole(user, hasuraRolesList)));
+            return claimsIdentity;
+        }
+
+        private static string GetDefaultRole(UiUser user, List<string> hasuraRolesList)
+        {
             string defaultRole = "";
             if (user.Roles.Count > 0)
             {
@@ -166,25 +171,7 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("User roles", $"User {user.Name} does not have any assigned roles.");
             }
-
-            claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
-            return claimsIdentity;
-        }
-
-        private string GetOwners(UiUser user)
-        {
-            List<string> owners = new();
-            if(user.Groups != null)
-            {
-                foreach(var grp in user.Groups)
-                {
-                    if (grp.Contains(GlobalConst.kModellerGroup))
-                    {
-                        owners.Add(new DistName(grp).Group.Substring(GlobalConst.kModellerGroup.Length));
-                    }
-                }
-            }
-            return string.Join(",", owners);
+            return defaultRole;
         }
     }
 }

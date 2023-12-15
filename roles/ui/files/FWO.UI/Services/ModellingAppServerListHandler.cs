@@ -75,6 +75,7 @@ namespace FWO.Ui.Services
         {
             try
             {
+                apiConnection.SetRole(GlobalConst.kAdmin);
                 if(await CheckAppServerInUse(actAppServer))
                 {
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = true });
@@ -89,6 +90,7 @@ namespace FWO.Ui.Services
                         $"Deleted App Server: {actAppServer.Display()}", Application.Id);
                     ManualAppServers.Remove(actAppServer);
                 }
+                apiConnection.SwitchBack();
                 DeleteAppServerMode = false;
             }
             catch (Exception exception)

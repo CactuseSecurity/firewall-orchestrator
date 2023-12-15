@@ -103,7 +103,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                List<FwoOwner> dirOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new { dn = user.Dn });
+                List<FwoOwner> dirOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new { userDn = user.Dn });
                 foreach(var owner in dirOwnerships)
                 {
                     user.Ownerships.Add(owner.Id);
@@ -114,9 +114,10 @@ namespace FWO.Middleware.Server
                     List<FwoOwner> apps = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                     foreach(var grp in user.Groups)
                     {
-                        if (grp.StartsWith(GlobalConst.kModellerGroup))
+                        string grpName = new DistName(grp).Group;
+                        if (grpName.StartsWith(GlobalConst.kModellerGroup))
                         {
-                            FwoOwner? owner = apps.FirstOrDefault(x => x.ExtAppId == grp.Substring(GlobalConst.kModellerGroup.Length));
+                            FwoOwner? owner = apps.FirstOrDefault(x => x.ExtAppId == grpName.Substring(GlobalConst.kModellerGroup.Length));
                             if (owner != null)
                             {
                                 user.Ownerships.Add(owner.Id);

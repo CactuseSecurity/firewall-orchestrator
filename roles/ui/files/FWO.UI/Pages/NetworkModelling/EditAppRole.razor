@@ -23,7 +23,7 @@
                                 {
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display())" 
-                                                SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
+                                                SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
                                             <ElementTemplate Context="area">
                                                 @((MarkupString)area.DisplayHtml())
                                             </ElementTemplate>
@@ -93,6 +93,7 @@
             </div>
         </Footer>
     </PopUp>
+    <InProgress Display="workInProgress"/>
 }
 
 @code
@@ -121,6 +122,7 @@
 
     private List<ModellingNetworkArea> areas = new();
     private bool firstTry = true;
+    private bool workInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -139,6 +141,7 @@
     {
         if(Display && firstTry)
         {
+            firstTry = false;
             if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
                 if(areas.Count == 0)
@@ -152,14 +155,13 @@
                     {
                         AppRoleHandler.ActAppRole.Area = existArea;
                     }
-                    await SelectedAreaChanged(AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
+                    await OnSelectedAreaChanged(AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
                 }
             }
             else
             {
                 AppRoleHandler.AppServersInArea = AppRoleHandler.AvailableAppServers.Where(x => !x.IsDeleted).ToList();
             }
-            firstTry = false;
         }
     }
 
@@ -179,20 +181,25 @@
         DisplayChanged.InvokeAsync(Display);
     }
 
-    private async Task SelectedAreaChanged(ModellingNetworkArea? newArea)
+    private async Task OnSelectedAreaChanged(ModellingNetworkArea? newArea)
     {
         try
         {
-            AppRoleHandler.ActAppRole.Area = newArea;
-            if(newArea != null)
+            if(!workInProgress)
             {
-                if(newArea.IdString.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
+                workInProgress = true;
+                AppRoleHandler.ActAppRole.Area = newArea;
+                if(newArea != null)
                 {
-                    AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
-                    AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
+                    if(newArea.IdString.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
+                    {
+                        AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
+                        AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
+                    }
                 }
+                await AppRoleHandler.SelectAppServersFromArea(newArea);
+                workInProgress = false;
             }
-            await AppRoleHandler.SelectAppServersFromArea(newArea);
         }
         catch (Exception exception)
         {

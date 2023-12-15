@@ -17,7 +17,7 @@ In order to protect your credentials, copy the configuration file customizingCon
 
 Adjust the settings in the config file /etc/fworch/secrets/customizingConfig.json as follows:
 
-- username should the an admin user for Tufin RLM
+- username should be an admin user for Tufin RLM
 - under ldapPath enter your standard LDAP path and make sure the user id parameter [USERID] is at the right place
 - finally enter the path to your Tufin installation, e.g. https://tufin.cactus.de/ without any path informatin just ending with a "/"
 - for the Subnet Data import enter the path to the .csv-File

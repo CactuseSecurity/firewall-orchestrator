@@ -3,7 +3,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -191,7 +191,7 @@
         <div class="btn-group">
             @if (ReqHandler.EditImplTaskMode)
             {
-                <AuthorizeView Roles="admin, planner, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kPlanner}, {GlobalConst.kFwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -202,7 +202,7 @@
             }
             else if (ReqHandler.ImplementImplTaskMode)
             {
-                <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kFwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(userConfig.GetText("change_state"))</button>
                     </Authorized>

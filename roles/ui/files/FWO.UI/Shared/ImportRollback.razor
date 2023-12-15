@@ -21,7 +21,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, importer" Context="xxx">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kImporter}")" Context="xxx">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode);}">@(userConfig.GetText("rollback"))</button>
                 </Authorized>

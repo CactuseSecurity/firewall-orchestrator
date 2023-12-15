@@ -1,0 +1,131 @@
+﻿@using FWO.Config.Api
+
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kModeller}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if(Display && InitComplete)
+{
+    <PopUp Title="@(AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Show="@Display" OnClose="Cancel">
+        <Body>
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="ServiceHandler.ActService.Name" />
+            </div>
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                <input type="number" min="1" max="65535" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.Port" />
+                <label class="col-sm-1 col-form-label col-form-label-sm"> - </label>
+                <input type="number" min="1" max="65535" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.PortEnd" />
+            </div>
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("protocol"))*:</label>
+                <div class="col-sm-9">
+                    <Dropdown ElementType="NetworkProtocol" @bind-SelectedElement="ServiceHandler.ActService.Protocol" ElementToString="@(p => p.Name)" Elements="ipProtos" Nullable="true">
+                        <ElementTemplate Context="proto">
+                            @proto.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="@(AsAdmin? GlobalConst.kAdmin : GlobalConst.kModeller)">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await ServiceHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+    <InProgress Display="!InitComplete"/>
+}
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public ModellingServiceHandler ServiceHandler { get; set; }
+
+    [Parameter]
+    public bool AddMode { get; set; } = false;
+
+    [Parameter]
+    public bool AsAdmin { get; set; } = false;
+
+
+    private List<NetworkProtocol> ipProtos = new List<NetworkProtocol>();
+    private bool InitComplete = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            List<IpProtocol> ipProtosOrig = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            ipProtos = CustomSort(ipProtosOrig);
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void Cancel()
+    {
+        ServiceHandler.Reset();
+        Close();
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+
+    private List<NetworkProtocol> CustomSort(List<IpProtocol> ListIn)
+    {
+        List<NetworkProtocol> ListOut = new List<NetworkProtocol>();
+        IpProtocol? tcp = ListIn.Find(x => x.Name.ToLower() == "tcp");
+        if(tcp != null)
+        {
+            ListOut.Add(new NetworkProtocol(tcp));
+            ListIn.Remove(tcp);
+        }
+        IpProtocol? udp = ListIn.Find(x => x.Name.ToLower() == "udp");
+        if(udp != null)
+        {
+            ListOut.Add(new NetworkProtocol(udp));
+            ListIn.Remove(udp);
+        }
+        IpProtocol? icmp = ListIn.Find(x => x.Name.ToLower() == "icmp");
+        if(icmp != null)
+        {
+            ListOut.Add(new NetworkProtocol(icmp));
+            ListIn.Remove(icmp);
+        }
+        foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
+        {
+            if (proto.Name.ToLower() != "unassigned")
+            {
+                ListOut.Add(new NetworkProtocol(proto));
+            }
+        }
+        return ListOut;
+    }
+}

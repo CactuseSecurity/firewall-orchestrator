@@ -1,0 +1,5 @@
+query getInterfaceById($intId: Int!){
+  modelling_connection (where: { id: { _eq: $intId } }){
+    ...connectionDetails
+  }
+}

@@ -4,7 +4,7 @@
 
 
 @page "/settings/report"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

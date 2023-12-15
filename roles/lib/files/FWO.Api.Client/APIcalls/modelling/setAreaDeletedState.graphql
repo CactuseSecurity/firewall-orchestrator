@@ -1,0 +1,12 @@
+mutation setAreaDeletedState(
+  $id: bigint!
+  $deleted: Boolean!
+  ) {
+  update_modelling_nwgroup_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      is_deleted: $deleted
+  }) {
+    UpdatedId: id
+  }
+}

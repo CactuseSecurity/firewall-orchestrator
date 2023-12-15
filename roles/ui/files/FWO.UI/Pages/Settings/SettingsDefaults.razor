@@ -3,7 +3,7 @@
 @using FWO.Config.Api.Data
 
 @page "/settings/defaults"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -151,7 +151,7 @@
         </div>
     </form>
     <hr />
-    <AuthorizeView Roles="admin">
+    <AuthorizeView Roles="@GlobalConst.kAdmin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>

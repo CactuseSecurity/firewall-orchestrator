@@ -189,6 +189,10 @@ app {
     height: 100vh
 }
 
+.minheight-dropzone {
+    min-height: 100px;
+}
+
 .background-upcoming {
     background-color: rgba(255, 255, 0, 0.25)
 }
@@ -234,4 +238,8 @@ app {
 .radioSpace {
     margin-right:10px;
     margin-left:20px;
+}
+
+.bg-light-grey {
+    background-color: #f8f7f7;
 }

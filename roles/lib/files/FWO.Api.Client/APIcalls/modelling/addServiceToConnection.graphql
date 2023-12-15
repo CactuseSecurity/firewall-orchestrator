@@ -1,0 +1,13 @@
+mutation addServiceToConnection(
+  $serviceId: Int!
+  $connectionId: Int!
+  ) {
+  insert_modelling_service_connection(objects: {
+    service_id: $serviceId
+    connection_id: $connectionId
+  }) {
+    returning {
+      newId: service_id
+    }
+  }
+}

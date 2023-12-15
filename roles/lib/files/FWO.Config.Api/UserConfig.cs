@@ -46,7 +46,6 @@ namespace FWO.Config.Api
         {
             User = new UiUser();
             Translate = globalConfig.langDict[globalConfig.DefaultLanguage];
-            Overwrite = Task.Run(async () => await GetCustomDict(globalConfig.DefaultLanguage)).Result;
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfigOnChange;
         }
@@ -115,11 +114,11 @@ namespace FWO.Config.Api
 
         public override string GetText(string key)
         {
-            if (Overwrite.ContainsKey(key))
+            if (Overwrite != null && Overwrite.ContainsKey(key))
             {
                 return Convert(Overwrite[key]);
             }
-            if (Translate.ContainsKey(key))
+            if (Translate != null && Translate.ContainsKey(key))
             {
                 return Convert(Translate[key]);
             }
@@ -128,15 +127,15 @@ namespace FWO.Config.Api
                 string defaultLanguage = globalConfig.DefaultLanguage;
                 if (defaultLanguage == "")
                 {
-                    defaultLanguage = GlobalConfig.kEnglish;
+                    defaultLanguage = GlobalConst.kEnglish;
                 }
                 if (globalConfig.langDict[defaultLanguage].ContainsKey(key))
                 {
                     return Convert(globalConfig.langDict[defaultLanguage][key]);
                 }
-                else if (defaultLanguage != GlobalConfig.kEnglish && globalConfig.langDict[GlobalConfig.kEnglish].ContainsKey(key))
+                else if (defaultLanguage != GlobalConst.kEnglish && globalConfig.langDict[GlobalConst.kEnglish].ContainsKey(key))
                 {
-                    return Convert(globalConfig.langDict[GlobalConfig.kEnglish][key]);
+                    return Convert(globalConfig.langDict[GlobalConst.kEnglish][key]);
                 }
                 else
                 {
@@ -205,10 +204,13 @@ namespace FWO.Config.Api
             Dictionary<string, string> dict = new();
             try
             {
-                UiText[] uiTexts = await apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getCustomTextsPerLanguage, new { language = languageName });
-                foreach (UiText text in uiTexts)
+                UiText[]? uiTexts = await apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getCustomTextsPerLanguage, new { language = languageName });
+                if (uiTexts != null)
                 {
-                    dict.Add(text.Id, text.Txt);
+                    foreach (UiText text in uiTexts)
+                    {
+                        dict.Add(text.Id, text.Txt);
+                    }
                 }
             }
             catch (Exception exception)

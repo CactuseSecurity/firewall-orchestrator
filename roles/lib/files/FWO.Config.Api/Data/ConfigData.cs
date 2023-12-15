@@ -14,7 +14,7 @@ namespace FWO.Config.Api.Data
         public readonly bool Editable;
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
-        public virtual string DefaultLanguage { get; set; } = GlobalConfig.kEnglish;
+        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;
 
         [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout")]
         public int SessionTimeout { get; set; } = 720;
@@ -199,6 +199,37 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
+
+
+        [JsonProperty("allowServerInConn"), JsonPropertyName("allowServerInConn")]
+        public bool AllowServerInConn { get; set; } = true;
+
+        [JsonProperty("allowServiceInConn"), JsonPropertyName("allowServiceInConn")]
+        public bool AllowServiceInConn { get; set; } = true;
+
+        [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
+        public int OverviewDisplayLines { get; set; } = 3;
+
+        [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
+        public string ImportAppDataPath { get; set; } = "";
+
+        [JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
+        public int ImportAppDataSleepTime { get; set; } = 24;
+
+        [JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
+        public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
+
+        [JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
+        public string ImportSubnetDataPath { get; set; } = "";
+
+        [JsonProperty("importSubnetDataSleepTime"), JsonPropertyName("importSubnetDataSleepTime")]
+        public int ImportSubnetDataSleepTime { get; set; } = 24;
+
+        [JsonProperty("importSubnetDataStartAt"), JsonPropertyName("importSubnetDataStartAt")]
+        public DateTime ImportSubnetDataStartAt { get; set; } = new DateTime();
+
+        [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
+        public string ModNamingConvention { get; set; } = "";
 
 
         public ConfigData(bool editable = false)

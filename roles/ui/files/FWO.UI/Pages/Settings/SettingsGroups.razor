@@ -9,7 +9,7 @@
 @using RestSharp
 
 @page "/settings/groups"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -93,13 +93,9 @@
                 <div class="form-group row">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("roles")):</label>
                     <div class="col-sm-10">
-                        @if (actGroup.OwnerGroup)
+                        @if (AddGroupMode)
                         {
-                            <label class="m-2">recertifier</label>
-                        }                  
-                        else if (AddGroupMode)
-                        {
-                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="availableRoles" Nullable="true">
+                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="@(actGroup.OwnerGroup ? ownerGroupRoles : availableRoles)" Nullable="true">
                                 <ElementTemplate Context="role">
                                     @role.Name
                                 </ElementTemplate>
@@ -116,7 +112,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@GlobalConst.kAdmin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -148,7 +144,7 @@
         }
     </Body>
     <Footer>
-        <AuthorizeView Roles="admin">
+        <AuthorizeView Roles="@GlobalConst.kAdmin">
             <Authorized>
                 <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
             </Authorized>
@@ -182,7 +178,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@GlobalConst.kAdmin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RemoveUserFromGroup()" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
                 </Authorized>
@@ -209,6 +205,7 @@
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<Role> roles = new List<Role>();
     private List<Role> availableRoles = new List<Role>();
+    private List<Role> ownerGroupRoles = new List<Role>();
 
     private UiUser selectedUiUser = new UiUser();
     private UiUser selectedUserToDelete = new UiUser();
@@ -247,7 +244,8 @@
             await GetRolesFromInternalLdap();
             SynchronizeGroupsToRoles();
 
-            availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
+            availableRoles = roles.FindAll(x => (x.Name != GlobalConst.kAnonymous && x.Name != GlobalConst.kMiddlewareServer));
+            ownerGroupRoles = roles.FindAll(x => (x.Name == GlobalConst.kRecertifier || x.Name == GlobalConst.kModeller));
         }
         catch (System.Exception exception)
         {
@@ -329,7 +327,7 @@
                     actGroup.Roles = new List<string>();
                     if(actGroup.OwnerGroup)
                     {
-                        actGroup.Roles.Add("recertifier");
+                        actGroup.Roles.Add(GlobalConst.kRecertifier);
                     }
                     else if(selectedRole != null)
                     {

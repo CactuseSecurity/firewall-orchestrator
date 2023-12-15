@@ -1,7 +1,8 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
-@page "/"
+@page "/{appId?}"
 
 @* <h3>@(userConfig.GetText("welcome"))</h3> *@
 
@@ -34,10 +35,18 @@
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
     private AuthenticationState? authenticationState;
 
+    [Parameter]
+    public string? AppId { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         uiUserDbId = userConfig.User.DbId;
         authenticationState = await authenticationStateTask!;
+
+        if(authenticationState.User.IsInRole(GlobalConst.kModeller))
+        {
+            NavigationManager.NavigateTo($"/networkmodelling/{AppId ?? ""}");
+        }
     }
 
 }

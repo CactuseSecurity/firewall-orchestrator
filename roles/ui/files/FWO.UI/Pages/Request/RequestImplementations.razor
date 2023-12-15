@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/implementations"
-@attribute [Authorize(Roles = "admin, implementer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kImplementer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -69,7 +69,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "admin", "implementer", "fw-admin", "auditor"});
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kAdmin, GlobalConst.kImplementer, GlobalConst.kFwAdmin, GlobalConst.kAuditor});
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.implementation){};
@@ -119,7 +119,7 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("implementer") || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("admin"));
+            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kImplementer) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kFwAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin));
             await reqHandler.Init();
         }
         catch (Exception exception)

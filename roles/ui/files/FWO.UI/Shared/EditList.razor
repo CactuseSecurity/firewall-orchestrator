@@ -1,12 +1,12 @@
 ﻿@typeparam ElementType
 
-<ul class="list-group mb-2">
+<ul class="list-group @(StdLayout ? "mb-2" : "")">
 	@for (int i = 0; i < ElementsToAdd.Count; i++)
 	{
 		int j = i;
 		<li class="bg-success-subtle @(StdLayout ? StdClass : AltClass) d-flex justify-content-between">
 			<div class="@(StdLayout ? "" : AltElemClass)">@(Display(ElementsToAdd[i]))</div>
-			<span @onclick="() => ElementsToAdd.Remove(ElementsToAdd[j])" class="@(StdLayout ? "" : AltButtonClass) badge bg-danger">
+			<span @onclick="() => {ElementsToAdd.Remove(ElementsToAdd[j]);AfterRemoveAction();}" class="@(StdLayout ? "" : AltButtonClass) badge bg-danger">
 				<i class="oi oi-x text-light"></i>
 			</span>
 		</li>
@@ -46,8 +46,11 @@
 	[Parameter]
 	public bool StdLayout { get; set; } = true;
 
+    [Parameter]
+    public Func<bool> AfterRemoveAction { get; set; } = DefaultInit.DoNothingSync;
+
 	private string StdClass = "list-group-item pb-2 pt-2";
-	private string AltClass = "pb-0 pt-1";
+	private string AltClass = "pb-0 pt-0";
 	private string AltElemClass = "col-sm-11";
 	private string AltButtonClass = "col-sm-1 align-self-center";
 

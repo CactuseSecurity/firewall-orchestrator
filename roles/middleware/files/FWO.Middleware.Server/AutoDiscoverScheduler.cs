@@ -132,7 +132,7 @@ namespace FWO.Middleware.Server
             catch (Exception exc)
             {
                 Log.WriteError("Autodiscovery", $"Ran into exception: ", exc);
-                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
+                Log.WriteAlert($"source: \"{GlobalConst.kAutodiscovery}\"",
                     $"userId: \"0\", title: \"Error encountered while trying to autodiscover\", description: \"{exc}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 await AddAutoDiscoverLogEntry(1, globalConfig.GetText("scheduled_autodiscovery"), globalConfig.GetText("ran_into_exception") + exc.Message);
             }
@@ -144,12 +144,12 @@ namespace FWO.Middleware.Server
             try
             {
                 string title = "Supermanagement: " + action.Supermanager;
-                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
+                Log.WriteAlert($"source: \"{GlobalConst.kAutodiscovery}\"",
                     $"userId: \"0\", title: \"{title}\", type: \"{action.ActionType}\", " +
                     $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: \"{action.JsonData?.ToString()}\", refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 var Variables = new
                 {
-                    source = GlobalConfig.kAutodiscovery,
+                    source = GlobalConst.kAutodiscovery,
                     userId = 0,
                     title = title,
                     description = action.ActionType,

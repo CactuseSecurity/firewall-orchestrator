@@ -1,0 +1,78 @@
+@using FWO.Config.Api
+@using FWO.Ui.Display
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="ml-2">
+    <h3>@(userConfig.GetText("library"))</h3>
+</div>
+<div class="col-sm-11 border rounded m-2 p-2">
+    <h5>@(userConfig.GetText("services"))</h5>
+    <div class="form-group row">
+        <div class="col-sm-9">
+            <DraggableList AllElements="SvcGroupHandler.AvailableServices" @bind-SelectedElements="selectedServices" 
+                HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
+        </div>
+        @if(selectedServices.Count > 0)
+        {
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {SvcGroupHandler.ServicesToSvcGroup(selectedServices); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("to_services_group"))</button>
+            </div>
+        }
+    </div>
+    <button type="button" class="btn btn-sm btn-success" @onclick="() => {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("add_service"))</button>
+    @if(selectedServices.Count == 1)
+    {
+        <button type="button" class="btn btn-sm btn-warning" @onclick="() => {SvcGroupHandler.EditService(selectedServices.First()); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("edit_service"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await SvcGroupHandler.RequestDeleteService(selectedServices.First()); selectedServices = new(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("delete"))</button>
+    }
+</div>
+<EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AddMode="SvcGroupHandler.AddServiceMode" AsAdmin="AsAdmin"/>
+<ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}"
+    Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? GlobalConst.kAdmin : GlobalConst.kModeller)" DeleteAllowed="SvcGroupHandler.DeleteAllowed"/>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter] 
+    public ModellingDnDContainer Container { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ModellingDnDContainer> ContainerChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public ModellingServiceGroupHandler SvcGroupHandler { get; set; }
+
+    [Parameter]
+    public EventCallback<ModellingServiceGroupHandler> SvcGroupHandlerChanged { get; set; }
+
+    [Parameter]
+    public bool AsAdmin { get; set; } = false;
+
+
+    private List<ModellingService> selectedServices = new();
+    private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+
+
+    private bool HandleDragStart(DragEventArgs e, ModellingService service)
+    {
+        if(!selectedServices.Contains(service))
+        {
+            selectedServices.Add(service);
+        }
+        Container.Clear();
+        Container.SvcElements = selectedServices;
+        selectedServices = new();
+        return true;
+    }
+}

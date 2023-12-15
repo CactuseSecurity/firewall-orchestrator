@@ -1,7 +1,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject UserConfig userConfig
 
@@ -30,7 +30,7 @@
                         {
                             @if (context.StateId >= ReqHandler.StateMatrix(context.TaskType).LowestInputState && context.StateId < ReqHandler.StateMatrix(context.TaskType).LowestStartedState)
                             {
-                                <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
+                                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kFwAdmin}")">
                                     <Authorized Context="ctx">
                                         <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
                                     </Authorized>
@@ -124,7 +124,7 @@
     [Parameter]
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new List<string>(){"planner", "fw-admin"};
+    static List<string> validRoles = new List<string>(){GlobalConst.kPlanner, GlobalConst.kFwAdmin};
 
 
     private async Task Reset()

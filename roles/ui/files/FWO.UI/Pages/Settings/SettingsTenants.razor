@@ -9,7 +9,7 @@
 @using RestSharp
 
 @page "/settings/tenants"
-@attribute [Authorize(Roles = "admin, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -126,7 +126,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, fw-admin">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="SaveTenant">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -157,7 +157,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@GlobalConst.kAdmin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => AddDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
                 </Authorized>
@@ -190,7 +190,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@GlobalConst.kAdmin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await DeleteDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("delete"))</button>
                 </Authorized>
@@ -250,7 +250,7 @@
     {
         try
         {
-            addDeleteAllowed = authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("auditor");
+            addDeleteAllowed = authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor);
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {

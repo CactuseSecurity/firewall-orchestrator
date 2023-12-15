@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/ticketsoverview"
-@attribute [Authorize(Roles = "admin, auditor, fw-admin, requester")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}, {GlobalConst.kRequester}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -40,7 +40,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "admin", "fw-admin", "requester", "auditor"});
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kAdmin, GlobalConst.kFwAdmin, GlobalConst.kRequester, GlobalConst.kAuditor });
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
@@ -61,7 +61,7 @@ else
             await reqHandler.Init(1);
 
             // Todo: put filtering into graphql query
-            if(authenticationStateTask!.Result.User.IsInRole("requester") && !(authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("fw-admin")))
+            if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kRequester) && !(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kFwAdmin)))
             {
                 reqHandler.FilterForRequester();
             }

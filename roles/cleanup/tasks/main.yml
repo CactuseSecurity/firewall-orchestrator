@@ -45,13 +45,14 @@
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"
 
-- name: call external (python) scripts to set some customer specific config settings via API
-  script:
-    cmd: "{{ item }}"
+- name: call external python scripts to set some customer specific config settings via API
+  script: "{{ item }}"
+  args:
+    executable: python3
   become: true
   when: "'apiserver' in group_names"
   with_fileglob: 
-    - "{{ fworch_home }}/scripts/customizing/api/*"
+    - "{{ fworch_home }}/scripts/customizing/api/*.py"
 
 # Do general cleanup
 

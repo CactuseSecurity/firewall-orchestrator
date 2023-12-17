@@ -10,6 +10,7 @@ namespace FWO.Config.Api
         public const string kAutodiscovery = "autodiscovery";
         public const string kDailyCheck = "dailycheck";
         public const string kUi = "ui";
+        public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kManual = "manual";

@@ -21,6 +21,25 @@ namespace FWO.Api.Data
         public bool Visible { get; set; } = true;
 
         public bool Selected { get; set; } = false;
+
+        public ManagementSelect Clone()
+        {
+            List<DeviceSelect> ClonedDevices = new();
+            foreach(var dev in Devices)
+            {
+                ClonedDevices.Add(new DeviceSelect(dev));
+            }
+
+			return new ManagementSelect()
+            {
+                Id = Id,
+                Name = Name,
+                Devices = ClonedDevices,
+                UiReference = UiReference,
+                Visible = Visible,
+                Selected = Selected
+            };
+        }
     }
 
     public class DeviceSelect
@@ -34,6 +53,17 @@ namespace FWO.Api.Data
         public bool Visible { get; set; } = true;
 
         public bool Selected { get; set; } = false;
+
+        public DeviceSelect()
+        {}
+
+        public DeviceSelect(DeviceSelect dev)
+        {
+            Id = dev.Id;
+            Name = dev.Name;
+            Visible = dev.Visible;
+            Selected = dev.Selected;
+        }
     }
 
     public class DeviceFilter
@@ -58,6 +88,20 @@ namespace FWO.Api.Data
                 dummyManagement.Devices.Add(new DeviceSelect(){Id = id});
             }
             Managements.Add(dummyManagement);
+        }
+
+        public DeviceFilter Clone()
+        {
+            List<ManagementSelect> ClonedManagements = new();
+            foreach(var mgt in Managements)
+            {
+                ClonedManagements.Add(mgt.Clone());
+            }
+
+			return new DeviceFilter()
+            {
+                Managements = ClonedManagements
+            };
         }
 
         public bool areAllDevicesSelected()

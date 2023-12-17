@@ -1,0 +1,74 @@
+﻿@using FWO.Config.Api
+@using FWO.Report.Filter
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+
+<PopUp Title="@(userConfig.GetText("select_device"))" Show="@Display" OnClose="Cancel">
+    <Body>
+        <DeviceSelection @bind-DeviceFilter="DeviceFilter" @bind-CollapseAll="collapseDevices" ShowTitle="false"/>
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-primary" @onclick="Commit">@(userConfig.GetText("commit_changes"))</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public DeviceFilter DeviceFilter { get; set; } = new DeviceFilter();
+
+    [Parameter]
+    public EventCallback<DeviceFilter> DeviceFilterChanged { get; set; }
+
+    private bool collapseDevices = false;
+    private DeviceFilter DeviceFilterOrig = new();
+    private bool FirstTry = true;
+
+
+    protected override void OnParametersSet()
+    {
+        try
+        {
+            if(Display && FirstTry)
+            {
+                FirstTry = false;
+                DeviceFilterOrig = DeviceFilter.Clone();
+                if (DeviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
+                {
+                    collapseDevices = true;
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private void Cancel()
+    {
+        DeviceFilter = DeviceFilterOrig;
+        Commit();
+    }
+
+    private void Commit()
+    {
+        DeviceFilterChanged.InvokeAsync(DeviceFilter);
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+        FirstTry = true;
+    }
+}

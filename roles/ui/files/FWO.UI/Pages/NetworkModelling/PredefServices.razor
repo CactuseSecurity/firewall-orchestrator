@@ -164,6 +164,7 @@
     {
         try
         {
+            apiConnection.SetRole(GlobalConst.kAdmin);
             if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
             {
                 await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
@@ -171,6 +172,7 @@
                 PredefServiceGroups.Remove(ActServiceGroup);
                 DeleteSvcGrpMode = false;
             }
+            apiConnection.SwitchBack();
         }
         catch (Exception exception)
         {

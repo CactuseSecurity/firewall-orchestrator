@@ -1008,7 +1008,11 @@
                 {
                   "role": "modeller",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    },
                     "columns": [
                       "common_service",
                       "is_interface",
@@ -1077,7 +1081,11 @@
                       "reason",
                       "creation_date"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    },
                     "check": {}
                   },
                   "comment": ""
@@ -1087,7 +1095,11 @@
                 {
                   "role": "modeller",
                   "permission": {
-                    "filter": {}
+                    "filter": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    }
                   },
                   "comment": ""
                 }
@@ -1166,7 +1178,11 @@
                 {
                   "role": "modeller",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    },
                     "columns": [
                       "id",
                       "is_deleted",
@@ -1264,7 +1280,11 @@
                       "group_type",
                       "creation_date"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    },
                     "check": {}
                   },
                   "comment": ""
@@ -1281,7 +1301,11 @@
                 {
                   "role": "modeller",
                   "permission": {
-                    "filter": {}
+                    "filter": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    }
                   },
                   "comment": ""
                 }
@@ -1718,7 +1742,11 @@
                 {
                   "role": "modeller",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    },
                     "columns": [
                       "is_global",
                       "name",
@@ -1779,7 +1807,11 @@
                       "port_end",
                       "proto_id"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    },
                     "check": null
                   },
                   "comment": ""
@@ -1789,7 +1821,11 @@
                 {
                   "role": "modeller",
                   "permission": {
-                    "filter": {}
+                    "filter": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    }
                   },
                   "comment": ""
                 }
@@ -1904,7 +1940,11 @@
                 {
                   "role": "modeller",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    },
                     "columns": [
                       "is_global",
                       "comment",
@@ -1965,7 +2005,11 @@
                       "id",
                       "creation_date"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    },
                     "check": {}
                   },
                   "comment": ""
@@ -1975,7 +2019,11 @@
                 {
                   "role": "modeller",
                   "permission": {
-                    "filter": {}
+                    "filter": {
+                      "app_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    }
                   },
                   "comment": ""
                 }
@@ -8374,24 +8422,15 @@
                       "last_recert_check"
                     ],
                     "filter": {
-                      "_and": [
+                      "_or": [
                         {
-                          "_or": [
-                            {
-                              "tenant_id": {
-                                "_is_null": true
-                              }
-                            },
-                            {
-                              "tenant_id": {
-                                "_eq": "x-hasura-tenant-id"
-                              }
-                            }
-                          ]
+                          "tenant_id": {
+                            "_is_null": true
+                          }
                         },
                         {
-                          "app_id_external": {
-                            "_in": "x-hasura-visible-owners"
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
                           }
                         }
                       ]

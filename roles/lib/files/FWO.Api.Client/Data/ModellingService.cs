@@ -18,6 +18,21 @@ namespace FWO.Api.Data
         public NetworkProtocol? Protocol { get; set; } = new();
 
 
+        public ModellingService()
+        {}
+
+        public ModellingService(ModellingService service)
+        {
+            Id = service.Id;
+            AppId = service.AppId;
+            Name = service.Name;
+            Port = service.Port;
+            PortEnd = service.PortEnd;
+            ProtoId = service.ProtoId;
+            Protocol = service.Protocol;
+            IsGlobal = service.IsGlobal;
+        }
+
         public override string Display()
         {
             return DisplayBase.DisplayService(ToNetworkService(this), false, Name).ToString();
@@ -39,21 +54,6 @@ namespace FWO.Api.Data
                 ProtoId = service?.ProtoId,
                 Protocol = service?.Protocol ?? new NetworkProtocol()
             };
-        }
-
-        public ModellingService()
-        {}
-
-        public ModellingService(ModellingService service)
-        {
-            Id = service.Id;
-            AppId = service.AppId;
-            Name = service.Name;
-            Port = service.Port;
-            PortEnd = service.PortEnd;
-            ProtoId = service.ProtoId;
-            Protocol = service.Protocol;
-            IsGlobal = service.IsGlobal;
         }
     }
 

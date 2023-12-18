@@ -20,7 +20,25 @@ namespace FWO.Api.Data
 
         public bool Visible { get; set; } = true;
         public bool Selected { get; set; } = false;
-        public int TenantFilterState { get; set; } = 0;  // 0 = invisible for tenant, 1 = shared visibility, 2 = fully visible (without any filtering)
+
+        public ManagementSelect Clone()
+        {
+            List<DeviceSelect> ClonedDevices = new();
+            foreach(var dev in Devices)
+            {
+                ClonedDevices.Add(new DeviceSelect(dev));
+            }
+
+			return new ManagementSelect()
+            {
+                Id = Id,
+                Name = Name,
+                Devices = ClonedDevices,
+                UiReference = UiReference,
+                Visible = Visible,
+                Selected = Selected
+            };
+        }
     }
 
     public class DeviceSelect
@@ -34,7 +52,17 @@ namespace FWO.Api.Data
         public bool Visible { get; set; } = true;
 
         public bool Selected { get; set; } = false;
-        public int TenantFilterState { get; set; } = 0;  // 0 = invisible for tenant, 1 = shared visibility, 2 = fully visible (without any filtering)
+
+        public DeviceSelect()
+        {}
+
+        public DeviceSelect(DeviceSelect dev)
+        {
+            Id = dev.Id;
+            Name = dev.Name;
+            Visible = dev.Visible;
+            Selected = dev.Selected;
+        }
     }
 
     public class DeviceFilter
@@ -78,6 +106,21 @@ namespace FWO.Api.Data
             }
             Managements.Add(dummyManagement);
         }
+
+        public DeviceFilter Clone()
+        {
+            List<ManagementSelect> ClonedManagements = new();
+            foreach(var mgt in Managements)
+            {
+                ClonedManagements.Add(mgt.Clone());
+            }
+
+			return new DeviceFilter()
+            {
+                Managements = ClonedManagements
+            };
+        }
+
         public bool areAllDevicesSelected()
         {
             foreach (ManagementSelect management in Managements)

@@ -188,6 +188,7 @@
                     // add User information after successful login
                     userConfig.User.Tenant = await ((AuthStateProvider)AuthService).getTenantFromJwt(userConfig.User.Jwt, ApiConnection);
                     userConfig.User.Roles = ((AuthStateProvider)AuthService).getAllowedRoles(userConfig.User.Jwt);
+                    userConfig.User.Ownerships = ((AuthStateProvider)AuthService).getAssignedOwners(userConfig.User.Jwt);
                 }
                 else
                 {

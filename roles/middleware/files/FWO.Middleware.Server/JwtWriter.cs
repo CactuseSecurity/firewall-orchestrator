@@ -112,7 +112,7 @@ namespace FWO.Middleware.Server
             return GeneratedToken;
         }
 
-        private ClaimsIdentity SetClaims(UiUser user)
+        private static ClaimsIdentity SetClaims(UiUser user)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
@@ -120,11 +120,14 @@ namespace FWO.Middleware.Server
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
                 
-            // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
-            claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
-            claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagementIds)} }}"));
-            claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleGatewayIds)} }}"));
-            claimsIdentity.AddClaim(new Claim("x-hasura-visible-owners", $"{{ {GetOwners(user)} }}"));
+            if (user.Tenant != null && user.Tenant.VisibleDevices != null && user.Tenant.VisibleManagements != null)
+            { 
+                // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
+                claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
+                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));
+                claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleDevices)} }}"));
+            }
+            claimsIdentity.AddClaim(new Claim("x-hasura-editable-owners", $"{{ {string.Join(",", user.Ownerships)} }}"));
 
             // we need to create an extra list because hasura only accepts an array of roles even if there is only one
             List<string> hasuraRolesList = new List<string>();
@@ -138,7 +141,12 @@ namespace FWO.Middleware.Server
             // add hasura roles claim as array
             claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(hasuraRolesList.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
 
-            // deciding on default-role
+            claimsIdentity.AddClaim(new Claim("x-hasura-default-role", GetDefaultRole(user, hasuraRolesList)));
+            return claimsIdentity;
+        }
+
+        private static string GetDefaultRole(UiUser user, List<string> hasuraRolesList)
+        {
             string defaultRole = "";
             if (user.Roles.Count > 0)
             {
@@ -163,25 +171,7 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("User roles", $"User {user.Name} does not have any assigned roles.");
             }
-
-            claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
-            return claimsIdentity;
-        }
-
-        private string GetOwners(UiUser user)
-        {
-            List<string> owners = new();
-            if(user.Groups != null)
-            {
-                foreach(var grp in user.Groups)
-                {
-                    if (grp.Contains(GlobalConst.kModellerGroup))
-                    {
-                        owners.Add(new DistName(grp).Group.Substring(GlobalConst.kModellerGroup.Length));
-                    }
-                }
-            }
-            return string.Join(",", owners);
+            return defaultRole;
         }
     }
 }

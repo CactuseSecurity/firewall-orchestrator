@@ -1,4 +1,4 @@
-﻿mutation editReportTemplate(
+﻿mutation updateReportTemplate(
   $reportTemplateId: Int
   $reportTemplateName: String
   $reportTemplateCreate: timestamp

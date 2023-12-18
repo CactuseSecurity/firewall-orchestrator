@@ -33,6 +33,7 @@ namespace FWO.Ui.Services
                 }
                 if(CheckAppServer())
                 {
+                    apiConnection.SetRole(GlobalConst.kAdmin);
                     if(AddMode)
                     {
                         await AddAppServerToDb();
@@ -41,6 +42,7 @@ namespace FWO.Ui.Services
                     {
                         await UpdateAppServerInDb();
                     }
+                    apiConnection.SwitchBack();
                     return true;
                 }
             }

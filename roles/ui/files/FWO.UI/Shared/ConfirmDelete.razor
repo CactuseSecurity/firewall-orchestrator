@@ -16,14 +16,21 @@
         <div class="btn-group">
             @if (DeleteAllowed)
             {
-                <AuthorizeView Roles="@AllowedRoles">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-danger" disabled>@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
+                @if(Enabled)
+                {
+                    <AuthorizeView Roles="@AllowedRoles">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                        </NotAuthorized> 
+                    </AuthorizeView>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                }
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -56,6 +63,10 @@
 
     [Parameter]
     public bool Remove { get; set; } = false;
+
+    [Parameter]
+    public bool Enabled { get; set; } = true;
+
 
     private void Cancel()
     {

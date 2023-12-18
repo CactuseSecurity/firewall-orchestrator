@@ -71,8 +71,8 @@ namespace FWO.Ui.Services
 
         public ModellingConnectionHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingConnection> connections, ModellingConnection conn, bool addMode, bool readOnly, 
-            Action<Exception?, string, string, bool> displayMessageInUi)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi)
+            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
             Connections = connections;
             ActConn = conn;
@@ -333,7 +333,7 @@ namespace FWO.Ui.Services
             try
             {
                 AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles,
-                    appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi);
+                    appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner);
                 EditAppRoleMode = true;
             }
             catch (Exception exception)
@@ -444,7 +444,7 @@ namespace FWO.Ui.Services
             try
             {
                 SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, Application, AvailableServiceGroups,
-                    serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi);
+                    serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi, IsOwner);
                 EditSvcGrpMode = true;
             }
             catch (Exception exception)
@@ -535,7 +535,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi);
+                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi, IsOwner);
                 EditServiceMode = true;
             }
             catch (Exception exception)

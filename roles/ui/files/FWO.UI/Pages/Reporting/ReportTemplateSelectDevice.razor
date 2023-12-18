@@ -38,7 +38,7 @@
     private bool FirstTry = true;
 
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         try
         {
@@ -46,11 +46,25 @@
             {
                 FirstTry = false;
                 DeviceFilterOrig = DeviceFilter.Clone();
+                await SyncDevices();
                 if (DeviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
                 {
                     collapseDevices = true;
                 }
             }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private async Task SyncDevices()
+    {
+        try
+        {
+            DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+            DeviceFilter.SynchronizeDevFilter(DeviceFilterOrig);
         }
         catch (Exception exception)
         {

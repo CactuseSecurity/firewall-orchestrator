@@ -1,5 +1,4 @@
 ﻿using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -11,12 +10,8 @@ namespace FWO.Middleware.Server
 	/// <summary>
 	/// Class handling the scheduler for the import of app data
 	/// </summary>
-    public class ImportAppDataScheduler
+    public class ImportAppDataScheduler : SchedulerBase
     {
-        private readonly ApiConnection apiConnection;
-        private GlobalConfig globalConfig;
-        private List<Alert> openAlerts = new List<Alert>();
-
         private System.Timers.Timer ScheduleTimer = new();
         private System.Timers.Timer ImportAppDataTimer = new();
 
@@ -29,15 +24,16 @@ namespace FWO.Middleware.Server
             return new ImportAppDataScheduler(apiConnection, globalConfig);
         }
     
-        private ImportAppDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
+        private ImportAppDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
         {
-            this.apiConnection = apiConnection;
-            this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfig_OnChange;
             StartScheduleTimer();
         }
 
-        private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+		/// <summary>
+		/// set scheduling timer from config values
+		/// </summary>
+        protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
         {
             ScheduleTimer.Stop();
             if(globalConfig.ImportAppDataSleepTime > 0)
@@ -47,7 +43,10 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private void StartScheduleTimer()
+		/// <summary>
+		/// start the scheduling timer
+		/// </summary>
+        protected override void StartScheduleTimer()
         {
             if (globalConfig.ImportAppDataSleepTime > 0)
             {
@@ -91,8 +90,6 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
-
                 AppDataImport import = new AppDataImport(apiConnection, globalConfig);
                 if(!await import.Run())
                 {
@@ -105,93 +102,8 @@ namespace FWO.Middleware.Server
                 string titletext = "Error encountered while trying to import App Data";
                 Log.WriteAlert($"source: \"{GlobalConst.kImportAppData}\"",
                     $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAppData}\"");
-                await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message);
-                await SetAlert(globalConfig.GetText("scheduled_app_import"), titletext);
-            }
-        }
-
-        private async Task SetAlert(string title, string description)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    source = GlobalConst.kImportAppData,
-                    userId = 0,
-                    title = title,
-                    description = description,
-                    alertCode = (int)AlertCode.ImportAppData
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
-                if (returnIds != null)
-                {
-                    // Acknowledge older alert for same problem
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.ImportAppData);
-                    if(existingAlert != null)
-                    {
-                        await AcknowledgeAlert(existingAlert.Id);
-                    }
-                }
-                else
-                {
-                    Log.WriteError("Write Alert", "Log could not be written to database");
-                }
-                Log.WriteAlert ($"source: \"{GlobalConst.kImportAppData}\"", 
-                    $"userId: \"0\", title: \"{title}\", description: \"{description}\", alertCode: \"{AlertCode.ImportAppData.ToString()}\"");
-            }
-            catch(Exception exc)
-            {
-                Log.WriteError("Write Alert", $"Could not write Alert for import App Data: ", exc);
-            }
-        }
-
-        private async Task AcknowledgeAlert(long alertId)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    id = alertId,
-                    ackUser = 0,
-                    ackTime = DateTime.Now
-                };
-                await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for import App Data: ", exception);
-            }
-        }
-
-        private async Task AddLogEntry(int severity, string cause, string description)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    source = GlobalConst.kImportAppData,
-                    discoverUser = 0,
-                    severity = severity,
-                    suspectedCause = cause,
-                    description = description,
-                    mgmId = (int?)null,
-                    devId = (int?)null,
-                    importId = (long?)null,
-                    objectType = (string?)null,
-                    objectName = (string?)null,
-                    objectUid = (string?)null,
-                    ruleUid = (string?)null,
-                    ruleId = (long?)null
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addLogEntry, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    Log.WriteError("Write Log", "Log could not be written to database");
-                }
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Write Log", $"Could not write log: ", exc);
+                await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportAppData);
+                await SetAlert(globalConfig.GetText("scheduled_app_import"), titletext, GlobalConst.kImportAppData, AlertCode.ImportAppData);
             }
         }
     }

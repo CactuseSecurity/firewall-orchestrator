@@ -5,7 +5,6 @@ using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Logging;
 using System.Timers;
-using System.Text.Json;
 using FWO.Middleware.RequestParameters;
 using FWO.Recert;
 
@@ -14,16 +13,13 @@ namespace FWO.Middleware.Server
 	/// <summary>
 	/// Class handling the scheduler for the daily checks
 	/// </summary>
-    public class DailyCheckScheduler
+    public class DailyCheckScheduler : SchedulerBase
     {
-        private readonly ApiConnection apiConnection;
-        private GlobalConfig globalConfig;
         private int DailyCheckSleepTime = 86400000; // 24 hours in milliseconds
 
         private System.Timers.Timer DailyCheckScheduleTimer = new();
         private System.Timers.Timer DailyCheckTimer = new();
 
-        private List<Alert> openAlerts = new List<Alert>();
 
 		/// <summary>
 		/// Async Constructor needing the connection
@@ -34,27 +30,31 @@ namespace FWO.Middleware.Server
             return new DailyCheckScheduler(apiConnection, config);
         }
 
-        private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
+        private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
         {
-            this.apiConnection = apiConnection;
-            this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfig_OnChange;
 
-            startDailyCheckScheduleTimer();
+            StartScheduleTimer();
             if(globalConfig.RecRefreshStartup)
             {
                 RefreshRecert(); // no need to wait
             }
         }
 
-        private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+		/// <summary>
+		/// set scheduling timer from fixed value
+		/// </summary>
+        protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
         {
             DailyCheckTimer.Interval = DailyCheckSleepTime;
             DailyCheckScheduleTimer.Stop();
-            startDailyCheckScheduleTimer();
+            StartScheduleTimer();
         }
 
-        private void startDailyCheckScheduleTimer()
+		/// <summary>
+		/// start the scheduling timer
+		/// </summary>
+        protected override void StartScheduleTimer()
         {
             DateTime? startTime = null;
             try
@@ -95,7 +95,6 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
                 await CheckDemoData();
                 await CheckImports();
                 if(globalConfig.RecRefreshDaily)
@@ -107,8 +106,8 @@ namespace FWO.Middleware.Server
             catch(Exception exc)
             {
                 Log.WriteError("DailyCheck", $"Ran into exception: ", exc);
-                await AddDailyCheckLogEntry(2, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
-                await setAlert(GlobalConst.kDailyCheck, AlertCode.DailyCheckError, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
+                await AddLogEntry(2, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kDailyCheck);
+                await SetAlert(globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message,GlobalConst.kDailyCheck, AlertCode.DailyCheckError);
             }
         }
 
@@ -125,13 +124,13 @@ namespace FWO.Middleware.Server
             {
                 RecertCheck recertCheck = new RecertCheck(apiConnection, globalConfig);
                 int emailsSent = await recertCheck.CheckRecertifications();
-                await AddDailyCheckLogEntry(0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"));
+                await AddLogEntry(0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
         }
 
         private async Task CheckDemoData()
         {
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             bool sampleManagementExisting = false;
             foreach (var management in managements)
             {
@@ -141,7 +140,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
             bool sampleCredentialExisting = false;
             foreach (var credential in credentials)
             {
@@ -151,7 +150,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
+            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
             bool sampleUserExisting = false;
             foreach (var user in users)
             {
@@ -161,7 +160,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
             bool sampleTenantExisting = false;
             foreach (var tenant in tenants)
             {
@@ -188,7 +187,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             bool sampleOwnerExisting = false;
             foreach (var owner in owners)
             {
@@ -207,14 +206,14 @@ namespace FWO.Middleware.Server
                                                         (sampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
                                                         (sampleGroupExisting ? globalConfig.GetText("groups") + " " : "") +
                                                         (sampleOwnerExisting ? globalConfig.GetText("owners") : "");
-                await setAlert(GlobalConst.kDailyCheck, AlertCode.SampleDataExisting, globalConfig.GetText("sample_data"), description);
+                await SetAlert(globalConfig.GetText("sample_data"), description, GlobalConst.kDailyCheck, AlertCode.SampleDataExisting);
             }
-            await AddDailyCheckLogEntry((description != "" ? 1 : 0), globalConfig.GetText("daily_sample_data_check"), (description != "" ? description : globalConfig.GetText("no_sample_data_found")));
+            await AddLogEntry(description != "" ? 1 : 0, globalConfig.GetText("daily_sample_data_check"), description != "" ? description : globalConfig.GetText("no_sample_data_found"), GlobalConst.kDailyCheck);
         }
 
         private async Task CheckImports()
         {
-            List<ImportStatus> importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.Api.Client.Queries.MonitorQueries.getImportStatus);
+            List<ImportStatus> importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(MonitorQueries.getImportStatus);
             int importIssues = 0;
             object jsonData;
             foreach(ImportStatus imp in importStati.Where(x => !x.ImportDisabled))
@@ -224,126 +223,26 @@ namespace FWO.Middleware.Server
                     if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))  // too long
                     {
                         jsonData = imp.LastIncompleteImport;
-                        await setAlert(GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, globalConfig.GetText("import"), globalConfig.GetText("E7011"), imp.MgmId, jsonData);
+                        await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7011"),GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, imp.MgmId, jsonData);
                         importIssues++;
                     }
                 }
                 else if (imp.LastImport == null || imp.LastImport.Length == 0) // no import at all
                 {
                     jsonData = imp;
-                    await setAlert(GlobalConst.kDailyCheck, AlertCode.NoImport, globalConfig.GetText("import"), globalConfig.GetText("E7012"), imp.MgmId, jsonData);
+                    await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, imp.MgmId, jsonData);
                     importIssues++;
                 }
-                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval)) // too long ago (not working for legacy devices as LastImportAttempt is not written)
+                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval))
+                // too long ago (not working for legacy devices as LastImportAttempt is not written)
                 {
                     jsonData = imp;
-                    await setAlert(GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, globalConfig.GetText("import"), globalConfig.GetText("E7013"), imp.MgmId, jsonData);
+                    await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, imp.MgmId, jsonData);
                     importIssues++;
                 }
             }
-            await AddDailyCheckLogEntry((importIssues != 0 ? 1 : 0), globalConfig.GetText("daily_importer_check"), (importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found")));
-        }
-
-        private async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, object? JsonData = null, int? devId = null)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    source = source,
-                    userId = 0,
-                    title = title,
-                    description = description,
-                    mgmId = mgmtId,
-                    devId = devId,
-                    alertCode = (int)alertCode,
-                    jsonData = JsonData,
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
-                if (returnIds != null)
-                {
-                    // Acknowledge older alert for same problem
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode && x.ManagementId == mgmtId);
-                    if(existingAlert != null)
-                    {
-                        await AcknowledgeAlert(existingAlert.Id);
-                    }
-                }
-                else
-                {
-                    Log.WriteError("Write Alert", "Log could not be written to database");
-                }
-                string? mgmtIdString = ""; 
-                if (mgmtId != null)
-                {
-                    mgmtIdString = mgmtId.ToString();
-                }
-                string? devIdString = ""; 
-                if (devId != null)
-                {
-                    devIdString = devId.ToString();
-                }
-                string jsonString = ""; 
-                if (JsonData != null)
-                    jsonString = JsonSerializer.Serialize(JsonData);
-                Log.WriteAlert ($"source: \"{source}\"", 
-                    $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
-                    $"mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: \"{jsonString}\", alertCode: \"{alertCode.ToString()}\"");
-            }
-            catch(Exception exc)
-            {
-                Log.WriteError("Write Alert", $"Could not write Alert for Daily Check: ", exc);
-            }
-        }
-
-        private async Task AcknowledgeAlert(long alertId)
-        {
-            try
-            {
-                var Variables = new 
-                { 
-                    id = alertId,
-                    ackUser = 0,
-                    ackTime = DateTime.Now
-                };
-                await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for Daily Check: ", exception);
-            }
-        }
-
-        private async Task AddDailyCheckLogEntry(int severity, string cause, string description)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    source = GlobalConst.kDailyCheck,
-                    discoverUser = 0,
-                    severity = severity,
-                    suspectedCause = cause,
-                    description = description,
-                    mgmId = (int?)null,
-                    devId = (int?)null,
-                    importId = (long?)null,
-                    objectType = (string?)null,
-                    objectName = (string?)null,
-                    objectUid = (string?)null,
-                    ruleUid = (string?)null,
-                    ruleId = (long?)null
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addLogEntry, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    Log.WriteError("Write Log", "Log could not be written to database");
-                }
-            }
-            catch(Exception exc)
-            {
-                Log.WriteError("Write Log", $"Could not write daily check log to db: ", exc);
-            }
+            await AddLogEntry(importIssues != 0 ? 1 : 0, globalConfig.GetText("daily_importer_check"),
+                importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
         }
     }
 }

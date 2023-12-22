@@ -47,6 +47,29 @@
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
+        <div class="col-sm-4">
+            <Dropdown @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                    Elements="Enum.GetValues(typeof(ImpChangeNotificationType)).Cast<ImpChangeNotificationType>()" >
+                <ElementTemplate Context="type">
+                    @(userConfig.GetText(type.ToString()))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySleepTime")):</label>
+        <div class="col-sm-2">
+            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImpChangeNotifySleepTime" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyStartAt")):</label>
+        <div class="col-sm-2">
+            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImpChangeNotifyStartAt" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyRecipients")):</label>
         <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
             <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifyRecipients" />
@@ -90,6 +113,7 @@ else
 
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
+    private ImpChangeNotificationType selectedImpChgNotType;
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,6 +121,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
+            selectedImpChgNotType = (ImpChangeNotificationType)configData.ImpChangeNotifyType;
         }
         catch (Exception exception)
         {
@@ -111,6 +136,7 @@ else
             if (configData != null)
             {
                 configData.DefaultLanguage = selectedLanguage.Name;
+                configData.ImpChangeNotifyType = (int)selectedImpChgNotType;
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

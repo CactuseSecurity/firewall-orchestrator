@@ -73,6 +73,15 @@ namespace FWO.Config.Api.Data
         [JsonProperty("impChangeNotifyActive"), JsonPropertyName("impChangeNotifyActive")]
         public bool ImpChangeNotifyActive { get; set; } = false;
 
+        [JsonProperty("impChangeNotifyType"), JsonPropertyName("impChangeNotifyType")]
+        public int ImpChangeNotifyType { get; set; }
+
+        [JsonProperty("impChangeNotifySleepTime"), JsonPropertyName("impChangeNotifySleepTime")]
+        public int ImpChangeNotifySleepTime { get; set; } = 60;
+
+        [JsonProperty("impChangeNotifyStartAt"), JsonPropertyName("impChangeNotifyStartAt")]
+        public DateTime ImpChangeNotifyStartAt { get; set; } = new DateTime();
+
 
         [JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
         public int RecertificationPeriod { get; set; } = 365;

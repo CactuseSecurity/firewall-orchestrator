@@ -1,25 +1,10 @@
 import logging
-from sys import stdout
-import fwo_globals
 import asyncio
 import time
-import random
 from asyncio import Semaphore
 
 class LogLock:
     semaphore = Semaphore(value=1)
-
-    async def get_file(path):
-        while True:
-            try:
-                # Try to access file
-                file = open(path, "a+")
-                # Move the file cursor to the beginning
-                file.seek(0)
-                return file
-            except Exception:
-                # Random offset to avoid synced file access
-                await asyncio.sleep(random.random() / 10)
 
     async def handle_log_lock():
         # Initialize values
@@ -29,9 +14,11 @@ class LogLock:
 
         while True:
             try:
-                async with await LogLock.get_file(lock_file_path) as file:
-                    lock_file_content = (await file.read()).strip()
-
+                with open(lock_file_path, "a+") as file:
+                    # Jump to the beginning of the file
+                    file.seek(0)
+                    # Read the file content
+                    lock_file_content = file.read().strip()
                     # Forcefully release lock after timeout
                     if log_owned_by_external and time.time() - stopwatch > 10:
                         file.write("FORCEFULLY RELEASED\n")
@@ -53,7 +40,7 @@ class LogLock:
                             await LogLock.semaphore.acquire()
                             stopwatch = time.time()
                             log_owned_by_external = True
-                            file.write("FORCEFULLY RELEASED\n")
+                            file.write("GRANTED\n")
                     # RELEASED - lock was released by log swap process
                     elif lock_file_content.endswith("RELEASED"):
                         # only release lock if it was formerly requested by us
@@ -61,26 +48,30 @@ class LogLock:
                             stopwatch = -1
                             LogLock.semaphore.release()
                             log_owned_by_external = False
-            except Exception:
+            except Exception as e:
                 pass
-            
-            await asyncio.sleep(1)
+            # Wait a second
+            time.sleep(1)
 
 # Used to accquire lock before log processing
 class LogFilter(logging.Filter):
+    async def acquire_lock():
+        LogLock.semaphore.acquire()
     def filter(self, record):
         # Acquire lock
-        asyncio.run(LogLock.semaphore.acquire())
+        asyncio.run(LogFilter.acquire_lock())
         # Return True to allow the log record to be processed
-        return True  
+        return True
 
 # Used to release lock after log processing
 class LogHandler(logging.StreamHandler):
+    async def release_lock():
+        LogLock.semaphore.release()
     def emit(self, record):
         # Call the parent class's emit method to perform the actual logging
         super().emit(record)
         # Release lock
-        asyncio.run(LogLock.semaphore.release())
+        asyncio.run(LogHandler.release_lock())
 
 def getFwoLogger():
     debug_level = int(fwo_globals.debug_level)

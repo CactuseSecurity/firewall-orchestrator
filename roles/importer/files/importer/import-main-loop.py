@@ -29,9 +29,12 @@ class GracefulKiller:
     def exit_gracefully(self, *args):
         self.kill_now = True
 
+# Store all background tasks in a set to avoid garbage collection
+background_tasks = set()
+
 async def log_lock_task():
     # Start the log lock task in the background
-    asyncio.create_task(LogLock.handle_log_lock())
+    background_tasks.add(asyncio.create_task(LogLock.handle_log_lock()))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

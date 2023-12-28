@@ -70,7 +70,7 @@ class LogLock:
 class LogFilter(logging.Filter):
     def filter(self, record):
         # Acquire lock
-        LogLock.semaphore.acquire()
+        asyncio.run(LogLock.semaphore.acquire())
         # Return True to allow the log record to be processed
         return True  
 
@@ -80,7 +80,7 @@ class LogHandler(logging.StreamHandler):
         # Call the parent class's emit method to perform the actual logging
         super().emit(record)
         # Release lock
-        LogLock.semaphore.release()
+        asyncio.run(LogLock.semaphore.release())
 
 def getFwoLogger():
     debug_level = int(fwo_globals.debug_level)

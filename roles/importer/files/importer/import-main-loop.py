@@ -3,6 +3,7 @@
 #   run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 
 import signal
+import asyncio
 import traceback
 import argparse
 import sys
@@ -11,7 +12,7 @@ import json
 import requests, warnings
 import fwo_api# common  # from current working dir
 from common import import_management
-from fwo_log import getFwoLogger
+from fwo_log import getFwoLogger, LogLock
 import fwo_globals, fwo_config
 from fwo_const import base_dir, importer_base_dir
 from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
@@ -28,6 +29,9 @@ class GracefulKiller:
     def exit_gracefully(self, *args):
         self.kill_now = True
 
+async def log_lock_task():
+    # Start the log lock task in the background
+    asyncio.create_task(LogLock.handle_log_lock())
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -44,6 +48,9 @@ if __name__ == '__main__':
                     help='If set all imports will be run without checking for changes before')
 
     args = parser.parse_args()
+
+    # Log locking
+    asyncio.run(log_lock_task())
 
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 

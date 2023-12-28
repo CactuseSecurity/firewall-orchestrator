@@ -4381,7 +4381,196 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ]
+                  }
+                }
+              ],
               "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "mgm_id",
+                      "dev_name",
+                      "dev_typ_id",
+                      "dev_active",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "local_rulebase_uid",
+                      "local_rulebase_name"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "mgm_id",
+                      "dev_name",
+                      "dev_typ_id",
+                      "dev_active",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "local_rulebase_uid",
+                      "local_rulebase_name"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
                 {
                   "role": "middleware-server",
                   "permission": {
@@ -4406,8 +4595,303 @@
                       "hide_in_gui"
                     ],
                     "filter": {}
-                  },
-                  "comment": ""
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "mgm_id",
+                      "dev_name",
+                      "dev_typ_id",
+                      "dev_active",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "local_rulebase_uid",
+                      "local_rulebase_name"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
                 }
               ]
             },
@@ -4458,6 +4942,39 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -7445,9 +7962,370 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "mgm_id",
+                      "dev_typ_id",
+                      "mgm_name",
+                      "mgm_comment",
+                      "cloud_tenant_id",
+                      "cloud_subscription_id",
+                      "mgm_create",
+                      "mgm_update",
+                      "import_credential_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
+                      "config_path",
+                      "domain_uid",
+                      "hide_in_gui",
+                      "importer_hostname",
+                      "debug_level",
+                      "multi_device_manager_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "config_path",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "domain_uid",
+                      "hide_in_gui",
+                      "mgm_id",
+                      "mgm_name",
+                      "multi_device_manager_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "last_import_attempt_successful",
+                      "cloud_subscription_id",
+                      "cloud_tenant_id",
+                      "config_path",
+                      "domain_uid",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "last_import_attempt_successful",
+                      "cloud_subscription_id",
+                      "cloud_tenant_id",
+                      "config_path",
+                      "domain_uid",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "config_path",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "domain_uid",
+                      "hide_in_gui",
+                      "mgm_id",
+                      "mgm_name",
+                      "multi_device_manager_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "last_import_attempt_successful",
+                      "cloud_subscription_id",
+                      "cloud_tenant_id",
+                      "config_path",
+                      "domain_uid",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "last_import_attempt_successful",
+                      "cloud_subscription_id",
+                      "cloud_tenant_id",
+                      "config_path",
+                      "domain_uid",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "config_path",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "domain_uid",
+                      "hide_in_gui",
+                      "mgm_id",
+                      "mgm_name",
+                      "multi_device_manager_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "config_path",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "domain_uid",
+                      "hide_in_gui",
+                      "mgm_id",
+                      "mgm_name",
+                      "multi_device_manager_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "last_import_attempt_successful",
+                      "cloud_subscription_id",
+                      "cloud_tenant_id",
+                      "config_path",
+                      "domain_uid",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "config_path",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "hide_in_gui",
+                      "mgm_id",
+                      "mgm_name",
+                      "multi_device_manager_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "config_path",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "domain_uid",
+                      "hide_in_gui",
+                      "mgm_id",
+                      "mgm_name",
+                      "multi_device_manager_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "config_path",
+                      "dev_typ_id",
+                      "domain_uid",
+                      "hide_in_gui",
+                      "mgm_id",
+                      "mgm_name",
+                      "multi_device_manager_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "config_path",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "domain_uid",
+                      "hide_in_gui",
+                      "mgm_id",
+                      "mgm_name",
+                      "multi_device_manager_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "columns": [
                       "mgm_id",
@@ -7474,12 +8352,11 @@
                       "debug_level",
                       "multi_device_manager_id"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "check": {}
                   },
                   "comment": ""
-                }
-              ],
-              "update_permissions": [
+                },
                 {
                   "role": "importer",
                   "permission": {
@@ -8422,15 +9299,24 @@
                       "last_recert_check"
                     ],
                     "filter": {
-                      "_or": [
+                      "_and": [
                         {
-                          "tenant_id": {
-                            "_is_null": true
-                          }
+                          "_or": [
+                            {
+                              "tenant_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "tenant_id": {
+                                "_eq": "x-hasura-tenant-id"
+                              }
+                            }
+                          ]
                         },
                         {
-                          "tenant_id": {
-                            "_eq": "x-hasura-tenant-id"
+                          "app_id_external": {
+                            "_in": "x-hasura-visible-owners"
                           }
                         }
                       ]
@@ -11217,44 +12103,47 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "parent_rule_id",
+                      "rule_create",
+                      "rule_id",
+                      "rule_last_seen",
+                      "xlate_rule",
                       "access_rule",
-                      "action_id",
                       "active",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_implied",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "rule_installon",
+                      "rule_name",
+                      "rule_ruleid",
+                      "rule_time",
+                      "action_id",
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
-                      "nat_rule",
-                      "parent_rule_id",
+                      "rule_from_zone",
+                      "rule_num",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_num_numeric",
                       "parent_rule_type",
                       "rule_action",
                       "rule_comment",
-                      "rule_create",
-                      "rule_disabled",
                       "rule_dst",
-                      "rule_dst_neg",
                       "rule_dst_refs",
-                      "rule_from_zone",
                       "rule_head_text",
-                      "rule_id",
-                      "rule_implied",
-                      "rule_installon",
-                      "rule_last_seen",
-                      "rule_name",
-                      "rule_num",
-                      "rule_num_numeric",
-                      "rule_ruleid",
                       "rule_src",
-                      "rule_src_neg",
                       "rule_src_refs",
                       "rule_svc",
-                      "rule_svc_neg",
                       "rule_svc_refs",
-                      "rule_time",
-                      "rule_to_zone",
                       "rule_track",
-                      "rule_uid",
-                      "track_id",
-                      "xlate_rule"
+                      "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11302,6 +12191,9 @@
                       "rule_svc_refs",
                       "rule_track",
                       "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11359,6 +12251,9 @@
                       "rule_svc_refs",
                       "rule_track",
                       "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -11425,6 +12320,9 @@
                       "rule_track",
                       "rule_uid"
                     ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
+                    ],
                     "filter": {
                       "_and": [
                         {
@@ -11489,6 +12387,9 @@
                       "rule_svc_refs",
                       "rule_track",
                       "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11559,6 +12460,9 @@
                       "active",
                       "negated"
                     ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -11576,6 +12480,9 @@
                       "active",
                       "negated"
                     ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -11592,6 +12499,9 @@
                       "user_id",
                       "active",
                       "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -11632,6 +12542,9 @@
                       "active",
                       "negated"
                     ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
+                    ],
                     "filter": {
                       "_and": [
                         {
@@ -11670,6 +12583,9 @@
                       "user_id",
                       "active",
                       "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -12424,14 +13340,17 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "active",
-                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
-                      "user_id"
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
                     ],
                     "filter": {}
                   }
@@ -12449,6 +13368,9 @@
                       "rule_to_id",
                       "user_id"
                     ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
+                    ],
                     "filter": {}
                   }
                 },
@@ -12456,14 +13378,17 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "active",
-                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
-                      "user_id"
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -12504,6 +13429,9 @@
                       "rule_to_id",
                       "user_id"
                     ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
+                    ],
                     "filter": {
                       "_and": [
                         {
@@ -12534,14 +13462,17 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "active",
-                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
-                      "user_id"
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
                     ],
                     "filter": {}
                   }
@@ -15106,8 +16037,7 @@
                       "device_id",
                       "shared"
                     ]
-                  },
-                  "comment": ""
+                  }
                 }
               ],
               "select_permissions": [
@@ -15120,8 +16050,7 @@
                       "shared"
                     ],
                     "filter": {}
-                  },
-                  "comment": ""
+                  }
                 },
                 {
                   "role": "fw-admin",
@@ -15132,8 +16061,7 @@
                       "shared"
                     ],
                     "filter": {}
-                  },
-                  "comment": ""
+                  }
                 },
                 {
                   "role": "middleware-server",
@@ -15144,8 +16072,7 @@
                       "shared"
                     ],
                     "filter": {}
-                  },
-                  "comment": ""
+                  }
                 },
                 {
                   "role": "modeller",
@@ -15230,32 +16157,30 @@
               ],
               "select_permissions": [
                 {
-                  "role": "fw-admin",
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "tenant_id",
+                      "shared",
                       "management_id",
-                      "shared"
+                      "tenant_id"
                     ],
-                    "filter": {},
-                    "allow_aggregations": true,
-                    "query_root_fields": [],
-                    "subscription_root_fields": []
+                    "filter": {}
                   },
                   "comment": ""
                 },
                 {
-                  "role": "middleware-server",
+                  "role": "reporter",
                   "permission": {
                     "columns": [
-                      "tenant_id",
+                      "shared",
                       "management_id",
-                      "shared"
+                      "tenant_id"
                     ],
-                    "filter": {},
-                    "allow_aggregations": true,
-                    "query_root_fields": [],
-                    "subscription_root_fields": []
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -15263,14 +16188,11 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "tenant_id",
+                      "shared",
                       "management_id",
-                      "shared"
+                      "tenant_id"
                     ],
-                    "filter": {},
-                    "allow_aggregations": true,
-                    "query_root_fields": [],
-                    "subscription_root_fields": []
+                    "filter": {}
                   },
                   "comment": ""
                 }

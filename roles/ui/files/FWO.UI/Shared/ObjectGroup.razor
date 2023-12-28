@@ -2,7 +2,7 @@
 @using FWO.Config.Api
 @using FWO.Api.Data
 @using FWO.Report
-
+@using FWO.Ui.Display
 
 @inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
@@ -10,11 +10,16 @@
 
 @typeparam InputDataType
 
-@if(Content != null)
+@if(Content != null && InitialContent != null)
 {
+    // InitialContent may be overwritten with data of different rule when rerendering RSB Rule tab objgroups after unselecting a rule
+    if (typeof(InputDataType) == typeof(Rule))
+    {
+        Content = InitialContent;
+    }
     <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == RsbTab.rule)" Style="@("primary")" StartToggled="StartCollapsed">
         <TitleWithHtml>
-            @if (Content.GetType() == typeof(Rule))
+            @if (typeof(InputDataType) == typeof(Rule))
             {
                 Rule rule = (Rule)(Object)Content;
                 @($"{rule.DeviceName} - Rule ")
@@ -47,7 +52,7 @@
                         <DetailTemplate TableItem="NetworkObject">
                             <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type.Name />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
-                            <Detail Title="@(userConfig.GetText("ip"))" Data=@(context.IP + (context.IpEnd != null && context.IpEnd != "" && context.IpEnd != context.IP ? "-" + context.IpEnd : "")) />
+                            <Detail Title="@(userConfig.GetText("ip"))" Data=@NwObjDisplay.DisplayIp(context.IP, context.IpEnd, context.Type.Name) />
                             <Detail Title="@(userConfig.GetText("zone"))" Data=@context.Zone?.Name />
                             @if (context.Type.Name == "group" && context.ObjectGroups != null && context.ObjectGroupFlats != null)
                             {

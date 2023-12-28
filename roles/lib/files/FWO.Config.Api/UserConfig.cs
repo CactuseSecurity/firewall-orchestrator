@@ -17,6 +17,7 @@ namespace FWO.Config.Api
         private readonly GlobalConfig globalConfig;
 
         public Dictionary<string, string> Translate { get; set; }
+        public Dictionary<string, string> Overwrite { get; set; }
 
         public UiUser User { private set; get; }
 
@@ -36,6 +37,7 @@ namespace FWO.Config.Api
         {
             User = user;
             Translate = globalConfig.langDict[user.Language!];
+            Overwrite = Task.Run(async () => await GetCustomDict(user.Language!)).Result;
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfigOnChange;
         }
@@ -86,6 +88,7 @@ namespace FWO.Config.Api
         {
             await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
             Translate = globalConfig.langDict[languageName];
+            Overwrite = await GetCustomDict(languageName);
             User.Language = languageName;
             InvokeOnChange(this, null);
         }
@@ -105,12 +108,17 @@ namespace FWO.Config.Api
             if (globalConfig.langDict.ContainsKey(User.Language))
             {
                 Translate = globalConfig.langDict[User.Language];
+                Overwrite = Task.Run(async () => await GetCustomDict(User.Language)).Result;
             }
         }
 
         public override string GetText(string key)
         {
-            if (Translate.ContainsKey(key))
+            if (Overwrite != null && Overwrite.ContainsKey(key))
+            {
+                return Convert(Overwrite[key]);
+            }
+            if (Translate != null && Translate.ContainsKey(key))
             {
                 return Convert(Translate[key]);
             }
@@ -119,15 +127,15 @@ namespace FWO.Config.Api
                 string defaultLanguage = globalConfig.DefaultLanguage;
                 if (defaultLanguage == "")
                 {
-                    defaultLanguage = GlobalConfig.kEnglish;
+                    defaultLanguage = GlobalConst.kEnglish;
                 }
                 if (globalConfig.langDict[defaultLanguage].ContainsKey(key))
                 {
                     return Convert(globalConfig.langDict[defaultLanguage][key]);
                 }
-                else if (defaultLanguage != GlobalConfig.kEnglish && globalConfig.langDict[GlobalConfig.kEnglish].ContainsKey(key))
+                else if (defaultLanguage != GlobalConst.kEnglish && globalConfig.langDict[GlobalConst.kEnglish].ContainsKey(key))
                 {
-                    return Convert(globalConfig.langDict[GlobalConfig.kEnglish][key]);
+                    return Convert(globalConfig.langDict[GlobalConst.kEnglish][key]);
                 }
                 else
                 {
@@ -189,6 +197,27 @@ namespace FWO.Config.Api
                 }
             }
             return text;
+        }
+
+        public async Task<Dictionary<string, string>> GetCustomDict(string languageName)
+        {
+            Dictionary<string, string> dict = new();
+            try
+            {
+                UiText[]? uiTexts = await apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getCustomTextsPerLanguage, new { language = languageName });
+                if (uiTexts != null)
+                {
+                    foreach (UiText text in uiTexts)
+                    {
+                        dict.Add(text.Id, text.Txt);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Read custom dictionary", $"Could not read custom dict.", exception);
+            }
+            return dict;
         }
     }
 }

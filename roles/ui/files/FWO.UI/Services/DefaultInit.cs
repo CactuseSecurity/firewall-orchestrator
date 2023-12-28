@@ -10,6 +10,7 @@ namespace FWO.Ui.Services
         public static async Task DoNothing(RequestStatefulObject s) { await Task.CompletedTask; }
         public static async Task DoNothing(RequestReqTask r) { await Task.CompletedTask; }
         public static async Task DoNothing(RequestImplTask i) {await Task.CompletedTask; }
+
         public static bool DoNothingSync() { return false; }
     }
 }

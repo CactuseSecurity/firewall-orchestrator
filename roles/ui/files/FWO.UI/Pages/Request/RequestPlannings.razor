@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/plannings"
-@attribute [Authorize(Roles = "admin, planner, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kPlanner}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -41,7 +41,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "admin", "planner", "fw-admin", "auditor"});
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kAdmin, GlobalConst.kPlanner, GlobalConst.kFwAdmin, GlobalConst.kAuditor});
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.planning){};
@@ -60,7 +60,7 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("planner") || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("admin"));
+            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kPlanner) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kFwAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin));
             await reqHandler.Init();
         }
         catch (Exception exception)

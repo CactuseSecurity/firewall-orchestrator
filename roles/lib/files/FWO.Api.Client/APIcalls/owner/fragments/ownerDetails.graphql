@@ -9,4 +9,7 @@ fragment ownerDetails on owner {
   app_id_external
   recert_check_params
   last_recert_check
+  criticality
+  active
+  import_source
 }

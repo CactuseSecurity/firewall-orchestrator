@@ -71,6 +71,15 @@ insert into config (config_key, config_value, config_user) VALUES ('reqActivateP
 insert into config (config_key, config_value, config_user) VALUES ('unusedTolerance', '400', 0);
 insert into config (config_key, config_value, config_user) VALUES ('creationTolerance', '90', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleOwnershipMode', 'mixed', 0);
+insert into config (config_key, config_value, config_user) VALUES ('allowServerInConn', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('allowServiceInConn', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importAppDataStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importAppDataSleepTime', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataSleepTime', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importAppDataPath', '[]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modNamingConvention', '{"networkAreaRequired":false,"fixedPartLength":0,"freePartLength":0,"networkAreaPattern":"","appRolePattern":""}', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -225,6 +234,7 @@ insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (15,'voip_gk');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (16,'gsn_handover_group');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (17,'voip_sip');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (18,'simple-gateway');
+insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (19,'external-gateway');
 
 insert into stm_action (action_id,action_name) VALUES (1,'accept'); -- cp, fortinet
 insert into stm_action (action_id,action_name) VALUES (2,'drop'); -- cp

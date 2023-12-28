@@ -15,11 +15,9 @@
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">@(userConfig.GetText("load"))</button>
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                                @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
+                                @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin))
                                 {
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = decodeComment(template); 
-                                                                                             reportTypeInEdit = (ReportType)reportTemplateInEdit.ReportParams.ReportType;
-                                                                                             ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">@(userConfig.GetText("edit"))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
                                 }
                             </div>
@@ -57,7 +55,7 @@
     </Collapse>
 </div>
 
-<PopUp Large="true" Title="@(userConfig.GetText("report_template"))" Show="@(ShowEditTemplateDialog || ShowSaveTemplateDialog)">
+<PopUp Large="true" Title="@(userConfig.GetText("report_template"))" Show="@(ShowUpdateTemplateDialog || ShowAddTemplateDialog)">
     <Body>
         <form>
             <div class="form-group row">
@@ -76,7 +74,7 @@
             {
                 <div class="form-group row">
                     <label for="saveTemplateRecertDiplayPeriod" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("due_within")):</label>
-                    <input id="saveTemplateRecertDiplayPeriod" type="number" min="0" class="col-sm-8" @bind="reportTemplateInEdit.ReportParams.RecertFilter.RecertificationDisplayPeriod">
+                    <input id="saveTemplateRecertDiplayPeriod" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.RecertFilter.RecertificationDisplayPeriod">
                 </div>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
@@ -89,7 +87,14 @@
             {
                 <div class="form-group row">
                     <label for="saveTemplateUnused" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("unused_days")):</label>
-                    <input id="saveTemplateUnused" type="number" min="0" class="col-sm-8" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
+                    <input id="saveTemplateUnused" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
+                </div>
+            }
+            else if(reportTemplateInEdit.ReportParams.TenantFilter.IsActive)
+            {
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                    <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.TenantFilter.TenantId)</label>
                 </div>
             }
             else
@@ -101,7 +106,10 @@
             }
             <div class="form-group row">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
-                <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
+                <div class="form-group row col-sm-9 justify-content-between">
+                    <label class="">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
+                </div>
             </div>
             <div class="form-group row">
                 <label for="saveTemplateFilterLineTextarea" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("filter")):</label>
@@ -110,20 +118,17 @@
         </form>
     </Body>
     <Footer>
-        <button type="button" class="btn btn-primary" @onclick="async () => {reportTemplateInEdit.ReportParams.ReportType = (int)reportTypeInEdit; if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">@(userConfig.GetText("save"))</button>
-        <button type="button" class="btn btn-secondary" @onclick="() => ShowEditTemplateDialog = ShowSaveTemplateDialog = false">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+        <button type="button" class="btn btn-secondary" @onclick="CancelEdit">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("report_template"))" Show="@ShowDeleteTemplateDialog">
-    <Body>
-        <p>@(userConfig.GetText("U1002")) "@reportTemplateInEdit.Name" ?</p>
-    </Body>
-    <Footer>
-        <button type="button" class="btn btn-danger" @onclick="DeleteTemplate">@(userConfig.GetText("delete"))</button>
-        <button type="button" class="btn btn-secondary" @onclick="() => ShowDeleteTemplateDialog = false">@(userConfig.GetText("cancel"))</button>
-    </Footer>
-</PopUp>
+<ReportTemplateSelectDevice @bind-Display="ShowSelectDeviceDialog" @bind-DeviceFilter="reportTemplateInEdit.ReportParams.DeviceFilter"/>
+
+<ConfirmDelete @bind-Display="ShowDeleteTemplateDialog" PerformAction="DeleteTemplate" Title="@(userConfig.GetText("report_template"))" 
+    DeleteMessage="@(userConfig.GetText("U1002") + " " + reportTemplateInEdit.Name + " ?")"
+    AllowedRoles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}")"/>
+
 
 @code
 {
@@ -144,23 +149,25 @@
     private string tmpTemplateCommentKey = "";
     private string tmpTemplateComment = "";
 
-    private bool ShowSaveTemplateDialog = false;
-    private bool ShowEditTemplateDialog = false;
+    private bool ShowAddTemplateDialog = false;
+    private bool ShowUpdateTemplateDialog = false;
+    private bool ShowSelectDeviceDialog = false;
     private bool ShowDeleteTemplateDialog = false;
 
     private Collapse collapseControl = new Collapse();
+    private DeviceFilter DeviceFilterOrig = new();
+
 
     protected override async Task OnInitializedAsync()
     {
-        await Refresh();
+        await RefreshTemplates();
         ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
     }
 
-    public async Task Refresh()
+    public async Task RefreshTemplates()
     {
         try
         {
-            var parameters = new { userId = userConfig.User.DbId };
             reportTemplates = (await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates, new { userId = userConfig.User.DbId })).ToList();
             await InvokeAsync(StateHasChanged);
         }
@@ -178,13 +185,6 @@
     public void Uncollapse()
     {
         collapseControl.ToggleCollapse();
-    }
-
-    public void NewTemplate(ReportTemplate reportTemplate)
-    {
-        reportTemplateInEdit = reportTemplate;
-        reportTypeInEdit = (ReportType)reportTemplate.ReportParams.ReportType;
-        ShowSaveTemplateDialog = true;
     }
 
     public ReportTemplate decodeComment(ReportTemplate reportTemplate)
@@ -250,7 +250,42 @@
         }
     }
 
-    private async Task SaveTemplate()
+    public void NewTemplate(ReportTemplate reportTemplate)
+    {
+        reportTemplateInEdit = reportTemplate;
+        reportTypeInEdit = (ReportType)reportTemplate.ReportParams.ReportType;
+        ShowAddTemplateDialog = true;
+    }
+
+    private void EditTemplate(ReportTemplate reportTemplate)
+    {
+        reportTemplateInEdit = decodeComment(reportTemplate);
+        reportTypeInEdit = (ReportType)reportTemplateInEdit.ReportParams.ReportType;
+        DeviceFilterOrig = reportTemplateInEdit.ReportParams.DeviceFilter.Clone();
+        ShowUpdateTemplateDialog = true;
+    }
+
+    private void CancelEdit()
+    {
+        reportTemplateInEdit.ReportParams.DeviceFilter = DeviceFilterOrig; 
+        ShowUpdateTemplateDialog = false;
+        ShowAddTemplateDialog = false;
+    }
+
+    private async Task Save()
+    {
+        reportTemplateInEdit.ReportParams.ReportType = (int)reportTypeInEdit;
+        if (ShowAddTemplateDialog)
+        {
+            await AddTemplate();
+        }
+        else
+        {
+            await UpdateTemplate();
+        }
+    }
+
+    private async Task AddTemplate()
     {
         try
         {
@@ -275,8 +310,8 @@
             if (returnIds != null)
             {
                 reportTemplateInEdit.Id = returnIds[0].NewId;
-                ShowSaveTemplateDialog = false;
-                await Refresh(); // avoid strange behavior of new templates in device selection
+                ShowAddTemplateDialog = false;
+                await RefreshTemplates(); // avoid strange behavior of new templates in device selection
             }
             else
             {
@@ -289,7 +324,7 @@
         }
     }
 
-    private async Task EditTemplate()
+    private async Task UpdateTemplate()
     {
         try
         {
@@ -304,10 +339,10 @@
                 reportParameters = reportTemplateInEdit.ReportParams
             };
 
-            await apiConnection.SendQueryAsync<object>(ReportQueries.editReportTemplate, queryVariables);
+            await apiConnection.SendQueryAsync<object>(ReportQueries.updateReportTemplate, queryVariables);
             reportTemplates[reportTemplates.FindIndex(reportTemplate => reportTemplate.Id == reportTemplateInEdit.Id)] = reportTemplateInEdit;
 
-            ShowEditTemplateDialog = false;
+            ShowUpdateTemplateDialog = false;
         }
         catch (Exception exception)
         {
@@ -333,6 +368,7 @@
                     reportTemplates.Remove(templateToRemove);
                 }
                 ShowDeleteTemplateDialog = false;
+                StateHasChanged();
             }
             else
             {
@@ -343,5 +379,10 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_template"), "", true);
         }
+    }
+
+    private void EditDeviceSelection()
+    {
+        ShowSelectDeviceDialog = true;
     }
 }

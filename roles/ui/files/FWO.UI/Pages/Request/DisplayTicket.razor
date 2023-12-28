@@ -3,7 +3,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -120,7 +120,7 @@
         <div class="btn-group">
             @if(ReqHandler.EditTicketMode)
             {
-                <AuthorizeView Roles="admin, requester, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kFwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -131,7 +131,7 @@
             }
             else if (CheckPromoteTicket())
             {
-                <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kFwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("change_state"))</button>
                     </Authorized>

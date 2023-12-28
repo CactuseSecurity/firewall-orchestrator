@@ -44,6 +44,9 @@ namespace FWO.Api.Data
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
+        [JsonProperty("unfiltered_tenant_id"), JsonPropertyName("unfiltered_tenant_id")]
+        public int UnfilteredTenantId { get; set; } = -1;
+
         public bool Selected { get; set; } = false;
         public bool Relevant { get; set; }
         public bool AwaitMgmt { get; set; }

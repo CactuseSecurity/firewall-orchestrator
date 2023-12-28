@@ -87,44 +87,5 @@ namespace FWO.Api.Data
         {
             return Id.GetHashCode();
         }
-
-        //  svc_id
-        //  svc_name
-        //  svc_uid
-        //  svc_port
-        //  svc_port_end
-        //  svc_source_port
-        //  svc_source_port_end
-        //  svc_code
-        //  svc_timeout
-        //  svc_typ_id
-        //  active
-        //  svc_create
-        //  svc_last_seen
-        //  service_type: stm_svc_typ {
-        //    name: svc_typ_name
-        //  }
-        //  svc_comment
-        //  svc_color_id
-        //  ip_proto_id
-        //  protocol_name: stm_ip_proto {
-        //    name: ip_proto_name
-        //  }
-        //  svc_member_names
-        //  svc_member_refs
-        //  svcgrps {
-        //    id: svcgrp_member_id
-        //    byId: serviceBySvcgrpMemberId {
-        //      svc_id
-        //      svc_name
-        //    }
-        //  }
-        //  svcgrp_flats {
-        //    flat_id: svcgrp_flat_id
-        //    byFlatId: serviceBySvcgrpFlatMemberId {
-        //      svc_id
-        //      svc_name
-        //    }
-        //  }
     }
 }

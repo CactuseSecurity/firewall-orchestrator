@@ -1,0 +1,7 @@
+mutation deleteAreaSubnet(
+  $id: bigint!
+  ) {
+  delete_owner_network(where: {owner_id: {_is_null: true}, id: {_eq: $id}}) {
+    affected_rows
+  }
+}

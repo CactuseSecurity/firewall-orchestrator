@@ -157,9 +157,12 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                         dst_obj_zone = fmgr_zone.add_zone_if_missing (config2import, rule_orig['dstintf'][0], import_id)
                         rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
 
-                    rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
-                    rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
-                    rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
+                    if 'srcaddr-negate' in rule_orig:
+                        rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
+                    if 'dstaddr-negate' in rule_orig:
+                        rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
+                    if 'service-negate' in rule_orig:
+                        rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
 
                     rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', \
                         rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })

@@ -30,11 +30,17 @@
 
       when: not force_install|bool and not run_on_github|bool
 
-    - name: update operating system packages .deb based (for github actions or enforced run)
-      apt:
-        upgrade: dist
-        update_cache: true
-      when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian" and run_on_github|bool
+    # - name: fix grub-efi (for github actions)
+    #   apt:
+    #     upgrade: dist
+    #     update_cache: true
+    #   when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian" and run_on_github|bool
+
+    # - name: update operating system packages .deb based (for github actions)
+    #   apt:
+    #     upgrade: dist
+    #     update_cache: true
+    #   when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian" and run_on_github|bool
 
     - name: update operating system packages .rpm based (untested)
       yum:
@@ -105,25 +111,6 @@
         group: "{{ fworch_group }}"
         mode: "0775"
 
-    - name: create scripts directory
-      file:
-        path: "{{ fworch_home }}/scripts"
-        state: directory
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-        mode: "0775"
-
-    - name: copy log lock scripts
-      copy:
-        src: "{{ item }}"
-        dest: "{{ fworch_home }}/scripts/"
-        mode: "0755"
-        owner: "{{ fworch_user}}"
-        group: "{{ fworch_user}}"
-      loop:
-        - acquire_lock.py
-        - release_lock.py
-
     - name: install rsyslog
       import_tasks: install_syslog.yml
       when: "install_syslog | bool"
@@ -135,6 +122,15 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
         mode: "0775"
+
+    - name: copy fworch scripts directory
+      copy:
+        src: scripts
+        dest: "{{ fworch_home }}"
+        mode: "0755"
+        owner: "{{ fworch_user}}"
+        group: "{{ fworch_user}}"
+      become: true
 
     - name: add proxy setting to fworch users .profile and .bashrc
       blockinfile:

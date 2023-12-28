@@ -8,7 +8,7 @@
 
 @page "/monitoring"
 @page "/monitoring/main"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kModeller}, {GlobalConst.kRecertifier}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -18,7 +18,7 @@
 @(userConfig.GetText("U7001"))
 <hr />
 
-<AuthorizeView Roles="admin, fw-admin, auditor">
+<AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")">
     <h5>@(userConfig.GetText("open_alerts"))</h5>
     @if(alertEntrys.Count == 0)
     {
@@ -29,7 +29,7 @@
         <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
             <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                 <Template>
-                    @if(alert.Source == GlobalConfig.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
+                    @if(alert.Source == GlobalConst.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
                     {
                         <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
                     }
@@ -50,7 +50,7 @@
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
                     }
                     
-                    <AuthorizeView Roles="admin, fw-admin">
+                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
                         <Authorized Context="ctx">
                             <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
                         </Authorized>
@@ -107,9 +107,9 @@
         {
             JwtReader jwt = new JwtReader(userConfig.User.Jwt);
             jwt.Validate();
-            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin") || jwt.ContainsAllowedRole("auditor"))
+            if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin) || jwt.ContainsAllowedRole(GlobalConst.kAuditor))
             {
-                if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin))
                 {
                     managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
                 }
@@ -214,7 +214,7 @@
             jwt.Validate();
 
             List<Management> managements = new List<Management>();
-            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+            if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin))
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);

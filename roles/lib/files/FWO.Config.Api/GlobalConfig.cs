@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using FWO.Logging;
+﻿using FWO.Logging;
 using FWO.Config.File;
 using FWO.Api.Client;
 using FWO.Config.Api.Data;
 using FWO.Api.Client.Queries;
-using System.ComponentModel;
 
 namespace FWO.Config.Api
 {
@@ -17,15 +14,10 @@ namespace FWO.Config.Api
         /// <summary>
         /// Global string constants used e.g. as database keys etc.
         /// </summary>
-        public static readonly string kEnglish = "English";
-
         public static readonly int kSidebarLeftWidth = 300;
         public static readonly int kSidebarRightWidth = 300;
 
-        public static readonly string kAutodiscovery = "autodiscovery";
-        public static readonly string kDailyCheck = "dailycheck";
-        public static readonly string kUi = "ui";
-    
+
         public string productVersion { get; set; }
 
         public Language[] uiLanguages { get; set; }

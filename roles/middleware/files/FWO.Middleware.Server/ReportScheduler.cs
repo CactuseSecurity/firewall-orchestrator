@@ -150,7 +150,7 @@ namespace FWO.Middleware.Server
                     if(!report.Template.ReportParams.DeviceFilter.isAnyDeviceFilterSet())
                     {
                         // for scheduling no device selection means "all"
-                        report.Template.ReportParams.DeviceFilter.Managements = await apiConnectionUserContext.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                        report.Template.ReportParams.DeviceFilter.Managements = await apiConnectionUserContext.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
                         report.Template.ReportParams.DeviceFilter.applyFullDeviceSelection(true);
                     }
                     if(report.Template.ReportParams.ReportType == (int)ReportType.UnusedRules)

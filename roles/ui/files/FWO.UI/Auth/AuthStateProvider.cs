@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Config.Api;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Api.Data;
 using FWO.Ui.Services;
 using FWO.Middleware.Client;
 using FWO.Middleware.RequestParameters;
@@ -13,6 +15,7 @@ using FWO.Logging;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Authentication;
 using System.Security.Principal;
+
 
 namespace FWO.Ui.Auth
 {
@@ -51,7 +54,7 @@ namespace FWO.Ui.Auth
             if (jwtReader.Validate())
             {
                 // importer is not allowed to login
-                if (jwtReader.ContainsRole("importer"))
+                if (jwtReader.ContainsRole(GlobalConst.kImporter))
                 {
                     throw new AuthenticationException("login_importer_error");
                 }
@@ -102,8 +105,107 @@ namespace FWO.Ui.Auth
         }
 
         public void ConfirmPasswordChanged()
-        {           
+        {
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
+        }
+
+        public int getTenantId(string jwtString)
+        {
+            JwtReader jwtReader = new JwtReader(jwtString);
+            int tenantId = 0;
+
+            if (jwtReader.Validate())
+            {
+                ClaimsIdentity identity = new ClaimsIdentity
+                (
+                    claims: jwtReader.GetClaims(),
+                    authenticationType: "ldap",
+                    nameType: JwtRegisteredClaimNames.UniqueName,
+                    roleType: "role"
+                );
+
+                // Set user information
+                user = new ClaimsPrincipal(identity);
+
+                if (!int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
+                {
+                    // TODO: log warning
+                }
+            }
+            return tenantId;
+        }
+
+        public async Task<Tenant> getTenantFromJwt(string jwtString, ApiConnection apiConnection)
+        {
+            JwtReader jwtReader = new JwtReader(jwtString);
+            Tenant tenant = new Tenant();
+            int tenantId;
+
+            if (jwtReader.Validate())
+            {
+                ClaimsIdentity identity = new ClaimsIdentity
+                (
+                    claims: jwtReader.GetClaims(),
+                    authenticationType: "ldap",
+                    nameType: JwtRegisteredClaimNames.UniqueName,
+                    roleType: "role"
+                );
+
+                // Set user information
+                user = new ClaimsPrincipal(identity);
+
+                if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
+                {
+                    tenant = await Tenant.getTenantById(apiConnection, tenantId);
+                }
+                // else
+                // {
+                //     // TODO: log warning
+                // }
+            }
+            return tenant;
+        }
+
+        public List<string> getAllowedRoles(string jwtString)
+        {
+            return GetClaimList(jwtString, "x-hasura-allowed-roles");
+        }
+
+        public List<int> getAssignedOwners(string jwtString)
+        {
+            List<int> ownerIds = new();
+            List<string> ownerClaims = GetClaimList(jwtString, "x-hasura-editable-owners");
+            if(ownerClaims.Count > 0)
+            {
+                string[] separatingStrings = { ",", "{", "}" };
+                string[] owners = ownerClaims[0].Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                ownerIds = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
+            }
+            return ownerIds;
+        }
+
+        private List<string> GetClaimList(string jwtString, string claimType)
+        {
+            List<string> claimList = new List<string>();
+            JwtReader jwtReader = new JwtReader(jwtString);
+            if (jwtReader.Validate())
+            {
+                ClaimsIdentity identity = new ClaimsIdentity
+                (
+                    claims: jwtReader.GetClaims(),
+                    authenticationType: "ldap",
+                    nameType: JwtRegisteredClaimNames.UniqueName,
+                    roleType: "role"
+                );
+                foreach (Claim claim in identity.Claims)
+                {
+                    if (claim.Type == claimType)
+                    {
+                        claimList.Add(claim.Value);
+                    }
+                }
+            }
+            return claimList;
         }
     }
 }

@@ -59,6 +59,9 @@ namespace FWO.Api.Data
         [JsonProperty("time_filter"), JsonPropertyName("time_filter")]
         public TimeFilter TimeFilter { get; set; } = new TimeFilter();
 
+        [JsonProperty("tenant_filter"), JsonPropertyName("tenant_filter")]
+        public TenantFilter TenantFilter { get; set; } = new TenantFilter();
+
         [JsonProperty("recert_filter"), JsonPropertyName("recert_filter")]
         public RecertFilter RecertFilter { get; set; } = new RecertFilter();
 

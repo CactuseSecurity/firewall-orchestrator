@@ -11,7 +11,7 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string getReportTemplates;
         public static readonly string addReportTemplate;
-        public static readonly string editReportTemplate;
+        public static readonly string updateReportTemplate;
         public static readonly string deleteReportTemplate;
 
         public static readonly string subscribeReportScheduleChanges;
@@ -53,7 +53,7 @@ namespace FWO.Api.Client.Queries
                 getRelevantImportIdsAtTime = File.ReadAllText(QueryPath + "report/getRelevantImportIdsAtTime.graphql");
                 statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrent.graphql");
                 statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrentOverall.graphql");
-                editReportTemplate = File.ReadAllText(QueryPath + "report/editReportTemplate.graphql");
+                updateReportTemplate = File.ReadAllText(QueryPath + "report/updateReportTemplate.graphql");
                 deleteReportTemplate = File.ReadAllText(QueryPath + "report/deleteReportTemplate.graphql");
                 subscribeReportScheduleChanges = File.ReadAllText(QueryPath + "report/subscribeReportScheduleChanges.graphql");
                 subscribeGeneratedReportsChanges = File.ReadAllText(QueryPath + "report/subscribeGeneratedReportsChanges.graphql");

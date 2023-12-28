@@ -1,0 +1,57 @@
+﻿@typeparam ElementType
+
+<div class="col-sm-12 border" style="overflow-y:auto; max-height: calc( @(MaxHeight) * 1vh);">
+	@for (int i = 0; i < AllElements.Count; i++)
+	{
+		int j = i;
+		<div class="draggable @(SelectedElements.Contains(AllElements[j]) ? "bg-primary" : "")" draggable="true" 
+				@ondragstart="@( (e) => HandleDragStart(e, AllElements[j]))" @onclick="() => ToggleSelect(j)">
+			@((MarkupString)Display(AllElements[j]))
+		</div>
+	}
+</div>
+
+@code
+{
+	[Parameter]
+	public List<ElementType> AllElements { get; set; } = new List<ElementType>();
+
+	[Parameter]
+	public List<ElementType> SelectedElements { get; set; } = new List<ElementType>();
+
+    [Parameter]
+    public EventCallback<List<ElementType>> SelectedElementsChanged { get; set; }
+
+    [Parameter]
+    public Func<DragEventArgs, ElementType, bool> HandleDragStart { get; set; } = DoNothingSync;
+
+	[Parameter]
+	public Func<ElementType, string> Display { get; set; } = DoNothingSync;
+
+	[Parameter]
+	public int MaxHeight { get; set; } = 50;
+
+	[Parameter]
+	public bool Multiselect { get; set; } = true;
+
+
+	private void ToggleSelect(int index)
+	{
+		if (SelectedElements.Contains(AllElements[index]))
+		{
+			SelectedElements.Remove(AllElements[index]);
+		}
+		else
+		{
+			if(!Multiselect)
+			{
+				SelectedElements = new();
+			}
+			SelectedElements.Add(AllElements[index]);
+		}
+		SelectedElementsChanged.InvokeAsync(SelectedElements);
+	}
+
+	public static bool DoNothingSync(DragEventArgs e, ElementType elem) { return false; }
+	public static string DoNothingSync(ElementType e) { return ""; }
+}

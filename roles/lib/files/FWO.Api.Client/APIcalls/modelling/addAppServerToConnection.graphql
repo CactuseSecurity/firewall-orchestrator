@@ -1,0 +1,15 @@
+mutation addAppServerToConnection(
+  $nwObjectId: bigint!
+  $connectionId: Int!
+  $connectionField: Int!
+  ) {
+  insert_modelling_nwobject_connection(objects: {
+    nwobject_id: $nwObjectId
+    connection_id: $connectionId
+    connection_field: $connectionField
+  }) {
+    returning {
+      newId: nwobject_id
+    }
+  }
+}

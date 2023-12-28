@@ -40,7 +40,7 @@ Create table "device" -- contains an entry for each firewall gateway
 	"package_name" Varchar,
 	"package_uid" Varchar,
 	"dev_typ_id" Integer NOT NULL,
-	"tenant_id" Integer,
+	"unfiltered_tenant_id" Integer,
 	"dev_active" Boolean NOT NULL Default true,
 	"dev_comment" Text,
 	"dev_create" Timestamp NOT NULL Default now(),
@@ -58,7 +58,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"dev_typ_id" Integer NOT NULL,
 	"mgm_name" Varchar NOT NULL,
 	"mgm_comment" Text,
-	"tenant_id" Integer,
+	"unfiltered_tenant_id" Integer,
  	"cloud_tenant_id" VARCHAR,
 	"cloud_subscription_id" VARCHAR,	
 	"mgm_create" Timestamp NOT NULL Default now(),
@@ -436,6 +436,14 @@ Create table "txt"
 	"language" Varchar NOT NULL,
 	"txt" Varchar NOT NULL,
  primary key ("id", "language")
+);
+
+Create table "customtxt"
+(
+	"id" Varchar NOT NULL,
+	"language" Varchar NOT NULL,
+	"txt" Varchar NOT NULL,
+ 	primary key ("id", "language")
 );
 
 Create table "error"
@@ -1021,17 +1029,24 @@ create table owner
     recert_interval int,
     app_id_external varchar UNIQUE,
     last_recert_check Timestamp,
-    recert_check_params Varchar
+    recert_check_params Varchar,
+	criticality Varchar,
+	active boolean default true,
+	import_source Varchar
 );
 
 create table owner_network
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     owner_id int,
+	name Varchar,
     ip cidr NOT NULL,
     ip_end cidr NOT NULL,
     port int,
-    ip_proto_id int
+    ip_proto_id int,
+	nw_type int,
+	import_source Varchar default 'manual', 
+	is_deleted boolean default false
 );
 
 create table reqtask_owner
@@ -1278,3 +1293,124 @@ create table compliance.ip_range
 	PRIMARY KEY(network_zone_id, ip_range_start, ip_range_end)
 );
 
+
+--- Network modelling ---
+create schema modelling;
+
+create table modelling.nwgroup
+(
+ 	id BIGSERIAL PRIMARY KEY,
+	app_id int,
+	id_string Varchar,
+	name Varchar,
+	comment Varchar,
+	group_type int,
+	is_deleted boolean default false,
+	creator Varchar,
+	creation_date timestamp default now()
+);
+
+create table modelling.connection
+(
+ 	id SERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar,
+	reason Text,
+	is_interface boolean default false,
+	used_interface_id int,
+	common_service boolean default false,
+	creator Varchar,
+	creation_date timestamp default now()
+);
+
+create table modelling.selected_objects
+(
+	app_id int,
+	nwgroup_id bigint,
+	primary key (app_id, nwgroup_id)
+);
+
+create table modelling.selected_connections
+(
+	app_id int,
+	connection_id int,
+	primary key (app_id, connection_id)
+);
+
+create table modelling.nwobject_nwgroup
+(
+    nwobject_id bigint,
+    nwgroup_id bigint,
+	primary key (nwobject_id, nwgroup_id)
+);
+
+create table modelling.nwgroup_connection
+(
+    nwgroup_id bigint,
+    connection_id int,
+	connection_field int, -- enum src=1, dest=2, ...
+	primary key (nwgroup_id, connection_id, connection_field)
+);
+
+create table modelling.nwobject_connection -- (used only if settings flag is set)
+(
+    nwobject_id bigint,
+    connection_id int,
+	connection_field int, -- enum src=1, dest=2, ...
+	primary key (nwobject_id, connection_id, connection_field)
+);
+
+create table modelling.service
+(
+ 	id SERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar,
+	is_global boolean default false,
+	port int,
+	port_end int,
+	proto_id int
+);
+
+create table modelling.service_group
+(
+	id SERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar,
+	is_global boolean default false,
+	comment Varchar,
+	creator Varchar,
+	creation_date timestamp default now()
+);
+
+create table modelling.service_service_group
+(
+	service_id int,
+    service_group_id int,
+	primary key (service_id, service_group_id)
+);
+
+create table modelling.service_group_connection
+(
+    service_group_id int,
+	connection_id int,
+	primary key (service_group_id, connection_id)
+);
+
+create table modelling.service_connection -- (used only if settings flag is set)
+(
+    service_id int,
+    connection_id int,
+	primary key (service_id, connection_id)
+);
+
+create table modelling.change_history
+(
+	id BIGSERIAL PRIMARY KEY,
+	app_id int,
+	change_type int,
+	object_type int,
+    object_id bigint,
+	change_text Varchar,
+	changer Varchar,
+	change_time Timestamp default now()
+);

@@ -18,7 +18,28 @@ namespace FWO.Api.Data
 
         public ElementReference? UiReference { get; set; }
 
+        public bool Visible { get; set; } = true;
+
         public bool Selected { get; set; } = false;
+
+        public ManagementSelect Clone()
+        {
+            List<DeviceSelect> ClonedDevices = new();
+            foreach(var dev in Devices)
+            {
+                ClonedDevices.Add(new DeviceSelect(dev));
+            }
+
+			return new ManagementSelect()
+            {
+                Id = Id,
+                Name = Name,
+                Devices = ClonedDevices,
+                UiReference = UiReference,
+                Visible = Visible,
+                Selected = Selected
+            };
+        }
     }
 
     public class DeviceSelect
@@ -29,7 +50,20 @@ namespace FWO.Api.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        public bool Visible { get; set; } = true;
+
         public bool Selected { get; set; } = false;
+
+        public DeviceSelect()
+        {}
+
+        public DeviceSelect(DeviceSelect dev)
+        {
+            Id = dev.Id;
+            Name = dev.Name;
+            Visible = dev.Visible;
+            Selected = dev.Selected;
+        }
     }
 
     public class DeviceFilter
@@ -56,11 +90,25 @@ namespace FWO.Api.Data
             Managements.Add(dummyManagement);
         }
 
+        public DeviceFilter Clone()
+        {
+            List<ManagementSelect> ClonedManagements = new();
+            foreach(var mgt in Managements)
+            {
+                ClonedManagements.Add(mgt.Clone());
+            }
+
+			return new DeviceFilter()
+            {
+                Managements = ClonedManagements
+            };
+        }
+
         public bool areAllDevicesSelected()
         {
             foreach (ManagementSelect management in Managements)
                 foreach (DeviceSelect device in management.Devices)
-                    if (!device.Selected)
+                    if (!device.Selected && device.Visible)
                         return false;
             return true;
         }
@@ -78,10 +126,12 @@ namespace FWO.Api.Data
         {
             foreach (ManagementSelect management in Managements)
             {
-                management.Selected = selectAll;
+                // only select visible managements
+                management.Selected = selectAll && management.Visible;
                 foreach (DeviceSelect device in management.Devices)
                 {
-                    device.Selected = selectAll;
+                    // only select visible devices
+                    device.Selected = selectAll && device.Visible;
                 }
             }
         }
@@ -153,7 +203,11 @@ namespace FWO.Api.Data
                         DeviceSelect? incomingDev = incomingMgt.Devices.Find(x => x.Id == device.Id);
                         if (incomingDev != null)
                         {
-                            device.Selected = incomingDev.Selected;
+                            // the next line could be the problem as it changes an object:
+                            if (device.Visible)
+                            {
+                                device.Selected = incomingDev.Selected;
+                            }
                         }
                     }
                 }
@@ -166,7 +220,9 @@ namespace FWO.Api.Data
             foreach (ManagementSelect management in Managements)
             {
                 int selectedDevicesCount = management.Devices.Where(d => d.Selected).Count();
-                management.Selected = management.Devices.Count > 0 && selectedDevicesCount == management.Devices.Count;
+                int visibleDevicesCount = management.Devices.Where(d => d.Visible).Count();
+                // Management is selected if all visible devices are selected
+                management.Selected = management.Devices.Count > 0 && selectedDevicesCount == visibleDevicesCount;
             }
         }
 
@@ -175,10 +231,16 @@ namespace FWO.Api.Data
             int counter = 0;
             foreach (ManagementSelect management in Managements)
             {
-                counter ++;
-                foreach (DeviceSelect device in management.Devices)
+                if (management.Visible)
                 {
-                    counter ++;
+                    counter++;
+                    foreach (DeviceSelect device in management.Devices)
+                    {
+                        if (device.Visible)
+                        {
+                            counter++;
+                        }
+                    }
                 }
             }
             return counter;

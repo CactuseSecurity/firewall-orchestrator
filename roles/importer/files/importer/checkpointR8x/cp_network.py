@@ -8,15 +8,24 @@ import ipaddress
 
 def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, debug_level=0):
     nw_objects = []
+    logger = getFwoLogger()
 
     for obj_table in full_config['object_tables']:
         collect_nw_objects(obj_table, nw_objects,
                            debug_level=debug_level, mgm_id=mgm_id)
     for nw_obj in nw_objects:
         nw_obj.update({'control_id': import_id})
+        if nw_obj['obj_typ'] == 'interoperable-device':
+            nw_obj.update({'obj_typ': 'external-gateway'})
+        # set a dummy IP address for objects without IP addreses
+        if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
+            logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
+            nw_obj.update({'obj_ip': '0.0.0.0/32'})
+
     for idx in range(0, len(nw_objects)-1):
         if nw_objects[idx]['obj_typ'] == 'group':
             add_member_names_for_nw_group(idx, nw_objects)
+
     config2import.update({'network_objects': nw_objects})
 
 

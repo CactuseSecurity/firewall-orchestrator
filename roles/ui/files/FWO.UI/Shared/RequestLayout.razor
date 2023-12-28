@@ -18,7 +18,7 @@
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("requests"))</h5>
                 </li>
-                <AuthorizeView Roles="admin, auditor, fw-admin, requester">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}, {GlobalConst.kRequester}")">
                     <li class="nav-item px-2">
                         <NavLink class="nav-link" href="request/ticketsoverview">
                             <span class="oi oi-layers"></span> @(userConfig.GetText("tickets"))
@@ -27,7 +27,7 @@
                 </AuthorizeView>
                 @if(stateMatrix.PhaseActive[WorkflowPhases.request])
                 {
-                    <AuthorizeView Roles="admin, requester, auditor">
+                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kAuditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/tickets">
                                 <span class="oi oi-comment-square"></span> @(userConfig.GetText("create_ticket"))
@@ -37,7 +37,7 @@
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.approval])
                 {
-                    <AuthorizeView Roles="admin, approver, auditor">
+                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kApprover}, {GlobalConst.kAuditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/approvals">
                                 <span class="oi oi-check"></span> @(userConfig.GetText("approvals"))
@@ -47,7 +47,7 @@
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.planning])
                 {
-                    <AuthorizeView Roles="admin, planner, auditor, fw-admin">
+                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kPlanner}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/plannings">
                                 <span class="oi oi-project"></span> @(userConfig.GetText("plannings"))
@@ -57,7 +57,7 @@
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.implementation])
                 {
-                    <AuthorizeView Roles="admin, implementer, auditor, fw-admin">
+                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kImplementer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/implementations">
                                 <span class="oi oi-task"></span> @(userConfig.GetText("implementations"))
@@ -67,7 +67,7 @@
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.review])
                 {
-                    <AuthorizeView Roles="admin, reviewer, auditor">
+                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/reviews">
                                 <span class="oi oi-check"></span> @(userConfig.GetText("reviews"))

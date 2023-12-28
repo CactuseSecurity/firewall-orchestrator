@@ -1,6 +1,6 @@
 ﻿@using FWO.Config.Api
 
-@attribute [Authorize(Roles = "admin, auditor, requester")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kRequester}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -23,7 +23,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, requester">
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => {CreateTicket(); Close();}">@(userConfig.GetText("create_ticket"))</button>
                 </Authorized>
@@ -94,7 +94,7 @@
 
     private async Task CreateTicket()
     {
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "requester", "admin"});
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kRequester, GlobalConst.kAdmin});
         TicketCreator ticketCreator = new TicketCreator(apiConnection, userConfig);
         foreach(int devId in ruleUidsPerDevice.Keys)
         {

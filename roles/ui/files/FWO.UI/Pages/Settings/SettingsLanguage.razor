@@ -3,7 +3,7 @@
 @using FWO.Api.Client
 
 @page "/settings/language"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, auditor, fw-admin, requester, approver, planner, implementer, reviewer")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kModeller}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig

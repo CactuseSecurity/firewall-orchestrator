@@ -9,7 +9,7 @@ namespace FWO.Api.Client.Queries
 {
     public class DeviceQueries : Queries
     {
-        public static readonly string getDevicesByManagements;
+        public static readonly string getDevicesByManagement;
         public static readonly string getManagementsDetails;
         public static readonly string getManagementDetailsWithoutSecrets;
         public static readonly string getDeviceTypeDetails;
@@ -34,7 +34,7 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                getDevicesByManagements = File.ReadAllText(QueryPath + "device/getDevicesByManagement.graphql");
+                getDevicesByManagement = File.ReadAllText(QueryPath + "device/getDevicesByManagement.graphql");
                 getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql") + " " 
                                         + File.ReadAllText(QueryPath + "device/fragments/managementDetails.graphql") + " "
                                         + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql") + " "

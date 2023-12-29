@@ -128,6 +128,7 @@ fworch_log_dir: "/var/log/{{ product_name }}"
 fworch_log_lock_dir: "/var/{{ product_name }}/lock"
 fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"
 fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"
+fworch_api_importer_lockfile: "{{ fworch_log_lock_dir }}/importer_api_log.lock"
 
 ### apache: both package and dir name (needed both on ui and api hosts):
 webserver_package_name: apache2

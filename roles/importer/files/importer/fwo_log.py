@@ -1,3 +1,5 @@
+import sys
+import fwo_globals
 import logging
 import asyncio
 import time
@@ -81,7 +83,7 @@ def getFwoLogger():
         log_level = logging.INFO
 
     logger = logging.getLogger()
-    log_handler = LogHandler(stream=stdout)
+    log_handler = LogHandler(stream=sys.stdout)
     log_filter = LogFilter()
 
     log_format = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
@@ -111,7 +113,7 @@ def getFwoAlertLogger(debug_level=0):
         llevel = logging.INFO
 
     logger = logging.getLogger() # use root logger
-    log_handler = LogHandler(stream=stdout)
+    log_handler = LogHandler(stream=sys.stdout)
     log_filter = LogFilter()
 
     logformat = "%(asctime)s %(message)s"

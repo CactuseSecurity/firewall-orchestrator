@@ -145,9 +145,10 @@ END $$;
 
         + report for "not shared" management is still filtered
 
-        - read tenant - device mappings from API and display in settings
+        + read tenant - device mappings from API and display in settings
         - write tenant - device mappings to API
 
+        - reverse collapse state (collaps unfiltered and hidden, show gateways of shared managements)
         - when in tenant_filtering mode (only simulated) generating report for two gateways takes 10 times longer than separate reports
 
         - when saving tenant_networks (2.0.0.0/8): Save tenant - Unclassified error: : Foreign key violation. insert or update on table "tenant_network" violates foreign key constraint "tenant_network_tenant_id_fkey" . See log for details!

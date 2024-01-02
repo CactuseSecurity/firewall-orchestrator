@@ -331,38 +331,59 @@
 
         List<ManagementSelect> allDevs = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
         Tenant tenantDevices = (await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants, new { tenant_id = tenant.Id })).First();
-        devicesSelectedForTenant = new DeviceFilter(allDevs);
 
+        // initialize all devices (to invisible)
         foreach (ManagementSelect mgm in allDevs)
         {
-            if (tenantDevices.UnfilteredManagementIds.Contains(mgm.Id))
+            mgm.Visible = false;
+            mgm.Shared = true;
+            foreach (DeviceSelect dev in mgm.Devices)
             {
-                mgm.Selected = true;
-                mgm.Visible = true;
-                mgm.Shared = false;
+                dev.Visible = false;
+                dev.Shared = true;
             }
-            if (tenantDevices.SharedManagementIds.Contains(mgm.Id))
+        }
+
+        // set dev visibility for all non-shared managements
+        foreach (TenantManagement tenMgm in tenantDevices.TenantManagements)
+        {
+            foreach (ManagementSelect mgm in allDevs)
             {
-                mgm.Selected = true;
-                mgm.Visible = true;
-                mgm.Shared = true;
-                foreach (DeviceSelect dev in mgm.Devices)
+                if (mgm.Id == tenMgm.VisibleManagement.Id)
                 {
-                    if (tenantDevices.UnfilteredGatewayIds.Contains(dev.Id))
+                    if (!tenMgm.Shared)
                     {
-                        dev.Selected = true;
-                        dev.Visible = true;
-                        dev.Shared = false;
+                        // set management to Visible and Shared = false
+                        mgm.Visible = true;
+                        mgm.Shared = false;
                     }
-                    if (tenantDevices.SharedGatewayIds.Contains(dev.Id))
+                    else
                     {
-                        dev.Selected = true;
-                        dev.Visible = true;
-                        dev.Shared = true;
+                        // shared managements visible and shared
+                        mgm.Visible = true;
+                        mgm.Shared = true;
                     }
                 }
             }
         }
+        // set explicit gateway visibilities from tenant_to_device table
+        foreach (TenantGateway gw in tenantDevices.TenantGateways)
+        {
+            foreach (ManagementSelect mgm in allDevs)
+            {
+                foreach (DeviceSelect dev in mgm.Devices)
+                {
+                    if (dev.Id == gw.VisibleGateway.Id)
+                    {
+                        dev.Visible = true;
+                        dev.Shared = gw.Shared;
+                    }
+                }
+            }
+        }
+
+        devicesSelectedForTenant = new DeviceFilter(allDevs);
+
         return devicesSelectedForTenant;
     }
 

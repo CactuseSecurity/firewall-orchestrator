@@ -60,7 +60,7 @@
         </NotAuthorized>
     </AuthorizeView>
 
-    <DeviceSelection Environment="Cert" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
+    <DeviceSelection Environment="GlobalConst.kCertification" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices"></DeviceSelection>
 </Sidebar>
 
 @* ==== MAIN MIDDLE SECTION ==== *@
@@ -133,9 +133,7 @@
 
     private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
-    private bool selectAll = true;
 
-    private string filterInput = "remove=false and recertdisplay=30";
     private bool processing = false;
     private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
@@ -295,7 +293,6 @@
 
     private void prepareReport()
     {
-        SyncFilterToDisplay();
         List<int> ownerList = new List<int>();
         if (selectedOwner != null)
         {
@@ -310,11 +307,6 @@
             RecertificationDisplayPeriod = recertLookAheadDays
         };
         currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
-    }
-
-    private void SyncFilterToDisplay()
-    {
-        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
     }
 
     private void postProcessReport()

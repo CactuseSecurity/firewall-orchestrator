@@ -1,33 +1,28 @@
-query getTenants($tenantId: Int) {
-  tenant(where: {tenant_id: {_eq: $tenantId}}) {
+query getTenants($tenant_id: Int) {
+  tenant(where:{tenant_id:{_eq: $tenant_id}}) {
     tenant_id
     tenant_name
     tenant_comment
     tenant_projekt
     tenant_can_view_all_devices
     tenant_is_superadmin
-    sharedGateways: tenant_to_devices(where: {shared: {_eq: true}}) {
+
+    tenant_to_devices {
+      shared
       device {
         id: dev_id
         name: dev_name
       }
     }
-    sharedManagements: tenant_to_managements(where: {shared: {_eq: true}}) {
+    tenant_to_managements {
+      shared
       management {
         id: mgm_id
         name: mgm_name
-      }
-    }
-    unfilteredManagements: tenant_to_managements(where: {shared: {_eq: false}}) {
-      management {
-        id: mgm_id
-        name: mgm_name
-      }
-    }
-    unfilteredGateways: tenant_to_devices(where: {shared: {_eq: false}}) {
-      device {
-        id: dev_id
-        name: dev_name
+        devices {
+          id: dev_id
+          name: dev_name
+        }
       }
     }
   }

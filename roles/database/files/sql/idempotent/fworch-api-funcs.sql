@@ -383,6 +383,11 @@ CREATE OR REPLACE FUNCTION rulebase_fully_visible_to_tenant(i_dev_id INTEGER, i_
         b_mgm_is_unfiltered boolean := FALSE;
         b_dev_is_unfiltered boolean := FALSE;
     BEGIN
+        SELECT INTO i_mgm_id
+            mgm_id
+            FROM device LEFT JOIN management USING (mgm_id)
+            WHERE dev_id=i_dev_id;
+
         SELECT INTO i_temp_id
             management_id
             FROM tenant_to_management

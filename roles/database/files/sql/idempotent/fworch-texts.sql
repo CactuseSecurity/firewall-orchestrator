@@ -418,6 +418,8 @@ INSERT INTO txt VALUES ('check_times', 			'German',	'Pr&uuml;fung Datumswerte');
 INSERT INTO txt VALUES ('check_times', 			'English',	'Check time values');
 INSERT INTO txt VALUES ('select_device',		'German', 	'Device(s) ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_device',		'English', 	'Select device(s)');
+INSERT INTO txt VALUES ('tenant_vis_devices',   'German', 	'Mandanten-Firewalls');
+INSERT INTO txt VALUES ('tenant_vis_devices',	'English', 	'Tenant firewalls');
 INSERT INTO txt VALUES ('edit_vis_devices',		'German', 	'Devices f&uuml;r Mandant');
 INSERT INTO txt VALUES ('edit_vis_devices',		'English', 	'Devices for tenant');
 INSERT INTO txt VALUES ('hide',         		'German', 	'versteckt');

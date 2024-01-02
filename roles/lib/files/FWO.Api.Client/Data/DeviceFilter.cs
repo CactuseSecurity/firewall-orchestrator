@@ -20,7 +20,7 @@ namespace FWO.Api.Data
 
         public bool Visible { get; set; } = true;
         public bool Selected { get; set; } = false;
-
+        public bool Shared { get; set; } = true;
         public ManagementSelect Clone()
         {
             List<DeviceSelect> ClonedDevices = new();
@@ -52,7 +52,7 @@ namespace FWO.Api.Data
         public bool Visible { get; set; } = true;
 
         public bool Selected { get; set; } = false;
-
+        public bool Shared { get; set; } = true;
         public DeviceSelect()
         {}
 

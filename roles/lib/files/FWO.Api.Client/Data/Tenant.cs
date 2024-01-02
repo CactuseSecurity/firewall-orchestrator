@@ -27,16 +27,39 @@ namespace FWO.Api.Data
         public bool Superadmin { get; set; } // curently not in use
 
         [JsonProperty("tenant_to_devices"), JsonPropertyName("tenant_to_devices")]
-        public TenantDevice[] TenantDevices { get; set; } // TODO: Replace with Device[] (probably not possible)
+        public TenantGateway[] TenantGateways { get; set; } // TODO: Replace with Device[] (probably not possible)
 
-        public int[] VisibleDevices { get; set; } // TODO: Remove later (probably not possible)
-        public int[] VisibleManagements { get; set; } // TODO: Remove later (probably not possible)
+        [JsonProperty("tenant_to_managements"), JsonPropertyName("tenant_to_managements")]
+        public TenantManagement[] TenantManagements { get; set; }
+
+        // [JsonProperty("sharedGateways"), JsonPropertyName("sharedGateways")]
+        // public TenantViewGateway[] TenantSharedGateways { get; set; } // TODO: Replace with Device[] (probably not possible)
+
+        // [JsonProperty("sharedManagements"), JsonPropertyName("sharedManagements")]
+        // public TenantViewManagement[] TenantSharedManagements { get; set; } // TODO: Replace with Device[] (probably not possible)
+
+        // [JsonProperty("unfilteredGateways"), JsonPropertyName("unfilteredGateways")]
+        // public TenantViewGateway[] TenantUnfilteredGateways { get; set; } // TODO: Replace with Device[] (probably not possible)
+
+        // [JsonProperty("unfilteredManagements"), JsonPropertyName("unfilteredManagements")]
+        // public TenantViewManagement[] TenantUnfilteredManagements { get; set; } // TODO: Replace with Device[] (probably not possible)
+
+        public int[] VisibleGatewayIds { get; set; } = Array.Empty<int>();
+        public int[] SharedGatewayIds { get; set; } = Array.Empty<int>();
+        public int[] UnfilteredGatewayIds { get; set; } = Array.Empty<int>();
+        public int[] VisibleManagementIds { get; set; } = Array.Empty<int>();
+        public int[] SharedManagementIds { get; set; } = Array.Empty<int>();
+        public int[] UnfilteredManagementIds { get; set; } = Array.Empty<int>();
+
+        public TenantViewManagement[] TenantVisibleManagements { get; set; } = Array.Empty<TenantViewManagement>();
+        public TenantViewGateway[] TenantVisibleGateways { get; set; } = Array.Empty<TenantViewGateway>();
+
 
         public Tenant()
         {
-            TenantDevices = new TenantDevice[]{};
-            VisibleDevices = new int[]{};
-            VisibleManagements = new int[]{};
+            TenantGateways = new TenantGateway[]{};
+            VisibleGatewayIds = new int[]{};
+            VisibleManagementIds = new int[]{};
         }
 
         public Tenant(Tenant tenant)
@@ -46,10 +69,38 @@ namespace FWO.Api.Data
             Comment = tenant.Comment;
             Project = tenant.Project;
             ViewAllDevices = tenant.ViewAllDevices;
-            // Superadmin = tenant.Superadmin;
-            TenantDevices = tenant.TenantDevices;
-            VisibleDevices = tenant.VisibleDevices;
-            VisibleManagements = tenant.VisibleManagements;
+
+            // TenantSharedGateways = tenant.TenantSharedGateways;
+            // TenantSharedManagements = tenant.TenantSharedManagements;
+
+            // TenantUnfilteredGateways = tenant.TenantUnfilteredGateways;
+            // TenantUnfilteredManagements = tenant.TenantUnfilteredManagements;
+
+            // TenantVisibleGateways = tenant.TenantSharedGateways.Concat(tenant.TenantUnfilteredGateways).ToArray();
+
+            // foreach (TenantViewGateway gateway in TenantSharedGateways)
+            // {
+            //     VisibleGatewayIds.Append(gateway.Id);
+            // }
+            // foreach (TenantViewGateway gateway in TenantUnfilteredGateways)
+            // {
+            //     VisibleGatewayIds.Append(gateway.Id);
+            // }
+            // foreach (TenantViewManagement mgm in TenantSharedManagements)
+            // {
+            //     VisibleManagementIds.Append(mgm.Id);
+            // }
+            // foreach (TenantViewManagement mgm in TenantUnfilteredManagements)
+            // {
+            //     VisibleManagementIds.Append(mgm.Id);
+            // }
+            // TenantVisibleGateways = tenant.TenantSharedGateways.Concat(tenant.TenantUnfilteredGateways).ToArray();
+
+            foreach (TenantGateway gateway in TenantGateways)
+            {
+                // array = array.Concat(new int[] { 2 }).ToArray();
+                VisibleGatewayIds = VisibleGatewayIds.Concat(new int[] { gateway.VisibleGateway.Id }).ToArray();
+            }
         }
 
         public Tenant(TenantGetReturnParameters tenantGetParameters)
@@ -59,28 +110,35 @@ namespace FWO.Api.Data
             Comment = tenantGetParameters.Comment;
             Project = tenantGetParameters.Project;
             ViewAllDevices = tenantGetParameters.ViewAllDevices;
-            // Superadmin = tenantGetParameters.Superadmin;
-            List<TenantDevice> deviceList = new List<TenantDevice>();
-            if (tenantGetParameters.Devices != null)
+            List<TenantViewGateway> deviceList = new List<TenantViewGateway>();
+
+            foreach(int id in VisibleGatewayIds)
             {
-                foreach(TenantViewDevice apiDevice in tenantGetParameters.Devices)
-                {
-                    Device visibleDevice = new Device(){Id = apiDevice.Id, Name = apiDevice.Name};
-                    deviceList.Add(new TenantDevice(){VisibleDevice = visibleDevice});
-                }
+                // VisibleGatewayIds = TenantVisibleGateways.VisibleGatewayIds.Concat(new int[] { gateway.VisibleGateway.Id }).ToArray();
+
+                TenantVisibleGateways.Append(new TenantViewGateway(id, "", true));
             }
-            TenantDevices = deviceList.ToArray();
-            VisibleDevices = new int[]{};
-            VisibleManagements = new int[]{};
+
+            // foreach(TenantViewGateway gw in tenantGetParameters.SharedGateways)
+            // {
+            //     deviceList.Add(new TenantViewGateway(){Id = gw.Id, Name = gw.Name, shared = true});
+            // }
+            // foreach(TenantViewGateway gw in tenantGetParameters.UnfilteredGateways)
+            // {
+            //     deviceList.Add(new TenantViewGateway(){Id = gw.Id, Name = gw.Name, shared = true});
+            // }
+
+            TenantVisibleGateways = deviceList.ToArray();
+            // TenantVisibleManagements = new int[]{};
         }
 
         public string DeviceList()
         {
             List<string> deviceList = new List<string>();
-            foreach (TenantDevice device in TenantDevices)
+            foreach (TenantViewGateway gw in TenantVisibleGateways)
             {
-                if (device.VisibleDevice.Name != null)
-                    deviceList.Add(device.VisibleDevice.Name);
+                if (gw.Name != null)
+                    deviceList.Add(gw.Name);
             }
             return string.Join(", ", deviceList);
         }
@@ -103,12 +161,40 @@ namespace FWO.Api.Data
                 Comment = this.Comment,
                 Project = this.Project,
                 ViewAllDevices = this.ViewAllDevices,
-                // Superadmin = this.Superadmin,
-                Devices = new List<TenantViewDevice>()
+                VisibleGateways = new List<TenantViewGateway>(),
+                VisibleManagements = new List<TenantViewManagement>(),
+                SharedGateways = new List<TenantViewGateway>(),
+                UnfilteredGateways = new List<TenantViewGateway>(),
+                SharedManagements = new List<TenantViewManagement>(),
+                UnfilteredManagements = new List<TenantViewManagement>()
             };
-            foreach (TenantDevice device in TenantDevices)
+
+            foreach (var gateway in TenantGateways)
             {
-                tenantGetParams.Devices.Add(new TenantViewDevice(){ Id = device.VisibleDevice.Id, Name = (device.VisibleDevice.Name != null ? device.VisibleDevice.Name : "")});
+                tenantGetParams.VisibleGateways.Add(new TenantViewGateway(gateway.VisibleGateway.Id, gateway.VisibleGateway.Name != null ? gateway.VisibleGateway.Name : ""));
+                if (gateway.Shared)
+                {
+                    tenantGetParams.SharedGateways.Add(new TenantViewGateway(gateway.VisibleGateway.Id, gateway.VisibleGateway.Name != null ? gateway.VisibleGateway.Name : ""));
+                }
+                else
+                {
+                    tenantGetParams.UnfilteredGateways.Add(new TenantViewGateway(gateway.VisibleGateway.Id, gateway.VisibleGateway.Name != null ? gateway.VisibleGateway.Name : "", false));
+                }
+            }
+
+            foreach (var mgm in TenantManagements) 
+            {
+                tenantGetParams.VisibleManagements.Add(new TenantViewManagement(mgm.VisibleManagement.Id, mgm.VisibleManagement.Name != null ? mgm.VisibleManagement.Name : ""));
+                if (mgm.Shared)
+                {
+                    tenantGetParams.SharedManagements.Add(new TenantViewManagement(mgm.VisibleManagement.Id, mgm.VisibleManagement.Name != null ? mgm.VisibleManagement.Name : ""));
+                    // TODO: add visible gateways under this management
+                }
+                else
+                {
+                    tenantGetParams.UnfilteredManagements.Add(new TenantViewManagement(mgm.VisibleManagement.Id, mgm.VisibleManagement.Name != null ? mgm.VisibleManagement.Name : ""));
+                    // TODO: add all gateways under this management as unfiltered
+                }
             }
             return tenantGetParams;
         }
@@ -125,10 +211,10 @@ namespace FWO.Api.Data
             return tenantUpdateParams;
         }
 
-        public static async Task<Tenant> getTenantById(ApiConnection conn, int tenantId)
+        public static async Task<Tenant> getSingleTenant(ApiConnection conn, int tenantId)
         {
             Tenant[] tenants = Array.Empty<Tenant>(); 
-            tenants = await conn.SendQueryAsync<Tenant[]>(AuthQueries.getTenantById, new { tenant_id = tenantId });
+            tenants = await conn.SendQueryAsync<Tenant[]>(AuthQueries.getTenants, new { tenant_id = tenantId });
             if (tenants.Length>0)
             {
                 return tenants[0];
@@ -138,11 +224,38 @@ namespace FWO.Api.Data
                 return null;
             }
         }
+
+        // the following method adds device visibility information to a tenant (fetched from API)
+        public async Task AddDevices(ApiConnection conn)
+        {
+            var tenIdObj = new { tenantId = Id };
+
+            Device[] deviceIds = await conn.SendQueryAsync<Device[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
+            VisibleGatewayIds = Array.ConvertAll(deviceIds, device => device.Id);
+
+            Management[] managementIds = await conn.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
+            VisibleManagementIds = Array.ConvertAll(managementIds, management => management.Id);
+        }
+
     }
 
-    public class TenantDevice
+
+    public class TenantGateway
     {
         [JsonProperty("device"), JsonPropertyName("device")]
-        public Device VisibleDevice { get; set; } = new Device();
+        public Device VisibleGateway { get; set; } = new Device();
+
+        [JsonProperty("shared"), JsonPropertyName("shared")]
+        public bool Shared { get; set; } = false;
     }
+
+    public class TenantManagement
+    {
+        [JsonProperty("management"), JsonPropertyName("management")]
+        public Management VisibleManagement { get; set; } = new Management();
+
+        [JsonProperty("shared"), JsonPropertyName("shared")]
+        public bool Shared { get; set; } = false;
+    }
+
 }

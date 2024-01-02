@@ -39,7 +39,7 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
         public async Task<List<TenantGetReturnParameters>> Get()
         {
-            Tenant[] tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.Api.Client.Queries.AuthQueries.getTenants));
+            Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(FWO.Api.Client.Queries.AuthQueries.getTenants);
             List<TenantGetReturnParameters> tenantList = new List<TenantGetReturnParameters>();
             foreach (Tenant tenant in tenants)
             {

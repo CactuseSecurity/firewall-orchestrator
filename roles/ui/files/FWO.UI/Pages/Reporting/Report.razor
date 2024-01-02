@@ -340,6 +340,85 @@
         reportGenerationDuration = 0;
     }
 
+    private void MarkAllDevicesVisible(List<ManagementSelect> mgms)
+    {
+        foreach (ManagementSelect management in mgms)
+        {
+            management.Visible = true;
+            management.Shared = false;
+            foreach (DeviceSelect gw in management.Devices)
+            {
+                gw.Visible = true;
+                gw.Shared = false;
+            }
+        }
+    }
+
+    private async Task SetDeviceVisibility(List<ManagementSelect> mgms, Tenant tenantView)
+    {
+        // TODO: not used yet
+        List<ManagementSelect> visibleDevices = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+
+        // List<TenantGateway> tenantGatewayList = new List<TenantGateway>(selectedTenantView.TenantVisibleGateways);
+        // List<TenantViewGateway> tenantGatewayList = new List<TenantViewGateway>();
+        if ((userConfig.User.Tenant.Id==null || userConfig.User.Tenant.Id==1) && tenantView.Id!=1)
+        {
+            // filtering for tenant simulation only done by a tenant0 user
+            foreach (TenantGateway gw in tenantView.TenantGateways)
+            {
+                if (!tenantView.VisibleGatewayIds.Contains(gw.VisibleGateway.Id))
+                {
+                    tenantView.VisibleGatewayIds.Append(gw.VisibleGateway.Id);
+                    tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat(new int[] { gw.VisibleGateway.Id }).ToArray();
+                }
+            }
+
+            // also add all gateways of non-shared managments - necessary for simulated tenant filtering
+            foreach (TenantManagement mgm in tenantView.TenantManagements)
+            {
+                if (!mgm.Shared)
+                {
+                    foreach (Device gw in mgm.VisibleManagement.Devices)
+                    {
+                        if (!tenantView.VisibleGatewayIds.Contains(gw.Id))
+                        {
+                            tenantView.VisibleGatewayIds.Append(gw.Id);
+                            tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat(new int[] { gw.Id }).ToArray();
+                        }
+                    }
+                }
+            }
+        }
+
+        foreach (ManagementSelect mgm in deviceFilter.Managements)
+        {
+            mgm.Shared = false;
+            bool mgmVisible = false;
+            foreach (DeviceSelect gw in mgm.Devices)
+            {
+                // gw.Visible = tenantGatewayList.Exists(d => d.Id == gw.Id);
+                gw.Visible = tenantView.VisibleGatewayIds.Contains(gw.Id);
+                if (gw.Visible)
+                {   // one gateway is visible, so the management must be visible
+                    mgmVisible = true;
+                }
+                else
+                {   
+                    gw.Selected = false; // make sure invisible devices are not selected
+                    mgm.Shared = true; // if one gateway is not visible, the mgm is shared (filtered)
+                }
+            }
+            mgm.Visible = mgmVisible;
+            if (!mgm.Visible)
+            {   // make sure invisible managements are not selected
+                mgm.Selected = false;
+            }
+        }    
+    }
+
+    /// sets deviceFilter.Managements and selectedTenantView according to either
+    /// a) selected tenant for tenant simulation
+    /// b) tenant of the user logged in (if belonging to tenant <> tenant0)
     private async Task TenantViewChanged(Tenant newTenantView)
     {
         // clear report data when switching Tenant
@@ -349,44 +428,17 @@
 
         // adjust device filter to newly selected tenant view
         selectedTenantView = newTenantView;
-        if (selectedTenantView==null || selectedTenantView.Id == 1)   // tenant0 or no tenant selected
-        {
-            List<ManagementSelect> visibleDevices = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
 
-            foreach (ManagementSelect management in deviceFilter.Managements)
-            {
-                management.Visible = true;
-                foreach (DeviceSelect dev in management.Devices)
-                {
-                    dev.Visible = true;
-                }
-            }
+        // we must modify the device visibility in the device filter
+        if (selectedTenantView==null || selectedTenantView.Id == 1)
+        {
+           // tenant0 or no tenant selected --> all devices are visible            
+            MarkAllDevicesVisible(deviceFilter.Managements);
         }
         else
         {
-            List<TenantGateway> tenantGatewayList = new List<TenantGateway>(selectedTenantView.TenantVisibleGateways);
-
-            foreach (ManagementSelect mgm in deviceFilter.Managements)
-            {
-                bool mgmVisible = false;
-                foreach (DeviceSelect dev in mgm.Devices)
-                {
-                    dev.Visible = tenantGatewayList.Exists(d => d.VisibleDevice.Id == dev.Id);
-                    if (dev.Visible)
-                    {   // one device is visible, so the management must be visible
-                        mgmVisible = true;
-                    }
-                    else
-                    {   // make sure invisible devices are not selected
-                        dev.Selected = false;
-                    }
-                }
-                mgm.Visible = mgmVisible;
-                if (!mgm.Visible)
-                {   // make sure invisible managements are not selected
-                    mgm.Selected = false;
-                }
-            }
+            // not all devices are visible
+            await SetDeviceVisibility(deviceFilter.Managements, selectedTenantView);
         }
         selectAll = !deviceFilter.isAnyDeviceFilterSet();
         StateHasChanged(); // redisplay LSB
@@ -399,7 +451,7 @@
 
         if (template.ReportParams.TenantFilter.IsActive)
         {
-            Tenant tenantFromTemplate = await Tenant.getTenantById(Connection, template.ReportParams.TenantFilter.TenantId);
+            Tenant tenantFromTemplate = await Tenant.getSingleTenant(Connection, template.ReportParams.TenantFilter.TenantId);
             await tenantSelector.SelectElement(tenantFromTemplate);
             await TenantViewChanged(tenantFromTemplate);
         }

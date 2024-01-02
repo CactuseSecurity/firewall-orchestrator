@@ -1,0 +1,172 @@
+﻿@using FWO.Config.Api
+@using FWO.Api.Data
+@using FWO.Ui.Data
+
+@inject UserConfig userConfig
+@inject IJSRuntime jsRuntime
+
+<CascadingValue Value="collapseDevices">
+    <div class="p-3">
+        <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
+        <div class="@cssClass">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="@((async () => {
+                        CollapseAll = !CollapseAll;
+                        if(CollapseAll)
+                            collapseDevices.CollapseAll();
+                        else
+                            collapseDevices.ExpandAll();
+                        await InvokeAsync(StateHasChanged);
+                    }))">
+                @(CollapseAll ? expandAllText : collapseAllText)
+            </button>
+        </div>
+        <br><br>
+
+        <CascadingValue Value="collapseDevices">
+            @foreach (ManagementSelect management in DeviceFilter.Managements)
+            {
+                <div class="btn-group managementSelect" role="group" aria-label="FilterStateSelector_@(management.Id)">
+                    <input type="radio" class="btn-check" name="mgmFilterState_@(management.Id)" autocomplete="off"
+                        id="mgm_@(management.Id)_hide" checked="@(!management.Visible)" @oninput="() => {
+                                management.Visible = false;
+                                management.Shared = true;
+                                disabledRadio = true;
+                                StateHasChanged();
+                            }">
+                    <label class="btn btn-outline-primary three-state-button" 
+                        for="mgm_@(management.Id)_hide">@(userConfig.GetText("hide"))</label>
+
+                    <input type="radio" class="btn-check" name="mgmFilterState_@(management.Id)" autocomplete="off"
+                        id="mgm_@(management.Id)_shared" checked="@(management.Visible && management.Shared)" @oninput="() => {
+                                management.Visible = true;
+                                management.Shared = true;
+                                disabledRadio = false;
+                                StateHasChanged();
+                            }">
+                    <label class="btn btn-outline-primary three-state-button"
+                        for="mgm_@(management.Id)_shared">@(userConfig.GetText("shared"))</label>
+
+                    <input type="radio" class="btn-check" name="mgmFilterState_@(management.Id)" autocomplete="off"
+                        id="mgm_@(management.Id)_unfiltered" checked="@(management.Visible && !management.Shared)" @oninput="() => {
+                                management.Visible = true;
+                                management.Shared = false;
+                                disabledRadio = true;
+                                StateHasChanged();
+                            }">
+                    <label class="btn btn-outline-primary three-state-button"
+                        for="mgm_@(management.Id)_unfiltered">@(userConfig.GetText("unfiltered"))</label>
+
+                    <Collapse Title="@(management.Name)" StartToggled="@(management.Visible && management.Shared)" Style="@("primary")">
+                        @foreach (DeviceSelect device in management.Devices)
+                        {
+                            if (management.Visible && management.Shared)
+                            {
+                                disabledRadio = false;
+                            }
+                            else
+                            {
+                                device.Visible = management.Visible;
+                                device.Shared = management.Shared;
+                                disabledRadio = true;
+                            }
+                            <div class="btn-group deviceSelect" role="group" aria-label="DevFilterStateSelector_@(device.Id)">
+                                <input type="radio" class="btn-check" name="devFilterState_@(device.Id)"
+                                    disabled="@disabledRadio"
+                                    autocomplete="off" id="dev_@(device.Id)_hide" checked="@(!device.Visible)"
+                                    @oninput="() => {
+                                            device.Visible = false;
+                                            device.Shared = true;
+                                            // set all gateways to hide as well
+                                        }">
+                                <label class="btn btn-outline-primary three-state-button"
+                                    for="dev_@(device.Id)_hide">@(userConfig.GetText("hide"))</label>
+
+                                <input type="radio" class="btn-check" name="devFilterState_@(device.Id)"
+                                    disabled="@disabledRadio"
+                                    autocomplete="off" id="dev_@(device.Id)_shared" checked="@(device.Visible && device.Shared)"
+                                    @oninput="() => {
+                                            device.Visible = true;
+                                            device.Shared = true;
+                                        }">
+                                <label class="btn btn-outline-primary three-state-button"
+                                    for="dev_@(device.Id)_shared">@(userConfig.GetText("shared"))</label>
+
+                                <input type="radio" class="btn-check" name="devFilterState_@(device.Id)"
+                                    disabled="@disabledRadio"
+                                    autocomplete="off" id="dev_@(device.Id)_unfiltered"
+                                    checked="@(device.Visible && !device.Shared)" @oninput="() => {
+                                            device.Visible = true;
+                                            device.Shared = false;
+                                            // set all gateways to unfiltered as well
+                                        }">
+                                <label class="btn btn-outline-primary three-state-button"
+                                    for="dev_@(device.Id)_unfiltered">@(userConfig.GetText("unfiltered"))</label>
+                                <div class="deviceCell">@device.Name</div>
+                            </div>
+                        }
+                    </Collapse>
+                </div>
+                <br>
+            }
+        </CascadingValue>
+    </div>
+</CascadingValue>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public string FilterInput { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> FilterInputChanged { get; set; }
+
+    [Parameter]
+    public DeviceFilter DeviceFilter { get; set; } = new DeviceFilter();
+
+    [Parameter]
+    public EventCallback<DeviceFilter> DeviceFilterChanged { get; set; }
+
+    [Parameter]
+    public bool SelectAll { get; set; } // state of the device select/clear all button
+
+    [Parameter]
+    public EventCallback<bool> SelectAllChanged { get; set; }
+
+    [Parameter]
+    public bool CollapseAll { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> CollapseAllChanged { get; set; }
+
+    [Parameter]
+    public string Environment { get; set; } = "";
+
+    [Parameter]
+    public bool autoSelectMgmt { get; set; } = true;
+
+    private string cssClass = "btn-group w-100 sticky-marker";
+    private string selectAllText = "";
+    private string clearAllText = "";
+    private string collapseAllText = "";
+    private string expandAllText = "";
+    private CollapseState collapseDevices = new CollapseState();
+
+    bool disabledRadio = false;
+
+    protected override void OnInitialized()
+    {
+        selectAllText = userConfig.GetText("select_all");
+        clearAllText = userConfig.GetText("clear_all");
+        collapseAllText = userConfig.GetText("collapse_all");
+        expandAllText = userConfig.GetText("expand_all");
+        DeviceFilter.Managements?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
+        @* if (Environment == "Cert")
+        {
+            cssClass += "-35";
+        } *@
+    }
+
+}

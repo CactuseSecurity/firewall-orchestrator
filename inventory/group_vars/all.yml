@@ -26,7 +26,6 @@ run_on_github: false
 add_demo_data: true
 api_docu: false
 force_install: false
-conduct_test: "{{ run_on_github }}"
 
 ### operating system settings
 user_id: 60320

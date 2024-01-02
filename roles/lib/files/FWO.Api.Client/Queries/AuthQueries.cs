@@ -52,8 +52,8 @@ namespace FWO.Api.Client.Queries
                 deleteDeviceFromTenant = File.ReadAllText(QueryPath + "auth/deleteDeviceFromTenant.graphql");
                 getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantVisibleDeviceIds.graphql");
                 getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantVisibleManagementIds.graphql");
-                getUnfilteredDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantUnfilteredDeviceIds.graphql");
-                getUnfilteredManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantUnfilteredManagementIds.graphql");
+                // getUnfilteredDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantUnfilteredDeviceIds.graphql");
+                // getUnfilteredManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantUnfilteredManagementIds.graphql");
                 getTenantNetworks = File.ReadAllText(QueryPath + "auth/getTenantNetworks.graphql");
                 addTenantNetwork = File.ReadAllText(QueryPath + "auth/addTenantNetwork.graphql");
                 deleteTenantNetwork = File.ReadAllText(QueryPath + "auth/deleteTenantNetwork.graphql");

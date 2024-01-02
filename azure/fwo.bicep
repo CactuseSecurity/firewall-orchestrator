@@ -236,7 +236,7 @@ resource vmExtension 'Microsoft.Compute/virtualMachines/extensions@2022-03-01' =
 }
 
 resource config_app 'Microsoft.Compute/virtualMachines/extensions@2019-03-01' = {
-  name: '${vmName}-install-fworch'
+  name: '${vm.name}/install-fwo'
   location: location
   tags: {
     displayName: 'install-fworch'
@@ -250,12 +250,14 @@ resource config_app 'Microsoft.Compute/virtualMachines/extensions@2019-03-01' = 
     protectedSettings: {
       commandToExecute: 'sh install_toplevel.sh'
       fileUris: [
-        'https://github.com/tpurschke/firewall-orchestrator/blob/main/scripts/install_toplevel.sh'
+        'https://github.com/CactuseSecurity/firewall-orchestrator/blob/main/scripts/install_toplevel.sh'
       ]
     }
   }  
 }
 
+// https://github.com/tpurschke/firewall-orchestrator/blob/develop/azure/install_script.b64
+// https://github.com/CactuseSecurity/firewall-orchestrator/blob/main/scripts/install_toplevel.sh
 
 output adminUsername string = adminUsername
 output hostname string = publicIPAddress.properties.dnsSettings.fqdn

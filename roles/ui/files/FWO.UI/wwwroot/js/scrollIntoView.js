@@ -7,5 +7,5 @@ function scrollIntoRSBView(htmlObjId) {
   obj.classList.add("fade-bg");
   obj.classList.add("temp-highlight");
   setTimeout(() => obj.classList.remove("temp-highlight"), 800)
-  return obj.offsetParent !== null; // alement visible?
+  return obj.offsetParent !== null; // element visible?
 }

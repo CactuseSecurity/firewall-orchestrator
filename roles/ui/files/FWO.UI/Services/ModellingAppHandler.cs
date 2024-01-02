@@ -19,8 +19,8 @@ namespace FWO.Ui.Services
     
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            Action<Exception?, string, string, bool> displayMessageInUi)
-            : base (apiConnection, userConfig, application, false, displayMessageInUi)
+            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            : base (apiConnection, userConfig, application, false, displayMessageInUi, isOwner)
         {}
         
         public async Task Init()
@@ -122,7 +122,7 @@ namespace FWO.Ui.Services
 
         public async Task HandleConn(ModellingConnection conn)
         {
-            connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, readOnly, DisplayMessageInUi);
+            connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, readOnly, DisplayMessageInUi, IsOwner);
             await connHandler.Init();
             EditConnMode = true;
         }

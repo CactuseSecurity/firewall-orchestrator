@@ -14,19 +14,21 @@ namespace FWO.Ui.Services
         protected readonly UserConfig userConfig;
         protected Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+        public bool IsOwner { get; set; } = true;
         public string Message { get; set; } = "";
         public bool DeleteAllowed { get; set; } = true;
         public List<ModellingService> SvcToAdd { get; set; } = new();
         private ModellingService actService = new();
 
         public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
+            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
         {
             this.apiConnection = apiConnection;
             this.userConfig = userConfig;
             Application = application;
             AddMode = addMode;
             DisplayMessageInUi = displayMessageInUi;
+            IsOwner = isOwner;
         }
         
         protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text, int? applicationId)

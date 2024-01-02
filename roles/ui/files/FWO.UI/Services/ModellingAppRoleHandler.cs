@@ -26,8 +26,8 @@ namespace FWO.Ui.Services
 
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
-            List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi)
+            List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             AppRoles = appRoles;

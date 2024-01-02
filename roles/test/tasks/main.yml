@@ -72,7 +72,7 @@
 
 - name: imorter testing
   import_tasks: test-importer.yml
-  when: "'sampleserver' in group_names and conduct_test|bool"
+  when: "'sampleserver' in group_names"
 
 - name: testing all exposed web services
   import_tasks: test-web.yml

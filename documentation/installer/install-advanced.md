@@ -23,16 +23,6 @@ installation_mode options:
 - new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
 - uninstall     - uninstalls the product including any data (database, ldap, files)!
 - upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api; removes all files from target and copies latest sources instead
-                
-### Installation with automatic testing in the end
-
-If you would like to conduct all automatic tests at the end of your installation pass the following variable
-
-```console
-ansible-playbook -e "conduct_test=true" site.yml -K
-```
-
-The default behavior is to skip time intensive tests
 
 ### Installation behind a proxy (no direct Internet connection)
 

@@ -26,17 +26,65 @@ Create table if not exists "rule_user_resolved"
  primary key ("mgm_id","rule_id","user_id")
 );
 
-Alter table "rule_nwobj_resolved" add foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;
-Alter table "rule_nwobj_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
-Alter table "rule_nwobj_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+DO $$
+BEGIN
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'rule_nwobj_resolved_obj_id_fkey')
+  THEN
+		Alter table "rule_nwobj_resolved" add foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;
+  END IF;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'rule_nwobj_resolved_rule_id_fkey')
+  THEN
+		Alter table "rule_nwobj_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+  END IF;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'rule_nwobj_resolved_mgm_id_fkey')
+  THEN
+		Alter table "rule_nwobj_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+  END IF;
 
-Alter table "rule_svc_resolved" add foreign key ("svc_id") references "service" ("svc_id") on update restrict on delete cascade;
-Alter table "rule_svc_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
-Alter table "rule_svc_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'rule_svc_resolved_svc_id_fkey')
+  THEN
+		Alter table "rule_svc_resolved" add foreign key ("svc_id") references "service" ("svc_id") on update restrict on delete cascade;
+  END IF;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'rule_svc_resolved_rule_id_fkey')
+  THEN
+		Alter table "rule_svc_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+  END IF;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'rule_svc_resolved_mgm_id_fkey')
+  THEN
+		Alter table "rule_svc_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+  END IF;
 
-Alter table "rule_user_resolved" add foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
-Alter table "rule_user_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
-Alter table "rule_user_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'rule_user_resolved_user_id_fkey')
+  THEN
+		Alter table "rule_user_resolved" add foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
+  END IF;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'rule_user_resolved_rule_id_fkey')
+  THEN
+		Alter table "rule_user_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+  END IF;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'rule_user_resolved_mgm_id_fkey')
+  THEN
+		Alter table "rule_user_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+  END IF;
+END $$;
 
 Grant insert on "rule_nwobj_resolved" to group "configimporters";
 Grant insert on "rule_svc_resolved" to group "configimporters";

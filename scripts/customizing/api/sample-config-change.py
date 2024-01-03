@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # demonstration script
 
-sys.exit(0)
-
 from asyncio.log import logger
 import re
 import traceback
@@ -14,6 +12,8 @@ import datetime
 
 import sys, traceback
 import argparse
+
+sys.exit(0)
 
 
 # from fwo_log import getFwoLogger

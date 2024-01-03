@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+# demonstration script
+
+sys.exit(0)
 
 from asyncio.log import logger
 import re
@@ -96,8 +99,7 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
             return response.text
         else:
             error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
-                            ", api_url: " + str(user_management_api_base_url) + \
-                            ", ssl_verification: " + str(fwo_globals.verify_certs)
+                            ", api_url: " + str(user_management_api_base_url)
             raise FwoApiLoginFailed(error_txt)
 
 
@@ -167,8 +169,9 @@ if __name__ == "__main__":
         # parser.print_help(sys.stderr)
         # sys.exit(1)
 
+    # TODO: move credentials to file
     user = "admin"
-    password = 'fworch.1'
+    password = 'xxx'
 
     user_management_api_base_url = "https://localhost:8888/"
     fwo_api_base_url = "https://localhost:9443/api/v1/graphql"

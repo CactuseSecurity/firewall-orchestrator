@@ -46,13 +46,33 @@ END $$;
 
 /*
 
-    documentation of RBAC for tenant filtering
+  - issues:
+    a) TenantFiltering
+        - reporting for shared firewalls returns empty ruleset
+        - reverse collapse state (collapse unfiltered and hidden, show gateways of shared managements)
+        - when in tenant_filtering mode (only simulated) generating report for two gateways takes 10 times longer than separate reports
+
+        - when saving tenant_networks (2.0.0.0/8): Save tenant - Unclassified error: : Foreign key violation. insert or update on table "tenant_network" violates foreign key constraint "tenant_network_tenant_id_fkey" . See log for details!
+        - when editing tenant - device mappings, collapse all default value is wrong
+        - tenant sorting does not work as expected when UI is German
+        - edit tenant - tenant ip addresses need to be 5px further to the right
+        - saving tenant-mapping: in case of error during writing: restore old mappings for the tenant? (which have just been deleted)
+        - double-check if adding all devices to tenant0 is really necessary
+        - re-generate JWTs of users currently logged in?
+
+    b) CSS
+        - Reporting
+          - Filterline Placeholder contains horizontal line!?
+
+
+
+  - documentation of RBAC for tenant filtering
 
     - tenant to device mapping is stored in tenant_to_device and tenant_to_management tables
     - we need to make sure that the mapping is complete (e.g. no devices are visible if the management is not visible)
         - this also means we need a mechanism to set new gateways to fully visible if the management is fully visible!
           this is done in the settings after selecting the exact three-way visibility
-        - new gateways start with "not shared" if the management's visibility is "not shared" (only when added via UI)
+        - new gateways and managements start with "not shared" if the management's visibility is "not shared" (only when added via UI)
         - new gateways start as "invisible" if the management's visibility is "shared"
         - new managements start with no visibility for a tenant
         - invisible means not visible for a tenant user (e.g. reporter) but needs to be visible for the admin in the tenant settings!
@@ -99,71 +119,4 @@ END $$;
                 then depending on the grade of visibility we either return a rule(base) unfiltered or filtered
                         {"_and":["_or":[{"mgm_id":{"_in":"x-hasura-visible-managements"}},{"dev_id":{"_in":"x-hasura-visible-devices"}}]}
 
-    - C# data structure changes:
-      - consolidate TenantGateway and TenantViewGateway
-      - consolidate TenantManagment and TenantViewManagement
-
-    - API permissions
-      - mw role needs access to shared columns in tenant_to_xxx tables
-      - mw role needs access to all columns in tenant_to_management table
-
-    - issues:
-        + Get tenant data - Tenants could not be fetched from LDAP --> fixed
-        + managements and gateways in tenant settings vanish when set to invisible --> fixed
-        + when deleting a tenant, the "edit tenant" pop-up does not close --> fixed
-        + running (with x-hasura-tenant-id set to 1)
-            query rulesReport {
-            management(where: {hide_in_gui: {_eq: false}, stm_dev_typ: {dev_typ_is_multi_mgmt: {_eq: false}, is_pure_routing_device: {_eq: false}}}, order_by: {mgm_name: asc}) {
-                id: mgm_id
-                name: mgm_name
-                devices(where: {hide_in_gui: {_eq: false}, stm_dev_typ: {is_pure_routing_device: {_eq: false}}}, order_by: {dev_name: asc}) {
-                id: dev_id
-                name: dev_name
-                rules: get_rules_for_tenant(args: {tenant: 2}, where: {access_rule: {_eq: true}, _and: [{_or: [{device: {dev_id: {_eq: 1}}}]}]}, order_by: {rule_num_numeric: asc}) {
-                    mgm_id: mgm_id
-                    rule_uid
-                    dev_id
-                    #rule_tos: get_rule_tos_for_tenant(args: {tenant: 2}) { object { obj_ip obj_name } }
-                }
-                }
-            }
-            }
-          returns error (when commenting in get_rule_tos_for_tenant)
-          {
-            "errors": [
-              {
-                "message": "Non default arguments cannot be omitted",
-                "extensions": {
-                  "path": "$.selectionSet.management.selectionSet.devices.selectionSet.get_rules_for_tenant.selectionSet.get_rule_tos_for_tenant.args.args",
-                  "code": "not-supported"
-                }
-              }
-            ]
-          }
-        + reloading UI for a tenant user clears the displayed tenant in LSB
-        + when editing tenant - device mappings, tenants are duplicated
-
-        + report for "not shared" management is still filtered
-        + add tenant fails
-
-        + read tenant - device mappings from API and display in settings
-        + write tenant - device mappings to API
-          + write when clicking save button in edit tenant firewall devices pop-up)
-          + clear all table entries (tenant_to_device/management) before writing
-
-        + fill tenant settings overview table: comment
-        - reverse collapse state (collapse unfiltered and hidden, show gateways of shared managements)
-        - when in tenant_filtering mode (only simulated) generating report for two gateways takes 10 times longer than separate reports
-
-        - when saving tenant_networks (2.0.0.0/8): Save tenant - Unclassified error: : Foreign key violation. insert or update on table "tenant_network" violates foreign key constraint "tenant_network_tenant_id_fkey" . See log for details!
-        - when editing tenant - device mappings, collapse all default value is wrong
-        - tenant sorting does not work as expected when UI is German
-        - edit tenant - tenant ip addresses need to be 5px further to the right
-        - saving tenant-mapping: in case of error during writing: restore old mappings for the tenant? (which have just been deleted)
-        - double-check if adding all devices to tenant0 is really necessary
-
-    CSS Issues
-    - Reporting
-      - Filterline Placeholder contains horizontal line!?
-
-*/ -- TODO: add management to tenant_to_management as shared if any device is in tenant_to_device
+*/

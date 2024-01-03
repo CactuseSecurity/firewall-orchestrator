@@ -312,7 +312,7 @@
 
     private async Task<DeviceFilter> SyncDeviceSelections(Tenant tenant)
     {
-        // now getting the details for the current tenant:
+        // now getting the details for the current tenant
         RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
         if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
         {
@@ -380,7 +380,7 @@
                     }
                 }
             }
-        } 
+        }
 
         // TODO: change return type
 
@@ -591,8 +591,8 @@
         }
         else
         {
-            // delete all tenant to device and management mappings for the current tenant
             try
+            // delete all tenant to device and management mappings for the current tenant
             {
                 await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
                 await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
@@ -602,9 +602,8 @@
                 DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
             }
 
-            // saving tenant to device and management mappings
-
             try
+            // saving tenant to device and management mappings
             {
                 foreach (ManagementSelect mgm in devicesSelectedForTenant.Managements)
                 {
@@ -626,8 +625,6 @@
             {
                 DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
             }
-
-            // TODO: set actTenant.visibleDevices
         }
         EditDevicesSelectedForTenantMode = false;
     }

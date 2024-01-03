@@ -23,7 +23,6 @@ installation_mode options:
 - new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
 - uninstall     - uninstalls the product including any data (database, ldap, files)!
 - upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api; removes all files from target and copies latest sources instead
-                
 
 ### Installation behind a proxy (no direct Internet connection)
 

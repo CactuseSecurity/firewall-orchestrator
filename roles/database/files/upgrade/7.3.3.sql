@@ -48,21 +48,23 @@ END $$;
 
   - issues:
     a) TenantFiltering
-        - reporting for shared firewalls returns empty ruleset
         - reverse collapse state (collapse unfiltered and hidden, show gateways of shared managements)
         - when in tenant_filtering mode (only simulated) generating report for two gateways takes 10 times longer than separate reports
-
         - when saving tenant_networks (2.0.0.0/8): Save tenant - Unclassified error: : Foreign key violation. insert or update on table "tenant_network" violates foreign key constraint "tenant_network_tenant_id_fkey" . See log for details!
         - when editing tenant - device mappings, collapse all default value is wrong
         - tenant sorting does not work as expected when UI is German
-        - edit tenant - tenant ip addresses need to be 5px further to the right
         - saving tenant-mapping: in case of error during writing: restore old mappings for the tenant? (which have just been deleted)
         - double-check if adding all devices to tenant0 is really necessary
-        - re-generate JWTs of users currently logged in?
+        - re-generate JWTs of users currently logged belonging to a changed tenant?
+        - RSB: show objects for unfiltered managements
 
     b) CSS
         - Reporting
           - Filterline Placeholder contains horizontal line!?
+        - NeMo
+          - shorten all buttons to text size
+        - Tenant Settings
+          - edit tenant - tenant ip addresses need to be 5px further to the right
 
 
 

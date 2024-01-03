@@ -12,7 +12,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateTenant;
         public static readonly string deleteTenant;
         public static readonly string addDeviceToTenant;
-        public static readonly string deleteDeviceFromTenant;
+        public static readonly string addTenantToManagement;
+        public static readonly string addTenantToGateway;
+        public static readonly string deleteAllGatewaysOfTenant;
+        public static readonly string deleteAllManagementsOfTenant;
         public static readonly string getVisibleDeviceIdsPerTenant;
         public static readonly string getVisibleManagementIdsPerTenant;
         public static readonly string getUnfilteredDeviceIdsPerTenant;
@@ -49,11 +52,12 @@ namespace FWO.Api.Client.Queries
                 updateTenant = File.ReadAllText(QueryPath + "auth/updateTenant.graphql");
                 deleteTenant = File.ReadAllText(QueryPath + "auth/deleteTenant.graphql");
                 addDeviceToTenant = File.ReadAllText(QueryPath + "auth/addDeviceToTenant.graphql");
-                deleteDeviceFromTenant = File.ReadAllText(QueryPath + "auth/deleteDeviceFromTenant.graphql");
+                addTenantToManagement = File.ReadAllText(QueryPath + "auth/addTenantToManagement.graphql");
+                addTenantToGateway = File.ReadAllText(QueryPath + "auth/addTenantToGateway.graphql");
+                deleteAllGatewaysOfTenant = File.ReadAllText(QueryPath + "auth/deleteAllGatewaysOfTenant.graphql");
+                deleteAllManagementsOfTenant = File.ReadAllText(QueryPath + "auth/deleteAllManagementsOfTenant.graphql");
                 getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantVisibleDeviceIds.graphql");
                 getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantVisibleManagementIds.graphql");
-                // getUnfilteredDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantUnfilteredDeviceIds.graphql");
-                // getUnfilteredManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantUnfilteredManagementIds.graphql");
                 getTenantNetworks = File.ReadAllText(QueryPath + "auth/getTenantNetworks.graphql");
                 addTenantNetwork = File.ReadAllText(QueryPath + "auth/addTenantNetwork.graphql");
                 deleteTenantNetwork = File.ReadAllText(QueryPath + "auth/deleteTenantNetwork.graphql");

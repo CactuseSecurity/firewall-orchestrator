@@ -21,12 +21,12 @@
 
 @if (addDeleteAllowed)
 {
-    <div class="form-group row m-0 w-content">
-    <button type="button" class="btn btn-sm btn-success mr-2 mb-2 mt-2"
-        @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
-    @if (showCleanupButton)
+     <div class="btn-group m-1 sticky-marker-60">
+        <button type="button" class="btn btn-sm btn-success mr-2 mb-2 mt-2"
+            @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
+        @if (showCleanupButton)
         {
-            <button type="button" class="btn btn-sm btn-danger m-2"
+            <button type="button" class="btn btn-sm btn-danger mr-2 mb-2 mt-2"
                 @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
         }
     </div>
@@ -185,11 +185,11 @@
 
 @code
 {
-    [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+        [CascadingParameter]
+        Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+        [CascadingParameter]
+        private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private List<Tenant> tenants = new List<Tenant>();
     private List<Tenant> sampleTenants = new List<Tenant>();
@@ -234,7 +234,7 @@
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
-                 DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
+                DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
             }
             else
             {
@@ -364,7 +364,7 @@
                         mgm.Shared = true;
                     }
                 }
-            }
+            }            
         }
         // set explicit gateway visibilities from tenant_to_device table
         foreach (TenantGateway gw in tenantDevices.TenantGateways)
@@ -380,7 +380,9 @@
                     }
                 }
             }
-        }
+        } 
+
+        // TODO: change return type
 
         devicesSelectedForTenant = new DeviceFilter(allDevs);
 
@@ -509,50 +511,6 @@
         }
     }
 
-    @* private void AddDeviceToTenant(Tenant tenant)
-    {
-        try
-        {
-            actTenant = tenant;
-            remainingDevices = devices.FindAll(x => !Array.Exists(actTenant.TenantDevices, y => y.VisibleDevice.Id == x.Id));
-            remainingDevices.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
-            if (remainingDevices.Count == 0)
-            {
-                DisplayMessageInUi(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);
-            }
-            else
-            {
-                selectedDevice = remainingDevices.FirstOrDefault() ?? new Device();
-                AddDeviceMode = true;
-            }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
-        }
-    } *@
-
-    @* private void DeleteDeviceFromTenant(Tenant tenant)
-    {
-        try
-        {
-            actTenant = tenant;
-            if (actTenant.TenantDevices.Length == 0)
-            {
-                DisplayMessageInUi(null, userConfig.GetText("delete_device_from_tenant"), userConfig.GetText("E5272"), true);
-            }
-            else
-            {
-                selectedDevice = actTenant.TenantDevices.FirstOrDefault()?.VisibleDevice ?? new Device();
-                DeleteDeviceMode = true;
-            }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
-        }
-    } *@
-
     // save tenant data to LDAP and DB
     private async Task LeaveModifyTenantMode(bool cancel = true)
     {
@@ -625,13 +583,50 @@
         }
     }
 
-    private void LeaveEditDevicesSelectedForTenantMode(bool cancel = true)
+    private async Task LeaveEditDevicesSelectedForTenantMode(bool cancel = true)
     {
         if (cancel)
         {
             // visibleGateways = new DeviceFilter(savedDeviceFilter);
         }
-        else{
+        else
+        {
+            // delete all tenant to device and management mappings for the current tenant
+            try
+            {
+                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
+                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
+            }
+            catch (System.Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
+            }
+
+            // saving tenant to device and management mappings
+
+            try
+            {
+                foreach (ManagementSelect mgm in devicesSelectedForTenant.Managements)
+                {
+                    if (mgm.Visible)
+                    {
+                        await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
+                        foreach (DeviceSelect gw in mgm.Devices)
+                        {
+                            if (gw.Visible)
+                            {
+                                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
+                            }
+                        }
+
+                    }
+                }
+            }
+            catch (System.Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
+            }
+
             // TODO: set actTenant.visibleDevices
         }
         EditDevicesSelectedForTenantMode = false;

@@ -169,31 +169,35 @@ namespace FWO.Api.Data
                 UnfilteredManagements = new List<TenantViewManagement>()
             };
 
-            foreach (var gateway in TenantGateways)
+            if (TenantGateways != null)
             {
-                tenantGetParams.VisibleGateways.Add(new TenantViewGateway(gateway.VisibleGateway.Id, gateway.VisibleGateway.Name != null ? gateway.VisibleGateway.Name : ""));
-                if (gateway.Shared)
+                foreach (var gateway in TenantGateways)
                 {
-                    tenantGetParams.SharedGateways.Add(new TenantViewGateway(gateway.VisibleGateway.Id, gateway.VisibleGateway.Name != null ? gateway.VisibleGateway.Name : ""));
-                }
-                else
-                {
-                    tenantGetParams.UnfilteredGateways.Add(new TenantViewGateway(gateway.VisibleGateway.Id, gateway.VisibleGateway.Name != null ? gateway.VisibleGateway.Name : "", false));
+                    tenantGetParams.VisibleGateways.Add(new TenantViewGateway(gateway.VisibleGateway.Id, gateway.VisibleGateway.Name != null ? gateway.VisibleGateway.Name : ""));
+                    if (gateway.Shared)
+                    {
+                        tenantGetParams.SharedGateways.Add(new TenantViewGateway(gateway.VisibleGateway.Id, gateway.VisibleGateway.Name != null ? gateway.VisibleGateway.Name : ""));
+                    }
+                    else
+                    {
+                        tenantGetParams.UnfilteredGateways.Add(new TenantViewGateway(gateway.VisibleGateway.Id, gateway.VisibleGateway.Name != null ? gateway.VisibleGateway.Name : "", false));
+                    }
                 }
             }
 
-            foreach (var mgm in TenantManagements) 
+            if (TenantManagements != null)
             {
-                tenantGetParams.VisibleManagements.Add(new TenantViewManagement(mgm.VisibleManagement.Id, mgm.VisibleManagement.Name != null ? mgm.VisibleManagement.Name : ""));
-                if (mgm.Shared)
+                foreach (var mgm in TenantManagements) 
                 {
-                    tenantGetParams.SharedManagements.Add(new TenantViewManagement(mgm.VisibleManagement.Id, mgm.VisibleManagement.Name != null ? mgm.VisibleManagement.Name : ""));
-                    // TODO: add visible gateways under this management
-                }
-                else
-                {
-                    tenantGetParams.UnfilteredManagements.Add(new TenantViewManagement(mgm.VisibleManagement.Id, mgm.VisibleManagement.Name != null ? mgm.VisibleManagement.Name : ""));
-                    // TODO: add all gateways under this management as unfiltered
+                    tenantGetParams.VisibleManagements.Add(new TenantViewManagement(mgm.VisibleManagement.Id, mgm.VisibleManagement.Name != null ? mgm.VisibleManagement.Name : ""));
+                    if (mgm.Shared)
+                    {
+                        tenantGetParams.SharedManagements.Add(new TenantViewManagement(mgm.VisibleManagement.Id, mgm.VisibleManagement.Name != null ? mgm.VisibleManagement.Name : ""));
+                    }
+                    else
+                    {
+                        tenantGetParams.UnfilteredManagements.Add(new TenantViewManagement(mgm.VisibleManagement.Id, mgm.VisibleManagement.Name != null ? mgm.VisibleManagement.Name : ""));
+                    }
                 }
             }
             return tenantGetParams;

@@ -144,14 +144,26 @@ END $$;
         + when editing tenant - device mappings, tenants are duplicated
 
         + report for "not shared" management is still filtered
+        + add tenant fails
 
         + read tenant - device mappings from API and display in settings
-        - write tenant - device mappings to API
+        + write tenant - device mappings to API
+          + write when clicking save button in edit tenant firewall devices pop-up)
+          + clear all table entries (tenant_to_device/management) before writing
 
-        - reverse collapse state (collaps unfiltered and hidden, show gateways of shared managements)
+        + fill tenant settings overview table: comment
+        - reverse collapse state (collapse unfiltered and hidden, show gateways of shared managements)
         - when in tenant_filtering mode (only simulated) generating report for two gateways takes 10 times longer than separate reports
 
         - when saving tenant_networks (2.0.0.0/8): Save tenant - Unclassified error: : Foreign key violation. insert or update on table "tenant_network" violates foreign key constraint "tenant_network_tenant_id_fkey" . See log for details!
         - when editing tenant - device mappings, collapse all default value is wrong
+        - tenant sorting does not work as expected when UI is German
+        - edit tenant - tenant ip addresses need to be 5px further to the right
+        - saving tenant-mapping: in case of error during writing: restore old mappings for the tenant? (which have just been deleted)
+        - double-check if adding all devices to tenant0 is really necessary
+
+    CSS Issues
+    - Reporting
+      - Filterline Placeholder contains horizontal line!?
 
 */ -- TODO: add management to tenant_to_management as shared if any device is in tenant_to_device

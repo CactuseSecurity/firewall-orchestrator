@@ -17,13 +17,14 @@
                     <div class="col-sm-11 border rounded m-2 p-2">
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="SvcGroupHandler.ActServiceGroup.Name" />
+                            <input type="text" class="col-sm-8" @bind="SvcGroupHandler.ActServiceGroup.Name" />
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="SvcGroupHandler.ActServiceGroup.Comment" />
+                            <input type="text" class=" col-sm-8" @bind="SvcGroupHandler.ActServiceGroup.Comment" />
                         </div>
                         <div class="col-sm-12">
+                            <br>
                             <h6>@(userConfig.GetText("services"))</h6>
                             <div class="minheight-dropzone bg-secondary dropzone" dropzone="move"
                                 ondragover="event.preventDefault();"

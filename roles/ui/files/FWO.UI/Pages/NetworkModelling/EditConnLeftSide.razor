@@ -6,9 +6,9 @@
 @inject UserConfig userConfig
 
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
-    <div class="form-group row col-sm-12 mt-3 ml-2 w-100 justify-content-between">
+    <div class="pad-10 form-group row col-sm-12 mt-3 ml-2 w-100 justify-content-between">
         <h3>@(userConfig.GetText("library"))</h3>
-        <label class="col-form-label text-success">@ConnHandler.Application.Display()</label>
+        <h4>@ConnHandler.Application.Display()</h4>
     </div>
     <div class="col-sm-11 border rounded m-2 p-2">
         <h5>@(userConfig.GetText("network_objects"))</h5>

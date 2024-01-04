@@ -40,22 +40,23 @@
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
                             @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
                             {
-                                <input type="text" class=" col-sm-2 form-control form-control-sm" readonly @bind="AppRoleHandler.ActAppRole.IdStringFixedPart" />
-                                <input type="text" class=" col-sm-6 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.IdStringFreePart" />
+                                <input type="text" class="col-sm-9" readonly @bind="AppRoleHandler.ActAppRole.IdStringFixedPart" />
+                                <input type="text" class="col-sm-9" @bind="AppRoleHandler.ActAppRole.IdStringFreePart" />
                             }
                             else
                             {
-                                <input type="text" class=" col-sm-6 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.IdString" />
+                                <input type="text" class=" col-sm-9" @bind="AppRoleHandler.ActAppRole.IdString" />
                             }
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.Name" />
+                            <input type="text" class="col-sm-9" @bind="AppRoleHandler.ActAppRole.Name" />
                         </div>
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="AppRoleHandler.ActAppRole.Comment" />
+                            <input type="text" class="col-sm-9" @bind="AppRoleHandler.ActAppRole.Comment" />
                         </div>
+                        <br>
                         <div class="col-sm-12">
                             <h6>@(userConfig.GetText("app_server"))</h6>
                             <div class="minheight-dropzone bg-secondary dropzone" 

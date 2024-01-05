@@ -63,7 +63,8 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
         if int(fwo_globals.debug_level) > 4:
             logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
         if show_progress:
-            print('.', end='', flush=True)
+            pass
+            # print('.', end='', flush=True)
         if r != None:
             return r.json()
         else:

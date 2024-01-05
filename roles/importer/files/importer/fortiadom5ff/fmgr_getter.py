@@ -48,8 +48,6 @@ def api_call(url, command, json_payload, sid, show_progress=False, method=''):
             logger.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
                 json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
 
-        if show_progress:
-            print('.', end='', flush=True)
     return result_json
 
 

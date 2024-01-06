@@ -125,7 +125,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("assign_user_to_group") + ": " + actGroup.Name)" Show="@AddUserMode" Large="true" OnClose="() => AddUserMode = false">
+<PopUp Title="@(userConfig.GetText("assign_user_to_group") + ": " + actGroup.Name)" Show="@AddUserMode" Size=PopupSize.Large OnClose="() => AddUserMode = false">
     <Body>
         @if (AddUserMode)
         {

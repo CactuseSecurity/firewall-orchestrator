@@ -2643,6 +2643,29 @@
                   }
                 },
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "reporter",
                   "permission": {
                     "columns": [
@@ -15772,7 +15795,32 @@
                       "tenant_comment",
                       "tenant_create"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -15838,17 +15886,17 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "tenant_id",
-                      "tenant_name",
-                      "tenant_projekt",
-                      "tenant_comment",
-                      "tenant_report",
                       "tenant_can_view_all_devices",
                       "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
                       "tenant_create"
                     ],
                     "filter": {},
-                    "check": null
+                    "check": {}
                   }
                 }
               ],
@@ -16091,6 +16139,22 @@
                   "comment": ""
                 },
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id",
+                      "shared"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "reporter",
                   "permission": {
                     "columns": [
@@ -16165,6 +16229,38 @@
                       "tenant_id"
                     ],
                     "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
                   },
                   "comment": ""
                 },

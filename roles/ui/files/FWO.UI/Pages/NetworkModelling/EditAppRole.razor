@@ -6,7 +6,7 @@
 
 @if (Display)
 {
-    <PopUp Title="@(AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role"))" XLarge="true" Show="@Display" OnClose="Close">
+    <PopUp Title="@(AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role"))" Size=PopupSize.XLarge Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
                 <div class="col-sm-6">

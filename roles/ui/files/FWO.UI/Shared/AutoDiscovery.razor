@@ -8,7 +8,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" XLarge="true"  OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {

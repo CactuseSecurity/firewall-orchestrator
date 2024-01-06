@@ -58,7 +58,7 @@
             </h5>
         </div>
         <div class="m-2">
-            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
+            <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
                 @if(userConfig.AllowManualOwnerAdmin)
                 {
                     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">

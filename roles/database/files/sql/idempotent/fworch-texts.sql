@@ -856,6 +856,8 @@ INSERT INTO txt VALUES ('all_gateways',         'German', 	'Alle Gateways');
 INSERT INTO txt VALUES ('all_gateways',         'English', 	'All Gateways');
 INSERT INTO txt VALUES ('insert_ip',            'German', 	'IP einf&uuml;gen');
 INSERT INTO txt VALUES ('insert_ip',            'English', 	'Insert IP');
+INSERT INTO txt VALUES ('insert_port',          'German', 	'Port einf&uuml;gen');
+INSERT INTO txt VALUES ('insert_port',          'English', 	'Insert port');
 INSERT INTO txt VALUES ('state_actions',        'German', 	'Statusaktionen');
 INSERT INTO txt VALUES ('state_actions',        'English', 	'State Actions');
 INSERT INTO txt VALUES ('add_action',           'German', 	'Aktion hinzuf&uuml;gen');

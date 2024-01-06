@@ -67,7 +67,7 @@
 </div>
 
 <PopUp Title="@(AddTenantMode ? userConfig.GetText("add_tenant"): userConfig.GetText("edit_tenant"))"
-    Show="@EditTenantMode" Large="true" OnClose="() => EditTenantMode = false">
+    Show="@EditTenantMode" Size=PopupSize.Large OnClose="() => EditTenantMode = false">
 
     <Body>
         @if (EditTenantMode)
@@ -150,7 +150,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Large="true" OnClose="() => EditDevicesSelectedForTenantMode = false">
+<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="() => EditDevicesSelectedForTenantMode = false">
     <Body>
         @if (EditDevicesSelectedForTenantMode)
         {
@@ -210,9 +210,7 @@
     private bool DeleteTenantMode = false;
     private bool DeleteTenantAllowed = false;
     private string deleteTenantMessage = "";
-    private bool AddDeviceMode = false;
     private bool EditDevicesSelectedForTenantMode = false;
-    private bool DeleteDeviceMode = false;
     private bool SampleRemoveMode = false;
     private bool showCleanupButton = false;
     private bool sampleRemoveAllowed = false;
@@ -517,8 +515,6 @@
             AddTenantMode = false;
             EditTenantMode = false;
             DeleteTenantMode = false;
-            AddDeviceMode = false;
-            DeleteDeviceMode = false;
             SampleRemoveMode = false;
         }
         else

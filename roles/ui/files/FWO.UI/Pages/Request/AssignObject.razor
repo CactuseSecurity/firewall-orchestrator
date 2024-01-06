@@ -10,7 +10,7 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("assign1") + ": " + ObjectName)" Show="@Display" Large="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("assign1") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Large OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {

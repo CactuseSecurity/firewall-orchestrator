@@ -5963,19 +5963,20 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "successful_import",
+                      "control_id",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
                       "import_errors",
-                      "mgm_id",
+                      "is_initial_import",
                       "last_change_in_config",
+                      "mgm_id",
+                      "notification_done",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {}
                   }
@@ -6073,6 +6074,16 @@
                       "last_change_in_config",
                       "start_time",
                       "stop_time"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "notification_done"
                     ],
                     "filter": {},
                     "check": {}

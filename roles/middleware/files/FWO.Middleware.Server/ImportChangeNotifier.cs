@@ -42,6 +42,8 @@ namespace FWO.Middleware.Server
         };
         private List<ImportToNotify> importsToNotify = new();
 
+        private bool WorkInProgress = false;
+
 
         /// <summary>
         /// Constructor for Import Change Notifier
@@ -59,19 +61,25 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if(await NewImportFound())
+                if(!WorkInProgress)
                 {
-                    if(globalConfig.ImpChangeNotifyType != (int)ImpChangeNotificationType.SimpleText)
+                    WorkInProgress = true;
+                    if(await NewImportFound())
                     {
-                        await GenerateChangeReport();
+                        if(globalConfig.ImpChangeNotifyType != (int)ImpChangeNotificationType.SimpleText)
+                        {
+                            await GenerateChangeReport();
+                        }
+                        await SendEmail();
+                        await SetImportsNotified();
                     }
-                    await SendEmail();
-                    await SetImportsNotified();
+                    WorkInProgress = false;
                 }
             }
             catch(Exception exception)
             {
                 Log.WriteError("Import Change Notification", $"Runs into exception: ", exception);
+                WorkInProgress = false;
                 return false;
             }
             return true;

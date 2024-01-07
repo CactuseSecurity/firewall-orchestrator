@@ -588,6 +588,7 @@ Create table "import_control"
 	"successful_import" Boolean NOT NULL Default FALSE,
 	"changes_found" Boolean NOT NULL Default FALSE,
 	"import_errors" Varchar,
+	"notification_done" Boolean NOT NULL Default FALSE,
  primary key ("control_id")
 );
 

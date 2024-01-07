@@ -96,7 +96,7 @@ namespace FWO.Middleware.Server
             return alertId;
         }
 
-        private void LogAlert(string title, string description, string source, AlertCode alertCode, int? mgmtId, object? JsonData, int? devId)
+        private static void LogAlert(string title, string description, string source, AlertCode alertCode, int? mgmtId, object? JsonData, int? devId)
         {
             string? mgmtIdString = mgmtId?.ToString() ?? ""; 
             string? devIdString = devId?.ToString() ?? ""; 

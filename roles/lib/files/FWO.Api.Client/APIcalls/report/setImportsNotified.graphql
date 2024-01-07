@@ -1,0 +1,9 @@
+mutation setImportsNotified($ids: [Bigint]) {
+  update_import_control_by_pk(
+    pk_columns: { control_id: {_in: $ids} }
+    _set: {
+      notification_done: true
+  }) {
+    affected_rows
+  }
+}

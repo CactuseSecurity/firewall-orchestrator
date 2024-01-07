@@ -153,3 +153,6 @@ bugfix release:
 
 # 7.3.2 - 19.10.2023 DEVELOP
 - Modelling first version
+
+# 7.3.3 - 07.01.2024 DEVELOP
+- Scheduled import change notification

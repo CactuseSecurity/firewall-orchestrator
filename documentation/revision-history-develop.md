@@ -153,3 +153,8 @@ bugfix release:
 
 # 7.3.2 - 09.12.2023 DEVELOP
 - Modelling first version
+
+# 7.3.3 - 08.01.2023 DEVELOP
+- Moving to vanilla bootstrap css v5.3.2
+- adding extended tenant to device mapping settings (depending on latest bootstrap version) - closes  #2280
+- fix for log locking for import process

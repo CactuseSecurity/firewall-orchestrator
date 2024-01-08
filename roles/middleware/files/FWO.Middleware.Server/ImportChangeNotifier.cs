@@ -43,6 +43,7 @@ namespace FWO.Middleware.Server
         private List<ImportToNotify> importsToNotify = new();
 
         private bool WorkInProgress = false;
+        private DeviceFilter deviceFilter = new();
 
 
         /// <summary>
@@ -106,6 +107,10 @@ namespace FWO.Middleware.Server
                 managementsReportIntermediate =>
                 {
                     managements = managementsReportIntermediate;
+                    foreach (Management mgm in managements)
+                    {
+                        mgm.Ignore = !deviceFilter.getSelectedManagements().Contains(mgm.Id);
+                    }
                     return Task.CompletedTask;
                 }, token);
             }
@@ -122,11 +127,8 @@ namespace FWO.Middleware.Server
             {
                 selectedManagements.Add(imp.MgmtId);
             }
-            DeviceFilter deviceFilter = new()
-            {
-                Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)
-            };
-            deviceFilter.Managements = deviceFilter.Managements.Where(x => selectedManagements.Contains(x.Id)).ToList();
+            deviceFilter.Managements = (await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement))
+                .Where(x => selectedManagements.Contains(x.Id)).ToList();
             deviceFilter.applyFullDeviceSelection(true);
 
             return new((int)ReportType.Changes, deviceFilter)
@@ -135,7 +137,7 @@ namespace FWO.Middleware.Server
                 {
                     TimeRangeType = TimeRangeType.Fixeddates,
                     StartTime = importsToNotify.First().StopTime,
-                    EndTime = importsToNotify.Last().StopTime
+                    EndTime = importsToNotify.Last().StopTime.AddSeconds(1)
                 }
             };
         }
@@ -144,7 +146,7 @@ namespace FWO.Middleware.Server
         {
             EmailConnection emailConnection = new EmailConnection(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                 globalConfig.EmailTls, globalConfig.EmailUser, globalConfig.EmailPassword, globalConfig.EmailSenderAddress);
-            MailKitMailer mailer = new MailKitMailer(emailConnection);
+            MailKitMailer mailer = new(emailConnection);
             await mailer.SendAsync(PrepareEmail(), emailConnection, new CancellationToken(),
                 globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody);
         }
@@ -209,7 +211,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await apiConnection.SendQueryAsync<ReturnId>(ReportQueries.setImportsNotified, importsToNotify.ConvertAll(x => x.ControlId));
+                await apiConnection.SendQueryAsync<ReturnId>(ReportQueries.setImportsNotified, new { ids = importsToNotify.ConvertAll(x => x.ControlId) });
             }
             catch (Exception exception)
             {

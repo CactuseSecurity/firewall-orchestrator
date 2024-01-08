@@ -1,14 +1,13 @@
 import sys
 import fwo_globals
 import logging
-import asyncio
 import time
-from asyncio import Semaphore
+import threading
 
 class LogLock:
-    semaphore = Semaphore(value=1)
+    semaphore = threading.Semaphore()
 
-    async def handle_log_lock():
+    def handle_log_lock():
         # Initialize values
         lock_file_path = "/var/fworch/lock/importer_api_log.lock"
         log_owned_by_external = False
@@ -32,14 +31,14 @@ class LogLock:
                         # Request lock if it is not already requested by us
                         # (in case of restart with log already granted)
                         if not log_owned_by_external:
-                            await LogLock.semaphore.acquire()
+                            LogLock.semaphore.acquire()
                             stopwatch = time.time()
                             log_owned_by_external = True
                     # REQUESTED - lock was requested by log swap process
                     elif lock_file_content.endswith("REQUESTED"):
                         # only request lock if it is not already requested by us
                         if not log_owned_by_external:
-                            await LogLock.semaphore.acquire()
+                            LogLock.semaphore.acquire()
                             stopwatch = time.time()
                             log_owned_by_external = True
                             file.write("GRANTED\n")
@@ -57,23 +56,19 @@ class LogLock:
 
 # Used to accquire lock before log processing
 class LogFilter(logging.Filter):
-    async def acquire_lock():
-        LogLock.semaphore.acquire()
     def filter(self, record):
         # Acquire lock
-        asyncio.run(LogFilter.acquire_lock())
+        LogLock.semaphore.acquire()
         # Return True to allow the log record to be processed
         return True
 
 # Used to release lock after log processing
 class LogHandler(logging.StreamHandler):
-    async def release_lock():
-        LogLock.semaphore.release()
     def emit(self, record):
         # Call the parent class's emit method to perform the actual logging
         super().emit(record)
         # Release lock
-        asyncio.run(LogHandler.release_lock())
+        LogLock.semaphore.release()
 
 def getFwoLogger():
     debug_level = int(fwo_globals.debug_level)

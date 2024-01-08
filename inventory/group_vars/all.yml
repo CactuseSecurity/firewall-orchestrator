@@ -1,5 +1,5 @@
 ### general settings
-product_version: "7.3.2"
+product_version: "7.3.3"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -56,6 +56,7 @@ http_proxy_import_parameter: ""
 
 # OS 
 debian_testing_version: "12"
+  # should actually be 13 but microsoft does not yet provide https://packages.microsoft.com/config/debian/13
 debian_testing_release_name: trixie
 arch: x86_64
 redhat_major_version: "8"

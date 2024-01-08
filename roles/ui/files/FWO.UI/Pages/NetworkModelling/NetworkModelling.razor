@@ -12,15 +12,15 @@
     <h3>@(userConfig.GetText("network_modelling"))</h3>
     <hr />
 
-    <div class="form-group row col-sm-12">
-        <label class="col-form-label">@(userConfig.GetText("application")):</label>
+    <div>
+        <label class="col-form-label">@(userConfig.GetText("application")):</label>&nbsp;
         @if(singleApp)
         {
             <label class="col-form-label text-primary ml-3">@selectedApp.Display()</label>
         }
         else
         {
-            <div class="col-sm-3">
+            <div class="btn-group">
                 <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display())" SelectedElement="selectedApp" 
                         SelectedElementChanged="InitApp" Elements="apps">
                     <ElementTemplate Context="app">
@@ -29,6 +29,7 @@
                 </Dropdown>
             </div>
         }
+        &nbsp;
         @* <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
         <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
             <Authorized>
@@ -41,20 +42,23 @@
     @if(singleApp || appSelected)
     {
         <div class="form-group row m-2">
-            <h5>@(userConfig.GetText("comm_profile"))</h5>
+            <h5>@(userConfig.GetText("comm_profile"))&nbsp;
             @if(appActive)
             {
-                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddConn">@(userConfig.GetText("add_connection"))</button>
-                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
-                    </Authorized>
-                </AuthorizeView>
+                <div class="btn-group m-6">
+                    <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddConn">@(userConfig.GetText("add_connection"))</button>
+                    <button type="button" class="btn btn-sm btn-success ml-5" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
+                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
             }
+            </h5>
         </div>
         <div class="m-2">
-            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
+            <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
                 @if(userConfig.AllowManualOwnerAdmin)
                 {
                     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -135,6 +139,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // if use has modeller role, choose it before all others for this menu
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kModeller, GlobalConst.kAdmin, GlobalConst.kAuditor });
         await InitAppList();
     }
 

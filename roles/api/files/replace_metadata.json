@@ -2643,6 +2643,29 @@
                   }
                 },
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "reporter",
                   "permission": {
                     "columns": [
@@ -4220,12 +4243,6 @@
                   "using": {
                     "foreign_key_constraint_on": "dev_typ_id"
                   }
-                },
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "unfiltered_tenant_id"
-                  }
                 }
               ],
               "array_relationships": [
@@ -4408,7 +4425,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4436,7 +4452,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4466,7 +4481,6 @@
                       "mgm_id",
                       "dev_name",
                       "dev_typ_id",
-                      "unfiltered_tenant_id",
                       "dev_active",
                       "dev_comment",
                       "dev_create",
@@ -4505,7 +4519,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4533,7 +4546,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4563,7 +4575,6 @@
                       "mgm_id",
                       "dev_name",
                       "dev_typ_id",
-                      "unfiltered_tenant_id",
                       "dev_active",
                       "dev_comment",
                       "dev_create",
@@ -4597,7 +4608,6 @@
                       "package_name",
                       "package_uid",
                       "dev_typ_id",
-                      "unfiltered_tenant_id",
                       "dev_active",
                       "dev_comment",
                       "dev_create",
@@ -4629,7 +4639,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4670,7 +4679,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4711,7 +4719,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4752,7 +4759,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4782,7 +4788,6 @@
                       "mgm_id",
                       "dev_name",
                       "dev_typ_id",
-                      "unfiltered_tenant_id",
                       "dev_active",
                       "dev_comment",
                       "dev_create",
@@ -4821,7 +4826,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4862,7 +4866,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4905,7 +4908,6 @@
                       "dev_id",
                       "dev_typ_id",
                       "mgm_id",
-                      "unfiltered_tenant_id",
                       "dev_comment",
                       "dev_create",
                       "dev_update"
@@ -4963,6 +4965,39 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -7679,12 +7714,6 @@
                   "using": {
                     "foreign_key_constraint_on": "dev_typ_id"
                   }
-                },
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "unfiltered_tenant_id"
-                  }
                 }
               ],
               "array_relationships": [
@@ -7881,6 +7910,18 @@
                   }
                 },
                 {
+                  "name": "tenant_to_managements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "management_id",
+                      "table": {
+                        "name": "tenant_to_management",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "usrs",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -7954,7 +7995,6 @@
                       "dev_typ_id",
                       "mgm_name",
                       "mgm_comment",
-                      "unfiltered_tenant_id",
                       "cloud_tenant_id",
                       "cloud_subscription_id",
                       "mgm_create",
@@ -7991,8 +8031,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
-                      "multi_device_manager_id",
-                      "unfiltered_tenant_id"
+                      "multi_device_manager_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8025,7 +8064,6 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -8058,7 +8096,6 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -8079,8 +8116,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
-                      "multi_device_manager_id",
-                      "unfiltered_tenant_id"
+                      "multi_device_manager_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8113,7 +8149,6 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -8146,7 +8181,6 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -8166,8 +8200,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
-                      "multi_device_manager_id",
-                      "unfiltered_tenant_id"
+                      "multi_device_manager_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8188,8 +8221,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
-                      "multi_device_manager_id",
-                      "unfiltered_tenant_id"
+                      "multi_device_manager_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8222,7 +8254,6 @@
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
-                      "unfiltered_tenant_id",
                       "mgm_comment",
                       "last_import_attempt",
                       "mgm_create",
@@ -8246,8 +8277,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
-                      "multi_device_manager_id",
-                      "unfiltered_tenant_id"
+                      "multi_device_manager_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8268,8 +8298,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
-                      "multi_device_manager_id",
-                      "unfiltered_tenant_id"
+                      "multi_device_manager_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -8285,8 +8314,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
-                      "multi_device_manager_id",
-                      "unfiltered_tenant_id"
+                      "multi_device_manager_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8307,8 +8335,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
-                      "multi_device_manager_id",
-                      "unfiltered_tenant_id"
+                      "multi_device_manager_id"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -8328,7 +8355,6 @@
                       "dev_typ_id",
                       "mgm_name",
                       "mgm_comment",
-                      "unfiltered_tenant_id",
                       "cloud_tenant_id",
                       "cloud_subscription_id",
                       "mgm_create",
@@ -9296,15 +9322,24 @@
                       "last_recert_check"
                     ],
                     "filter": {
-                      "_or": [
+                      "_and": [
                         {
-                          "tenant_id": {
-                            "_is_null": true
-                          }
+                          "_or": [
+                            {
+                              "tenant_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "tenant_id": {
+                                "_eq": "x-hasura-tenant-id"
+                              }
+                            }
+                          ]
                         },
                         {
-                          "tenant_id": {
-                            "_eq": "x-hasura-tenant-id"
+                          "app_id_external": {
+                            "_in": "x-hasura-visible-owners"
                           }
                         }
                       ]
@@ -12091,44 +12126,47 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "parent_rule_id",
+                      "rule_create",
+                      "rule_id",
+                      "rule_last_seen",
+                      "xlate_rule",
                       "access_rule",
-                      "action_id",
                       "active",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_implied",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "rule_installon",
+                      "rule_name",
+                      "rule_ruleid",
+                      "rule_time",
+                      "action_id",
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
-                      "nat_rule",
-                      "parent_rule_id",
+                      "rule_from_zone",
+                      "rule_num",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_num_numeric",
                       "parent_rule_type",
                       "rule_action",
                       "rule_comment",
-                      "rule_create",
-                      "rule_disabled",
                       "rule_dst",
-                      "rule_dst_neg",
                       "rule_dst_refs",
-                      "rule_from_zone",
                       "rule_head_text",
-                      "rule_id",
-                      "rule_implied",
-                      "rule_installon",
-                      "rule_last_seen",
-                      "rule_name",
-                      "rule_num",
-                      "rule_num_numeric",
-                      "rule_ruleid",
                       "rule_src",
-                      "rule_src_neg",
                       "rule_src_refs",
                       "rule_svc",
-                      "rule_svc_neg",
                       "rule_svc_refs",
-                      "rule_time",
-                      "rule_to_zone",
                       "rule_track",
-                      "rule_uid",
-                      "track_id",
-                      "xlate_rule"
+                      "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -12176,6 +12214,9 @@
                       "rule_svc_refs",
                       "rule_track",
                       "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -12233,6 +12274,9 @@
                       "rule_svc_refs",
                       "rule_track",
                       "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -12299,6 +12343,9 @@
                       "rule_track",
                       "rule_uid"
                     ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
+                    ],
                     "filter": {
                       "_and": [
                         {
@@ -12363,6 +12410,9 @@
                       "rule_svc_refs",
                       "rule_track",
                       "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -12433,6 +12483,9 @@
                       "active",
                       "negated"
                     ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -12450,6 +12503,9 @@
                       "active",
                       "negated"
                     ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -12466,6 +12522,9 @@
                       "user_id",
                       "active",
                       "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -12506,6 +12565,9 @@
                       "active",
                       "negated"
                     ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
+                    ],
                     "filter": {
                       "_and": [
                         {
@@ -12544,6 +12606,9 @@
                       "user_id",
                       "active",
                       "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_from_relevant_for_tenant"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -13298,14 +13363,17 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "active",
-                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
-                      "user_id"
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
                     ],
                     "filter": {}
                   }
@@ -13323,6 +13391,9 @@
                       "rule_to_id",
                       "user_id"
                     ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
+                    ],
                     "filter": {}
                   }
                 },
@@ -13330,14 +13401,17 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "active",
-                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
-                      "user_id"
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -13378,6 +13452,9 @@
                       "rule_to_id",
                       "user_id"
                     ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
+                    ],
                     "filter": {
                       "_and": [
                         {
@@ -13408,14 +13485,17 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "active",
-                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
-                      "user_id"
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
                     ],
                     "filter": {}
                   }
@@ -15526,36 +15606,12 @@
                   }
                 },
                 {
-                  "name": "devices",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "unfiltered_tenant_id",
-                      "table": {
-                        "name": "device",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "ldap_connections",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
                         "name": "ldap_connection",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "management",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "unfiltered_tenant_id",
-                      "table": {
-                        "name": "management",
                         "schema": "public"
                       }
                     }
@@ -15604,6 +15660,18 @@
                       "column": "tenant_id",
                       "table": {
                         "name": "tenant_to_device",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tenant_to_managements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "tenant_id",
+                      "table": {
+                        "name": "tenant_to_management",
                         "schema": "public"
                       }
                     }
@@ -15727,7 +15795,32 @@
                       "tenant_comment",
                       "tenant_create"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -15793,17 +15886,17 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "tenant_id",
-                      "tenant_name",
-                      "tenant_projekt",
-                      "tenant_comment",
-                      "tenant_report",
                       "tenant_can_view_all_devices",
                       "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
                       "tenant_create"
                     ],
                     "filter": {},
-                    "check": null
+                    "check": {}
                   }
                 }
               ],
@@ -15988,8 +16081,9 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "tenant_id",
                       "device_id",
-                      "tenant_id"
+                      "shared"
                     ]
                   }
                 }
@@ -16000,7 +16094,8 @@
                   "permission": {
                     "columns": [
                       "tenant_id",
-                      "device_id"
+                      "device_id",
+                      "shared"
                     ],
                     "filter": {}
                   }
@@ -16009,8 +16104,9 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "tenant_id",
                       "device_id",
-                      "tenant_id"
+                      "shared"
                     ],
                     "filter": {}
                   }
@@ -16020,7 +16116,8 @@
                   "permission": {
                     "columns": [
                       "tenant_id",
-                      "device_id"
+                      "device_id",
+                      "shared"
                     ],
                     "filter": {}
                   }
@@ -16029,10 +16126,31 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "tenant_id",
                       "device_id",
-                      "tenant_id"
+                      "shared"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id",
+                      "shared"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -16040,7 +16158,118 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "tenant_id",
                       "device_id",
+                      "shared"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id",
+                      "shared"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id",
+                      "shared"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "tenant_to_management",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "management_id"
+                  }
+                },
+                {
+                  "name": "tenant",
+                  "using": {
+                    "foreign_key_constraint_on": "tenant_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
                       "tenant_id"
                     ],
                     "filter": {
@@ -16055,26 +16284,13 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "device_id",
+                      "shared",
+                      "management_id",
                       "tenant_id"
                     ],
-                    "filter": {},
-                    "allow_aggregations": true
+                    "filter": {}
                   },
                   "comment": ""
-                }
-              ],
-              "update_permissions": [
-                {
-                  "role": "fw-admin",
-                  "permission": {
-                    "columns": [
-                      "device_id",
-                      "tenant_id"
-                    ],
-                    "filter": {},
-                    "check": null
-                  }
                 }
               ]
             },

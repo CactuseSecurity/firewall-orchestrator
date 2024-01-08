@@ -6,7 +6,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("create_ticket"))" Show="@Display" Large="true" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("create_ticket"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
     <Body>
         @if (Display)
         {

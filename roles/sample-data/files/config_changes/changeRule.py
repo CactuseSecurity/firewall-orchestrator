@@ -42,7 +42,7 @@ if len(sys.argv) == 2:
     config_path = sys.argv[1]
 else:
     logging.error('did not specify config file as parameter')
-    print ("syntax: changeRule.py configFileName")
+    logging.error("syntax: changeRule.py configFileName")
     exit(1)
 
 tempConfigFile = config_path + ".tmp"
@@ -118,7 +118,7 @@ elif actionChosen == 'reverseLogging':
     else:
         rule['logtraffic'] = "all"
 else:
-    print ("unknown action chosen: " + actionChosen )
+    logging.warning("unknown action chosen: " + actionChosen )
 with open(tempConfigFile, 'w', encoding='utf-8') as f:
     json.dump(config, f, ensure_ascii=False, indent=4)
 
@@ -131,5 +131,4 @@ else:
 logText = 'changeRule simulator: changed rule no. ' + str(pickedRuleNumber)+ ', changeType=' + actionChosen
 if actionChosen=='changeSrcOrDst':
     logText += ', changed ' + sideString 
-#print (logText)
 logging.info(logText)

@@ -19,77 +19,65 @@
 @(userConfig.GetText("U5212"))
 <hr />
 
-@if(addDeleteAllowed)
+@if (addDeleteAllowed)
 {
-    <div class="form-group row m-0">
-        <button type="button" class="btn btn-sm btn-success mr-2 mb-2 mt-2" @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
+     <div class="btn-group m-1 sticky-marker-60">
+        <button type="button" class="btn btn-sm btn-success mr-2 mb-2 mt-2"
+            @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
         @if (showCleanupButton)
         {
-            <button type="button" class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+            <button type="button" class="btn btn-sm btn-danger mr-2 mb-2 mt-2"
+                @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
         }
     </div>
 }
 <div class="mt-2">
-    <Table class="table table-sm table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
-        <Column TableItem="Tenant" Title="@(userConfig.GetText("tenant_action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+    <Table class="table table-sm table-bordered table-responsive vheight75 overflow-auto sticky-header"
+        TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Tenant" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false"
+            Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTenant(context)">@(userConfig.GetText("edit_tenant"))</button>
-                    @if(addDeleteAllowed)
+                    @if (context.Id != 1)
                     {
-                        @if (context.Id != 1)
-                        {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteTenant(context)">@(userConfig.GetText("delete_tenant"))</button>
-                        }
-                        else
-                        {
-                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("U5207"))</button>
-                        }
+                        <button type="button" class="btn btn-sm btn-warning"
+                            @onclick="() => EditTenant(context)">@(userConfig.GetText("edit"))</button>
                     }
                 </div>
             </Template>
         </Column>
-        <Column TableItem="Tenant" Title="@(userConfig.GetText("gateway_action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Column TableItem="Tenant" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true"
+            Filterable="true" />
+        <Column TableItem="Tenant" Title="@(userConfig.GetText("comment"))" Field="@(x => x.Comment)" Sortable="true"
+            Filterable="true">
             <Template>
                 @if (context.Id != 1)
                 {
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-success" @onclick="() => AddDeviceToTenant(context)">@(userConfig.GetText("add_gateway"))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteDeviceFromTenant(context)">@(userConfig.GetText("delete_gateway"))</button>
-                    </div>
+                    @(context.Comment)
                 }
                 else
                 {
                     <label>@(userConfig.GetText("U5208"))</label>
                 }
-
             </Template>
         </Column>
-        <Column TableItem="Tenant" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="Tenant" Title="@(userConfig.GetText("comment"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
-        <Column TableItem="Tenant" Title="@(userConfig.GetText("project"))" Field="@(x => x.Project)" Sortable="true" Filterable="true" />
-        <Column TableItem="Tenant" Title="@(userConfig.GetText("view_all_devices"))" Field="@(x => x.ViewAllDevices)" Sortable="true" Filterable="true" >
-            <Template>
-                @(GlobalConfig.ShowBool(context.ViewAllDevices))
-            </Template>
-        </Column>
-        <Column TableItem="Tenant" Title="@(userConfig.GetText("gateways"))" Field="@(x => x.TenantDevices)" Sortable="false" Filterable="false">
-            <Template>
-                @(context.DeviceList())
-            </Template>
-        </Column>
+        <Column TableItem="Tenant" Title="@(userConfig.GetText("project"))" Field="@(x => x.Project)" Sortable="true"
+            Filterable="true" />
     </Table>
 </div>
 
-<PopUp Title="@(AddTenantMode ? userConfig.GetText("add_tenant"): userConfig.GetText("edit_tenant"))" Show="@EditTenantMode" Large="true" OnClose="() => EditTenantMode = false">
+<PopUp Title="@(AddTenantMode ? userConfig.GetText("add_tenant"): userConfig.GetText("edit_tenant"))"
+    Show="@EditTenantMode" Size=PopupSize.Large OnClose="() => EditTenantMode = false">
+
     <Body>
         @if (EditTenantMode)
         {
             <form>
                 <div class="form-group row">
-                    <label for="tenantName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <label for="tenantName"
+                        class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     @if (AddTenantMode)
-                    {                
+                    {
                         <div class="col-sm-9">
                             <input id="tenantName" type="text" class="form-control form-control-sm" @bind="actTenant.Name" />
                         </div>
@@ -100,139 +88,129 @@
                     }
                 </div>
                 <div class="form-group row">
-                    <label for="tenantComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    <label for="tenantComment"
+                        class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-9">
-                        <input id="tenantComment" type="text" class="form-control form-control-sm" @bind="actTenant.Comment" />
+                        <input id="tenantComment" type="text" class="form-control form-control-sm"
+                            @bind="actTenant.Comment" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="tenantProject" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("project")):</label>
+                    <label for="tenantProject"
+                        class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("project")):</label>
                     <div class="col-sm-9">
-                        <input id="tenantProject" type="text" class="form-control form-control-sm" @bind="actTenant.Project" />
+                        <input id="tenantProject" type="text" class="form-control form-control-sm"
+                            @bind="actTenant.Project" />
                     </div>
                 </div>
-                @if (!isTenant0)
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-3 col-form-label col-form-label-sm" for="tenantViewAllDevices">@(userConfig.GetText("view_all_devices"))</label>
-                        <div class="col-sm-2">
-                            <input class="form-check-input w-50" id="tenantViewAllDevices" type="checkbox" @bind="actTenant.ViewAllDevices">
-                        </div>
-                    </div>
-                    <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete"/>
-                }
-            </form>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
-                <Authorized>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="SaveTenant">@(userConfig.GetText("save"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("add_device_to_tenant") + ": " + actTenant.Name)" Show="@AddDeviceMode" Large="true" OnClose="() => AddDeviceMode = false">
-    <Body>
-        @if (AddDeviceMode)
-        {
-            <form class="form-inline">
-                <label for="tenantDevice" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gateways")):</label>
-                <div class="col-sm-8">
-                    <Dropdown Id="tenantDevice" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="remainingDevices" @bind-SelectedElement="selectedDevice">
-                        <ElementTemplate Context="d">
-                            @(d?.Name ?? "")
-                        </ElementTemplate>
-                    </Dropdown>
-                </div>
-            </form>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
-                <Authorized>
-                    <button type="button" class="btn btn-sm btn-success" @onclick="() => AddDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("delete_device_from_tenant") + ": " + actTenant.Name)" Show="@DeleteDeviceMode" OnClose="() => DeleteDeviceMode = false">
-    <Body>
-        @if (DeleteDeviceMode)
-        {
-            <form>
                 <div class="form-group row">
-                    <label for="tenantDeviceDel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("gateway")):</label>
-                    <div class="col-sm-8">
-                        <Dropdown Id="tenantDeviceDel" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="Array.ConvertAll(actTenant.TenantDevices, d => d.VisibleDevice)" @bind-SelectedElement="selectedDevice">
-                            <ElementTemplate Context="d">
-                                @(d?.Name ?? "")
-                            </ElementTemplate>
-                        </Dropdown>
+                    <label for="tenantDeviceSelection"
+                        class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant_vis_devices")):</label>
+                    <div class="col-sm-9">
+                        <button type="button" class="btn btn-sm btn-warning w-content"
+                            @onclick="() => EditDevicesSelectedForTenant(actTenant)">@(userConfig.GetText("edit"))
+                        </button>
                     </div>
                 </div>
+                <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete" />
             </form>
         }
     </Body>
     <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
+        <br><br><br><br><br><br><br><br>
+        <div>
+            <AuthorizeView Roles="admin, fw-admin">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await DeleteDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("delete"))</button>
+                    @if (addDeleteAllowed)
+                    {
+                        @if (actTenant.Id != 1)
+                        {
+                            <div class="button-container left">
+                                <button type="button" class="btn btn-sm btn-danger"
+                                    @onclick="() => RequestDeleteTenant(actTenant)">@(userConfig.GetText("delete_tenant"))</button>
+                            </div>
+                        }
+                    }
+                    <div class="button-container center">
+                        <button type="button" class="btn btn-primary"
+                            @onclick="() => LeaveModifyTenantMode(cancel:false)">@(userConfig.GetText("save"))</button>
+                    </div>
                 </Authorized>
                 <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
+                    <div class="button-container center">
+                        <button type="button" class="btn btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </div>
+                </NotAuthorized>
             </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <div class="button-container right">
+                <button type="button" class="btn btn-sm btn-secondary"
+                    @onclick="() => LeaveModifyTenantMode(cancel:true)">@(userConfig.GetText("cancel"))</button>
+            </div>
         </div>
     </Footer>
 </PopUp>
 
-<ConfirmDelete @bind-Display="DeleteTenantMode" PerformAction="DeleteTenant" Title="@userConfig.GetText("delete_tenant")" DeleteMessage="@deleteTenantMessage" DeleteAllowed="DeleteTenantAllowed"/>
-<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
-<InProgress Display="workInProgress"/>
+<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="() => EditDevicesSelectedForTenantMode = false">
+    <Body>
+        @if (EditDevicesSelectedForTenantMode)
+        {
+            <DeviceSelectionTenants Environment="Tenant" autoSelectMgmt="false" @bind-DeviceFilter="devicesSelectedForTenant" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelectionTenants>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="() => LeaveEditDevicesSelectedForTenantMode(cancel:false)" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized>
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => LeaveEditDevicesSelectedForTenantMode(cancel:true)">
+                @(userConfig.GetText("cancel"))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+<ConfirmDelete @bind-Display="DeleteTenantMode" PerformAction="DeleteTenant"
+    Title="@userConfig.GetText("delete_tenant")" DeleteMessage="@deleteTenantMessage"
+    DeleteAllowed="DeleteTenantAllowed" />
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData"
+    Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage"
+    DeleteAllowed="sampleRemoveAllowed" />
+<InProgress Display="workInProgress" />
 
 
 @code
 {
-    [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+        [CascadingParameter]
+        Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+        [CascadingParameter]
+        private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private List<Tenant> tenants = new List<Tenant>();
     private List<Tenant> sampleTenants = new List<Tenant>();
     private List<Device> devices = new List<Device>();
     private List<Device> remainingDevices = new List<Device>();
+    private DeviceFilter devicesSelectedForTenant = new DeviceFilter();
+    private DeviceFilter savedDeviceFilter = new DeviceFilter();
+    private bool collapseDevices = false;
     private List<UiUser> uiUsers = new List<UiUser>();
 
     private Tenant actTenant = new Tenant();
     private Device selectedDevice = new Device();
+    private bool selectAll = true;
 
     private bool isTenant0 = false;
     private bool AddTenantMode = false;
     private bool EditTenantMode = false;
     private bool DeleteTenantMode = false;
-    private bool DeleteTenantAllowed= false;
+    private bool DeleteTenantAllowed = false;
     private string deleteTenantMessage = "";
-    private bool AddDeviceMode = false;
-    private bool DeleteDeviceMode = false;
+    private bool EditDevicesSelectedForTenantMode = false;
     private bool SampleRemoveMode = false;
     private bool showCleanupButton = false;
     private bool sampleRemoveAllowed = false;
@@ -261,7 +239,12 @@
                 tenants = new List<Tenant>();
                 foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
                 {
-                     tenants.Add(new Tenant(apiTenant));
+                    Tenant newTenant = new Tenant(apiTenant);
+                    // foreach (TenantViewGateway tenantGateway in apiTenant.UnfilteredGateways)
+                    //    newTenant.UnfilteredGatewayIds.Append(tenantGateway.Id);
+                    // foreach (TenantViewGateway tenantGateway in apiTenant.SharedGateways)
+                    //    newTenant.SharedGatewayIds.Append(tenantGateway.Id);
+                    tenants.Add(newTenant);
                 }
                 AnalyseSampleTenants();
             }
@@ -299,22 +282,112 @@
     {
         actTenant = tenant;
         isTenant0 = tenant.Id == 1;
-        if(AddTenantMode)
+        if (AddTenantMode)
         {
             actIpAddresses.Clear();
         }
         else
         {
-            actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(FWO.Api.Client.Queries.AuthQueries.getTenantNetworks, new { tenantId = actTenant.Id });
+            actIpAddresses = await
+            apiConnection.SendQueryAsync<List<NwObjectElement>>(FWO.Api.Client.Queries.AuthQueries.getTenantNetworks, new
+            {
+                tenantId
+            = actTenant.Id
+            });
         }
         ipsToAdd.Clear();
         ipsToDelete.Clear();
         EditTenantMode = true;
     }
 
+    private async Task EditDevicesSelectedForTenant(Tenant tenant)
+    {
+        savedDeviceFilter = await SyncDeviceSelections(tenant);
+        actTenant = tenant;
+        // TODO: add device filter to tenant
+        EditDevicesSelectedForTenantMode = true;
+    }
+
+    private async Task<DeviceFilter> SyncDeviceSelections(Tenant tenant)
+    {
+        // now getting the details for the current tenant
+        RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
+        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
+        }
+        else
+        {
+            tenants.Clear();
+            Tenant tenantDetails  = new Tenant();
+            foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
+            {
+                tenants.Add(new Tenant(apiTenant));
+            }
+            AnalyseSampleTenants();
+        }
+
+        List<ManagementSelect> allDevs = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+        Tenant tenantDevices = (await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants, new { tenant_id = tenant.Id })).First();
+
+        // initialize all devices (to invisible)
+        foreach (ManagementSelect mgm in allDevs)
+        {
+            mgm.Visible = false;
+            mgm.Shared = true;
+            foreach (DeviceSelect dev in mgm.Devices)
+            {
+                dev.Visible = false;
+                dev.Shared = true;
+            }
+        }
+
+        // set dev visibility for all non-shared managements
+        foreach (TenantManagement tenMgm in tenantDevices.TenantManagements)
+        {
+            foreach (ManagementSelect mgm in allDevs)
+            {
+                if (mgm.Id == tenMgm.VisibleManagement.Id)
+                {
+                    if (!tenMgm.Shared)
+                    {
+                        // set management to Visible and Shared = false
+                        mgm.Visible = true;
+                        mgm.Shared = false;
+                    }
+                    else
+                    {
+                        // shared managements visible and shared
+                        mgm.Visible = true;
+                        mgm.Shared = true;
+                    }
+                }
+            }            
+        }
+        // set explicit gateway visibilities from tenant_to_device table
+        foreach (TenantGateway gw in tenantDevices.TenantGateways)
+        {
+            foreach (ManagementSelect mgm in allDevs)
+            {
+                foreach (DeviceSelect dev in mgm.Devices)
+                {
+                    if (dev.Id == gw.VisibleGateway.Id)
+                    {
+                        dev.Visible = true;
+                        dev.Shared = gw.Shared;
+                    }
+                }
+            }
+        }
+
+        devicesSelectedForTenant = new DeviceFilter(allDevs);
+
+        return devicesSelectedForTenant;
+    }
+
     private async Task addTenantNetworks()
     {
-        foreach(var ipAdd in ipsToAdd)
+        foreach (var ipAdd in ipsToAdd)
         {
             var Variables = new
             {
@@ -330,7 +403,7 @@
 
     private async Task deleteTenantNetworks()
     {
-        foreach(var ipDel in ipsToDelete)
+        foreach (var ipDel in ipsToDelete)
         {
             var Variables = new
             {
@@ -338,65 +411,6 @@
                 tenNetId = ipDel.ElemId
             };
             await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteTenantNetwork, Variables);
-        }
-    }
-
-    private async Task SaveTenant()
-    {
-        try
-        {
-            if (actTenant.Sanitize())
-            {
-                DisplayMessageInUi(null, userConfig.GetText("save_tenant"), userConfig.GetText("U0001"), true);
-            }
-            if (actTenant.Name == "")
-            {
-                DisplayMessageInUi(null, userConfig.GetText("save_tenant"), userConfig.GetText("E5234"), true);
-            }
-            else if (AddTenantMode)
-            {
-                if(tenants.Exists(x => x.Name == actTenant.Name))
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
-                }
-                else
-                {
-                    // add tenant in local Ldap and db
-                    RestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
-                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
-                    }
-                    else
-                    {
-                        await addTenantNetworks();
-                        actTenant.Id = middlewareServerResponse.Data;
-                        tenants.Add(actTenant);
-                        AddTenantMode = false;
-                        EditTenantMode = false;
-                    }
-                }
-            }
-            else
-            {
-                // update tenant in local db
-                RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateTenant(actTenant.ToApiUpdateParams());
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
-                }
-                else
-                {
-                    await deleteTenantNetworks();
-                    await addTenantNetworks();
-                    EditTenantMode = false;
-                }
-            }
-            AnalyseSampleTenants();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("save_tenant"), "", true);
         }
     }
 
@@ -429,7 +443,7 @@
         try
         {
             // delete tenant from Ldap
-            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = actTenant.Name, Id = actTenant.Id};
+            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = actTenant.Name, Id = actTenant.Id };
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
@@ -440,6 +454,7 @@
                 tenants.Remove(actTenant);
             }
             DeleteTenantMode = false;
+            EditTenantMode = false;
         }
         catch (Exception exception)
         {
@@ -482,105 +497,129 @@
                 await DeleteTenant();
             }
             showCleanupButton = false;
-            workInProgress = false; 
+            workInProgress = false;
             StateHasChanged();
         }
         catch (System.Exception exception)
         {
-            workInProgress = false; 
+            workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
         }
     }
 
-    private void AddDeviceToTenant(Tenant tenant)
+    // save tenant data to LDAP and DB
+    private async Task LeaveModifyTenantMode(bool cancel = true)
     {
-        try
+        if (cancel)
         {
-            actTenant = tenant;
-            remainingDevices = devices.FindAll(x => !Array.Exists(actTenant.TenantDevices, y => y.VisibleDevice.Id == x.Id));
-            remainingDevices.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
-            if(remainingDevices.Count == 0)
-            {
-                DisplayMessageInUi(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);
-            }
-            else
-            {
-                selectedDevice = remainingDevices.FirstOrDefault() ?? new Device();
-                AddDeviceMode = true;
-            }
+            AddTenantMode = false;
+            EditTenantMode = false;
+            DeleteTenantMode = false;
+            SampleRemoveMode = false;
         }
-        catch (System.Exception exception)
+        else
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
+            try
+            {
+                if (actTenant.Sanitize())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("save_tenant"), userConfig.GetText("U0001"), true);
+                }
+                if (actTenant.Name == "")
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("save_tenant"), userConfig.GetText("E5234"), true);
+                }
+                else if (AddTenantMode)
+                {
+                    if (tenants.Exists(x => x.Name == actTenant.Name))
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
+                    }
+                    else
+                    {
+                        // add tenant in local Ldap and db
+                        RestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
+                        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
+                        {
+                            DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
+                        }
+                        else
+                        {
+                            await addTenantNetworks();
+                            actTenant.Id = middlewareServerResponse.Data;
+                            tenants.Add(actTenant);
+                            AddTenantMode = false;
+                            EditTenantMode = false;
+                        }
+                    }
+                }
+                else
+                {
+                    // update tenant in local db
+                    RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateTenant(actTenant.ToApiUpdateParams());
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
+                    }
+                    else
+                    {
+                        await deleteTenantNetworks();
+                        await addTenantNetworks();
+                        EditTenantMode = false;
+                    }
+                }
+                AnalyseSampleTenants();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("save_tenant"), "", true);
+            }
         }
     }
 
-    private void DeleteDeviceFromTenant(Tenant tenant)
+    private async Task LeaveEditDevicesSelectedForTenantMode(bool cancel = true)
     {
-        try
+        if (cancel)
         {
-            actTenant = tenant;
-            if(actTenant.TenantDevices.Length == 0)
+            // visibleGateways = new DeviceFilter(savedDeviceFilter);
+        }
+        else
+        {
+            try
+            // delete all tenant to device and management mappings for the current tenant
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_device_from_tenant"), userConfig.GetText("E5272"), true);
+                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
+                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
             }
-            else
+            catch (System.Exception exception)
             {
-                selectedDevice = actTenant.TenantDevices.FirstOrDefault()?.VisibleDevice ?? new Device();
-                DeleteDeviceMode = true;
+                DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
             }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
-        }
-    }
 
-    private async Task AddDevice(Device device)
-    {
-
-        try
-        {
-            var Variables = new { tenantId = actTenant.Id, deviceId = device.Id };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addDeviceToTenant, Variables)).ReturnIds;
-            if (returnIds != null && returnIds[0].NewId == device.Id)
+            try
+            // saving tenant to device and management mappings
             {
-                actTenant.TenantDevices = actTenant.TenantDevices.Append(new TenantDevice() { VisibleDevice = device }).ToArray();
-                AddDeviceMode = false;
+                foreach (ManagementSelect mgm in devicesSelectedForTenant.Managements)
+                {
+                    if (mgm.Visible)
+                    {
+                        await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
+                        foreach (DeviceSelect gw in mgm.Devices)
+                        {
+                            if (gw.Visible)
+                            {
+                                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
+                            }
+                        }
+
+                    }
+                }
             }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", true);
-        }
-    }
-
-    private async Task DeleteDevice(Device device)
-    {
-        int deviceId = device.Id;
-        try
-        {
-            var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteDeviceFromTenant, Variables)).DeletedId;
-            if (delId == deviceId)
+            catch (System.Exception exception)
             {
-                actTenant.TenantDevices = actTenant.TenantDevices.Where(x => x.VisibleDevice.Id != deviceId).ToArray();
-                DeleteDeviceMode = false;
+                DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
             }
         }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", true);
-        }
-    }
-
-    private void Cancel()
-    {
-        AddTenantMode = false;
-        EditTenantMode = false;
-        DeleteTenantMode = false;
-        AddDeviceMode = false;
-        DeleteDeviceMode = false;
-        SampleRemoveMode = false;
+        EditDevicesSelectedForTenantMode = false;
     }
 }

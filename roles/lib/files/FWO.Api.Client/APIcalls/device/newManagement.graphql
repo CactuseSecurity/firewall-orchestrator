@@ -13,7 +13,6 @@ mutation newManagementWithExistingCredentials(
   $cloudSubscriptionId: String
   $importerHostname: String
   $comment: String
-  $unfilteredTenantId: Int
   $debugLevel: Int
   $superManager: Int
 ) {
@@ -33,7 +32,6 @@ mutation newManagementWithExistingCredentials(
       force_initial_import: $forceInitialImport
       hide_in_gui: $hideInUi
       mgm_comment: $comment
-      unfiltered_tenant_id: $unfilteredTenantId
       debug_level: $debugLevel
       multi_device_manager_id: $superManager
     }

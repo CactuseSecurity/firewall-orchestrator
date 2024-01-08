@@ -21,7 +21,7 @@
 
 @if (showLoginForm)
 {
-    <div class="row m-4 justify-content-center">
+    <div class="center-div">
         <div>
             <br><br>
             <img src="images/FWO_logo.png">
@@ -184,11 +184,6 @@
                         showPasswordChangeForm = true;
                         StateHasChanged();
                     }
-
-                    // add User information after successful login
-                    userConfig.User.Tenant = await ((AuthStateProvider)AuthService).getTenantFromJwt(userConfig.User.Jwt, ApiConnection);
-                    userConfig.User.Roles = ((AuthStateProvider)AuthService).getAllowedRoles(userConfig.User.Jwt);
-                    userConfig.User.Ownerships = ((AuthStateProvider)AuthService).getAssignedOwners(userConfig.User.Jwt);
                 }
                 else
                 {

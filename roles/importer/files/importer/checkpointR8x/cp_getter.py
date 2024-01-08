@@ -1,6 +1,6 @@
 # library for API get functions
 from asyncio.log import logger
-from distutils.log import debug
+# from distutils.log import debug
 import json
 import re
 import requests, requests.packages

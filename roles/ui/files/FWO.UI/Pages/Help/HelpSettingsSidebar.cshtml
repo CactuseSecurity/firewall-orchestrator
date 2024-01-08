@@ -1,10 +1,10 @@
 ﻿@using FWO.Config.Api
 @inject UserConfig userConfig
 
-<nav class="sidebar fixed sidebar-dark bg-dark shadow">
-    <div class="sidebar-main d-flex flex-row" style="left:0px;">
-        <div class="sidebar-dark bg-dark" style="width:250px; overflow-x:scroll;">
-            <ul class="sidebar-nav mr-auto">
+<nav class="sidebar fixed sidebar-help shadow">
+    <div class="sidebar-help d-flex flex-row" style="left:0px;">
+        <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
+            <ul class="sidebar-help mr-auto">
                 <p></p>
                 <h5>@(userConfig.GetText("devices"))</h5>
                 <a class="nav-link" href="/help/settings/credentials/?lang=@($"{userConfig.GetUserLanguage()}")">
@@ -16,6 +16,7 @@
                 <a class="nav-link" href="/help/settings/gateways/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-shield"></span> @(userConfig.GetText("gateways"))
                 </a>
+                <p></p>
                 <h5>@(userConfig.GetText("authorization"))</h5>
                 <a class="nav-link" href="/help/settings/ldap/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-key"></span> @(userConfig.GetText("ldap_conns"))
@@ -35,6 +36,7 @@
                 <a class="nav-link" href="/help/settings/owners/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-flag"></span> @(userConfig.GetText("owners"))
                 </a>
+                <p></p>
                 <h5>@(userConfig.GetText("defaults"))</h5>
                 <a class="nav-link" href="/help/settings/email/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-envelope-open"></span> @(userConfig.GetText("email_settings"))
@@ -51,6 +53,7 @@
                 <a class="nav-link" href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-document"></span> @(userConfig.GetText("password_policy"))
                 </a>
+                <p></p>
                 <h5>@(userConfig.GetText("workflow"))</h5>
                 <a class="nav-link" href="/help/settings/stateactions/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-arrow-right"></span> @(userConfig.GetText("state_actions"))
@@ -64,6 +67,7 @@
                 <a class="nav-link" href="/help/settings/workflowcustomizing/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-cog"></span> @(userConfig.GetText("customizing"))
                 </a>
+                <p></p>
                 <h5>@(userConfig.GetText("personal"))</h5>
                 <a class="nav-link" href="/help/settings/password/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-account-login"></span> @(userConfig.GetText("password"))

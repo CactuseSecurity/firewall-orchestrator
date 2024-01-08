@@ -16,7 +16,7 @@
     <h3>@(userConfig.GetText("state_matrix"))</h3>
     @(userConfig.GetText("U5316"))
     <hr />
-    <div class="form-group row">
+    <div class="form-group row w-content">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
         <div class="col-sm-2">
             <Dropdown ElementType="TaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >

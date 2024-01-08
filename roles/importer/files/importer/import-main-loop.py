@@ -9,6 +9,7 @@ import argparse
 import sys
 import time
 import json
+import threading
 import requests, warnings
 import fwo_api# common  # from current working dir
 from common import import_management
@@ -32,9 +33,11 @@ class GracefulKiller:
 # Store all background tasks in a set to avoid garbage collection
 background_tasks = set()
 
-async def log_lock_task():
+def start_log_lock_task():
     # Start the log lock task in the background
-    background_tasks.add(asyncio.create_task(LogLock.handle_log_lock()))
+    log_lock_task = threading.Thread(target = LogLock.handle_log_lock)
+    log_lock_task.start()
+    background_tasks.add(log_lock_task)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -53,7 +56,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Log locking
-    asyncio.run(log_lock_task())
+    start_log_lock_task()
 
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 

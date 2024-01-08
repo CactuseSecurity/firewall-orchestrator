@@ -240,9 +240,9 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
                                 found = True
                                 break
             elif obj_type == 'service':
-                print('later')  # todo
+                logger.warning('todo later')
         else:
-            print('decide what to do')
+            logger.warning('decide what to do')
         if not found:
             objects_not_found.append(el)
     for obj in objects_not_found:

@@ -35,9 +35,9 @@
                             if (device.Visible)
                             {
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="@device.Id" @bind="device.Selected"
+                                    <input class="form-check-input" type="checkbox" id="gwid_@device.Id" @bind="device.Selected"
                                         @oninput="async () => await ToggleSelectDevice(device)" />
-                                    <label class="form-check-label" for="@device.Id">
+                                    <label class="form-check-label" for="gwid_@device.Id">
                                         @device.Name
                                     </label>
                                 </div>

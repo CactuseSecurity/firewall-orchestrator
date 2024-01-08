@@ -1,0 +1,6 @@
+mutation addTenantToGateway($tenantId: Int!, $gwId: Int!, $shared: Boolean) {
+    insert_tenant_to_device(objects: {device_id: $gwId, shared: $shared, tenant_id: $tenantId})
+  {
+    affected_rows
+  }
+}

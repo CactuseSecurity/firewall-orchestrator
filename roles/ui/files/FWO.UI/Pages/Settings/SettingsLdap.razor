@@ -77,7 +77,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {

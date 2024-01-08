@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" XLarge="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayReqTaskMode)
         {

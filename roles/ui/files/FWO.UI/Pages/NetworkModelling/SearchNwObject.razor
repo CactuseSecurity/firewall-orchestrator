@@ -5,7 +5,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_nw_object"))" Large="true" Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_nw_object"))" Size=PopupSize.Large Show="@Display" OnClose="Close">
     <Body>
         @if(Display)
         {

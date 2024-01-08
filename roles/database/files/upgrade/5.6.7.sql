@@ -363,7 +363,6 @@ DROP table if exists "tenant_object";
 
 DROP table if exists "report_template_viewable_by_tenant";
 
--- Alter table "error_log" add  foreign key ("error_id") references "error" ("error_id") on update restrict on delete cascade;
 drop table if exists "error_log";
 
 -- index optimization

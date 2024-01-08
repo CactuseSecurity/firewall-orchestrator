@@ -20,7 +20,7 @@
 @(userConfig.GetText("U5213"))
 <hr />
 
-<div class="form-group row">
+<div class="form-group row w-content">
     <button type="button" class="btn btn-success m-2" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
     <AuthorizeView Roles="@GlobalConst.kAdmin">
         <Authorized>
@@ -77,7 +77,7 @@
     </Table>
 </div>
 
-<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
@@ -200,7 +200,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Large="true" OnClose="() => ResetPasswordMode = false">
+<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Size=PopupSize.Large OnClose="() => ResetPasswordMode = false">
     <Body>
         @if (ResetPasswordMode)
         {

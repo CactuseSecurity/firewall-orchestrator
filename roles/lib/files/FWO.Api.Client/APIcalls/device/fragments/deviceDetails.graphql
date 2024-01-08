@@ -18,5 +18,4 @@ fragment deviceDetails on device
     hideInUi: hide_in_gui
     creationDate: dev_create
     updateDate: dev_update
-    unfilteredTenantId: unfiltered_tenant_id
 }

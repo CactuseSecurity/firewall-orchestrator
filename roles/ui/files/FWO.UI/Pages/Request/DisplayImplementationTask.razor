@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("implementation") + ": " + ReqHandler.ActImplTask.Title)" Show="@ReqHandler.DisplayImplTaskMode" XLarge="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("implementation") + ": " + ReqHandler.ActImplTask.Title)" Show="@ReqHandler.DisplayImplTaskMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayImplTaskMode)
         {

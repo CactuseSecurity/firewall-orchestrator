@@ -19,7 +19,7 @@
 @(userConfig.GetText("U5214"))
 <hr />
 
-<div class="form-group row">
+<div class="form-group row w-content">
     <button type="button" class="btn btn-success m-2" @onclick="NewGroup">@(userConfig.GetText("add_new_group"))</button>
     @if (showSampleRemoveButton)
     {
@@ -125,7 +125,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("assign_user_to_group") + ": " + actGroup.Name)" Show="@AddUserMode" Large="true" OnClose="() => AddUserMode = false">
+<PopUp Title="@(userConfig.GetText("assign_user_to_group") + ": " + actGroup.Name)" Show="@AddUserMode" Size=PopupSize.Large OnClose="() => AddUserMode = false">
     <Body>
         @if (AddUserMode)
         {

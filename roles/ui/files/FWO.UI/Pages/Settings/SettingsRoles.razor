@@ -57,7 +57,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("assign_user_group_to_role") + ": " + actRole.Name)" Show="@AddMode" Large="true" OnClose="() => AddMode = false">
+<PopUp Title="@(userConfig.GetText("assign_user_group_to_role") + ": " + actRole.Name)" Show="@AddMode" Size=PopupSize.Large OnClose="() => AddMode = false">
     <Body>
         @if (AddMode)
         {
@@ -158,7 +158,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchMode" Large="true" OnClose="() => SearchMode = false">
+<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchMode" Size=PopupSize.Large OnClose="() => SearchMode = false">
     <Body>
         @if (SearchMode)
         {

@@ -1,18 +1,26 @@
-﻿@if (Show)
+﻿@using FWO.Ui.Services
+
+@if (Show)
 {
-    <div class="modal-backdrop" style="background-color:rgba(0,0,0,0.5);">
+    <div class="modal-backdrop popup-outer">
         <div class="modal-open" tabindex="-1">
-            <div class="modal-dialog @(XLarge ? "modal-xl" : (Large ? "modal-lg" : (Small ? "modal-sm" : ""))) @(Scrollable ? "modal-dialog-scrollable" : "")">
-                <div class="modal-content">
+            <div class="modal-dialog 
+                    @(Size==PopupSize.FullScreenWidth ? "modal-fullscreen" : 
+                        Size==PopupSize.XLarge ? "modal-xl" : 
+                            (Size==PopupSize.Large ? "modal-lg" : 
+                                (Size==PopupSize.Small ? "modal-sm" : ""))) 
+                    @(Scrollable ? "modal-dialog-scrollable" : "")">
+                <div class="modal-content popup">
                     <div class="modal-header">
                         <h5 class="modal-title">@Title</h5>
-                        <button type="button" class="close" @onclick="Close">
+                        <button type="button" class="modern-close" @onclick="Close">
                             <span>&times;</span>
                         </button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body popup-body">
                         @Body
                     </div>
+                    <hr>
                     <div class="modal-footer">
                         @Footer
                     </div>
@@ -35,6 +43,9 @@
 
     [Parameter]
     public bool Show { get; set; } = false;
+
+    [Parameter]
+    public PopupSize Size { get; set; } = PopupSize.Medium;
 
     [Parameter]
     public bool Small { get; set; } = false;

@@ -50,7 +50,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("edit_gateway"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_gateway"))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {

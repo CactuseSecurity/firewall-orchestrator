@@ -30,7 +30,7 @@ namespace FWO.Api.Data
         public List<FileFormat> OutputFormat { get; set; } = new List<FileFormat>();
 
         [JsonProperty("report_schedule_active"), JsonPropertyName("report_schedule_active")]
-        public bool Active { get; set; }
+        public bool Active { get; set; } = true;
 
         [JsonProperty("report_schedule_counter"), JsonPropertyName("report_schedule_counter")]
         public int Counter { get; set; }

@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
 using System.Diagnostics;
-using FWO.Ui;
+
 
 // Implicitly call static constructor so background lock process is started
 // (static constructor is only called after class is used in any way)

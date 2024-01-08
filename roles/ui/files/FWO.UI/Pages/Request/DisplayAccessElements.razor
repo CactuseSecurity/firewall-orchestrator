@@ -10,7 +10,7 @@
 <hr />
 @if(InitComplete)
 {
-    <div class="form-group row col-sm-12">
+    <div class="form-group row col-sm-12 mh-13">
         <div class="col-sm-3">
             <label class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("source"))*:</label>
             @if (EditMode)
@@ -157,7 +157,7 @@
                 <div class="col-sm-4">
                     <div class="form-group row">
                         <label class="col-sm-2">@(userConfig.GetText("port")):</label>
-                        <input id="taskServicePort" type="number" class="col-sm-3 form-control form-control-sm" @bind="newServicePort" />
+                        <input id="taskServicePort" type="number" class="col-sm-3 form-control form-control-sm" placeholder="@(userConfig.GetText("insert_port"))" @bind="newServicePort" />
                         <label class="col-sm-3">@(userConfig.GetText("protocol")):</label>
                         <div class="col-sm-4">
                             <Dropdown ElementType="IpProtocol" @bind-SelectedElement="newServiceProto" ElementToString="@(p => p.Name)" Elements="ipProtos" Nullable="true">

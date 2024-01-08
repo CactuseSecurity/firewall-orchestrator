@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("app_server") )" Show="@Display" XLarge="true" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("app_server") )" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
     <Body>
         @if (Display)
         {

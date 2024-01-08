@@ -2,6 +2,7 @@
 @using FWO.Api.Data
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Ui.Data
 
 @attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
@@ -9,7 +10,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" XLarge="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" Size=PopupSize.FullScreenWidth OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayTicketMode)
         {
@@ -48,7 +49,7 @@
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("priority")):</label>
-                            <div class="col-sm-8">
+                            <div class="col-sm-3">
                                 @if (ReqHandler.EditTicketMode)
                                 {
                                     <Dropdown ElementType="RequestPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="ReqHandler.PrioList" Nullable="true">
@@ -59,7 +60,7 @@
                                 }
                                 else
                                 {
-                                    <label class="col-sm-12 border bg-secondary">@(selectedPriority != null ? selectedPriority.Name : "-")</label>
+                                    <label class="col-sm-4 border bg-secondary">@(selectedPriority != null ? selectedPriority.Name : "-")</label>
                                 }
                             </div>
                         </div>

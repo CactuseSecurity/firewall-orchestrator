@@ -5,7 +5,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@Display">
+<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_time"))" Show="@Display">
     <Body>
         <div>
             @if (SelectedReportType.IsChangeReport())

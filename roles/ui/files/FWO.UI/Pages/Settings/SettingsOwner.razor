@@ -22,7 +22,7 @@
     <h3>@(userConfig.GetText("owners"))</h3>
     @(userConfig.GetText("U5216"))
     <hr />
-    <div class="form-group row">
+    <div class="form-group row w-content">
         @if(userConfig.AllowManualOwnerAdmin)
         {
             <button type="button" class="btn btn-sm btn-success m-2" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
@@ -94,7 +94,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_owner"))" Show="@EditOwnerMode" XLarge="true" OnClose="() => EditOwnerMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_owner"))" Show="@EditOwnerMode" Size=PopupSize.XLarge OnClose="() => EditOwnerMode = false">
         <Body>
             @if (EditOwnerMode)
             {
@@ -213,7 +213,7 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + actOwner.Name)" Show="@SearchMode" Large="true" OnClose="() => SearchMode = false">
+    <PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + actOwner.Name)" Show="@SearchMode" Size=PopupSize.Large OnClose="() => SearchMode = false">
         <Body>
             @if (SearchMode)
             {
@@ -298,7 +298,7 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchInLdapMode" Large="true" OnClose="() => CancelLdapSearch()">
+    <PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchInLdapMode" Size=PopupSize.Large OnClose="() => CancelLdapSearch()">
         <Body>
             @if (SearchInLdapMode)
             {

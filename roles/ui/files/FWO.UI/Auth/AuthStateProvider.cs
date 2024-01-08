@@ -82,6 +82,9 @@ namespace FWO.Ui.Auth
                 string userDn = user.FindFirstValue("x-hasura-uuid");
                 await userConfig.SetUserInformation(userDn, apiConnection);
                 userConfig.User.Jwt = jwtString;
+                userConfig.User.Tenant = await getTenantFromJwt(userConfig.User.Jwt, apiConnection);
+                userConfig.User.Roles = getAllowedRoles(userConfig.User.Jwt);
+                userConfig.User.Ownerships = getAssignedOwners(userConfig.User.Jwt);
                 circuitHandler.User = userConfig.User;
 
                 // Add jwt expiry timer
@@ -156,7 +159,7 @@ namespace FWO.Ui.Auth
 
                 if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
                 {
-                    tenant = await Tenant.getTenantById(apiConnection, tenantId);
+                    tenant = await Tenant.getSingleTenant(apiConnection, tenantId);
                 }
                 // else
                 // {

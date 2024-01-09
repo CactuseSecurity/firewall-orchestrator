@@ -7,7 +7,7 @@ namespace FWO.Api.Data
         HtmlInBody = 1,
         PdfAsAttachment = 10,
         HtmlAsAttachment = 11,
-        CsvAsAttachment = 12,
+        // CsvAsAttachment = 12, // Currently not implemented
         JsonAsAttachment = 13
     }
 }

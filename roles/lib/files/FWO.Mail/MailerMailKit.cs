@@ -135,7 +135,6 @@ namespace FWO.Mail
                     body.HtmlBody = mailData.Body;
                 else
                     body.TextBody = mailData.Body;
-                mail.Body = body.ToMessageBody();
 
                 // Check if we got any attachments and add the to the builder for our message
                 if (mailData.Attachments != null)
@@ -159,6 +158,9 @@ namespace FWO.Mail
                         }
                     }
                 }
+
+                mail.Body = body.ToMessageBody(); // correction compared to source code
+
                 #endregion
 
                 #region Send Mail

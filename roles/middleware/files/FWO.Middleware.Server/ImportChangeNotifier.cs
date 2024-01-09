@@ -8,6 +8,7 @@ using FWO.Report;
 using FWO.Report.Filter;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization; 
+using System.Text.RegularExpressions;
 using WkHtmlToPdfDotNet;
 
 namespace FWO.Middleware.Server
@@ -164,16 +165,16 @@ namespace FWO.Middleware.Server
                         body += changeReport?.ExportToHtml();
                         break;
                     case (int)ImpChangeNotificationType.PdfAsAttachment:
-                        attachment = CreateAttachment(Convert.ToBase64String(changeReport?.ToPdf(PaperKind.A4) ?? throw new Exception("No Pdf generated.")));
+                        attachment = CreateAttachment(Convert.ToBase64String(changeReport?.ToPdf(PaperKind.A4) ?? throw new Exception("No Pdf generated.")), "pdf");
                         break;
                     case (int)ImpChangeNotificationType.HtmlAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToHtml());
+                        attachment = CreateAttachment(changeReport?.ExportToHtml(), "html");
                         break;
-                    case (int)ImpChangeNotificationType.CsvAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToCsv());
-                        break;
+                    // case (int)ImpChangeNotificationType.CsvAsAttachment: // Currently not implemented
+                    //     attachment = CreateAttachment(changeReport?.ExportToCsv(), "csv");
+                    //     break;
                     case (int)ImpChangeNotificationType.JsonAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToJson());
+                        attachment = CreateAttachment(changeReport?.ExportToJson(), "json");
                         break;
                     default:
                         break;
@@ -187,16 +188,17 @@ namespace FWO.Middleware.Server
             return mailData;
         }
 
-        private static FormFile? CreateAttachment(string? content)
+        private FormFile? CreateAttachment(string? content, string fileFormat)
         {
             if(content != null)
             {                
                 MemoryStream memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
-                long baseStreamOffset = 0;
-                long length = memoryStream.Length;
-                string name = "x";
-                string fileName = "y";
-                return new(memoryStream, baseStreamOffset, length, name, fileName);
+                string fileName = $"{Regex.Replace(globalConfig.ImpChangeNotifySubject, @"\s", "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
+                return new(memoryStream, 0, memoryStream.Length, null, fileName)
+                {
+                    Headers = new HeaderDictionary(),
+                    ContentType = $"application/{fileFormat}"
+                };
             }
             return null;
         }

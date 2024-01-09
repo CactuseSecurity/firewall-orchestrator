@@ -30,7 +30,7 @@ class GracefulKiller:
         self.kill_now = True
 
 
-class LogLocker(threading.Thread):
+class LogLockerTask(threading.Thread):
     def __init__(self):
         super().__init__()
         self._stop_event = threading.Event()
@@ -38,15 +38,11 @@ class LogLocker(threading.Thread):
     def run(self):
         while not self._stop_event.is_set():
             # Your background task logic here
-            print("Running background task...")
+            threading.Thread(target = LogLock.handle_log_lock)
             time.sleep(1)
 
     def stop(self):
         self._stop_event.set()
-
-
-# start logLocker
-logLockerTask = LogLocker()
 
 
 if __name__ == '__main__':
@@ -65,8 +61,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # Log locking
-    logLockerTask.start()
+    logLockerTask = LogLockerTask()     # create logLocker
+    logLockerTask.start()           # start Log locking
 
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 

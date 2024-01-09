@@ -18,7 +18,7 @@
             else
             {
                 <div class="m-2">
-                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Device" Items="deviceList" PageSize="0" ColumnReorder="true">
+                    <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="Device" Items="deviceList" PageSize="0" ColumnReorder="true">
                         <Column TableItem="Device" Title="@(userConfig.GetText("device"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
                     </Table>
                 </div>

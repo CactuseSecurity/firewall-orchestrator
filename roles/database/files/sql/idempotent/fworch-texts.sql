@@ -1022,6 +1022,8 @@ INSERT INTO txt VALUES ('save_connection', 	    'German',	'Verbindung speichern'
 INSERT INTO txt VALUES ('save_connection', 	    'English',	'Save Connection');
 INSERT INTO txt VALUES ('delete_connection', 	'German',	'Verbindung l&ouml;schen');
 INSERT INTO txt VALUES ('delete_connection', 	'English',	'Delete Connection');
+INSERT INTO txt VALUES ('remove_connection', 	'German',	'Verbindung entfernen');
+INSERT INTO txt VALUES ('remove_connection', 	'English',	'Remove Connection');
 INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
 INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
@@ -3866,6 +3868,18 @@ INSERT INTO txt VALUES ('H5416', 'German',  '
             <ul>
                 <li>&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese 
                     Einstellung zu aktivieren. Default-Wert = "inaktiv".</li>
+                <li>&Auml;nderungsbenachrichtigungstyp:
+                    <ul>
+                        <li>Einfacher Text (kein &Auml;nderungsreport): </li>
+                        <li>Html in Email: </li>
+                        <li>Pdf als Anhang: </li>
+                        <li>Html als Anhang: </li>
+                        <li>Csv als Anhang: </li>
+                        <li>Json als Anhang: </li>
+                    </ul>
+                </li>
+                <li>&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden):</li>
+                <li>&Auml;nderungsbenachrichtigungs-Start:</li>
                 <li>Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
                     sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".</li>
                 <li>Titel der &Auml;nderungsbenachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".</li>

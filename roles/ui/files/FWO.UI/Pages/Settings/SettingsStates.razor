@@ -16,7 +16,7 @@
     <button type="button" class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>
     <br><br>
     <div class="m-2">
-        <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestState" Items="states" PageSize="0" ColumnReorder="true">
+        <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestState" Items="states" PageSize="0" ColumnReorder="true">
             <Column TableItem="RequestState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
@@ -38,7 +38,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" OnClose="() => EditStateMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.Large OnClose="() => EditStateMode = false">
         <Body>
             @if (EditStateMode)
             {
@@ -61,7 +61,7 @@
                 <button type="button" class="btn btn-sm btn-success" @onclick="SelectAction">@(userConfig.GetText("add_action"))</button>
                 <br><br>
                 <div class="m-2">
-                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
+                    <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
                         <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("actions"))" Field="(x => x.Action.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
@@ -92,7 +92,7 @@
 
     <ConfirmDelete @bind-Display="DeleteStateMode" PerformAction="DeleteState" Title="@userConfig.GetText("delete_state")" DeleteMessage="@(userConfig.GetText("U5501") + actState.Name + "?")"/>
 
-    <PopUp Title="@(userConfig.GetText("select_action"))" Show="@SelectActionMode" OnClose="() => SelectActionMode = false">
+    <PopUp Title="@(userConfig.GetText("select_action"))" Show="@SelectActionMode" Size=PopupSize.Small OnClose="() => SelectActionMode = false">
         <Body>
             @if (SelectActionMode)
             {

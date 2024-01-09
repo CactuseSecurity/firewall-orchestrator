@@ -34,7 +34,7 @@
         <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
         <div class="col-sm-9">
         <div class="m-2">
-            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestPriority" Items="prioList" PageSize="0" ColumnReorder="true">
+            <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestPriority" Items="prioList" PageSize="0" ColumnReorder="true">
                 <Column TableItem="RequestPriority" Title="@(userConfig.GetText("numeric_prio"))" Field="@(x => x.NumPrio)" Sortable="true" Filterable="true" />
                 <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
                     <Template>

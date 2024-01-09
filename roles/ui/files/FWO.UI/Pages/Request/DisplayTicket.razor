@@ -146,7 +146,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("confirm_cancel"))" Show="@ConfirmCancelMode" OnClose="() => ConfirmCancelMode = false">
+<PopUp Title="@(userConfig.GetText("confirm_cancel"))" Show="@ConfirmCancelMode" Size=PopupSize.Small OnClose="() => ConfirmCancelMode = false">
     <Body>
         @if (ConfirmCancelMode)
         {

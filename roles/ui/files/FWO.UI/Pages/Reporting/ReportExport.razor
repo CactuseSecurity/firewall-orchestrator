@@ -11,7 +11,7 @@
 <button type="button" class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else { 
                                                       DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
 
-<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" OnClose="() => ShowExportDialog = false">
+<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" Size=PopupSize.Small OnClose="() => ShowExportDialog = false">
     <Body>
         <div>
             <div class="input-group input-group-sm mb-2">

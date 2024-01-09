@@ -11,9 +11,7 @@
     <Body>
         @if (Display)
         {
-            <div class="form-group row">
-                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="CreateServiceGroup">@(userConfig.GetText("add_service_group"))</button>
-            </div>
+            <button type="button" class="btn btn-sm btn-success ml-5 mb-2" @onclick="CreateServiceGroup">@(userConfig.GetText("add_service_group"))</button>
             <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingServiceGroup" Items="PredefServiceGroups" PageSize="0" ColumnReorder="true">
                 <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>

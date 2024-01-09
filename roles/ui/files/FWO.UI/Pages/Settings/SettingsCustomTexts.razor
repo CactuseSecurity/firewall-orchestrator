@@ -13,34 +13,34 @@
 <h3>@(userConfig.GetText("customize_texts"))</h3>
 @(userConfig.GetText("U5321"))
 <hr />
-<form class="form-inline">
+<div class="form-group row">
     <label class="col-form-label col-sm-1">@(userConfig.GetText("language")):</label>
-    <div class="col-sm-2">
+    <div class="col-sm-4">
         <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
             <ElementTemplate Context="language">
                 @(userConfig.GetText(language.Name))
             </ElementTemplate>
         </Dropdown>
     </div>
-    <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await LoadDicts(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("select"))</button>
-</form>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await LoadDicts(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("select"))</button>
+    </div>
+</div>
 @if(dictsLoaded)
 {
-    <form class="form-inline">
+    <div class="form-group row">
         <label class="col-form-label col-sm-1">@(userConfig.GetText("search")):</label>
-        <div class="col-sm-2">
+        <div class="col-sm-4">
             <input type="text" class="form-control form-control-sm" @bind="searchString" />
         </div>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await Search(); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
-        <div class="form-check form-check-inline ml-2">
-            <input class="form-check-input ml-5" type="checkbox" @bind="ignoreHelpTexts">
+        <div class="col-sm-2">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await Search(); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+        </div>
+        <div class="col-sm-2">
+            <input class="form-check-input" type="checkbox" @bind="ignoreHelpTexts">
             <label class="form-check-label">@(userConfig.GetText("ignore_helptexts"))</label>
         </div>
-        @* <div class="col-sm-1">
-            <input type="checkbox" @bind="ignoreHelpTexts">
-        </div>
-        <label class="col-form-label col-sm-2">@(userConfig.GetText("ignore_helptexts"))</label> *@
-    </form>
+    </div>
 }
 @if(displayResults)
 {

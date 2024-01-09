@@ -15,76 +15,78 @@
 
 @if (configData != null)
 {
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
+    <form onsubmit="return false">
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />
+            </div>
         </div>
-    </form>
-    <hr />
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImpChangeNotifyActive" />
+        <hr />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.ImpChangeNotifyActive" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
-        <div class="col-sm-4">
-            <Dropdown @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                    Elements="Enum.GetValues(typeof(ImpChangeNotificationType)).Cast<ImpChangeNotificationType>()" >
-                <ElementTemplate Context="type">
-                    @(userConfig.GetText(type.ToString()))
-                </ElementTemplate>
-            </Dropdown>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
+            <div class="col-sm-4">
+                <Dropdown @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                        Elements="Enum.GetValues(typeof(ImpChangeNotificationType)).Cast<ImpChangeNotificationType>()" >
+                    <ElementTemplate Context="type">
+                        @(userConfig.GetText(type.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySleepTime")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImpChangeNotifySleepTime" />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImpChangeNotifySleepTime" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyStartAt")):</label>
-        <div class="col-sm-2">
-            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImpChangeNotifyStartAt" />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyStartAt")):</label>
+            <div class="col-sm-2">
+                <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImpChangeNotifyStartAt" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyRecipients")):</label>
-        <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
-            <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifyRecipients" />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyRecipients")):</label>
+            <div class="col-sm-7" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
+                <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifyRecipients" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySubject")):</label>
-        <div class="col-sm-2">
-            <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifySubject" />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySubject")):</label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifySubject" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyBody")):</label>
-        <div class="col-sm-2">
-            <textarea rows="6" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("impChangeNotifyBody")) @bind="configData!.ImpChangeNotifyBody"></textarea>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyBody")):</label>
+            <div class="col-sm-7">
+                <textarea rows="6" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("impChangeNotifyBody")) @bind="configData!.ImpChangeNotifyBody"></textarea>
+            </div>
         </div>
     </form>
     <hr />

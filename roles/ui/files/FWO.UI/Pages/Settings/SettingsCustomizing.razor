@@ -17,64 +17,66 @@
 
 @if (InitComplete && configData != null)
 {
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
-        @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
-        {
-            @if(type != TaskType.master)
+    <form onsubmit="return false">
+        <div class="form-group row">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
+            @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
             {
-                <div class="form-group col-sm-1">
-                    <input type="checkbox" @bind="taskTypesActiveDict[type]" />
-                    <label class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
-                </div>
+                @if(type != TaskType.master)
+                {
+                    <div class="form-group col-sm-1">
+                        <input type="checkbox" @bind="taskTypesActiveDict[type]" />
+                        <label class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
+                    </div>
+                }
             }
-        }
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
-        <div class="col-sm-9">
-        <div class="m-2">
-            <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestPriority" Items="prioList" PageSize="0" ColumnReorder="true">
-                <Column TableItem="RequestPriority" Title="@(userConfig.GetText("numeric_prio"))" Field="@(x => x.NumPrio)" Sortable="true" Filterable="true" />
-                <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
-                    <Template>
-                        <input type="string" @bind="prio.Name">
-                    </Template>
-                </Column>
-                <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("ticket_deadline"))" Field="@(x => x.TicketDeadline)" Sortable="true" Filterable="true" >
-                    <Template>
-                        <input type="number" min="0" @bind="prio.TicketDeadline">
-                    </Template>
-                </Column>
-                <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("approval_deadline_days"))" Field="@(x => x.ApprovalDeadline)" Sortable="true" Filterable="true" >
-                    <Template>
-                        <input type="number" min="0" @bind="prio.ApprovalDeadline">
-                    </Template>
-                </Column>
-            </Table>
         </div>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
+            <div class="col-sm-9">
+                <div class="m-2">
+                    <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestPriority" Items="prioList" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="RequestPriority" Title="@(userConfig.GetText("numeric_prio"))" Field="@(x => x.NumPrio)" Sortable="true" Filterable="true" />
+                        <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
+                            <Template>
+                                <input type="string" @bind="prio.Name">
+                            </Template>
+                        </Column>
+                        <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("ticket_deadline"))" Field="@(x => x.TicketDeadline)" Sortable="true" Filterable="true" >
+                            <Template>
+                                <input type="number" min="0" @bind="prio.TicketDeadline">
+                            </Template>
+                        </Column>
+                        <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("approval_deadline_days"))" Field="@(x => x.ApprovalDeadline)" Sortable="true" Filterable="true" >
+                            <Template>
+                                <input type="number" min="0" @bind="prio.ApprovalDeadline">
+                            </Template>
+                        </Column>
+                    </Table>
+                </div>
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowObjectSearch")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" @bind="configData!.ReqAllowObjectSearch">
+        <div class="form-group row">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowObjectSearch")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" @bind="configData!.ReqAllowObjectSearch">
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
+        <div class="form-group row">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
-        <div class="col-sm-2">
-            <Dropdown @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
-                <ElementTemplate Context="opt">
-                    @(userConfig.GetText(opt.ToString()))
-                </ElementTemplate>
-            </Dropdown>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
+            <div class="col-sm-4">
+                <Dropdown @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
+                    <ElementTemplate Context="opt">
+                        @(userConfig.GetText(opt.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
         </div>
     </form>
 

@@ -37,7 +37,6 @@ class LogLockerTask(threading.Thread):
 
     def run(self):
         while not self._stop_event.is_set():
-            # Your background task logic here
             threading.Thread(target = LogLock.handle_log_lock)
             time.sleep(1)
 
@@ -181,6 +180,7 @@ if __name__ == '__main__':
             time.sleep(1)
             counter += 1
 
+    # got break signal stopping background process for handling log locking
     logLockerTask.stop()
     logLockerTask.join()
     logger.info("importer-main-loop exited gracefully.")

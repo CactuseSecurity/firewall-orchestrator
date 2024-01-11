@@ -139,6 +139,18 @@ INSERT INTO txt VALUES ('MarkDeleted', 	        'German', 	'Als gel&ouml;scht ma
 INSERT INTO txt VALUES ('MarkDeleted', 	        'English', 	'Mark Deleted');
 INSERT INTO txt VALUES ('Reactivate', 	        'German', 	'Reaktivieren');
 INSERT INTO txt VALUES ('Reactivate', 	        'English', 	'Reactivate');
+INSERT INTO txt VALUES ('SimpleText', 	        'German', 	'Einfacher Text (kein &Auml;nderungsreport)');
+INSERT INTO txt VALUES ('SimpleText', 	        'English', 	'Simple Text (no Change Report)');
+INSERT INTO txt VALUES ('HtmlInBody', 	        'German', 	'Html in Email');
+INSERT INTO txt VALUES ('HtmlInBody', 	        'English', 	'Html in email body');
+INSERT INTO txt VALUES ('PdfAsAttachment', 	    'German', 	'Pdf als Anhang');
+INSERT INTO txt VALUES ('PdfAsAttachment', 	    'English', 	'Pdf as Attachment');
+INSERT INTO txt VALUES ('HtmlAsAttachment', 	'German', 	'Html als Anhang');
+INSERT INTO txt VALUES ('HtmlAsAttachment', 	'English', 	'Html as Attachment');
+INSERT INTO txt VALUES ('CsvAsAttachment', 	    'German', 	'Csv als Anhang');
+INSERT INTO txt VALUES ('CsvAsAttachment', 	    'English', 	'Csv as Attachment');
+INSERT INTO txt VALUES ('JsonAsAttachment', 	'German', 	'Json als Anhang');
+INSERT INTO txt VALUES ('JsonAsAttachment', 	'English', 	'Json as Attachment');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -1010,6 +1022,8 @@ INSERT INTO txt VALUES ('save_connection', 	    'German',	'Verbindung speichern'
 INSERT INTO txt VALUES ('save_connection', 	    'English',	'Save Connection');
 INSERT INTO txt VALUES ('delete_connection', 	'German',	'Verbindung l&ouml;schen');
 INSERT INTO txt VALUES ('delete_connection', 	'English',	'Delete Connection');
+INSERT INTO txt VALUES ('remove_connection', 	'German',	'Verbindung entfernen');
+INSERT INTO txt VALUES ('remove_connection', 	'English',	'Remove Connection');
 INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
 INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
@@ -1406,6 +1420,12 @@ INSERT INTO txt VALUES ('impChangeNotifyBody',      'German', 	'Text der &Auml;n
 INSERT INTO txt VALUES ('impChangeNotifyBody',      'English', 	'Body of change notification emails');
 INSERT INTO txt VALUES ('impChangeNotifyActive',    'German', 	'&Auml;nderungsbenachrichtigung aktiv?');
 INSERT INTO txt VALUES ('impChangeNotifyActive',    'English', 	'Change notification active?');
+INSERT INTO txt VALUES ('impChangeNotifyType','German', 	'&Auml;nderungsbenachrichtigungstyp');
+INSERT INTO txt VALUES ('impChangeNotifyType','English', 	'Change notification type');
+INSERT INTO txt VALUES ('impChangeNotifySleepTime','German','&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden)');
+INSERT INTO txt VALUES ('impChangeNotifySleepTime','English','Change notification sleep time (in seconds)');
+INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenachrichtigungs-Start');
+INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start');

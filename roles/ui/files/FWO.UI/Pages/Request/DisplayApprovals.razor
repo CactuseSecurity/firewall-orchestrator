@@ -14,7 +14,7 @@
         @if (Display)
         {
             <div class="m-2">
-                <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">

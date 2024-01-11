@@ -42,7 +42,7 @@
             @if(NetworkObjectExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(ObjCategory.nobj)">
-                    <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
@@ -93,7 +93,7 @@
             @if(NetworkServiceExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)">
-                    <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@ReportBase.GetIconClass(ObjCategory.nsrv, context.Type.Name)">&nbsp;</span>
@@ -150,7 +150,7 @@
             @if(NetworkUserExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.user)">
-                    <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@ReportBase.GetIconClass(ObjCategory.user, context.Type.Name)">&nbsp;</span>

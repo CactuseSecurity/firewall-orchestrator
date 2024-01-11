@@ -21,7 +21,7 @@
     <button type="button" class="btn btn-sm btn-success" @onclick="AddAction">@(userConfig.GetText("add_action"))</button>
     <br><br>
     <div class="m-2">
-        <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateAction" Items="actions" PageSize="0" ColumnReorder="true">
+        <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateAction" Items="actions" PageSize="0" ColumnReorder="true">
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">

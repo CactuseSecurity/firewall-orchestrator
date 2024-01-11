@@ -9,7 +9,7 @@
 
 <h3>@(userConfig.GetText("monitoring"))</h3>
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" Sortable="true" Filterable="true"/>

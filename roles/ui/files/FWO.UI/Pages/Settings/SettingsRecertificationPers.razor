@@ -15,10 +15,12 @@
 
 @if (configData != null)
 {
-     <form class="form-inline" onsubmit="return false">
-        <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
-        <div class="col-sm-2">
-            <input id="recertificationDisplayPeriod" type="number" min="0" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />
+     <form onsubmit="return false">
+        <div class="form-group row">
+            <label for="recertificationDisplayPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
+            <div class="col-sm-2">
+                <input id="recertificationDisplayPeriod" type="number" min="0" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />
+            </div>
         </div>
     </form>
     <hr />

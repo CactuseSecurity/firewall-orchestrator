@@ -19,107 +19,109 @@
 {
     <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="PredefServices">@(userConfig.GetText("predef_services"))</button>
 
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("allowServerInConn")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("allowServiceInConn")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("overviewDisplayLines")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.OverviewDisplayLines" />
-        </div>
-    </form>
-    <hr />
-    <div class="form-group row">
-        <form class="form-inline col-sm-4" onsubmit="return false">
-            <label class="col-form-label col-sm-7">@(userConfig.GetText("networkAreaRequired")):</label>
+    <form onsubmit="return false">
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("allowServerInConn")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" class="w-100" @bind="namingConvention.NetworkAreaRequired">
+                <input type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
             </div>
-        </form>
-        <form class="form-inline col-sm-4" onsubmit="return false">
-            <label class="col-form-label col-sm-7">@userConfig.GetText("fixedPartLength"):</label>
+        </div>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("allowServiceInConn")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
+            </div>
+        </div>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("overviewDisplayLines")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.OverviewDisplayLines" />
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row">
             <div class="col-sm-4">
-                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="namingConvention.FixedPartLength" />
+                <label class="col-form-label col-sm-7">@(userConfig.GetText("networkAreaRequired")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" class="w-100" @bind="namingConvention.NetworkAreaRequired">
+                </div>
             </div>
-        </form>
-        <form class="form-inline col-sm-4" onsubmit="return false">
-            <label class="col-form-label col-sm-7">@userConfig.GetText("freePartLength"):</label>
             <div class="col-sm-4">
-                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="namingConvention.FreePartLength" />
+                <label class="col-form-label col-sm-7">@userConfig.GetText("fixedPartLength"):</label>
+                <div class="col-sm-4">
+                    <input type="number" min="0" class="form-control form-control-sm w-100" @bind="namingConvention.FixedPartLength" />
+                </div>
             </div>
-        </form>
-    </div>
-    <div class="form-group row">
-        <form class="form-inline col-sm-6" onsubmit="return false">
-            <label class="col-form-label col-sm-6">@userConfig.GetText("networkAreaPattern"):</label>
             <div class="col-sm-4">
-                <input type="text" class="col-sm-11" @bind="namingConvention.NetworkAreaPattern" />
-            </div>
-        </form>
-        <form class="form-inline col-sm-6" onsubmit="return false">
-            <label class="col-form-label col-sm-6">@userConfig.GetText("appRolePattern"):</label>
-            <div class="col-sm-4">
-                <input type="text" class="col-sm-11" @bind="namingConvention.AppRolePattern" />
-            </div>
-        </form>
-    </div>
-    <hr />
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>
-        <div class="col-sm-6">
-            <EditList ElementType="string" Elements="appDataPaths.ToArray()" ElementsToAdd="PathsToAdd" ElementsToDelete="PathsToDelete" StdLayout="false">
-                <Display>
-                    <div class="row">
-                        <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context</div>
-                    </div>
-                </Display>
-            </EditList>
-            <div class="row">
-                <div class="col-sm-12">
-                    <input type="text" class="col-sm-9" @bind="actPath" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                <label class="col-form-label col-sm-7">@userConfig.GetText("freePartLength"):</label>
+                <div class="col-sm-4">
+                    <input type="number" min="0" class="form-control form-control-sm w-100" @bind="namingConvention.FreePartLength" />
                 </div>
             </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataSleepTime")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportAppDataSleepTime" />
+        <div class="form-group row">
+            <div class="col-sm-6">
+                <label class="col-form-label col-sm-6">@userConfig.GetText("networkAreaPattern"):</label>
+                <div class="col-sm-4">
+                    <input type="text" class="col-sm-11" @bind="namingConvention.NetworkAreaPattern" />
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <label class="col-form-label col-sm-6">@userConfig.GetText("appRolePattern"):</label>
+                <div class="col-sm-4">
+                    <input type="text" class="col-sm-11" @bind="namingConvention.AppRolePattern" />
+                </div>
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataStartAt")):</label>
-        <div class="col-sm-2">
-            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImportAppDataStartAt" />
+        <hr />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>
+            <div class="col-sm-6">
+                <EditList ElementType="string" Elements="appDataPaths.ToArray()" ElementsToAdd="PathsToAdd" ElementsToDelete="PathsToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <input type="text" class="col-sm-9" @bind="actPath" />
+                        <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                    </div>
+                </div>
+            </div>
         </div>
-    </form>
-    <hr />
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
-        <div class="col-sm-8">
-            <input type="text" class="col-sm-8" @bind="configData!.ImportSubnetDataPath" />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataSleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportAppDataSleepTime" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataSleepTime")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportSubnetDataSleepTime" />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataStartAt")):</label>
+            <div class="col-sm-2">
+                <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImportAppDataStartAt" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataStartAt")):</label>
-        <div class="col-sm-2">
-            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImportSubnetDataStartAt" />
+        <hr />
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
+            <div class="col-sm-8">
+                <input type="text" class="col-sm-8" @bind="configData!.ImportSubnetDataPath" />
+            </div>
+        </div>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataSleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportSubnetDataSleepTime" />
+            </div>
+        </div>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataStartAt")):</label>
+            <div class="col-sm-2">
+                <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImportSubnetDataStartAt" />
+            </div>
         </div>
     </form>
     <hr />

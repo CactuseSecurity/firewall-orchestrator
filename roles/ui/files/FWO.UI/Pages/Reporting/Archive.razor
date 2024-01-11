@@ -11,7 +11,7 @@
 
 <ReportTabset></ReportTabset>
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ReportFile" Items="archivedReports" PageSize="0">
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="ReportFile" Items="archivedReports" PageSize="0">
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("actions"))">
         <Template>
             <div class="btn-group">
@@ -48,7 +48,7 @@
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("description"))" Field="@(reportFile => reportFile.Description)" Sortable="true" Filterable="true"/>
 </Table>
 
-<PopUp Show="ShowDeleteReportFileDialog" Title="@(userConfig.GetText("generated_report"))">
+<PopUp Show="ShowDeleteReportFileDialog" Title="@(userConfig.GetText("generated_report"))" Size=PopupSize.Small>
     <Body>
         <p>@(userConfig.GetText("U3002")) "@reportFileContext.Name" ?</p>
     </Body>

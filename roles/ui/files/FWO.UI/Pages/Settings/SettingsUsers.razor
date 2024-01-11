@@ -20,24 +20,24 @@
 @(userConfig.GetText("U5213"))
 <hr />
 
-<div class="form-group row w-content">
-    <button type="button" class="btn btn-success m-2" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
+<div class="btn-group m-1">
+    <button type="button" class="btn btn-sm btn-success" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
     <AuthorizeView Roles="@GlobalConst.kAdmin">
         <Authorized>
-            <button type="button" class="btn btn-info m-2" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
+            <button type="button" class="btn btn-sm btn-info" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
         </Authorized>
         <NotAuthorized>
-            <button type="button" class="btn btn-info m-2" disabled>@(userConfig.GetText("synchronize"))</button>
+            <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("synchronize"))</button>
         </NotAuthorized> 
     </AuthorizeView>
     @if (showSampleRemoveButton)
     {
-        <button type="button" class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
     }
 </div>
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
         <Column TableItem="UiUser" Title="@(userConfig.GetText("actions"))" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">

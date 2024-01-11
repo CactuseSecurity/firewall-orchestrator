@@ -19,7 +19,7 @@
                     <div class="col-sm-11">
                         <div class="form-group row">
                             <label for="rangeshortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
-                            <div class="col-sm-3">
+                            <div class="col-sm-4">
                                 <Dropdown @bind-SelectedElement="ActTimeFilter.TimeRangeShortcut" ElementToString="@(s => userConfig.GetText(s))" Elements="TimeRangeShortcuts.Ranges" >
                                     <ElementTemplate Context="shortcut">
                                         @(userConfig.GetText(shortcut))
@@ -41,7 +41,7 @@
                             <div class="col-sm-3">
                                 <input id="lastInterval" type="text" class="form-control form-control-sm" @bind="ActTimeFilter.Offset" />
                             </div>
-                            <div class="col-sm-3">
+                            <div class="col-sm-4">
                                 <Dropdown @bind-SelectedElement="ActTimeFilter.Interval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never))" >
                                     <ElementTemplate Context="interval">
                                         @(userConfig.GetText(interval.ToString()))

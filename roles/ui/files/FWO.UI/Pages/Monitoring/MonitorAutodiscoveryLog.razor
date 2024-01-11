@@ -10,7 +10,7 @@
 @(userConfig.GetText("U7401"))
 <hr />
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("found_by"))" Field="@(x => x.UserId)" Sortable="true">

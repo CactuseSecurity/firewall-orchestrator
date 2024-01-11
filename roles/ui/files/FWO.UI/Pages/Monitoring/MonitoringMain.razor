@@ -26,38 +26,40 @@
     }
     else
     {
-        <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
             <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                 <Template>
-                    @if(alert.Source == GlobalConst.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
-                    }
-                    else if(alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
-                    }
-                    else if(alert.AlertCode == AlertCode.ImportRunningTooLong)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
-                    }
-                    else if(alert.AlertCode == AlertCode.SampleDataExisting)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
-                    }
-                    
-                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
-                        <Authorized Context="ctx">
-                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
-                        </Authorized>
-                        <NotAuthorized Context="ctx">
-                            <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
+                    <div class="btn-group">
+                        @if(alert.Source == GlobalConst.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
+                        }
+                        else if(alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
+                        }
+                        else if(alert.AlertCode == AlertCode.ImportRunningTooLong)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
+                        }
+                        else if(alert.AlertCode == AlertCode.SampleDataExisting)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
+                        }
+                        
+                        <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
+                            <Authorized Context="ctx">
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
+                            </Authorized>
+                            <NotAuthorized Context="ctx">
+                                <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
+                            </NotAuthorized> 
+                        </AuthorizeView>
+                    </div>
                 </Template>
             </Column>
             <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>

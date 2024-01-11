@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.IO;
-using FWO.Logging;
+﻿using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -35,6 +30,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string addGeneratedReport;
 
         public static readonly string getUsageDataCount;
+        public static readonly string getImportsToNotify;
+        public static readonly string setImportsNotified;
 
         static ReportQueries() 
         {
@@ -62,6 +59,8 @@ namespace FWO.Api.Client.Queries
                 deleteGeneratedReport = File.ReadAllText(QueryPath + "report/deleteGeneratedReport.graphql");
                 addGeneratedReport = File.ReadAllText(QueryPath + "report/addGeneratedReport.graphql");
                 getUsageDataCount = File.ReadAllText(QueryPath + "report/getUsageDataCount.graphql");
+                getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotify.graphql");
+                setImportsNotified = File.ReadAllText(QueryPath + "report/setImportsNotified.graphql");
             }
             catch (Exception exception)
             {

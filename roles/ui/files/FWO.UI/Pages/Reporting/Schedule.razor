@@ -13,7 +13,7 @@
 
 <button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("actions"))">
         <Template>
             @if (context.Owner.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(GlobalConst.kAdmin))
@@ -76,10 +76,10 @@
             </div>
             <div class="form-group row">
                 <label for="scheduleRepeatEvery" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("repeat_every")):</label>
-                <div class="col-sm-4">
+                <div class="col-sm-3">
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatOffset" />
                 </div>
-                <div class="col-sm-4">
+                <div class="col-sm-5">
                     <Dropdown @bind-SelectedElement="scheduledReportInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>()" >
                         <ElementTemplate Context="interval">
                             @(userConfig.GetText(interval.ToString()))
@@ -150,7 +150,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="Report Schedule" Show="@ShowDeleteScheduledReportDialog">
+<PopUp Title="Report Schedule" Size=PopupSize.Small Show="@ShowDeleteScheduledReportDialog">
     <Body>
         <p>@(userConfig.GetText("U2002")) "@scheduledReportInEdit.Name" ?</p>
     </Body>

@@ -3121,6 +3121,34 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_rule_id",
+                      "new_rule_id",
+                      "old_rule_id",
+                      "documented",
+                      "implicit_change",
+                      "security_relevant",
+                      "change_action",
+                      "change_request_info",
+                      "unique_name",
+                      "change_type_id",
+                      "dev_id",
+                      "doku_admin",
+                      "import_admin",
+                      "mgm_id",
+                      "changelog_rule_comment",
+                      "change_time",
+                      "docu_time"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -5970,19 +5998,20 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "successful_import",
+                      "control_id",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
                       "import_errors",
-                      "mgm_id",
+                      "is_initial_import",
                       "last_change_in_config",
+                      "mgm_id",
+                      "notification_done",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {}
                   }
@@ -6080,6 +6109,16 @@
                       "last_change_in_config",
                       "start_time",
                       "stop_time"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "notification_done"
                     ],
                     "filter": {},
                     "check": {}
@@ -8680,6 +8719,45 @@
                       "obj_member_refs",
                       "obj_sys_desc",
                       "obj_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "last_change_admin",
+                      "zone_id",
+                      "mgm_id",
+                      "obj_name",
+                      "obj_comment",
+                      "obj_uid",
+                      "obj_typ_id",
+                      "obj_location",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "initial_config",
+                      "obj_sw",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat",
+                      "nattyp_id",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "obj_nat_install",
+                      "obj_color_id",
+                      "obj_sys_name",
+                      "obj_sys_location",
+                      "obj_sys_contact",
+                      "obj_sys_desc",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "active",
+                      "obj_create",
+                      "obj_last_seen"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -12226,7 +12304,44 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "dev_id"
+                      "parent_rule_id",
+                      "rule_create",
+                      "rule_id",
+                      "rule_last_seen",
+                      "xlate_rule",
+                      "access_rule",
+                      "active",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_implied",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "rule_installon",
+                      "rule_name",
+                      "rule_ruleid",
+                      "rule_time",
+                      "action_id",
+                      "dev_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "rule_from_zone",
+                      "rule_num",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_num_numeric",
+                      "parent_rule_type",
+                      "rule_action",
+                      "rule_comment",
+                      "rule_dst",
+                      "rule_dst_refs",
+                      "rule_head_text",
+                      "rule_src",
+                      "rule_src_refs",
+                      "rule_svc",
+                      "rule_svc_refs",
+                      "rule_track",
+                      "rule_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -12511,6 +12626,23 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -12793,8 +12925,23 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "rule_to_be_removed",
                       "dev_id",
-                      "rule_last_hit"
+                      "last_change_admin",
+                      "rule_last_certifier",
+                      "rule_owner",
+                      "rule_hit_counter",
+                      "rule_metadata_id",
+                      "rule_uid",
+                      "rule_created",
+                      "rule_decert_date",
+                      "rule_first_hit",
+                      "rule_last_certified",
+                      "rule_last_hit",
+                      "rule_last_modified",
+                      "rule_last_certifier_dn",
+                      "rule_owner_dn",
+                      "rule_recertification_comment"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -13146,6 +13293,21 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "rs_create",
+                      "rs_last_seen",
+                      "rule_id",
+                      "svc_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -13393,6 +13555,22 @@
                     ],
                     "computed_fields": [
                       "rule_to_relevant_for_tenant"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "negated",
+                      "obj_id",
+                      "rt_create",
+                      "rt_last_seen",
+                      "rule_id",
+                      "rule_to_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -13899,6 +14077,48 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "recertifier",
@@ -14868,6 +15088,18 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "ip_proto_name",
+                      "ip_proto_id",
+                      "ip_proto_comment"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -15000,6 +15232,18 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "obj_typ_id",
+                      "obj_typ_name",
+                      "obj_typ_comment"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -15082,6 +15326,18 @@
                   "role": "importer",
                   "permission": {
                     "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "svc_typ_name",
+                      "svc_typ_id",
+                      "svc_typ_comment"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -15339,6 +15595,17 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "usr_typ_name",
+                      "usr_typ_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "recertifier",
@@ -17933,6 +18200,37 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "user_create",
+                      "user_id",
+                      "user_last_seen",
+                      "active",
+                      "user_authmethod",
+                      "user_firstname",
+                      "user_lastname",
+                      "user_name",
+                      "user_valid_from",
+                      "user_valid_until",
+                      "last_change_admin",
+                      "mgm_id",
+                      "tenant_id",
+                      "user_color_id",
+                      "usr_typ_id",
+                      "dst_restrict",
+                      "src_restrict",
+                      "time_restrict",
+                      "user_comment",
+                      "user_member_names",
+                      "user_member_refs",
+                      "user_uid"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -18480,6 +18778,21 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "zone_create",
+                      "zone_last_seen",
+                      "active",
+                      "zone_name",
+                      "mgm_id",
+                      "zone_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "recertifier",

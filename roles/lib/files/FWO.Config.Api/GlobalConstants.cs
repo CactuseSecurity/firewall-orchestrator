@@ -15,6 +15,7 @@ namespace FWO.Config.Api
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kManual = "manual";
         public const string kModellerGroup = "ModellerGroup_";
+        public const string kImportChangeNotify = "importChangeNotify";
 
         public const string kAnonymous = "anonymous";
         public const string kAdmin = "admin";

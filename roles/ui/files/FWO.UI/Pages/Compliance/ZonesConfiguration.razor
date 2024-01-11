@@ -146,7 +146,7 @@
 
 @if (networkZoneInEdit != null)
 {
-	<PopUp Title="@userConfig.GetText("delete_zone_title")" Show="deleteMode" OnClose="() => deleteMode = false">
+	<PopUp Title="@userConfig.GetText("delete_zone_title")" Show="deleteMode" Size=PopupSize.Small OnClose="() => deleteMode = false">
 		<Body>
 			@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))
 		</Body>

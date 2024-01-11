@@ -1,0 +1,11 @@
+query getImportsToNotify {
+  import_control(where: {
+    successful_import: {_eq: true}
+    changes_found: {_eq: true}
+    notification_done: {_eq: false}
+  } order_by: {stop_time: asc}) {
+    control_id
+    stop_time
+    mgm_id
+  }
+}

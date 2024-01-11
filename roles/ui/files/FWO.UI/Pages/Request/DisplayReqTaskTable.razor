@@ -12,7 +12,7 @@
 @if (ReqHandler.ActTicket.Tasks.Count > 0)
 {
     <div class="m-2">
-        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestReqTask" Items="ReqHandler.ActTicket.Tasks" PageSize="0" ColumnReorder="true">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestReqTask" Items="ReqHandler.ActTicket.Tasks" PageSize="0" ColumnReorder="true">
             <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">

@@ -16,24 +16,28 @@
     <h3>@(userConfig.GetText("state_matrix"))</h3>
     @(userConfig.GetText("U5316"))
     <hr />
-    <div class="form-group row w-content">
+    <div class="form-group row">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
-        <div class="col-sm-2">
+        <div class="col-sm-3">
             <Dropdown ElementType="TaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >
                 <ElementTemplate Context="type">
                     @(userConfig.GetText(type.ToString()))
                 </ElementTemplate>
             </Dropdown>
         </div>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="InitMatrix">@(userConfig.GetText("select"))</button>
+        <div class="col-sm-3">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="InitMatrix">@(userConfig.GetText("select"))</button>
+        </div>
     </div>
 
     @foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
     {
         <hr />
         <div class="form-group row">
-            <input type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
-            <label class="col-form-label col-sm-2"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
+            <div class="col-sm-1">
+                <input type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
+            </div>
+            <label class="col-form-label col-sm-3"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
         </div>
         @if(actStateMatrix.GlobalMatrix[phase].Active)
         {
@@ -41,7 +45,7 @@
             <button type="button" class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(userConfig.GetText("add_state"))</button>
 
             <div class="m-2">
-                <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="actStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="actStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
                     <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("action"))" Field="(x => x.Key)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
@@ -70,7 +74,7 @@
             <h5>@(userConfig.GetText("special_states"))</h5>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
-                <div class="col-sm-2">
+                <div class="col-sm-3">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestInputState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
                         <ElementTemplate Context="stateId">
                             @stateNames[stateId]
@@ -80,7 +84,7 @@
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
-                <div class="col-sm-2">
+                <div class="col-sm-3">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestStartedState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
                         <ElementTemplate Context="stateId">
                             @stateNames[stateId]
@@ -90,7 +94,7 @@
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
-                <div class="col-sm-2">
+                <div class="col-sm-3">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestEndState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
                         <ElementTemplate Context="stateId">
                             @stateNames[stateId]
@@ -113,7 +117,7 @@
     </AuthorizeView>
     <br><br>
 
-    <PopUp Title="@(userConfig.GetText("save_settings"))" Show="@SaveMatrixMode" OnClose="() => SaveMatrixMode = false">
+    <PopUp Title="@(userConfig.GetText("save_settings"))" Show="@SaveMatrixMode" Size=PopupSize.Small OnClose="() => SaveMatrixMode = false">
         <Body>
             @if (SaveMatrixMode)
             {
@@ -135,7 +139,7 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("reset_to_default"))" Show="@ResetMatrixMode" OnClose="() => ResetMatrixMode = false">
+    <PopUp Title="@(userConfig.GetText("reset_to_default"))" Show="@ResetMatrixMode" Size=PopupSize.Small OnClose="() => ResetMatrixMode = false">
         <Body>
             @if (ResetMatrixMode)
             {
@@ -157,7 +161,7 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("edit_state") + ": " + statesDict.Name[actStateId])" Show="@EditTargetStatesMode" OnClose="() => EditTargetStatesMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_state") + ": " + statesDict.Name[actStateId])" Show="@EditTargetStatesMode" Size=PopupSize.Small OnClose="() => EditTargetStatesMode = false">
         <Body>
             @if (EditTargetStatesMode)
             {
@@ -169,13 +173,15 @@
                 {
                     <div class="form-group row">
                         <label class="col-sm-6 col-form-label col-form-label-sm">@statesDict.Name[stateId]</label>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(userConfig.GetText("remove"))</button>
+                        <div class="col-sm-6">
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(userConfig.GetText("remove"))</button>
+                        </div>
                     </div>
                 }
                 <hr />
                 @(userConfig.GetText("derived_state"))
                 <br><br>
-                <div class="col-sm-8">
+                <div class="col-sm-9">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
                         <ElementTemplate Context="stateId">
                             @stateNames[stateId]
@@ -191,11 +197,11 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("select_state"))" Show="@SelectStateMode" OnClose="() => SelectStateMode = false">
+    <PopUp Title="@(userConfig.GetText("select_state"))" Show="@SelectStateMode" Size=PopupSize.Small OnClose="() => SelectStateMode = false">
         <Body>
             @if (SelectStateMode)
             {
-                <div class="col-sm-8">
+                <div class="col-sm-9">
                     <Dropdown ElementType="int" @bind-SelectedElement="stateIdToAdd" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
                         <ElementTemplate Context="stateId">
                             @stateNames[stateId]

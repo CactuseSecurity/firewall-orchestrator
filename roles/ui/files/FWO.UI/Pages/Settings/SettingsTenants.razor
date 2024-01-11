@@ -3,6 +3,7 @@
 @using System.Net
 @using FWO.Api.Data
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
@@ -22,17 +23,17 @@
 @if (addDeleteAllowed)
 {
      <div class="btn-group m-1 sticky-marker-60">
-        <button type="button" class="btn btn-sm btn-success mr-2 mb-2 mt-2"
+        <button type="button" class="btn btn-sm btn-success"
             @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
         @if (showCleanupButton)
         {
-            <button type="button" class="btn btn-sm btn-danger mr-2 mb-2 mt-2"
+            <button type="button" class="btn btn-sm btn-danger"
                 @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
         }
     </div>
 }
 <div class="mt-2">
-    <Table class="table table-sm table-bordered table-responsive vheight75 overflow-auto sticky-header"
+    <Table class="table table-sm table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header"
         TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
         <Column TableItem="Tenant" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false"
             Filterable="false">
@@ -108,7 +109,7 @@
                         class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant_vis_devices")):</label>
                     <div class="col-sm-9">
                         <button type="button" class="btn btn-sm btn-warning w-content"
-                            @onclick="() => EditDevicesSelectedForTenant(actTenant)">@(userConfig.GetText("edit"))
+                            @onclick="EditDevicesSelectedForTenant">@(userConfig.GetText("edit"))
                         </button>
                     </div>
                 </div>
@@ -150,7 +151,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="() => EditDevicesSelectedForTenantMode = false">
+<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="() => LeaveEditDevicesSelectedForTenantMode(cancel:true)">
     <Body>
         @if (EditDevicesSelectedForTenantMode)
         {
@@ -249,8 +250,8 @@
                 AnalyseSampleTenants();
             }
 
-            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
 
         }
         catch (Exception exception)
@@ -274,41 +275,50 @@
 
     private async Task NewTenant()
     {
-        await EditTenant(new Tenant());
         AddTenantMode = true;
+        await EditTenant(new Tenant());
     }
 
     private async Task EditTenant(Tenant tenant)
     {
-        actTenant = tenant;
-        isTenant0 = tenant.Id == 1;
-        if (AddTenantMode)
+        try
         {
-            actIpAddresses.Clear();
-        }
-        else
-        {
-            actIpAddresses = await
-            apiConnection.SendQueryAsync<List<NwObjectElement>>(FWO.Api.Client.Queries.AuthQueries.getTenantNetworks, new
+            actTenant = tenant;
+            isTenant0 = tenant.Id == 1;
+            if (AddTenantMode)
             {
-                tenantId
-            = actTenant.Id
-            });
+                actIpAddresses.Clear();
+            }
+            else
+            {
+                actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(AuthQueries.getTenantNetworks, 
+                    new { tenantId = actTenant.Id });
+            }
+            ipsToAdd.Clear();
+            ipsToDelete.Clear();
+            EditTenantMode = true;
         }
-        ipsToAdd.Clear();
-        ipsToDelete.Clear();
-        EditTenantMode = true;
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_tenant"), "", true);
+        }
     }
 
-    private async Task EditDevicesSelectedForTenant(Tenant tenant)
+    private async Task EditDevicesSelectedForTenant()
     {
-        savedDeviceFilter = await SyncDeviceSelections(tenant);
-        actTenant = tenant;
-        // TODO: add device filter to tenant
-        EditDevicesSelectedForTenantMode = true;
+        try
+        {
+            savedDeviceFilter = await SyncDeviceSelections();
+            // TODO: add device filter to tenant
+            EditDevicesSelectedForTenantMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), "", true);
+        }
     }
 
-    private async Task<DeviceFilter> SyncDeviceSelections(Tenant tenant)
+    private async Task<DeviceFilter> SyncDeviceSelections()
     {
         // now getting the details for the current tenant
         RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
@@ -319,7 +329,6 @@
         else
         {
             tenants.Clear();
-            Tenant tenantDetails  = new Tenant();
             foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
             {
                 tenants.Add(new Tenant(apiTenant));
@@ -328,7 +337,6 @@
         }
 
         List<ManagementSelect> allDevs = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-        Tenant tenantDevices = (await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants, new { tenant_id = tenant.Id })).First();
 
         // initialize all devices (to invisible)
         foreach (ManagementSelect mgm in allDevs)
@@ -342,6 +350,19 @@
             }
         }
 
+        if(!AddTenantMode)
+        {
+            await RestoreDeviceVisibility(allDevs);
+        }
+
+        devicesSelectedForTenant = new DeviceFilter(allDevs);
+        return devicesSelectedForTenant;
+    }
+
+    private async Task RestoreDeviceVisibility(List<ManagementSelect> allDevs)
+    {
+        Tenant tenantDevices = (await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants, new { tenant_id = actTenant.Id })).First();
+
         // set dev visibility for all non-shared managements
         foreach (TenantManagement tenMgm in tenantDevices.TenantManagements)
         {
@@ -349,16 +370,13 @@
             {
                 if (mgm.Id == tenMgm.VisibleManagement.Id)
                 {
+                    mgm.Visible = true;
                     if (!tenMgm.Shared)
                     {
-                        // set management to Visible and Shared = false
-                        mgm.Visible = true;
                         mgm.Shared = false;
                     }
                     else
                     {
-                        // shared managements visible and shared
-                        mgm.Visible = true;
                         mgm.Shared = true;
                     }
                 }
@@ -379,10 +397,6 @@
                 }
             }
         }
-
-        devicesSelectedForTenant = new DeviceFilter(allDevs);
-
-        return devicesSelectedForTenant;
     }
 
     private async Task addTenantNetworks()
@@ -397,7 +411,7 @@
                 name = ipAdd.Name,
                 comment = ipAdd.Comment
             };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenantNetwork, Variables);
+            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantNetwork, Variables);
         }
     }
 
@@ -410,7 +424,7 @@
                 tenantId = actTenant.Id,
                 tenNetId = ipDel.ElemId
             };
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteTenantNetwork, Variables);
+            await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.deleteTenantNetwork, Variables);
         }
     }
 
@@ -545,8 +559,9 @@
                         }
                         else
                         {
-                            await addTenantNetworks();
                             actTenant.Id = middlewareServerResponse.Data;
+                            await AddMgtAndDevMappings();
+                            await addTenantNetworks();
                             tenants.Add(actTenant);
                             AddTenantMode = false;
                             EditTenantMode = false;
@@ -585,41 +600,52 @@
         }
         else
         {
-            try
-            // delete all tenant to device and management mappings for the current tenant
+            if(!AddTenantMode)
             {
-                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
-                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
-            }
-            catch (System.Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
-            }
-
-            try
-            // saving tenant to device and management mappings
-            {
-                foreach (ManagementSelect mgm in devicesSelectedForTenant.Managements)
-                {
-                    if (mgm.Visible)
-                    {
-                        await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
-                        foreach (DeviceSelect gw in mgm.Devices)
-                        {
-                            if (gw.Visible)
-                            {
-                                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
-                            }
-                        }
-
-                    }
-                }
-            }
-            catch (System.Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
+                await DeleteMgtAndDevMappings();
+                await AddMgtAndDevMappings();
             }
         }
         EditDevicesSelectedForTenantMode = false;
+    }
+
+    private async Task DeleteMgtAndDevMappings()
+    {
+        try
+        {
+            // delete all tenant to device and management mappings for the current tenant
+            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
+            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
+        }
+    }
+
+    private async Task AddMgtAndDevMappings()
+    {
+        try
+        {
+            // saving tenant to device and management mappings
+            foreach (ManagementSelect mgm in devicesSelectedForTenant.Managements)
+            {
+                if (mgm.Visible)
+                {
+                    await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
+                    foreach (DeviceSelect gw in mgm.Devices)
+                    {
+                        if (gw.Visible)
+                        {
+                            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
+                        }
+                    }
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
+        }
     }
 }

@@ -22,16 +22,16 @@
     <h3>@(userConfig.GetText("owners"))</h3>
     @(userConfig.GetText("U5216"))
     <hr />
-    <div class="form-group row w-content">
+    <div class="btn-group m-1">
         @if(userConfig.AllowManualOwnerAdmin)
         {
-            <button type="button" class="btn btn-sm btn-success m-2" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
+            <button type="button" class="btn btn-sm btn-success" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
         }
         <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
             <Authorized>
                 @if (!recertCalcInProgress)
                 {
-                    <button type="button" class="btn btn-sm btn-info m-2" @onclick:preventDefault="true" @onclick="@( async () => { 
+                    <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
                         recertCalcInProgress = true; 
                         if (await recertRefresh.RecalcRecerts())
                         {
@@ -46,19 +46,19 @@
                 }
             </Authorized>
             <NotAuthorized>
-                <button type="button" disabled class="btn btn-sm btn-info m-2">@(userConfig.GetText("recalc_recerts"))</button>
+                <button type="button" disabled class="btn btn-sm btn-info">@(userConfig.GetText("recalc_recerts"))</button>
             </NotAuthorized> 
         </AuthorizeView>
 
         @if (showCleanupButton)
         {
-            <button type="button" class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
         }
         <br><br>
     </div>
     
     <div class="m-2">
-        <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="FwoOwner" Items="owners" PageSize="0" ColumnReorder="true">
+        <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="FwoOwner" Items="owners" PageSize="0" ColumnReorder="true">
             @if(userConfig.AllowManualOwnerAdmin)
             {
                 <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">

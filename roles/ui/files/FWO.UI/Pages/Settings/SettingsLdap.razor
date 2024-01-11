@@ -19,10 +19,10 @@
 @(userConfig.GetText("U5211"))
 <hr />
 
-<button type="button" class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_ldap"))</button>
+<button type="button" class="btn btn-sm btn-success m-1" @onclick="Add">@(userConfig.GetText("add_new_ldap"))</button>
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="UiLdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="UiLdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">

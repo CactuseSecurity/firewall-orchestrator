@@ -12,15 +12,15 @@
     <h3>@(userConfig.GetText("network_modelling"))</h3>
     <hr />
 
-    <div>
-        <label class="col-form-label">@(userConfig.GetText("application")):</label>&nbsp;
+    <div class="form-group row">
+        <label class="col-form-label col-sm-1">@(userConfig.GetText("application")):</label>&nbsp;
         @if(singleApp)
         {
-            <label class="col-form-label text-primary ml-3">@selectedApp.Display()</label>
+            <label class="col-form-label text-primary col-sm-4">@selectedApp.Display()</label>
         }
         else
         {
-            <div class="btn-group">
+            <div class="col-sm-4">
                 <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display())" SelectedElement="selectedApp" 
                         SelectedElementChanged="InitApp" Elements="apps">
                     <ElementTemplate Context="app">
@@ -29,14 +29,17 @@
                 </Dropdown>
             </div>
         }
-        &nbsp;
-        @* <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
-        <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
-            <Authorized>
-                <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
-            </Authorized>
-        </AuthorizeView>
-        @* <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
+        <div class="col-sm-6">
+            <div class="btn-group">
+                @* <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
+                    </Authorized>
+                </AuthorizeView>
+                @* <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
+            </div>
+        </div>
     </div>
     <hr />
     @if(singleApp || appSelected)
@@ -57,8 +60,8 @@
             }
             </h5>
         </div>
-        <div class="m-2">
-            <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
+        <div class="m-2 vheight75">
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="appHandler.Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
                 @if(userConfig.AllowManualOwnerAdmin)
                 {
                     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -253,7 +256,7 @@ else
     {
         if(conn.IsInterface)
         {
-            return "bg-light-grey";
+            return "td-bg-light-grey";
         }
         return "";
     }

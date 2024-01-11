@@ -27,8 +27,8 @@
     }
 </div>
 
-<div class="d-flex flex-column m-2">
-    <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
+<div class="d-flex flex-column m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
         <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">

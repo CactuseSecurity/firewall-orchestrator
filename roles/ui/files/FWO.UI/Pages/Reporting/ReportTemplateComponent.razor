@@ -6,8 +6,8 @@
 
 <div class="mr-1 ml-1 mb-1 shadow">
     <Collapse Title="@(userConfig.GetText("templates"))" Style="@("primary")" StartToggled="false" @ref="collapseControl">
-        <div class="card-body">
-            <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="ReportTemplate" Items="reportTemplates" PageSize="0">
+        <div class="card-body vheight75">
+            <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportTemplate" Items="reportTemplates" PageSize="0">
                 <Column Title="@(userConfig.GetText("actions"))" TableItem="ReportTemplate">
                     <Template Context="template">
                         @if (OnTemplateLoad != null)
@@ -106,9 +106,9 @@
             }
             <div class="form-group row">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
-                <div class="form-group row col-sm-9 justify-content-between">
-                    <label class="">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
+                <div class="form-group row col-sm-9">
+                    <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
+                    <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
                 </div>
             </div>
             <div class="form-group row">

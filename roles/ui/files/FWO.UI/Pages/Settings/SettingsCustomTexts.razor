@@ -44,23 +44,25 @@
 }
 @if(displayResults)
 {
-    <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="TextEntry" Items="results" PageSize="0" ColumnReorder="true">
-        <Column TableItem="TextEntry" Title="@(userConfig.GetText("key"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" />
-        <Column TableItem="TextEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.Text)" Sortable="true" Filterable="true" />
-        <Column Context="res" TableItem="TextEntry" Title="@(userConfig.GetText("custom_text"))" Field="@(x => x.CustomText)" Sortable="true" Filterable="true" >
-            <Template>
-                <input type="string" @bind="res.CustomText">
-            </Template>
-        </Column>
-        <Column Context="res" TableItem="TextEntry" Title="@(userConfig.GetText("delete"))" Field="@(x => x.Delete)" Sortable="false" Filterable="false" >
-            <Template>
-                @if(actCustomDict.ContainsKey(res.Key))
-                {
-                    <input type="checkbox" @bind="res.Delete">
-                }
-            </Template>
-        </Column>
-    </Table>
+    <div class="m-2 vheight75">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="TextEntry" Items="results" PageSize="0" ColumnReorder="true">
+            <Column TableItem="TextEntry" Title="@(userConfig.GetText("key"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" />
+            <Column TableItem="TextEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.Text)" Sortable="true" Filterable="true" />
+            <Column Context="res" TableItem="TextEntry" Title="@(userConfig.GetText("custom_text"))" Field="@(x => x.CustomText)" Sortable="true" Filterable="true" >
+                <Template>
+                    <input type="string" @bind="res.CustomText">
+                </Template>
+            </Column>
+            <Column Context="res" TableItem="TextEntry" Title="@(userConfig.GetText("delete"))" Field="@(x => x.Delete)" Sortable="false" Filterable="false" >
+                <Template>
+                    @if(actCustomDict.ContainsKey(res.Key))
+                    {
+                        <input type="checkbox" @bind="res.Delete">
+                    }
+                </Template>
+            </Column>
+        </Table>
+    </div>
 }
 <hr />
 <AuthorizeView Roles="@GlobalConst.kAdmin">

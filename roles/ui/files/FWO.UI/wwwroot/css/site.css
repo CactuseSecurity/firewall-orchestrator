@@ -130,8 +130,12 @@ header {
     background-image: linear-gradient(#e4e8ec, #e4e8ef);
 }
 
-.th-bg-secondary th {
+.td-bg-light-grey td{
     background-color: #e4e8ec;
+}
+
+.th-bg-secondary th {
+    background-color: #9b9797;
 }
 
 .navbar-nav .active {
@@ -412,7 +416,7 @@ thead {
     z-index: 2;
 }
 
-.vheight75 {
+.vheight75 div{
     max-height: calc(100vh - 300px);
 }
 
@@ -460,8 +464,4 @@ thead {
 .radioSpace {
     margin-right:10px;
     margin-left:20px;
-}
-
-.bg-light-grey {
-    background-color: #e0dcdc;
 }

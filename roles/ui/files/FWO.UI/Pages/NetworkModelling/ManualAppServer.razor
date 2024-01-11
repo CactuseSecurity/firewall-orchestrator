@@ -12,36 +12,38 @@
         @if (Display)
         {
             <button type="button" class="btn btn-sm btn-success ml-5 mb-2" @onclick="appServerListHandler.CreateAppServer">@(userConfig.GetText("add_app_server"))</button>
-            <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingAppServer" Items="appServerListHandler.ManualAppServers" PageSize="0" ColumnReorder="true">
-                <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-                    <Template>
-                        <div class="btn-group">
-                            @if(context.IsDeleted)
-                            {
-                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => appServerListHandler.RequestReactivateAppServer(context)">@(userConfig.GetText("reactivate"))</button>
-                            }
-                            else
-                            {
-                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => appServerListHandler.EditAppServer(context)">@(userConfig.GetText("edit"))</button>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => appServerListHandler.RequestDeleteAppServer(context)">@(userConfig.GetText(context.InUse ? "deactivate" : "delete"))</button>
-                            }
-                        </div>
-                    </Template>
-                </Column>
-                <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-                <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
-                    <Template>
-                        @((MarkupString)context.DisplayHtml())
-                    </Template>
-                </Column>
-                <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
-                <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
-                    <Template>
-                        @(GlobalConfig.ShowBool(context.InUse))
-                    </Template>
-                </Column>
-                <Pager ShowPageNumber="true" ShowTotalCount="true" />
-            </Table>
+            <div class="vheight75">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingAppServer" Items="appServerListHandler.ManualAppServers" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            <div class="btn-group">
+                                @if(context.IsDeleted)
+                                {
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => appServerListHandler.RequestReactivateAppServer(context)">@(userConfig.GetText("reactivate"))</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => appServerListHandler.EditAppServer(context)">@(userConfig.GetText("edit"))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => appServerListHandler.RequestDeleteAppServer(context)">@(userConfig.GetText(context.InUse ? "deactivate" : "delete"))</button>
+                                }
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @((MarkupString)context.DisplayHtml())
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(GlobalConfig.ShowBool(context.InUse))
+                        </Template>
+                    </Column>
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                </Table>
+            </div>
         }
     </Body>
     <Footer>

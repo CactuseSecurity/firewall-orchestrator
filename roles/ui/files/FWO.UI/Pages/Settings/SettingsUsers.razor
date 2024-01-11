@@ -36,8 +36,8 @@
     }
 </div>
 
-<div class="m-2">
-    <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
         <Column TableItem="UiUser" Title="@(userConfig.GetText("actions"))" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -83,7 +83,7 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -92,11 +92,11 @@
                     }
                     else
                     {
-                        <label class="m-2">@actUser.Name</label>
+                        <label class="col-sm-8">@actUser.Name</label>
                     }
                 </div>
                 <div class="form-group row">
-                    <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("into_ldap"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("into_ldap"))*:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -109,11 +109,11 @@
                     }
                     else
                     {
-                        <label class="m-2">@actUser.LdapConnection.Name</label>
+                        <label class="col-sm-8">@actUser.LdapConnection.Name</label>
                     }
                 </div>
                 <div class="form-group row">
-                    <label for="userTenant" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -126,30 +126,30 @@
                     }
                     else
                     {
-                        <label class="m-2">@(actUser.Tenant != null ? actUser.Tenant.Name : "")</label>
+                        <label class="col-sm-8">@(actUser.Tenant != null ? actUser.Tenant.Name : "")</label>
                     }
                 </div>
                 <div class="form-group row">
-                    <label for="userDn" class="col-sm-2 col-form-label col-form-label-sm">Dn:</label>
-                    <label class="m-2">@actUser.Dn</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">Dn:</label>
+                    <label class="col-sm-8">@actUser.Dn</label>
                 </div>
                 @if (AddMode)
                 {
                     <div class="form-group row">
-                        <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
                         <div class="col-sm-8">
-                            <input id="userPassword" type="password" class="form-control form-control-sm" @bind="actUser.Password" />
+                            <input type="password" class="form-control form-control-sm" @bind="actUser.Password" />
                         </div>
                     </div>
                 }
                 <div class="form-group row">
-                    <label for="userEmail" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
                     <div class="col-sm-8">
-                        <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Email" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="userGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -162,11 +162,11 @@
                     }
                     else
                     {
-                        <label class="m-2">@(actUser.Groups.Count > 0 ? actUser.Groups.First() : "")</label>
+                        <label class="col-sm-8">@(actUser.Groups.Count > 0 ? actUser.Groups.First() : "")</label>
                     }
                 </div>
                 <div class="form-group row">
-                    <label for="userRole" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("roles"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("roles"))*:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -179,7 +179,7 @@
                     }
                     else
                     {
-                        <label class="m-2">@((actUser.Roles.Count > 0) ? actUser.Roles.First() : "")</label>
+                        <label class="col-sm-8">@((actUser.Roles.Count > 0) ? actUser.Roles.First() : "")</label>
                     }
                 </div>
             </form>
@@ -207,7 +207,7 @@
             <form onsubmit="return false">
                 <div class="form-group row">
                     <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                    <label class="m-2">@actUser.Name</label>
+                    <label class="col-sm-8">@actUser.Name</label>
                 </div>
                 <div class="form-group row">
                     <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>

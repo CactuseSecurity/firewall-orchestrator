@@ -27,8 +27,8 @@
     }
 </div>
 
-<div class="m-2">
-    <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="UserGroup" Items="groups" PageSize="0" ColumnReorder="true">
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="UserGroup" Items="groups" PageSize="0" ColumnReorder="true">
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("group_action"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -130,8 +130,8 @@
         @if (AddUserMode)
         {
             <form>
-                <form class="form-inline">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUiUser" Elements="uiUsers">
                             <ElementTemplate Context="user">
@@ -139,7 +139,7 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                </form>
+                </div>
             </form>
         }
     </Body>
@@ -158,7 +158,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("remove_user_from_group") + ": " + actGroup.Name)" Show="@RemoveUserMode" Size=PopupSize.Small OnClose="() => RemoveUserMode = false">
+<PopUp Title="@(userConfig.GetText("remove_user_from_group") + ": " + actGroup.Name)" Show="@RemoveUserMode" Size=PopupSize.Large OnClose="() => RemoveUserMode = false">
     <Body>
         @if (RemoveUserMode)
         {

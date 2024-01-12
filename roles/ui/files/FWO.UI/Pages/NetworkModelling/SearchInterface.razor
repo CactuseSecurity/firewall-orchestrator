@@ -10,7 +10,7 @@
         @if (Display)
         {
             <div class="form-group row">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
                 <div class="col-sm-9">
                     <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="selectedInterface" ElementToString="@(i => DisplayInterface(i))" Elements="selectableInterfaces" Nullable="true">
                         <ElementTemplate Context="inter">

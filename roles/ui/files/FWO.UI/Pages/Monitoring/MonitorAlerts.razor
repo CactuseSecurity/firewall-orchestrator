@@ -13,28 +13,38 @@
 @(userConfig.GetText("U7101"))
 <hr />
 
-<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
-    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)"  Sortable="true" Filterable="true"/>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)"  Sortable="true" Filterable="true"/>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true"/>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" Sortable="true" Filterable="true"/>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
-        <Template>
-            @(managements.FirstOrDefault(x => x.Id == context.ManagementId)?.Name)
-        </Template>
-    </Column>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("acknowledged_by"))" Field="@(x => x.AcknowledgedBy)" Sortable="true">
-        <Template>
-            @(uiUsers.FirstOrDefault(x => x.DbId == context.AcknowledgedBy)?.Name)
-        </Template>
-    </Column>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.AckTimestamp)" Sortable="true" Filterable="true"/>
-    <Pager ShowPageNumber="true" ShowTotalCount="true" />
-</Table>
-
+@if(InitComplete)
+{
+    <div class="vheight75">
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
+            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)"  Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)"  Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
+                <Template>
+                    @(managements.FirstOrDefault(x => x.Id == context.ManagementId)?.Name)
+                </Template>
+            </Column>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("acknowledged_by"))" Field="@(x => x.AcknowledgedBy)" Sortable="true">
+                <Template>
+                    @(uiUsers.FirstOrDefault(x => x.DbId == context.AcknowledgedBy)?.Name)
+                </Template>
+            </Column>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.AckTimestamp)" Sortable="true" Filterable="true"/>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {
@@ -44,6 +54,7 @@
     private List<Alert> alertEntrys = new List<Alert>();
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<Management> managements = new List<Management>();
+    private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,6 +70,7 @@
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+            InitComplete = true;
         }
         catch (Exception exception)
         {

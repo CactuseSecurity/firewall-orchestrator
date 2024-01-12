@@ -44,7 +44,7 @@
             <h5>@(userConfig.GetText("allowed_transitions"))</h5>
             <button type="button" class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(userConfig.GetText("add_state"))</button>
 
-            <div class="m-2">
+            <div class="m-2 vheight75">
                 <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="actStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
                     <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("action"))" Field="(x => x.Key)" Sortable="false" Filterable="false">
                         <Template>

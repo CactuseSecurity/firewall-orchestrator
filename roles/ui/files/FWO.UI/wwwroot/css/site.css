@@ -177,6 +177,7 @@ h5 {
 .popup-body {
     width: 100%;
     height: fit-content;
+    max-height: 60svh;
     margin: 2%;
     overflow-y: scroll;
     padding-right: 17px;
@@ -420,6 +421,9 @@ thead {
     max-height: calc(100vh - 300px);
 }
 
+.vheightpopup div{
+    max-height: 75vh;
+}
 .vheight100 {
     height: 100vh
 }

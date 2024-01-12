@@ -120,7 +120,7 @@
 <ReportTabset></ReportTabset>
 
     @* ==== Filter line ==== *@
-    <form class="m-1 position-relative" @onsubmit="GenerateReport">
+    <form class="m-1" @onsubmit="GenerateReport">
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
                 class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
         <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"

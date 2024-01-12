@@ -7,10 +7,12 @@
 
 <div id="@($"dropdown-{Id}")" class="btn-group d-block">
 	<div id="@($"dropdown-input-group-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
-		<div id="@($"dropdown-input-prepend-{Id}")" class="input-group-prepend">
-			<span id="@($"dropdown-input-prepend-icon-{Id}")" class="input-group-text"><span class="oi oi-magnifying-glass"></span></span>
+		<div class="form-group row col-sm-12">
+			<div id="@($"dropdown-input-prepend-{Id}")" class="input-group-prepend" style="width: 50px;">
+				<span id="@($"dropdown-input-prepend-icon-{Id}")" class="input-group-text" style="width: 50px;"><span class="oi oi-magnifying-glass"></span></span>
+			</div>
+			<input id="@($"dropdown-input-{Id}")" class="custom-select d-block @InputClass" style="width: calc(100% - 50px);" @onclick="Toggle" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
 		</div>
-		<input id="@($"dropdown-input-{Id}")" class="custom-select d-block @InputClass" @onclick="Toggle" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
 		@if (Append != null)
 		{
 			<div class="input-group-append">

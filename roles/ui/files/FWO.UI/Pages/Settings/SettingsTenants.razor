@@ -32,8 +32,8 @@
         }
     </div>
 }
-<div class="mt-2">
-    <Table class="table table-sm table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header"
+<div class="mt-2 vheight75">
+    <Table class="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
         TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
         <Column TableItem="Tenant" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false"
             Filterable="false">

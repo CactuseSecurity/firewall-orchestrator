@@ -421,9 +421,6 @@ thead {
     max-height: calc(100vh - 300px);
 }
 
-.vheightpopup div{
-    max-height: 75vh;
-}
 .vheight100 {
     height: 100vh
 }

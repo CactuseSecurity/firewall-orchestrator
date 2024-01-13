@@ -10,7 +10,7 @@
     <Body>
         @if (Display)
         {
-            <div class="vheight75">
+            <div class="vheight60">
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingHistoryEntry" Items="history" PageSize="100" ColumnReorder="true">
                     <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true">
                         <Template>

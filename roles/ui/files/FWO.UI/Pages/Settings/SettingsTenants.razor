@@ -88,7 +88,7 @@
                         <label class="col-sm-9">@actTenant.Name</label>
                     }
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="tenantComment"
                         class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-9">
@@ -96,7 +96,7 @@
                             @bind="actTenant.Comment" />
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="tenantProject"
                         class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("project")):</label>
                     <div class="col-sm-9">
@@ -104,7 +104,7 @@
                             @bind="actTenant.Project" />
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="tenantDeviceSelection"
                         class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant_vis_devices")):</label>
                     <div class="col-sm-9">
@@ -113,40 +113,33 @@
                         </button>
                     </div>
                 </div>
-                <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete" />
+                <div class="col-sm-12 mt-2">
+                    <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete" />
+                </div>
             </form>
         }
     </Body>
     <Footer>
-        <br><br><br><br><br><br><br><br>
-        <div>
+        <div class="btn-group">
             <AuthorizeView Roles="admin, fw-admin">
                 <Authorized>
-                    @if (addDeleteAllowed)
+                    @if (addDeleteAllowed && !AddTenantMode)
                     {
                         @if (actTenant.Id != 1)
                         {
-                            <div class="button-container left">
-                                <button type="button" class="btn btn-sm btn-danger"
-                                    @onclick="() => RequestDeleteTenant(actTenant)">@(userConfig.GetText("delete_tenant"))</button>
-                            </div>
+                            <button type="button" class="btn btn-sm btn-danger"
+                                @onclick="() => RequestDeleteTenant(actTenant)">@(userConfig.GetText("delete_tenant"))</button>
                         }
                     }
-                    <div class="button-container center">
-                        <button type="button" class="btn btn-primary"
-                            @onclick="() => LeaveModifyTenantMode(cancel:false)">@(userConfig.GetText("save"))</button>
-                    </div>
+                    <button type="button" class="btn btn-primary"
+                        @onclick="() => LeaveModifyTenantMode(cancel:false)">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <div class="button-container center">
-                        <button type="button" class="btn btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                    </div>
+                    <button type="button" class="btn btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
             </AuthorizeView>
-            <div class="button-container right">
-                <button type="button" class="btn btn-sm btn-secondary"
-                    @onclick="() => LeaveModifyTenantMode(cancel:true)">@(userConfig.GetText("cancel"))</button>
-            </div>
+            <button type="button" class="btn btn-sm btn-secondary"
+                @onclick="() => LeaveModifyTenantMode(cancel:true)">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

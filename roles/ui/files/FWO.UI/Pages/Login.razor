@@ -32,12 +32,12 @@
                     <div class="form-group">
                         <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput" @ref="usernameInput">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group mt-2">
                         <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
                     </div>
                     @if (loginInProgress == false)
                     {
-                        <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
+                        <button type="submit" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
                         @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
                     }
                     else

@@ -61,13 +61,13 @@
                 <label for="scheduleId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                 <label class="col-sm-8 col-form-label col-form-label-sm">@scheduledReportInEdit.Id</label>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                 <div class="col-sm-8">
                     <input id="scheduleName" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.Name" />
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleStartTime" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("start_time")):</label>
                 <div class="col-sm-4">
                     <input id="scheduleStartTime" type="time" step="60" class="form-control form-control-sm" @bind="actTime" />
@@ -76,7 +76,7 @@
                     <input id="scheduleStartTimeDate" type="date" class="form-control form-control-sm" @bind="actDate" />
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleRepeatEvery" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("repeat_every")):</label>
                 <div class="col-sm-3">
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatOffset" />
@@ -89,7 +89,7 @@
                     </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleTemplate" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("template")):</label>
                 <div class="col-sm-8">
                     <Dropdown ElementType="ReportTemplate" ElementToString="@(o => o.Name)" Nullable="false"
@@ -100,7 +100,7 @@
                     </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("output_format")):</label>
                 <div class="col-sm-8">
                     <div class="form-inline justify-content-between">
@@ -138,7 +138,7 @@
                     </div>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
                 <div class="col-sm-8" style="padding-top: calc(0.25rem + 1px);">
                     <input id="scheduleActive" type="checkbox" class="form-control form-control-sm" style="max-height: 22px;" @bind="scheduledReportInEdit.Active" />

@@ -40,7 +40,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
@@ -74,7 +74,7 @@
                 </div>
                 @if(ReqHandler.ActImplTask.TaskType == TaskType.generic.ToString())
                 {
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
                         <div class="col-sm-11">
                             <textarea rows="2" type="text" class="form-control form-control-sm" readonly="true" >@ReqHandler.ActImplTask.FreeText</textarea>
@@ -84,7 +84,7 @@
 
                 @if(ReqHandler.ActImplTask.TaskType == TaskType.access.ToString())
                 {
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <div class="col-sm-3">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
@@ -161,7 +161,7 @@
                 {
                     <DisplayRules @bind-Rules="actRules" TaskId="ReqHandler.ActImplTask.Id" EditMode="ReqHandler.EditImplTaskMode" />
                 }
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <div class="col-sm-1">
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                         @if(ReqHandler.ImplementImplTaskMode)
@@ -175,7 +175,7 @@
                 </div>
                 @if(ReqHandler.ImplementImplTaskMode)
                 {
-                    <div class="col-sm-12">
+                    <div class="col-sm-12 mt-2">
                         <div class="form-group row justify-content-center">
                             @foreach(var action in offeredActions)
                             {

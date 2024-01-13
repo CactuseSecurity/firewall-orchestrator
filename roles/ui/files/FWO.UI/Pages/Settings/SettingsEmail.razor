@@ -26,14 +26,14 @@
             <input id="emailAddress" type="text" class="form-control form-control-sm" @bind="actEmailConnection.ServerAddress" />
         </div>
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2">
         <label for="emailPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
         <div class="col-sm-2">
             <input id="emailPort" type="number" class="form-control form-control-sm" @bind="actEmailConnection.Port" />
         </div>
     </div>
 
-    <div class="form-group row">
+    <div class="form-group row mt-2">
         <label for="emailEncryption" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_enc_method"))*:</label>
         <p>
         <InputRadioGroup @bind-Value="actEmailConnection.Encryption">
@@ -44,40 +44,40 @@
         </InputRadioGroup>
         </p>
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2">
         <label for="emailAuthUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_auth_user")):</label>
         <div class="col-sm-8">
             <input id="emailAuthUser" type="text" class="form-control form-control-sm" @bind="actEmailConnection.User" />
         </div>
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2">
         <label for="emailAuthUserPwd" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_auth_pwd")):</label>
         <div class="col-sm-8">
             <input id="emailAuthUserPwd" type="password" class="form-control form-control-sm" @bind="actEmailConnection.Password" />
         </div>
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2">
         <label for="emailSenderAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_sender")):</label>
         <div class="col-sm-8">
             <input id="emailSenderAddress" type="email" class="form-control form-control-sm" @bind="actEmailConnection.SenderEmailAddress" />
         </div>
     </div>
 </EditForm>
-
-
+<hr>
 
 <div class="btn-group">
-<AuthorizeView Roles="@GlobalConst.kAdmin">
-    <Authorized>
-        <button type="button" class="btn btn-sm btn-dark" @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
-    </Authorized>
-    <NotAuthorized>
-        <button type="button" class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("test_connection"))</button>
-        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-    </NotAuthorized> 
-</AuthorizeView>
+    <AuthorizeView Roles="@GlobalConst.kAdmin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-dark" @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("test_connection"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized> 
+    </AuthorizeView>
 </div>
+
 @code
 {
     [CascadingParameter]

@@ -9414,11 +9414,6 @@
                               }
                             }
                           ]
-                        },
-                        {
-                          "app_id_external": {
-                            "_in": "x-hasura-visible-owners"
-                          }
                         }
                       ]
                     },

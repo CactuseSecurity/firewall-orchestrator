@@ -187,18 +187,13 @@
 
     private List<Tenant> tenants = new List<Tenant>();
     private List<Tenant> sampleTenants = new List<Tenant>();
-    private List<Device> devices = new List<Device>();
-    private List<Device> remainingDevices = new List<Device>();
     private DeviceFilter devicesSelectedForTenant = new DeviceFilter();
-    private DeviceFilter savedDeviceFilter = new DeviceFilter();
     private bool collapseDevices = false;
     private List<UiUser> uiUsers = new List<UiUser>();
 
     private Tenant actTenant = new Tenant();
-    private Device selectedDevice = new Device();
     private bool selectAll = true;
 
-    private bool isTenant0 = false;
     private bool AddTenantMode = false;
     private bool EditTenantMode = false;
     private bool DeleteTenantMode = false;
@@ -223,33 +218,35 @@
         try
         {
             addDeleteAllowed = authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor);
-            RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
-            {
-                DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
-            }
-            else
-            {
-                tenants = new List<Tenant>();
-                foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
-                {
-                    Tenant newTenant = new Tenant(apiTenant);
-                    // foreach (TenantViewGateway tenantGateway in apiTenant.UnfilteredGateways)
-                    //    newTenant.UnfilteredGatewayIds.Append(tenantGateway.Id);
-                    // foreach (TenantViewGateway tenantGateway in apiTenant.SharedGateways)
-                    //    newTenant.SharedGatewayIds.Append(tenantGateway.Id);
-                    tenants.Add(newTenant);
-                }
-                AnalyseSampleTenants();
-            }
-
-            devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            await GetTenantsFromLdap();
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
-
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), "", true);
+        }
+    }
+
+    private async Task GetTenantsFromLdap()
+    {
+        RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
+        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
+        }
+        else
+        {
+            tenants = new List<Tenant>();
+            foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
+            {
+                Tenant newTenant = new Tenant(apiTenant);
+                // foreach (TenantViewGateway tenantGateway in apiTenant.UnfilteredGateways)
+                //    newTenant.UnfilteredGatewayIds.Append(tenantGateway.Id);
+                // foreach (TenantViewGateway tenantGateway in apiTenant.SharedGateways)
+                //    newTenant.SharedGatewayIds.Append(tenantGateway.Id);
+                tenants.Add(newTenant);
+            }
+            AnalyseSampleTenants();
         }
     }
 
@@ -277,7 +274,6 @@
         try
         {
             actTenant = tenant;
-            isTenant0 = tenant.Id == 1;
             if (AddTenantMode)
             {
                 actIpAddresses.Clear();
@@ -301,7 +297,7 @@
     {
         try
         {
-            savedDeviceFilter = await SyncDeviceSelections();
+            await SyncDeviceSelections();
             // TODO: add device filter to tenant
             EditDevicesSelectedForTenantMode = true;
         }
@@ -311,27 +307,20 @@
         }
     }
 
-    private async Task<DeviceFilter> SyncDeviceSelections()
+    private async Task SyncDeviceSelections()
     {
-        // now getting the details for the current tenant
-        RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
-        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
-        }
-        else
-        {
-            tenants.Clear();
-            foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
-            {
-                tenants.Add(new Tenant(apiTenant));
-            }
-            AnalyseSampleTenants();
-        }
-
         List<ManagementSelect> allDevs = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
 
-        // initialize all devices (to invisible)
+        InitDevicesToInvisible(allDevs);
+        if(!AddTenantMode)
+        {
+            await RestoreDeviceVisibility(allDevs);
+        }
+        devicesSelectedForTenant = new DeviceFilter(allDevs);
+    }
+
+    private void InitDevicesToInvisible(List<ManagementSelect> allDevs)
+    {
         foreach (ManagementSelect mgm in allDevs)
         {
             mgm.Visible = false;
@@ -342,14 +331,6 @@
                 dev.Shared = true;
             }
         }
-
-        if(!AddTenantMode)
-        {
-            await RestoreDeviceVisibility(allDevs);
-        }
-
-        devicesSelectedForTenant = new DeviceFilter(allDevs);
-        return devicesSelectedForTenant;
     }
 
     private async Task RestoreDeviceVisibility(List<ManagementSelect> allDevs)
@@ -364,28 +345,21 @@
                 if (mgm.Id == tenMgm.VisibleManagement.Id)
                 {
                     mgm.Visible = true;
-                    if (!tenMgm.Shared)
-                    {
-                        mgm.Shared = false;
-                    }
-                    else
-                    {
-                        mgm.Shared = true;
-                    }
+                    mgm.Shared = tenMgm.Shared;
                 }
             }            
         }
         // set explicit gateway visibilities from tenant_to_device table
-        foreach (TenantGateway gw in tenantDevices.TenantGateways)
+        foreach (TenantGateway tenGw in tenantDevices.TenantGateways)
         {
             foreach (ManagementSelect mgm in allDevs)
             {
                 foreach (DeviceSelect dev in mgm.Devices)
                 {
-                    if (dev.Id == gw.VisibleGateway.Id)
+                    if (dev.Id == tenGw.VisibleGateway.Id)
                     {
                         dev.Visible = true;
-                        dev.Shared = gw.Shared;
+                        dev.Shared = tenGw.Shared;
                     }
                 }
             }
@@ -538,43 +512,11 @@
                 }
                 else if (AddTenantMode)
                 {
-                    if (tenants.Exists(x => x.Name == actTenant.Name))
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
-                    }
-                    else
-                    {
-                        // add tenant in local Ldap and db
-                        RestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
-                        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
-                        {
-                            DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
-                        }
-                        else
-                        {
-                            actTenant.Id = middlewareServerResponse.Data;
-                            await AddMgtAndDevMappings();
-                            await addTenantNetworks();
-                            tenants.Add(actTenant);
-                            AddTenantMode = false;
-                            EditTenantMode = false;
-                        }
-                    }
+                    await AddTenant();
                 }
                 else
                 {
-                    // update tenant in local db
-                    RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateTenant(actTenant.ToApiUpdateParams());
-                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
-                    }
-                    else
-                    {
-                        await deleteTenantNetworks();
-                        await addTenantNetworks();
-                        EditTenantMode = false;
-                    }
+                    await UpdateTenant();
                 }
                 AnalyseSampleTenants();
             }
@@ -585,20 +527,54 @@
         }
     }
 
-    private async Task LeaveEditDevicesSelectedForTenantMode(bool cancel = true)
+    private async Task AddTenant()
     {
-        if (cancel)
+        if (tenants.Exists(x => x.Name == actTenant.Name))
         {
-            // visibleGateways = new DeviceFilter(savedDeviceFilter);
+            DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
         }
         else
         {
-            if(!AddTenantMode)
+            // add tenant in local Ldap and db
+            RestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
             {
-                await DeleteMgtAndDevMappings();
+                DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
+            }
+            else
+            {
+                actTenant.Id = middlewareServerResponse.Data;
                 await AddMgtAndDevMappings();
+                await addTenantNetworks();
+                tenants.Add(actTenant);
+                AddTenantMode = false;
+                EditTenantMode = false;
             }
         }
+    }
+
+    private async Task UpdateTenant()
+    {
+        RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateTenant(actTenant.ToApiUpdateParams());
+        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
+        }
+        else
+        {
+            await deleteTenantNetworks();
+            await addTenantNetworks();
+            EditTenantMode = false;
+        }
+    }
+
+    private async Task LeaveEditDevicesSelectedForTenantMode(bool cancel = true)
+    {
+        if (!cancel && !AddTenantMode)
+        {
+            await DeleteMgtAndDevMappings();
+            await AddMgtAndDevMappings();
+         }
         EditDevicesSelectedForTenantMode = false;
     }
 

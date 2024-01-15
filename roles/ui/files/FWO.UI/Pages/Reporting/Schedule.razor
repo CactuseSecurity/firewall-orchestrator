@@ -106,34 +106,34 @@
                     <div class="form-inline justify-content-between">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatHtml" value="Html"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "html"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("html"))">
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kHtml))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kHtml))">
                             <label class="form-check-label" for="outputFormatHtml">HTML</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatPdf" value="Pdf"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "pdf"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("pdf"))">
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kPdf))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kPdf))">
                             <label class="form-check-label" for="outputFormatPdf">PDF</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatJson" value="Json"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "json"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("json"))">
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kJson))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kJson))">
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
                         @if (((ReportType)scheduledReportInEdit.Template.ReportParams?.ReportType).IsResolvedReport())
                         {
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
-                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "csv"))"
-                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("csv"))">
+                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kCsv))"
+                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kCsv))">
                                 <label class="form-check-label" for="outputFormatCsv">CSV</label>
                             </div>
                         }
                         else
                         {
-                            scheduledReportInEdit.OutputFormat.Remove("csv");
+                            scheduledReportInEdit.OutputFormat.Remove(GlobalConst.kCsv);
                         }
                     </div>
                 </div>

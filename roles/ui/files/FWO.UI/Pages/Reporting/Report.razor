@@ -17,9 +17,8 @@
 @inject UserConfig userConfig
 
 @* ==== LEFT SIDEBAR ==== *@
-<Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
-    <div class="p-3">
-        <br>
+<Sidebar @ref="deviceSelectionSidebar" SidebarCssClass="" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+    <div class="p-3 mt-2">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
         <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))"
             SelectedElement="selectedReportType" SelectedElementChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
@@ -81,9 +80,7 @@
             <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
             <div class="input-group">
                 <input type="text" class="form-control form-control-sm" value="@displayedTimeSelection" />
-                <div class="input-group-append">
-                    <button type="button" class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
-                </div>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
             </div>
         </div>
     }
@@ -152,7 +149,7 @@
     <ReportTemplateComponent OnTemplateLoad="async template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
 
     @* ==== Report main div ==== *@
-    <div class="card mr-1 ml-1 mb-1 shadow">
+    <div class="card me-1 ms-1 mb-1 shadow">
         <div class="card-body">
             @if (currentReport != null)
             {
@@ -229,7 +226,7 @@
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@
-<RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport" AllTabVisible="(tenantFilteringAllowed && selectedTenantView == null)"/>
+<RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport" AllTabVisible="(tenantFilteringAllowed && selectedTenantView == null)" />
 <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 @* ==== POPUPS ==== *@

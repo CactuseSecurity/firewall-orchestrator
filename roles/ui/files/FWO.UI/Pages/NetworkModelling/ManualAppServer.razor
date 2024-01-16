@@ -11,7 +11,7 @@
     <Body>
         @if (Display)
         {
-            <button type="button" class="btn btn-sm btn-success ml-5 mb-2" @onclick="appServerListHandler.CreateAppServer">@(userConfig.GetText("add_app_server"))</button>
+            <button type="button" class="btn btn-sm btn-success ms-5 mb-2" @onclick="appServerListHandler.CreateAppServer">@(userConfig.GetText("add_app_server"))</button>
             <div class="vheight75">
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingAppServer" Items="appServerListHandler.ManualAppServers" PageSize="0" ColumnReorder="true">
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">

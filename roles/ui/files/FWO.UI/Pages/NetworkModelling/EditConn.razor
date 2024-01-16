@@ -17,11 +17,11 @@
                 <label class="col-sm-12">@(userConfig.GetText("used_interface")): @ConnHandler.InterfaceName</label>
             }
             <div class="col-sm-11 border rounded m-2 p-2">
-                <div class="form-group row mr-auto">
+                <div class="form-group row me-auto">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                     <input type="text" class="col-sm-9" @bind="ConnHandler.ActConn.Name" />
                 </div>
-                <div class="form-group row mt-2 mr-auto">
+                <div class="form-group row mt-2 me-auto">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("func_reason"))*:</label>
                     <textarea rows="3" type="text" class="col-sm-9" @bind="ConnHandler.ActConn.Reason" />
                 </div>

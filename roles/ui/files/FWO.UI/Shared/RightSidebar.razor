@@ -9,8 +9,8 @@
 @inject ApiConnection Connection
 @inject UserConfig userConfig
 
-<Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="intWidth">
-    <div class="p-3">
+<Sidebar SidebarCssClass="" Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="intWidth">
+    <div class="p-3 mt-2">
         <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
         <CascadingValue Value="AnchorNavToRSB">
             <TabSet KeepPanelsAlive="true" @ref="Tabset">

@@ -161,3 +161,12 @@ bugfix release:
 
 # 7.3.4 - 09.01.2024 DEVELOP
 - Scheduled import change notification
+
+# 7.3.5 - 15.01.2024 DEVELOP
+- importer log locking fix (only fixing import stopping so far)
+- import change notification:
+  - DB extensions import_control.security_relevant_changes_counter
+  - removing python import notification
+  - writing to change counter after import (inpreparation for notification enhancement)
+- importer demo tenant device mapping additions (upgrade)
+- installer: introducing venv for newer ansible versions and thereby removing version handling

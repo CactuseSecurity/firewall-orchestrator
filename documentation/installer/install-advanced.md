@@ -6,23 +6,31 @@ always change into the firewwall-orchestrator directory before starting the inst
 
 ### Installation mode parameter
 
+installation_mode options:
+- new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
+- uninstall     - uninstalls the product including any data (database, ldap, files)!
+- upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api; removes all files from target and copies latest sources instead
+
+#### Upgrading ####
 The following switch can be used to set the type of installation to perform
 
 ```console
 ansible-playbook -e "installation_mode=upgrade" site.yml -K
 ```
 
+Remember that if you have an ansible version less than 2.13 on your machine, before doing an upgrade, switch  into the virtual pyhton environment you created during installation before running the upgrade:
+
+```console
+source ansible-venv/bin/activate
+```
+
+#### Uninstall ####
 If you want to drop the database and re-install from scratch, do the following:
 
 ```console
 ansible-playbook -e "installation_mode=uninstall" site.yml -K
 ansible-playbook -e "installation_mode=new" site.yml -K
 ```
-
-installation_mode options:
-- new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
-- uninstall     - uninstalls the product including any data (database, ldap, files)!
-- upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api; removes all files from target and copies latest sources instead
 
 ### Installation behind a proxy (no direct Internet connection)
 
@@ -64,6 +72,7 @@ Note that the following domains must be reachable through the proxy:
     postgresql.org
     microsoft.com     
     nuget.org
+    pypi.org
 
 NB: for vscode-debugging, you also need access to
 

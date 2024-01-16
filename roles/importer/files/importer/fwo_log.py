@@ -4,6 +4,7 @@ import logging
 import time
 import threading
 
+
 class LogLock:
     semaphore = threading.Semaphore()
 
@@ -54,6 +55,7 @@ class LogLock:
             # Wait a second
             time.sleep(1)
 
+
 # Used to accquire lock before log processing
 class LogFilter(logging.Filter):
     def filter(self, record):
@@ -62,6 +64,7 @@ class LogFilter(logging.Filter):
         # Return True to allow the log record to be processed
         return True
 
+
 # Used to release lock after log processing
 class LogHandler(logging.StreamHandler):
     def emit(self, record):
@@ -69,6 +72,7 @@ class LogHandler(logging.StreamHandler):
         super().emit(record)
         # Release lock
         LogLock.semaphore.release()
+
 
 def getFwoLogger():
     debug_level = int(fwo_globals.debug_level)

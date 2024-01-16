@@ -243,11 +243,11 @@ def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, e
     logger = getFwoLogger()
     error_during_import_unlock = 0
     query_variables = {"stopTime": stop_time, "importId": current_import_id,
-                       "success": error_count == 0, "changesFound": change_count > 0}
+                       "success": error_count == 0, "changesFound": change_count > 0, "changeNumber": change_count}
 
     unlock_mutation = """
-        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!) {
-            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changesFound}) {
+        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!, $changeNumber: Int!) {
+            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changesFound, security_relevant_changes_counter: $changeNumber}) {
                 affected_rows
             }
         }"""

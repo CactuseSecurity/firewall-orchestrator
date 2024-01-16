@@ -596,6 +596,7 @@ Create table "import_control"
 	"changes_found" Boolean NOT NULL Default FALSE,
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
+	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
  primary key ("control_id")
 );
 

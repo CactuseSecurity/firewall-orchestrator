@@ -3,7 +3,6 @@
 #   run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 
 import signal
-import asyncio
 import traceback
 import argparse
 import sys
@@ -23,21 +22,38 @@ from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFail
 class GracefulKiller:
     kill_now = False
 
+
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
+
     def exit_gracefully(self, *args):
         self.kill_now = True
 
-# Store all background tasks in a set to avoid garbage collection
-background_tasks = set()
 
-def start_log_lock_task():
-    # Start the log lock task in the background
-    log_lock_task = threading.Thread(target = LogLock.handle_log_lock)
-    log_lock_task.start()
-    background_tasks.add(log_lock_task)
+class LogLockerTask(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        self._stop_event = threading.Event()
+        # signal.signal(signal.SIGINT, self.exit_gracefully)
+        # signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+
+    def run(self):
+        while not self._stop_event.is_set():
+            threading.Thread(target = LogLock.handle_log_lock)
+            time.sleep(1)
+
+
+    def exit_gracefully(self, *args):
+        self.kill_now = True
+
+
+    def stop(self):
+        self._stop_event.set()
+        # self.kill_now = True
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -55,8 +71,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # Log locking
-    start_log_lock_task()
+    logLockerTask = LogLockerTask()     # create logLocker
+    logLockerTask.start()           # start Log locking
 
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 
@@ -175,4 +191,7 @@ if __name__ == '__main__':
             time.sleep(1)
             counter += 1
 
+    # got break signal stopping background process for handling log locking
+    logLockerTask.stop()
+    logLockerTask.join()
     logger.info("importer-main-loop exited gracefully.")

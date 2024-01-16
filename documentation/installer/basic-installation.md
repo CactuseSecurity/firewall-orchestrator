@@ -8,7 +8,7 @@
 
 ```console
 su -
-apt-get install git ansible sudo
+apt-get install git sudo
 ```
 if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
 
@@ -21,6 +21,16 @@ Also make sure your packages are up to date before FWORCH installation using e.g
     sudo apt update && sudo apt upgrade
 
 possibly followed by a reboot.
+
+
+1a) Install python virtual environment
+
+If you already have ansible >= 2.13 installed on your maching, you may skip this step
+
+        sudo apt install python3-venv
+        python3 -m venv ansible-venv
+        source ansible-venv/bin/activate
+        pip install ansible
 
 
 2) get Firewall Orchestrator with the following command (as normal user)
@@ -59,3 +69,8 @@ install-srv                 : ok=302  changed=171  unreachable=0    failed=0    
 Simply navigate to <https://localhost/> and login with user 'admin' and the UI admin password.
 
 The api hasura admin secret can be used to access the API at <https://localhost:9443/>.
+
+
+If using the python venv method, you may now exit venv with:
+
+        deactivate

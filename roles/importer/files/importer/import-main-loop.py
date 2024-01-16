@@ -22,9 +22,11 @@ from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFail
 class GracefulKiller:
     kill_now = False
 
+
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
+
 
     def exit_gracefully(self, *args):
         self.kill_now = True
@@ -34,14 +36,23 @@ class LogLockerTask(threading.Thread):
     def __init__(self):
         super().__init__()
         self._stop_event = threading.Event()
+        # signal.signal(signal.SIGINT, self.exit_gracefully)
+        # signal.signal(signal.SIGTERM, self.exit_gracefully)
+
 
     def run(self):
         while not self._stop_event.is_set():
             threading.Thread(target = LogLock.handle_log_lock)
             time.sleep(1)
 
+
+    def exit_gracefully(self, *args):
+        self.kill_now = True
+
+
     def stop(self):
         self._stop_event.set()
+        # self.kill_now = True
 
 
 if __name__ == '__main__':

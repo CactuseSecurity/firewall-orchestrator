@@ -22,18 +22,21 @@ Also make sure your packages are up to date before FWORCH installation using e.g
 
 possibly followed by a reboot.
 
-2) get Firewall Orchestrator with the following command (as normal user)
+2) Getting Firewall Orchestrator
+
+with the following command (as normal user)
+
 ```console
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
 
-3) Ansible Installation
+3) Ansible installation
 
 Make sure you have ansible version 2.13 or above installed on your system (check with "ansible --version"). If this is not the case, install a newer ansible. One possible way is to run the following script (and entering your sudo password):
 
         firewall-orchestrator/scripts/install-ansible-from-venv.sh
 
-4) install (on localhost)
+4) Firewall Orchestrator installation
 
 ```console
 cd firewall-orchestrator; ansible-playbook site.yml -K

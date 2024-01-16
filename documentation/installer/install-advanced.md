@@ -72,6 +72,7 @@ Note that the following domains must be reachable through the proxy:
     postgresql.org
     microsoft.com     
     nuget.org
+    pypi.org
 
 NB: for vscode-debugging, you also need access to
 

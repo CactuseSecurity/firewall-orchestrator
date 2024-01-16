@@ -10,7 +10,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" Size=PopupSize.FullScreenWidth OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayTicketMode)
         {
@@ -29,7 +29,7 @@
                         <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Title" />
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
@@ -49,7 +49,7 @@
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("priority")):</label>
-                            <div class="col-sm-3">
+                            <div class="col-sm-8">
                                 @if (ReqHandler.EditTicketMode)
                                 {
                                     <Dropdown ElementType="RequestPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="ReqHandler.PrioList" Nullable="true">
@@ -60,7 +60,7 @@
                                 }
                                 else
                                 {
-                                    <label class="col-sm-4 border bg-secondary">@(selectedPriority != null ? selectedPriority.Name : "-")</label>
+                                    <label class="col-sm-12 border bg-secondary">@(selectedPriority != null ? selectedPriority.Name : "-")</label>
                                 }
                             </div>
                         </div>
@@ -81,7 +81,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">
                         <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Reason"/>   

@@ -61,13 +61,13 @@
                 <label for="scheduleId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                 <label class="col-sm-8 col-form-label col-form-label-sm">@scheduledReportInEdit.Id</label>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                 <div class="col-sm-8">
                     <input id="scheduleName" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.Name" />
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleStartTime" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("start_time")):</label>
                 <div class="col-sm-4">
                     <input id="scheduleStartTime" type="time" step="60" class="form-control form-control-sm" @bind="actTime" />
@@ -76,7 +76,7 @@
                     <input id="scheduleStartTimeDate" type="date" class="form-control form-control-sm" @bind="actDate" />
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleRepeatEvery" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("repeat_every")):</label>
                 <div class="col-sm-3">
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatOffset" />
@@ -89,7 +89,7 @@
                     </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleTemplate" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("template")):</label>
                 <div class="col-sm-8">
                     <Dropdown ElementType="ReportTemplate" ElementToString="@(o => o.Name)" Nullable="false"
@@ -100,45 +100,45 @@
                     </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("output_format")):</label>
                 <div class="col-sm-8">
                     <div class="form-inline justify-content-between">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatHtml" value="Html"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "html"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("html"))">
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kHtml))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kHtml))">
                             <label class="form-check-label" for="outputFormatHtml">HTML</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatPdf" value="Pdf"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "pdf"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("pdf"))">
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kPdf))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kPdf))">
                             <label class="form-check-label" for="outputFormatPdf">PDF</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatJson" value="Json"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "json"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("json"))">
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kJson))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kJson))">
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
                         @if (((ReportType)scheduledReportInEdit.Template.ReportParams?.ReportType).IsResolvedReport())
                         {
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
-                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "csv"))"
-                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("csv"))">
+                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kCsv))"
+                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kCsv))">
                                 <label class="form-check-label" for="outputFormatCsv">CSV</label>
                             </div>
                         }
                         else
                         {
-                            scheduledReportInEdit.OutputFormat.Remove("csv");
+                            scheduledReportInEdit.OutputFormat.Remove(GlobalConst.kCsv);
                         }
                     </div>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
                 <div class="col-sm-8" style="padding-top: calc(0.25rem + 1px);">
                     <input id="scheduleActive" type="checkbox" style="max-height: 22px;" @bind="scheduledReportInEdit.Active" />

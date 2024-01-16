@@ -9,14 +9,7 @@
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
         <div class="@cssClass">
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="@((async () => {
-                        CollapseAll = !CollapseAll;
-                        if(CollapseAll)
-                            collapseDevices.CollapseAll();
-                        else
-                            collapseDevices.ExpandAll();
-                        await InvokeAsync(StateHasChanged);
-                    }))">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="ToggleCollapseDevices">
                 @(CollapseAll ? expandAllText : collapseAllText)
             </button>
         </div>
@@ -56,7 +49,7 @@
                     <label class="btn btn-outline-primary three-state-button"
                         for="mgm_@(management.Id)_unfiltered">@(userConfig.GetText("unfiltered"))</label>
 
-                    <Collapse Title="@(management.Name)" StartToggled="@(management.Visible && management.Shared)" Style="@("primary")">
+                    <Collapse Title="@(management.Name)" StartToggled="@(!(management.Visible && management.Shared))" Style="@("primary")">
                         @foreach (DeviceSelect device in management.Devices)
                         {
                             if (management.Visible && management.Shared)
@@ -147,7 +140,7 @@
     [Parameter]
     public bool autoSelectMgmt { get; set; } = true;
 
-    private string cssClass = "btn-group w-100 sticky-marker";
+    private string cssClass = "btn-group sticky-marker";
     private string selectAllText = "";
     private string clearAllText = "";
     private string collapseAllText = "";
@@ -169,4 +162,17 @@
         } *@
     }
 
+    private async Task ToggleCollapseDevices()
+    {
+        CollapseAll = !CollapseAll;
+        if(CollapseAll)
+        {
+            collapseDevices.CollapseAll();
+        }
+        else
+        {
+            collapseDevices.ExpandAll();
+        }
+        await InvokeAsync(StateHasChanged);
+    }
 }

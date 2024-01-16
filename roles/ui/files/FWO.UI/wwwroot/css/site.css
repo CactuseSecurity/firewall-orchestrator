@@ -421,6 +421,9 @@ thead {
     max-height: calc(100vh - 300px);
 }
 
+.vheight60 div{
+    max-height: calc(100svh - 450px);
+}
 .vheight100 {
     height: 100vh
 }

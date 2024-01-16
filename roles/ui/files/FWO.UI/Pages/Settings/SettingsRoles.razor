@@ -79,7 +79,7 @@
                         <button type="button" class="btn btn-sm btn-success" @onclick="async() => await SearchUser()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
                     </div>
                 </form>
-                <form class="form-group row">
+                <form class="form-group row mt-2">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUiUser" Elements="uiUsers">
@@ -99,7 +99,7 @@
                         </AuthorizeView>
                     </div>
                 </form>
-                <form class="form-group row">
+                <form class="form-group row mt-2">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("internal_group")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedGroupDn" Elements="internalGroupList" />

@@ -99,21 +99,21 @@
             @if (EditOwnerMode)
             {
                 <div class="col-sm-12">
-                    <div class="form-group row">
+                    <div class="form-group row mr-2">
                         <div class="col-sm-1">
                             <div class="form-group row">
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(actOwner.Id)</label>
                             </div>
                         </div>
-                        <div class="col-sm-11">
-                            <div class="form-group row">
+                        <div class="col-sm-11 mr-auto">
+                            <div class="form-group row mr-auto">
                                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                                <input type="text" class=" col-sm-10 form-control form-control-sm" @bind="actOwner.Name" />
+                                <input type="text" class="col-sm-10 mr-auto" @bind="actOwner.Name" />
                             </div>
                         </div>
                     </div>
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("dn"))*:</label>
                         <div class="col-sm-7">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.Dn" />
@@ -122,7 +122,7 @@
                             <button type="button" class="btn btn-sm btn-success form-control form-control-sm" @onclick="() => SearchUser()">@(userConfig.GetText("search"))</button>
                         </div>
                     </div>
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
                         <div class="col-sm-7">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.GroupDn" />
@@ -131,7 +131,7 @@
                             <button type="button" class="btn btn-sm btn-success form-control form-control-sm" @onclick="() => SearchGroup()">@(userConfig.GetText("search"))</button>
                         </div>
                     </div>
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                         <div class="col-sm-9">
                             <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="tenants" Nullable="true">
@@ -141,13 +141,13 @@
                             </Dropdown>
                         </div>
                     </div>
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
                         <div class="col-sm-9">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
                         </div>
                     </div>
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <div class="col-sm-6">
                             <div class="form-group row">
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("recert_interval")):</label>
@@ -157,7 +157,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("recert_check_every")):</label>
                         <div class="form-group row col-sm-9">
                             <div class="col-sm-2">
@@ -192,8 +192,12 @@
                     </div>
                     @if (!actOwner.IsDefault)
                     {
-                        <RuleSelector SelectedRules="actRules" @bind-RulesToAdd="rulesToAdd" @bind-RulesToDelete="rulesToDelete"/>
-                        <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete"/>
+                        <div class="col-sm-12 mt-2">
+                            <RuleSelector SelectedRules="actRules" @bind-RulesToAdd="rulesToAdd" @bind-RulesToDelete="rulesToDelete"/>
+                        </div>
+                        <div class="col-sm-12 mt-2">
+                            <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete"/>
+                        </div>
                     }
                 </div>
             }

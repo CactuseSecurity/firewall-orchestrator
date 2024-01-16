@@ -32,7 +32,15 @@ namespace FWO.Test
         static Rule RecertRule2 = new Rule();
 
         SimulatedUserConfig userConfig = new SimulatedUserConfig();
-        DynGraphqlQuery query = new DynGraphqlQuery("TestFilter"){ ReportTimeString = "2023-04-20T17:50:04" };
+        DynGraphqlQuery query = new DynGraphqlQuery("TestFilter")
+        { 
+            ReportTimeString = "2023-04-20T17:50:04",
+            QueryVariables = new Dictionary<string, object>()
+            {
+                {"start","2023-04-19T17:00:04"},
+                {"stop","2023-04-20T17:00:04"}
+            }
+        };
 
         [SetUp]
         public void Initialize()
@@ -332,6 +340,7 @@ namespace FWO.Test
             "<body>" +
             "<h2>Changes Report</h2>" +
             "<p>Filter: TestFilter</p>" +
+            "<p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
             "<p>Devices: TestMgt [TestDev]</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
@@ -395,6 +404,7 @@ namespace FWO.Test
             "<body>" +
             "<h2>Changes Report (resolved)</h2>" +
             "<p>Filter: TestFilter</p>" +
+            "<p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
             "<p>Devices: TestMgt [TestDev]</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
@@ -454,6 +464,7 @@ namespace FWO.Test
             "<body>" +
             "<h2>Changes Report (technical)</h2>" +
             "<p>Filter: TestFilter</p>" +
+            "<p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
             "<p>Devices: TestMgt [TestDev]</p><hr>" +
             "<h3>TestMgt</h3><hr>" +

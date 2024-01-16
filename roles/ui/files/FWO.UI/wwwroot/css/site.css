@@ -131,11 +131,11 @@ header {
 }
 
 .td-bg-light-grey td{
-    background-color: #e4e8ec;
+    background-image: linear-gradient(#e4e8ec, #b6b2b2);
 }
 
 .th-bg-secondary th {
-    background-color: #9b9797;
+    background-image: linear-gradient(#e4e8ec, #9b9797);
 }
 
 .navbar-nav .active {

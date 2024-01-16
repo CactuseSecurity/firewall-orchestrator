@@ -6096,19 +6096,21 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "successful_import",
+                      "control_id",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
                       "import_errors",
-                      "mgm_id",
+                      "is_initial_import",
                       "last_change_in_config",
+                      "mgm_id",
+                      "notification_done",
+                      "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {},
                     "check": {}

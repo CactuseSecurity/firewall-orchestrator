@@ -165,16 +165,16 @@ namespace FWO.Middleware.Server
                         body += changeReport?.ExportToHtml();
                         break;
                     case (int)ImpChangeNotificationType.PdfAsAttachment:
-                        attachment = CreateAttachment(Convert.ToBase64String(changeReport?.ToPdf(PaperKind.A4) ?? throw new Exception("No Pdf generated.")), "pdf");
+                        attachment = CreateAttachment(Convert.ToBase64String(changeReport?.ToPdf(PaperKind.A4) ?? throw new Exception("No Pdf generated.")), GlobalConst.kPdf);
                         break;
                     case (int)ImpChangeNotificationType.HtmlAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToHtml(), "html");
+                        attachment = CreateAttachment(changeReport?.ExportToHtml(), GlobalConst.kHtml);
                         break;
                     // case (int)ImpChangeNotificationType.CsvAsAttachment: // Currently not implemented
-                    //     attachment = CreateAttachment(changeReport?.ExportToCsv(), "csv");
+                    //     attachment = CreateAttachment(changeReport?.ExportToCsv(), GlobalConst.kCsv);
                     //     break;
                     case (int)ImpChangeNotificationType.JsonAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToJson(), "json");
+                        attachment = CreateAttachment(changeReport?.ExportToJson(), GlobalConst.kJson);
                         break;
                     default:
                         break;

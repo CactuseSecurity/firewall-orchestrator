@@ -11,6 +11,7 @@ mutation updateAppServer(
       name: $name
       owner_id: $appId
       ip: $ip
+      ip_end: $ip
       import_source: $importSource
       is_deleted: false
   }) {

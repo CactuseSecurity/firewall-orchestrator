@@ -62,21 +62,21 @@
                 <label for="saveTemplateName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                 <input id="saveTemplateName" type="text" class="col-sm-8" @bind="reportTemplateInEdit.Name">
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="saveTemplateComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                 <textarea id="saveTemplateComment" class="col-sm-8" @bind="reportTemplateInEdit.Comment" />
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("report_type")):</label>
                 <label class="col-sm-8">@(userConfig.GetText(reportTypeInEdit.ToString()))</label>
             </div>
             @if(reportTypeInEdit == ReportType.Recertification)
             {
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="saveTemplateRecertDiplayPeriod" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("due_within")):</label>
                     <input id="saveTemplateRecertDiplayPeriod" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.RecertFilter.RecertificationDisplayPeriod">
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
                     <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.Count > 0 ? 
                         ownerList.FirstOrDefault(o => o.Id == reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First())?.Name ?? 
@@ -85,33 +85,33 @@
             }
             else if(reportTypeInEdit == ReportType.UnusedRules)
             {
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="saveTemplateUnused" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("unused_days")):</label>
                     <input id="saveTemplateUnused" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
                 </div>
             }
             else if(reportTemplateInEdit.ReportParams.TenantFilter.IsActive)
             {
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.TenantFilter.TenantId)</label>
                 </div>
             }
             else
             {
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("report_time")):</label>
                     <label class="col-sm-8">@(DisplayTime())</label>
                 </div>
             }
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
                 <div class="form-group row col-sm-9">
                     <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
                     <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="saveTemplateFilterLineTextarea" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("filter")):</label>
                 <textarea id="saveTemplateFilterLineTextarea" class="col-sm-8" @bind="reportTemplateInEdit.Filter" />
             </div>

@@ -196,19 +196,19 @@ namespace FWO.Middleware.Server
             {
                 switch (format.Name)
                 {
-                    case "csv":
+                    case GlobalConst.kCsv:
                         reportFile.Csv = reportRules.ExportToCsv();
                         break;
 
-                    case "html":
+                    case GlobalConst.kHtml:
                         reportFile.Html = reportRules.ExportToHtml();
                         break;
 
-                    case "pdf":
+                    case GlobalConst.kPdf:
                         reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf(PaperKind.A4));
                         break;
 
-                    case "json":
+                    case GlobalConst.kJson:
                         break;
 
                     default:

@@ -32,7 +32,7 @@
                 }
             </div>
         </div>
-        <div class="btn-group">
+        <div class="btn-group mt-1">
             <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">@(userConfig.GetText("search_nw_object"))</button>
             <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_app_role"))</button>
             @if(selectedNwElems.Count == 1)
@@ -82,7 +82,7 @@
                     }
                 </div>
             </div>
-            <div class="btn-group">
+            <div class="btn-group mt-1">
                 <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_service_group"))</button>
                 @if(selectedSvcElems.Count == 1)
                 {
@@ -130,7 +130,7 @@
                     }
                 </div>
             </div>
-            <div class="btn-group">
+            <div class="btn-group mt-1">
                 <button type="button" class="btn btn-sm btn-success" @onclick="SearchInterface">@(userConfig.GetText("search"))</button>
                 @if(selectedInterfaces.Count == 1)
                 {

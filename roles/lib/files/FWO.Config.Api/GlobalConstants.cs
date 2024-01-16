@@ -7,6 +7,11 @@ namespace FWO.Config.Api
         public const int kSidebarLeftWidth = 300;
         public const int kSidebarRightWidth = 300;
 
+        public const string kHtml = "html";
+        public const string kPdf = "pdf";
+        public const string kJson = "json";
+        public const string kCsv = "csv";
+
         public const string kAutodiscovery = "autodiscovery";
         public const string kDailyCheck = "dailycheck";
         public const string kUi = "ui";

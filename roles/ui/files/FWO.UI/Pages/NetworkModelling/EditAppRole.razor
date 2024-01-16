@@ -32,11 +32,11 @@
                                 }
                                 else
                                 {
-                                    <label class=" col-sm-8 form-control form-control-sm bg-secondary">@AppRoleHandler.ActAppRole.Area.Display()</label>
+                                    <label class="col-sm-8 bg-secondary">@AppRoleHandler.ActAppRole.Area.Display()</label>
                                 }
                             </div>
                         }
-                        <div class="form-group row">
+                        <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
                             @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
                             {
@@ -48,11 +48,11 @@
                                 <input type="text" class=" col-sm-8" @bind="AppRoleHandler.ActAppRole.IdString" />
                             }
                         </div>
-                        <div class="form-group row">
+                        <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                             <input type="text" class="col-sm-8" @bind="AppRoleHandler.ActAppRole.Name" />
                         </div>
-                        <div class="form-group row">
+                        <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                             <input type="text" class="col-sm-8" @bind="AppRoleHandler.ActAppRole.Comment" />
                         </div>

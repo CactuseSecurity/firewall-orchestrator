@@ -415,7 +415,7 @@ namespace FWO.Report
                     else
                     {
                         report.AppendLine("<tr>");
-                        report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
+                        report.AppendLine($"<td class=\"bg-gray\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
                         report.AppendLine("</tr>");
                     }
                 }

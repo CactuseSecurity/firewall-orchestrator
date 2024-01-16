@@ -30,7 +30,7 @@
 @if (AllImplTasks != null && AllImplTasks.Count > 0)
 {
     <div class="m-2">
-        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
             <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
@@ -116,7 +116,7 @@
     </div>
 }
 
-<PopUp Title="@(userConfig.GetText("check_impltasks"))" Show="@DisplayInfo" Large="true" OnClose="() => DisplayInfo = false">
+<PopUp Title="@(userConfig.GetText("check_impltasks"))" Show="@DisplayInfo" Size=PopupSize.Large OnClose="() => DisplayInfo = false">
     <Body>
         @if (DisplayInfo)
         {
@@ -126,8 +126,8 @@
             }
             else
             {
-                <div class="m-2">
-                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<string, bool>" Items="deviceCheck" PageSize="0" ColumnReorder="true">
+                <div class="m-2 vheight75">
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="KeyValuePair<string, bool>" Items="deviceCheck" PageSize="0" ColumnReorder="true">
                         <Column TableItem="KeyValuePair<string, bool>" Title="@(userConfig.GetText("device"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" />
                         <Column TableItem="KeyValuePair<string, bool>" Title="@(userConfig.GetText("impltask_created"))" Field="@(x => x.Value)" Sortable="false">
                             <Template>

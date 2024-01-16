@@ -57,7 +57,7 @@ if __name__ == "__main__":
             mgm_id=args.mgm_id, in_file=args.in_file, normalized_in_file=args.normalized_in_file, debug_level_in=args.debug, ssl_verification=args.verify_certificates,
             force=args.force, limit=args.limit, clearManagementData=args.clear, suppress_cert_warnings_in=args.suppress_certificate_warnings)
     except SystemExit:
-        print ("import-mgm - error while importing mgm_id=" + str(args.mgm_id))
+        logger.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id)  + ": " + str(traceback.format_exc()))
         error_count = 1
     except:
         logger.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id) + ": " + str(traceback.format_exc()))

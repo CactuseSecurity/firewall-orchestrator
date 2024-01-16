@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("delete"))" Show="@Display" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("delete"))" Show="@Display" Size=PopupSize.Small OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {

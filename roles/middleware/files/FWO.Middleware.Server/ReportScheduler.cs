@@ -135,28 +135,15 @@ namespace FWO.Middleware.Server
                         Type = report.Template.ReportParams.ReportType
                     };
 
-                    DateTime reportGenerationStartDate = DateTime.Now;
-
                     // get uiuser roles + tenant
                     AuthManager authManager = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
-                    //AuthenticationRequestHandler authHandler = new AuthenticationRequestHandler(connectedLdaps, jwtWriter, apiConnection);
                     string jwt = await authManager.AuthorizeUserAsync(report.Owner, validatePassword: false, lifetime: TimeSpan.FromDays(365));
                     ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
                     UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, report.Owner.DbId);
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = report.Id });
-
-                    if(!report.Template.ReportParams.DeviceFilter.isAnyDeviceFilterSet())
-                    {
-                        // for scheduling no device selection means "all"
-                        report.Template.ReportParams.DeviceFilter.Managements = await apiConnectionUserContext.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-                        report.Template.ReportParams.DeviceFilter.applyFullDeviceSelection(true);
-                    }
-                    if(report.Template.ReportParams.ReportType == (int)ReportType.UnusedRules)
-                    {
-                        report.Template.ReportParams.DeviceFilter = (await ReportBase.GetUsageDataUnsupportedDevices(apiConnection, report.Template.ReportParams.DeviceFilter)).reducedDeviceFilter;
-                    }
+                    await AdaptDeviceFilter(report.Template.ReportParams, apiConnectionUserContext);
 
                     ReportBase reportRules = ReportBase.ConstructReport(report.Template, userConfig);
                     Management[] managementsReport = Array.Empty<Management>();
@@ -164,56 +151,13 @@ namespace FWO.Middleware.Server
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
-                            setRelevantManagements(ref managementsReport, report.Template.ReportParams.DeviceFilter);
+                            SetRelevantManagements(ref managementsReport, report.Template.ReportParams.DeviceFilter);
                             return Task.CompletedTask;
                         }, token);
                     await reportRules.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
 
-                    reportFile.Json = reportRules.ExportToJson();
-
-                    foreach (FileFormat format in report.OutputFormat)
-                    {
-                        switch (format.Name)
-                        {
-                            case "csv":
-                                reportFile.Csv = reportRules.ExportToCsv();
-                                break;
-
-                            case "html":
-                                reportFile.Html = reportRules.ExportToHtml();
-                                break;
-
-                            case "pdf":
-                                reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf(PaperKind.A4));
-                                break;
-
-                            case "json":
-                                break;
-
-                            default:
-                                throw new NotSupportedException("Output format is not supported.");
-                        }
-                    }
-
-                    reportFile.GenerationDateEnd = DateTime.Now;
-
-                    var queryVariables = new
-                    {
-                        report_name = reportFile.Name,
-                        report_start_time = reportFile.GenerationDateStart,
-                        report_end_time = reportFile.GenerationDateEnd,
-                        report_owner_id = reportFile.OwnerId,
-                        report_template_id = reportFile.TemplateId,
-                        report_pdf = reportFile.Pdf,
-                        report_csv = reportFile.Csv,
-                        report_html = reportFile.Html,
-                        report_json = reportFile.Json,
-                        report_type = reportFile.Type,
-                        description = reportRules.SetDescription()
-                    };
-
-                    await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
-
+                    WriteReportFile(reportRules, report.OutputFormat, reportFile);
+                    await SaveReport(reportFile, reportRules.SetDescription(), apiConnectionUserContext);
                     Log.WriteInfo("Report Scheduling", $"Scheduled report \"{report.Name}\" with id \"{report.Id}\" for user \"{report.Owner.Name}\" with id \"{report.Owner.DbId}\" successfully generated.");
                 }
                 catch (Exception exception)
@@ -223,7 +167,85 @@ namespace FWO.Middleware.Server
             }, token);
         }
 
-        private void setRelevantManagements(ref Management[] managementsReport, DeviceFilter deviceFilter)
+        private static async Task AdaptDeviceFilter(ReportParams reportParams, ApiConnection apiConnection)
+        {
+            try
+            {
+                if(!reportParams.DeviceFilter.isAnyDeviceFilterSet())
+                {
+                    // for scheduling no device selection means "all"
+                    reportParams.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+                    reportParams.DeviceFilter.applyFullDeviceSelection(true);
+                }
+                if(reportParams.ReportType == (int)ReportType.UnusedRules)
+                {
+                    reportParams.DeviceFilter = (await ReportBase.GetUsageDataUnsupportedDevices(apiConnection, reportParams.DeviceFilter)).reducedDeviceFilter;
+                }
+            }
+            catch (Exception)
+            {
+                Log.WriteError("Set Device Filter", $"Could not adapt device filter.");
+                throw;
+            }
+        }
+
+        private static void WriteReportFile(ReportBase reportRules, List<FileFormat> fileFormats, ReportFile reportFile)
+        {
+            reportFile.Json = reportRules.ExportToJson();
+            foreach (FileFormat format in fileFormats)
+            {
+                switch (format.Name)
+                {
+                    case GlobalConst.kCsv:
+                        reportFile.Csv = reportRules.ExportToCsv();
+                        break;
+
+                    case GlobalConst.kHtml:
+                        reportFile.Html = reportRules.ExportToHtml();
+                        break;
+
+                    case GlobalConst.kPdf:
+                        reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf(PaperKind.A4));
+                        break;
+
+                    case GlobalConst.kJson:
+                        break;
+
+                    default:
+                        throw new NotSupportedException("Output format is not supported.");
+                }
+            }
+            reportFile.GenerationDateEnd = DateTime.Now;
+        }
+
+        private static async Task SaveReport(ReportFile reportFile, string desc, ApiConnection apiConnection)
+        {
+            try
+            {
+                var queryVariables = new
+                {
+                    report_name = reportFile.Name,
+                    report_start_time = reportFile.GenerationDateStart,
+                    report_end_time = reportFile.GenerationDateEnd,
+                    report_owner_id = reportFile.OwnerId,
+                    report_template_id = reportFile.TemplateId,
+                    report_pdf = reportFile.Pdf,
+                    report_csv = reportFile.Csv,
+                    report_html = reportFile.Html,
+                    report_json = reportFile.Json,
+                    report_type = reportFile.Type,
+                    description = desc
+                };
+                await apiConnection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+            }
+            catch (Exception)
+            {
+                Log.WriteError("Save Report", $"Could not save report \"{reportFile.Name}\".");
+                throw;
+            }
+        }
+
+        private static void SetRelevantManagements(ref Management[] managementsReport, DeviceFilter deviceFilter)
         {
             if (deviceFilter.isAnyDeviceFilterSet())
             {

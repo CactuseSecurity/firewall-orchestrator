@@ -15,70 +15,79 @@
 
 <button type="button" class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button>
 
-<div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" PageSize="0" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("actions"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
-            <Template>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
-                </div>
-            </Template>
-        </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("id"))" Field="@(x => x.MgmId)" Sortable="true" Filterable="true" />
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("management"))" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true">
-            <Template>
-                @(context.DeviceType.NameVersion())
-            </Template>
-        </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_incomplete"))" Field="@(x => x.LastIncompleteImport)">
-            <Template>
-                @if (context.LastIncompleteImport != null && context.LastIncompleteImport.Length > 0)
-                {
+@if(InitComplete)
+{
+    <div class="m-2 vheight75">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" PageSize="0" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("actions"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
+                <Template>
                     <div class="btn-group">
-                        @if(context.LastIncompleteImport[0].StartTime < DateTime.Now.AddMinutes(-5))
-                        {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => RequestRollback(context)">@(userConfig.GetText("rollback"))</button>
-                        }
-                        @(context.LastIncompleteImport[0].StartTime)
+                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
                     </div>
-                }
-            </Template>
-        </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_success"))" Field="@(x => x.LastSuccessfulImport)">
-            <Template>
-                @if (context.LastSuccessfulImport != null && context.LastSuccessfulImport.Length > 0)
-                {
-                    @(context.LastSuccessfulImport[0].StopTime);
-                }
-            </Template>
-        </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_import"))" Field="@(x => x.LastImport)">
-            <Template>
-                @if (context.LastImport != null && context.LastImport.Length > 0)
-                {
-                    @(context.LastImport[0].StopTime);
-                }
-            </Template>
-        </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("success"))" Field="@(x => x.LastImport)">
-            <Template>
-                @if (context.LastImport != null && context.LastImport.Length > 0)
-                {
-                    @(GlobalConfig.ShowBool(context.LastImport[0].SuccessfulImport));
-                }
-            </Template>
-        </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("errors"))" Field="@(x => x.LastImport)">
-            <Template>
-                @if (context.LastImport != null && context.LastImport.Length > 0)
-                {
-                    @(context.LastImport[0]?.ImportErrors);
-                }
-            </Template>
-        </Column>
-    </Table>
-</div>
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("id"))" Field="@(x => x.MgmId)" Sortable="true" Filterable="true" />
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("management"))" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true">
+                <Template>
+                    @(context.DeviceType.NameVersion())
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_incomplete"))" Field="@(x => x.LastIncompleteImport)">
+                <Template>
+                    @if (context.LastIncompleteImport != null && context.LastIncompleteImport.Length > 0)
+                    {
+                        <div class="btn-group">
+                            @if(context.LastIncompleteImport[0].StartTime < DateTime.Now.AddMinutes(-5))
+                            {
+                                <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => RequestRollback(context)">@(userConfig.GetText("rollback"))</button>
+                            }
+                            @(context.LastIncompleteImport[0].StartTime)
+                        </div>
+                    }
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_success"))" Field="@(x => x.LastSuccessfulImport)">
+                <Template>
+                    @if (context.LastSuccessfulImport != null && context.LastSuccessfulImport.Length > 0)
+                    {
+                        @(context.LastSuccessfulImport[0].StopTime);
+                    }
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_import"))" Field="@(x => x.LastImport)">
+                <Template>
+                    @if (context.LastImport != null && context.LastImport.Length > 0)
+                    {
+                        @(context.LastImport[0].StopTime);
+                    }
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("success"))" Field="@(x => x.LastImport)">
+                <Template>
+                    @if (context.LastImport != null && context.LastImport.Length > 0)
+                    {
+                        @(GlobalConfig.ShowBool(context.LastImport[0].SuccessfulImport));
+                    }
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("errors"))" Field="@(x => x.LastImport)">
+                <Template>
+                    @if (context.LastImport != null && context.LastImport.Length > 0)
+                    {
+                        @(context.LastImport[0]?.ImportErrors);
+                    }
+                </Template>
+            </Column>
+        </Table>
+    </div>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 <ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await Refresh();}"/>
 <ImportRollback ManagementId="actStatus.MgmId" LastIncompleteImport="actStatus.LastIncompleteImport" @bind-RollbackMode="rollbackMode" Closing="async () => {rollbackMode = false; await fetchImportStati();}"/>
@@ -93,6 +102,7 @@
     private bool DetailsMode = false;
     private bool rollbackMode = false;
     private ImportStatus actStatus = new ImportStatus();
+    private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -107,6 +117,7 @@
             countErrors();
             setSortPrio();
             sortedImportStati = importStati.OrderByDescending(stat=>stat.SortPrio).ToList();
+            InitComplete = true;
         }
         catch (System.Exception exception)
         {

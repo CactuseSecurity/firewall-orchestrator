@@ -7,21 +7,21 @@
 
 @if(Display && InitComplete)
 {
-    <PopUp Title="@(AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Show="@Display" OnClose="Cancel">
+    <PopUp Title="@(AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Size=PopupSize.Large Show="@Display" OnClose="Cancel">
         <Body>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="ServiceHandler.ActService.Name" />
+                <input type="text" class="col-sm-7" @bind="ServiceHandler.ActService.Name" />
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
-                <input type="number" min="1" max="65535" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.Port" />
+                <input type="number" min="1" max="65535" class="col-sm-3" @bind="ServiceHandler.ActService.Port" />
                 <label class="col-sm-1 col-form-label col-form-label-sm"> - </label>
-                <input type="number" min="1" max="65535" class=" col-sm-4 form-control form-control-sm" @bind="ServiceHandler.ActService.PortEnd" />
+                <input type="number" min="1" max="65535" class=" col-sm-3" @bind="ServiceHandler.ActService.PortEnd" />
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("protocol"))*:</label>
-                <div class="col-sm-9">
+                <div class="col-sm-7">
                     <Dropdown ElementType="NetworkProtocol" @bind-SelectedElement="ServiceHandler.ActService.Protocol" ElementToString="@(p => p.Name)" Elements="ipProtos" Nullable="true">
                         <ElementTemplate Context="proto">
                             @proto.Name

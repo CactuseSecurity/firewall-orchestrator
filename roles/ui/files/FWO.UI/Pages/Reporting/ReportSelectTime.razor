@@ -5,7 +5,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@Display">
+<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_time"))" Show="@Display">
     <Body>
         <div>
             @if (SelectedReportType.IsChangeReport())
@@ -19,7 +19,7 @@
                     <div class="col-sm-11">
                         <div class="form-group row">
                             <label for="rangeshortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
-                            <div class="col-sm-3">
+                            <div class="col-sm-4">
                                 <Dropdown @bind-SelectedElement="ActTimeFilter.TimeRangeShortcut" ElementToString="@(s => userConfig.GetText(s))" Elements="TimeRangeShortcuts.Ranges" >
                                     <ElementTemplate Context="shortcut">
                                         @(userConfig.GetText(shortcut))
@@ -29,7 +29,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="row">
+                <div class="row mt-2">
                     <div class="col-sm-1">
                         <div class="form-control-sm offset-sm-6">
                             <input class="form-check-input" type="radio" checked="@(ActTimeFilter.TimeRangeType == TimeRangeType.Interval)" name="shortcutRange" id="true" @onchange="() => {ActTimeFilter.TimeRangeType = TimeRangeType.Interval;}" >
@@ -41,7 +41,7 @@
                             <div class="col-sm-3">
                                 <input id="lastInterval" type="text" class="form-control form-control-sm" @bind="ActTimeFilter.Offset" />
                             </div>
-                            <div class="col-sm-3">
+                            <div class="col-sm-4">
                                 <Dropdown @bind-SelectedElement="ActTimeFilter.Interval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never))" >
                                     <ElementTemplate Context="interval">
                                         @(userConfig.GetText(interval.ToString()))
@@ -51,7 +51,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="row">
+                <div class="row mt-2">
                     <div class="col-sm-1">
                         <div class="form-control-sm offset-sm-6">
                             <input class="form-check-input " type="radio" checked="@(ActTimeFilter.TimeRangeType == TimeRangeType.Fixeddates)" name="shortcutRange" id="false" @onchange="() => {ActTimeFilter.TimeRangeType = TimeRangeType.Fixeddates;}" >
@@ -104,7 +104,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="row">
+                <div class="row mt-2">
                     <div class="col-sm-1">
                         <div class="form-control-sm offset-sm-6">
                             <input class="form-check-input " type="radio" checked="@(!ActTimeFilter.IsShortcut)" name="shortcut" id="false" @onchange="() => {ActTimeFilter.IsShortcut = false;}" >

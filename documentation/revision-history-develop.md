@@ -151,5 +151,22 @@ bugfix release:
 - rename management & device tenat_id fields to unfiltered_tenant_id
 - fixing UI device selector crashes
 
-# 7.3.2 - 19.10.2023 DEVELOP
+# 7.3.2 - 09.12.2023 DEVELOP
 - Modelling first version
+
+# 7.3.3 - 08.01.2024 DEVELOP
+- Moving to vanilla bootstrap css v5.3.2
+- adding extended tenant to device mapping settings (depending on latest bootstrap version) - closes  #2280
+- fix for log locking for import process
+
+# 7.3.4 - 09.01.2024 DEVELOP
+- Scheduled import change notification
+
+# 7.3.5 - 15.01.2024 DEVELOP
+- importer log locking fix (only fixing import stopping so far)
+- import change notification:
+  - DB extensions import_control.security_relevant_changes_counter
+  - removing python import notification
+  - writing to change counter after import (inpreparation for notification enhancement)
+- importer demo tenant device mapping additions (upgrade)
+- installer: introducing venv for newer ansible versions and thereby removing version handling

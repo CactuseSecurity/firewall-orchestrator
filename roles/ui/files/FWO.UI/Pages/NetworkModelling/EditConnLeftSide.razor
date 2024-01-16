@@ -6,9 +6,9 @@
 @inject UserConfig userConfig
 
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
-    <div class="form-group row col-sm-12 mt-3 ml-2 w-100 justify-content-between">
+    <div class="pad-10 form-group row col-sm-12 mt-3 ml-2 w-100 justify-content-between">
         <h3>@(userConfig.GetText("library"))</h3>
-        <label class="col-form-label text-success">@ConnHandler.Application.Display()</label>
+        <h4>@ConnHandler.Application.Display()</h4>
     </div>
     <div class="col-sm-11 border rounded m-2 p-2">
         <h5>@(userConfig.GetText("network_objects"))</h5>
@@ -32,42 +32,40 @@
                 }
             </div>
         </div>
-        <div class="form-group row">
-            <div class="col-sm-12">
-                <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">@(userConfig.GetText("search_nw_object"))</button>
-                <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_app_role"))</button>
-                @if(selectedNwElems.Count == 1)
+        <div class="btn-group mt-1">
+            <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">@(userConfig.GetText("search_nw_object"))</button>
+            <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_app_role"))</button>
+            @if(selectedNwElems.Count == 1)
+            {
+                @if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppRole)
                 {
-                    @if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppRole)
+                    if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
                     {
-                        if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
-                        {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => 
-                                {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value));
-                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit"))</button>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
-                                {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value));
-                                selectedNwElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
-                        }
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => 
+                            {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value));
+                            ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                            {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value));
+                            selectedNwElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
                     }
-                    else if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppServer)
-                    {
-
-                    }
-                    else
-                    {
-                        if(!(ResolveNwGroupObject(selectedNwElems[0].Value)?.IsDeleted ?? true))
-                        {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
-                                {ConnHandler.RequestRemoveNwGrpObject(ResolveNwGroupObject(selectedNwElems[0].Value));
-                                selectedNwElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("remove"))</button>
-                        }
-                    }
+                }
+                else if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppServer)
+                {
 
                 }
-            </div>
+                else
+                {
+                    if(!(ResolveNwGroupObject(selectedNwElems[0].Value)?.IsDeleted ?? true))
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
+                            {ConnHandler.RequestRemoveNwGrpObject(ResolveNwGroupObject(selectedNwElems[0].Value));
+                            selectedNwElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("remove"))</button>
+                    }
+                }
+
+            }
         </div>
-        <br>
+        <br><br>
         @if(!ConnHandler.svcReadOnly)
         {
             <h5>@(userConfig.GetText("services"))</h5>
@@ -84,34 +82,36 @@
                     }
                 </div>
             </div>
-            <button type="button" class="btn btn-sm btn-success"@onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_service_group"))</button>
-            @if(selectedSvcElems.Count == 1)
-            {
-                @if(selectedSvcElems[0].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+            <div class="btn-group mt-1">
+                <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_service_group"))</button>
+                @if(selectedSvcElems.Count == 1)
                 {
-                    if(!ResolveSvcGrp(selectedSvcElems[0].Value)?.IsGlobal ?? true)
+                    @if(selectedSvcElems[0].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
                     {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
-                            {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value));
-                            ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service_group"))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
-                            {await ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedSvcElems[0].Value));
-                            selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                        if(!ResolveSvcGrp(selectedSvcElems[0].Value)?.IsGlobal ?? true)
+                        {
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
+                                {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value));
+                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service_group"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                                {await ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedSvcElems[0].Value));
+                                selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                        }
+                    }
+                    else
+                    {
+                        if(!(ResolveSvc(selectedSvcElems[0].Value)?.IsGlobal ?? true))
+                        {
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
+                                {ConnHandler.EditService(ResolveSvc(selectedSvcElems[0].Value));
+                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                                {await ConnHandler.RequestDeleteService(ResolveSvc(selectedSvcElems[0].Value));
+                                selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                        }
                     }
                 }
-                else
-                {
-                    if(!(ResolveSvc(selectedSvcElems[0].Value)?.IsGlobal ?? true))
-                    {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
-                            {ConnHandler.EditService(ResolveSvc(selectedSvcElems[0].Value));
-                            ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service"))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
-                            {await ConnHandler.RequestDeleteService(ResolveSvc(selectedSvcElems[0].Value));
-                            selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
-                    }
-                }
-            }
+            </div>
         }
         @if(!ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.UsedInterfaceId == null)
         {
@@ -130,10 +130,8 @@
                     }
                 </div>
             </div>
-            <div class="form-group row">
-                <div class="col-sm-3">
-                    <button type="button" class="btn btn-sm btn-success w-100" @onclick="SearchInterface">@(userConfig.GetText("search"))</button>
-                </div>
+            <div class="btn-group mt-1">
+                <button type="button" class="btn btn-sm btn-success" @onclick="SearchInterface">@(userConfig.GetText("search"))</button>
                 @if(selectedInterfaces.Count == 1)
                 {
                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => 

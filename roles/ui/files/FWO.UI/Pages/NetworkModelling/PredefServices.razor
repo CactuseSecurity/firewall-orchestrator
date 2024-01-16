@@ -7,34 +7,34 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("predef_services") )" Show="@Display" XLarge="true" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("predef_services") )" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
     <Body>
         @if (Display)
         {
-            <div class="form-group row">
-                <button type="button" class="btn btn-sm btn-success ml-5" @onclick="CreateServiceGroup">@(userConfig.GetText("add_service_group"))</button>
+            <button type="button" class="btn btn-sm btn-success ml-5 mb-2" @onclick="CreateServiceGroup">@(userConfig.GetText("add_service_group"))</button>
+            <div class="vheight75">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingServiceGroup" Items="PredefServiceGroups" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(userConfig.GetText("edit"))</button>
+                                <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
+                                    <Authorized>
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(userConfig.GetText("delete"))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
+                                    </NotAuthorized> 
+                                </AuthorizeView>
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("comment"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                </Table>
             </div>
-            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingServiceGroup" Items="PredefServiceGroups" PageSize="0" ColumnReorder="true">
-                <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-                    <Template>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(userConfig.GetText("edit"))</button>
-                            <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
-                                <Authorized>
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(userConfig.GetText("delete"))</button>
-                                </Authorized>
-                                <NotAuthorized>
-                                    <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
-                                </NotAuthorized> 
-                            </AuthorizeView>
-                        </div>
-                    </Template>
-                </Column>
-                <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-                <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-                <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("comment"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
-                <Pager ShowPageNumber="true" ShowTotalCount="true" />
-            </Table>
         }
     </Body>
     <Footer>

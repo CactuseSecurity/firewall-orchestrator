@@ -47,6 +47,32 @@
             }
         },
         {
+            "name": "py-normalizeRlmOwners",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/customizing/modelling/getOwnersFromTufinRlm.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-c${workspaceFolder}/scripts/customizing/modelling/customizingConfig.json"
+            ]
+        },
+        {
+            "name": "py-normalizeNwData",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/customizing/modelling/convertNwObjData.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-c${workspaceFolder}/scripts/customizing/modelling/customizingConfig.json"
+            ]
+        },
+        {
             "name": "py-import-mgm",
             "type": "python",
             "request": "launch",
@@ -56,11 +82,12 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m15",
-                "-d8",
+                "-m5",
+                "-d1",
                 "-f",
                 "-s",
-                //"-c"
+                "-l66",
+                // "-c"
                 //"-l250"
                 //  41 - lab fortimanager
                 //"-nhttps://fwodemodata.cactus.de/demo07_dummyGw1.json"
@@ -69,6 +96,17 @@
                 //"-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
                 //"-ihttps://fwodemodata.cactus.de/big/xxx.json",
             ]
+        },
+        {
+            "name": "py-write-config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/customizing/sample-config-change.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
         },
         {
             "name": "py-acquire-lock",

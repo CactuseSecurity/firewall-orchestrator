@@ -6,32 +6,34 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("show_history") )" Show="@Display" XLarge="true" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("show_history") )" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
     <Body>
         @if (Display)
         {
-            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ModellingHistoryEntry" Items="history" PageSize="100" ColumnReorder="true">
-                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true">
-                    <Template>
-                        @(Applications.FirstOrDefault(x => x.Id == context.AppId)?.Name ?? context.AppId.ToString())
-                    </Template>
-                </Column>
-                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_type"))" Field="@(x => x.ChangeType)" Sortable="true">
-                    <Template>
-                        @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ChangeType), context.ChangeType)))
-                    </Template>
-                </Column>
-                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true">
-                    <Template>
-                        @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ObjectType), context.ObjectType)))
-                    </Template>
-                </Column>
-                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />
-                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.ChangeText)" Sortable="true" Filterable="true" />
-                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("changed_by"))" Field="@(x => x.Changer)" Sortable="true" Filterable="true" />
-                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_time"))" Field="@(x => x.ChangeTime)" Sortable="true" Filterable="true" />
-                <Pager ShowPageNumber="true" ShowTotalCount="true" />
-            </Table>
+            <div class="vheight60">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingHistoryEntry" Items="history" PageSize="100" ColumnReorder="true">
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true">
+                        <Template>
+                            @(Applications.FirstOrDefault(x => x.Id == context.AppId)?.Name ?? context.AppId.ToString())
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_type"))" Field="@(x => x.ChangeType)" Sortable="true">
+                        <Template>
+                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ChangeType), context.ChangeType)))
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true">
+                        <Template>
+                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ObjectType), context.ObjectType)))
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.ChangeText)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("changed_by"))" Field="@(x => x.Changer)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_time"))" Field="@(x => x.ChangeTime)" Sortable="true" Filterable="true" />
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                </Table>
+            </div>
         }
     </Body>
     <Footer>

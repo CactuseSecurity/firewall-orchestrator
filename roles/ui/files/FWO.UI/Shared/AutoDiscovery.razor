@@ -8,14 +8,14 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" XLarge="true"  OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
             @if(somethingToDo)
             {
                 <h6>@(userConfig.GetText("managements"))</h6>
-                <Table class="table table-bordered table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
                     <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
                             @if(!context.Ignore)
@@ -66,7 +66,7 @@
                         <Template>
                             @if(context.Devices.Count() > 0)
                             {
-                                <Table class="table table-bordered table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
+                                <Table class="table table-bordered th-bg-secondary table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
                                     <Column TableItem="Device" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                                         <Template Context="Dev">
                                             @if(Dev.Relevant)

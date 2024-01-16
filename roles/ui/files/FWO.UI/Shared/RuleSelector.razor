@@ -7,17 +7,17 @@
 
 <div class="form-group row">
     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rules")):</label>
-    <div class="col-sm-9">
+    <div class="col-sm-9 mr-auto">
         <EditList ElementType="Rule" Elements="SelectedRules.OrderBy(r => r.DeviceId).ToArray()" ElementsToAdd="RulesToAdd" ElementsToDelete="RulesToDelete" StdLayout="false">
             <Display>
                 <div class="row">
-                    <div class="col-sm-2 border form-control form-control-sm bg-transparent">@Devices.FirstOrDefault(d => d.Id == context.Metadata.DeviceId)?.Name</div>
-                    <div class="col-sm-10 border form-control form-control-sm bg-transparent">@context.Metadata.Uid</div>
+                    <div class="col-sm-3 border bg-transparent">@Devices.FirstOrDefault(d => d.Id == context.Metadata.DeviceId)?.Name</div>
+                    <div class="col-sm-9 border bg-transparent">@context.Metadata.Uid</div>
                 </div>
             </Display>
         </EditList>
-        <div class="col-sm-12">
-            <div class="form-group row">
+        <div class="col-sm-12 mt-1">
+            <div class="form-group row mr-auto">
                 <div class="col-sm-3">
                     <Dropdown ElementType="Device" ElementToString="@(d => d.Name)"
                         SelectedElement="actDevice" SelectedElementChanged="DeviceChanged" Elements="Devices">

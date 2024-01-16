@@ -47,8 +47,16 @@ namespace FWO.Api.Data
 
         public static string DisplayIp(string ip1, string ip2, bool inBrackets = false)
         {
-            string nwObjType = AutoDetectType(ip1, ip2);
-            return DisplayIp(ip1, ip2, nwObjType, inBrackets);
+            try
+            {
+                string nwObjType = AutoDetectType(ip1, ip2);
+                return DisplayIp(ip1, ip2, nwObjType, inBrackets);
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Ip displaying", $"Exception thrown: {exc.Message}");
+                return "";
+            }
         }
 
         public static string DisplayIp(string ip1, string ip2, string nwObjType, bool inBrackets = false)

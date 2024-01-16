@@ -39,7 +39,13 @@
 - name: anonymous api access output
   debug:
     msg: "ERROR unexpected version test result (does not contain 'Missing Authorization header'): {{ api_query_anonymous.content }}"
-  when: api_query_anonymous.content is not search('Missing\sAuthorization\sheader')
+  when: >
+    not 
+      (
+        api_query_anonymous.content is search('Missing\sAuthorization\sheader') 
+        or
+        api_query_anonymous.content is search('Missing ''Authorization'' or ''Cookie'' header')
+      )
 
 - name: get sample jwt
   uri:

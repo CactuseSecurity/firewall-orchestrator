@@ -7,6 +7,7 @@ using RestSharp.Serializers.NewtonsoftJson;
 using Newtonsoft.Json;
 using RestSharp.Serializers;
 using System.Runtime.CompilerServices;
+using System.Data;
 
 namespace FWO.Middleware.Client
 {

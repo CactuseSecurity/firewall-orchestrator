@@ -1,5 +1,4 @@
 ﻿using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -11,12 +10,8 @@ namespace FWO.Middleware.Server
 	/// <summary>
 	/// Class handling the scheduler for the import of subnet data
 	/// </summary>
-    public class ImportSubnetDataScheduler
+    public class ImportSubnetDataScheduler : SchedulerBase
     {
-        private readonly ApiConnection apiConnection;
-        private GlobalConfig globalConfig;
-        private List<Alert> openAlerts = new List<Alert>();
-
         private System.Timers.Timer ScheduleTimer = new();
         private System.Timers.Timer ImportSubnetDataTimer = new();
 
@@ -29,15 +24,16 @@ namespace FWO.Middleware.Server
             return new ImportSubnetDataScheduler(apiConnection, globalConfig);
         }
     
-        private ImportSubnetDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
+        private ImportSubnetDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
         {
-            this.apiConnection = apiConnection;
-            this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfig_OnChange;
             StartScheduleTimer();
         }
 
-        private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+		/// <summary>
+		/// set scheduling timer from config values
+		/// </summary>
+        protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
         {
             ScheduleTimer.Stop();
             if (globalConfig.ImportSubnetDataSleepTime > 0)
@@ -47,7 +43,10 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private void StartScheduleTimer()
+		/// <summary>
+		/// start the scheduling timer
+		/// </summary>
+        protected override void StartScheduleTimer()
         {
             if (globalConfig.ImportSubnetDataSleepTime > 0)
             {
@@ -91,7 +90,6 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
                 AreaSubnetDataImport import = new AreaSubnetDataImport(apiConnection, globalConfig);
                 if(!await import.Run())
                 {
@@ -103,93 +101,8 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Import Area Subnet Data", $"Ran into exception: ", exc);
                 Log.WriteAlert($"source: \"{GlobalConst.kImportAreaSubnetData}\"",
                     $"userId: \"0\", title: \"Error encountered while trying to import Area Subnet Data\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAreaSubnetData}\"");
-                await AddLogEntry(1, globalConfig.GetText("scheduled_subnet_import"), globalConfig.GetText("ran_into_exception") + exc.Message);
-                await SetAlert("Import Area Subnet Data failed", exc.Message);
-            }
-        }
-
-        private async Task SetAlert(string title, string description)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    source = GlobalConst.kImportAreaSubnetData,
-                    userId = 0,
-                    title = title,
-                    description = description,
-                    alertCode = (int)AlertCode.ImportAreaSubnetData
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
-                if (returnIds != null)
-                {
-                    // Acknowledge older alert for same problem
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.ImportAreaSubnetData);
-                    if(existingAlert != null)
-                    {
-                        await AcknowledgeAlert(existingAlert.Id);
-                    }
-                }
-                else
-                {
-                    Log.WriteError("Write Alert", "Log could not be written to database");
-                }
-                Log.WriteAlert ($"source: \"{GlobalConst.kImportAreaSubnetData}\"", 
-                    $"userId: \"0\", title: \"{title}\", description: \"{description}\", alertCode: \"{AlertCode.ImportAreaSubnetData.ToString()}\"");
-            }
-            catch(Exception exc)
-            {
-                Log.WriteError("Write Alert", $"Could not write Alert for import Area Subnet Data: ", exc);
-            }
-        }
-
-        private async Task AcknowledgeAlert(long alertId)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    id = alertId,
-                    ackUser = 0,
-                    ackTime = DateTime.Now
-                };
-                await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for import Area Subnet Data: ", exception);
-            }
-        }
-
-        private async Task AddLogEntry(int severity, string cause, string description)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    source = GlobalConst.kImportAreaSubnetData,
-                    discoverUser = 0,
-                    severity = severity,
-                    suspectedCause = cause,
-                    description = description,
-                    mgmId = (int?)null,
-                    devId = (int?)null,
-                    importId = (long?)null,
-                    objectType = (string?)null,
-                    objectName = (string?)null,
-                    objectUid = (string?)null,
-                    ruleUid = (string?)null,
-                    ruleId = (long?)null
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addLogEntry, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    Log.WriteError("Write Log", "Log could not be written to database");
-                }
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Write Log", $"Could not write log: ", exc);
+                await AddLogEntry(1, globalConfig.GetText("scheduled_subnet_import"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportAreaSubnetData);
+                await SetAlert("Import Area Subnet Data failed", exc.Message, GlobalConst.kImportAreaSubnetData, AlertCode.ImportChangeNotify);
             }
         }
     }

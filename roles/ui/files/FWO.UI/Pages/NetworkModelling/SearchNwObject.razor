@@ -5,33 +5,33 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_nw_object"))" Large="true" Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_nw_object"))" Size=PopupSize.Small Show="@Display" OnClose="Close">
     <Body>
         @if(Display)
         {
             <div class="form-group row col-sm-12">
-                <label class="col-form-label">@(userConfig.GetText("object_type")):</label>
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("object_type")):</label>
                 @if(singleType)
                 {
-                    <label class="col-form-label text-primary ml-2">@userConfig.GetText(selectedType.ToString())</label>
+                    <label class="col-form-label text-primary col-sm-8">@userConfig.GetText(selectedType.ToString())</label>
                 }
                 else
                 {
-                    <div class="col-sm-2">
+                    <div class="col-sm-6">
                         <Dropdown ElementType="ModellingTypes.ObjectType" ElementToString="@(a => userConfig.GetText(a.ToString()))" @bind-SelectedElement="selectedType" Elements="availableTypes">
                             <ElementTemplate Context="type">
                                 @userConfig.GetText(type.ToString())
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="InitType">@(userConfig.GetText("select"))</button>
+                    <button type="button" class="btn btn-sm btn-primary col-sm-2" @onclick="InitType">@(userConfig.GetText("select"))</button>
                 }
             </div>
             @if(typeSelected)
             {
-                <div class="form-group row">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
-                    <div class="col-sm-9">
+                <div class="form-group row col-sm-12">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
+                    <div class="col-sm-8">
                         <Dropdown ElementType="ModellingNwGroup" @bind-SelectedElement="selectedObject" ElementToString="@(o => o.Display())" Elements="nwObjects" Nullable="true">
                             <ElementTemplate Context="obj">
                                 @((MarkupString)obj.DisplayHtml())

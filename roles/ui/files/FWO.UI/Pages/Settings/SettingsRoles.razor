@@ -19,8 +19,8 @@
 @(userConfig.GetText("U5215"))
 <hr />
 
-<div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Role" Items="roles" PageSize="0" ColumnReorder="true">
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Role" Items="roles" PageSize="0" ColumnReorder="true">
         <Column TableItem="Role" Title="@(userConfig.GetText("actions"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -57,7 +57,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("assign_user_group_to_role") + ": " + actRole.Name)" Show="@AddMode" Large="true" OnClose="() => AddMode = false">
+<PopUp Title="@(userConfig.GetText("assign_user_group_to_role") + ": " + actRole.Name)" Show="@AddMode" Size=PopupSize.Large OnClose="() => AddMode = false">
     <Body>
         @if (AddMode)
         {
@@ -79,7 +79,7 @@
                         <button type="button" class="btn btn-sm btn-success" @onclick="async() => await SearchUser()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
                     </div>
                 </form>
-                <form class="form-group row">
+                <form class="form-group row mt-2">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUiUser" Elements="uiUsers">
@@ -99,7 +99,7 @@
                         </AuthorizeView>
                     </div>
                 </form>
-                <form class="form-group row">
+                <form class="form-group row mt-2">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("internal_group")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedGroupDn" Elements="internalGroupList" />
@@ -125,7 +125,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+<PopUp Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Show="@DeleteMode" Size=PopupSize.Small OnClose="() => DeleteMode = false">
     <Body>
         @if (DeleteMode)
         {
@@ -158,7 +158,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchMode" Large="true" OnClose="() => SearchMode = false">
+<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchMode" Size=PopupSize.Large OnClose="() => SearchMode = false">
     <Body>
         @if (SearchMode)
         {

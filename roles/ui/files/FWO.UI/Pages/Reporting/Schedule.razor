@@ -13,59 +13,61 @@
 
 <button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("actions"))">
-        <Template>
-            @if (context.Owner.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(GlobalConst.kAdmin))
-            {
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; actDate = actTime = context.StartTime; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">@(userConfig.GetText("delete"))</button>
-                </div>
-            }
-        </Template>
-    </Column>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("id"))" Field="@(scheduledReport => scheduledReport.Id)" Sortable="true" Filterable="true"/>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("name"))" Field="@(scheduledReport => scheduledReport.Name)" Sortable="true" Filterable="true"/>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("start_time"))" Field="@(scheduledReport => scheduledReport.StartTime)" Sortable="true" Filterable="true">
-        <Template>
-            @(context.StartTime.ToString("yyyy-MM-dd HH:mm:ssK"))
-        </Template>
-    </Column>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("repeat_interval"))" Field="@(scheduledReport => scheduledReport.RepeatOffset)">
-        <Template>
-            @(context.RepeatInterval != Interval.Never ? context.RepeatOffset : "") @(userConfig.GetText(context.RepeatInterval.ToString()))
-        </Template>
-    </Column>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("template"))" Field="@(scheduledReport => scheduledReport.Template.Name)" Sortable="true" Filterable="true"/>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("owner"))" Field="@(scheduledReport => scheduledReport.Owner.Name)" Sortable="true" Filterable="true"/>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("active"))" Field="@(scheduledReport => scheduledReport.Active)" Sortable="true" Filterable="true">
+<div class="vheight75">
+    <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("actions"))">
             <Template>
-                @(GlobalConfig.ShowBool(context.Active))
+                @if (context.Owner.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(GlobalConst.kAdmin))
+                {
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; actDate = actTime = context.StartTime; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">@(userConfig.GetText("delete"))</button>
+                    </div>
+                }
             </Template>
-    </Column>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("count"))" Field="@(scheduledReport => scheduledReport.Counter)" Sortable="true" Filterable="true"/>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("output_format"))" Field="@(scheduledReport => scheduledReport.OutputFormat)">
-        <Template>
-            @String.Join(", ", context.OutputFormat.ConvertAll(format => format.Name.ToUpperInvariant()))
-        </Template>
-    </Column>
-</Table>
+        </Column>
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("id"))" Field="@(scheduledReport => scheduledReport.Id)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("name"))" Field="@(scheduledReport => scheduledReport.Name)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("start_time"))" Field="@(scheduledReport => scheduledReport.StartTime)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.StartTime.ToString("yyyy-MM-dd HH:mm:ssK"))
+            </Template>
+        </Column>
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("repeat_interval"))" Field="@(scheduledReport => scheduledReport.RepeatOffset)">
+            <Template>
+                @(context.RepeatInterval != Interval.Never ? context.RepeatOffset : "") @(userConfig.GetText(context.RepeatInterval.ToString()))
+            </Template>
+        </Column>
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("template"))" Field="@(scheduledReport => scheduledReport.Template.Name)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("owner"))" Field="@(scheduledReport => scheduledReport.Owner.Name)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("active"))" Field="@(scheduledReport => scheduledReport.Active)" Sortable="true" Filterable="true">
+                <Template>
+                    @(GlobalConfig.ShowBool(context.Active))
+                </Template>
+        </Column>
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("count"))" Field="@(scheduledReport => scheduledReport.Counter)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("output_format"))" Field="@(scheduledReport => scheduledReport.OutputFormat)">
+            <Template>
+                @String.Join(", ", context.OutputFormat.ConvertAll(format => format.Name.ToUpperInvariant()))
+            </Template>
+        </Column>
+    </Table>
+</div>
 
-<PopUp Large="true" Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowSaveScheduledReportDialog || ShowEditScheduledReportDialog)">
+<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowSaveScheduledReportDialog || ShowEditScheduledReportDialog)">
     <Body>
         <div>
             <div class="form-group row">
                 <label for="scheduleId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                 <label class="col-sm-8 col-form-label col-form-label-sm">@scheduledReportInEdit.Id</label>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                 <div class="col-sm-8">
                     <input id="scheduleName" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.Name" />
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleStartTime" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("start_time")):</label>
                 <div class="col-sm-4">
                     <input id="scheduleStartTime" type="time" step="60" class="form-control form-control-sm" @bind="actTime" />
@@ -74,12 +76,12 @@
                     <input id="scheduleStartTimeDate" type="date" class="form-control form-control-sm" @bind="actDate" />
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleRepeatEvery" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("repeat_every")):</label>
-                <div class="col-sm-4">
+                <div class="col-sm-3">
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatOffset" />
                 </div>
-                <div class="col-sm-4">
+                <div class="col-sm-5">
                     <Dropdown @bind-SelectedElement="scheduledReportInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>()" >
                         <ElementTemplate Context="interval">
                             @(userConfig.GetText(interval.ToString()))
@@ -87,7 +89,7 @@
                     </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleTemplate" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("template")):</label>
                 <div class="col-sm-8">
                     <Dropdown ElementType="ReportTemplate" ElementToString="@(o => o.Name)" Nullable="false"
@@ -98,48 +100,48 @@
                     </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("output_format")):</label>
                 <div class="col-sm-8">
                     <div class="form-inline justify-content-between">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatHtml" value="Html"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "html"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("html"))">
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kHtml))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kHtml))">
                             <label class="form-check-label" for="outputFormatHtml">HTML</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatPdf" value="Pdf"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "pdf"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("pdf"))">
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kPdf))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kPdf))">
                             <label class="form-check-label" for="outputFormatPdf">PDF</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatJson" value="Json"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "json"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("json"))">
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kJson))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kJson))">
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
                         @if (((ReportType)scheduledReportInEdit.Template.ReportParams?.ReportType).IsResolvedReport())
                         {
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
-                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "csv"))"
-                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("csv"))">
+                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kCsv))"
+                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove(GlobalConst.kCsv))">
                                 <label class="form-check-label" for="outputFormatCsv">CSV</label>
                             </div>
                         }
                         else
                         {
-                            scheduledReportInEdit.OutputFormat.Remove("csv");
+                            scheduledReportInEdit.OutputFormat.Remove(GlobalConst.kCsv);
                         }
                     </div>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2">
                 <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
                 <div class="col-sm-8" style="padding-top: calc(0.25rem + 1px);">
-                    <input id="scheduleActive" type="checkbox" class="form-control form-control-sm" style="max-height: 22px;" @bind="scheduledReportInEdit.Active" />
+                    <input id="scheduleActive" type="checkbox" style="max-height: 22px;" @bind="scheduledReportInEdit.Active" />
                 </div>
             </div>
         </div>
@@ -150,7 +152,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="Report Schedule" Show="@ShowDeleteScheduledReportDialog">
+<PopUp Title="Report Schedule" Size=PopupSize.Small Show="@ShowDeleteScheduledReportDialog">
     <Body>
         <p>@(userConfig.GetText("U2002")) "@scheduledReportInEdit.Name" ?</p>
     </Body>

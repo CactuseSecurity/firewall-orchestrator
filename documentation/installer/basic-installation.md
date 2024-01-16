@@ -1,14 +1,14 @@
 # Installation instructions server
 
 - use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
-- recommended platforms are Ubuntu Server 20.04 LTS and Debian 11. See [system requirements](https://fwo.cactus.de/wp-content/uploads/2021/07/fwo-system-requirements-v5.pdf) for supported platforms
+- recommended platforms are Ubuntu Server 22.04 LTS and Debian 12. See [system requirements](https://fwo.cactus.de/wp-content/uploads/2021/07/fwo-system-requirements-v5.pdf) for supported platforms
 - we will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
 1) prepare your target system (make sure your user has full sudo permissions)
 
 ```console
 su -
-apt-get install git sudo
+apt-get install git sudo ansible
 ```
 if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
 
@@ -22,27 +22,16 @@ Also make sure your packages are up to date before FWORCH installation using e.g
 
 possibly followed by a reboot.
 
-
-1a) Install python virtual environment
-
-If you already have ansible >= 2.13 installed on your maching, you may skip this step
-
-        sudo apt install python3-venv
-        python3 -m venv ansible-venv
-        source ansible-venv/bin/activate
-        pip install ansible
-
-
 2) get Firewall Orchestrator with the following command (as normal user)
 ```console
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
 
-3) Ansible Installation (only for legacy Ubuntu 18.04, Debian 10)
+3) Ansible Installation
 
-Install latest ansible (>= 2.9) before firewall orchestrator installation
+Make sure you have ansible version 2.13 or above installed on your system (check with "ansible --version"). If this is not the case, install a newer ansible. One possible way is to run the following script (and entering your sudo password):
 
-        cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
+        firewall-orchestrator/scripts/install-ansible-from-venv.sh
 
 4) install (on localhost)
 

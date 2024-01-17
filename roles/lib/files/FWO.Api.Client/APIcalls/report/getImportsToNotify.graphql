@@ -7,5 +7,9 @@ query getImportsToNotify {
     control_id
     stop_time
     mgm_id
+    management{
+      mgm_name
+    }
+    security_relevant_changes_counter
   }
 }

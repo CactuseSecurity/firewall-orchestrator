@@ -38,13 +38,27 @@ namespace FWO.Middleware.Server
             [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
             public int MgmtId { get; set; }
 
+            [JsonProperty("management"), JsonPropertyName("management")]
+            public ImportManagement Mgmt { get; set; }
+
             [JsonProperty("stop_time"), JsonPropertyName("stop_time")]
             public DateTime StopTime { get; set; }
+
+            [JsonProperty("security_relevant_changes_counter"), JsonPropertyName("security_relevant_changes_counter")]
+            public int RelevantChanges { get; set; }
         };
+        private struct ImportManagement
+        {
+            [JsonProperty("mgm_name"), JsonPropertyName("mgm_name")]
+            public string MgmtName { get; set; }
+        }
+
         private List<ImportToNotify> importsToNotify = new();
 
         private bool WorkInProgress = false;
         private DeviceFilter deviceFilter = new();
+        private List<int> importedManagements = new();
+        private UserConfig userConfig;
 
 
         /// <summary>
@@ -54,6 +68,7 @@ namespace FWO.Middleware.Server
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
+            userConfig = new(globalConfig);
         }
 
         /// <summary>
@@ -90,6 +105,14 @@ namespace FWO.Middleware.Server
         private async Task<bool> NewImportFound()
         {
             importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+            importedManagements = new();
+            foreach(var imp in importsToNotify)
+            {
+                if(!importedManagements.Contains(imp.MgmtId))
+                {
+                    importedManagements.Add(imp.MgmtId);
+                }
+            }
             return importsToNotify.Count > 0;
         }
 
@@ -123,13 +146,8 @@ namespace FWO.Middleware.Server
 
         private async Task<ReportParams> SetFilters()
         {
-            List<int> selectedManagements = new();
-            foreach(var imp in importsToNotify)
-            {
-                selectedManagements.Add(imp.MgmtId);
-            }
             deviceFilter.Managements = (await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement))
-                .Where(x => selectedManagements.Contains(x.Id)).ToList();
+                .Where(x => importedManagements.Contains(x.Id)).ToList();
             deviceFilter.applyFullDeviceSelection(true);
 
             return new((int)ReportType.Changes, deviceFilter)
@@ -155,7 +173,7 @@ namespace FWO.Middleware.Server
         private MailData PrepareEmail()
         {
             string subject = globalConfig.ImpChangeNotifySubject;
-            string body = globalConfig.ImpChangeNotifyBody;
+            string body = CreateBody();
             FormFile? attachment = null;
             if(changeReport != null)
             {
@@ -186,6 +204,22 @@ namespace FWO.Middleware.Server
                 mailData.Attachments = new FormFileCollection() { attachment };
             }
             return mailData;
+        }
+
+        private string CreateBody()
+        {
+            string body = globalConfig.ImpChangeNotifyBody;
+            foreach(var mgmtId in importedManagements)
+            {
+                int mgmtCounter = 0;
+                foreach(var imp in importsToNotify.Where(x => x.MgmtId == mgmtId))
+                {
+                    mgmtCounter += imp.RelevantChanges;
+                }
+                body += globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody ? "<br>" : "\r\n\r\n";
+                body += $"{importsToNotify.FirstOrDefault(x => x.MgmtId == mgmtId).Mgmt.MgmtName} (id={mgmtId}): {mgmtCounter} {userConfig.GetText("changes")}";
+            }
+            return body;
         }
 
         private FormFile? CreateAttachment(string? content, string fileFormat)

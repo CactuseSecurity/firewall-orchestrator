@@ -3868,11 +3868,22 @@ INSERT INTO txt VALUES ('H5416', 'German',  '
             <ul>
                 <li>&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese 
                     Einstellung zu aktivieren. Default-Wert = "inaktiv".</li>
+                <li>&Auml;nderungsbenachrichtigungstyp: Art und Umfang, in dem die &Auml;nderungsbenachrichtigung gesendet werden soll:
+                    <ul>
+                        <li>Einfacher Text (kein &Auml;nderungsreport): Es wird nur der hier definierte Text der &Auml;nderungsbenachrichtigung gesendet.</li>
+                        <li>Html in Email: Ein Changes Report wird zu den im Import gefundenen &Auml;nderungen erstellt und in der email als Html versendet.</li>
+                        <li>Pdf als Anhang: Ein Changes Report wird erstellt und der email als Pdf-Datei angeh&auml;ngt.</li>
+                        <li>Html als Anhang: Ein Changes Report wird erstellt und der email als Html-Datei angeh&auml;ngt.</li>
+                        <li>Json als Anhang: Ein Changes Report wird erstellt und der email als Json-Datei angeh&auml;ngt.</li>
+                    </ul>
+                </li>
+                <li>&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.</li>
+                <li>&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.</li>
                 <li>Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
                     sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".</li>
                 <li>Titel der &Auml;nderungsbenachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".</li>
-                <li>Text der &Auml;nderungsbenachrichtigung: Start des Email-Textes. Die Email enth&auml;lt stets den Namen und die ID des 
-                    ge&auml;nderten Managements sowie die Anzahl der festgestellten &Auml;nderungen. Default-Wert = "leer".</li>
+                <li>Text der &Auml;nderungsbenachrichtigung: Start des Email-Textes f&uuml;r alle &Auml;nderungsbenachrichtigungstypen. Die Email enth&auml;lt danach stets
+                    eine Liste der Namen und IDs der ge&auml;nderten Managements sowie die Anzahl der festgestellten &Auml;nderungen. Default-Wert = "leer".</li>
             </ul>
         </li>
     </ul>
@@ -3889,11 +3900,22 @@ INSERT INTO txt VALUES ('H5416', 'English', '
             <ul>
                 <li>Change notification active?: When an import finds security relevant changes, should an email be sent out?
                 Default value = "inactive".</li>
+                <li>Change notification type: Defines how and with which content the notification should be sent:
+                    <ul>
+                        <li>Simple Text (no Change Report): Only the body of change notification emails as defined below is sent.</li>
+                        <li>Html in email body: A Changes Report is created and sent as Html in the email body</li>
+                        <li>Pdf as Attachment: A Changes Report is created and attached to the email as Pdf file.</li>
+                        <li>Html as Attachment: A Changes Report is created and attached to the email as Html file.</li>
+                        <li>Json as Attachment: A Changes Report is created and attached to the email as Json file.</li>
+                    </ul>
+                </li>
+                <li>Change notification sleep time (in seconds): Time between the checks for imported changes.</li>
+                <li>Change notification start at: Start time for the import change checks.</li>
                 <li>Recipient email addresses for change notifications: A comma-separated list of email addresses, which will get information in the case of 
                     security relevant changes found during import of a firewall management. Default value = "empty".</li>
                 <li>Subject of change notification emails: Subject line for notification emails. Default value = "empty".</li>
-                <li>Body of change notification emails: Start of the email text. The email will always contain name and ID of the changed 
-                    firewall management as well as the number of changes. Default value = "empty".</li>
+                <li>Body of change notification emails: Start of the email text for all change notification types. The email will subsequently always contain
+                    a list of names and IDs of the changed firewall management as well as the number of changes. Default value = "empty".</li>
             </ul>
         </li>
     </ul>

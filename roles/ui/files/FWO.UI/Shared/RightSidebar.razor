@@ -9,15 +9,15 @@
 @inject ApiConnection Connection
 @inject UserConfig userConfig
 
-<Sidebar SidebarCssClass="" Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="intWidth">
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="intWidth">
     <div class="p-3 mt-2">
         <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
         <CascadingValue Value="AnchorNavToRSB">
-            <TabSet KeepPanelsAlive="true" @ref="Tabset">
+            <TabSet DarkMode="true" KeepPanelsAlive="true" @ref="Tabset">
                 @if(AllTabVisible)
                 {
                     <Tab Title="@(userConfig.GetText("all"))" Position=0>
-                        <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
+                        <div class="d-md-flex justify-content-md-end sticky-marker-45">
                             <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                         </div>
                         <div class="mt-2">
@@ -31,7 +31,7 @@
                 @if(ManagementsReport != null)
                 {
                     <Tab Title="Report">
-                        <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
+                        <div class="d-md-flex justify-content-md-end sticky-marker-45">
                             <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarReport.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                         </div>
                         <div class="mt-2">
@@ -45,7 +45,7 @@
                     </Tab>
                 }
                 <Tab Title="@(userConfig.GetText("rule"))">
-                    <div class="d-md-flex justify-content-md-between sticky-marker-45 bg-white">
+                    <div class="btn-group btn-group-sm d-md-flex justify-content-md-between sticky-marker-45">
                         <div class="btn btn-dark btn-sm w-50" @onclick="@(async () => {SelectedRules.Clear(); await SelectedRulesChanged.InvokeAsync(SelectedRules);})">@(userConfig.GetText("clear_all"))</div>
                         <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarRule.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                     </div>

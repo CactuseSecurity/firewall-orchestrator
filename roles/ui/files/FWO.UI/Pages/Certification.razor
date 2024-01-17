@@ -16,7 +16,7 @@
 @inject MiddlewareClient middlewareClient
 
 @* ==== LEFT SIDEBAR ==== *@
-<Sidebar @ref="deviceSelectionSidebar" SidebarCssClass="" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
+<Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
     <br>
     <div class="btn-group sticky-marker pl-3 pr-3 w-100">
         @if (processing == false)
@@ -37,7 +37,7 @@
     <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
         <Authorized>
             <div class="p-3">
-                <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+                <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
                 <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
                     @bind-SelectedElement="selectedOwner" Elements="ownerList">
                     <ElementTemplate Context="owner">

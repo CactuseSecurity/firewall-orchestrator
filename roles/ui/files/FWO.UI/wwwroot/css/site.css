@@ -94,10 +94,9 @@ header {
     width: 20%;
 }
 
-.nav-tabs {
-    background-color: #d6d5d5;
+.nav-link.active {
+    font-weight: bold;
 }
-
 
 .modern-close {
     display: inline-block;

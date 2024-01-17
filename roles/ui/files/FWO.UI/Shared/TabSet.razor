@@ -1,11 +1,14 @@
 ﻿@implements IDisposable
 
 <!-- Display the tab headers -->
-<ul class="nav nav-tabs nav-fill sticky-marker">
+<ul class="nav nav-tabs nav-fill sticky-marker @(DarkMode ? "bg-transparent" : "")" style="@(DarkMode ? "--bs-nav-tabs-border-color: transparent;" : "")">
     @foreach (Tab tab in Tabs)
     {
         <li class="nav-item">
-            <a href="" @onclick="() => SetActiveTab(tab)" @onclick:preventDefault class="nav-link text-dark @tab.CssClass @(ActiveTab == tab ? "active" : "")">
+            <a href="" @onclick="() => SetActiveTab(tab)" @onclick:preventDefault class="nav-link @(DarkMode ? "text-white" : "text-dark")
+                @(ActiveTab == tab ? (DarkMode ? "bg-transparent active" : "active") : "")"
+               style="@(DarkMode ? (ActiveTab == tab ? "border-color: #0d6efd;  border-bottom-style: none;" : "border-color: #0d6efd; border-right-style:none; border-top-style:none; border-left-style: none;") : "")">
+
                 @tab.Title
                 @*@if (Closeable)
                     {
@@ -27,6 +30,9 @@
 @code {
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public bool DarkMode { get; set; } = false;
 
     [Parameter]
     public bool KeepPanelsAlive { get; set; }

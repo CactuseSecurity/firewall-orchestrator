@@ -17,7 +17,7 @@
 @inject UserConfig userConfig
 
 @* ==== LEFT SIDEBAR ==== *@
-<Sidebar @ref="deviceSelectionSidebar" SidebarCssClass="" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+<Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
     <div class="p-3 mt-2">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
         <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))"

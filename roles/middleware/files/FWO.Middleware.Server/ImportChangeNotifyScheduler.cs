@@ -99,8 +99,8 @@ namespace FWO.Middleware.Server
                 string titletext = "Error encountered while trying to Notify import Change";
                 Log.WriteAlert($"source: \"{GlobalConst.kImportChangeNotify}\"",
                     $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportChangeNotify}\"");
-                await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportChangeNotify);
-                await SetAlert(globalConfig.GetText("scheduled_app_import"), titletext, GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify);
+                await AddLogEntry(1, globalConfig.GetText("imp_change_notification"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportChangeNotify);
+                await SetAlert(globalConfig.GetText("imp_change_notification"), titletext, GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify);
             }
         }
     }

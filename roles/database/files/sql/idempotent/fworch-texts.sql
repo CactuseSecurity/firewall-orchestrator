@@ -1812,6 +1812,8 @@ INSERT INTO txt VALUES ('scheduled_app_import', 'German',   'Termingesteuerter A
 INSERT INTO txt VALUES ('scheduled_app_import', 'English',  'Scheduled App Import');
 INSERT INTO txt VALUES ('scheduled_subnet_import','German', 'Termingesteuerter Subnetz-Import');
 INSERT INTO txt VALUES ('scheduled_subnet_import','English','Scheduled Subnet Import');
+INSERT INTO txt VALUES ('imp_change_notification','German','&Auml;nderungsbenachrichtigung');
+INSERT INTO txt VALUES ('imp_change_notification','English','Import Change Notification');
 
 
 -- help pages

@@ -12,24 +12,26 @@ installation_mode options:
 - upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api; removes all files from target and copies latest sources instead
 
 #### Upgrading ####
-The following switch can be used to set the type of installation to perform
+
+If you have an ansible version less than 2.13 on your machine, before doing an upgrade, switch into the virtual pyhton environment you created during installation before running the upgrade:
 
 ```console
-ansible-playbook -e "installation_mode=upgrade" site.yml -K
+source ~/ansible-venv/bin/activate
 ```
 
-Remember that if you have an ansible version less than 2.13 on your machine, before doing an upgrade, switch  into the virtual pyhton environment you created during installation before running the upgrade:
+Then for upgrading firewall orchestrator, use the following switch:
 
 ```console
-source ansible-venv/bin/activate
+cd ~/firewall-orchestrator
+ansible-playbook -e installation_mode=upgrade site.yml -K
 ```
 
 #### Uninstall ####
 If you want to drop the database and re-install from scratch, do the following:
 
 ```console
-ansible-playbook -e "installation_mode=uninstall" site.yml -K
-ansible-playbook -e "installation_mode=new" site.yml -K
+ansible-playbook -e installation_mode=uninstall site.yml -K
+ansible-playbook site.yml -K
 ```
 
 ### Installation behind a proxy (no direct Internet connection)

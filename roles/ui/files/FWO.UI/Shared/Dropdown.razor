@@ -5,52 +5,44 @@
 @inject DomEventService eventService
 @inject IJSRuntime jsRuntime
 
-<div id="@($"dropdown-{Id}")" class="btn-group d-block">
-	<div id="@($"dropdown-input-group-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
-		<div class="form-group row col-sm-12">
-			<div id="@($"dropdown-input-prepend-{Id}")" class="input-group-prepend" style="width: 50px;">
-				<span id="@($"dropdown-input-prepend-icon-{Id}")" class="input-group-text" style="width: 50px;"><span class="oi oi-magnifying-glass"></span></span>
-			</div>
-			<input id="@($"dropdown-input-{Id}")" class="custom-select d-block @InputClass" style="width: calc(100% - 50px);" @onclick="Toggle" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
-		</div>
-		@if (Append != null)
+<div id="@($"dropdown-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
+	<label id="@($"dropdown-input-prepend-icon-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")"><span class="oi oi-magnifying-glass"></span></label>
+	<input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onclick="Toggle" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
+	@if (Append != null)
+	{
+		@Append
+	}
+</div>
+<ul id="@($"dropdown-menu-{Id}")" class="dropdown-menu" style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
+	@if (!Toggled)
+	{
+		int i = 1;
+		if (SelectedElements.Count() > 0)
 		{
-			<div class="input-group-append">
-				@Append
-			</div>
-		}
-	</div>
-	<ul id="@($"dropdown-menu-{Id}")" class="dropdown-menu" style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
-		@if (!Toggled)
-		{
-			int i = 1;
-			if (SelectedElements.Count() > 0)
+			foreach (ElementType element in SelectedElements)
 			{
-				foreach (ElementType element in SelectedElements)
-				{
-					<li id="@($"dropdown-menu-li-selected-{Id + i++}")">
-						<button id="@($"dropdown-menu-selected-{Id + i++}")" type="button" @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
-							<div id="@($"dropdown-menu-selected-content-{Id + i++}")" class="d-flex align-items-baseline justify-content-between">
-								@ElementTemplate(element)
-								@if ((Nullable || Multiselect))
-								{
-									<i id="@($"dropdown-menu-selected-x-{Id + i++}")" class="ml-2 oi oi-x"></i>
-								}
-							</div>
-						</button>
-					</li>
-				}
-				<li id="@($"dropdown-menu-li-divider-{Id + i++}")"><hr id="@($"dropdown-menu-divider-{Id + i++}")" class="dropdown-divider @(Small ? "small" : "")"></li>
-			}
-			@foreach (ElementType element in FilteredElements.Where(element => !_selectedElements.Contains(element)))
-			{
-				<li id="@($"dropdown-menu-li-element-{Id + i++}")">
-					<button id="@($"dropdown-menu-element-{Id + i++}")" type="button" @onclick="async () => await SelectElement(element)" class="dropdown-item @(Small ? "small" : "")">@ElementTemplate(element)</button>
+				<li id="@($"dropdown-menu-li-selected-{Id + i++}")">
+					<button id="@($"dropdown-menu-selected-{Id + i++}")" type="button" @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
+						<div id="@($"dropdown-menu-selected-content-{Id + i++}")" class="d-flex align-items-baseline justify-content-between">
+							@ElementTemplate(element)
+							@if ((Nullable || Multiselect))
+							{
+								<i id="@($"dropdown-menu-selected-x-{Id + i++}")" class="ms-2 oi oi-x"></i>
+							}
+						</div>
+					</button>
 				</li>
 			}
+			<li id="@($"dropdown-menu-li-divider-{Id + i++}")"><hr id="@($"dropdown-menu-divider-{Id + i++}")" class="dropdown-divider @(Small ? "small" : "")"></li>
 		}
-	</ul>
-</div>
+		@foreach (ElementType element in FilteredElements.Where(element => !_selectedElements.Contains(element)))
+		{
+			<li id="@($"dropdown-menu-li-element-{Id + i++}")">
+				<button id="@($"dropdown-menu-element-{Id + i++}")" type="button" @onclick="async () => await SelectElement(element)" class="dropdown-item @(Small ? "small" : "")">@ElementTemplate(element)</button>
+			</li>
+		}
+	}
+</ul>
 
 @code
 {
@@ -68,6 +60,9 @@
 
 	[Parameter]
 	public RenderFragment? Append { get; set; }
+
+	[Parameter]
+	public int AppendWidth { get; set; } = 0;
 
 	private Func<ElementType, string> _elementToString = (o => o.ToString() ?? "");
 
@@ -228,7 +223,7 @@
 	private void Toggle(MouseEventArgs input)
 	{
 		xPositionDropdown = (int)input.ClientX - (int)input.OffsetX;
-		yPositionDropdown = (int)input.ClientY - (int)input.OffsetY + (Small ? 27 : 35);
+		yPositionDropdown = (int)input.ClientY - (int)input.OffsetY + (Small ? 29 : 37);
 		Toggled = !Toggled;
 		DisplaySelection(SelectedElements);
 	}

@@ -7,7 +7,7 @@
 
 <div class="form-group row">
     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rules")):</label>
-    <div class="col-sm-9 mr-auto">
+    <div class="col-sm-9 me-auto">
         <EditList ElementType="Rule" Elements="SelectedRules.OrderBy(r => r.DeviceId).ToArray()" ElementsToAdd="RulesToAdd" ElementsToDelete="RulesToDelete" StdLayout="false">
             <Display>
                 <div class="row">
@@ -17,7 +17,7 @@
             </Display>
         </EditList>
         <div class="col-sm-12 mt-1">
-            <div class="form-group row mr-auto">
+            <div class="form-group row me-auto">
                 <div class="col-sm-3">
                     <Dropdown ElementType="Device" ElementToString="@(d => d.Name)"
                         SelectedElement="actDevice" SelectedElementChanged="DeviceChanged" Elements="Devices">

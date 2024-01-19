@@ -37,7 +37,7 @@
     <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
         <Authorized>
             <div class="p-3">
-                <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+                <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
                 <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
                     @bind-SelectedElement="selectedOwner" Elements="ownerList">
                     <ElementTemplate Context="owner">

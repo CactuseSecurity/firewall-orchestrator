@@ -6,9 +6,9 @@
 
 @inject UserConfig userConfig
 
-<Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
-    <div class="mr-2 ml-2 mt-4 mb-4">
-        <ul class="navbar-nav flex-column">
+<Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
+    <div class="me-2 ms-2 mt-4 mb-4">
+        <ul class="navbar-nav navbar-dark flex-column">
             <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("alerts"))</h5>

@@ -94,10 +94,9 @@ header {
     width: 20%;
 }
 
-.nav-tabs {
-    background-color: #d6d5d5;
+.nav-link.active {
+    font-weight: bold;
 }
-
 
 .modern-close {
     display: inline-block;
@@ -217,7 +216,7 @@ h5 {
     flex: 1;
 }
 
-.mr-auto {
+.me-auto {
     margin-right: auto !important;
 }
 

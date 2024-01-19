@@ -15,8 +15,8 @@
         <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="navbar-collapse mr-auto nav-main-left @NavMenuCollapseClass">
-        <ul class="navbar-nav mr-auto">
+    <div class="navbar-collapse me-auto nav-main-left @NavMenuCollapseClass">
+        <ul class="navbar-nav me-auto">
             <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kAuditor}")">
                 <li class="nav-item px-2">
                     <a href="/report/generation" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
@@ -63,12 +63,15 @@
         <div class="nav-right">
             <ul class="navbar-nav">
                 <li class="nav-item px-2">
+                    @* d-flex align-items-center *@
                     <NavLink class="nav-link" href="/monitoring">
-                        @if(ShowAlert)
-                        {
-                            <span class="oi oi-bell" style="color: red"></span>
-                        }
-                        <span class="oi oi-monitor"></span> @(userConfig.GetText("monitoring"))
+                        <span class="oi oi-monitor">
+                            @if (ShowAlert)
+                            {
+                                <span class="oi oi-bell" style="color: red; margin-left: 5px; width: 15px; height: 10px;"></span>
+                            }
+                        </span>
+                        @(userConfig.GetText("monitoring"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">

@@ -32,19 +32,22 @@
                     <div class="form-group">
                         <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput" @ref="usernameInput">
                     </div>
-                    <div class="form-group mt-2">
+                    <div class="form-group mt-3">
                         <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
                     </div>
                     @if (loginInProgress == false)
                     {
-                        <button type="submit" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
+                        <button type="submit" class="btn btn-block btn-primary mt-3" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
                         @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
                     }
                     else
                     {
-                        <div class="spinner-border text-primary align-self-center" role="status"></div>
+                        <div class="spinner-border text-primary align-self-center mt-3 mb-3" role="status"></div>
                     }
-                    <label class="m-2">@errorMessage</label>
+                    @if(!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <label class="m-2">@errorMessage</label>
+                    }
                 </form>
             </div>
         </div>

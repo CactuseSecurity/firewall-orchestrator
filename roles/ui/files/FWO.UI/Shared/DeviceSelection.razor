@@ -26,25 +26,25 @@
             {
                 if (management.Visible)
                 {
-                <div class="form-check mb-1">
-                    <input class="form-check-input" type="checkbox" id="@management.Id" @bind="management.Selected"
-                        @ref="management.UiReference" @oninput="async () => await ToggleSelectManagement(management)" />
-                    <Collapse Title="@(management.Name)" StartToggled="@(CollapseAll)" Style="@("primary")">
-                        @foreach (DeviceSelect device in management.Devices)
-                        {
-                            if (device.Visible)
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="checkbox" id="@management.Id" @bind="management.Selected"
+                            @ref="management.UiReference" @oninput="async () => await ToggleSelectManagement(management)" />
+                        <Collapse Title="@(management.Name)" StartToggled="@(CollapseAll)" Style="@("primary")">
+                            @foreach (DeviceSelect device in management.Devices)
                             {
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="gwid_@device.Id" @bind="device.Selected"
-                                        @oninput="async () => await ToggleSelectDevice(device)" />
-                                    <label class="form-check-label" for="gwid_@device.Id">
-                                        @device.Name
-                                    </label>
-                                </div>
+                                if (device.Visible)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="gwid_@device.Id" @bind="device.Selected"
+                                            @oninput="async () => await ToggleSelectDevice(device)" />
+                                        <label class="form-check-label" for="gwid_@device.Id">
+                                            <small>@device.Name</small>
+                                        </label>
+                                    </div>
+                                }
                             }
-                        }
-                    </Collapse>
-                </div>
+                        </Collapse>
+                    </div>
                 }
             }
         </CascadingValue>

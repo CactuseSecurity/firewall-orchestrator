@@ -1,7 +1,6 @@
 ﻿.communication-matrix {
     overflow: auto;
     border-collapse: collapse;
-    margin-left: 25px;
 }
 
 .communication-matrix th,

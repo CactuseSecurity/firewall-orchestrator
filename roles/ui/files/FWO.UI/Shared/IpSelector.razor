@@ -6,7 +6,7 @@
 
 <div class="form-group row">
     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip_addresses")):</label>
-    <div class="col-sm-9 mr-auto">
+    <div class="col-sm-9 me-auto">
         <EditList ElementType="NwObjectElement" Elements="IpAddresses.ToArray()" ElementsToAdd="IpsToAdd" ElementsToDelete="IpsToDelete" StdLayout="false">
             <Display>
                 <div class="row">
@@ -15,7 +15,7 @@
             </Display>
         </EditList>
         <div class="col-sm-12 mt-1">
-            <div class="form-group row mr-auto">
+            <div class="form-group row me-auto">
                 <div class="col-sm-10">
                     <IpAddressInput @bind-IpRange="ipRangeToAdd" />
                 </div>

@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
-    <div class="mr-2 ml-2 mt-4 mb-4">
+    <div class="me-2 ms-2 mt-4 mb-4">
         <ul class="navbar-nav navbar-dark flex-column">
             <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kImporter}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">

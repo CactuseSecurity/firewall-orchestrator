@@ -16,7 +16,8 @@ installation_mode options:
 If you have an ansible version less than 2.13 on your machine, before doing an upgrade, switch into the virtual pyhton environment you created during installation before running the upgrade:
 
 ```console
-source ~/ansible-venv/bin/activate
+cd ~/firewall-orchestrator
+source ansible-venv/bin/activate
 ```
 
 Then for upgrading firewall orchestrator, use the following switch:
@@ -68,13 +69,18 @@ Note that the following domains must be reachable through the proxy:
     github.com
     githubusercontent.com
     docker.com
+    cloudflare.docker.com
     docker.io
     hasura.io
-    ansible.com
     postgresql.org
     microsoft.com     
     nuget.org
+  
+  Only for the initial setup of python venv
     pypi.org
+    pythonhosted.org
+    snapcraft.io
+    snapcraftcontent.com (and sub-domains)
 
 NB: for vscode-debugging, you also need access to
 

@@ -216,6 +216,20 @@ def lock_import(fwo_api_base_url, jwt, query_variables):
     else:
         return -1
 
+def count_rule_changes_per_import(fwo_api_base_url, jwt, import_id):
+    logger = getFwoLogger()
+    change_count_query = """
+        query count_rule_changes($importId: bigint!) {
+            changelog_rule_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+        }"""
+    try:
+        count_result = call(fwo_api_base_url, jwt, change_count_query, query_variables={'importId': import_id}, role='importer')
+        rule_changes_in_import = int(count_result['data']['changelog_rule_aggregate']['aggregate']['count'])
+    except:
+        logger.exception("failed to count changes for import id " + str(import_id))
+        rule_changes_in_import = 0
+    return rule_changes_in_import
+
 
 def count_changes_per_import(fwo_api_base_url, jwt, import_id):
     logger = getFwoLogger()

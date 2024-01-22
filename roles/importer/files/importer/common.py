@@ -158,7 +158,9 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
             # todo: if no objects found at all: at least throw a warning
 
             try: # get change count from db
-                change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
+                # change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
+                # temporarily only count rule changes until change report also includes other changes
+                change_count = fwo_api.count_rule_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
             except:
                 logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
                 raise

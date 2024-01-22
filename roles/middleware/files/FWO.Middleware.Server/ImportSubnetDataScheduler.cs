@@ -102,7 +102,7 @@ namespace FWO.Middleware.Server
                 Log.WriteAlert($"source: \"{GlobalConst.kImportAreaSubnetData}\"",
                     $"userId: \"0\", title: \"Error encountered while trying to import Area Subnet Data\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAreaSubnetData}\"");
                 await AddLogEntry(1, globalConfig.GetText("scheduled_subnet_import"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportAreaSubnetData);
-                await SetAlert("Import Area Subnet Data failed", exc.Message, GlobalConst.kImportAreaSubnetData, AlertCode.ImportChangeNotify);
+                await SetAlert("Import Area Subnet Data failed", exc.Message, GlobalConst.kImportAreaSubnetData, AlertCode.ImportAreaSubnetData);
             }
         }
     }

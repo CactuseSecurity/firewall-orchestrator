@@ -99,17 +99,17 @@
             @if (EditOwnerMode)
             {
                 <div class="col-sm-12">
-                    <div class="form-group row mr-2">
+                    <div class="form-group row me-2">
                         <div class="col-sm-1">
                             <div class="form-group row">
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(actOwner.Id)</label>
                             </div>
                         </div>
-                        <div class="col-sm-11 mr-auto">
-                            <div class="form-group row mr-auto">
+                        <div class="col-sm-11 me-auto">
+                            <div class="form-group row me-auto">
                                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                                <input type="text" class="col-sm-10 mr-auto" @bind="actOwner.Name" />
+                                <input type="text" class="col-sm-10 me-auto" @bind="actOwner.Name" />
                             </div>
                         </div>
                     </div>

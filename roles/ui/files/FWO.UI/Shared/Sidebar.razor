@@ -3,7 +3,7 @@
     {
         if (Collapsible)
         {
-            <div class="btn-dark bg-white btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+            <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
                 <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
             </div>
         }
@@ -11,18 +11,18 @@
         <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
     }
 
-    <div id="@(PositionLeft ? "lsb-content" : "rsb-content")" class="bg-blue @SidebarCssClass" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
+    <div id="@(PositionLeft ? "lsb-content" : "rsb-content")" class="@(SidebarCssClass)" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
         @* Sidebar Content *@
         @ChildContent
     </div>
 
     @if (PositionLeft)
     {
-        <div class="sidebar-sizer bg-blue" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+        <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
 
         if (Collapsible)
         {
-            <div class="btn-dark bg-white btn-sm sidebar-min-max-button align-self-center text-left" style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+            <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
                 <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
             </div>
         }
@@ -38,7 +38,7 @@
     public string SidebarContainerCssClass { get; set; } = "";
 
     [Parameter]
-    public string SidebarCssClass { get; set; } = "";
+    public string SidebarCssClass { get; set; } = "bg-blue";
 
     [Parameter]
     public bool PositionLeft { get; set; } = true;

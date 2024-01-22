@@ -6011,6 +6011,7 @@
                       "last_change_in_config",
                       "mgm_id",
                       "notification_done",
+                      "security_relevant_changes_counter",
                       "start_time",
                       "stop_time",
                       "successful_import"

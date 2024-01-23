@@ -1114,6 +1114,8 @@ INSERT INTO txt VALUES ('is_in_use', 	        'German',	'Wird benutzt');
 INSERT INTO txt VALUES ('is_in_use', 	        'English',	'Is in use');
 INSERT INTO txt VALUES ('deactivate',           'German', 	'Deaktivieren');
 INSERT INTO txt VALUES ('deactivate',           'English', 	'Deactivate');
+INSERT INTO txt VALUES ('common_service',       'German', 	'Common Service');
+INSERT INTO txt VALUES ('common_service',       'English', 	'Common Service');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

@@ -23,6 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("used_interface_id"), JsonPropertyName("used_interface_id")]
         public long? UsedInterfaceId { get; set; }
 
+        [JsonProperty("common_service"), JsonPropertyName("common_service")]
+        public bool IsCommonService { get; set; } = false;
+
         [JsonProperty("creator"), JsonPropertyName("creator")]
         public string? Creator { get; set; }
 

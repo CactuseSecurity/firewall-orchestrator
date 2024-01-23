@@ -170,6 +170,7 @@
                 await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertCustomText, text);
             }
             await LoadDicts(selectedLanguage);
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {

@@ -9263,6 +9263,7 @@
                     "check": {},
                     "columns": [
                       "active",
+                      "common_service_possible",
                       "is_default",
                       "app_id_external",
                       "criticality",
@@ -9286,18 +9287,19 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "id",
                       "import_source",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -9307,18 +9309,19 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "id",
                       "import_source",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -9328,18 +9331,19 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "id",
                       "import_source",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -9349,18 +9353,19 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "id",
                       "import_source",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -9370,18 +9375,19 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "id",
                       "import_source",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -9391,18 +9397,19 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "id",
                       "import_source",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {
                       "_and": [
@@ -9430,6 +9437,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "common_service_possible",
                       "is_default",
                       "app_id_external",
                       "criticality",
@@ -9451,6 +9459,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "common_service_possible",
                       "is_default",
                       "app_id_external",
                       "criticality",
@@ -9486,6 +9495,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "common_service_possible",
                       "is_default",
                       "app_id_external",
                       "criticality",
@@ -9512,6 +9522,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "common_service_possible",
                       "is_default",
                       "app_id_external",
                       "criticality",
@@ -9534,6 +9545,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "common_service_possible",
                       "is_default",
                       "app_id_external",
                       "criticality",
@@ -9555,18 +9567,19 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
+                      "id",
                       "import_source",
+                      "is_default",
+                      "last_recert_check",
                       "name",
                       "recert_check_params",
-                      "id",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -9578,6 +9591,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "common_service_possible",
                       "is_default",
                       "app_id_external",
                       "criticality",

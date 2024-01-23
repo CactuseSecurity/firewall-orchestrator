@@ -77,6 +77,7 @@ Note that the following domains must be reachable through the proxy:
     nuget.org
   
   Only for the initial setup of python venv
+  
     pypi.org
     pythonhosted.org
     snapcraft.io

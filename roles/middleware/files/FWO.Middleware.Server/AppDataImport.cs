@@ -150,7 +150,8 @@ namespace FWO.Middleware.Server
                 groupDn = userGroupDn,
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
-                importSource = incomingApp.ImportSource
+                importSource = incomingApp.ImportSource,
+                commSvcPossible = false
             };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
             if (returnIds != null)
@@ -193,7 +194,8 @@ namespace FWO.Middleware.Server
                 dn = incomingApp.MainUser ?? "",
                 groupDn = userGroupDn,
                 appIdExternal = incomingApp.ExtAppId,
-                criticality = incomingApp.Criticality
+                criticality = incomingApp.Criticality,
+                commSvcPossible = existingApp.CommSvcPossible
             };
             await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.OwnerQueries.updateOwner, Variables);
             await ImportAppServers(incomingApp, existingApp.Id);

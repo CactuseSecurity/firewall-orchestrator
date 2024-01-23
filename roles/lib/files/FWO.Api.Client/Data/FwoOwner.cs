@@ -23,6 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string? ImportSource { get; set; }
 
+        [JsonProperty("common_service_possible"), JsonPropertyName("common_service_possible")]
+        public bool CommSvcPossible { get; set; } = false;
+
  
         public FwoOwner()
         { }

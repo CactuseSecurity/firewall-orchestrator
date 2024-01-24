@@ -63,7 +63,23 @@ namespace FWO.Api.Data
             ImportSource = appServer.ImportSource;
             InUse = appServer.InUse;
         }
+
+        public override bool Equals(object? obj)
+        {
+            return obj switch
+            {
+                ModellingAppServer apps => Id == apps.Id && AppId == apps.AppId && Name == apps.Name && IsDeleted == apps.IsDeleted
+                    && Ip == apps.Ip && ImportSource == apps.ImportSource && InUse == apps.InUse,
+                _ => base.Equals(obj),
+            };
+        }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
     }
+
 
     public class ModellingAppServerWrapper
     {

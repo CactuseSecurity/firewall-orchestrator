@@ -1,9 +1,62 @@
   - block: 
 
-    - name: assert ansible version
+    - name: assert ansible version gt 2.13
       fail:
-        msg: Ansible 2.8 or above is required
-      when: ansible_version.full is version('2.8', '<')
+        msg: Ansible 2.13 or above is required
+      when: ansible_version.full is version('2.13', '<')
+
+
+    - name: check for existing main config file {{ fworch_conf_file }}
+      stat:
+        path: "{{ fworch_conf_file }}"
+      register: already_installed
+
+    - set_fact:
+        already_installed: "{{ already_installed.stat.exists }}"
+    
+    - debug:
+        msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
+    
+    - name: fail if unknown installation_mode is set
+      fail:
+        msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
+      when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
+
+    - name: fail if already installed and installation_mode is new
+      fail:
+        msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
+      when: already_installed|bool and installation_mode == "new"
+
+    - name: fail if not already installed and installation_mode is upgrade
+      fail:
+        msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
+      when: not already_installed and installation_mode == "upgrade"
+
+
+    # when upgrading check if we are not attempting a downgrade
+    - block:
+      - name: fetch remote config file
+        fetch:
+          src: "{{ fworch_conf_file }}"
+          dest: "temp_remote_config_file.json"
+          flat: true
+
+      - name: read config file of currently installed product
+        include_vars: 
+          file: "temp_remote_config_file.json"
+          name: config
+        
+      - name: get version of currently installed product
+        set_fact: 
+          old_version: "{{ config.product_version }}"
+      
+      - name: abort in case of downgrade
+        fail:
+          msg: "your are attempting to downgrade the product from {{ old_version }} to {{ product_version }}, which is not supported"
+        when: old_version>product_version
+
+      when: already_installed and installation_mode == "upgrade"
+
 
     - name: update operating system package cache .deb based
       apt:
@@ -54,32 +107,6 @@
       loop:
         - rsync
         - acl
-
-    - name: check for existing main config file {{ fworch_conf_file }}
-      stat:
-        path: "{{ fworch_conf_file }}"
-      register: already_installed
-
-    - set_fact:
-        already_installed: "{{ already_installed.stat.exists }}"
-    
-    - debug:
-        msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
-    
-    - name: fail if unknown installation_mode is set
-      fail:
-        msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
-      when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
-
-    - name: fail if already installed and installation_mode is new
-      fail:
-        msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
-      when: already_installed|bool and installation_mode == "new"
-
-    - name: fail if not already installed and installation_mode is upgrade
-      fail:
-        msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
-      when: not already_installed and installation_mode == "upgrade"
 
     - name: create group {{ fworch_group }}
       group:
@@ -171,7 +198,7 @@
         or 
         (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))
 
-    - name: copy iso.conf to target
+    - name: copy iso.conf to target for legacy importer support only
       template:
         src: iso.conf.j2
         dest: "{{ fworch_home }}/etc/iso.conf"

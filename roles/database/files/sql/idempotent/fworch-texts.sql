@@ -1116,6 +1116,8 @@ INSERT INTO txt VALUES ('deactivate',           'German', 	'Deaktivieren');
 INSERT INTO txt VALUES ('deactivate',           'English', 	'Deactivate');
 INSERT INTO txt VALUES ('common_service',       'German', 	'Common Service');
 INSERT INTO txt VALUES ('common_service',       'English', 	'Common Service');
+INSERT INTO txt VALUES ('regular_connection',   'German', 	'Standard-Verbindung');
+INSERT INTO txt VALUES ('regular_connection',   'English', 	'Regular Connection');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

@@ -38,6 +38,12 @@ namespace FWO.Api.Data
             Criticality = owner.Criticality;
             Active = owner.Active;
             ImportSource = owner.ImportSource;
+            CommSvcPossible = owner.CommSvcPossible;
+        }
+
+        public string Display(string comSvcTxt)
+        {
+            return Name + " (" + ExtAppId + (CommSvcPossible? $", {comSvcTxt}" : "") + ")";
         }
 
         public override bool Sanitize()

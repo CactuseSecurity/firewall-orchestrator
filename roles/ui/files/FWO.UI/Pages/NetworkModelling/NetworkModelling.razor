@@ -16,15 +16,15 @@
         <label class="col-form-label col-sm-1">@(userConfig.GetText("application")):</label>&nbsp;
         @if(singleApp)
         {
-            <label class="col-form-label text-primary col-sm-4">@selectedApp.Display()</label>
+            <label class="col-form-label text-primary col-sm-4">@selectedApp.Display(userConfig.GetText("common_service"))</label>
         }
         else
         {
             <div class="col-sm-4">
-                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display())" SelectedElement="selectedApp" 
+                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" SelectedElement="selectedApp" 
                         SelectedElementChanged="InitApp" Elements="apps">
                     <ElementTemplate Context="app">
-                        @app.Display()
+                        @app.Display(userConfig.GetText("common_service"))
                     </ElementTemplate>
                 </Dropdown>
             </div>
@@ -48,12 +48,12 @@
             <h5>@(userConfig.GetText("comm_profile"))&nbsp;
             @if(appActive)
             {
-                <div class="btn-group m-6">
-                    <button type="button" class="btn btn-sm btn-success ms-5" @onclick="appHandler.AddConn">@(userConfig.GetText("add_connection"))</button>
-                    <button type="button" class="btn btn-sm btn-success ms-5" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
+                <div class="btn-group ms-5">
+                    <button type="button" class="btn btn-sm btn-success" @onclick="appHandler.AddConn">@(userConfig.GetText("add_connection"))</button>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
                     <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-dark ms-5" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
+                            <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
                         </Authorized>
                     </AuthorizeView>
                 </div>
@@ -78,6 +78,11 @@
                     </Column>
                 }
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="true">
+                        <Template>
+                            @(userConfig.GetText(context.GetConnType()))
+                        </Template>
+                    </Column>            
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
@@ -151,7 +156,7 @@ else
     {
         try
         {
-            await PrepareAppList();
+            await GetOwnApps();
             if (apps.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
@@ -177,7 +182,7 @@ else
         }
     }
 
-    private async Task PrepareAppList()
+    private async Task GetOwnApps()
     {
         try
         {

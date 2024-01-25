@@ -139,7 +139,10 @@ namespace FWO.Mail
                 // Check if we got any attachments and add the to the builder for our message
                 if (mailData.Attachments != null)
                 {
+                    // Attach the file
+                    MimePart attachmentPart = new MimePart();
                     byte[] attachmentFileByteArray;
+                    MimeMessage multiPartTempMail = new MimeMessage();
                     
                     foreach (IFormFile attachment in mailData.Attachments)
                     {
@@ -153,13 +156,28 @@ namespace FWO.Mail
                                 attachment.CopyTo(memoryStream);
                                 attachmentFileByteArray = memoryStream.ToArray();
                             }
-                            // Add the attachment from the byte array
-                            body.Attachments.Add(attachment.FileName, attachmentFileByteArray, ContentType.Parse(attachment.ContentType));
+                            using (MemoryStream stream = new MemoryStream(attachmentFileByteArray))
+                            {
+                                attachmentPart.Content = new MimeContent(stream, ContentEncoding.Default);
+                                attachmentPart.ContentDisposition = new ContentDisposition(ContentDisposition.Attachment);
+                                attachmentPart.ContentTransferEncoding = ContentEncoding.Default;
+                                // attachmentPart.ContentTransferEncoding = ContentEncoding.Base64;
+                                attachmentPart.FileName = "report" + " type";
+
+                                // Add the attachment to the message
+                                Multipart multipart = new Multipart("mixed");
+                                multipart.Add(body.ToMessageBody());
+                                multipart.Add(attachmentPart);
+                                multiPartTempMail.Body = multipart;
+                            }
                         }
                     }
+                    mail.Body = multiPartTempMail.Body;
                 }
-
-                mail.Body = body.ToMessageBody(); // correction compared to source code
+                else 
+                {
+                    mail.Body = body.ToMessageBody(); // correction compared to source code
+                }
 
                 #endregion
 

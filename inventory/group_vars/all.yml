@@ -136,6 +136,11 @@ webserver_package_name: apache2
 http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 wsgi_package_name: libapache2-mod-wsgi
 
+############# wkhtmltopdf #########################
+
+wkhtmltopdf_version: "0.12.6.1-3"
+
+
 ################# testing #########################
 fworchtest_user: "{{ product_name }}test"
 fworchtest_home: "/home/{{ fworchtest_user }}"

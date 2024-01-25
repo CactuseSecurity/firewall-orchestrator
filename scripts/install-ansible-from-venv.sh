@@ -6,7 +6,7 @@
 # for this you also need access to pypi.org (either directly or through proxy) 
 # for downloading ansible
 
-sudo apt install python3-venv
+sudo apt install python3-venv -y
 python3 -m venv ansible-venv
 source ansible-venv/bin/activate
 pip install ansible

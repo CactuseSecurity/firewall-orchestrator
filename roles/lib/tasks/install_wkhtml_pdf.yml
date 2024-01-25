@@ -10,7 +10,7 @@
 
 - set_fact:
     os_codename: bookworm
-  when: ansible_facts['distribution']|lower == "debian" and ansible_facts['distribution_version'] is version('12', '>=') and ansible_facts['distribution_version'] is version('13', '<')
+  when: ansible_facts['distribution']|lower == "debian" and ansible_facts['distribution_version']|string is version('12', '>=') and ansible_facts['distribution_version']|string is version('13', '<')
 
 - set_fact:
     os_codename: jammy

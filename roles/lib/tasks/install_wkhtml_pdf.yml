@@ -2,8 +2,8 @@
 - name: show OS infos
   debug:
     msg:
-    - "distribution: {{ ansible_facts['distribution']|lower }}"
-    - "distribution_version: {{ ansible_facts['distribution_version'] }}"
+    - "distribution: {{ ansible_facts['distribution']|lower }}|"
+    - "distribution_version: {{ ansible_facts['distribution_version']|string }}"
 
 - set_fact:
     os_codename: undefined
@@ -14,7 +14,7 @@
 
 - set_fact:
     os_codename: jammy
-  when: ansible_facts['distribution']|lower == "ubuntu" and ansible_facts['distribution_version'] is version('22', '>=') and ansible_facts['distribution_version'] is version('22.10', '<')
+  when: ansible_facts['distribution']|lower == "ubuntu" and ansible_facts['distribution_version']|string is version('22', '>=') and ansible_facts['distribution_version']|string is version('22.10', '<')
 
 - block:
 
@@ -54,9 +54,9 @@
         state: absent
 
     when: |
-      ansible_facts['distribution']|lower == "ubuntu" and ansible_facts['distribution_version'] is version('22', '>=')
+      ansible_facts['distribution']|lower == "ubuntu" and ansible_facts['distribution_version']|string is version('22', '>=')
       or
-      ansible_facts['distribution']|lower == "debian" and ansible_facts['distribution_version'] is version('12', '>=')
+      ansible_facts['distribution']|lower == "debian" and ansible_facts['distribution_version']|string is version('12', '>=')
 
   become: true
   environment: "{{ proxy_env }}"

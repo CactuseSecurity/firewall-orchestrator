@@ -1118,6 +1118,8 @@ INSERT INTO txt VALUES ('common_service',       'German', 	'Common Service');
 INSERT INTO txt VALUES ('common_service',       'English', 	'Common Service');
 INSERT INTO txt VALUES ('regular_connection',   'German', 	'Standard-Verbindung');
 INSERT INTO txt VALUES ('regular_connection',   'English', 	'Regular Connection');
+INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
+INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

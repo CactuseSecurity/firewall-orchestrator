@@ -77,6 +77,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getServiceGroupIdsForService;
 
         public static readonly string getHistory;
+        public static readonly string getHistoryForApp;
         public static readonly string addHistoryEntry;
 
 
@@ -158,6 +159,7 @@ namespace FWO.Api.Client.Queries
                 getServiceGroupIdsForService = File.ReadAllText(QueryPath + "modelling/getServiceGroupIdsForService.graphql");
 
                 getHistory = File.ReadAllText(QueryPath + "modelling/getHistory.graphql");
+                getHistoryForApp = File.ReadAllText(QueryPath + "modelling/getHistoryForApp.graphql");
                 addHistoryEntry = File.ReadAllText(QueryPath + "modelling/addHistoryEntry.graphql");
             }
             catch (Exception exception)

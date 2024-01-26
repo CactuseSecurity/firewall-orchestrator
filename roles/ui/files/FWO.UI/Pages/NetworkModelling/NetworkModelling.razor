@@ -32,11 +32,7 @@
         <div class="col-sm-6">
             <div class="btn-group">
                 @* <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
-                    </Authorized>
-                </AuthorizeView>
+                <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
                 @* <button type="button" class="btn btn-sm btn-dark ms-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
             </div>
         </div>
@@ -122,7 +118,7 @@ else
     <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler"/>
 }
 <ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp"/>
-<ShowHistory @bind-Display="showHistory" Applications="apps"/>
+<ShowHistory @bind-Display="showHistory" Applications="apps" SelectedApp="selectedApp"/>
 
 @code
 {

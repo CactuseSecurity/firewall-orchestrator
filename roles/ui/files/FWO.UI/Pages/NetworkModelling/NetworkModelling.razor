@@ -9,7 +9,10 @@
 
 @if(!appSelected || (appSelected && !(appHandler?.EditConnMode ?? true)))
 {
-    <h3>@(userConfig.GetText("network_modelling"))</h3>
+    <div class="input-group">
+        <h3>@(userConfig.GetText("network_modelling"))</h3>
+        <HelpLink Page="modelling"/>
+    </div>
     <hr />
 
     <div class="form-group row">

@@ -99,9 +99,9 @@
                     <div class="col-sm-2">
                         <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.Port" />
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" @bind="actLdapConnection.Tls">
-                        <label class="form-check-label"><small>Tls</small></label>
+                    <div class="col-sm-1">
+                        <input type="checkbox" @bind="actLdapConnection.Tls">
+                        <label class="col-form-label col-form-label-sm"><small>Tls</small></label>
                     </div>
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant_level")):</label>
                     <div class="col-sm-2">

@@ -1,18 +1,5 @@
 - block: 
 
-  - name: fetch remote config file
-    fetch:
-      src: "{{ fworch_conf_file }}"
-      dest: "temp_remote_config_file.json"
-      flat: true
-    when: already_installed and installation_mode == "upgrade"
-
-  - name: read config file of currently installed product
-    include_vars: 
-      file: "temp_remote_config_file.json"
-      name: config
-    when: already_installed and installation_mode == "upgrade"
-
   - name: remove local copy of remote config file
     file:
       state: absent
@@ -23,11 +10,6 @@
       src: "{{ fworch_home }}/etc"
       dest: "/etc/{{ product_name }}"
       state: link
-
-  - name: get version of currently installed product
-    set_fact: 
-      old_version: "{{ config.product_version }}"
-    when: already_installed and installation_mode == "upgrade"
 
   - name: set config values
     set_fact:

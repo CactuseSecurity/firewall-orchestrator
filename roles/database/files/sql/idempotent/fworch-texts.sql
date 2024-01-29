@@ -2555,6 +2555,10 @@ INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und
 INSERT INTO txt VALUES ('C9001', 'English', 'This object was deactivated and should be removed from Connection.');
 INSERT INTO txt VALUES ('C9002', 'German',  'Dieser App Server wurde noch in keiner App Rolle oder Verbindung verwendet.');
 INSERT INTO txt VALUES ('C9002', 'English', 'This App Server was not used in any App Role or Connection.');
+INSERT INTO txt VALUES ('C9003', 'German',  'Diese App wurde deaktiviert.');
+INSERT INTO txt VALUES ('C9003', 'English', 'This app was deactivated.');
+INSERT INTO txt VALUES ('C9004', 'German',  'In dieser App wurden noch keine Verbindungen angelegt.');
+INSERT INTO txt VALUES ('C9004', 'English', 'In this app no connections have been created.');
 
 
 -- help pages

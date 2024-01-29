@@ -6,7 +6,9 @@
 @inject IJSRuntime jsRuntime
 
 <div id="@($"dropdown-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
-	<label id="@($"dropdown-input-prepend-icon-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")"><span class="oi oi-magnifying-glass"></span></label>
+	<label id="@($"dropdown-input-prepend-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")">
+		<span id="@($"dropdown-input-prepend-icon-{Id}")" class="oi oi-magnifying-glass"></span>
+	</label>
 	<input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onclick="Toggle" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
 	@if (Append != null)
 	{
@@ -195,7 +197,8 @@
 
 	private async void OnGlobalScroll(string elementId)
 	{
-		if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}"))
+		if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
+			!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
 		{
 			Toggled = true;
 			DisplaySelection(SelectedElements);
@@ -207,7 +210,8 @@
 	{
 		try
 		{
-			if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}"))
+			if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
+				!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
 			{
 				Toggled = true;
 				DisplaySelection(SelectedElements);
@@ -224,7 +228,8 @@
 	{
 		xPositionDropdown = (int)input.ClientX - (int)input.OffsetX;
 		yPositionDropdown = (int)input.ClientY - (int)input.OffsetY + (Small ? 29 : 37);
-		Toggled = !Toggled;
+		// Check if icon was clicked (OffsetX < 0) than toggle the menu otherwise if the input field was clicked always show the menu
+		Toggled = input.OffsetX < 0 ? !Toggled : false;
 		DisplaySelection(SelectedElements);
 	}
 

@@ -9,7 +9,7 @@
 	<label id="@($"dropdown-input-prepend-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")">
 		<span id="@($"dropdown-input-prepend-icon-{Id}")" class="oi oi-magnifying-glass"></span>
 	</label>
-	<input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onclick="Toggle" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
+	<input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onclick="ShowMenu" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
 	@if (Append != null)
 	{
 		@Append
@@ -224,13 +224,11 @@
 		}
 	}
 
-	private void Toggle(MouseEventArgs input)
+	private void ShowMenu(MouseEventArgs input)
 	{
 		xPositionDropdown = (int)input.ClientX - (int)input.OffsetX;
 		yPositionDropdown = (int)input.ClientY - (int)input.OffsetY + (Small ? 29 : 37);
-		// Check if icon was clicked (OffsetX < 0) than toggle the menu otherwise if the input field was clicked always show the menu
-		Toggled = input.OffsetX < 0 ? !Toggled : false;
-		DisplaySelection(SelectedElements);
+		Toggled = false;
 	}
 
 	private void Filter(ChangeEventArgs input)

@@ -77,6 +77,28 @@
         </li>
         <li class="nav-item px-2">
             <a href="/help/recertification/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("recertification")</a>
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/recertification/recert_require/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("requirements")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/recertification/workflow/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("workflow")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/recertification/recert_logic/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("recert_logic")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/recertification/owner_import/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("owner_import")</a>
+                </li>
+            </ul>
+        </li>
+        <li class="nav-item px-2">
+            <a href="/help/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("modelling")</a>
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/modelling/applications/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("applications")</a>
+                </li>
+            </ul>
         </li>
         <li class="nav-item px-2">
             <a href="/help/monitoring/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("monitoring")</a>
@@ -145,6 +167,9 @@
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/settings/recertificationgeneral/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("recert_settings")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("modelling")</a>
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("password_policy")</a>

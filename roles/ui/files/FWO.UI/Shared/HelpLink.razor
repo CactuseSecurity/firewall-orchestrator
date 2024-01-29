@@ -1,0 +1,12 @@
+﻿@inject UserConfig userConfig
+@inject IJSRuntime jsRuntime
+
+<NavLink class="nav-link" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("newWindow", args: $"/help/{Page}?lang={userConfig.GetUserLanguage()}"))">
+    <span class="oi oi-info ms-2"/>
+</NavLink>
+
+@code
+{
+    [Parameter]
+    public string? Page { get; set; } = "";
+}

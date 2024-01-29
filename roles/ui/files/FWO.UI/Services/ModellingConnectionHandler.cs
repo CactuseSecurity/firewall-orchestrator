@@ -791,7 +791,8 @@ namespace FWO.Ui.Services
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
-                    creator = userConfig.User.Name
+                    creator = userConfig.User.Name,
+                    commonSvc = ActConn.IsCommonService
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newConnection, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -840,7 +841,8 @@ namespace FWO.Ui.Services
                     appId = Application.Id,
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
-                    usedInterfaceId = ActConn.UsedInterfaceId
+                    usedInterfaceId = ActConn.UsedInterfaceId,
+                    commonSvc = ActConn.IsCommonService
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Connection, ActConn.Id,

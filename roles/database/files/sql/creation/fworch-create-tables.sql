@@ -1041,7 +1041,8 @@ create table owner
     recert_check_params Varchar,
 	criticality Varchar,
 	active boolean default true,
-	import_source Varchar
+	import_source Varchar,
+	common_service_possible boolean default false
 );
 
 create table owner_network

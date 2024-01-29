@@ -32,9 +32,14 @@ git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 
 3) Ansible installation
 
-Make sure you have ansible version 2.13 or above installed on your system (check with "ansible --version"). If this is not the case, install a newer ansible. One possible way is to run the following script (and entering your sudo password):
+Make sure you have ansible version 2.13 or above installed on your system (check with "ansible --version"). 
+If this is not the case, install a newer ansible. One possible way is to run the four commands of the following script (and entering your sudo password) - run them separately if the script :
+        cd firewall-orchestrator
+        source scripts/install-ansible-from-venv.sh
 
-        firewall-orchestrator/scripts/install-ansible-from-venv.sh
+Note that if your server is behind a proxy, you will have to set the proxy for pip as follows (to allow for ansible venv download):
+
+         pip config set global.proxy http://proxy:3128
 
 4) Firewall Orchestrator installation
 

@@ -128,7 +128,7 @@ namespace FWO.Ui.Services
 
         public async Task<string> ProposeFreeAppRoleNumber(ModellingNetworkArea area)
         {
-            int maxNumbers = 10^NamingConvention.FreePartLength - 1;
+            double maxNumbers = Math.Pow(10, NamingConvention.FreePartLength) - 1;
             string idFix = GetFixedAppRolePart(area);
             List<ModellingAppRole>? newestARs = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = idFix + "%" });
             if(newestARs != null && newestARs.Count > 0)

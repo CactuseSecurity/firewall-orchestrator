@@ -143,8 +143,12 @@
                     </div>
                     <div class="form-group row mt-2">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
-                        <div class="col-sm-9">
+                        <div class="col-sm-5">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
+                        </div>
+                        <div class="form-check form-check-inline col-sm-3">
+                            <input class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                            <label class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
                         </div>
                     </div>
                     <div class="form-group row mt-2">
@@ -547,7 +551,8 @@ else
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             appIdExternal = actOwner.ExtAppId,
-            recertCheckParams = actOwner.RecertCheckParamString
+            recertCheckParams = actOwner.RecertCheckParamString,
+            commSvcPossible = actOwner.CommSvcPossible
         };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
         if (returnIds == null)
@@ -574,7 +579,8 @@ else
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             appIdExternal = actOwner.ExtAppId,
-            recertCheckParams = actOwner.RecertCheckParamString
+            recertCheckParams = actOwner.RecertCheckParamString,
+            commSvcPossible = actOwner.CommSvcPossible
         };
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
         if(udId != actOwner.Id)

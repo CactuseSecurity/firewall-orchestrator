@@ -12,24 +12,27 @@ installation_mode options:
 - upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api; removes all files from target and copies latest sources instead
 
 #### Upgrading ####
-The following switch can be used to set the type of installation to perform
+
+If you have an ansible version less than 2.13 on your machine, before doing an upgrade, switch into the virtual pyhton environment you created during installation before running the upgrade:
 
 ```console
-ansible-playbook -e "installation_mode=upgrade" site.yml -K
+cd ~/firewall-orchestrator
+source ansible-venv/bin/activate
 ```
 
-Remember that if you have an ansible version less than 2.13 on your machine, before doing an upgrade, switch  into the virtual pyhton environment you created during installation before running the upgrade:
+Then for upgrading firewall orchestrator, use the following switch:
 
 ```console
-source ansible-venv/bin/activate
+cd ~/firewall-orchestrator
+ansible-playbook -e installation_mode=upgrade site.yml -K
 ```
 
 #### Uninstall ####
 If you want to drop the database and re-install from scratch, do the following:
 
 ```console
-ansible-playbook -e "installation_mode=uninstall" site.yml -K
-ansible-playbook -e "installation_mode=new" site.yml -K
+ansible-playbook -e installation_mode=uninstall site.yml -K
+ansible-playbook site.yml -K
 ```
 
 ### Installation behind a proxy (no direct Internet connection)
@@ -66,17 +69,28 @@ Note that the following domains must be reachable through the proxy:
     github.com
     githubusercontent.com
     docker.com
+    cloudflare.docker.com
     docker.io
     hasura.io
-    ansible.com
     postgresql.org
     microsoft.com     
     nuget.org
+  
+  Only for the initial setup of python venv
+  
     pypi.org
+    pythonhosted.org
+    snapcraft.io
+    snapcraftcontent.com (and sub-domains)
 
 NB: for vscode-debugging, you also need access to
 
     visualstudio.com
+
+
+Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows:
+
+         pip config set global.proxy http://proxy:3128
 
 ### Parameter "api_no_metadata" to prevent meta data import
 

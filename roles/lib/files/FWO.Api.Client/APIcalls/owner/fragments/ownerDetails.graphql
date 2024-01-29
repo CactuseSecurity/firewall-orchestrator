@@ -12,4 +12,5 @@ fragment ownerDetails on owner {
   criticality
   active
   import_source
+  common_service_possible
 }

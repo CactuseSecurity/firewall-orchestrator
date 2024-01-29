@@ -23,6 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string? ImportSource { get; set; }
 
+        [JsonProperty("common_service_possible"), JsonPropertyName("common_service_possible")]
+        public bool CommSvcPossible { get; set; } = false;
+
  
         public FwoOwner()
         { }
@@ -35,6 +38,12 @@ namespace FWO.Api.Data
             Criticality = owner.Criticality;
             Active = owner.Active;
             ImportSource = owner.ImportSource;
+            CommSvcPossible = owner.CommSvcPossible;
+        }
+
+        public string Display(string comSvcTxt)
+        {
+            return Name + " (" + ExtAppId + (CommSvcPossible? $", {comSvcTxt}" : "") + ")";
         }
 
         public override bool Sanitize()

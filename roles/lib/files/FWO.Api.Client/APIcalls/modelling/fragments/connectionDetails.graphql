@@ -5,6 +5,7 @@ fragment connectionDetails on modelling_connection {
   reason
   is_interface
   used_interface_id
+  common_service
   creator
   creation_date
   source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){

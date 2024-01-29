@@ -23,6 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("used_interface_id"), JsonPropertyName("used_interface_id")]
         public long? UsedInterfaceId { get; set; }
 
+        [JsonProperty("common_service"), JsonPropertyName("common_service")]
+        public bool IsCommonService { get; set; } = false;
+
         [JsonProperty("creator"), JsonPropertyName("creator")]
         public string? Creator { get; set; }
 
@@ -83,6 +86,19 @@ namespace FWO.Api.Data
             return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";
         }
         
+        public string GetConnType()
+        {
+            if(IsInterface)
+            {
+                return "interface";
+            }
+            if(IsCommonService)
+            {
+                return "common_service";
+            }
+            return "regular_connection";
+        }
+
         public bool SourceFilled()
         {
             return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0 || SourceNwGroups.Count > 0;

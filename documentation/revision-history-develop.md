@@ -173,3 +173,5 @@ bugfix release:
 
 # 7.3.6 - 23.01.2024 DEVELOP
 - common service handling
+- fixes credentials when installing without demo data
+- fix error with pdf creation on debian testing

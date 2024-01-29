@@ -87,6 +87,11 @@ NB: for vscode-debugging, you also need access to
 
     visualstudio.com
 
+
+Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows:
+
+         pip config set global.proxy http://proxy:3128
+
 ### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch:

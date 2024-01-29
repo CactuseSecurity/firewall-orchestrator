@@ -37,6 +37,10 @@ If this is not the case, install a newer ansible. One possible way is to run the
         cd firewall-orchestrator
         source scripts/install-ansible-from-venv.sh
 
+Note that if your server is behind a proxy, you will have to set the proxy for pip as follows (to allow for ansible venv download):
+
+         pip config set global.proxy http://proxy:3128
+
 4) Firewall Orchestrator installation
 
 ```console

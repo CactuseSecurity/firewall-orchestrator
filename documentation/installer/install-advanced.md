@@ -88,7 +88,7 @@ NB: for vscode-debugging, you also need access to
     visualstudio.com
 
 
-Remember if your server that you will have to set the proxy for pip as follows:
+Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows:
 
          pip config set global.proxy http://proxy:3128
 

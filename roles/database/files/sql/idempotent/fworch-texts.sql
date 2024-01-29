@@ -1000,6 +1000,8 @@ INSERT INTO txt VALUES ('modelling', 	        'German',	'Modellierung');
 INSERT INTO txt VALUES ('modelling', 	        'English',	'Modelling');
 INSERT INTO txt VALUES ('application', 	        'German',	'Applikation');
 INSERT INTO txt VALUES ('application', 	        'English',	'Application');
+INSERT INTO txt VALUES ('applications', 	    'German',	'Applikationen');
+INSERT INTO txt VALUES ('applications', 	    'English',	'Applications');
 INSERT INTO txt VALUES ('library', 	            'German',	'Bibliothek');
 INSERT INTO txt VALUES ('library', 	            'English',	'Library');
 INSERT INTO txt VALUES ('app_server', 	        'German',	'App Server');
@@ -1114,6 +1116,12 @@ INSERT INTO txt VALUES ('is_in_use', 	        'German',	'Wird benutzt');
 INSERT INTO txt VALUES ('is_in_use', 	        'English',	'Is in use');
 INSERT INTO txt VALUES ('deactivate',           'German', 	'Deaktivieren');
 INSERT INTO txt VALUES ('deactivate',           'English', 	'Deactivate');
+INSERT INTO txt VALUES ('common_service',       'German', 	'Common Service');
+INSERT INTO txt VALUES ('common_service',       'English', 	'Common Service');
+INSERT INTO txt VALUES ('regular_connection',   'German', 	'Standard-Verbindung');
+INSERT INTO txt VALUES ('regular_connection',   'English', 	'Regular Connection');
+INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
+INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -1646,6 +1654,8 @@ INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in
 INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert Interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
 INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
+INSERT INTO txt VALUES ('comm_svc_possible',    'German',   'Common Service zugelassen');
+INSERT INTO txt VALUES ('comm_svc_possible',    'English',  'Common Service Possible');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
 INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
@@ -4240,6 +4250,84 @@ INSERT INTO txt VALUES ('H5589', 'German',  'Regeln: Dem Eigent&uuml;mer k&ouml;
 INSERT INTO txt VALUES ('H5589', 'English', 'Rules: specific rules, defined by gateway and rule Uid, can be assigned to the owner.');
 INSERT INTO txt VALUES ('H5590', 'German',  'IP-Adressen: Dem Eigent&uuml;mer k&ouml;nnen hier einzelne IP-Adressen zugeordnet werden.');
 INSERT INTO txt VALUES ('H5590', 'English', 'IP Addresses: IP addresses can be assigned to the owner.');
+INSERT INTO txt VALUES ('H5591', 'German',  'Common Service zugelassen: Modellierern wird erlaubt, hier Common Services anzulegen.');
+INSERT INTO txt VALUES ('H5591', 'English', 'Common Service Possible: Allows modellers to create common services inside.');
+
+INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die Einstellungen f&uuml;r die Netzwerk-Modellierung verwaltet.
+    Dies betrifft Vordefinierte Dienste, Darstellung verschiedener Elemente, Definition von Namenskonventionen sowie Scheduling-Einstellungen f&uuml;r die zu importierenden Objekte:
+');
+INSERT INTO txt VALUES ('H5601', 'English', 'On this page all types of modelling settings are administrated.
+    This includes Predefined Services, Display options of different elements, definition of naming conventions as well as scheduling settings for the objects to be imported:
+');
+INSERT INTO txt VALUES ('H5602', 'German',  'Vordefinierte Dienste: Hier wird dem Administrator ein Men&uuml; angeboten, um Dienste und Gruppierungen von Diensten vorzudefinieren,
+    zu bearbeiten oder zu l&ouml;schen. Diese stehen dann allen Applikationen zur Verf&uuml;gung.
+');
+INSERT INTO txt VALUES ('H5602', 'English', 'Predefined Services: Offers a menu to the administrator to define, change or delete predefined services or service groups.
+    These services are available for all applications.
+');
+INSERT INTO txt VALUES ('H5603', 'German',  'Server in Verbindung erlauben: Steuert, ob in der Bibliothek neben den App Rollen auch App Server zur direkten Verwendung in den Verbindungen angeboten werden.');
+INSERT INTO txt VALUES ('H5603', 'English', 'Allow Servers in Connection: Controls, if App Servers are offered in the Library besides the App Roles for direct use in the connections.');
+INSERT INTO txt VALUES ('H5604', 'German',  'Einfache Dienste in Verbindung erlauben: Steuert, ob in der Bibliothek neben den Servicegruppen auch einfache Services zur direkten Verwendung in den Verbindungen angeboten werden.');
+INSERT INTO txt VALUES ('H5604', 'English', 'Allow Simple Services in Connection: Controls, if simple Services are offered in the Library besides the Service Groups for direct use in the connections.');
+INSERT INTO txt VALUES ('H5605', 'German',  'Max. Anzahl Zeilen in &Uuml;bersicht: Definiert die Zeilenzahl innerhalb eines Eintrags in der &Uuml;bersichtstabelle der Verbindungen, ab der die Elemente eingeklappt dargestellt werden.');
+INSERT INTO txt VALUES ('H5605', 'English', 'Max. Number of Rows in Overview: Defines the number of rows inside an entry of the connections overview table, from which the elements are displayed retracted.');
+INSERT INTO txt VALUES ('H5606', 'German',  'Netzwerkarea vorgeschrieben: Wenn dieses Flag gesetzt ist, m&uuml;ssen die auszuw&auml;hlenden App Server einer festen Area zugeordnet sein.
+    Es werden dann beim Zusammenstellen einer App Rolle in der Bibliothek nur die der aktuell ausgew&auml;hlten Area zugeh&ouml;rigen App Server angeboten.
+    F&uuml;r die Namensgebung der App Rolle wird dann die in den folgenden Punkten definierte Namenskonvention angewendet.
+');
+INSERT INTO txt VALUES ('H5606', 'English', 'Network Area Required: If this flag is set, the App Servers used have to be associated to a fixed area.
+    When defining an App Role, only the App Servers belonging to the selected area are displayed in the library.
+    Naming of the App Role is then restricted to the naming convention defined in the following settings.
+');
+INSERT INTO txt VALUES ('H5607', 'German',  'L&auml;nge fixer Teil: L&auml;nge des vorgebenen Teils des Namensmusters einer App Rolle.');
+INSERT INTO txt VALUES ('H5607', 'English', 'Fixed Part Length: Length of the predefined part of the name pattern of an App Role.');
+INSERT INTO txt VALUES ('H5608', 'German',  'L&auml;nge freier Teil: L&auml;nge des frei zu vergebenden Teils des Namens einer App Rolle.');
+INSERT INTO txt VALUES ('H5608', 'English', 'Free Part Length: Length of the free part of the name pattern of an App Role.');
+INSERT INTO txt VALUES ('H5609', 'German',  'Muster Netzwerkarea: Definiert, wie der Name einer Netzwerkarea beginnt (z.B "NA").');
+INSERT INTO txt VALUES ('H5609', 'English', 'Network Area Pattern: Defines the beginning of a network area name (e.g. "NA").');
+INSERT INTO txt VALUES ('H5610', 'German',  'Muster App Rolle: Definiert, wie der Name einer App Rolle beginnt (z.B. "AR").
+    Zu einer Netzwerkarea (z.B. "NAxx") wird dann ein Name der App Rolle (z.B. "ARxx") mit der oben definierten L&auml;nge des fixen Teils vorgegeben.
+');
+INSERT INTO txt VALUES ('H5610', 'English', 'App Role Pattern: Defines the beginning of an App Role name (e.g. "AR").
+    According to an network area name (e.g. "NAxx"), an App Role name (e.g. "ARxx") is preset in the length of the fixed part defined above.
+');
+INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden die vollst&auml;ndigen Pfade f&uuml;r eventuell vorhandene Importskripte und -dateien eingegeben.
+    Der Importprozess pr&uuml;ft f&uuml;r jede der eingegebenen Datenquellen zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. 
+    Anschliessend wird eine Datei desselben Namens mit der Endung .json gesucht und ggf. importiert. 
+    Es gibt f&uuml;r den Import pro Datenquelle also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
+    welches die ben&ouml;tigte Import-Datei erst erzeugt.
+');
+INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Here the full paths of provided import scripts and files are inserted.
+    The import process checks for each data source, if a script of this name with ending .py exists and executes it.
+    Then a file of this name with ending .json is searched and imported if found.
+    Thus there is the possibility for each data source to provide a file for direct import or a script to catch the import data and create the app data import file.
+');
+INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;fen.
+    Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0. 
+');
+INSERT INTO txt VALUES ('H5612', 'English', 'Import App data sleep time (in hours): Time between App data import loops.
+    A value 0 means, that the App data import is deactivated. Default value = 0.
+');
+INSERT INTO txt VALUES ('H5613', 'German',  'Import Appdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Appdaten-Importe gerechnet werden.');
+INSERT INTO txt VALUES ('H5613', 'English', 'Import App data start at: Defines a referential time from which the App data import intervals are calculated.');
+INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird der vollst&auml;ndige Pfad f&uuml;r ein eventuell vorhandenes Importskript oder einer Import-Datei eingegeben.
+    Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
+    gesucht und ggf. importiert. Es gibt f&uuml;r den Import also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
+    welches die ben&ouml;tigte Import-Datei erst erzeugt.
+');
+INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): Here the full path of a provided import script or file is inserted.
+    The import process checks, if a script of this name with ending .py exists and executes it.
+    Then a file of this name with ending .json is searched and imported if found.
+    Thus there is the possibility to provide a file for direct import or a script to catch the import data and create the subnet data import file.
+');
+INSERT INTO txt VALUES ('H5615', 'German',  'Import Subnetzdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Subnetzdaten-Import-L&auml;fen.
+    Ein Wert 0 bedeutet, dass der Subnetzdaten-Import deaktiviert ist. Default-Wert = 0.
+');
+INSERT INTO txt VALUES ('H5615', 'English', 'Import Subnet data sleep time (in hours): Time between Subnet data import loops.
+    A value 0 means, that the Subnet data import is deactivated. Default value = 0.
+');
+INSERT INTO txt VALUES ('H5616', 'German',  'Import Subnetzdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Subnetzdaten-Importe gerechnet werden.');
+INSERT INTO txt VALUES ('H5616', 'English', 'Import Subnet data start at: Import App data start at: Defines a referential time from which the Subnte data import intervals are calculated.');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>
@@ -5190,3 +5278,35 @@ INSERT INTO txt VALUES ('H8717', 'English', '<H4>7) Activate Planning phase</H4>
     </ul>
 ');
 
+INSERT INTO txt VALUES ('H9001', 'German',  'Insbesondere in gr&ouml;sseren Netzwerken besteht der Bedarf, die vielf&auml;ltigen Verbindungen zwischen den Teilnehmern zu modellieren,
+    um sie so einer weitergehenden Verwaltung zug&auml;nglich zu machen. Dieses Modul stellt die Hilfsmittel, bereits vorhandene Applikationen von anderen Systemen zu importieren
+    und ihre Elemente nach vorgegebenen Kriterien zu verkn&uuml;pfen.
+');
+INSERT INTO txt VALUES ('H9001', 'English', 'Especially in greater networks there is the demand to model the connections between the participants,
+    with the aim of further administration. This module provides tools to import already existing applications from other systems
+    and to connect their elements by predefined criteria.
+');
+INSERT INTO txt VALUES ('H9011', 'German',  'Jeder Modellierer bekommt die ihm zug&auml;nglichen Applikationen dargestellt. D.h.
+    <ul>
+        <li>Der Nutzer muss die Rolle "Modellierer" besitzen (Voraussetzung, dass diese Seite &uuml;berhaupt dargestellt wird).
+            Die Rollen k&ouml;nnen vom Administrator in den <a href="/help/settings/roles">Rollen-Einstellungen</a> gesetzt werden.</li>
+        <li>Die Applikationen wurden mit den entsprechenden Skripten importiert (<a href="/help/settings/modelling">Modelling-Einstellungen</a>)
+            oder vom Administrator manuell angelegt (<a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a>).</li>
+        <li>Der Nutzer ist entweder in den <a href="/help/settings/groups">Gruppen-Einstellungen</a> der entsprechenden "ModellerGroup" der Applikation
+            (wird beim Import automatisch angelegt) oder in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> direkt zugeordnet.</li>
+    </ul>
+    Eine Applikation kann durch den Administrator in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> als "Common Service zugelassen" markiert werden.
+    Nur dann k&ouml;nnen auch Common Services angelegt werden.
+');
+INSERT INTO txt VALUES ('H9011', 'English', 'For each modeller his accessible applications are displayed. That means
+    <ul>
+        <li>The user has to have the role "modeller" (precondition that this page is displayed at all).
+            Roles are set by the administrator in <a href="/help/settings/roles">Role Settings</a>.</li>
+        <li>Applications have been imported by respective scripts (<a href="/help/settings/modelling">Modelling Settings</a>)
+            or manually created by the administrator (<a href="/help/settings/owners">Owner Settings</a>).</li>
+        <li>The user is assigned to the application via the appropriate "ModellerGroup" (automatically created by the import)
+            in the <a href="/help/settings/groups">Group Settings</a> or directly in the <a href="/help/settings/owners">Owner Settings</a>.</li>
+    </ul>
+    An application can be marked by the administrator as "Common Service Possible" in the <a href="/help/settings/owners">Owner Settings</a>.
+    Only in this case Common Services can be created in this application.
+');

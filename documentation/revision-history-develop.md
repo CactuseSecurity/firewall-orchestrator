@@ -170,3 +170,6 @@ bugfix release:
   - writing to change counter after import (inpreparation for notification enhancement)
 - importer demo tenant device mapping additions (upgrade)
 - installer: introducing venv for newer ansible versions and thereby removing version handling
+
+# 7.3.6 - 23.01.2024 DEVELOP
+- common service handling

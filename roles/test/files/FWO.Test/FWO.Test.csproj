@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\..\lib\files\FWO.Logging\FWO.Logging.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
+    <ProjectReference Include="..\..\..\ui\files\FWO.UI\FWO.Ui.csproj" />
   </ItemGroup>
 
 </Project>

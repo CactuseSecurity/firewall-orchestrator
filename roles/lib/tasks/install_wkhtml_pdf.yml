@@ -1,16 +1,16 @@
+# - name: show ansible_facts
+#   debug:
+#     msg:
+#     - "ansible_fact {{ item.key }} = {{ item.value }}"
+#   loop: "{{ ansible_facts|dict2items }}"
 
-- name: show OS infos
-  debug:
-    msg:
-    - "distribution: {{ ansible_facts['distribution'] }}|"
-    - "distribution_version: {{ ansible_facts['distribution_version'] }}"
 
 - set_fact:
     os_codename: undefined
 
 - set_fact:
     os_codename: bookworm
-  when: ansible_facts['distribution']|lower == "debian" and ansible_facts['distribution_version']|string is version('12', '>=') and ansible_facts['distribution_version']|string is version('13', '<')
+  when: ansible_facts['distribution']|lower == "debian" and (ansible_facts['distribution_release'] == "bookworm" or ansible_facts['distribution_release'] == "trixie")
 
 - set_fact:
     os_codename: jammy
@@ -54,9 +54,7 @@
         state: absent
 
     when: |
-      ansible_facts['distribution']|lower == "ubuntu" and ansible_facts['distribution_version']|string is version('22', '>=')
-      or
-      ansible_facts['distribution']|lower == "debian" and ansible_facts['distribution_version']|string is version('12', '>=')
+      os_codename == "jammy" or os_codename == "bookworm"
 
   become: true
   environment: "{{ proxy_env }}"

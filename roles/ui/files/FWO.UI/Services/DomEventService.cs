@@ -13,7 +13,7 @@ namespace FWO.Ui.Services
 		[JSInvokable]
 		public void InvokeOnGlobalScroll(string elementId)
 		{
-			OnGlobalScroll?.Invoke(elementId);
+			OnGlobalScroll?.Invoke(elementId ?? "");
 		}
 
 		[JSInvokable]
@@ -25,7 +25,7 @@ namespace FWO.Ui.Services
 		[JSInvokable]
 		public void InvokeOnGlobalClick(string elementId)
 		{
-			OnGlobalClick?.Invoke(elementId);
+			OnGlobalClick?.Invoke(elementId ?? "");
 		}
 
 		public async Task Initialize(IJSRuntime runtime)

@@ -33,17 +33,18 @@ namespace FWO.Ui.Services
                 }
                 if(CheckAppServer())
                 {
+                    bool saveOk = true;
                     apiConnection.SetRole(GlobalConst.kAdmin);
                     if(AddMode)
                     {
-                        await AddAppServerToDb();
+                        saveOk &= await AddAppServerToDb();
                     }
                     else
                     {
-                        await UpdateAppServerInDb();
+                        saveOk &= await UpdateAppServerInDb();
                     }
                     apiConnection.SwitchBack();
-                    return true;
+                    return saveOk;
                 }
             }
             catch (Exception exception)
@@ -79,11 +80,10 @@ namespace FWO.Ui.Services
 
         private static bool CheckIpAdress(string ip)
         {
-            IPAddressRange dummyOut;
-            return IPAddressRange.TryParse(ip, out dummyOut);
+            return IPAddressRange.TryParse(ip, out _);
         }
 
-        private async Task AddAppServerToDb()
+        private async Task<bool> AddAppServerToDb()
         {
             try
             {
@@ -102,14 +102,23 @@ namespace FWO.Ui.Services
                         $"New App Server: {ActAppServer.Display()}", Application.Id);
                     AvailableAppServers.Add(ActAppServer);
                 }
+                return true;
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("add_app_server"), "", true);
+                if(exception.Message.Contains("Uniqueness violation"))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("E9010"), "", true);
+                }
+                else
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("add_app_server"), "", true);
+                }
+                return false;
             }
         }
 
-        private async Task UpdateAppServerInDb()
+        private async Task<bool> UpdateAppServerInDb()
         {
             try
             {
@@ -124,10 +133,19 @@ namespace FWO.Ui.Services
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppServer, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppServer, ActAppServer.Id,
                     $"Updated App Server: {ActAppServer.Display()}", Application.Id);
+                return true;
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
+                if(exception.Message.Contains("Uniqueness violation"))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("E9010"), "", true);
+                }
+                else
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
+                }
+                return false;
             }
         }
     }

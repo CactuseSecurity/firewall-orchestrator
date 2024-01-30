@@ -2487,6 +2487,8 @@ INSERT INTO txt VALUES ('E9008', 'German',  'Dienstgruppe kann nicht gel&ouml;sc
 INSERT INTO txt VALUES ('E9008', 'English', 'Service Group cannot be deleted because it is in use: ');
 INSERT INTO txt VALUES ('E9009', 'German',  'App Rolle kann nicht gel&ouml;scht werden, da sie in Benutzung ist: ');
 INSERT INTO txt VALUES ('E9009', 'English', 'App Role cannot be deleted because it is in use: ');
+INSERT INTO txt VALUES ('E9010', 'German',  'IP-Adresse wurde schon verwendet.');
+INSERT INTO txt VALUES ('E9010', 'English', 'IP address is already used.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

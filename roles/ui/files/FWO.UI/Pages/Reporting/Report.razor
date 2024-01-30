@@ -20,8 +20,8 @@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
     <div class="p-3 mt-2">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
-        <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))"
-            SelectedElement="selectedReportType" SelectedElementChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
+        <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))" SelectedElement="selectedReportType"
+            SelectedElementChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
             <ElementTemplate Context="reportType">
                 @userConfig.GetText(reportType.ToString())
             </ElementTemplate>

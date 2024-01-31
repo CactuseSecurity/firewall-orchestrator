@@ -26,7 +26,10 @@ namespace FWO.Api.Data
         [JsonProperty("common_service_possible"), JsonPropertyName("common_service_possible")]
         public bool CommSvcPossible { get; set; } = false;
 
- 
+        [JsonProperty("connections_aggregate"), JsonPropertyName("connections_aggregate")]
+        public Client.AggregateCount ConnectionCount { get; set; } = new();
+
+
         public FwoOwner()
         { }
 
@@ -39,6 +42,7 @@ namespace FWO.Api.Data
             Active = owner.Active;
             ImportSource = owner.ImportSource;
             CommSvcPossible = owner.CommSvcPossible;
+            ConnectionCount = owner.ConnectionCount;
         }
 
         public string Display(string comSvcTxt)

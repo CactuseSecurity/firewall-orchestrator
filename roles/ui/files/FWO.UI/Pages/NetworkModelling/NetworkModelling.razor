@@ -19,7 +19,7 @@
         <label class="col-form-label col-sm-1">@(userConfig.GetText("application")):</label>&nbsp;
         @if(singleApp)
         {
-            <label class="col-form-label text-primary col-sm-4">@selectedApp.Display(userConfig.GetText("common_service"))</label>
+            <label class="col-form-label text-primary col-sm-4">@((MarkupString)DisplayApp(selectedApp))</label>
         }
         else
         {
@@ -27,7 +27,7 @@
                 <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" SelectedElement="selectedApp" 
                         SelectedElementChanged="InitApp" Elements="apps">
                     <ElementTemplate Context="app">
-                        @app.Display(userConfig.GetText("common_service"))
+                        @((MarkupString)DisplayApp(app))
                     </ElementTemplate>
                 </Dropdown>
             </div>
@@ -263,6 +263,15 @@ else
             return "td-bg-light-grey";
         }
         return "";
+    }
+
+    public string DisplayApp(FwoOwner app)
+    {
+        string tooltip = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9004")}\"")
+            : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9003")}\"";
+        string textToDisplay = (app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "*") : "!") + app.Display(userConfig.GetText("common_service"));
+        string textClass = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "text-success") : "text-danger";
+        return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
     }
 
     private async Task ShowHistory()

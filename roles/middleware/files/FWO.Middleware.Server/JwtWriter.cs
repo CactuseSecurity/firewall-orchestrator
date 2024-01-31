@@ -120,12 +120,15 @@ namespace FWO.Middleware.Server
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
                 
-            if (user.Tenant != null && user.Tenant.VisibleGatewayIds != null && user.Tenant.VisibleManagementIds != null)
+            if (user.Tenant != null)
             { 
-                // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
                 claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
-                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagementIds)} }}"));
-                claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleGatewayIds)} }}"));
+                if(user.Tenant.VisibleGatewayIds != null && user.Tenant.VisibleManagementIds != null)
+                {
+                    // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
+                    claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagementIds)} }}"));
+                    claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleGatewayIds)} }}"));
+                }
             }
             claimsIdentity.AddClaim(new Claim("x-hasura-editable-owners", $"{{ {string.Join(",", user.Ownerships)} }}"));
 

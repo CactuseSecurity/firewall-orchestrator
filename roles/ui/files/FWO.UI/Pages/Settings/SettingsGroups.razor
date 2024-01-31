@@ -325,11 +325,7 @@
                 if (AddGroupMode)
                 {
                     actGroup.Roles = new List<string>();
-                    if(actGroup.OwnerGroup)
-                    {
-                        actGroup.Roles.Add(GlobalConst.kRecertifier);
-                    }
-                    else if(selectedRole != null)
+                    if(selectedRole != null)
                     {
                         actGroup.Roles.Add(selectedRole.Name);
                     }

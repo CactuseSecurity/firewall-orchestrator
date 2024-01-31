@@ -13,4 +13,7 @@ fragment ownerDetails on owner {
   active
   import_source
   common_service_possible
+  connections_aggregate {
+    aggregate { count }
+  }      
 }

@@ -125,7 +125,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Show="@DeleteMode" Size=PopupSize.Small OnClose="() => DeleteMode = false">
+<PopUp Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Show="@DeleteMode" Size=PopupSize.Large OnClose="() => DeleteMode = false">
     <Body>
         @if (DeleteMode)
         {
@@ -172,28 +172,32 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <AuthorizeView Roles="@GlobalConst.kAdmin">
-                        <Authorized>
-                            <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
+                    <div class="col-sm-2">
+                        <AuthorizeView Roles="@GlobalConst.kAdmin">
+                            <Authorized>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                            </NotAuthorized> 
+                        </AuthorizeView>
+                    </div>
                 </div>
                 <div class="form-group row">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedGroupDn" Elements="searchedGroupList" />
                     </div>
-                    <AuthorizeView Roles="@GlobalConst.kAdmin">
-                        <Authorized>
-                            <button type="button" class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
+                    <div class="col-sm-2">
+                        <AuthorizeView Roles="@GlobalConst.kAdmin">
+                            <Authorized>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                            </NotAuthorized> 
+                        </AuthorizeView>
+                    </div>
                 </div>
             </form>
         }

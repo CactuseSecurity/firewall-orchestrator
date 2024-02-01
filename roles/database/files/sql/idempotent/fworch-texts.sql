@@ -1658,6 +1658,8 @@ INSERT INTO txt VALUES ('comm_svc_possible',    'German',   'Common Service zuge
 INSERT INTO txt VALUES ('comm_svc_possible',    'English',  'Common Service Possible');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
+INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher (DN)');
+INSERT INTO txt VALUES ('main_responsible',     'English',  'Main responsible person (DN)');
 INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');

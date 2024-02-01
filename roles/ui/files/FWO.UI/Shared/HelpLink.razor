@@ -1,12 +1,15 @@
 ﻿@inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
 
-<NavLink class="nav-link" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("newWindow", args: $"/help/{Page}?lang={userConfig.GetUserLanguage()}"))">
-    <span class="oi oi-info ms-2"/>
+<NavLink class="nav-link" target="_blank" rel="noopener noreferrer" href="@($"/help/{Page}?lang={userConfig.GetUserLanguage()}")">
+    <span class="oi oi-info ms-2"></span> @ChildContent
 </NavLink>
 
 @code
 {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
     [Parameter]
     public string? Page { get; set; } = "";
 }

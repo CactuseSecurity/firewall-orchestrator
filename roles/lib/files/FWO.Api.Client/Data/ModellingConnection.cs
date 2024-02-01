@@ -81,6 +81,34 @@ namespace FWO.Api.Data
            DestinationNwGroups = new List<ModellingNwGroupWrapper>(conn.DestinationNwGroups);
         }
 
+        public int CompareTo(ModellingConnection secondConnection)
+        {
+            int interfaceCompare = Compare(IsInterface, secondConnection.IsInterface);
+            if (interfaceCompare != 0)
+            {
+                return interfaceCompare;
+            }
+            int comSvcCompare = Compare(IsCommonService, secondConnection.IsCommonService);
+            if (comSvcCompare != 0)
+            {
+                return comSvcCompare;
+            }
+            return Name?.CompareTo(secondConnection.Name) ?? -1;
+        }
+
+        private static int Compare(bool first, bool second)
+        {
+            if(first && !second)
+            {
+                return -1;
+            }
+            if(!first && second)
+            {
+                return 1;
+            }
+            return 0;
+        }
+
         public string DisplayWithOwner(FwoOwner owner)
         {
             return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";

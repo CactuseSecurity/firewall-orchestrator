@@ -9,4 +9,9 @@
 sudo apt install python3-venv -y
 python3 -m venv ansible-venv
 source ansible-venv/bin/activate
+if [ ! $http_proxy == "" ];
+then
+    pip config set global.proxy $http_proxy
+fi    
+pip config set global.default-timeout 3600
 pip install ansible

@@ -195,7 +195,7 @@ if __name__ == "__main__":
     else:
         # get App List directly from RLM via API
         try:
-            oauthToken = rlmLogin(user, password, rlmApiUrl + api_url_path_rlm_login)
+            oauthToken = rlmLogin(rlmUsername, rlmPassword, rlmApiUrl + api_url_path_rlm_login)
             # logger.debug("token for RLM: " + oauthToken)
             ownerData = rlmGetOwners(oauthToken, rlmApiUrl + api_url_path_rlm_apps)
 

@@ -187,7 +187,7 @@ else
         {
             if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor))
             {
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwnersWithConn);
             }
             else
             {

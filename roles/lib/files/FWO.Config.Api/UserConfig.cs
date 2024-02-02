@@ -144,6 +144,53 @@ namespace FWO.Config.Api
             }
         }
 
+        public string PureLine(string text)
+        {
+            string output = RemoveLinks(Regex.Replace(GetText(text).Trim(), @"\s", " "));
+            bool cont = true;
+            while(cont)
+            {
+                string outputOrig = output;
+                output = Regex.Replace(outputOrig, @"  ", " ");
+                if(output.Length == outputOrig.Length)
+                {
+                    cont = false;
+                }
+            }
+            return output;
+        }
+
+        private static string RemoveLinks(string txtString)
+        {
+            string startLink = "<a href=\"/";
+            int begin, end;
+            int index = 0;
+            bool cont = true;
+
+            while (cont)
+            {
+                begin = txtString.IndexOf(startLink, index);
+                if (begin >= 0)
+                {
+                    end = txtString.IndexOf(">", begin + startLink.Length);
+                    if (end > 0)
+                    {
+                        txtString = txtString.Remove(begin, end - begin + 1);
+                    }
+                    else
+                    {
+                        cont = false;
+                    }
+                }
+                else
+                {
+                    cont = false;
+                }
+            }
+            txtString = Regex.Replace(txtString, "</a>", "");
+            return txtString;
+        }
+    
         private string Convert(string rawText)
         {
             string plainText = System.Web.HttpUtility.HtmlDecode(rawText);

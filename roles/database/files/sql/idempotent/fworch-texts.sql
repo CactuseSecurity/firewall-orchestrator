@@ -1101,7 +1101,7 @@ INSERT INTO txt VALUES ('changed_by',		    'English', 	'Changed by');
 INSERT INTO txt VALUES ('object_id',            'German', 	'Objekt-Id');
 INSERT INTO txt VALUES ('object_id',            'English', 	'Object Id');
 INSERT INTO txt VALUES ('predef_services',      'German', 	'Vordefinierte Dienste');
-INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined services');
+INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined Services');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
 INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
@@ -3014,7 +3014,7 @@ F&uuml;r das ordnungsgem&auml;&szlig;e Funktionieren des Rezertifzierungsprozess
 <H4>Berechtigungen</H4>
 <ul>
     <li>Angemeldete Nutzer m&uuml;ssen die Rolle "Recertifier" besitzen</li>
-    <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Vollst&auml;ndiger Name*:" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
+    <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Hauptverantwortlicher (DN)" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
 </ul>
 <H4>Konfiguration der Eigent&uuml;mer</H4>
     M&ouml;chte man keine Verteilung der Zust&auml;ndigkeit auf mehrere Eigent&uuml;mer vornehmen, so ist es ausreichend, dem Eigent&uuml;mer "Super-Owner" eine Gruppe von Rezertifizierern zuzuordnen,
@@ -3676,7 +3676,7 @@ INSERT INTO txt VALUES ('H5213', 'English', 'Tls: Flag if TLS is used for commun
 INSERT INTO txt VALUES ('H5214', 'German',  'Mandantenebene: Wenn Mandanten Teil des Distinguished Name (Dn) des Nutzers sind, definiert diese Zahl die Pfadtiefe, wo dieser zu finden ist. 
     Das beginnt mit 1 f&uuml;r das erste Element von rechts. Wenn keine Mandanten genutzt werden, auf 0 setzen.
 ');
-INSERT INTO txt VALUES ('H5214', 'English', 'Tenant Level: If tenants are part of the distinguished names (Dn) of the user, this number defines the level in the path, where they are found.
+INSERT INTO txt VALUES ('H5214', 'English', 'Tenant Level: If tenants are part of the distinguished name (Dn) of the user, this number defines the level in the path, where they are found.
     Starting with 1 for the first Dn element from the right. Set to 0 if no tenants are used.
 ');
 INSERT INTO txt VALUES ('H5215', 'German',  'Typ*: Implementierungstyp des Ldap, welcher die Syntax des Zugangs festlegt. Zur Zeit werden "OpenLdap" und "ActiveDirectory" unterst&uuml;tzt.
@@ -3877,7 +3877,7 @@ INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): 
 INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database (currently not supported).');
 INSERT INTO txt VALUES ('H5416', 'German',  '
     <ul>
-        <li>Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;fen. Default-Wert = 40.</li>
+        <li>Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;ufen. Default-Wert = 40.</li>
         <li>Zertifikate beim Import pr&uuml;fen: Sollen bei den API-Calls in Richtung der Firewalls nur g&uuml;ltige Zertifikate akzeptiert werden?. 
             Sollte nur auf "aktiv" gesetzt werden, wenn alle Firewalls offiziell signierte Zertifikate besitzen, 
             andernfalls ist ein Import nicht m&ouml;glich. Default-Wert = "inaktiv".</li>
@@ -4026,6 +4026,8 @@ INSERT INTO txt VALUES ('H5452', 'German',  'Max erlaubte Importdauer (in Stunde
 INSERT INTO txt VALUES ('H5452', 'English', 'Max allowed import duration (in hours): Upper limit for the accepted import duration in the daily check.');
 INSERT INTO txt VALUES ('H5453', 'German',  'Max erlaubtes Importintervall (in Stunden): Obergrenze, welcher Abstand zwischen zwei Imports im t&auml;glichen Check noch akzeptiert wird.');
 INSERT INTO txt VALUES ('H5453', 'English', 'Max import interval (in hours): Upper limit for the accepted interval between two imports in the daily check.');
+INSERT INTO txt VALUES ('H5454', 'German',  'Regel-Eigent&uuml;merschaftsmodus: (Gemischt/Exklusiv) Wird z. Zt. nicht genutzt.');
+INSERT INTO txt VALUES ('H5454', 'English', 'Rule Ownership Mode: (Mixed/Exclusive) Currently not in use.');
 
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
@@ -4232,19 +4234,19 @@ INSERT INTO txt VALUES ('H5581', 'English', 'In this chapter the existing owners
 ');
 INSERT INTO txt VALUES ('H5582', 'German',  'Name: Name der Eigent&uuml;mers');
 INSERT INTO txt VALUES ('H5582', 'English', 'Name: Owner name');
-INSERT INTO txt VALUES ('H5583', 'German',  'Vollst&auml;ndiger Name: Name und Ldap-Pfad des zugeordneten Nutzers.
-    Mindestens eines der Felder "Vollst&auml;ndiger Name" oder "Gruppe" muss gef&uuml;llt sein.
+INSERT INTO txt VALUES ('H5583', 'German',  'Hauptverantwortlicher (DN): Name und Ldap-Pfad des zugeordneten Nutzers.
+    Mindestens eines der Felder "Hauptverantwortlicher (DN)" oder "Gruppe" muss gef&uuml;llt sein.
 ');
-INSERT INTO txt VALUES ('H5583', 'English', 'Distinguished Name: Name and Ldap path of the associated user.
-    At least one of the fields "Distinguished Name" or "Group" has to be filled.
+INSERT INTO txt VALUES ('H5583', 'English', 'Main responsible person (DN): Name and Ldap path of the associated user.
+    At least one of the fields "Main responsible person (DN)" or "Group" has to be filled.
 ');
 INSERT INTO txt VALUES ('H5584', 'German',  'Gruppe: Name und Ldap-Pfad der zugeordneten Nutzergruppe.
     Die referenzierte Gruppe muss in den <a href="/help/settings/groups">Gruppen-Einstellungen</a> als Eigent&uuml;mergruppe markiert sein.
-    Mindestens eines der Felder "Vollst&auml;ndiger Name" oder "Gruppe" muss gef&uuml;llt sein.
+    Mindestens eines der Felder "Hauptverantwortlicher (DN)" oder "Gruppe" muss gef&uuml;llt sein.
 ');
 INSERT INTO txt VALUES ('H5584', 'English', 'Group: Name and Ldap path of the associated user group.
     The referenced group has to be marked as owner group in the <a href="/help/settings/groups">Group settings</a>.
-    At least one of the fields "Distinguished Name" or "Group" has to be filled.
+    At least one of the fields "Main responsible person (DN)" or "Group" has to be filled.
 ');
 INSERT INTO txt VALUES ('H5585', 'German',  'Mandant: Der Mandant, dem der Eigent&uuml;mer zugeordnet ist.');
 INSERT INTO txt VALUES ('H5585', 'English', 'Tenant: Tenant to which the owner is assigned to.');
@@ -4310,7 +4312,7 @@ INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (w
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility for each data source to provide a file for direct import or a script to catch the import data and create the app data import file.
 ');
-INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;fen.
+INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0. 
 ');
 INSERT INTO txt VALUES ('H5612', 'English', 'Import App data sleep time (in hours): Time between App data import loops.
@@ -4328,7 +4330,7 @@ INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility to provide a file for direct import or a script to catch the import data and create the subnet data import file.
 ');
-INSERT INTO txt VALUES ('H5615', 'German',  'Import Subnetzdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Subnetzdaten-Import-L&auml;fen.
+INSERT INTO txt VALUES ('H5615', 'German',  'Import Subnetzdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Subnetzdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Subnetzdaten-Import deaktiviert ist. Default-Wert = 0.
 ');
 INSERT INTO txt VALUES ('H5615', 'English', 'Import Subnet data sleep time (in hours): Time between Subnet data import loops.

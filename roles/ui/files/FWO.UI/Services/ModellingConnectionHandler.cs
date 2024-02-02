@@ -104,7 +104,7 @@ namespace FWO.Ui.Services
                 }
                 RefreshSelectedNwObjects();
                 InterfaceName = await ExtractUsedInterface(ActConn);
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
             }
             catch (Exception exception)
             {

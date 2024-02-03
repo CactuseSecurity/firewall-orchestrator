@@ -123,11 +123,11 @@ def rlmLogin(user, password, api_url):
     payload = { "username": user, "password": password, "client_id": "securechange", "client_secret": "123", "grant_type": "password" }
 
     with requests.Session() as session:
-        if verify_certs is None:    # only for first Recert API call (getting info on cert verification)
-            session.verify = False
-        else: 
-            session.verify = verify_certs
-
+        # if verify_certs is None:    # only for first Recert API call (getting info on cert verification)
+        #     session.verify = False
+        # else: 
+        #     session.verify = verify_certs
+        session.verify = False
         try:
             response = session.post(api_url, payload)
         except requests.exceptions.RequestException:
@@ -147,11 +147,12 @@ def rlmGetOwners(token, api_url):
     headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}
 
     with requests.Session() as session:
+        session.verify = False
         try:
             response = session.get(api_url, headers=headers)
 
         except requests.exceptions.RequestException:
-            raise ApiServiceUnavailable ("api: error during login to url: " + str(api_url) + " with user " + user) from None
+            raise ApiServiceUnavailable ("api: error while getting owners from url: " + str(api_url) + " with token " + token) from None
 
         if response.text is not None and response.status_code==200:
             # logger.info(str(response.text))
@@ -159,7 +160,6 @@ def rlmGetOwners(token, api_url):
         else:
             raise ApiFailure("api: ERROR: could not get owners" + \
                             ", api_url: " + str(api_url) + \
-                            ", ssl_verification: " + str(verify_certs) + \
                             ", status code: " + str(response))
 
 

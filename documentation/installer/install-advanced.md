@@ -88,9 +88,15 @@ NB: for vscode-debugging, you also need access to
     visualstudio.com
 
 
-Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows:
+Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows before installing ansible:
 
          pip config set global.proxy http://proxy:3128
+
+
+In case of timeout issues (you might be behind a security proxy that does intensive scanning), try to install ansible using the command:
+
+          pip --default-timeout=3600 install ansible
+          
 
 ### Parameter "api_no_metadata" to prevent meta data import
 

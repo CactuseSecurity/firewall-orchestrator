@@ -104,7 +104,8 @@
                     actDevice.DeviceType.Manufacturer == "Fortinet" || 
                     actDevice.DeviceType.Manufacturer == "Cisco" ||
                     actDevice.DeviceType.Manufacturer == "Palo Alto" ||
-                    actDevice.DeviceType.Manufacturer == "Microsoft")
+                    actDevice.DeviceType.Manufacturer == "Microsoft" ||
+                    actDevice.DeviceType.Manufacturer == "VMWare")
                 {
                     @if (actDevice.DeviceType.Manufacturer == "Fortinet" && actDevice.Management.DeviceType.IsLegacyDevType())
                     {

@@ -175,3 +175,6 @@ bugfix release:
 - common service handling
 - fixes credentials when installing without demo data
 - fix error with pdf creation on debian testing
+
+# 7.3.7 - 29.02.2024 DEVELOP
+- adding firewall importer support for NSX

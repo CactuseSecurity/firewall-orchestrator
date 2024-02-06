@@ -34,7 +34,7 @@ namespace FWO.Middleware.Server
         {
             globalConfig.OnChange += GlobalConfig_OnChange;
 
-            StartScheduleTimer();
+            // StartScheduleTimer();
             if(globalConfig.RecRefreshStartup)
             {
                 RefreshRecert(); // no need to wait

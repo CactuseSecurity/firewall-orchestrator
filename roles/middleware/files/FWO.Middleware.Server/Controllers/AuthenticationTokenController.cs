@@ -7,10 +7,7 @@ using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.RequestParameters;
 using System.Security.Authentication;
-using Microsoft.AspNetCore.Authentication.OAuth;
 using Novell.Directory.Ldap;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authorization;
 using System.Data;
 
 namespace FWO.Middleware.Controllers
@@ -168,12 +165,14 @@ namespace FWO.Middleware.Controllers
 
             // Get groups of user
             user.Groups = ldap.GetGroups(ldapUser);
+            Log.WriteDebug("Get Groups", $"Found groups for user: {string.Join("; ", user.Groups)}");
 
             // Get roles of user
             user.Roles = await GetRoles(user);
 
             // Get tenant of user
             user.Tenant = await GetTenantAsync(ldapUser, ldap);
+            Log.WriteDebug("Get Tenants", $"Found tenant for user: {user.Tenant?.Name ?? ""}");
 
             // Remember the hosting ldap
             user.LdapConnection.Id = ldap.Id;
@@ -184,13 +183,12 @@ namespace FWO.Middleware.Controllers
 
         public async Task<(LdapEntry, Ldap)> GetLdapEntry(UiUser user, bool validatePassword)
         {
-            Log.WriteDebug("User Authentication", $"Trying to ldap entry for user: {user.Name + " " + user.Dn}...");
+            Log.WriteDebug("User Authentication", $"Trying to get ldap entry for user: {user.Name + " " + user.Dn}...");
 
             if (user.Dn == "" && user.Name == "")
             {
                 throw new Exception("A0001 Invalid credentials. Username / User DN must not be empty.");
             }
-
             else
             {
                 LdapEntry? ldapEntry = null;

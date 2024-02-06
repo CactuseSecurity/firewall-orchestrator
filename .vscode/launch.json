@@ -63,7 +63,7 @@
             "name": "py-normalizeNwData",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/scripts/customizing/modelling/convertNwObjData.py",
+            "program": "${workspaceFolder}/scripts/customizing/modelling/convertNwObjDataExample.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"

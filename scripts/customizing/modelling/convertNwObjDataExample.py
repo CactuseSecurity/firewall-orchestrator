@@ -131,10 +131,11 @@ if __name__ == "__main__":
         else:
             subnetName = ""
 
-        zoneNameParts = nameParts[0].split('_')
+        zoneNamePartsDots = nameParts[0].split('.')
 
-        zoneId = zoneNameParts[0][2:7]
-        areaName = zoneNameParts[1]
+        zoneNamePartsUnderscore = zoneNamePartsDots[0].split('_')
+        zoneId = zoneNamePartsUnderscore[0][2:7]
+        areaName = '_'.join(zoneNamePartsUnderscore[1:])
         normSubnet = {
             "na-id": naId,
             "na-name": areaName,

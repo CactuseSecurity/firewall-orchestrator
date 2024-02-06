@@ -31,7 +31,7 @@ namespace FWO.Middleware.Server
         private AutoDiscoverScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
         {
             globalConfig.OnChange += GlobalConfig_OnChange;
-            StartScheduleTimer();
+            // StartScheduleTimer();
         }
 
 		/// <summary>

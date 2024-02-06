@@ -164,7 +164,7 @@ namespace FWO.Middleware.Controllers
             user.Email = ldap.GetEmail(ldapUser);
 
             // Get groups of user
-            user.Groups = ldap.GetGroups(ldapUser);
+            user.Groups = await GetGroups(ldapUser, ldap);
             Log.WriteDebug("Get Groups", $"Found groups for user: {string.Join("; ", user.Groups)}");
 
             // Get roles of user
@@ -179,6 +179,35 @@ namespace FWO.Middleware.Controllers
 
             // Create JWT for validated user with roles and tenant
             return await jwtWriter.CreateJWT(user, lifetime);
+        }
+
+        public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
+        {
+            List<string> userGroups = ldap.GetGroups(ldapUser);
+            if (!ldap.IsInternal())
+            {
+                object groupsLock = new object();
+                List<Task> ldapRoleRequests = new List<Task>();
+
+                foreach (Ldap currentLdap in ldaps)
+                {
+                    if (currentLdap.IsInternal())
+                    {
+                        ldapRoleRequests.Add(Task.Run(() =>
+                        {
+                            // Get groups from current Ldap
+                            List<string> currentGroups = currentLdap.GetGroups(new List<string>() {ldapUser.Dn});
+                            lock (groupsLock)
+                            {
+                                currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();
+                                userGroups.AddRange(currentGroups);
+                            }
+                        }));
+                    }
+                }
+                await Task.WhenAll(ldapRoleRequests);
+            }
+            return userGroups;
         }
 
         public async Task<(LdapEntry, Ldap)> GetLdapEntry(UiUser user, bool validatePassword)

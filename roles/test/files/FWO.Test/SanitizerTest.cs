@@ -12,10 +12,10 @@ namespace FWO.Test
         static readonly string ShortenedText = "A";
         static readonly string OkLdapName = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()_";
         static readonly string LdapNameToShorten = " A+;,\"<>#= B ";
-        static readonly string ShortenedLdapName = "AB";
+        static readonly string ShortenedLdapName = "A B";
         static readonly string OkLdapPath = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()_,=";
         static readonly string LdapPathToShorten = " A+;,\"<>#= B ";
-        static readonly string ShortenedLdapPath = "A,=B";
+        static readonly string ShortenedLdapPath = "A,= B";
         static readonly string OkPassw = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()[]{}$+<>#";
         static readonly string PasswToShorten = " a \n\rb ";
         static readonly string ShortenedPassw = "a b";

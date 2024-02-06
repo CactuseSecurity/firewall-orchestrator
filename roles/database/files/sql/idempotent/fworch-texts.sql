@@ -4037,7 +4037,7 @@ INSERT INTO txt VALUES ('H5491', 'German',  'Firewall Orchestrator kann Benachri
         <li>Der TCP-Port des SMTP-Servers (meist 25, 587 oder 465, abh&auml;ngig von der verwendeten Verschl&uumlsselung) wird im "Port"-Feld eingetragen.</li>
         <li>Anschlie&szlig;end wird die gew&uuml;nschte Art der Verschl&uuml;sselung eingestellt (None=unverschl&uuml;sselt / StartTls / Tls)</li>
         <li>Verlangt der SMTP-Server eine Authentisierung, so sind Email-Nutzer und Email-Nutzer-Passwort in den beiden folgenden Feldern einzutragen. Anderfalls k&ouml;nnen diese Felder leer gelassen werden.</li>
-        <li>Schlie&szlig;kann nach eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.</li>
+        <li>Schlie&szlig;lich kann auch eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H5491', 'English', 'Firewall Orchestrator is able to send out notifications, e.g. for upcoming recertifications or when an import found changes in the firewall configuration.<br>

@@ -42,6 +42,7 @@ namespace FWO.Api.Data
         {
             bool shortened = base.Sanitize();
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
+            Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
             return shortened;
         }
     }

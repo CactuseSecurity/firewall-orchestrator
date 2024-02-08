@@ -6,6 +6,7 @@ namespace FWO.Config.Api
 
         public const int kSidebarLeftWidth = 300;
         public const int kSidebarRightWidth = 300;
+        public const int kHoursToMilliseconds = 3600000;
 
         public const string kHtml = "html";
         public const string kPdf = "pdf";

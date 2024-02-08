@@ -23,7 +23,7 @@ namespace FWO.Middleware.Server
 		/// </summary>
         protected GlobalConfig globalConfig;
 
-        private List<Alert> openAlerts = new List<Alert>();
+        private List<Alert> openAlerts = new();
 
     
 		/// <summary>

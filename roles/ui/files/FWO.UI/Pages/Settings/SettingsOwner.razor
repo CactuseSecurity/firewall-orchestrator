@@ -85,8 +85,16 @@
             }
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("main_responsible"))" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
-            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("group"))" Field="@(x => x.GroupDn)" Sortable="true" Filterable="true" />
+            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("main_responsible"))" Field="@(x => x.Dn)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(new DistName(context.Dn).UserName)
+                </Template>
+            </Column>
+            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("group"))" Field="@(x => x.GroupDn)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(new DistName(context.GroupDn).Group)
+                </Template>
+            </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
                 <Template>
                     @(context.TenantId != null ? tenants.FirstOrDefault(x => x.Id == context.TenantId)?.Name ?? "" : "" )
@@ -94,6 +102,7 @@
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("recert_interval"))" Field="@(x => x.RecertInterval)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.ExtAppId)" Sortable="true" Filterable="true" />
+            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("import_source"))" Field="@(x => x.ImportSource)" Sortable="true" Filterable="true" />
         </Table>
     </div>
 
@@ -134,14 +143,18 @@
                             <button type="button" class="btn btn-sm btn-success form-control form-control-sm" @onclick="() => SearchGroup()">@(userConfig.GetText("search"))</button>
                         </div>
                     </div>
-                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5585"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
-                        <div class="col-sm-9">
+                    <div class="form-group row mt-2">
+                        <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5585"))">@(userConfig.GetText("tenant")):</label>
+                        <div class="col-sm-5">
                             <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="tenants" Nullable="true">
                                 <ElementTemplate Context="tenant">
                                     @tenant.Name
                                 </ElementTemplate>
                             </Dropdown>
+                        </div>
+                        <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591"))">
+                            <input class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                            <label class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
                         </div>
                     </div>
                     <div class="form-group row mt-2">
@@ -149,10 +162,8 @@
                         <div class="col-sm-5">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
                         </div>
-                        <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591"))">
-                            <input class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
-                            <label class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
-                        </div>
+                        <label class="col-sm-2 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5592"))">@(userConfig.GetText("import_source")):</label>
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(actOwner.ImportSource)</label>
                     </div>
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5587"))">
                         <div class="col-sm-6">
@@ -313,44 +324,42 @@
         <Body>
             @if (SearchInLdapMode)
             {
-                <form>
-                    <div class="form-group row">
-                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
-                        <div class="col-sm-8">
-                            @if(UserSearchMode)
-                            {
-                                <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedLdapUser" Elements="ldapUsers">
-                                    <ElementTemplate Context="user">
-                                        @user.Dn
-                                    </ElementTemplate>
-                                </Dropdown>
-                            }
-                            else
-                            {
-                                <Dropdown ElementType="UserGroup" ElementToString="@(g => g.Dn)" @bind-SelectedElement="selectedLdapGroup" Elements="ldapGroups">
-                                    <ElementTemplate Context="group">
-                                        @group.Dn
-                                    </ElementTemplate>
-                                </Dropdown>
-                            }
-                        </div>
-                        <AuthorizeView Roles="@GlobalConst.kAdmin">
-                            <Authorized>
-                            @if(UserSearchMode)
-                            {
-                                <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUser(selectedLdapUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                            }
-                            else
-                            {
-                                <button type="button" class="btn btn-sm btn-success" @onclick="() => AddGroup(selectedLdapGroup)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                            }
-                            </Authorized>
-                            <NotAuthorized>
-                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                            </NotAuthorized> 
-                        </AuthorizeView>
+                <div class="form-group row">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
+                    <div class="col-sm-8">
+                        @if(UserSearchMode)
+                        {
+                            <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedLdapUser" Elements="ldapUsers">
+                                <ElementTemplate Context="user">
+                                    @user.Dn
+                                </ElementTemplate>
+                            </Dropdown>
+                        }
+                        else
+                        {
+                            <Dropdown ElementType="UserGroup" ElementToString="@(g => g.Dn)" @bind-SelectedElement="selectedLdapGroup" Elements="ldapGroups">
+                                <ElementTemplate Context="group">
+                                    @group.Dn
+                                </ElementTemplate>
+                            </Dropdown>
+                        }
                     </div>
-                </form>
+                    <AuthorizeView Roles="@GlobalConst.kAdmin">
+                        <Authorized>
+                        @if(UserSearchMode)
+                        {
+                            <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="() => AddUser(selectedLdapUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="() => AddGroup(selectedLdapGroup)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                        }
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                        </NotAuthorized> 
+                    </AuthorizeView>
+                </div>
             }
         </Body>
         <Footer>

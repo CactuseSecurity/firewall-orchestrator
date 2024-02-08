@@ -1704,6 +1704,8 @@ INSERT INTO txt VALUES ('networkAreaPattern',   'German',   'Muster Netzwerkarea
 INSERT INTO txt VALUES ('networkAreaPattern',   'English',  'Network Area Pattern');
 INSERT INTO txt VALUES ('appRolePattern',       'German',   'Muster App Rolle');
 INSERT INTO txt VALUES ('appRolePattern',       'English',  'App Role Pattern');
+INSERT INTO txt VALUES ('import_source',        'German',   'Importquelle');
+INSERT INTO txt VALUES ('import_source',        'English',  'Import Source');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -3347,9 +3349,11 @@ INSERT INTO txt VALUES ('H5001', 'English', 'In the settings section the setup a
 ');
 INSERT INTO txt VALUES ('H5011', 'German',  'Im ersten Kapitel "Ger&auml;te" wird das Setup der Datenquellen behandelt: 
     Die Abschnitte <a href="/help/settings/managements">Managements</a> und <a href="/help/settings/gateways">Gateways</a> dienen der Definition der verbundenen Hardware.
+    Hinzu kommt die Verwaltung der <a href="/help/settings/credentials">Import-Zugangsdaten</a>.
 ');
 INSERT INTO txt VALUES ('H5011', 'English', 'In the first chapter "Devices" the setup of the report data sources is done:
     The sections <a href="/help/settings/managements">Managements</a> and <a href="/help/settings/gateways">Gateways</a> are for the definition of the connected hardware.
+    Additionally there is the administration of the <a href="/help/settings/credentials">Import Credentials</a>.
 ');
 INSERT INTO txt VALUES ('H5012', 'German',  'Das Kapitel "Berechtigungen" bietet die Funktionalit&auml;t f&uuml;r die Nutzerverwaltung:
     In <a href="/help/settings/ldap">LDAP-Verbindungen</a> k&ouml;nnen externe Verbindungen zus&auml;tzlich zum internen LDAP definiert werden.
@@ -3365,10 +3369,12 @@ INSERT INTO txt VALUES ('H5012', 'English', 'The chapter "Authorization" offers 
 ');
 INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann der Administrator <a href="/help/settings/defaults">Standardeinstellungen</a> vornehmen,
     die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/email">Email-</a>, <a href="/help/settings/importer">Importer-</a> und
-    <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren.
+    <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren. Hinzu kommen die modulspezifischen 
+    <a href="/help/settings/recertificationgeneral">Allgemeinen Rezertifizierungs-</a> und <a href="/help/settings/modelling">Modellierungseinstellungen</a>.
 ');
 INSERT INTO txt VALUES ('H5013', 'English', 'In the "Defaults" chapter the administrator can define <a href="/help/settings/defaults">Default Values</a> applicable to all users
     and define <a href="/help/settings/email">email-</a>, <a href="/help/settings/importer">importer-</a> and  <a href="/help/settings/passwordpolicy">Password Policy</a> settings.
+    Additionally there are the module specific <a href="/help/settings/recertificationgeneral">General Recertification</a> and <a href="/help/settings/modelling">Modelling Settings</a>.
 ');
 INSERT INTO txt VALUES ('H5014', 'German',  'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. Hier k&ouml;nnen das individuelle <a href="/help/settings/password">Password</a>,
     die bevorzugte <a href="/help/settings/language">Sprache</a> und <a href="/help/settings/report">Reporting</a>-Einstellungen gesetzt werden.
@@ -4030,25 +4036,20 @@ INSERT INTO txt VALUES ('H5489', 'German',  'Text der &Auml;nderungsbenachrichti
 INSERT INTO txt VALUES ('H5489', 'English', 'Body of change notification emails: Start of the email text for all change notification types. The email will subsequently always contain
     a list of names and IDs of the changed firewall management as well as the number of changes. Default value = "empty".
 ');
-INSERT INTO txt VALUES ('H5491', 'German',  'Firewall Orchestrator kann Benachrichtigungen versenden, z.B. f&uuml;r anstehende Rezertifizierungen oder wenn beim Import 
-    &Auml;nderungen festgestellt wurden.
-    <ul>
-        <li>Der Name oder die IP-Adresse des SMTP-Servers f&uuml;r ausgehende Emails wird im Feld "Adresse" eingetragen.</li>
-        <li>Der TCP-Port des SMTP-Servers (meist 25, 587 oder 465, abh&auml;ngig von der verwendeten Verschl&uumlsselung) wird im "Port"-Feld eingetragen.</li>
-        <li>Anschlie&szlig;end wird die gew&uuml;nschte Art der Verschl&uuml;sselung eingestellt (None=unverschl&uuml;sselt / StartTls / Tls)</li>
-        <li>Verlangt der SMTP-Server eine Authentisierung, so sind Email-Nutzer und Email-Nutzer-Passwort in den beiden folgenden Feldern einzutragen. Anderfalls k&ouml;nnen diese Felder leer gelassen werden.</li>
-        <li>Schlie&szlig;lich kann auch eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.</li>
-    </ul>
-');
-INSERT INTO txt VALUES ('H5491', 'English', 'Firewall Orchestrator is able to send out notifications, e.g. for upcoming recertifications or when an import found changes in the firewall configuration.<br>
-    <ul>
-        <li>Enter the name of IP address of your outgoing SMTP server in the field Feld "Adress".</li>
-        <li>The TCP port of the SMTP server (usually 25, 587 or 465, depending on the encryption method used) is entered in the "Port" field.</li>
-        <li>Choose the desired encryption type (None=clear-text / StartTls / Tls)</li>
-        <li>If the SMTP server requires authentication, enter Email User name and password in the following two fields. Otherwise leave empty.</li>
-        <li>Finally an individual sender address can be configured using the field "Email sender address".</li>
-    </ul>
-');
+INSERT INTO txt VALUES ('H5491', 'German',  'Firewall Orchestrator kann Benachrichtigungen versenden, z.B. f&uuml;r anstehende Rezertifizierungen oder wenn beim Import &Auml;nderungen festgestellt wurden.');
+INSERT INTO txt VALUES ('H5491', 'English', 'Firewall Orchestrator is able to send out notifications, e.g. for upcoming recertifications or when an import found changes in the firewall configuration.<br>');
+INSERT INTO txt VALUES ('H5491a','German',  'Der Name oder die IP-Adresse des SMTP-Servers f&uuml;r ausgehende Emails wird im Feld "Adresse" eingetragen.');
+INSERT INTO txt VALUES ('H5491a','English', 'Enter the name of IP address of your outgoing SMTP server in the field Feld "Adress".');
+INSERT INTO txt VALUES ('H5491b','German',  'Der TCP-Port des SMTP-Servers (meist 25, 587 oder 465, abh&auml;ngig von der verwendeten Verschl&uumlsselung) wird im "Port"-Feld eingetragen.');
+INSERT INTO txt VALUES ('H5491b','English', 'The TCP port of the SMTP server (usually 25, 587 or 465, depending on the encryption method used) is entered in the "Port" field.');
+INSERT INTO txt VALUES ('H5491c','German',  'Anschlie&szlig;end wird die gew&uuml;nschte Art der Verschl&uuml;sselung eingestellt (None=unverschl&uuml;sselt / StartTls / Tls)');
+INSERT INTO txt VALUES ('H5491c','English', 'Choose the desired encryption type (None=clear-text / StartTls / Tls)');
+INSERT INTO txt VALUES ('H5491d','German',  'Verlangt der SMTP-Server eine Authentisierung, so sind Email-Nutzer und Email-Nutzer-Passwort in den beiden Feldern einzutragen. Anderfalls k&ouml;nnen diese Felder leer gelassen werden.');
+INSERT INTO txt VALUES ('H5491d','English', 'If the SMTP server requires authentication, enter Email User name and password in the two fields. Otherwise leave empty.');
+INSERT INTO txt VALUES ('H5491e','German',  'Schlie&szlig;lich kann auch eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.');
+INSERT INTO txt VALUES ('H5491e','English', 'Finally an individual sender address can be configured using the field "Email sender address".');
+INSERT INTO txt VALUES ('H5492','German',   'Verbindung testen: Es wird eine Test-email an die oben eingerichtete email-Adresse versandt.');
+INSERT INTO txt VALUES ('H5492','English',  'Test connection: A test email is sent to the above defined email address.');
 INSERT INTO txt VALUES ('H5495', 'German',  'Die folgenden Einstellungen wirken sich auf das Import-Modul (python) aus.');
 INSERT INTO txt VALUES ('H5495', 'English', 'The following settings apply to the Import Module (python)');
 INSERT INTO txt VALUES ('H5496', 'German',  'Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;ufen. Default-Wert = 40.');
@@ -4257,6 +4258,8 @@ INSERT INTO txt VALUES ('H5590', 'German',  'IP-Adressen: Dem Eigent&uuml;mer k&
 INSERT INTO txt VALUES ('H5590', 'English', 'IP Addresses: IP addresses can be assigned to the owner.');
 INSERT INTO txt VALUES ('H5591', 'German',  'Common Service zugelassen: Modellierern wird erlaubt, hier Common Services anzulegen.');
 INSERT INTO txt VALUES ('H5591', 'English', 'Common Service Possible: Allows modellers to create common services inside.');
+INSERT INTO txt VALUES ('H5592', 'German',  'Importquelle: Falls importiert das dort vergebene Label (sh. <a href="/help/settings/modelling">Modellierungseinstellungen</a>).');
+INSERT INTO txt VALUES ('H5592', 'English', 'Import Source: If imported the label given there (see <a href="/help/settings/modelling">Modelling Settings</a>).');
 
 INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die Einstellungen f&uuml;r die Netzwerk-Modellierung verwaltet.
     Dies betrifft Vordefinierte Dienste, Darstellung verschiedener Elemente, Definition von Namenskonventionen sowie Scheduling-Einstellungen f&uuml;r die zu importierenden Objekte:

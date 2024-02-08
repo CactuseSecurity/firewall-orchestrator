@@ -1043,7 +1043,8 @@
                       "reason",
                       "creation_date"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -1061,7 +1062,8 @@
                       "reason",
                       "creation_date"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 }

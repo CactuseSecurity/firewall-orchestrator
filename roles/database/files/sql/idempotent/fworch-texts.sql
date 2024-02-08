@@ -1101,7 +1101,7 @@ INSERT INTO txt VALUES ('changed_by',		    'English', 	'Changed by');
 INSERT INTO txt VALUES ('object_id',            'German', 	'Objekt-Id');
 INSERT INTO txt VALUES ('object_id',            'English', 	'Object Id');
 INSERT INTO txt VALUES ('predef_services',      'German', 	'Vordefinierte Dienste');
-INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined services');
+INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined Services');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
 INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
@@ -1658,6 +1658,8 @@ INSERT INTO txt VALUES ('comm_svc_possible',    'German',   'Common Service zuge
 INSERT INTO txt VALUES ('comm_svc_possible',    'English',  'Common Service Possible');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
+INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher (DN)');
+INSERT INTO txt VALUES ('main_responsible',     'English',  'Main responsible person (DN)');
 INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');
@@ -2487,6 +2489,8 @@ INSERT INTO txt VALUES ('E9008', 'German',  'Dienstgruppe kann nicht gel&ouml;sc
 INSERT INTO txt VALUES ('E9008', 'English', 'Service Group cannot be deleted because it is in use: ');
 INSERT INTO txt VALUES ('E9009', 'German',  'App Rolle kann nicht gel&ouml;scht werden, da sie in Benutzung ist: ');
 INSERT INTO txt VALUES ('E9009', 'English', 'App Role cannot be deleted because it is in use: ');
+INSERT INTO txt VALUES ('E9010', 'German',  'IP-Adresse wurde schon verwendet.');
+INSERT INTO txt VALUES ('E9010', 'English', 'IP address is already used.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -2555,6 +2559,10 @@ INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und
 INSERT INTO txt VALUES ('C9001', 'English', 'This object was deactivated and should be removed from Connection.');
 INSERT INTO txt VALUES ('C9002', 'German',  'Dieser App Server wurde noch in keiner App Rolle oder Verbindung verwendet.');
 INSERT INTO txt VALUES ('C9002', 'English', 'This App Server was not used in any App Role or Connection.');
+INSERT INTO txt VALUES ('C9003', 'German',  'Diese App wurde deaktiviert.');
+INSERT INTO txt VALUES ('C9003', 'English', 'This app was deactivated.');
+INSERT INTO txt VALUES ('C9004', 'German',  'In dieser App wurden noch keine Verbindungen angelegt.');
+INSERT INTO txt VALUES ('C9004', 'English', 'In this app no connections have been created.');
 
 
 -- help pages
@@ -3006,7 +3014,7 @@ F&uuml;r das ordnungsgem&auml;&szlig;e Funktionieren des Rezertifzierungsprozess
 <H4>Berechtigungen</H4>
 <ul>
     <li>Angemeldete Nutzer m&uuml;ssen die Rolle "Recertifier" besitzen</li>
-    <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Vollst&auml;ndiger Name*:" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
+    <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Hauptverantwortlicher (DN)" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
 </ul>
 <H4>Konfiguration der Eigent&uuml;mer</H4>
     M&ouml;chte man keine Verteilung der Zust&auml;ndigkeit auf mehrere Eigent&uuml;mer vornehmen, so ist es ausreichend, dem Eigent&uuml;mer "Super-Owner" eine Gruppe von Rezertifizierern zuzuordnen,
@@ -3668,7 +3676,7 @@ INSERT INTO txt VALUES ('H5213', 'English', 'Tls: Flag if TLS is used for commun
 INSERT INTO txt VALUES ('H5214', 'German',  'Mandantenebene: Wenn Mandanten Teil des Distinguished Name (Dn) des Nutzers sind, definiert diese Zahl die Pfadtiefe, wo dieser zu finden ist. 
     Das beginnt mit 1 f&uuml;r das erste Element von rechts. Wenn keine Mandanten genutzt werden, auf 0 setzen.
 ');
-INSERT INTO txt VALUES ('H5214', 'English', 'Tenant Level: If tenants are part of the distinguished names (Dn) of the user, this number defines the level in the path, where they are found.
+INSERT INTO txt VALUES ('H5214', 'English', 'Tenant Level: If tenants are part of the distinguished name (Dn) of the user, this number defines the level in the path, where they are found.
     Starting with 1 for the first Dn element from the right. Set to 0 if no tenants are used.
 ');
 INSERT INTO txt VALUES ('H5215', 'German',  'Typ*: Implementierungstyp des Ldap, welcher die Syntax des Zugangs festlegt. Zur Zeit werden "OpenLdap" und "ActiveDirectory" unterst&uuml;tzt.
@@ -3867,71 +3875,8 @@ INSERT INTO txt VALUES ('H5414', 'English', 'Completely auto-fill right sidebar:
 ');
 INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): Legt fest, wie lange die Daten in der Datenbank gehalten werden (wird noch nicht unterst&uuml;tzt).');
 INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database (currently not supported).');
-INSERT INTO txt VALUES ('H5416', 'German',  '
-    <ul>
-        <li>Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;fen. Default-Wert = 40.</li>
-        <li>Zertifikate beim Import pr&uuml;fen: Sollen bei den API-Calls in Richtung der Firewalls nur g&uuml;ltige Zertifikate akzeptiert werden?. 
-            Sollte nur auf "aktiv" gesetzt werden, wenn alle Firewalls offiziell signierte Zertifikate besitzen, 
-            andernfalls ist ein Import nicht m&ouml;glich. Default-Wert = "inaktiv".</li>
-        <li>Zertifikatswarnungen unterdr&uuml;cken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
-            Firewalls ausgegeben werden? Default-Wert = "inaktiv".</li>
-        <li>FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.</li>
-        <li>&Auml;nderungsbenachrichtigung via Email
-            <ul>
-                <li>&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese 
-                    Einstellung zu aktivieren. Default-Wert = "inaktiv".</li>
-                <li>&Auml;nderungsbenachrichtigungstyp: Art und Umfang, in dem die &Auml;nderungsbenachrichtigung gesendet werden soll:
-                    <ul>
-                        <li>Einfacher Text (kein &Auml;nderungsreport): Es wird nur der hier definierte Text der &Auml;nderungsbenachrichtigung gesendet.</li>
-                        <li>Html in Email: Ein Changes Report wird zu den im Import gefundenen &Auml;nderungen erstellt und in der email als Html versendet.</li>
-                        <li>Pdf als Anhang: Ein Changes Report wird erstellt und der email als Pdf-Datei angeh&auml;ngt.</li>
-                        <li>Html als Anhang: Ein Changes Report wird erstellt und der email als Html-Datei angeh&auml;ngt.</li>
-                        <li>Json als Anhang: Ein Changes Report wird erstellt und der email als Json-Datei angeh&auml;ngt.</li>
-                    </ul>
-                </li>
-                <li>&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.</li>
-                <li>&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.</li>
-                <li>Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
-                    sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".</li>
-                <li>Titel der &Auml;nderungsbenachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".</li>
-                <li>Text der &Auml;nderungsbenachrichtigung: Start des Email-Textes f&uuml;r alle &Auml;nderungsbenachrichtigungstypen. Die Email enth&auml;lt danach stets
-                    eine Liste der Namen und IDs der ge&auml;nderten Managements sowie die Anzahl der festgestellten &Auml;nderungen. Default-Wert = "leer".</li>
-            </ul>
-        </li>
-    </ul>
-');
-INSERT INTO txt VALUES ('H5416', 'English', '
-    <ul>
-        <li>Import sleep time (in seconds): Time between import loops; default value=40.</li>
-        <li>Check certificates during import: During API calls towards Firewalls shall only valid certificates be accepted?. 
-            This should only be set to "active" if all firewall API certificates are valid, otherwise an import will not be possible.
-            Default value = "inactive".</li>
-        <li>Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".</li>
-        <li>FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.</li>
-        <li>Change notification via email:
-            <ul>
-                <li>Change notification active?: When an import finds security relevant changes, should an email be sent out?
-                Default value = "inactive".</li>
-                <li>Change notification type: Defines how and with which content the notification should be sent:
-                    <ul>
-                        <li>Simple Text (no Change Report): Only the body of change notification emails as defined below is sent.</li>
-                        <li>Html in email body: A Changes Report is created and sent as Html in the email body</li>
-                        <li>Pdf as Attachment: A Changes Report is created and attached to the email as Pdf file.</li>
-                        <li>Html as Attachment: A Changes Report is created and attached to the email as Html file.</li>
-                        <li>Json as Attachment: A Changes Report is created and attached to the email as Json file.</li>
-                    </ul>
-                </li>
-                <li>Change notification sleep time (in seconds): Time between the checks for imported changes.</li>
-                <li>Change notification start at: Start time for the import change checks.</li>
-                <li>Recipient email addresses for change notifications: A comma-separated list of email addresses, which will get information in the case of 
-                    security relevant changes found during import of a firewall management. Default value = "empty".</li>
-                <li>Subject of change notification emails: Subject line for notification emails. Default value = "empty".</li>
-                <li>Body of change notification emails: Start of the email text for all change notification types. The email will subsequently always contain
-                    a list of names and IDs of the changed firewall management as well as the number of changes. Default value = "empty".</li>
-            </ul>
-        </li>
-    </ul>
-');
+INSERT INTO txt VALUES ('H5416', 'German',  '&Auml;nderungsbenachrichtigung via Email:');
+INSERT INTO txt VALUES ('H5416', 'English', 'Change notification via email:');
 INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll.');
 INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified.');
 INSERT INTO txt VALUES ('H5418', 'German',  'Rezertifizierungserinnerungsintervall (in Tagen): Zeit vor dem F&auml;lligkeitsdatum, ab der eine Regel als f&auml;llig hervorgehoben werden soll.');
@@ -4018,6 +3963,8 @@ INSERT INTO txt VALUES ('H5452', 'German',  'Max erlaubte Importdauer (in Stunde
 INSERT INTO txt VALUES ('H5452', 'English', 'Max allowed import duration (in hours): Upper limit for the accepted import duration in the daily check.');
 INSERT INTO txt VALUES ('H5453', 'German',  'Max erlaubtes Importintervall (in Stunden): Obergrenze, welcher Abstand zwischen zwei Imports im t&auml;glichen Check noch akzeptiert wird.');
 INSERT INTO txt VALUES ('H5453', 'English', 'Max import interval (in hours): Upper limit for the accepted interval between two imports in the daily check.');
+INSERT INTO txt VALUES ('H5454', 'German',  'Regel-Eigent&uuml;merschaftsmodus: (Gemischt/Exklusiv) Wird z. Zt. nicht genutzt.');
+INSERT INTO txt VALUES ('H5454', 'English', 'Rule Ownership Mode: (Mixed/Exclusive) Currently not in use.');
 
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
@@ -4041,6 +3988,48 @@ INSERT INTO txt VALUES ('H5481', 'German',  'Ein Rezertifizierer kann einige per
 INSERT INTO txt VALUES ('H5481', 'English', 'A recertifier can overwrite some personal settings for the recertification report. 
     The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
 ');
+INSERT INTO txt VALUES ('H5483', 'German',  '&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese 
+    Einstellung zu aktivieren. Default-Wert = "inaktiv".
+');
+INSERT INTO txt VALUES ('H5483', 'English', 'Change notification active?: When an import finds security relevant changes, should an email be sent out?
+    Default value = "inactive".
+');
+INSERT INTO txt VALUES ('H5484', 'German',  '&Auml;nderungsbenachrichtigungstyp: Art und Umfang, in dem die &Auml;nderungsbenachrichtigung gesendet werden soll:
+    <ul>
+        <li>Einfacher Text (kein &Auml;nderungsreport): Es wird nur der hier definierte Text der &Auml;nderungsbenachrichtigung gesendet.</li>
+        <li>Html in Email: Ein Changes Report wird zu den im Import gefundenen &Auml;nderungen erstellt und in der email als Html versendet.</li>
+        <li>Pdf als Anhang: Ein Changes Report wird erstellt und der email als Pdf-Datei angeh&auml;ngt.</li>
+        <li>Html als Anhang: Ein Changes Report wird erstellt und der email als Html-Datei angeh&auml;ngt.</li>
+        <li>Json als Anhang: Ein Changes Report wird erstellt und der email als Json-Datei angeh&auml;ngt.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H5484', 'English', 'Change notification type: Defines how and with which content the notification should be sent:
+    <ul>
+        <li>Simple Text (no Change Report): Only the body of change notification emails as defined below is sent.</li>
+        <li>Html in email body: A Changes Report is created and sent as Html in the email body</li>
+        <li>Pdf as Attachment: A Changes Report is created and attached to the email as Pdf file.</li>
+        <li>Html as Attachment: A Changes Report is created and attached to the email as Html file.</li>
+        <li>Json as Attachment: A Changes Report is created and attached to the email as Json file.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H5485', 'German',  '&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5485', 'English', 'Change notification sleep time (in seconds): Time between the checks for imported changes.');
+INSERT INTO txt VALUES ('H5486', 'German',  '&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5486', 'English', 'Change notification start at: Start time for the import change checks.');
+INSERT INTO txt VALUES ('H5487', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
+    sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".
+');
+INSERT INTO txt VALUES ('H5487', 'English', 'Recipient email addresses for change notifications: A comma-separated list of email addresses, which will get information in the case of 
+    security relevant changes found during import of a firewall management. Default value = "empty".
+');
+INSERT INTO txt VALUES ('H5488', 'German',  'Titel der &Auml;nderungsbenachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H5488', 'English', 'Subject of change notification emails: Subject line for notification emails. Default value = "empty".');
+INSERT INTO txt VALUES ('H5489', 'German',  'Text der &Auml;nderungsbenachrichtigung: Start des Email-Textes f&uuml;r alle &Auml;nderungsbenachrichtigungstypen. Die Email enth&auml;lt danach stets
+    eine Liste der Namen und IDs der ge&auml;nderten Managements sowie die Anzahl der festgestellten &Auml;nderungen. Default-Wert = "leer".
+');
+INSERT INTO txt VALUES ('H5489', 'English', 'Body of change notification emails: Start of the email text for all change notification types. The email will subsequently always contain
+    a list of names and IDs of the changed firewall management as well as the number of changes. Default value = "empty".
+');
 INSERT INTO txt VALUES ('H5491', 'German',  'Firewall Orchestrator kann Benachrichtigungen versenden, z.B. f&uuml;r anstehende Rezertifizierungen oder wenn beim Import 
     &Auml;nderungen festgestellt wurden.
     <ul>
@@ -4048,7 +4037,7 @@ INSERT INTO txt VALUES ('H5491', 'German',  'Firewall Orchestrator kann Benachri
         <li>Der TCP-Port des SMTP-Servers (meist 25, 587 oder 465, abh&auml;ngig von der verwendeten Verschl&uumlsselung) wird im "Port"-Feld eingetragen.</li>
         <li>Anschlie&szlig;end wird die gew&uuml;nschte Art der Verschl&uuml;sselung eingestellt (None=unverschl&uuml;sselt / StartTls / Tls)</li>
         <li>Verlangt der SMTP-Server eine Authentisierung, so sind Email-Nutzer und Email-Nutzer-Passwort in den beiden folgenden Feldern einzutragen. Anderfalls k&ouml;nnen diese Felder leer gelassen werden.</li>
-        <li>Schlie&szlig;kann nach eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.</li>
+        <li>Schlie&szlig;lich kann auch eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H5491', 'English', 'Firewall Orchestrator is able to send out notifications, e.g. for upcoming recertifications or when an import found changes in the firewall configuration.<br>
@@ -4062,6 +4051,22 @@ INSERT INTO txt VALUES ('H5491', 'English', 'Firewall Orchestrator is able to se
 ');
 INSERT INTO txt VALUES ('H5495', 'German',  'Die folgenden Einstellungen wirken sich auf das Import-Modul (python) aus.');
 INSERT INTO txt VALUES ('H5495', 'English', 'The following settings apply to the Import Module (python)');
+INSERT INTO txt VALUES ('H5496', 'German',  'Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;ufen. Default-Wert = 40.');
+INSERT INTO txt VALUES ('H5496', 'English', 'Import sleep time (in seconds): Time between import loops; default value=40.');
+INSERT INTO txt VALUES ('H5497', 'German',  'Zertifikate beim Import pr&uuml;fen: Sollen bei den API-Calls in Richtung der Firewalls nur g&uuml;ltige Zertifikate akzeptiert werden?. 
+    Sollte nur auf "aktiv" gesetzt werden, wenn alle Firewalls offiziell signierte Zertifikate besitzen, 
+    andernfalls ist ein Import nicht m&ouml;glich. Default-Wert = "inaktiv".
+');
+INSERT INTO txt VALUES ('H5497', 'English', 'Check certificates during import: During API calls towards Firewalls shall only valid certificates be accepted?. 
+    This should only be set to "active" if all firewall API certificates are valid, otherwise an import will not be possible.
+    Default value = "inactive".
+');
+INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;cken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
+    Firewalls ausgegeben werden? Default-Wert = "inaktiv".
+');
+INSERT INTO txt VALUES ('H5498', 'English', 'Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".');
+INSERT INTO txt VALUES ('H5499', 'German',  'FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.');
+INSERT INTO txt VALUES ('H5499', 'English', 'FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.');
 INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Stati zugeordnet werden.
     Die Aktion wird dann bei Eintreffen der hier definierten Bedingungen angeboten bzw. ausgef&uuml;hrt.
 ');
@@ -4224,19 +4229,19 @@ INSERT INTO txt VALUES ('H5581', 'English', 'In this chapter the existing owners
 ');
 INSERT INTO txt VALUES ('H5582', 'German',  'Name: Name der Eigent&uuml;mers');
 INSERT INTO txt VALUES ('H5582', 'English', 'Name: Owner name');
-INSERT INTO txt VALUES ('H5583', 'German',  'Vollst&auml;ndiger Name: Name und Ldap-Pfad des zugeordneten Nutzers.
-    Mindestens eines der Felder "Vollst&auml;ndiger Name" oder "Gruppe" muss gef&uuml;llt sein.
+INSERT INTO txt VALUES ('H5583', 'German',  'Hauptverantwortlicher (DN): Name und Ldap-Pfad des zugeordneten Nutzers.
+    Mindestens eines der Felder "Hauptverantwortlicher (DN)" oder "Gruppe" muss gef&uuml;llt sein.
 ');
-INSERT INTO txt VALUES ('H5583', 'English', 'Distinguished Name: Name and Ldap path of the associated user.
-    At least one of the fields "Distinguished Name" or "Group" has to be filled.
+INSERT INTO txt VALUES ('H5583', 'English', 'Main responsible person (DN): Name and Ldap path of the associated user.
+    At least one of the fields "Main responsible person (DN)" or "Group" has to be filled.
 ');
 INSERT INTO txt VALUES ('H5584', 'German',  'Gruppe: Name und Ldap-Pfad der zugeordneten Nutzergruppe.
     Die referenzierte Gruppe muss in den <a href="/help/settings/groups">Gruppen-Einstellungen</a> als Eigent&uuml;mergruppe markiert sein.
-    Mindestens eines der Felder "Vollst&auml;ndiger Name" oder "Gruppe" muss gef&uuml;llt sein.
+    Mindestens eines der Felder "Hauptverantwortlicher (DN)" oder "Gruppe" muss gef&uuml;llt sein.
 ');
 INSERT INTO txt VALUES ('H5584', 'English', 'Group: Name and Ldap path of the associated user group.
     The referenced group has to be marked as owner group in the <a href="/help/settings/groups">Group settings</a>.
-    At least one of the fields "Distinguished Name" or "Group" has to be filled.
+    At least one of the fields "Main responsible person (DN)" or "Group" has to be filled.
 ');
 INSERT INTO txt VALUES ('H5585', 'German',  'Mandant: Der Mandant, dem der Eigent&uuml;mer zugeordnet ist.');
 INSERT INTO txt VALUES ('H5585', 'English', 'Tenant: Tenant to which the owner is assigned to.');
@@ -4302,7 +4307,7 @@ INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (w
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility for each data source to provide a file for direct import or a script to catch the import data and create the app data import file.
 ');
-INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;fen.
+INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0. 
 ');
 INSERT INTO txt VALUES ('H5612', 'English', 'Import App data sleep time (in hours): Time between App data import loops.
@@ -4320,7 +4325,7 @@ INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility to provide a file for direct import or a script to catch the import data and create the subnet data import file.
 ');
-INSERT INTO txt VALUES ('H5615', 'German',  'Import Subnetzdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Subnetzdaten-Import-L&auml;fen.
+INSERT INTO txt VALUES ('H5615', 'German',  'Import Subnetzdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Subnetzdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Subnetzdaten-Import deaktiviert ist. Default-Wert = 0.
 ');
 INSERT INTO txt VALUES ('H5615', 'English', 'Import Subnet data sleep time (in hours): Time between Subnet data import loops.

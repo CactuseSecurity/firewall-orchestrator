@@ -9,14 +9,17 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("standards"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("standards"))</h3>
+    <HelpLink Page="settings/defaults"/>
+</div>
 @(userConfig.GetText("U5311"))
 <hr />
 
 @if (configData != null)
 {
     <form onsubmit="return false">
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
             <div class="col-sm-4">
                 <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
@@ -26,13 +29,13 @@
                 </Dropdown>
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5449"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeout")):</label>
             <div class="col-sm-2">
                 <input type="number" min="1" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5450"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeoutNoticePeriod")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeoutNoticePeriod" />
@@ -44,26 +47,26 @@
                 <input id="maxMessages" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxMessages">
             </div>
         </div> *@
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5423"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
             </div>
         </div>
         <hr />
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ElementsPerFetch" />
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5414"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
             <div class="col-sm-2">
                 <input type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5413"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
             <div class="col-sm-2">
                 @if (configData!.AutoFillRightSidebar)
@@ -76,72 +79,72 @@
                 }
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5422"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
             </div>
         </div>
         <hr />
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5447"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance"))*:</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.UnusedTolerance" />
             </div>
         </div>
-            <div class="form-group row">
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5448"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance"))*:</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.CreationTolerance" />
             </div>
         </div>
         <hr />
-            <div class="form-group row">
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5415"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.DataRetentionTime" />
             </div>
         </div>
         <hr />
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5426"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverSleepTime")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverSleepTime" />
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5427"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
             <div class="col-sm-2">
                 <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverStartAt" />
             </div>
         </div>
         <hr />
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5424"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("dailyCheckStartAt")):</label>
             <div class="col-sm-2">
                 <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.DailyCheckStartAt" />
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5452"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportDuration")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MaxImportDuration" />
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5453"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportInterval")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MaxImportInterval" />
             </div>
         </div>
         <hr />
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5565"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
             <div class="col-sm-2">
                 <input type="checkbox" class="w-100" @bind="configData!.AllowManualOwnerAdmin">
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5454"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleOwnershipMode")):</label>
             <div class="col-sm-4">
                 <Dropdown @bind-SelectedElement="configData!.RuleOwnershipMode" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()" >

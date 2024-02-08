@@ -104,7 +104,7 @@ namespace FWO.Ui.Services
                 }
                 RefreshSelectedNwObjects();
                 InterfaceName = await ExtractUsedInterface(ActConn);
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
             }
             catch (Exception exception)
             {
@@ -822,6 +822,7 @@ namespace FWO.Ui.Services
                     ActConn.Creator = userConfig.User.Name;
                     ActConn.CreationDate = DateTime.Now;
                     Connections.Add(ActConn);
+                    Connections.Sort((ModellingConnection a, ModellingConnection b) => a?.CompareTo(b) ?? -1);
                 }
             }
             catch (Exception exception)

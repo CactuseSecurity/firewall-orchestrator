@@ -4,7 +4,10 @@
 
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("settings"))</h3>
+    <HelpLink Page="settings"/>
+</div>
 @(userConfig.GetText("U5001"))
 <hr />
 

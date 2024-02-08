@@ -19,7 +19,10 @@
 
 @if(InitComplete)
 {
-    <h3>@(userConfig.GetText("owners"))</h3>
+    <div class="input-group">
+        <h3>@(userConfig.GetText("owners"))</h3>
+        <HelpLink Page="settings/owners"/>
+    </div>
     @(userConfig.GetText("U5216"))
     <hr />
     <div class="btn-group m-1">
@@ -82,7 +85,7 @@
             }
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("dn"))" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
+            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("main_responsible"))" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("group"))" Field="@(x => x.GroupDn)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
                 <Template>
@@ -107,14 +110,14 @@
                             </div>
                         </div>
                         <div class="col-sm-11 me-auto">
-                            <div class="form-group row me-auto">
+                            <div class="form-group row me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H5582"))">
                                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                                 <input type="text" class="col-sm-10 me-auto" @bind="actOwner.Name" />
                             </div>
                         </div>
                     </div>
-                    <div class="form-group row mt-2">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("dn"))*:</label>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5583"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("main_responsible"))*:</label>
                         <div class="col-sm-7">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.Dn" />
                         </div>
@@ -122,7 +125,7 @@
                             <button type="button" class="btn btn-sm btn-success form-control form-control-sm" @onclick="() => SearchUser()">@(userConfig.GetText("search"))</button>
                         </div>
                     </div>
-                    <div class="form-group row mt-2">
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5584"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
                         <div class="col-sm-7">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.GroupDn" />
@@ -131,7 +134,7 @@
                             <button type="button" class="btn btn-sm btn-success form-control form-control-sm" @onclick="() => SearchGroup()">@(userConfig.GetText("search"))</button>
                         </div>
                     </div>
-                    <div class="form-group row mt-2">
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5585"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                         <div class="col-sm-9">
                             <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="tenants" Nullable="true">
@@ -142,16 +145,16 @@
                         </div>
                     </div>
                     <div class="form-group row mt-2">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5586"))">@(userConfig.GetText("ext_app_id")):</label>
                         <div class="col-sm-5">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
                         </div>
-                        <div class="form-check form-check-inline col-sm-3">
+                        <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591"))">
                             <input class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
                             <label class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
                         </div>
                     </div>
-                    <div class="form-group row mt-2">
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5587"))">
                         <div class="col-sm-6">
                             <div class="form-group row">
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("recert_interval")):</label>
@@ -161,7 +164,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="form-group row mt-2">
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5588"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("recert_check_every")):</label>
                         <div class="form-group row col-sm-9">
                             <div class="col-sm-2">
@@ -196,10 +199,10 @@
                     </div>
                     @if (!actOwner.IsDefault)
                     {
-                        <div class="col-sm-12 mt-2">
+                        <div class="col-sm-12 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5589"))">
                             <RuleSelector SelectedRules="actRules" @bind-RulesToAdd="rulesToAdd" @bind-RulesToDelete="rulesToDelete"/>
                         </div>
-                        <div class="col-sm-12 mt-2">
+                        <div class="col-sm-12 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5590"))">
                             <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete"/>
                         </div>
                     }

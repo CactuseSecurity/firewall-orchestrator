@@ -16,6 +16,8 @@ namespace FWO.Ui.Services
         public bool DeleteConnMode = false;
 
         public bool readOnly = false;
+        public Shared.TabSet tabset = new();
+        public Shared.Tab actTab = new();
     
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -43,6 +45,43 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
+        }
+
+        public void InitActiveTab()
+        {
+            int tab = 0;
+            if(GetInterfaces().Count == 0)
+            {
+                if (Application.CommSvcPossible && GetCommonServices().Count > 0)
+                {
+                    tab = 1;
+                }
+                else if (GetRegularConnections().Count > 0)
+                {
+                    tab = Application.CommSvcPossible ? 2 : 1;
+                }
+            }
+            tabset.SetActiveTab(tab);
+        }
+
+        public void RestoreTab()
+        {
+            tabset.SetActiveTab(actTab.Position);
+        }
+
+        public List<ModellingConnection> GetInterfaces()
+        {
+            return Connections.Where(x => x.IsInterface).ToList();
+        }
+
+        public List<ModellingConnection> GetCommonServices()
+        {
+            return Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();
+        }
+
+        public List<ModellingConnection> GetRegularConnections()
+        {
+            return Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
         }
 
         public List<string> GetSrcNames(ModellingConnection conn)
@@ -92,7 +131,7 @@ namespace FWO.Ui.Services
             return names;
         }
 
-        public async Task AddConn()
+        public async Task AddConnection()
         {
             readOnly = false;
             AddConnMode = true;
@@ -104,6 +143,13 @@ namespace FWO.Ui.Services
             readOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection(){ AppId = Application.Id, IsInterface = true });
+        }
+
+        public async Task AddCommonService()
+        {
+            readOnly = false;
+            AddConnMode = true;
+            await HandleConn(new ModellingConnection(){ AppId = Application.Id, IsCommonService = true });
         }
 
         public async Task ShowDetails(ModellingConnection conn)
@@ -122,6 +168,7 @@ namespace FWO.Ui.Services
 
         public async Task HandleConn(ModellingConnection conn)
         {
+            actTab = tabset.ActiveTab;
             connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, readOnly, DisplayMessageInUi, IsOwner);
             await connHandler.Init();
             EditConnMode = true;
@@ -129,6 +176,7 @@ namespace FWO.Ui.Services
 
         public void RequestDeleteConnection(ModellingConnection conn)
         {
+            actTab = tabset.ActiveTab;
             actConn = conn;
             Message = userConfig.GetText("U9001") + actConn.Name + "?";
             DeleteConnMode = true;
@@ -144,6 +192,7 @@ namespace FWO.Ui.Services
                         $"Deleted {(actConn.IsInterface? "Interface" : "Connection")}: {actConn.Name}", Application.Id);
                     Connections.Remove(actConn);
                     DeleteConnMode = false;
+                    RestoreTab();
                 }
             }
             catch (Exception exception)

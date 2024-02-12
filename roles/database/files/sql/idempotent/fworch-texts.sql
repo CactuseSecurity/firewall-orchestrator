@@ -1118,8 +1118,14 @@ INSERT INTO txt VALUES ('deactivate',           'German', 	'Deaktivieren');
 INSERT INTO txt VALUES ('deactivate',           'English', 	'Deactivate');
 INSERT INTO txt VALUES ('common_service',       'German', 	'Common Service');
 INSERT INTO txt VALUES ('common_service',       'English', 	'Common Service');
+INSERT INTO txt VALUES ('common_services',      'German', 	'Common Services');
+INSERT INTO txt VALUES ('common_services',      'English', 	'Common Services');
+INSERT INTO txt VALUES ('add_common_service', 	'German',	'Common Service hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_common_service', 	'English',	'Add Common Service');
 INSERT INTO txt VALUES ('regular_connection',   'German', 	'Standard-Verbindung');
 INSERT INTO txt VALUES ('regular_connection',   'English', 	'Regular Connection');
+INSERT INTO txt VALUES ('regular_connections', 	'German',	'Standard-Verbindungen');
+INSERT INTO txt VALUES ('regular_connections', 	'English',	'Regular Connections');
 INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
 INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
 

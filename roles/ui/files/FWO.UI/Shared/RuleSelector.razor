@@ -45,7 +45,10 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <button @onclick="AddRule" type="button" class="col-sm-2 btn btn-sm btn-success" id="addRule">@userConfig.GetText("add")</button>
+                    @if(Devices.Count > 0)
+                    {
+                        <button @onclick="AddRule" type="button" class="col-sm-2 btn btn-sm btn-success" id="addRule">@userConfig.GetText("add")</button>
+                    }
                 </div>
             </div>
         }
@@ -87,8 +90,10 @@
         {
             Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
             // Devices = await apiConnection.SendQueryAsync<List<Device>>(AuthQueries.getVisibleDeviceIdsPerTenant, new { tenantId = userConfig.User.Tenant?.Id }, "getVisibleDeviceIdsPerTenant");
-            actDevice = Devices.First();
-            await DeviceChanged(actDevice);
+            if(Devices.Count > 0)
+            {
+                await DeviceChanged(Devices.First());
+            }
         }
         catch (Exception exception)
         {

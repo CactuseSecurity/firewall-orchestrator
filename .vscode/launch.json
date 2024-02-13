@@ -48,7 +48,7 @@
         },
         {
             "name": "py-normalizeRlmOwners",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/scripts/customizing/modelling/getOwnersFromTufinRlm.py",
             "console": "integratedTerminal",
@@ -61,7 +61,7 @@
         },
         {
             "name": "py-normalizeNwData",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/scripts/customizing/modelling/convertNwObjDataExample.py",
             "console": "integratedTerminal",
@@ -74,7 +74,7 @@
         },
         {
             "name": "py-import-mgm",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
             "console": "integratedTerminal",
@@ -99,7 +99,7 @@
         },
         {
             "name": "py-write-config",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/scripts/customizing/sample-config-change.py",
             "console": "integratedTerminal",
@@ -110,7 +110,7 @@
         },
         {
             "name": "py-acquire-lock",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/common/files/acquire_lock.py",
             "console": "integratedTerminal",
@@ -123,7 +123,7 @@
         },
         {
             "name": "py-generate-tenant-data",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/test/files/tenant_networks/create_tenant_network_data.py",
             "console": "integratedTerminal",
@@ -134,7 +134,7 @@
         },
         {
             "name": "py-change-comment",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/sample-data/files/config_changes/write_date_to_comment.py",
             "console": "integratedTerminal",
@@ -145,7 +145,7 @@
         },
         {
             "name": "py-change-rule",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/sample-data/files/config_changes/enlarge_rule.py",
             "console": "integratedTerminal",
@@ -156,7 +156,7 @@
         },
         {
             "name": "py-cpr8x-get-config",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/get_config.py",
             "console": "integratedTerminal",
@@ -174,7 +174,7 @@
         },
         {
             "name": "py-cpr8x-enrich-config",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/enrich_config.py",
             "console": "integratedTerminal",
@@ -191,7 +191,7 @@
         },
         {
             "name": "py-cpr8x-parse-config",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/parse_config.py",
             "console": "integratedTerminal",
@@ -205,7 +205,7 @@
         },
         {
             "name": "py-cpr8x-api-test-call",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/api-test-call.py",
             "console": "integratedTerminal",
@@ -218,7 +218,7 @@
         },
         {
             "name": "py-get-config-fm7",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/importer/files/importer/fortimanager5ff/get_config.py",
             "console": "integratedTerminal",
@@ -236,7 +236,7 @@
         },
         {
             "name": "py-export-itsecorg",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/api/files/scripts/fwo-export-itsecorg-devices.py",
             "console": "integratedTerminal",
@@ -253,7 +253,7 @@
         },
         {
             "name": "py-export-config",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/api/files/scripts/fwo-export-config.py",
             "console": "integratedTerminal",
@@ -266,7 +266,7 @@
         },
         {
             "name": "py-execute-graphql",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql.py",
             "console": "integratedTerminal",
@@ -279,7 +279,7 @@
         },
         {
             "name": "py-execute-graphql-query",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql-query.py",
             "console": "integratedTerminal",
@@ -292,7 +292,7 @@
         },
         {
             "name": "py-cpr8x-autodiscovery",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
             "console": "integratedTerminal",
@@ -310,7 +310,7 @@
         },
         {
             "name": "py-import-main-loop",
-            "type": "python",
+            "type": debugpy,
             "request": "launch",
             "program": "${workspaceFolder}/roles/importer/files/importer/import-main-loop.py",
             "console": "integratedTerminal",

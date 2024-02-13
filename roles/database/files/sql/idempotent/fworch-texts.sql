@@ -1129,6 +1129,56 @@ INSERT INTO txt VALUES ('regular_connections', 	'English',	'Regular Connections'
 INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
 INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
 
+-- compliance
+INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
+INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
+INSERT INTO txt VALUES ('network_zones',		'German', 	'Netzwerkzonen');
+INSERT INTO txt VALUES ('network_zones',		'English', 	'Network zones');
+INSERT INTO txt VALUES ('matrix',				'German', 	'Matrix');
+INSERT INTO txt VALUES ('matrix',				'English', 	'Matrix');
+INSERT INTO txt VALUES ('checks',				'German', 	'&Uuml;berpr&uuml;fung');
+INSERT INTO txt VALUES ('checks',				'English', 	'Checks');
+INSERT INTO txt VALUES ('check',				'German', 	'&Uuml;berpr&uuml;fen');
+INSERT INTO txt VALUES ('check',				'English', 	'Check');
+INSERT INTO txt VALUES ('zone_comm_matrix',		'German', 	'Netzwerkzonen-Kommunikationsmatrix');
+INSERT INTO txt VALUES ('zone_comm_matrix',		'English', 	'Network zone communication matrix');
+INSERT INTO txt VALUES ('network_zone_config',	'German', 	'Netzwerkzonen-Konfiguration');
+INSERT INTO txt VALUES ('network_zone_config',	'English', 	'Network zone configuration');
+INSERT INTO txt VALUES ('network_zone_check',	'German', 	'Netzwerkzonen-Compliancepr&uuml;fung');
+INSERT INTO txt VALUES ('network_zone_check',	'English', 	'Network zone compliance check');
+INSERT INTO txt VALUES ('allowed_communication','German', 	'Erlaubte Kommunikation');
+INSERT INTO txt VALUES ('allowed_communication','English', 	'Allowed communication');
+INSERT INTO txt VALUES ('subzones',				'German', 	'Subzonen');
+INSERT INTO txt VALUES ('subzones',				'English', 	'Subzones');
+INSERT INTO txt VALUES ('superzone',			'German', 	'Superzone');
+INSERT INTO txt VALUES ('superzone',			'English', 	'Superzone');
+INSERT INTO txt VALUES ('edit_zone_title',		'German', 	'Netzwerkzone editieren');
+INSERT INTO txt VALUES ('edit_zone_title',		'English', 	'Edit network zone');
+INSERT INTO txt VALUES ('add_ip_addresses',		'German', 	'IP Adresse(n) hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_ip_addresses',		'English', 	'Add IP Addresses');
+INSERT INTO txt VALUES ('delete_zone_title',	'German', 	'Netzwerkzone l&ouml;schen');
+INSERT INTO txt VALUES ('delete_zone_title',	'English', 	'Delete network zone');
+INSERT INTO txt VALUES ('delete_zone_text',		'German', 	'Sind Sie sich sicher, dass sie die Netzwerkzone % l&ouml;schen wollen?');
+INSERT INTO txt VALUES ('delete_zone_text',		'English', 	'Are you sure you want to delete the network zone %?');
+INSERT INTO txt VALUES ('to',					'German', 	'Nach');
+INSERT INTO txt VALUES ('to',					'English', 	'To');
+INSERT INTO txt VALUES ('allowed_comm_dests',   'German',   'Erlaubte Kommunikation (Nach)');
+INSERT INTO txt VALUES ('allowed_comm_dests',   'English',  'Allowed communication (to)');
+INSERT INTO txt VALUES ('allowed_comm_srcs',    'German',   'Erlaubte Kommunikation (Von)');
+INSERT INTO txt VALUES ('allowed_comm_srcs',    'English',  'Allowed communication (from)');
+INSERT INTO txt VALUES ('relogin',              'German', 	'Erneut anmelden');
+INSERT INTO txt VALUES ('relogin',              'English', 	'Re-Login');
+INSERT INTO txt VALUES ('relogin_error',        'German', 	'Fehler bei der erneuten Anmeldung');
+INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
+INSERT INTO txt VALUES ('internet_local_zone',  'German', 	'Internet / Lokal');
+INSERT INTO txt VALUES ('internet_local_zone',  'English', 	'Internet / Local');
+INSERT INTO txt VALUES ('rule_conform',         'German', 	'Regelkonform');
+INSERT INTO txt VALUES ('rule_conform',     	'English', 	'In accordance with the rules');
+INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
+INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
+INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
+INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
+
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
 INSERT INTO txt VALUES ('devices',				'English', 	'Devices');
@@ -1835,7 +1885,6 @@ INSERT INTO txt VALUES ('scheduled_subnet_import','English','Scheduled Subnet Im
 INSERT INTO txt VALUES ('imp_change_notification','German','&Auml;nderungsbenachrichtigung');
 INSERT INTO txt VALUES ('imp_change_notification','English','Import Change Notification');
 
-
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
 INSERT INTO txt VALUES ('report_types',         'English', 	'Report types');
@@ -1917,56 +1966,12 @@ INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
-
--- compliance
-INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
-INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
-INSERT INTO txt VALUES ('network_zones',		'German', 	'Netzwerkzonen');
-INSERT INTO txt VALUES ('network_zones',		'English', 	'Network zones');
-INSERT INTO txt VALUES ('matrix',				'German', 	'Matrix');
-INSERT INTO txt VALUES ('matrix',				'English', 	'Matrix');
-INSERT INTO txt VALUES ('checks',				'German', 	'&Uuml;berpr&uuml;fung');
-INSERT INTO txt VALUES ('checks',				'English', 	'Checks');
-INSERT INTO txt VALUES ('check',				'German', 	'&Uuml;berpr&uuml;fen');
-INSERT INTO txt VALUES ('check',				'English', 	'Check');
-INSERT INTO txt VALUES ('zone_comm_matrix',		'German', 	'Netzwerkzonen-Kommunikationsmatrix');
-INSERT INTO txt VALUES ('zone_comm_matrix',		'English', 	'Network zone communication matrix');
-INSERT INTO txt VALUES ('network_zone_config',	'German', 	'Netzwerkzonen-Konfiguration');
-INSERT INTO txt VALUES ('network_zone_config',	'English', 	'Network zone configuration');
-INSERT INTO txt VALUES ('network_zone_check',	'German', 	'Netzwerkzonen-Compliancepr&uuml;fung');
-INSERT INTO txt VALUES ('network_zone_check',	'English', 	'Network zone compliance check');
-INSERT INTO txt VALUES ('allowed_communication','German', 	'Erlaubte Kommunikation');
-INSERT INTO txt VALUES ('allowed_communication','English', 	'Allowed communication');
-INSERT INTO txt VALUES ('subzones',				'German', 	'Subzonen');
-INSERT INTO txt VALUES ('subzones',				'English', 	'Subzones');
-INSERT INTO txt VALUES ('superzone',			'German', 	'Superzone');
-INSERT INTO txt VALUES ('superzone',			'English', 	'Superzone');
-INSERT INTO txt VALUES ('edit_zone_title',		'German', 	'Netzwerkzone editieren');
-INSERT INTO txt VALUES ('edit_zone_title',		'English', 	'Edit network zone');
-INSERT INTO txt VALUES ('add_ip_addresses',		'German', 	'IP Adresse(n) hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('add_ip_addresses',		'English', 	'Add IP Addresses');
-INSERT INTO txt VALUES ('delete_zone_title',	'German', 	'Netzwerkzone l&ouml;schen');
-INSERT INTO txt VALUES ('delete_zone_title',	'English', 	'Delete network zone');
-INSERT INTO txt VALUES ('delete_zone_text',		'German', 	'Sind Sie sich sicher, dass sie die Netzwerkzone % l&ouml;schen wollen?');
-INSERT INTO txt VALUES ('delete_zone_text',		'English', 	'Are you sure you want to delete the network zone %?');
-INSERT INTO txt VALUES ('to',					'German', 	'Nach');
-INSERT INTO txt VALUES ('to',					'English', 	'To');
-INSERT INTO txt VALUES ('allowed_comm_dests',   'German',   'Erlaubte Kommunikation (Nach)');
-INSERT INTO txt VALUES ('allowed_comm_dests',   'English',  'Allowed communication (to)');
-INSERT INTO txt VALUES ('allowed_comm_srcs',    'German',   'Erlaubte Kommunikation (Von)');
-INSERT INTO txt VALUES ('allowed_comm_srcs',    'English',  'Allowed communication (from)');
-INSERT INTO txt VALUES ('relogin',              'German', 	'Erneut anmelden');
-INSERT INTO txt VALUES ('relogin',              'English', 	'Re-Login');
-INSERT INTO txt VALUES ('relogin_error',        'German', 	'Fehler bei der erneuten Anmeldung');
-INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
-INSERT INTO txt VALUES ('internet_local_zone',  'German', 	'Internet / Lokal');
-INSERT INTO txt VALUES ('internet_local_zone',  'English', 	'Internet / Local');
-INSERT INTO txt VALUES ('rule_conform',         'German', 	'Regelkonform');
-INSERT INTO txt VALUES ('rule_conform',     	'English', 	'In accordance with the rules');
-INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
-INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
-INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
-INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
+INSERT INTO txt VALUES ('import_interfaces',    'German', 	'Import-Schnittstellen');
+INSERT INTO txt VALUES ('import_interfaces',    'English', 	'Import Interfaces');
+INSERT INTO txt VALUES ('import_app_data',      'German', 	'Applikationsdaten-Import');
+INSERT INTO txt VALUES ('import_app_data',      'English', 	'Application Data Import');
+INSERT INTO txt VALUES ('import_subnet_data',   'German', 	'Subnetzdaten-Import');
+INSERT INTO txt VALUES ('import_subnet_data',   'English', 	'Subnet Data Import');
 
 
 -- text codes (roughly) categorized: 
@@ -3903,11 +3908,11 @@ INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: L
 INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');
 INSERT INTO txt VALUES ('H5423', 'German',  'Nachrichten-Anzeigedauer (in Sekunden): legt fest, wie lange Erfolgs-Nachrichten dargestellt werden, bis sie automatisch ausgeblendet werden.
     Fehler-Nachrichten erscheinen dreimal so lange. Beim Wert 0 werden die Nachrichten nicht automatisch ausgeblendet.
-    Die Nutzer-Meldungen k&ouml;nnen auch danach noch unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> eingesehen werden.
+    Die Nutzer-Meldungen k&ouml;nnen auch danach noch im Monitoring unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> eingesehen werden.
 ');
 INSERT INTO txt VALUES ('H5423', 'English', 'Message view time (in seconds): defines how long success messages are displayed, until they fade out automatically.
     Error messages are displayed 3 times as long. Value 0 means that the messages do not fade out.
-    All user messages can still be reviewed at <a href="/help/monitoring/ui_messages">UI Messages</a>.
+    All user messages can still be reviewed in the monitoring tab at <a href="/help/monitoring/ui_messages">UI Messages</a>.
 ');
 INSERT INTO txt VALUES ('H5424', 'German',  'Startzeit t&auml;glicher Check: legt die Zeit fest, wann der t&auml;gliche Check durchgef&uuml;hrt werden soll.');
 INSERT INTO txt VALUES ('H5424', 'English', 'Daily check start at: defines the time when the daily check should happen.');
@@ -3930,9 +3935,9 @@ INSERT INTO txt VALUES ('H5433', 'German',  'Autom. Anlegen L&ouml;schantrag: So
 INSERT INTO txt VALUES ('H5433', 'English', 'Autocreate delete rule ticket: When a rule has been fully de-certified, should a delete ticket be automatically generated?');
 INSERT INTO txt VALUES ('H5434', 'German',  'Titel f&uuml;r L&ouml;schantrag: Titel des zu erzeugenden L&ouml;sch-Tickets.');
 INSERT INTO txt VALUES ('H5434', 'English', 'Title delete ticket: Subject line of the delete ticket to be generated.');
-INSERT INTO txt VALUES ('H5435', 'German',  'Grund f&uuml;r L&ouml;sch-Antrag: Text f&uuml;r den Grund des zu erzeugenden L&ouml;sch-Tickets.');
+INSERT INTO txt VALUES ('H5435', 'German',  'Grund f&uuml;r L&ouml;schantrag: Text f&uuml;r den Grund des zu erzeugenden L&ouml;sch-Tickets.');
 INSERT INTO txt VALUES ('H5435', 'English', 'Reason delete ticket: Text for the reason of the delete ticket to be generated.');
-INSERT INTO txt VALUES ('H5436', 'German',  'Titel f&uuml;r L&ouml;sch Auftrag: Titel der zu erzeugenden L&ouml;schaufgabe.');
+INSERT INTO txt VALUES ('H5436', 'German',  'Titel f&uuml;r L&ouml;schauftrag: Titel der zu erzeugenden L&ouml;schaufgabe.');
 INSERT INTO txt VALUES ('H5436', 'English', 'Title delete rule task: Title of the delete task to be generated.');
 INSERT INTO txt VALUES ('H5437', 'German',  'Grund f&uuml;r L&ouml;schauftrag: Begr&uuml;ndungstext f&uuml;r die zu erzeugende L&ouml;schaufgabe.');
 INSERT INTO txt VALUES ('H5437', 'English', 'Reason for delete rule task: Text for the reason of the delete task to be generated.');
@@ -4434,6 +4439,76 @@ INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uu
 INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
 INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
 INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');
+INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> definierten Pfaden und Namen gespeist.
+    Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
+');
+INSERT INTO txt VALUES ('H6921', 'English', 'The import of application data is fed from one or several .json files with paths and names defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
+    There also python scripts with the same names can be provided to create these files. The structure of the .json file is as following:
+');
+INSERT INTO txt VALUES ('H6922', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
+    <ul>
+        <li>app_id_external: Eindeutige Kennzeichnung der Applikation. Dies ist ggf. &uuml;ber verschiedene Importquellen hinweg sicherzustellen.</li>
+        <li>name: Dargestellter Name der Applikation.</li>
+        <li>main_user: Die DN der hauptverantwortlichen Person. Mindestens eines der Felder main_user, modellers oder modeller_groups sollte gef&uuml;llt sein, damit ein Zugriff 
+            auf diese Applikation m&ouml;glich ist. (Ansonsten muss dieses in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> manuell nachgeholt werden.)</li>
+        <li>modellers: Hier werden die DNs von allen zur Bearbeitung dieser Applikation Berechtigten angegeben.</li>
+        <li>modeller_groups: Hier k&ouml;nnen die DNs von Gruppen angegeben werden. Zur Zeit werden diese genauso wie die Eintr&auml;ge unter "modellers" behandelt.</li>
+        <li>criticality: Hier kann optional ein String zur Kennzeichnung der Kritikalit&auml;t der Applikation definiert werden.</li>
+        <li>import_source: String zur Kennzeichnung der Importquelle. Dient zur Unterscheidung bei mehreren Quellen.</li>
+        <li>app_servers: Liste aller zur Applikation zugeordneten Host-Adressen.
+            <ul>
+                <li>name: Optionaler Name zur Darstellung</li>
+                <li>ip: IP-Adresse</li>
+            </ul>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following meaning:
+    <ul>
+        <li>app_id_external: Unique identification string of the application. This has to be ensured over several import sources.</li>
+        <li>name: Displayed name of the application.</li>
+        <li>main_user: DN of the main responsible person. At least one of the fields main_user, modellers or modeller_groups should be filled to ensure access
+            to the application. (Else this has to be ensured manually in the <a href="/help/settings/owners">Owner Settings</a> afterwards.)</li>
+        <li>modellers: Here the DNs of all persons authorized to work on this application have to be delivered.</li>
+        <li>modeller_groups: Here DNs of user groups can be delivered. Currently they are handled the same way as the entries in "modellers".</li>
+        <li>criticality: An optional string to mark the criticality of the application can be defined here.</li>
+        <li>import_source: String to identify the import source. Necessary to distinguish between several sources.</li>
+        <li>app_servers: List of all host addresses assigned to the application:
+            <ul>
+                <li>name: Optional name for display</li>
+                <li>ip: IP address</li>
+            </ul>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von Subnetzdaten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> definierten Pfad und Namen gespeist.
+    Dort kann auch ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Datei hinterlegt werden. Die .json-Datei hat die folgende Struktur:
+');
+INSERT INTO txt VALUES ('H6931', 'English', 'The import of subnet data is fed from a .json file with path and name defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
+    There also a python script with the same name can be provided to create this file. the structure of the .json file is as following:
+');
+INSERT INTO txt VALUES ('H6932', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
+    <ul>
+        <li>name: Dargestellter Name der Area.</li>
+        <li>id_string: Eindeutige Kennzeichnung der Area.</li>
+        <li>subnets: Liste alle Subnetze der Area:
+            <li>name: Optionaler Name zur Darstellung.</li>
+            <li>ip: IP-Adresse oder Start-IP-Addresse, falls Bereiche definiert werden sollen.</li>
+            <li>ip_end: Ende-IP-Addresse, falls Bereiche definiert werden sollen. Sonst leer lassen oder denselben Wert wie in "ip" liefern.</li>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6932', 'English', 'These fields have the following meaning:
+    <ul>
+        <li>name: Displayed name of the area</li>
+        <li>id_string: Unique identification string of the area.</li>
+        <li>subnets: List of all subnets of the area:
+            <li>name: Optional name for display.</li>
+            <li>ip: IP address or start IP address, if ranges are to be defined.</li>
+            <li>ip_end: end IP address, if ranges are to be defined. Else leave empty or fill with the same value as "ip".</li>
+        </li>
+    </ul>
+');
 
 INSERT INTO txt VALUES ('H7001', 'German', 'Im diesem Reiter werden die Monitoringwerkzeuge zur Verf&uuml;gung gestellt.
     Die meisten Abschnitte k&ouml;nnen nur von Nutzern mit den verschiedenen Administrator-Rollen gesehen und genutzt werden.

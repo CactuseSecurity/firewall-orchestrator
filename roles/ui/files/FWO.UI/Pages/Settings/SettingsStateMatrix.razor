@@ -13,10 +13,14 @@
 
 @if(InitComplete)
 {
-    <h3>@(userConfig.GetText("state_matrix"))</h3>
+    <div class="input-group">
+        <h3>@(userConfig.GetText("state_matrix"))</h3>
+        <HelpLink Page="settings/statematrix"/>
+    </div>
+
     @(userConfig.GetText("U5316"))
     <hr />
-    <div class="form-group row">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5541"))">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
         <div class="col-sm-3">
             <Dropdown ElementType="TaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >
@@ -33,7 +37,7 @@
     @foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
     {
         <hr />
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5542"))">
             <div class="col-sm-1">
                 <input type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
             </div>
@@ -44,7 +48,7 @@
             <h5>@(userConfig.GetText("allowed_transitions"))</h5>
             <button type="button" class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(userConfig.GetText("add_state"))</button>
 
-            <div class="m-2 vheight75">
+            <div class="m-2 vheight75" data-toggle="tooltip" title="@(userConfig.PureLine("H5543"))">
                 <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="actStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
                     <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("action"))" Field="(x => x.Key)" Sortable="false" Filterable="false">
                         <Template>
@@ -71,8 +75,8 @@
                     </Column>
                 </Table>
             </div>
-            <h5>@(userConfig.GetText("special_states"))</h5>
-            <div class="form-group row">
+            <h5 data-toggle="tooltip" title="@(userConfig.PureLine("H5545"))">@(userConfig.GetText("special_states"))</h5>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5551"))">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
                 <div class="col-sm-3">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestInputState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
@@ -82,7 +86,7 @@
                     </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5552"))">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
                 <div class="col-sm-3">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestStartedState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
@@ -92,7 +96,7 @@
                     </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5553"))">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
                 <div class="col-sm-3">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestEndState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
@@ -165,13 +169,12 @@
         <Body>
             @if (EditTargetStatesMode)
             {
-                @(userConfig.GetText("allowed_transitions"))
-                <br><br>
+                <H6 data-toggle="tooltip" title="@(userConfig.PureLine("H5543"))"><b>@(userConfig.GetText("allowed_transitions"))</b></H6>
                 <button type="button" class="btn btn-sm btn-success" @onclick="AddStateToTargetStates">@(userConfig.GetText("add_state"))</button>
                 <br><br>
                 @foreach(var stateId in actToStateIds)
                 {
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <label class="col-sm-6 col-form-label col-form-label-sm">@statesDict.Name[stateId]</label>
                         <div class="col-sm-6">
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(userConfig.GetText("remove"))</button>
@@ -179,8 +182,7 @@
                     </div>
                 }
                 <hr />
-                @(userConfig.GetText("derived_state"))
-                <br><br>
+                <H6 data-toggle="tooltip" title="@(userConfig.PureLine("H5544"))"><b>@(userConfig.GetText("derived_state"))</b></H6>
                 <div class="col-sm-9">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
                         <ElementTemplate Context="stateId">

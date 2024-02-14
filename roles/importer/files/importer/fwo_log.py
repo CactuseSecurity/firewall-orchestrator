@@ -5,16 +5,23 @@ import time
 import threading
 
 
-class LogLock:
+class LogLock(threading.Thread):
     semaphore = threading.Semaphore()
 
-    def handle_log_lock():
+    def __init__(self):
+        super().__init__()
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def run(self):
         # Initialize values
         lock_file_path = "/var/fworch/lock/importer_api_log.lock"
         log_owned_by_external = False
         stopwatch = time.time()
 
-        while True:
+        while not self._stop_event.is_set():
             try:
                 with open(lock_file_path, "a+") as file:
                     # Jump to the beginning of the file

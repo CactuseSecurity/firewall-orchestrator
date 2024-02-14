@@ -1064,6 +1064,8 @@ INSERT INTO txt VALUES ('interface', 	        'German',	'Schnittstelle');
 INSERT INTO txt VALUES ('interface', 	        'English',	'Interface');
 INSERT INTO txt VALUES ('interfaces', 	        'German',	'Schnittstellen');
 INSERT INTO txt VALUES ('interfaces', 	        'English',	'Interfaces');
+INSERT INTO txt VALUES ('provided_interfaces', 	'German',	'Bereitgestellte Schnittstellen');
+INSERT INTO txt VALUES ('provided_interfaces', 	'English',	'Provided Interfaces');
 INSERT INTO txt VALUES ('remove_interface', 	'German',	'Schnittstelle entfernen');
 INSERT INTO txt VALUES ('remove_interface', 	'English',	'Remove Interface');
 INSERT INTO txt VALUES ('use',                  'German', 	'Benutzen');

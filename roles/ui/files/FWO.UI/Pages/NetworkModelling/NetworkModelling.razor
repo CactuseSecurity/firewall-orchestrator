@@ -59,7 +59,7 @@
         </div>
         <div class="m-2 vheight75">
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
-                <Tab Title="@(userConfig.GetText("interfaces"))" Position=0>
+                <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=0>
                     <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
                     <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler" AppActive="appActive"/>
                 </Tab>

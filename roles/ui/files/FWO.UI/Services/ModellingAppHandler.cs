@@ -66,7 +66,11 @@ namespace FWO.Ui.Services
 
         public void RestoreTab()
         {
-            tabset.SetActiveTab(actTab.Position);
+            Shared.Tab? tab = tabset.Tabs.FirstOrDefault(x => x.Position == actTab.Position);
+            if(tab != null)
+            {
+                tabset.SetActiveTab(tab);
+            }
         }
 
         public List<ModellingConnection> GetInterfaces()

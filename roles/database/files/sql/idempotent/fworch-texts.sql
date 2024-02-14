@@ -287,9 +287,10 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Modellierung von Soll-Kommunikationsprofilen z.B. nach Anwendung getrennt (Know Your Application)</li>
     <li>Web-Oberfl&auml;che: Compliance Matrix Modul</li>
     <li>Web-Oberfl&auml;che: Report f&uuml;r ungenutzte Regeln mit L&ouml;sch-Ticket-Integration</li>
-    <li>Importer: Email-Benachrichtigung bei sicherheitsrelevanten &Auml;nderungen</li>
+    <li>Reporting: Email-Benachrichtigung bei sicherheitsrelevanten &Auml;nderungen inklusive &Auml;nderungsreport</li>
     <li>Importer Check Point: Grundlegender Inline-Layer-Support</li>
     <li>Importer Modul f&uuml;r Stand-Alone FortiGate Import via REST API</li>
     <li>Firewall-Regel-Rezertifizierungsmodul: beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
@@ -299,9 +300,10 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>Modelling module for defining target communication profiles for segregated networks (e.g. per application: Know Your Application)</li>
     <li>Web User Interface: Compliance Matrix Modul</li>
     <li>Web User Interface: Report for unused rules directly integration delete rule workflow</li>
-    <li>Importer: Email notification on detecting security relevant changes during import</li>
+    <li>Reporting: Notification on detecting security relevant changes of firewall rules including change report in emails</li>
     <li>Importer Check Point: basic inline layer support</li>
     <li>Importer: Module for stand-alone FortiGate import via REST API</li>
     <li>Rule recertification module: remove unnecessary rules and meet current regulatory requirements.</li>

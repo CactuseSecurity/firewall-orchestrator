@@ -147,6 +147,7 @@ namespace FWO.Config.Api
         public string PureLine(string text)
         {
             string output = RemoveLinks(Regex.Replace(GetText(text).Trim(), @"\s", " "));
+            output = ReplaceListElems(output);
             bool cont = true;
             while(cont)
             {
@@ -191,6 +192,15 @@ namespace FWO.Config.Api
             return txtString;
         }
     
+        private static string ReplaceListElems(string txtString)
+        {
+            txtString = Regex.Replace(txtString, "<ul>", "");
+            txtString = Regex.Replace(txtString, "</ul>", "");
+            txtString = Regex.Replace(txtString, "<li>", "\r\n");
+            txtString = Regex.Replace(txtString, "</li>", "");
+            return txtString;
+        }
+        
         private string Convert(string rawText)
         {
             string plainText = System.Web.HttpUtility.HtmlDecode(rawText);

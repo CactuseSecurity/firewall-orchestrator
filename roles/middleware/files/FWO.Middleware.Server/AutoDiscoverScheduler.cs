@@ -29,17 +29,14 @@ namespace FWO.Middleware.Server
         }
     
         private AutoDiscoverScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
-        {
-            globalConfig.OnChange += GlobalConfig_OnChange;
-            // StartScheduleTimer();
-        }
+        {}
 
 		/// <summary>
 		/// set scheduling timer from config values
 		/// </summary>
         protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
         {
-            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * 3600000; // convert hours to milliseconds
+            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * GlobalConst.kHoursToMilliseconds;
             ScheduleTimer.Stop();
             StartScheduleTimer();
         }
@@ -81,7 +78,7 @@ namespace FWO.Middleware.Server
             AutoDiscoverTimer.Stop();
             AutoDiscoverTimer = new();
             AutoDiscoverTimer.Elapsed += AutoDiscover;
-            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * 3600000;  // convert hours to milliseconds
+            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * GlobalConst.kHoursToMilliseconds;
             AutoDiscoverTimer.AutoReset = true;
             AutoDiscoverTimer.Start();
             Log.WriteDebug("Autodiscover scheduler", "AutoDiscoverTimer started.");
@@ -120,12 +117,14 @@ namespace FWO.Middleware.Server
                     catch (Exception excMgm)
                     {
                         Log.WriteError("Autodiscovery", $"Ran into exception while auto-discovering management {superManagement.Name} (id: {superManagement.Id}) ", excMgm);
-                        ActionItem actionException = new ActionItem();
-                        actionException.Number = 0;
-                        actionException.ActionType = ActionCode.WaitForTempLoginFailureToPass.ToString();
-                        actionException.ManagementId = superManagement.Id;
-                        actionException.Supermanager = superManagement.Name;
-                        actionException.JsonData = excMgm.Message;
+                        ActionItem actionException = new()
+                        {
+                            Number = 0,
+                            ActionType = ActionCode.WaitForTempLoginFailureToPass.ToString(),
+                            ManagementId = superManagement.Id,
+                            Supermanager = superManagement.Name,
+                            JsonData = excMgm.Message
+                        };
                         await SetAlert(actionException);
                         await AddLogEntry(1, globalConfig.GetText("scheduled_autodiscovery"),
                             $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}): " + excMgm.Message,

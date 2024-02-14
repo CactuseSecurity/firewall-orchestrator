@@ -9,7 +9,10 @@
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<h3>@(userConfig.GetText("language_settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("language_settings"))</h3>
+    <HelpLink Page="settings/language"/>
+</div>
 @(userConfig.GetText("U5412"))
 <hr />
 

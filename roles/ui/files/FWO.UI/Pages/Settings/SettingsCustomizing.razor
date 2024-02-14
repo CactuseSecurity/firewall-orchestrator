@@ -11,14 +11,17 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("customizing"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("customizing"))</h3>
+    <HelpLink Page="settings/workflowcustomizing"/>
+</div>
 @(userConfig.GetText("U5314"))
 <hr />
 
 @if (InitComplete && configData != null)
 {
     <form onsubmit="return false">
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5562"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
             @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
             {
@@ -31,7 +34,7 @@
                 }
             }
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5563"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
             <div class="col-sm-9">
                 <div class="m-2 vheight75">
@@ -56,19 +59,20 @@
                 </div>
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5564"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowObjectSearch")):</label>
             <div class="col-sm-2">
                 <input type="checkbox" @bind="configData!.ReqAllowObjectSearch">
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5567"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
             <div class="col-sm-2">
                 <input type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
             </div>
         </div>
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5566") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" +
+                userConfig.PureLine("H5572") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" + userConfig.PureLine("H5575"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
             <div class="col-sm-4">
                 <Dropdown @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >

@@ -1,0 +1,88 @@
+@using FWO.Config.Api
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+
+<Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection"
+        Items="Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
+    @if(userConfig.AllowManualOwnerAdmin)
+    {
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () => 
+                        { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(userConfig.GetText("details"))</button>
+                    @if(AppActive)
+                    {
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => 
+                            { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
+                            { AppHandler.RequestDeleteConnection(context); AppHandlerChanged.InvokeAsync(AppHandler); }">@(userConfig.GetText("delete"))</button>
+                    }
+                </div>
+            </Template>
+        </Column>
+    }
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+    @* <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="true">
+            <Template>
+                @(userConfig.GetText(context.GetConnType()))
+            </Template>
+    </Column>             *@
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+        <Template>
+            <ExpandableList2 Elements="AppHandler.GetSrcNames(context)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                <ElementTemplate>
+                    @((MarkupString)src)
+                </ElementTemplate>
+            </ExpandableList2>
+        </Template>
+    </Column>
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("service"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+        <Template>
+            <ExpandableList2 Elements="AppHandler.GetSvcNames(context)" Context="svc" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                <ElementTemplate>
+                    @((MarkupString)svc)
+                </ElementTemplate>
+            </ExpandableList2>
+        </Template>
+    </Column>
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("destination"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+        <Template>
+            <ExpandableList2 Elements="AppHandler.GetDstNames(context)" Context="dest" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+                <ElementTemplate>
+                    @((MarkupString)dest)
+                </ElementTemplate>
+            </ExpandableList2>
+        </Template>
+    </Column>
+</Table>
+
+
+@code
+{
+    [Parameter]
+    public List<ModellingConnection> Connections { get; set; } = new();
+
+    [Parameter]
+    public ModellingAppHandler AppHandler { get; set; }
+
+    [Parameter]
+    public EventCallback<ModellingAppHandler> AppHandlerChanged { get; set; }
+
+    [Parameter]
+    public bool AppActive { get; set; } = false;
+
+
+    private string getTableRowClass(ModellingConnection conn)
+    {
+        @* if(conn.IsInterface)
+        {
+            return "td-bg-light-grey";
+        } *@
+        return "";
+    }
+}

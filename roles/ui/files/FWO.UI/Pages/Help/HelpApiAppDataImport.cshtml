@@ -1,0 +1,64 @@
+﻿@page "/help/API/appdataimport"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("import_app_data")</h3>
+    @(Html.Raw(userConfig.GetText("H6921")))
+
+    <pre>
+{
+  "owners": [
+    {
+      "app_id_external": "APP-1",
+      "name": "Owner1",
+      "main_user": "CN=user12345,OU=users,DC=COMPANY1,DC=DE",
+      "modellers": [
+        "CN=user23456,OU=users,DC=COMPANY1,DC=DE"
+      ],
+      "modeller_groups": [],
+      "criticality": "high",
+      "import_source": "SourceSystem1",
+      "app_servers": [
+        {
+          "name": "AppServer1",
+          "ip": "1.0.0.1",
+        },
+        {
+          "name": "AppServer2",
+          "ip": "10.1.0.117",
+        }
+      ]
+    },
+    {
+      "app_id_external": "APP-2",
+      "name": "Owner2",
+      "main_user": null,
+      "modellers": [
+        "CN=user23456,OU=users,DC=COMPANY1,DC=DE",
+        "CN=user34567,OU=users,DC=COMPANY1,DC=DE",
+        "CN=user45678,OU=users,DC=COMPANY1,DC=DE"
+      ],
+      "import_source": "SourceSystem1",
+      "app_servers": [
+        {
+          "name": "AppServer3",
+          "ip": "10.12.66.213",
+        }
+      ]
+    }
+  ]
+}
+    </pre>
+
+    @(Html.Raw(userConfig.GetText("H6922")))
+</div>

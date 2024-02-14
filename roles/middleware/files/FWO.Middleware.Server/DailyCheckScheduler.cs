@@ -32,9 +32,6 @@ namespace FWO.Middleware.Server
 
         private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
         {
-            globalConfig.OnChange += GlobalConfig_OnChange;
-
-            // StartScheduleTimer();
             if(globalConfig.RecRefreshStartup)
             {
                 RefreshRecert(); // no need to wait

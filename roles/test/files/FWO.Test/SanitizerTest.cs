@@ -10,13 +10,13 @@ namespace FWO.Test
         static readonly string OkText = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()[]{}$+<>#_";
         static readonly string TextToShorten = " A\"\\'!,; ";
         static readonly string ShortenedText = "A";
-        static readonly string OkLdapName = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()_";
+        static readonly string OkLdapName = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()_";
         static readonly string LdapNameToShorten = " A+;,\"<>#= B ";
         static readonly string ShortenedLdapName = "A B";
-        static readonly string OkLdapPath = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()_,=";
+        static readonly string OkLdapPath = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()_,=";
         static readonly string LdapPathToShorten = " A+;,\"<>#= B ";
         static readonly string ShortenedLdapPath = "A,= B";
-        static readonly string OkPassw = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()[]{}$+<>#";
+        static readonly string OkPassw = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()[]{}$+<>#";
         static readonly string PasswToShorten = " a \n\rb ";
         static readonly string ShortenedPassw = "a b";
         static readonly string OkKey = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz1234567890.*-:?@/()[]{}$+<>#_\"\\'!,;";

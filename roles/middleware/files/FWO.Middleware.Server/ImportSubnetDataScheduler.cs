@@ -25,10 +25,7 @@ namespace FWO.Middleware.Server
         }
     
         private ImportSubnetDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
-        {
-            globalConfig.OnChange += GlobalConfig_OnChange;
-            // StartScheduleTimer();
-        }
+        {}
 
 		/// <summary>
 		/// set scheduling timer from config values
@@ -38,7 +35,7 @@ namespace FWO.Middleware.Server
             ScheduleTimer.Stop();
             if (globalConfig.ImportSubnetDataSleepTime > 0)
             {
-                ImportSubnetDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * 3600000; // convert hours to milliseconds
+                ImportSubnetDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * GlobalConst.kHoursToMilliseconds;
                 StartScheduleTimer();
             }
         }
@@ -80,7 +77,7 @@ namespace FWO.Middleware.Server
             ImportSubnetDataTimer.Stop();
             ImportSubnetDataTimer = new();
             ImportSubnetDataTimer.Elapsed += ImportAreaSubnetData;
-            ImportSubnetDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * 3600000;  // convert hours to milliseconds
+            ImportSubnetDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * GlobalConst.kHoursToMilliseconds;
             ImportSubnetDataTimer.AutoReset = true;
             ImportSubnetDataTimer.Start();
             Log.WriteDebug("Import Area Subnet Data scheduler", "ImportSubnetDataTimer started.");

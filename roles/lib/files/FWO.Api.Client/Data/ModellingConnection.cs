@@ -164,6 +164,7 @@ namespace FWO.Api.Data
             bool shortened = false;
             Name = Sanitizer.SanitizeOpt(Name, ref shortened);
             Reason = Sanitizer.SanitizeCommentOpt(Reason, ref shortened);
+            Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
             return shortened;
         }
     }

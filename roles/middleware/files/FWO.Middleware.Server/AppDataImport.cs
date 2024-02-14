@@ -254,7 +254,7 @@ namespace FWO.Middleware.Server
             {
                 foreach(var modeller in incomingApp.Modellers)
                 {
-                    if(!existingMembers.Contains(modeller))
+                    if(existingMembers.FirstOrDefault(x => x.ToLower() == modeller.ToLower()) == null)
                     {
                         internalLdap.AddUserToEntry(modeller, groupDn);
                     }
@@ -264,7 +264,7 @@ namespace FWO.Middleware.Server
             {
                 foreach(var modellerGrp in incomingApp.ModellerGroups)
                 {
-                    if(!existingMembers.Contains(modellerGrp))
+                    if(existingMembers.FirstOrDefault(x => x.ToLower() == modellerGrp.ToLower()) == null)
                     {
                         internalLdap.AddUserToEntry(modellerGrp, groupDn);
                     }
@@ -272,8 +272,8 @@ namespace FWO.Middleware.Server
             }
             foreach(var member in existingMembers)
             {
-                if(!(incomingApp.Modellers != null && incomingApp.Modellers.Contains(member)) 
-                    && !(incomingApp.ModellerGroups != null && incomingApp.ModellerGroups.Contains(member)))
+                if((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.ToLower() == member.ToLower()) == null)
+                    && (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.ToLower() == member.ToLower()) == null))
                 {
                     internalLdap.RemoveUserFromEntry(member, groupDn);
                 }
@@ -307,7 +307,7 @@ namespace FWO.Middleware.Server
             }
             foreach(var existingAppServer in existingAppServers)
             {
-                if(incomingApp.AppServers.FirstOrDefault(x => x.Name == existingAppServer.Name) == null)
+                if(incomingApp.AppServers.FirstOrDefault(x => IpAsCidr(x.Ip) == IpAsCidr(existingAppServer.Ip)) == null)
                 {
                     if(await MarkDeletedAppServer(existingAppServer))
                     {
@@ -326,15 +326,16 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => x.Name == incomingAppServer.Name);
+                ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => IpAsCidr(x.Ip) == IpAsCidr(incomingAppServer.Ip));
                 if(existingAppServer == null)
                 {
                     return await NewAppServer(incomingAppServer, appID, impSource);
                 }
-                else
+                else if(existingAppServer.IsDeleted)
                 {
-                    return await UpdateAppServer(incomingAppServer, appID, impSource, existingAppServer.Id);
+                    return await ReactivateAppServer(existingAppServer);
                 }
+                return true;
             }
             catch (Exception exc)
             {
@@ -351,7 +352,7 @@ namespace FWO.Middleware.Server
                 {
                     name = incomingAppServer.Name,
                     appId = appID,
-                    ip = IPAddressRange.Parse(incomingAppServer.Ip).ToCidrString(),   // todo ?
+                    ip = IpAsCidr(incomingAppServer.Ip),  // todo ?
                     // subnet = incomingAppServer.Subnet,
                     importSource = impSource
                 };
@@ -365,24 +366,20 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task<bool> UpdateAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource, long appServerId)
+        private async Task<bool> ReactivateAppServer(ModellingAppServer appServer)
         {
             try
             {
                 var Variables = new 
                 {
-                    id = appServerId,
-                    name = incomingAppServer.Name,
-                    appId = appID,
-                    ip = IPAddressRange.Parse(incomingAppServer.Ip).ToCidrString(),   // todo ?
-                    // subnet = incomingAppServer.Subnet,
-                    importSource = impSource
+                    id = appServer.Id,
+                    deleted = false
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.updateAppServer, Variables);
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAppServerDeletedState, Variables);
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import App Server Data", $"App Server {incomingAppServer.Name} could not be processed.", exc);
+                Log.WriteError("Import App Server Data", $"App Server {appServer.Name} could not be reactivated.", exc);
                 return false;
             }
             return true;
@@ -392,7 +389,12 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAppServerDeletedState, new { id = appServer.Id, deleted = true });
+                var Variables = new 
+                {
+                    id = appServer.Id,
+                    deleted = true
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAppServerDeletedState, Variables);
             }
             catch (Exception exc)
             {
@@ -400,6 +402,11 @@ namespace FWO.Middleware.Server
                 return false;
             }
             return true;
+        }
+
+        private static string IpAsCidr(string ip)
+        {
+            return IPAddressRange.Parse(ip).ToCidrString();
         }
     }
 }

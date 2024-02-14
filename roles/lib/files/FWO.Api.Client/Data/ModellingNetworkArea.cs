@@ -14,10 +14,7 @@ namespace FWO.Api.Data
             bool shortened = base.Sanitize();
             foreach(var subnet in Subnets)
             {
-                if(subnet.Content.Sanitize())
-                {
-                    shortened = true;
-                }
+                shortened |= subnet.Content.Sanitize();
             }
             return shortened;
         }

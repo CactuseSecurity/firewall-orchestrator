@@ -10,7 +10,10 @@
 
 @if(InitComplete)
 {
-    <h3>@(userConfig.GetText("available_states"))</h3>
+    <div class="input-group">
+        <h3>@(userConfig.GetText("available_states"))</h3>
+        <HelpLink Page="settings/statedefinitions"/>
+    </div>
     @(userConfig.GetText("U5313"))
     <hr />
     <button type="button" class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>

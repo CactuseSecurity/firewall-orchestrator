@@ -82,7 +82,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m5",
+                "-m7",
                 "-d1",
                 "-f",
                 "-s",

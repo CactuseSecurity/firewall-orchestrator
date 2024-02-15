@@ -102,11 +102,12 @@ def getLogger(debug_level_in=0):
         llevel = logging.INFO
 
     logger = logging.getLogger() # use root logger
-    logHandler = logging.StreamHandler(stream=stdout)
+    # logHandler = logging.StreamHandler(stream=stdout)
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
-    logHandler.setLevel(llevel)
-    handlers = [logHandler]
-    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=llevel)
+    # logHandler.setLevel(llevel)
+    # handlers = [logHandler]
+    # logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=llevel)
+    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
     logger.setLevel(llevel)
 
     #set log level for noisy requests/connectionpool module to WARNING: 

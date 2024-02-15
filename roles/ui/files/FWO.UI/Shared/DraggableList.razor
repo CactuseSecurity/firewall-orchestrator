@@ -4,8 +4,9 @@
 	@for (int i = 0; i < AllElements.Count; i++)
 	{
 		int j = i;
-		<div class="draggable @(SelectedElements.Contains(AllElements[j]) ? "bg-primary" : "")" draggable="true" 
-				@ondragstart="@( (e) => HandleDragStart(e, AllElements[j]))" @onclick="() => ToggleSelect(j)">
+		<div class="draggable @(SelectedElements.Contains(AllElements[j]) ? "bg-primary" : "")" draggable="true"
+				@ondragstart="@((e) => { HandleDragStart(e, AllElements[j]); lastSelected = null; })"
+				@onclick="() => ToggleSelect(j)" tabindex="0" @onkeydown="(k) => KeyDown(k)" @onkeyup="(k) => KeyUp(k)">
 			@((MarkupString)Display(AllElements[j]))
 		</div>
 	}
@@ -34,24 +35,62 @@
 	[Parameter]
 	public bool Multiselect { get; set; } = true;
 
+	private int? lastSelected;
+	private bool shiftPressed = false;
+
+
+    private void KeyDown(KeyboardEventArgs ev)
+    {
+		if(ev.ShiftKey)
+		{
+        	shiftPressed = true;
+		}
+    }
+
+	private void KeyUp(KeyboardEventArgs ev)
+    {
+		if(ev.ShiftKey)
+		{
+        	shiftPressed = false;
+		}
+    }
 
 	private void ToggleSelect(int index)
 	{
 		if (SelectedElements.Contains(AllElements[index]))
 		{
 			SelectedElements.Remove(AllElements[index]);
+			lastSelected = null;
 		}
 		else
 		{
 			if(!Multiselect)
 			{
 				SelectedElements = new();
+				SelectedElements.Add(AllElements[index]);
 			}
-			SelectedElements.Add(AllElements[index]);
+			else if(lastSelected == null)
+			{
+				lastSelected = index;
+				SelectedElements.Add(AllElements[index]);
+			}
+			else if(shiftPressed && index > lastSelected)
+			{
+				for(int idx = (int)lastSelected + 1; idx <= index; ++idx)
+				{
+					SelectedElements.Add(AllElements[idx]);
+				}
+				lastSelected = null;
+			}
+			else
+			{
+				SelectedElements.Add(AllElements[index]);
+				lastSelected = index;
+			}
 		}
 		SelectedElementsChanged.InvokeAsync(SelectedElements);
 	}
 
-	public static bool DoNothingSync(DragEventArgs e, ElementType elem) { return false; }
-	public static string DoNothingSync(ElementType e) { return ""; }
+	private static bool DoNothingSync(DragEventArgs e, ElementType elem) { return false; }
+	private static string DoNothingSync(ElementType e) { return ""; }
 }

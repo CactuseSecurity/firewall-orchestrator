@@ -1379,7 +1379,7 @@ INSERT INTO txt VALUES ('user',                 'English', 	'User');
 INSERT INTO txt VALUES ('group',                'German', 	'Gruppe');
 INSERT INTO txt VALUES ('group',                'English', 	'Group');
 INSERT INTO txt VALUES ('owner_group',          'German', 	'Eigent&uuml;mergruppe');
-INSERT INTO txt VALUES ('owner_group',          'English', 	'Owner group');
+INSERT INTO txt VALUES ('owner_group',          'English', 	'Owner Group');
 INSERT INTO txt VALUES ('into_ldap',            'German', 	'in LDAP');
 INSERT INTO txt VALUES ('into_ldap',            'English', 	'into LDAP');
 INSERT INTO txt VALUES ('from_ldap',            'German', 	'von LDAP');
@@ -3804,22 +3804,26 @@ INSERT INTO txt VALUES ('H5278', 'English', 'Pwd Chg Req: Flag that the user has
 ');
 INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren. Dabei besteht die M&ouml;glichkeit, sie gleich einer Rolle zuzuordnen.
     Weitere Rollenzuordnungen k&ouml;nnen dann unter <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
-    Wenn Beispieldaten (definiert durch die Endung "_demo" vom Gruppennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
-    Die L&ouml;schung ist nicht m&ouml;glich, wenn Nutzer, die nicht als Beispielnutzer gekennzeichnet sind (Name endet nicht auf "_demo"), der Gruppe zugeordnet sind.
 ');
 INSERT INTO txt VALUES ('H5301', 'English', 'Groups of users can be defined by the admin in the internal Ldap. When adding there is the possibility to assign a role membership.
     Further memberships can be administrated in the <a href="/help/settings/roles">roles</a> section.<br>
-    If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
+');
+INSERT INTO txt VALUES ('H5302', 'German',  'Wenn Beispieldaten (definiert durch die Endung "_demo" vom Gruppennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
+    Die L&ouml;schung ist nicht m&ouml;glich, wenn Nutzer, die nicht als Beispielnutzer gekennzeichnet sind (Name endet nicht auf "_demo"), der Gruppe zugeordnet sind.
+');
+INSERT INTO txt VALUES ('H5302', 'English', 'If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
     The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
 ');
 INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden.');
 INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups.');
-INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) der Gruppe zugeordnet oder von dieser entfernt werden.');
-INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) can be assigned to or removed from the user groups.');
+INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) oder aus einem zu durchsuchenden Ldap der Gruppe zugeordnet bzw. von dieser entfernt werden.');
+INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) or searched from an Ldap can be assigned to resp. removed from the user groups.');
 INSERT INTO txt VALUES ('H5313', 'German',  'Name: Name der Nutzergruppe.');
 INSERT INTO txt VALUES ('H5313', 'English', 'Name: Name of the user group.');
 INSERT INTO txt VALUES ('H5314', 'German',  'Nutzer: Liste der der Gruppe zugeordneten Nutzer.');
 INSERT INTO txt VALUES ('H5314', 'English', 'Users: List of assigned users to the group.');
+INSERT INTO txt VALUES ('H5315', 'German',  'Eigent&uuml;mergruppe: Kann für die Eigent&uuml;merverwaltung beim Rezertifizieren oder Modellieren verwendet werden.');
+INSERT INTO txt VALUES ('H5315', 'English', 'Owner Group: Can be used for owner administration in recertification or modelling modules.');
 INSERT INTO txt VALUES ('H5331', 'German',  'Alle definierten Rollen werden mit einer kurzen Erkl&auml;rung dargestellt.<br>
     Der Admin kann Nutzer oder Nutzergruppen den Rollen zuweisen bzw. von diesen entfernen.
 ');

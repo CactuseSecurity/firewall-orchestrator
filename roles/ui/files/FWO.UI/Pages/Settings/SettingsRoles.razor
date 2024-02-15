@@ -15,15 +15,20 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("roles"))</h3>
-@(userConfig.GetText("U5215"))
+<div class="input-group">
+    <h3>@(userConfig.GetText("roles"))</h3>
+    <HelpLink Page="settings/roles"/>
+</div>
+<H6 data-toggle="tooltip" title="@(userConfig.PureLine("H5332") + "\r\n" + userConfig.PureLine("H5361") + "\r\n"+ userConfig.PureLine("H5362") +
+    "\r\n" + userConfig.PureLine("H5363") + "\r\n" + userConfig.PureLine("H5364"))">@(userConfig.GetText("U5215"))</H6>
 <hr />
 
 <div class="m-2 vheight75">
     <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Role" Items="roles" PageSize="0" ColumnReorder="true">
         <Column TableItem="Role" Title="@(userConfig.GetText("actions"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
-                <div class="btn-group">
+                <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5341") + "\r\n" + userConfig.PureLine("H5351") +
+                        "\r\n" + userConfig.PureLine("H5352") + "\r\n" + userConfig.PureLine("H5353"))">
                     @if (context.Name != GlobalConst.kMiddlewareServer && context.Name != GlobalConst.kAnonymous)
                     {
                         <button type="button" class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("assign_user_group"))</button>
@@ -58,39 +63,7 @@
 </div>
 
 <SearchUser @bind-Display="AddMode" AddUser="AddUserFromLdap" AddGroup="AddGroupFromLdap" UserSearchMode="true" GroupSearchMode="true" Title="@(actRole.Name)"/>
-
-<PopUp Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Show="@DeleteMode" Size=PopupSize.Large OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <form>
-                <div class="form-group row">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user_group")):</label>
-                    <div class="col-sm-9">
-                        <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUserToRemove" Elements="actRole.Users">
-                            <ElementTemplate Context="user">
-                                @user.Dn
-                            </ElementTemplate>
-                        </Dropdown>
-                    </div>
-                </div>
-            </form>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
-                <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RemoveUser()" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<RemoveUser @bind-Display="RemoveUserMode" Remove="RemoveUser" Users="actRole.Users" Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Label="@(userConfig.GetText("user_group"))"/>
 
 
 @code
@@ -101,12 +74,11 @@
     private List<Role> roles = new();
     private List<UiLdapConnection> connectedLdaps = new();
     private UiLdapConnection selectedLdap = new();
-    private UiUser selectedUserToRemove = new();
 
     private Role actRole = new Role();
 
     private bool AddMode = false;
-    private bool DeleteMode = false;
+    private bool RemoveUserMode = false;
     private bool SearchMode = false;
 
     protected override async Task OnInitializedAsync()
@@ -139,8 +111,7 @@
     private void RemoveFromRole(Role role)
     {
         actRole = role;
-        selectedUserToRemove = actRole.Users.Count > 0 ? actRole.Users.First() : new UiUser();
-        DeleteMode = true;
+        RemoveUserMode = true;
     }
 
     private async Task AddUserFromLdap(UiUser ldapUser)
@@ -190,7 +161,7 @@
         }
     }
 
-    private async Task RemoveUser()
+    private async Task RemoveUser(UiUser selectedUserToRemove)
     {
         if (selectedUserToRemove.Dn != "")
         {
@@ -213,7 +184,7 @@
                     {
                         actRole.Users.Remove(selectedUserToRemove);
                         roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
-                        DeleteMode = false;
+                        RemoveUserMode = false;
                     }
                 }
                 catch (System.Exception exception)
@@ -231,6 +202,6 @@
     private void Cancel()
     {
         AddMode = false;
-        DeleteMode = false;
+        RemoveUserMode = false;
     }
 }

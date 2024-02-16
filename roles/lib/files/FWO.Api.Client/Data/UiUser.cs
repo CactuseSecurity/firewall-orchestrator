@@ -118,5 +118,15 @@ namespace FWO.Api.Data
                 LdapId = this.LdapConnection.Id
             };
         }
+
+        public string RoleList()
+        {
+            return string.Join(", ", Roles);
+        }
+
+        public string GroupList()
+        {
+            return string.Join(", ", Groups);
+        }
     }
 }

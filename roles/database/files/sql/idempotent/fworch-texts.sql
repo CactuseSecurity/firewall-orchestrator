@@ -1016,6 +1016,8 @@ INSERT INTO txt VALUES ('comm_profile', 	    'German',	'Kommunikationsprofil');
 INSERT INTO txt VALUES ('comm_profile', 	    'English',	'Communication Profile');
 INSERT INTO txt VALUES ('connection', 	        'German',	'Verbindung');
 INSERT INTO txt VALUES ('connection', 	        'English',	'Connection');
+INSERT INTO txt VALUES ('connections', 	        'German',	'Verbindungen');
+INSERT INTO txt VALUES ('connections', 	        'English',	'Connections');
 INSERT INTO txt VALUES ('add_connection', 	    'German',	'Verbindung hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_connection', 	    'English',	'Add Connection');
 INSERT INTO txt VALUES ('edit_connection', 	    'German',	'Verbindung bearbeiten');
@@ -1740,6 +1742,8 @@ INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in 
 INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen in &Uuml;bersicht');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
+INSERT INTO txt VALUES ('reducedProtocolSet',   'German',   'Reduzierten Protokollset darstellen');
+INSERT INTO txt VALUES ('reducedProtocolSet',   'English',  'Display reduced Protocol set');
 INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad und Name von Appdaten-Import (ohne Endung)');
 INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path and Name of App data import (without ending)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
@@ -1884,8 +1888,10 @@ INSERT INTO txt VALUES ('scheduled_app_import', 'German',   'Termingesteuerter A
 INSERT INTO txt VALUES ('scheduled_app_import', 'English',  'Scheduled App Import');
 INSERT INTO txt VALUES ('scheduled_subnet_import','German', 'Termingesteuerter Subnetz-Import');
 INSERT INTO txt VALUES ('scheduled_subnet_import','English','Scheduled Subnet Import');
-INSERT INTO txt VALUES ('imp_change_notification','German','&Auml;nderungsbenachrichtigung');
+INSERT INTO txt VALUES ('imp_change_notification','German', '&Auml;nderungsbenachrichtigung');
 INSERT INTO txt VALUES ('imp_change_notification','English','Import Change Notification');
+INSERT INTO txt VALUES ('credentials',           'German', 	'Login-Daten');
+INSERT INTO txt VALUES ('credentials',           'English', 'Credentials');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -1974,6 +1980,10 @@ INSERT INTO txt VALUES ('import_app_data',      'German', 	'Applikationsdaten-Im
 INSERT INTO txt VALUES ('import_app_data',      'English', 	'Application Data Import');
 INSERT INTO txt VALUES ('import_subnet_data',   'German', 	'Subnetzdaten-Import');
 INSERT INTO txt VALUES ('import_subnet_data',   'English', 	'Subnet Data Import');
+INSERT INTO txt VALUES ('general',              'German', 	'Allgemein');
+INSERT INTO txt VALUES ('general',              'English', 	'General');
+INSERT INTO txt VALUES ('naming_convention',    'German',   'Namenskonvention');
+INSERT INTO txt VALUES ('naming_convention',    'English',  'Naming Convention');
 
 
 -- text codes (roughly) categorized: 
@@ -4320,12 +4330,13 @@ INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (
     Der Importprozess pr&uuml;ft f&uuml;r jede der eingegebenen Datenquellen zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. 
     Anschliessend wird eine Datei desselben Namens mit der Endung .json gesucht und ggf. importiert. 
     Es gibt f&uuml;r den Import pro Datenquelle also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
-    welches die ben&ouml;tigte Import-Datei erst erzeugt.
+    welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/appdataimport">Import-Schnittstellen</a> beschrieben.
 ');
 INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Here the full paths of provided import scripts and files are inserted.
     The import process checks for each data source, if a script of this name with ending .py exists and executes it.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility for each data source to provide a file for direct import or a script to catch the import data and create the app data import file.
+    The structure of the import file is described at <a href="/help/API/appdataimport">Import Interfaces</a>.
 ');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0. 
@@ -4338,12 +4349,13 @@ INSERT INTO txt VALUES ('H5613', 'English', 'Import App data start at: Defines a
 INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird der vollst&auml;ndige Pfad f&uuml;r ein eventuell vorhandenes Importskript oder einer Import-Datei eingegeben.
     Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
     gesucht und ggf. importiert. Es gibt f&uuml;r den Import also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
-    welches die ben&ouml;tigte Import-Datei erst erzeugt.
+    welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/subnetdataimport">Import-Schnittstellen</a> beschrieben.
 ');
 INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): Here the full path of a provided import script or file is inserted.
     The import process checks, if a script of this name with ending .py exists and executes it.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility to provide a file for direct import or a script to catch the import data and create the subnet data import file.
+    The structure of the import file is described at <a href="/help/API/subnetdataimport">Import Interfaces</a>.
 ');
 INSERT INTO txt VALUES ('H5615', 'German',  'Import Subnetzdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Subnetzdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Subnetzdaten-Import deaktiviert ist. Default-Wert = 0.
@@ -4353,6 +4365,8 @@ INSERT INTO txt VALUES ('H5615', 'English', 'Import Subnet data sleep time (in h
 ');
 INSERT INTO txt VALUES ('H5616', 'German',  'Import Subnetzdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Subnetzdaten-Importe gerechnet werden.');
 INSERT INTO txt VALUES ('H5616', 'English', 'Import Subnet data start at: Import App data start at: Defines a referential time from which the Subnte data import intervals are calculated.');
+INSERT INTO txt VALUES ('H5617', 'German',  'Reduzierten Protokollset darstellen: Nur eine begrenzte Zahl von Protokollen wird zur Auswahl angeboten (TCP, UDP, ICMP).');
+INSERT INTO txt VALUES ('H5617', 'English', 'Display reduced Protocol set: Offer only a reduced number of protocols for selection (TCP, UDP, ICMP).');
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
 ');

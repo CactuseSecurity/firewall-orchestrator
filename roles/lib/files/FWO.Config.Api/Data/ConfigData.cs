@@ -219,6 +219,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
         public int OverviewDisplayLines { get; set; } = 3;
 
+        [JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
+        public bool ReducedProtocolSet { get; set; } = true;
+
         [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
         public string ImportAppDataPath { get; set; } = "";
 

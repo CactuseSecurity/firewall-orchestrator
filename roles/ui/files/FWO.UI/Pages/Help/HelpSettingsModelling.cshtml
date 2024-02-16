@@ -14,19 +14,31 @@
 <div class="p-2">
     <h3>@(userConfig.GetText("modelling"))</h3>
     @(Html.Raw(userConfig.GetText("H5601")))
+    <br><br>
+    @(Html.Raw(userConfig.GetText("general")))
     <ul>
         <li>@(Html.Raw(userConfig.GetText("H5602")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5603")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5604")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5605")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5617")))</li>
+    </ul>
+    @(Html.Raw(userConfig.GetText("naming_convention")))
+    <ul>
         <li>@(Html.Raw(userConfig.GetText("H5606")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5607")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5608")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5609")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5610")))</li>
+    </ul>
+    @(Html.Raw(userConfig.GetText("import_app_data")))
+    <ul>
         <li>@(Html.Raw(userConfig.GetText("H5611")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5612")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5613")))</li>
+    </ul>
+    @(Html.Raw(userConfig.GetText("import_subnet_data")))
+    <ul>
         <li>@(Html.Raw(userConfig.GetText("H5614")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5615")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5616")))</li>

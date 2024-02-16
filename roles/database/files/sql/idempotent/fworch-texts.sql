@@ -1016,6 +1016,8 @@ INSERT INTO txt VALUES ('comm_profile', 	    'German',	'Kommunikationsprofil');
 INSERT INTO txt VALUES ('comm_profile', 	    'English',	'Communication Profile');
 INSERT INTO txt VALUES ('connection', 	        'German',	'Verbindung');
 INSERT INTO txt VALUES ('connection', 	        'English',	'Connection');
+INSERT INTO txt VALUES ('connections', 	        'German',	'Verbindungen');
+INSERT INTO txt VALUES ('connections', 	        'English',	'Connections');
 INSERT INTO txt VALUES ('add_connection', 	    'German',	'Verbindung hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_connection', 	    'English',	'Add Connection');
 INSERT INTO txt VALUES ('edit_connection', 	    'German',	'Verbindung bearbeiten');
@@ -1379,7 +1381,7 @@ INSERT INTO txt VALUES ('user',                 'English', 	'User');
 INSERT INTO txt VALUES ('group',                'German', 	'Gruppe');
 INSERT INTO txt VALUES ('group',                'English', 	'Group');
 INSERT INTO txt VALUES ('owner_group',          'German', 	'Eigent&uuml;mergruppe');
-INSERT INTO txt VALUES ('owner_group',          'English', 	'Owner group');
+INSERT INTO txt VALUES ('owner_group',          'English', 	'Owner Group');
 INSERT INTO txt VALUES ('into_ldap',            'German', 	'in LDAP');
 INSERT INTO txt VALUES ('into_ldap',            'English', 	'into LDAP');
 INSERT INTO txt VALUES ('from_ldap',            'German', 	'von LDAP');
@@ -1740,6 +1742,8 @@ INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in 
 INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen in &Uuml;bersicht');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
+INSERT INTO txt VALUES ('reducedProtocolSet',   'German',   'Reduzierten Protokollset darstellen');
+INSERT INTO txt VALUES ('reducedProtocolSet',   'English',  'Display reduced Protocol set');
 INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad und Name von Appdaten-Import (ohne Endung)');
 INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path and Name of App data import (without ending)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
@@ -1884,8 +1888,10 @@ INSERT INTO txt VALUES ('scheduled_app_import', 'German',   'Termingesteuerter A
 INSERT INTO txt VALUES ('scheduled_app_import', 'English',  'Scheduled App Import');
 INSERT INTO txt VALUES ('scheduled_subnet_import','German', 'Termingesteuerter Subnetz-Import');
 INSERT INTO txt VALUES ('scheduled_subnet_import','English','Scheduled Subnet Import');
-INSERT INTO txt VALUES ('imp_change_notification','German','&Auml;nderungsbenachrichtigung');
+INSERT INTO txt VALUES ('imp_change_notification','German', '&Auml;nderungsbenachrichtigung');
 INSERT INTO txt VALUES ('imp_change_notification','English','Import Change Notification');
+INSERT INTO txt VALUES ('credentials',           'German', 	'Login-Daten');
+INSERT INTO txt VALUES ('credentials',           'English', 'Credentials');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -1974,6 +1980,10 @@ INSERT INTO txt VALUES ('import_app_data',      'German', 	'Applikationsdaten-Im
 INSERT INTO txt VALUES ('import_app_data',      'English', 	'Application Data Import');
 INSERT INTO txt VALUES ('import_subnet_data',   'German', 	'Subnetzdaten-Import');
 INSERT INTO txt VALUES ('import_subnet_data',   'English', 	'Subnet Data Import');
+INSERT INTO txt VALUES ('general',              'German', 	'Allgemein');
+INSERT INTO txt VALUES ('general',              'English', 	'General');
+INSERT INTO txt VALUES ('naming_convention',    'German',   'Namenskonvention');
+INSERT INTO txt VALUES ('naming_convention',    'English',  'Naming Convention');
 
 
 -- text codes (roughly) categorized: 
@@ -3804,22 +3814,26 @@ INSERT INTO txt VALUES ('H5278', 'English', 'Pwd Chg Req: Flag that the user has
 ');
 INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren. Dabei besteht die M&ouml;glichkeit, sie gleich einer Rolle zuzuordnen.
     Weitere Rollenzuordnungen k&ouml;nnen dann unter <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
-    Wenn Beispieldaten (definiert durch die Endung "_demo" vom Gruppennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
-    Die L&ouml;schung ist nicht m&ouml;glich, wenn Nutzer, die nicht als Beispielnutzer gekennzeichnet sind (Name endet nicht auf "_demo"), der Gruppe zugeordnet sind.
 ');
 INSERT INTO txt VALUES ('H5301', 'English', 'Groups of users can be defined by the admin in the internal Ldap. When adding there is the possibility to assign a role membership.
     Further memberships can be administrated in the <a href="/help/settings/roles">roles</a> section.<br>
-    If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
+');
+INSERT INTO txt VALUES ('H5302', 'German',  'Wenn Beispieldaten (definiert durch die Endung "_demo" vom Gruppennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
+    Die L&ouml;schung ist nicht m&ouml;glich, wenn Nutzer, die nicht als Beispielnutzer gekennzeichnet sind (Name endet nicht auf "_demo"), der Gruppe zugeordnet sind.
+');
+INSERT INTO txt VALUES ('H5302', 'English', 'If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
     The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
 ');
 INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden.');
 INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups.');
-INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) der Gruppe zugeordnet oder von dieser entfernt werden.');
-INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) can be assigned to or removed from the user groups.');
+INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) oder aus einem zu durchsuchenden Ldap der Gruppe zugeordnet bzw. von dieser entfernt werden.');
+INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) or searched from an Ldap can be assigned to resp. removed from the user groups.');
 INSERT INTO txt VALUES ('H5313', 'German',  'Name: Name der Nutzergruppe.');
 INSERT INTO txt VALUES ('H5313', 'English', 'Name: Name of the user group.');
 INSERT INTO txt VALUES ('H5314', 'German',  'Nutzer: Liste der der Gruppe zugeordneten Nutzer.');
 INSERT INTO txt VALUES ('H5314', 'English', 'Users: List of assigned users to the group.');
+INSERT INTO txt VALUES ('H5315', 'German',  'Eigent&uuml;mergruppe: Kann f&uuml;r die Eigent&uuml;merverwaltung beim Rezertifizieren oder Modellieren verwendet werden.');
+INSERT INTO txt VALUES ('H5315', 'English', 'Owner Group: Can be used for owner administration in recertification or modelling modules.');
 INSERT INTO txt VALUES ('H5331', 'German',  'Alle definierten Rollen werden mit einer kurzen Erkl&auml;rung dargestellt.<br>
     Der Admin kann Nutzer oder Nutzergruppen den Rollen zuweisen bzw. von diesen entfernen.
 ');
@@ -4316,12 +4330,13 @@ INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (
     Der Importprozess pr&uuml;ft f&uuml;r jede der eingegebenen Datenquellen zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. 
     Anschliessend wird eine Datei desselben Namens mit der Endung .json gesucht und ggf. importiert. 
     Es gibt f&uuml;r den Import pro Datenquelle also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
-    welches die ben&ouml;tigte Import-Datei erst erzeugt.
+    welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/appdataimport">Import-Schnittstellen</a> beschrieben.
 ');
 INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Here the full paths of provided import scripts and files are inserted.
     The import process checks for each data source, if a script of this name with ending .py exists and executes it.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility for each data source to provide a file for direct import or a script to catch the import data and create the app data import file.
+    The structure of the import file is described at <a href="/help/API/appdataimport">Import Interfaces</a>.
 ');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0. 
@@ -4334,12 +4349,13 @@ INSERT INTO txt VALUES ('H5613', 'English', 'Import App data start at: Defines a
 INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird der vollst&auml;ndige Pfad f&uuml;r ein eventuell vorhandenes Importskript oder einer Import-Datei eingegeben.
     Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
     gesucht und ggf. importiert. Es gibt f&uuml;r den Import also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
-    welches die ben&ouml;tigte Import-Datei erst erzeugt.
+    welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/subnetdataimport">Import-Schnittstellen</a> beschrieben.
 ');
 INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): Here the full path of a provided import script or file is inserted.
     The import process checks, if a script of this name with ending .py exists and executes it.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility to provide a file for direct import or a script to catch the import data and create the subnet data import file.
+    The structure of the import file is described at <a href="/help/API/subnetdataimport">Import Interfaces</a>.
 ');
 INSERT INTO txt VALUES ('H5615', 'German',  'Import Subnetzdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Subnetzdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Subnetzdaten-Import deaktiviert ist. Default-Wert = 0.
@@ -4349,6 +4365,30 @@ INSERT INTO txt VALUES ('H5615', 'English', 'Import Subnet data sleep time (in h
 ');
 INSERT INTO txt VALUES ('H5616', 'German',  'Import Subnetzdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Subnetzdaten-Importe gerechnet werden.');
 INSERT INTO txt VALUES ('H5616', 'English', 'Import Subnet data start at: Import App data start at: Defines a referential time from which the Subnte data import intervals are calculated.');
+INSERT INTO txt VALUES ('H5617', 'German',  'Reduzierten Protokollset darstellen: Nur eine begrenzte Zahl von Protokollen wird zur Auswahl angeboten (TCP, UDP, ICMP).');
+INSERT INTO txt VALUES ('H5617', 'English', 'Display reduced Protocol set: Offer only a reduced number of protocols for selection (TCP, UDP, ICMP).');
+INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
+    Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
+');
+INSERT INTO txt VALUES ('H5701', 'English', 'The language dependent texts stored in the database can be overwritten individually.
+    In doing so, system texts are not changed but crossfaded by the texts defined here.
+');
+INSERT INTO txt VALUES ('H5702', 'German',  'Im ersten Schritt muss die betroffene Sprache ausgew&auml;hlt werden. Dann erscheint die Zeile zur eigentlichen Textsuche.');
+INSERT INTO txt VALUES ('H5702', 'English', 'In the first step the language to be handled has to be selected. Then the row for the text search appears.');
+INSERT INTO txt VALUES ('H5703', 'German',  'Bei Eingabe eines Suchstrings erscheinen alle hinterlegten Texte, welche diesen beinhalten.
+    Wird das Feld leer gelassen, erscheinen alle verf&uuml;gbaren Texte der gew&auml;hlten Sprache.
+    Durch das Setzen des "Hilfetexte ignorieren"-Flags werden die Hilfetexte (Schl&uuml;ssel beginnend mit "H"), bei der Suche nicht ber&uuml;cksichtigt.
+');
+INSERT INTO txt VALUES ('H5703', 'English', 'When entering a search string, all texts containing this are displayed. If left empty, all texts of the selected language are displayed.
+    By setting the "Ignore Help Texts" flag all Help texts (Key beginning with "H") are disregarded.
+');
+INSERT INTO txt VALUES ('H5704', 'German',  'In der Tabelle der Suchergebnisse k&ouml;nnen pro Schl&uuml;ssel neue Texte definiert,
+    bereits vorhandene durch Setzen des "L&ouml;schen"-Flags zum L&ouml;schen vorgemerkt werden. Wird nur der Text entfernt, wird der Systemtext mit Leertext &uuml;berschrieben!
+    Die &Auml;nderungen werden erst durch das Bet&auml;tigen des "Speichern"-Knopfes wirksam.
+');
+INSERT INTO txt VALUES ('H5704', 'English', 'In the table of search results new texts can be defined per key, existing texts can be marked for deletion by setting the "Delete" flag.
+    If only a text is removed, the system text will be overwritten by an empty text! All changes get effective only by pressing the "Save" button.
+');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

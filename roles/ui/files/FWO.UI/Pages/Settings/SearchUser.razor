@@ -17,7 +17,7 @@
         @if (Display)
         {
             <form>
-                <form class="form-group row">
+                <form class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5351"))">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
                     <div class="col-sm-3">
                         <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
@@ -36,7 +36,7 @@
                 </form>
                 @if(UserSearchMode)
                 {
-                    <form class="form-group row mt-2">
+                    <form class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5352"))">
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
                         <div class="col-sm-8">
                             <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUiUser" Elements="uiUsers">
@@ -59,7 +59,7 @@
                 }
                 @if(GroupSearchMode)
                 {
-                    <form class="form-group row mt-2">
+                    <form class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5353"))">
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
                         <div class="col-sm-8">
                             <Dropdown ElementType="string" @bind-SelectedElement="selectedInternalGroupDn" Elements="Array.ConvertAll(internalGroups.ToArray(), x => x.Dn).ToList()" />

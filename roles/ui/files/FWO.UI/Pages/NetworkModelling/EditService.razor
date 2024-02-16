@@ -126,11 +126,14 @@
             ListOut.Add(new NetworkProtocol(icmp));
             ListIn.Remove(icmp);
         }
-        foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
+        if(!userConfig.ReducedProtocolSet)
         {
-            if (proto.Name.ToLower() != "unassigned")
+            foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
             {
-                ListOut.Add(new NetworkProtocol(proto));
+                if (proto.Name.ToLower() != "unassigned")
+                {
+                    ListOut.Add(new NetworkProtocol(proto));
+                }
             }
         }
         return ListOut;

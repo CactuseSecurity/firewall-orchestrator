@@ -16,11 +16,14 @@
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
 
-<h3>@(userConfig.GetText("users"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("users"))</h3>
+    <HelpLink Page="settings/users"/>
+</div>
 @(userConfig.GetText("U5213"))
 <hr />
 
-<div class="btn-group m-1">
+<div class="btn-group m-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5261"))">
     <button type="button" class="btn btn-sm btn-success" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
     <AuthorizeView Roles="@GlobalConst.kAdmin">
         <Authorized>
@@ -40,7 +43,7 @@
     <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
         <Column TableItem="UiUser" Title="@(userConfig.GetText("actions"))" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
-                <div class="btn-group">
+                <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5271"))">
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     @if(context.isInternal())
                     {
@@ -55,23 +58,42 @@
             </Template>
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true">
+            <Template>
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5279"))">
+                    @context.LdapConnection.Name
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true">
             <Template>
-                @(context.Tenant != null ? (context.Tenant.Id == 1 && context.LdapConnection.GlobalTenantName != null && context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5273"))">
+                    @(context.Tenant != null ? (context.Tenant.Id == 1 && context.LdapConnection.GlobalTenantName != null && 
+                        context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
+                </div>
             </Template>       
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("email"))" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("language"))" Field="@(x => x.Language)" Sortable="true" Filterable="true" >
             <Template>
-                @((context.Language != null && context.Language != "") ? userConfig.GetText(context.Language) : "" )
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5275"))">
+                    @((context.Language != null && context.Language != "") ? userConfig.GetText(context.Language) : "" )
+                </div>
             </Template>
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("last_login"))" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("last_pw_change"))" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("last_pw_change"))" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" >
+            <Template>
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5277"))">
+                    @context.LastPasswordChange
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
             <Template>
-                @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5278"))">
+                    @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+                </div>
             </Template>
         </Column>
     </Table>
@@ -82,7 +104,7 @@
         @if (EditMode)
         {
             <form>
-                <div class="form-group row">
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5272"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     @if (AddMode)
                     {
@@ -95,7 +117,7 @@
                         <label class="col-sm-8">@actUser.Name</label>
                     }
                 </div>
-                <div class="form-group row mt-2">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5280"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("into_ldap"))*:</label>
                     @if (AddMode)
                     {
@@ -112,7 +134,7 @@
                         <label class="col-sm-8">@actUser.LdapConnection.Name</label>
                     }
                 </div>
-                <div class="form-group row mt-2">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5273"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     @if (AddMode)
                     {
@@ -142,7 +164,7 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row mt-2">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5274"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control form-control-sm" @bind="actUser.Email" />

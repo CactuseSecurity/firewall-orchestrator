@@ -198,6 +198,7 @@ namespace FWO.Config.Api
             txtString = Regex.Replace(txtString, "</ul>", "");
             txtString = Regex.Replace(txtString, "<li>", "\r\n");
             txtString = Regex.Replace(txtString, "</li>", "");
+            txtString = Regex.Replace(txtString, "<br>", "\r\n");
             return txtString;
         }
         

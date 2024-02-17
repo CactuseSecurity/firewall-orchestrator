@@ -1,0 +1,18 @@
+﻿@page "/help/modelling/services"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpModellingSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("services")</h3>
+    @(Html.Raw(userConfig.GetText("H9041")))
+    <br><br>
+</div>

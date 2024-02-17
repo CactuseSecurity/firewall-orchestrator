@@ -368,8 +368,9 @@ def update_hit_counter(fwo_api_base_url, jwt, mgm_id, query_variables):
             
             return 0
         else:
-            logger.debug("found no rules with hit information for mgm_id " + str(mgm_id))
-            return 1
+            if len(query_variables['config']['rules'])>0:
+                logger.debug("found rules without hit information for mgm_id " + str(mgm_id))
+                return 1
     else:
         logger.debug("no rules found for mgm_id " + str(mgm_id))
         return 1

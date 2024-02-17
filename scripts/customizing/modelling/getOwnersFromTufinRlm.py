@@ -98,15 +98,15 @@ def reverse_dns_lookup(ip_address):
     except socket.herror as e:
         # Handle the exception if the host could not be found (herror).
         # Return an error message with the exception details.
-        return f"Reverse DNS lookup failed: {e}"
+        return f"ERROR: Reverse DNS lookup failed: {e}"
     except socket.gaierror as e:
         # Handle the exception if the address-related error occurs (gaierror).
         # Return an error message with the exception details.
-        return f"Address-related error during reverse DNS lookup: {e}"
+        return f"ERROR: Address-related error during reverse DNS lookup: {e}"
     except Exception as e:
         # Handle any other exceptions that may occur.
         # Return a generic error message with the exception details.
-        return f"An error occurred during reverse DNS lookup: {e}"
+        return f"ERROR: during reverse DNS lookup: {e}"
 
 
 def extractSocketInfo(asset, services):
@@ -117,7 +117,10 @@ def extractSocketInfo(asset, services):
         for ip in asset['assets']['values']:
             ip1, ip2, nwtype = getNetworkBorders(ip)
             if nwtype=='host':
-                sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype, "name": reverse_dns_lookup(ip1) })
+                hname = reverse_dns_lookup(ip1)
+                if hname=='' or hname.startswith('ERROR:'):
+                    hname = "NONAME"
+                sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype, "name": hname })
             else:
                 sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype })
 

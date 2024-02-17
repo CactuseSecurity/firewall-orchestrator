@@ -319,6 +319,7 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
     <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig Generierung</li>
     <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
     <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
+    <li><a href="/networkmodelling">Modellierung</a>: Erlaubt die verteilte Modellierung von Kommunikationsverbindungen (Soll-Zustand)</li>
     <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
     <li><a href="/compliance/zones/configuration">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
     <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
@@ -336,6 +337,7 @@ The following top-level menu items are available (depending on role memberships)
     <li><a href="/report/generation">Reporting</a>: Ad-hoc generation and scheduling of reports</li>
     <li><a href="/request/ticketsoverview">Workflow</a>: Ticketing system for requesting and processing firewall changes</li>
     <li><a href="/certification">Recertification</a>: Rulebase sanitization by continuously cleaning up existing rules</li>
+    <li><a href="/networkmodelling">Modelling</a>: Allows for distributed modelling of network connections (target state)</li>
     <li><a href="/network_analysis">Network Analysis</a>: Path analysis - which firewall is crossed when routing between two IP addresses?</li>
     <li><a href="/compliance/zones/configuration">Compliance</a>: Defining zone matrix and access compliance</li>
     <li><a href="/monitoring">Monitoring</a>: Alarms, log files, import status, ...</li>

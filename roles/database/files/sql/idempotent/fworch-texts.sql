@@ -4375,9 +4375,11 @@ INSERT INTO txt VALUES ('H5617', 'German',  'Reduzierten Protokollset darstellen
 INSERT INTO txt VALUES ('H5617', 'English', 'Display reduced Protocol set: Offer only a reduced number of protocols for selection (TCP, UDP, ICMP).');
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
+    Die hier gemachten &Auml;nderungen werden in der UI beim n&auml;chsten Login sichtbar, bei Hilfetexten erst nach dem n&auml;chsten Restart.
 ');
 INSERT INTO txt VALUES ('H5701', 'English', 'The language dependent texts stored in the database can be overwritten individually.
-    In doing so, system texts are not changed but crossfaded by the texts defined here.
+    In doing so, system texts are not changed but crossfaded by the texts defined here. The changes made here become visible in the UI with the next login,
+    help texts only after the next restart.
 ');
 INSERT INTO txt VALUES ('H5702', 'German',  'Im ersten Schritt muss die betroffene Sprache ausgew&auml;hlt werden. Dann erscheint die Zeile zur eigentlichen Textsuche.');
 INSERT INTO txt VALUES ('H5702', 'English', 'In the first step the language to be handled has to be selected. Then the row for the text search appears.');
@@ -5438,7 +5440,7 @@ INSERT INTO txt VALUES ('H9001', 'English', 'Especially in greater networks ther
 INSERT INTO txt VALUES ('H9011', 'German',  'Eine Applikation ist aus Sicht des Firewall Orchestrators ein Beh&auml;lter, in dem aus zugeordneten Host-Adressen ein Kommunikationsprofil erstellt wird.
     Sie wird in der Regel extern aus den Anforderungen und Gegebenheiten der jeweiligen Unternehmung definiert und kann &uuml;ber eine Importschnittstelle in den Firewall Orchestrator importiert
     (oder auch manuell angelegt) werden.
-    Das Kommunikationsprofil besteht aus einem Satz von Schnittstellen und Verbindungen welche die Kommunikation sowohl intern als auch mit anderen Applikationen definieren.
+    Das Kommunikationsprofil besteht aus einem Satz von Schnittstellen und Verbindungen welche die Kommunikation sowohl intern als auch mit anderen Applikationen definieren.<br>
     Jeder Modellierer bekommt die ihm zug&auml;nglichen Applikationen dargestellt. D.h.
     <ul>
         <li>Der Nutzer muss die Rolle "Modellierer" besitzen (Voraussetzung, dass diese Seite &uuml;berhaupt dargestellt wird).
@@ -5453,7 +5455,7 @@ INSERT INTO txt VALUES ('H9011', 'German',  'Eine Applikation ist aus Sicht des 
 ');
 INSERT INTO txt VALUES ('H9011', 'English', 'An application is - from the perspective of the Firewall Orchestrator - a container, where a communication profile is defined on basis of associated host addresses.
     Generally the application is defined externally by the requests and conditions of the enterprise and can be imported to the Firewall Orchestrator via import interface (or created manually).
-    The communication profile consists of a set of interfaces and connections, which define the communication both internally and to other applications.
+    The communication profile consists of a set of interfaces and connections, which define the communication both internally and to other applications.<br>
     For each modeller his accessible applications are displayed. That means
     <ul>
         <li>The user has to have the role "modeller" (precondition that this page is displayed at all).
@@ -5472,7 +5474,7 @@ INSERT INTO txt VALUES ('H9022', 'German',  'Schnittstellen: Sie dienen in erste
     Es m&uuml;ssen in der Applikation neben dem Dienst entweder Quelle oder Ziel definiert werden. Die Schnittstellen werden in den anderen Applikationen
     zur Auswahl angeboten und k&ouml;nnen dort in der Definition von eigenen Verbindungen verwendet werden.
 ');
-INSERT INTO txt VALUES ('H9022', 'English', 'Interfaces: They serve primarily the modelling of (relative to the application) external connections or the bundeling of internal objects.
+INSERT INTO txt VALUES ('H9022', 'English', 'Interfaces: They serve primarily the modelling of (relative to the application) external connections or the bundling of internal objects.
     Besides the service either source or destination have to be defined in the application. The interfaces are offered to other applications to use
     them in the definition of own connections.
 ');
@@ -5490,11 +5492,45 @@ INSERT INTO txt VALUES ('H9024', 'German',  'Common Services: K&ouml;nnen nur de
 INSERT INTO txt VALUES ('H9024', 'English', 'Common Services: Can only be defined, if the application is marked as permitted in the <a href="/help/settings/owners">Owner Settings</a> by the administrator.
     Formally they are structured as regular connections.
 ');
-INSERT INTO txt VALUES ('H9031', 'German',  'Es wird zwischen verschiedenen Arten von Netzwerk-Objekten unterschieden
+INSERT INTO txt VALUES ('H9031', 'German',  'Netzwerkobjekte werden zur Definition von Quelle und Ziel der Verbindungen ben&ouml;tigt. Es wird zwischen verschiedenen Arten von Netzwerkobjekten unterschieden:');
+INSERT INTO txt VALUES ('H9031', 'English', 'Network objects are used to define source and destination of the connections. There are different types of network objects:');
+INSERT INTO txt VALUES ('H9032', 'German',  'App-Server: Die elementaren Bausteine (Host-Adressen), die der Applikation zugeordnet sind. Sie werden in der Regel mit den Applikationen importiert
+    (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/appdataimport">Import-Schnittstelle</a>), k&ouml;nnen aber auch manuell vom Administrator angelegt werden.
+    Je nach Einstellung (abh&auml;ngig von den jeweiligen Vorgaben des Unternehmens) k&ouml;nnen die App-Server direkt in die Verbindungen &uuml;bernommen werden oder m&uuml;ssen zuerst in App-Rollen geb&uuml;ndelt werden.
 ');
-INSERT INTO txt VALUES ('H9031', 'English', 'There are different types of network objects
+INSERT INTO txt VALUES ('H9032', 'English', 'App Server: Elementary components (host addresses) associated to the application. Usually they are imported with the applications
+    (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/appdataimport">Import Interface</a>), but can also be created manually by the administrator.
+    Depending on the settings (according to company requirements) App Servers can be used directly in the connections or have to be bundled in App Roles first.
 ');
-INSERT INTO txt VALUES ('H9041', 'German',  'Es wird zwischen einfachen Services und Service-Gruppen unterschieden
+INSERT INTO txt VALUES ('H9033', 'German',  'App-Rollen: Dienen der B&uuml;ndelung von App-Servern. Falls in den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> so vorgesehen,
+    m&uuml;ssen sie einer Netzwerkarea zugeh&ouml;ren. Beim Erstellen der App-Rolle muss dann zun&auml;chst eine Area ausgew&auml;hlt werden, nur von dieser werden dann die App-Server in der Bibliothek angeboten.
+    Die Namen der App-Rollen m&uuml;ssen dann einer ebenfalls in den Einstellungen vorgegebenen Namenskonvention folgen.
 ');
-INSERT INTO txt VALUES ('H9041', 'English', 'There is a differentiation between simple services and service groups
+INSERT INTO txt VALUES ('H9033', 'English', 'App Roles: Used for bundling of App Servers. If required in the <a href="/help/settings/modelling">Modelling Settings</a>,
+    they have to belong to a network area. When creating an App Role, first a network area has to be selected, only App Servers belonging to this are are displayed then in the library.
+    Names of the App Roles have to comply to a naming convention, defined in the Modelling Settings.
+');
+INSERT INTO txt VALUES ('H9034', 'German',  'Netzwerkareas: Werden &uuml;ber die Subnetzdaten-Importschnittstelle (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/subnetdataimport">Import-Schnittstelle</a>) importiert.
+    Sie k&ouml;nnen aus der Bibliothek heraus gesucht, selektiert und anschliessend in Quelle oder Ziel der Verbindungen &uuml;bernommen werden.
+');
+INSERT INTO txt VALUES ('H9034', 'English', 'Network Areas: Are imported via the Subnet Data Import Interface (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/subnetdataimport">Import Interface</a>).
+    They can be searched an selected from the library and then used for source and destination of the connections.
+');
+INSERT INTO txt VALUES ('H9041', 'German',  'Es wird zwischen einfachen Diensten und Dienstgruppen unterschieden. In den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a>
+    kann festgelegt werden, dass nur Dienstgruppen in der Definition von Verbindungen genutzt werden k&ouml;nnen, ansonsten sind auch einfache Dienste zugelassen.
+');
+INSERT INTO txt VALUES ('H9041', 'English', 'There is a differentiation between simple services and Service Groups. It can be defined in the <a href="/help/settings/modelling">Modelling Settings</a>,
+    that only Service Groups are allowed to be used in the definition of connections, else also simple services are permitted.
+');
+INSERT INTO txt VALUES ('H9042', 'German',  'Dienste: Einfache Dienste werden durch Port (einfach oder Intervall) und Protokoll definiert und k&ouml;nnen einen Namen zugewiesen bekommen.
+    Die Definition kann durch den Modellierer selbst vorgenommen werden, es k&ouml;nnen aber auch - falls vorhanden - vom Administrator vordefinierte Dienste verwendet werden.
+');
+INSERT INTO txt VALUES ('H9042', 'English', 'Services: Simple services are defined by port (single or range) and protocol and can have a name assigned.
+    Definition can be done by the modeller, but also - if available - predefined services by the administrator can be used.
+');
+INSERT INTO txt VALUES ('H9043', 'German',  'Dienstgruppen: In Dienstgruppen k&ouml;nnen die einfachen Dienste zusammengefasst werden. Hier muss ein Name vergeben werden, es k&ouml;nnen auch Kommentare hinzugef&uuml;gt werden.
+    Auch hier kann die Definition durch den Modellierer selbst erfolgen oder auch vom Administrator vordefinierte Dienstgruppen verwendet werden.
+');
+INSERT INTO txt VALUES ('H9043', 'English', 'Service Groups: Simple services can be bundled in Service Groups. A name has to be given to them, comments can be added.
+    Again definition can be done by the modeller, but also Service Groups predefined by the administrator can be used.
 ');

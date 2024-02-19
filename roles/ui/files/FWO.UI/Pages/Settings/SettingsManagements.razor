@@ -11,7 +11,10 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("managements"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("managements"))</h3>
+    <HelpLink Page="settings/managements"/>
+</div>
 @(userConfig.GetText("U5111"))
 <hr />
 
@@ -27,7 +30,7 @@
     }
 </div>
 
-<div class="d-flex flex-column m-2 vheight75">
+<div class="d-flex flex-column m-2 vheight75" data-toggle="tooltip" title="@(userConfig.PureLine("H5101"))">
     <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
         <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
@@ -103,19 +106,19 @@
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                     <label class="col-sm-8">@actManagement.Id</label>
                 </div>
-                <div class="form-group row mt-2">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5111"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control form-control-sm" @bind="actManagement.Name" />
                     </div>
                 </div>
-                <div class="form-group row mt-2">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5112"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
                         <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("comment")) @bind="actManagement.Comment"></textarea>   
                     </div>
                 </div>
-                <div class="form-group row mt-2">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5113"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="DeviceType" ElementToString="@(d => d.NameVersion())" @bind-SelectedElement="actManagement.DeviceType" Elements="deviceTypes.Where(d => d.IsManagement)">
@@ -147,20 +150,20 @@
                     }
                     else
                     {
-                        <div class="form-group row mt-2">
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5114"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
                             <div class="col-sm-8">
                                 <input type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
                             </div>
                         </div>
-                        <div class="form-group row mt-2">
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5115"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
                             <div class="col-sm-2">
                                 <input type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
                             </div>
                         </div>
                     }
-                    <div class="form-group row mt-2">
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5116"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
                         <div class="col-sm-8">
                             <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
@@ -173,7 +176,7 @@
                 }
                 @if (actManagement.DeviceType.CanHaveDomain())
                 {
-                    <div class="form-group row mt-2">
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5119"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("config_path"):</label>
                         <div class="col-sm-8">
                             <input type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
@@ -199,24 +202,24 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row mt-2">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5120"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
                     </div>
                 </div>
-                <div class="form-group row mt-2">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5121"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control form-control-sm" @bind="actManagement.DebugLevel" />
                     </div>
                 </div>
 
-                <div class="form-check form-check-inline mt-2">
+                <div class="form-check form-check-inline mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5122"))">
                     <input class="form-check-input" id="managementImportDisabled" type="checkbox" @bind="actManagement.ImportDisabled">
                     <label class="form-check-label" for="managementImportDisabled"><small>@(userConfig.GetText("import_disabled"))</small></label>
                 </div>
-                <div class="form-check form-check-inline mt-2">
+                <div class="form-check form-check-inline mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5123"))">
                     <input class="form-check-input" id="managementHideInUi" type="checkbox" @bind="actManagement.HideInUi">
                     <label class="form-check-label" for="managementHideInUi"><small>@(userConfig.GetText("hide_in_ui"))</small></label>
                 </div>

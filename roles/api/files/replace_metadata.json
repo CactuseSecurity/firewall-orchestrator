@@ -4111,6 +4111,18 @@
               },
               "select_permissions": [
                 {
+                  "role": "anonymous",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "approver",
                   "permission": {
                     "columns": [

@@ -1,0 +1,23 @@
+﻿@page "/help/modelling/networkobjects"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpModellingSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("network_objects")</h3>
+    @(Html.Raw(userConfig.GetText("H9031")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H9032")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H9033")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H9034")))</li>
+    </ul>
+</div>

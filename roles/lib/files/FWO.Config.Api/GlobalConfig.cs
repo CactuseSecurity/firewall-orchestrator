@@ -17,18 +17,28 @@ namespace FWO.Config.Api
         public static readonly int kSidebarLeftWidth = 300;
         public static readonly int kSidebarRightWidth = 300;
 
-
         public string productVersion { get; set; }
-
         public Language[] uiLanguages { get; set; }
         public Dictionary<string, Dictionary<string, string>> langDict { get; set; }
+        public Dictionary<string, Dictionary<string, string>> overDict { get; set; }
 
+
+        /// <summary>
+        /// create a config collection (used centrally once in a UI server for all users)
+        /// </summary>
+        public static async Task<GlobalConfig> ConstructAsync(string jwt, bool loadLanguageData = true)
+        {
+            ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
+            return await ConstructAsync(apiConnection, loadLanguageData);
+        }
+        
         public static async Task<GlobalConfig> ConstructAsync(ApiConnection apiConnection, bool loadLanguageData = true)
         {
             string productVersion = ConfigFile.ProductVersion;
 
             Language[] uiLanguages = Array.Empty<Language>();
-            Dictionary<string, Dictionary<string, string>> langDict = new();
+            Dictionary<string, Dictionary<string, string>> tmpLangDicts = new();
+            Dictionary<string, Dictionary<string, string>> tmpLangOverDicts = new();
 
             if (loadLanguageData)
             {
@@ -44,16 +54,11 @@ namespace FWO.Config.Api
                 }
                 try
                 {
+                    // add language dictionaries to dictionary of dictionaries
                     foreach (Language lang in uiLanguages)
                     {
-                        var languageVariable = new { language = lang.Name };
-                        Dictionary<string, string> dict = new();
-                        UiText[] uiTexts = await apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getTextsPerLanguage, languageVariable);
-                        foreach (UiText text in uiTexts)
-                            dict.Add(text.Id, text.Txt); // add "word" to dictionary
-
-                        // add language dictionary to dictionary of dictionaries
-                        langDict.Add(lang.Name, dict);
+                        tmpLangDicts.Add(lang.Name, await LoadLangDict(lang, apiConnection));
+                        tmpLangOverDicts.Add(lang.Name, await LoadLangDict(lang, apiConnection, true));
                     }
                 }
                 catch (Exception exception)
@@ -63,13 +68,17 @@ namespace FWO.Config.Api
                 }
             }
 
-            return new GlobalConfig(apiConnection, productVersion, uiLanguages, langDict);
+            return new GlobalConfig(apiConnection, productVersion, uiLanguages, tmpLangDicts, tmpLangOverDicts);
         }
 
-        public static async Task<GlobalConfig> ConstructAsync(string jwt, bool loadLanguageData = true)
+        private GlobalConfig(ApiConnection apiConnection, string productVersion, Language[] uiLanguages,
+                Dictionary<string, Dictionary<string, string>> langDict, Dictionary<string, Dictionary<string, string>> overDict)
+            : base(apiConnection, 0)
         {
-            ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
-            return await ConstructAsync(apiConnection, loadLanguageData);
+            this.productVersion = productVersion;
+            this.uiLanguages = uiLanguages;
+            this.langDict = langDict;
+            this.overDict = overDict;
         }
 
         public override string GetText(string key) 
@@ -79,18 +88,18 @@ namespace FWO.Config.Api
                 return System.Web.HttpUtility.HtmlDecode(langDict[DefaultLanguage][key]);
             }
             return "(undefined text)";
-        } 
-
-
-        /// <summary>
-        /// create a config collection (used centrally once in a UI server for all users)
-        /// </summary>
-        private GlobalConfig(ApiConnection apiConnection, string productVersion, Language[] uiLanguages, Dictionary<string, Dictionary<string, string>> langDict)
-                : base(apiConnection, 0)
+        }
+        
+        private static async Task<Dictionary<string, string>> LoadLangDict(Language lang, ApiConnection apiConnection, bool over = false)
         {
-            this.productVersion = productVersion;
-            this.uiLanguages = uiLanguages;
-            this.langDict = langDict;
+            var languageVariable = new { language = lang.Name };
+            Dictionary<string, string> dict = new();
+            List<UiText> uiTexts = await apiConnection.SendQueryAsync<List<UiText>>(over ? ConfigQueries.getCustomTextsPerLanguage : ConfigQueries.getTextsPerLanguage, languageVariable);
+            foreach (UiText text in uiTexts)
+            {
+                dict.Add(text.Id, text.Txt); // add "word" to dictionary
+            }
+            return dict;
         }
     }
 }

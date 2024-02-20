@@ -50,7 +50,7 @@
                 <div class="btn-group ms-5">
                     <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
+                            <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">@(appHandler.DisplayButton("edit_app_server", Icons.Edit, "app_server"))</button>
                         </Authorized>
                     </AuthorizeView>
                 </div>
@@ -60,18 +60,18 @@
         <div class="m-2 vheight75">
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
                 <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=0>
-                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
+                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">@(appHandler.DisplayButton("add_interface", Icons.Add, "interface"))</button>
                     <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler" AppActive="appActive"/>
                 </Tab>
                 @if(selectedApp.CommSvcPossible)
                 {
                     <Tab Title="@(userConfig.GetText("common_services"))" Position=1>
-                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddCommonService">@(userConfig.GetText("add_common_service"))</button>
+                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service", Icons.Add, "common_service"))</button>
                         <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive"/>
                     </Tab>
                 }
                 <Tab Title="@(userConfig.GetText("regular_connections"))" Position=2>
-                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">@(userConfig.GetText("add_connection"))</button>
+                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">@(appHandler.DisplayButton("add_connection", Icons.Add, "connection"))</button>
                     <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive"/>
                 </Tab>
             </TabSet>

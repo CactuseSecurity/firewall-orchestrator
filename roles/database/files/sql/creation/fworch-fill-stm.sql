@@ -32,6 +32,7 @@ insert into config (config_key, config_value, config_user) VALUES ('recCheckActi
 insert into config (config_key, config_value, config_user) VALUES ('recCheckEmailSubject', 'Upcoming rule recertifications', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recCheckEmailUpcomingText', 'The following rules are upcoming to be recertified:', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recCheckEmailOverdueText', 'The following rules are overdue to be recertified:', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recCheckParams', '{"check_interval":2,"check_offset":1,"check_weekday":null,"check_dayofmonth":null}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshStartup', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshDaily', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('messageViewTime', '7', 0);
@@ -80,6 +81,23 @@ insert into config (config_key, config_value, config_user) VALUES ('importSubnet
 insert into config (config_key, config_value, config_user) VALUES ('importAppDataPath', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modNamingConvention', '{"networkAreaRequired":false,"fixedPartLength":0,"freePartLength":0,"networkAreaPattern":"","appRolePattern":""}', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modIconify', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reducedProtocolSet', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('overviewDisplayLines', '3', 0);
+insert into config (config_key, config_value, config_user) VALUES ('emailServerAddress', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('emailPort', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('emailTls', 'None', 0);
+insert into config (config_key, config_value, config_user) VALUES ('emailUser', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('emailPassword', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('emailSenderAddress', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifyRecipients', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifySubject', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifyBody', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifyActive', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifyType', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifySleepTime', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifyStartAt', '00:00:00', 0);
+
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

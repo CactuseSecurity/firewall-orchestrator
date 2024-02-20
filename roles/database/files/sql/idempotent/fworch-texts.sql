@@ -530,6 +530,8 @@ INSERT INTO txt VALUES ('no_rules_gtw',		    'German', 	'Anzahl Regeln pro Gatew
 INSERT INTO txt VALUES ('no_rules_gtw',		    'English', 	'Number of Rules per Gateway');
 INSERT INTO txt VALUES ('negated',		        'German', 	'nicht');
 INSERT INTO txt VALUES ('negated',		        'English', 	'not');
+INSERT INTO txt VALUES ('network_object',		'German', 	'Netzwerkobjekt');
+INSERT INTO txt VALUES ('network_object',		'English', 	'Network Object');
 INSERT INTO txt VALUES ('network_objects',		'German', 	'Netzwerkobjekte');
 INSERT INTO txt VALUES ('network_objects',		'English', 	'Network Objects');
 INSERT INTO txt VALUES ('network_services',		'German', 	'Netzwerkdienste');
@@ -1770,6 +1772,10 @@ INSERT INTO txt VALUES ('appRolePattern',       'German',   'Muster App Rolle');
 INSERT INTO txt VALUES ('appRolePattern',       'English',  'App Role Pattern');
 INSERT INTO txt VALUES ('import_source',        'German',   'Importquelle');
 INSERT INTO txt VALUES ('import_source',        'English',  'Import Source');
+INSERT INTO txt VALUES ('modelling_settings',   'German', 	'Modellierungseinstellungen');
+INSERT INTO txt VALUES ('modelling_settings',   'English', 	'Modelling Settings');
+INSERT INTO txt VALUES ('modIconify',           'German', 	'Nutzung von Piktogrammen');
+INSERT INTO txt VALUES ('modIconify',           'English', 	'Prefer use of Icons');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -2167,6 +2173,8 @@ INSERT INTO txt VALUES ('U5413', 'German',  'Anpassung der pers&ouml;nlichen Rep
 INSERT INTO txt VALUES ('U5413', 'English', 'Adapt your personal reporting settings');
 INSERT INTO txt VALUES ('U5414', 'German',  'Anpassung der pers&ouml;nlichen Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification settings');
+INSERT INTO txt VALUES ('U5415', 'German',  'Anpassung der pers&ouml;nlichen Modellierungseinstellungen');
+INSERT INTO txt VALUES ('U5415', 'English', 'Adapt your personal modelling settings');
 
 INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden Status l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
@@ -3398,16 +3406,18 @@ INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann 
     <a href="/help/settings/recertificationgeneral">Allgemeinen Rezertifizierungs-</a> und <a href="/help/settings/modelling">Modellierungseinstellungen</a>.
 ');
 INSERT INTO txt VALUES ('H5013', 'English', 'In the "Defaults" chapter the administrator can define <a href="/help/settings/defaults">Default Values</a> applicable to all users
-    and define <a href="/help/settings/email">email-</a>, <a href="/help/settings/importer">importer-</a> and  <a href="/help/settings/passwordpolicy">Password Policy</a> settings.
+    and define <a href="/help/settings/email">email-</a>, <a href="/help/settings/importer">importer-</a> and <a href="/help/settings/passwordpolicy">Password Policy</a> settings.
     Additionally there are the module specific <a href="/help/settings/recertificationgeneral">General Recertification</a> and <a href="/help/settings/modelling">Modelling Settings</a>.
 ');
 INSERT INTO txt VALUES ('H5014', 'German',  'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. Hier k&ouml;nnen das individuelle <a href="/help/settings/password">Password</a>,
     die bevorzugte <a href="/help/settings/language">Sprache</a> und <a href="/help/settings/report">Reporting</a>-Einstellungen gesetzt werden.
     Nutzer mit Rezertifizierer-Rolle k&ouml;nnen auch ihre <a href="/help/settings/recertificationpersonal">Rezertifizierungseinstellungen</a> anpassen.
+    Das gleiche gilt f&uuml;r Modellierer in den <a href="/help/settings/modellingpersonal">Modellierungseinstellungen</a>.
 ');
 INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessible by all users, where they can set their individual <a href="/help/settings/password">Password</a>,
     <a href="/help/settings/language">Language</a> and <a href="/help/settings/report">Reporting</a> preferences. 
     Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertificationpersonal">Recertification Setting</a>.
+    Same for modellers in the <a href="/help/settings/modellingpersonal">Modelling Settings</a>.
 ');
 INSERT INTO txt VALUES ('H5015', 'German',  'Das Kapitel "Workflow" dient dem Administrator, einen Workflow aufzusetzen. Dazu geh&ouml;rt die Definition der angebotenen <a href="/help/settings/stateactions">Aktionen</a>,
     der verwendeten <a href="/help/settings/statedefinitions">Stati</a> und den Status&uuml;berg&auml;ngen in den zentralen <a href="/help/settings/statematrix">Status-Matrizen</a>.
@@ -4310,8 +4320,12 @@ INSERT INTO txt VALUES ('H5603', 'German',  'Server in Verbindung erlauben: Steu
 INSERT INTO txt VALUES ('H5603', 'English', 'Allow Servers in Connection: Controls, if App Servers are offered in the Library besides the App Roles for direct use in the connections.');
 INSERT INTO txt VALUES ('H5604', 'German',  'Einfache Dienste in Verbindung erlauben: Steuert, ob in der Bibliothek neben den Servicegruppen auch einfache Services zur direkten Verwendung in den Verbindungen angeboten werden.');
 INSERT INTO txt VALUES ('H5604', 'English', 'Allow Simple Services in Connection: Controls, if simple Services are offered in the Library besides the Service Groups for direct use in the connections.');
-INSERT INTO txt VALUES ('H5605', 'German',  'Max. Anzahl Zeilen in &Uuml;bersicht: Definiert die Zeilenzahl innerhalb eines Eintrags in der &Uuml;bersichtstabelle der Verbindungen, ab der die Elemente eingeklappt dargestellt werden.');
-INSERT INTO txt VALUES ('H5605', 'English', 'Max. Number of Rows in Overview: Defines the number of rows inside an entry of the connections overview table, from which the elements are displayed retracted.');
+INSERT INTO txt VALUES ('H5605', 'German',  'Max. Anzahl Zeilen in &Uuml;bersicht: Definiert die Zeilenzahl innerhalb eines Eintrags in der &Uuml;bersichtstabelle der Verbindungen, ab der die Elemente eingeklappt dargestellt werden.
+    Wird vom Administrator allgemein vorausgew&auml;hlt, kann aber vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.
+');
+INSERT INTO txt VALUES ('H5605', 'English', 'Max. Number of Rows in Overview: Defines the number of rows inside an entry of the connections overview table, from which the elements are displayed retracted.
+    Generally set by the administrator but can be overwritten in the personal settings of the user.
+');
 INSERT INTO txt VALUES ('H5606', 'German',  'Netzwerkarea vorgeschrieben: Wenn dieses Flag gesetzt ist, m&uuml;ssen die auszuw&auml;hlenden App Server einer festen Area zugeordnet sein.
     Es werden dann beim Zusammenstellen einer App Rolle in der Bibliothek nur die der aktuell ausgew&auml;hlten Area zugeh&ouml;rigen App Server angeboten.
     F&uuml;r die Namensgebung der App Rolle wird dann die in den folgenden Punkten definierte Namenskonvention angewendet.
@@ -4373,6 +4387,15 @@ INSERT INTO txt VALUES ('H5616', 'German',  'Import Subnetzdaten-Start: Legt ein
 INSERT INTO txt VALUES ('H5616', 'English', 'Import Subnet data start at: Import App data start at: Defines a referential time from which the Subnte data import intervals are calculated.');
 INSERT INTO txt VALUES ('H5617', 'German',  'Reduzierten Protokollset darstellen: Nur eine begrenzte Zahl von Protokollen wird zur Auswahl angeboten (TCP, UDP, ICMP).');
 INSERT INTO txt VALUES ('H5617', 'English', 'Display reduced Protocol set: Offer only a reduced number of protocols for selection (TCP, UDP, ICMP).');
+INSERT INTO txt VALUES ('H5618', 'German',  'Nutzung von Piktogrammen: Vorzugsweise Nutzung von Piktogrammen wo sinnvoll. Wird vom Administrator allgemein vorausgew&auml;hlt, kann aber vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.');
+INSERT INTO txt VALUES ('H5618', 'English', 'Prefer use of Icons: Use icons where reasonnable. Generally set by the administrator but can be overwritten in the personal settings of the user.');
+INSERT INTO txt VALUES ('H5621', 'German',  'Ein Modellierer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Darstellung der Modellierung &uuml;berschreiben.
+    Ausgangswert ist der vom Admin in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> gesetzte Wert.
+');
+INSERT INTO txt VALUES ('H5621', 'English', 'A modeller can overwrite some personal settings for the modelling layout. 
+    The default value is set by the admin in the <a href="/help/settings/modelling">Modelling Settings</a>.
+');
+
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
     Die hier gemachten &Auml;nderungen werden in der UI beim n&auml;chsten Login sichtbar, bei Hilfetexten erst nach dem n&auml;chsten Restart.
@@ -4489,7 +4512,7 @@ INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uu
 INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
 INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
 INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');
-INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> definierten Pfaden und Namen gespeist.
+INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
 INSERT INTO txt VALUES ('H6921', 'English', 'The import of application data is fed from one or several .json files with paths and names defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
@@ -4531,7 +4554,7 @@ INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following mea
         </li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von Subnetzdaten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> definierten Pfad und Namen gespeist.
+INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von Subnetzdaten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfad und Namen gespeist.
     Dort kann auch ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Datei hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
 INSERT INTO txt VALUES ('H6931', 'English', 'The import of subnet data is fed from a .json file with path and name defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
@@ -5422,7 +5445,7 @@ INSERT INTO txt VALUES ('H9001', 'German',  'Insbesondere in gr&ouml;sseren Netz
     und ihre Elemente nach vorgegebenen Kriterien zu verkn&uuml;pfen. Dadurch wird ein Kommunikationsprofil erzeugt, bestehend aus einem Satz von <a href="/help/modelling/connections">Verbindungen und Schnittstellen</a>.<br>
     Zur Definition der Schnittstellen und Verbindungen wird auf der linken Seite eine Bibliothek bereitgestellt, in der zun&auml;chst die zur Applikation zugeordneten 
     (in der Regel aus Fremdsystemen <a href="/help/settings/modelling">importierten</a>) Host-Adressen (App-Server) angeboten werden. Diese k&ouml;nnen im ersten Schritt zu App-Rollen geb&uuml;ndelt werden (sh. <a href="/help/modelling/networkobjects">Netzwerkobjekte</a>).
-    Die App-Rollen (und je nach <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> auch die App-Server selbst) k&ouml;nnen dann als Quelle oder Ziel in die zu erstellende Verbindung &uuml;bertragen werden.
+    Die App-Rollen (und je nach <a href="/help/settings/modelling">Modellierungseinstellungen</a> auch die App-Server selbst) k&ouml;nnen dann als Quelle oder Ziel in die zu erstellende Verbindung &uuml;bertragen werden.
     Hinzu k&ouml;nnen noch weitere Objekte (z. B. Netzwerke) kommen, und es k&ouml;nnen (interne und externe) Schnittstellen eingebunden werden.<br>
     Desweiteren werden in der Bibliothek vordefinierte (vom Administrator eingestellte) <a href="/help/modelling/services">Dienste</a> angeboten. Diese k&ouml;nnen durch selbst definierte Dienste erg&auml;nzt, 
     als Dienstgruppen geb&uuml;ndelt und dann in den zu definierenden Verbindungen verwendet werden.
@@ -5502,7 +5525,7 @@ INSERT INTO txt VALUES ('H9032', 'English', 'App Server: Elementary components (
     (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/appdataimport">Import Interface</a>), but can also be created manually by the administrator.
     Depending on the settings (according to company requirements) App Servers can be used directly in the connections or have to be bundled in App Roles first.
 ');
-INSERT INTO txt VALUES ('H9033', 'German',  'App-Rollen: Dienen der B&uuml;ndelung von App-Servern. Falls in den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> so vorgesehen,
+INSERT INTO txt VALUES ('H9033', 'German',  'App-Rollen: Dienen der B&uuml;ndelung von App-Servern. Falls in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> so vorgesehen,
     m&uuml;ssen sie einer Netzwerkarea zugeh&ouml;ren. Beim Erstellen der App-Rolle muss dann zun&auml;chst eine Area ausgew&auml;hlt werden, nur von dieser werden dann die App-Server in der Bibliothek angeboten.
     Die Namen der App-Rollen m&uuml;ssen dann einer ebenfalls in den Einstellungen vorgegebenen Namenskonvention folgen.
 ');
@@ -5516,7 +5539,7 @@ INSERT INTO txt VALUES ('H9034', 'German',  'Netzwerkareas: Werden &uuml;ber die
 INSERT INTO txt VALUES ('H9034', 'English', 'Network Areas: Are imported via the Subnet Data Import Interface (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/subnetdataimport">Import Interface</a>).
     They can be searched an selected from the library and then used for source and destination of the connections.
 ');
-INSERT INTO txt VALUES ('H9041', 'German',  'Es wird zwischen einfachen Diensten und Dienstgruppen unterschieden. In den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a>
+INSERT INTO txt VALUES ('H9041', 'German',  'Es wird zwischen einfachen Diensten und Dienstgruppen unterschieden. In den <a href="/help/settings/modelling">Modellierungseinstellungen</a>
     kann festgelegt werden, dass nur Dienstgruppen in der Definition von Verbindungen genutzt werden k&ouml;nnen, ansonsten sind auch einfache Dienste zugelassen.
 ');
 INSERT INTO txt VALUES ('H9041', 'English', 'There is a differentiation between simple services and Service Groups. It can be defined in the <a href="/help/settings/modelling">Modelling Settings</a>,

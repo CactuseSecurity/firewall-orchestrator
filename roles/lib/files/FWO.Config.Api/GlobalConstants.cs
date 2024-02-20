@@ -39,4 +39,14 @@ namespace FWO.Config.Api
         public const string kImplementer = "implementer";
         public const string kReviewer = "reviewer";
     }
+    
+    public struct Icons
+    {
+        public const string Add = "oi-plus";
+        public const string Edit = "oi-wrench";
+        public const string Delete = "oi-trash";
+        public const string Search = "oi-magnifying-glass";
+        public const string Use = "oi-arrow-thick-right";
+        public const string Unuse = "oi-arrow-thick-left";
+    }
 }

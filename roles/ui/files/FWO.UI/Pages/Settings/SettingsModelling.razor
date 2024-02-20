@@ -12,7 +12,7 @@
 @inject UserConfig userConfig
 
 <div class="input-group">
-    <h3>@(userConfig.GetText("network_modelling"))</h3>
+    <h3>@(userConfig.GetText("modelling_settings"))</h3>
     <HelpLink Page="settings/modelling"/>
 </div>
 @(userConfig.GetText("U5322"))
@@ -40,8 +40,14 @@
         </div>
         <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5605"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines")):</label>
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines"))*:</label>
                 <input type="number" min="0" class="col-sm-3" @bind="configData!.OverviewDisplayLines" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("modIconify"))*:</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" class="w-100" @bind="configData!.ModIconify">
+                </div>
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("reducedProtocolSet")):</label>
@@ -126,7 +132,7 @@
         </NotAuthorized> 
     </AuthorizeView>
     <br><br>
-    @* <p>@(userConfig.GetText("U5303"))</p> *@
+    <p>@(userConfig.GetText("U5303"))</p>
 }
 else
 {
@@ -199,7 +205,7 @@ else
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 PathsToDelete = new();
                 PathsToAdd = new();
-                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
             else
             {
@@ -208,7 +214,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
         }
     }
 }

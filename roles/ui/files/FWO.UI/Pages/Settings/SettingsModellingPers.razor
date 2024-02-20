@@ -1,0 +1,85 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using System.Text.Json
+@using FWO.Ui.Pages.NetworkModelling
+
+@page "/settings/modellingpersonal"
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kModeller}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("modelling_settings"))</h3>
+    <HelpLink Page="settings/modellingpersonal"/>
+</div>
+@(userConfig.GetText("U5415"))
+<hr />
+
+@if (configData != null)
+{
+    <form onsubmit="return false">
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5605"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines")):</label>
+                <input type="number" min="0" class="col-sm-3" @bind="configData!.OverviewDisplayLines" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("modIconify")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" class="w-100" @bind="configData!.ModIconify">
+                </div>
+            </div>
+        </div>
+    </form>
+    <hr />
+    <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await userConfig.GetEditableConfig();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+    private async Task Save()
+    {
+        try
+        {
+            if (configData != null)
+            {
+                await userConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new Exception("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
+        }
+    }
+}

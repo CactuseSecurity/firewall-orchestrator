@@ -139,7 +139,7 @@
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
             if(connectedLdaps.Count > 0)
             {
-                selectedLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? connectedLdaps.First();
+                selectedLdap = connectedLdaps.First();
             }
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);

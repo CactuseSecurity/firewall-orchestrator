@@ -12,7 +12,7 @@
 @inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>@(userConfig.GetText("modelling"))</h3>
+    <h3>@(userConfig.GetText("modelling_settings"))</h3>
     @(Html.Raw(userConfig.GetText("H5601")))
     <br><br>
     @(Html.Raw(userConfig.GetText("general")))
@@ -21,6 +21,7 @@
         <li>@(Html.Raw(userConfig.GetText("H5603")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5604")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5605")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5618")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5617")))</li>
     </ul>
     @(Html.Raw(userConfig.GetText("naming_convention")))

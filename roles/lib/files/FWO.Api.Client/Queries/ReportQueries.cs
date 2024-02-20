@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.IO;
-using FWO.Logging;
+﻿using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -11,7 +6,7 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string getReportTemplates;
         public static readonly string addReportTemplate;
-        public static readonly string editReportTemplate;
+        public static readonly string updateReportTemplate;
         public static readonly string deleteReportTemplate;
 
         public static readonly string subscribeReportScheduleChanges;
@@ -35,6 +30,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string addGeneratedReport;
 
         public static readonly string getUsageDataCount;
+        public static readonly string getImportsToNotify;
+        public static readonly string setImportsNotified;
 
         static ReportQueries() 
         {
@@ -53,7 +50,7 @@ namespace FWO.Api.Client.Queries
                 getRelevantImportIdsAtTime = File.ReadAllText(QueryPath + "report/getRelevantImportIdsAtTime.graphql");
                 statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrent.graphql");
                 statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrentOverall.graphql");
-                editReportTemplate = File.ReadAllText(QueryPath + "report/editReportTemplate.graphql");
+                updateReportTemplate = File.ReadAllText(QueryPath + "report/updateReportTemplate.graphql");
                 deleteReportTemplate = File.ReadAllText(QueryPath + "report/deleteReportTemplate.graphql");
                 subscribeReportScheduleChanges = File.ReadAllText(QueryPath + "report/subscribeReportScheduleChanges.graphql");
                 subscribeGeneratedReportsChanges = File.ReadAllText(QueryPath + "report/subscribeGeneratedReportsChanges.graphql");
@@ -62,6 +59,8 @@ namespace FWO.Api.Client.Queries
                 deleteGeneratedReport = File.ReadAllText(QueryPath + "report/deleteGeneratedReport.graphql");
                 addGeneratedReport = File.ReadAllText(QueryPath + "report/addGeneratedReport.graphql");
                 getUsageDataCount = File.ReadAllText(QueryPath + "report/getUsageDataCount.graphql");
+                getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotify.graphql");
+                setImportsNotified = File.ReadAllText(QueryPath + "report/setImportsNotified.graphql");
             }
             catch (Exception exception)
             {

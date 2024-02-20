@@ -3,69 +3,97 @@
 @using FWO.Config.Api.Data
 
 @page "/settings/importer"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("importer_settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("importer_settings"))</h3>
+    <HelpLink Page="settings/importer"/>
+</div>
 @(userConfig.GetText("U5311"))
 <hr />
 
 @if (configData != null)
 {
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
+    <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5496"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5497"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5498"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5499"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5483"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.ImpChangeNotifyActive" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5484"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
+            <div class="col-sm-4">
+                <Dropdown @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                        Elements="Enum.GetValues(typeof(ImpChangeNotificationType)).Cast<ImpChangeNotificationType>()" >
+                    <ElementTemplate Context="type">
+                        @(userConfig.GetText(type.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5485"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.ImpChangeNotifySleepTime" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5486"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyStartAt")):</label>
+            <div class="col-sm-2">
+                <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImpChangeNotifyStartAt" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5487"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyRecipients")):</label>
+            <div class="col-sm-7" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
+                <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifyRecipients" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5488"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySubject")):</label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifySubject" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5489"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyBody")):</label>
+            <div class="col-sm-7">
+                <textarea rows="6" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("impChangeNotifyBody")) @bind="configData!.ImpChangeNotifyBody"></textarea>
+            </div>
         </div>
     </form>
     <hr />
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImpChangeNotifyActive" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyRecipients")):</label>
-        <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
-            <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifyRecipients" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySubject")):</label>
-        <div class="col-sm-2">
-            <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifySubject" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyBody")):</label>
-        <div class="col-sm-2">
-            <textarea rows="6" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("impChangeNotifyBody")) @bind="configData!.ImpChangeNotifyBody"></textarea>
-        </div>
-    </form>
-    <hr />
-    <AuthorizeView Roles="admin">
+    <AuthorizeView Roles="@GlobalConst.kAdmin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
@@ -90,6 +118,7 @@ else
 
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
+    private ImpChangeNotificationType selectedImpChgNotType;
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,6 +126,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
+            selectedImpChgNotType = (ImpChangeNotificationType)configData.ImpChangeNotifyType;
         }
         catch (Exception exception)
         {
@@ -111,6 +141,7 @@ else
             if (configData != null)
             {
                 configData.DefaultLanguage = selectedLanguage.Name;
+                configData.ImpChangeNotifyType = (int)selectedImpChgNotType;
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

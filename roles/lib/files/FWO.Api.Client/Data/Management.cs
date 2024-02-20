@@ -53,9 +53,6 @@ namespace FWO.Api.Data
         [JsonProperty("debugLevel"), JsonPropertyName("debugLevel")]
         public int? DebugLevel { get; set; }
 
-        [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
-        public int TenantId { get; set; }
-
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public Device[] Devices { get; set; } = new Device[]{};
 
@@ -128,7 +125,6 @@ namespace FWO.Api.Data
             HideInUi = management.HideInUi;
             Comment = management.Comment;
             DebugLevel = management.DebugLevel;
-            TenantId = management.TenantId;
             Devices = management.Devices;
             Objects = management.Objects;
             Services = management.Services;

@@ -4,13 +4,13 @@
 @using FWO.Middleware.Client
 
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("assign1") + ": " + ObjectName)" Show="@Display" Large="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("assign1") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Large OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -27,7 +27,7 @@
                     @if(userAndGroupList.Count > 0)
                     {
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="admin, fw-admin, requester, approver, planner, implementer, reviewer">
+                            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}")">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="async () => { PrepAssign(); await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
                                 </Authorized>
@@ -45,7 +45,7 @@
                     <form class="form-group row">
                         <label for="backAssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
                         <label id="backAssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
-                        <AuthorizeView Roles="admin, fw-admin, requester, approver, planner, implementer, reviewer">
+                        <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
                             </Authorized>

@@ -1,11 +1,11 @@
 ﻿@using FWO.Config.Api
 
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kModeller}")]
 
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(Title)" Show="@Display" OnClose="Cancel">
+<PopUp Title="@(Title)" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
     <Body>
         @if (Display)
         {
@@ -16,14 +16,21 @@
         <div class="btn-group">
             @if (DeleteAllowed)
             {
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
+                @if(Enabled)
+                {
+                    <AuthorizeView Roles="@AllowedRoles">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                        </NotAuthorized> 
+                    </AuthorizeView>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                }
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -50,6 +57,16 @@
 
     [Parameter]
     public bool DeleteAllowed { get; set; } = true;
+
+    [Parameter]
+    public string AllowedRoles { get; set; } = GlobalConst.kAdmin;
+
+    [Parameter]
+    public bool Remove { get; set; } = false;
+
+    [Parameter]
+    public bool Enabled { get; set; } = true;
+
 
     private void Cancel()
     {

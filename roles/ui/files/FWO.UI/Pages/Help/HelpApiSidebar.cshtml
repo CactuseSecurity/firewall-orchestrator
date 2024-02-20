@@ -1,10 +1,10 @@
 ﻿@using FWO.Config.Api
 @inject UserConfig userConfig
 
-<nav class="sidebar fixed sidebar-dark bg-dark shadow">
-    <div class="sidebar-main d-flex flex-row" style="left:0px;">
-        <div class="sidebar-dark bg-dark" style="width:250px; overflow-x:scroll;">
-            <ul class="sidebar-nav mr-auto">
+<nav class="sidebar fixed sidebar-help shadow">
+    <div class="sidebar-help d-flex flex-row" style="left:0px;">
+        <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
+            <ul class="sidebar-nav sidebar-help me-auto">
                 <p></p>
                 <h5>@userConfig.GetText("api_general")</h5>
                 <a class="nav-link" href="/help/API/security/?lang=@($"{userConfig.User.Language}")">
@@ -16,11 +16,13 @@
                 <a class="nav-link" href="/help/API/logout/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-account-logout"></span> @userConfig.GetText("logout")
                 </a>
+                <p></p>
 
                 <h5>@userConfig.GetText("api_user_mgmt")</h5>
                 <a class="nav-link" href="/help/API/userAuth/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-command"></span> @userConfig.GetText("api_user_mgmt_head")
                 </a>
+                <p></p>
 
                 <h5>@userConfig.GetText("api_fwo")</h5>
                 <a class="nav-link" href="/help/API/graphql/?lang=@($"{userConfig.User.Language}")">
@@ -41,6 +43,15 @@
                 </a>
                 <a class="nav-link" href="/help/API/reporting/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-spreadsheet"></span> @userConfig.GetText("reporting")
+                </a>
+                <p></p>
+
+                <h5>@userConfig.GetText("import_interfaces")</h5>
+                <a class="nav-link" href="/help/API/appdataimport/?lang=@($"{userConfig.User.Language}")">
+                    <span class="oi oi-people"></span> @userConfig.GetText("import_app_data")
+                </a>
+                <a class="nav-link" href="/help/API/subnetdataimport/?lang=@($"{userConfig.User.Language}")">
+                    <span class="oi oi-folder"></span> @userConfig.GetText("import_subnet_data")
                 </a>
             </ul>
         </div>

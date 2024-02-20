@@ -24,8 +24,6 @@ def api_call(url, show_progress=False):
         pass # logger.warning('received empty result')
     if fwo_globals.debug_level>2:
         logger.debug("api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2))
-        if show_progress:
-            print('.', end='', flush=True)
     return result_json
 
 

@@ -2,6 +2,7 @@
 using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Config.File;
+using FWO.Config.Api;
 using FWO.Api.Data;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json; 
@@ -83,6 +84,7 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteDebug("User not found", $"Couldn't find {user.Name} in internal database");
                 }
+                await GetOwnerships(apiConn, user);
             }
             catch(Exception exeption)
             {
@@ -97,6 +99,39 @@ namespace FWO.Middleware.Server
             return user;
         }
 
+        private static async Task GetOwnerships(ApiConnection apiConn, UiUser user)
+        {
+            try
+            {
+                List<FwoOwner> dirOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new { userDn = user.Dn });
+                foreach(var owner in dirOwnerships)
+                {
+                    user.Ownerships.Add(owner.Id);
+                }
+
+                if(user.Groups != null)
+                {
+                    List<FwoOwner> apps = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+                    foreach(var grp in user.Groups)
+                    {
+                        string grpName = new DistName(grp).Group;
+                        if (grpName.StartsWith(GlobalConst.kModellerGroup))
+                        {
+                            FwoOwner? owner = apps.FirstOrDefault(x => x.ExtAppId == grpName.Substring(GlobalConst.kModellerGroup.Length));
+                            if (owner != null)
+                            {
+                                user.Ownerships.Add(owner.Id);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception exeption)
+            {
+                Log.WriteError("Get ownerships", $"Ownerships could not be detemined for User {user.Name}.", exeption);
+            }
+        }
+
         private static async Task AddUiUserToDb(ApiConnection apiConn, UiUser user)
         {
             try
@@ -107,7 +142,7 @@ namespace FWO.Middleware.Server
                     uuid = user.Dn, 
                     uiuser_username = user.Name,
                     email = user.Email,
-                    tenant = (user.Tenant != null ? user.Tenant.Id : (int?)null),
+                    tenant = user.Tenant != null ? user.Tenant.Id : (int?)null,
                     loginTime = DateTime.UtcNow,
                     passwordMustBeChanged = false,
                     ldapConnectionId = user.LdapConnection.Id

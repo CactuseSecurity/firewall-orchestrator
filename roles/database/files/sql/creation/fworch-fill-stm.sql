@@ -71,6 +71,15 @@ insert into config (config_key, config_value, config_user) VALUES ('reqActivateP
 insert into config (config_key, config_value, config_user) VALUES ('unusedTolerance', '400', 0);
 insert into config (config_key, config_value, config_user) VALUES ('creationTolerance', '90', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleOwnershipMode', 'mixed', 0);
+insert into config (config_key, config_value, config_user) VALUES ('allowServerInConn', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('allowServiceInConn', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importAppDataStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importAppDataSleepTime', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataSleepTime', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importAppDataPath', '[]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modNamingConvention', '{"networkAreaRequired":false,"fixedPartLength":0,"freePartLength":0,"networkAreaPattern":"","appRolePattern":""}', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

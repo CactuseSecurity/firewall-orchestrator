@@ -38,11 +38,11 @@ namespace FWO.Api.Data
         [JsonProperty("ldap_connection"), JsonPropertyName("ldap_connection")]
         public UiLdapConnection LdapConnection { get; set;} = new UiLdapConnection();
 
-        public List<string> Roles { get; set; } = new List<string>();
-
         public string Jwt { get; set; } = "";
+        public List<string> Roles { get; set; } = new();
+        public List<string> Groups { get; set; } = new();
+        public List<int> Ownerships { get; set; } = new();
 
-        public List<string> Groups { get; set; } = new List<string>();
 
         public UiUser()
         {
@@ -64,6 +64,7 @@ namespace FWO.Api.Data
             Language = user.Language;
             Groups = user.Groups;
             Roles = user.Roles;
+            Ownerships = user.Ownerships;
             if (user.LdapConnection != null)
             {
                 LdapConnection = new UiLdapConnection(user.LdapConnection);
@@ -109,13 +110,23 @@ namespace FWO.Api.Data
                 UserId = this.DbId,
                 UserDn = this.Dn,
                 Email = this.Email,
-                TenantId = (this.Tenant != null ? this.Tenant.Id : 0),
+                TenantId = this.Tenant != null ? this.Tenant.Id : 0,
                 Language = this.Language,
                 LastLogin = this.LastLogin,
                 LastPasswordChange = this.LastPasswordChange,
                 PwChangeRequired = this.PasswordMustBeChanged,
                 LdapId = this.LdapConnection.Id
             };
+        }
+
+        public string RoleList()
+        {
+            return string.Join(", ", Roles);
+        }
+
+        public string GroupList()
+        {
+            return string.Join(", ", Groups);
         }
     }
 }

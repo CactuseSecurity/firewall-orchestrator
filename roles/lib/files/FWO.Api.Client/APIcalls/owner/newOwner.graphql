@@ -6,6 +6,9 @@ mutation newOwner(
   $recertInterval: Int
   $appIdExternal: String!
   $recertCheckParams: String
+  $criticality: String
+  $importSource: String
+  $commSvcPossible: Boolean
   ) {
   insert_owner(objects: {
     name: $name
@@ -15,6 +18,9 @@ mutation newOwner(
     recert_interval: $recertInterval
     app_id_external: $appIdExternal
     recert_check_params: $recertCheckParams
+    criticality: $criticality
+    import_source: $importSource
+    common_service_possible: $commSvcPossible
   }) {
     returning {
       newId: id

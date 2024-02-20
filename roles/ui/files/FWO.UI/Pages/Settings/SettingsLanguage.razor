@@ -3,24 +3,29 @@
 @using FWO.Api.Client
 
 @page "/settings/language"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, modeller, recertifier, auditor, fw-admin, requester, approver, planner, implementer, reviewer")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kModeller}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<h3>@(userConfig.GetText("language_settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("language_settings"))</h3>
+    <HelpLink Page="settings/language"/>
+</div>
 @(userConfig.GetText("U5412"))
 <hr />
 
-<form class="form-inline">
-    <label class="col-form-label mr-2">@(userConfig.GetText("language"))</label>
-    <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
-        <ElementTemplate Context="language">
-            @(userConfig.GetText(language.Name))
-        </ElementTemplate>
-    </Dropdown>
-</form>
+<div class="form-group row">
+    <label class="col-form-label col-sm-2">@(userConfig.GetText("language"))</label>
+    <div class="col-sm-4">
+        <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
+            <ElementTemplate Context="language">
+                @(userConfig.GetText(language.Name))
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+</div>
 <hr />
 <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
 

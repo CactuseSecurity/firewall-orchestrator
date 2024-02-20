@@ -13,9 +13,9 @@
     msg: "unit_test_scripts: {{ unit_test_scripts | to_nice_json }}"
 
 - name: run db unit tests
-  postgresql_query:
+  community.postgresql.postgresql_script:
     db: "{{ fworch_db_name }}"
-    path_to_script: "{{ database_install_dir }}/sql/test/{{ item }}"
+    path: "{{ database_install_dir }}/sql/test/{{ item }}"
   become: true
   become_user: "postgres"
   register: testresults

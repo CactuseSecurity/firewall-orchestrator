@@ -5,18 +5,18 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title></title>
+    <title>Online Help FWORCH</title>
+    <link rel="stylesheet" href="/css/bootstrap/bootstrap.min.css">
     <link href="/css/site.css" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" href="~/css/bootstrap/bootstrap.min.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-sm navbar-dark bg-dark shadow w-100 sticky-top">
+    <nav class="navbar bg-gray navbar-help navbar-expand-sm shadow w-100 sticky-top">  
         <a class="navbar-brand" href="/help/?lang=@($"{userConfig.GetUserLanguage()}")">
             <img src="/images/FWO_logo_navbar.png">&nbsp;@userConfig.GetText("fworch_long")
         </a>
 
         <div class="navbar-collapse ">
-            <ul class="navbar-nav mr-auto">
+            <ul class="navbar-nav me-auto">
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/reporting/?lang=@($"{userConfig.GetUserLanguage()}")">
                         <span class="oi oi-spreadsheet"></span> @userConfig.GetText("reporting")
@@ -30,6 +30,11 @@
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/recertification/?lang=@($"{userConfig.GetUserLanguage()}")">
                         <span class="oi oi-badge"></span> @userConfig.GetText("recertification")
+                    </a>
+                </li>
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">
+                        <span class="oi oi-puzzle-piece"></span> @userConfig.GetText("modelling")
                     </a>
                 </li>
                 <li class="nav-item px-2">
@@ -51,7 +56,7 @@
         </div>
     </nav>
     @RenderSection("sidebar", false)
-    <div style="margin-left: 350px">
+    <div style="margin-left: 350px; margin-top: 100px; margin-right: 100px">
         @RenderBody()
     </div>
 </body>

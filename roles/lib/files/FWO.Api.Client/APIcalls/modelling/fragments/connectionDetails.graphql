@@ -1,0 +1,41 @@
+fragment connectionDetails on modelling_connection {
+  id
+  app_id
+  name
+  reason
+  is_interface
+  used_interface_id
+  common_service
+  creator
+  creation_date
+  source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){
+    owner_network{
+      ...appServerDetails
+    }
+  }
+  source_approles: nwgroup_connections (where: { connection_field: { _eq: 1 } }){
+    nwgroup{
+      ...appRoleDetails
+    }
+  }
+  destination_nwobjects: nwobject_connections (where: { connection_field: { _eq: 2 } }){
+    owner_network{
+      ...appServerDetails
+    }
+  }
+  destination_approles: nwgroup_connections (where: { connection_field: { _eq: 2 } }){
+    nwgroup{
+      ...appRoleDetails
+    }
+  }
+  service_groups: service_group_connections{
+    service_group{
+      ...serviceGroupDetails
+    }
+  }
+  services: service_connections{
+    service{
+      ...serviceDetails
+    }
+  }
+}

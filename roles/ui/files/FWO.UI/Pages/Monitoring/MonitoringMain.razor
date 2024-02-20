@@ -8,7 +8,7 @@
 
 @page "/monitoring"
 @page "/monitoring/main"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, modeller, recertifier, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kModeller}, {GlobalConst.kRecertifier}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -18,62 +18,75 @@
 @(userConfig.GetText("U7001"))
 <hr />
 
-<AuthorizeView Roles="admin, fw-admin, auditor">
+<AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")">
     <h5>@(userConfig.GetText("open_alerts"))</h5>
-    @if(alertEntrys.Count == 0)
+    @if(InitComplete)
     {
-        @(userConfig.GetText("no_open_alerts"))
+        @if(alertEntrys.Count == 0)
+        {
+            @(userConfig.GetText("no_open_alerts"))
+        }
+        else
+        {
+            <div class="vheight75">
+                <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
+                    <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
+                        <Template>
+                            <div class="btn-group">
+                                @if(alert.Source == GlobalConst.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
+                                }
+                                else if(alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
+                                }
+                                else if(alert.AlertCode == AlertCode.ImportRunningTooLong)
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
+                                }
+                                else if(alert.AlertCode == AlertCode.SampleDataExisting)
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
+                                }
+                                
+                                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
+                                    <Authorized Context="ctx">
+                                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
+                                    </Authorized>
+                                    <NotAuthorized Context="ctx">
+                                        <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
+                                    </NotAuthorized> 
+                                </AuthorizeView>
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true"/>
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" Sortable="true" Filterable="true"/>
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
+                    <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
+                        <Template>
+                            @(managements.FirstOrDefault(x => x.Id == alert.ManagementId)?.Name)
+                        </Template>
+                    </Column>
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                </Table>
+            </div>
+        }
     }
     else
     {
-        <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
-            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
-                <Template>
-                    @if(alert.Source == GlobalConfig.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
-                    }
-                    else if(alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
-                    }
-                    else if(alert.AlertCode == AlertCode.ImportRunningTooLong)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
-                    }
-                    else if(alert.AlertCode == AlertCode.SampleDataExisting)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
-                    }
-                    
-                    <AuthorizeView Roles="admin, fw-admin">
-                        <Authorized Context="ctx">
-                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
-                        </Authorized>
-                        <NotAuthorized Context="ctx">
-                            <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
-                </Template>
-            </Column>
-            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
-            <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
-            <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
-            <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true"/>
-            <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" Sortable="true" Filterable="true"/>
-            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
-            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
-                <Template>
-                    @(managements.FirstOrDefault(x => x.Id == alert.ManagementId)?.Name)
-                </Template>
-            </Column>
-            <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
-            <Pager ShowPageNumber="true" ShowTotalCount="true" />
-        </Table>
+        <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
     }
 </AuthorizeView>
 
@@ -100,6 +113,7 @@
     private bool RemoveSampleDataMode = false;
     private Alert actAlert = new Alert();
     private bool workInProgress = false;
+    private bool InitComplete = false;
  
     protected override async Task OnInitializedAsync()
     {
@@ -107,9 +121,9 @@
         {
             JwtReader jwt = new JwtReader(userConfig.User.Jwt);
             jwt.Validate();
-            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin") || jwt.ContainsAllowedRole("auditor"))
+            if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin) || jwt.ContainsAllowedRole(GlobalConst.kAuditor))
             {
-                if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin))
                 {
                     managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
                 }
@@ -119,6 +133,7 @@
                 }
                 await Refresh();
             }
+            InitComplete = true;
         }
         catch (Exception exception)
         {
@@ -214,7 +229,7 @@
             jwt.Validate();
 
             List<Management> managements = new List<Management>();
-            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+            if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin))
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
@@ -309,7 +324,7 @@
             }
             if(deletedSampleCredentials > 0)
             {
-                text += $"{deletedSampleCredentials} " + userConfig.GetText("credential");
+                text += $"{deletedSampleCredentials} " + userConfig.GetText("credentials");
             }
             if(deletedSampleUsers > 0)
             {

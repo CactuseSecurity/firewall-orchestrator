@@ -2,3 +2,4 @@
 .idea/
 .test_data/
 roles/importer/venv/
+ansible_venv/

@@ -8,14 +8,14 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" XLarge="true"  OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
             @if(somethingToDo)
             {
                 <h6>@(userConfig.GetText("managements"))</h6>
-                <Table class="table table-bordered table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
                     <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
                             @if(!context.Ignore)
@@ -29,7 +29,7 @@
                                     }
                                     else
                                     {
-                                        <AuthorizeView Roles="admin, fw-admin">
+                                        <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
                                             <Authorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => ChangeManagementState(context, true)">@(userConfig.GetText("disable"))</button>
                                                 <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteManagement(context)">@(userConfig.GetText("delete"))</button>
@@ -43,7 +43,7 @@
                                 }
                                 else
                                 {
-                                    <AuthorizeView Roles="admin, fw-admin">
+                                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
                                         <Authorized Context="ctx">
                                             <button type="button" class="btn btn-sm btn-success" @onclick="() => ConfirmManagement(context)">@(userConfig.GetText("add"))</button>
                                         </Authorized>
@@ -66,14 +66,14 @@
                         <Template>
                             @if(context.Devices.Count() > 0)
                             {
-                                <Table class="table table-bordered table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
+                                <Table class="table table-bordered th-bg-secondary table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
                                     <Column TableItem="Device" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                                         <Template Context="Dev">
                                             @if(Dev.Relevant)
                                             {
                                                 @if(Dev.Delete)
                                                 {
-                                                    <AuthorizeView Roles="admin, fw-admin">
+                                                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
                                                         <Authorized Context="ctx">
                                                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => ChangeDeviceState(Dev, true)">@(userConfig.GetText("disable"))</button>
                                                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteDevice(Dev)">@(userConfig.GetText("delete"))</button>
@@ -92,7 +92,7 @@
                                                     }
                                                     else
                                                     {                    
-                                                        <AuthorizeView Roles="admin, fw-admin">
+                                                        <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
                                                             <Authorized Context="ctx">
                                                                 <button type="button" class="btn btn-sm btn-success" @onclick="() => ConfirmDevice(Dev)">@(userConfig.GetText("add"))</button>
                                                             </Authorized>
@@ -127,7 +127,7 @@
         <div class="btn-group">
             @if(actAlertId != null)
             {
-                <AuthorizeView Roles="admin, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
                     <Authorized Context="ctx">
                         <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => {await AcknowledgeAlert(actAlertId); await Close();}">@(userConfig.GetText("acknowledge"))</button>
                     </Authorized>
@@ -138,7 +138,7 @@
             }
             else if(somethingToDo)
             {
-                <AuthorizeView Roles="admin, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
                     <Authorized Context="ctx">
                         <button type="button" class="btn btn-sm btn-warning" @onclick="async () => {await doAllChanges(); await Close();}">@(userConfig.GetText("do_all_changes"))</button>
                     </Authorized>

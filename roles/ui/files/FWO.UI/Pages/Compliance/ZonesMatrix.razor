@@ -5,7 +5,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<div class="ml-2 mb-3">
+<div class="ms-2 mb-3">
     <h3>@userConfig.GetText("zone_comm_matrix")</h3>
     @if (zones.Length > 0)
     {
@@ -13,7 +13,7 @@
         {
             <div class="btn-group" role="group">
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
-                <AuthorizeView Roles="admin, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
                     </Authorized>
@@ -25,8 +25,8 @@
         }
         else
         {
-            <AuthorizeView Roles="admin, fw-admin, auditor">
-                <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")">
+                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
             </AuthorizeView>
         }
     }
@@ -43,7 +43,7 @@
         </tr>
         <tr>
             <td>
-                <div class="ml-3"></div> @*Hacky fix because of a firefox display bug
+                <div class="ms-3"></div> @*Hacky fix because of a firefox display bug
             resulting in the text being diplayed inside of the table.*@
                 <div class="direction-info text-rotated">@(userConfig.GetText("source"))</div>
             </td>

@@ -4,198 +4,203 @@
 @using FWO.Recert
 
 @page "/settings/recertificationgeneral"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("recert_settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("recert_settings"))</h3>
+    <HelpLink Page="settings/recertificationgeneral"/>
+</div>
 @(userConfig.GetText("U5311"))
 <hr />
 
 @if (configData != null)
 {
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RecertificationPeriod" />
+    <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5417"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RecertificationPeriod" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationNoticePeriod")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RecertificationNoticePeriod" />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5418"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationNoticePeriod")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RecertificationNoticePeriod" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod"))*:</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RecertificationDisplayPeriod" />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5419"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod"))*:</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RecertificationDisplayPeriod" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleRemovalGracePeriod")):</label>
-        <div class="col-sm-2">
-            <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RuleRemovalGracePeriod" />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5420"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleRemovalGracePeriod")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.RuleRemovalGracePeriod" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.CommentRequired" />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5421"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.CommentRequired" />
+            </div>
         </div>
-    </form>
-    <hr />
-    <form class="form-inline">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckActive")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.RecCheckActive" />
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5428"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckActive")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.RecCheckActive" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recert_check_every"))*:</label>
-        <div class="col-sm-8">
-            <div class="form-group row">
-                <div class="col-sm-2">
-                    <input type="number" min="1" class="form-control form-control-sm" @bind="recCheckParams.RecertCheckOffset" />
-                </div>
-                <div class="col-sm-4">
-                    <Dropdown @bind-SelectedElement="recCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never && x != Interval.Years))" >
-                        <ElementTemplate Context="interval">
-                            @(userConfig.GetText(interval.ToString()))
-                        </ElementTemplate>
-                    </Dropdown>
-                </div>
-                @if(recCheckParams.RecertCheckInterval == Interval.Weeks)
-                {
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5429"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recert_check_every"))*:</label>
+            <div class="col-sm-8">
+                <div class="form-group row">
+                    <div class="col-sm-2">
+                        <input type="number" min="1" class="form-control form-control-sm" @bind="recCheckParams.RecertCheckOffset" />
+                    </div>
                     <div class="col-sm-4">
-                        <Dropdown ElementType="DayOfWeek?" ElementToString="@(d => userConfig.GetText(d?.ToString() ?? "undefined"))" @bind-SelectedElement="selectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
-                            <ElementTemplate Context="weekday">
-                                @(weekday != null ? userConfig.GetText(weekday.ToString() ?? "undefined") : "-")
+                        <Dropdown @bind-SelectedElement="recCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never && x != Interval.Years))" >
+                            <ElementTemplate Context="interval">
+                                @(userConfig.GetText(interval.ToString()))
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                }
-                else if(recCheckParams.RecertCheckInterval == Interval.Months)
-                {
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
-                    <div class="col-sm-2">
-                        <input type="number" min="0" max="31" class="form-control form-control-sm" @bind="recCheckParams.RecertCheckDayOfMonth" />
-                    </div>
-                }
+                    @if(recCheckParams.RecertCheckInterval == Interval.Weeks)
+                    {
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                        <div class="col-sm-4">
+                            <Dropdown ElementType="DayOfWeek?" ElementToString="@(d => userConfig.GetText(d?.ToString() ?? "undefined"))" @bind-SelectedElement="selectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
+                                <ElementTemplate Context="weekday">
+                                    @(weekday != null ? userConfig.GetText(weekday.ToString() ?? "undefined") : "-")
+                                </ElementTemplate>
+                            </Dropdown>
+                        </div>
+                    }
+                    else if(recCheckParams.RecertCheckInterval == Interval.Months)
+                    {
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                        <div class="col-sm-2">
+                            <input type="number" min="0" max="31" class="form-control form-control-sm" @bind="recCheckParams.RecertCheckDayOfMonth" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5430"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailSubject")):</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailSubject" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5446"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailUpcomingText")):</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailUpcomingText" />
+            </div>
+        </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5432"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailOverdueText")):</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailOverdueText" />
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5433"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" class="w-100" @bind="configData!.RecAutoCreateDeleteTicket" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5434"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketTitle")):</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketTitle" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5435"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketReason")):</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketReason" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5436"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskTitle")):</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskTitle" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5437"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskReason")):</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskReason" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5438"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketPriority")):</label>
+            <div class="col-sm-4">
+                <Dropdown ElementType="RequestPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="PrioList">
+                    <ElementTemplate Context="prio">
+                        @prio.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5439"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleInitState")):</label>
+            <div class="col-sm-4">
+                <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
+                    <ElementTemplate Context="state">
+                        @state.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5440"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("recalc_recerts")):</label>
+            <div class="form-group col-sm-3">
+                <input type="checkbox" @bind="configData!.RecRefreshStartup" />
+                <label class="col-form-label-marg7">@(userConfig.GetText("at_startup"))</label>
+            </div>
+            <div class="form-group col-sm-3">
+                <input type="checkbox" @bind="configData!.RecRefreshDaily" />
+                <label class="col-form-label-marg7">@(userConfig.GetText("daily"))</label>
+            </div>
+            <div class="form-group col-sm-2">
+                <AuthorizeView Roles="@GlobalConst.kAdmin">
+                    <Authorized>
+                        @if (!recertCalcInProgress)
+                        {
+                            <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
+                                recertCalcInProgress = true; 
+                                if (await recertRefresh.RecalcRecerts())
+                                {
+                                    DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
+                                }
+                                recertCalcInProgress = false; 
+                            })">@(userConfig.GetText("recalc_now"))</button>
+                        }
+                        else
+                        {
+                            <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
+                        }
+                        <br>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("recalc_now"))</button>
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
         </div>
     </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailSubject")):</label>
-        <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailSubject" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailUpcomingText")):</label>
-        <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailUpcomingText" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailOverdueText")):</label>
-        <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailOverdueText" />
-        </div>
-    </form>
     <hr />
-    <form class="form-inline">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.RecAutoCreateDeleteTicket" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketTitle")):</label>
-        <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketTitle" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketReason")):</label>
-        <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketReason" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskTitle")):</label>
-        <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskTitle" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskReason")):</label>
-        <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskReason" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketPriority")):</label>
-        <div class="col-sm-2">
-            <Dropdown ElementType="RequestPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="PrioList">
-                <ElementTemplate Context="prio">
-                    @prio.Name
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleInitState")):</label>
-        <div class="col-sm-2">
-            <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
-                <ElementTemplate Context="state">
-                    @state.Name
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    </form>
-    <hr />
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("recalc_recerts")):</label>
-        <div class="form-group col-sm-3">
-            <input type="checkbox" @bind="configData!.RecRefreshStartup" />
-            <label class="col-form-label-marg7">@(userConfig.GetText("at_startup"))</label>
-        </div>
-        <div class="form-group col-sm-3">
-            <input type="checkbox" @bind="configData!.RecRefreshDaily" />
-            <label class="col-form-label-marg7">@(userConfig.GetText("daily"))</label>
-        </div>
-        <div class="form-group col-sm-2">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    @if (!recertCalcInProgress)
-                    {
-                        <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
-                            recertCalcInProgress = true; 
-                            if (await recertRefresh.RecalcRecerts())
-                            {
-                                DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
-                            }
-                            recertCalcInProgress = false; 
-                        })">@(userConfig.GetText("recalc_now"))</button>
-                    }
-                    else
-                    {
-                        <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
-                    }
-                    <br>
-                </Authorized>
-                <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("recalc_now"))</button>
-                </NotAuthorized>
-            </AuthorizeView>
-        </div>
-    </form>
-    <hr />
-    <AuthorizeView Roles="admin">
+    <AuthorizeView Roles="@GlobalConst.kAdmin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>

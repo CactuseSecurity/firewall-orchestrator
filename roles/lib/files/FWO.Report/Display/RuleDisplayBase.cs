@@ -1,11 +1,7 @@
-﻿using NetTools;
-using System.Net;
-using System.Numerics;
-using System.Text;
+﻿using System.Text;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
-using FWO.Logging;
 
 namespace FWO.Ui.Display
 {
@@ -25,17 +21,17 @@ namespace FWO.Ui.Display
 
         public string DisplayName(Rule rule)
         {
-            return (rule.Name != null ? rule.Name : "");
+            return rule.Name != null ? rule.Name : "";
         }
 
         public string DisplaySourceZone(Rule rule)
         {
-            return (rule.SourceZone != null ? rule.SourceZone.Name : "");
+            return rule.SourceZone != null ? rule.SourceZone.Name : "";
         }
 
         public string DisplayDestinationZone(Rule rule)
         {
-            return (rule.DestinationZone != null ? rule.DestinationZone.Name : "");
+            return rule.DestinationZone != null ? rule.DestinationZone.Name : "";
         }
 
         public string DisplayAction(Rule rule)
@@ -50,12 +46,12 @@ namespace FWO.Ui.Display
 
         public string DisplayUid(Rule rule)
         {
-            return (rule.Uid != null ? rule.Uid : "");
+            return rule.Uid != null ? rule.Uid : "";
         }
 
         public string DisplayComment(Rule rule)
         {
-            return (rule.Comment != null ? rule.Comment : "");
+            return rule.Comment != null ? rule.Comment : "";
         }
 
         public StringBuilder DisplayNetworkLocation(NetworkLocation userNetworkObject, ReportType reportType, string? userName = null, string? objName = null)
@@ -83,31 +79,9 @@ namespace FWO.Ui.Display
             return result;
         }
 
-        public StringBuilder DisplayService(NetworkService service, ReportType reportType, string? serviceName = null)
+        public static StringBuilder DisplayService(NetworkService service, ReportType reportType, string? serviceName = null)
         {
-            StringBuilder result = new StringBuilder();
-            if (reportType.IsTechReport())
-            {
-                if (service.DestinationPort == null)
-                {
-                    result.Append($"{service.Name}");
-                }
-                else
-                {
-                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
-                        : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
-                }
-            }
-            else
-            {
-                result.Append($"{serviceName ?? service.Name}");
-                if (service.DestinationPort != null)
-                {
-                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $" ({service.DestinationPort}/{service.Protocol?.Name})"
-                        : $" ({service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name})");
-                }
-            }
-            return result;
+            return DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
         }
 
         public StringBuilder RemoveLastChars(StringBuilder s, int count)

@@ -3,18 +3,18 @@
 @using FWO.Ui.Services
 
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" XLarge="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
             <div class="m-2">
-                <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
@@ -86,7 +86,7 @@
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
-    static List<string> validRoles = new List<string>(){"approver"};
+    static List<string> validRoles = new List<string>(){GlobalConst.kApprover};
 
 
     private async Task Close()

@@ -2,14 +2,15 @@
 @using FWO.Api.Data
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Ui.Data
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" XLarge="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayTicketMode)
         {
@@ -28,7 +29,7 @@
                         <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Title" />
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
@@ -80,7 +81,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">
                         <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Reason"/>   
@@ -120,7 +121,7 @@
         <div class="btn-group">
             @if(ReqHandler.EditTicketMode)
             {
-                <AuthorizeView Roles="admin, requester, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kFwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -131,7 +132,7 @@
             }
             else if (CheckPromoteTicket())
             {
-                <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
+                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kFwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("change_state"))</button>
                     </Authorized>
@@ -145,7 +146,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("confirm_cancel"))" Show="@ConfirmCancelMode" OnClose="() => ConfirmCancelMode = false">
+<PopUp Title="@(userConfig.GetText("confirm_cancel"))" Show="@ConfirmCancelMode" Size=PopupSize.Small OnClose="() => ConfirmCancelMode = false">
     <Body>
         @if (ConfirmCancelMode)
         {

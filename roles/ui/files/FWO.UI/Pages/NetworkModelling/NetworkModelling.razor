@@ -1,0 +1,269 @@
+@using FWO.Config.Api
+@using FWO.Ui.Display
+
+@page "/networkmodelling/{appId?}"
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kModeller}, {GlobalConst.kAuditor}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if(!appHandler?.EditConnMode ?? true)
+{
+    <div class="input-group">
+        <h3>@(userConfig.GetText("network_modelling"))</h3>
+        <HelpLink Page="modelling"/>
+    </div>
+    <hr />
+
+    <div class="form-group row">
+        <label class="col-form-label col-sm-1">@(userConfig.GetText("application")):</label>&nbsp;
+        @if(apps.Count == 1)
+        {
+            <label class="col-form-label text-primary col-sm-4">@((MarkupString)DisplayApp(selectedApp))</label>
+        }
+        else
+        {
+            <div class="col-sm-4">
+                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display(userConfig.GetText("common_service")))"
+                        SelectedElement="selectedApp" SelectedElementChanged="InitApp" Elements="apps">
+                    <ElementTemplate Context="app">
+                        @((MarkupString)DisplayApp(app))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        }
+        <div class="col-sm-6">
+            <div class="btn-group">
+                @* <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
+                <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
+                @* <button type="button" class="btn btn-sm btn-dark ms-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
+            </div>
+        </div>
+    </div>
+    <hr />
+    @if(appSelected)
+    {
+        <div class="form-group row m-2">
+            <h5>@(userConfig.GetText("comm_profile"))&nbsp;
+            @if(appActive)
+            {
+                <div class="btn-group ms-5">
+                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+            }
+            </h5>
+        </div>
+        <div class="m-2 vheight75">
+            <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
+                <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=0>
+                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
+                    <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler" AppActive="appActive"/>
+                </Tab>
+                @if(selectedApp.CommSvcPossible)
+                {
+                    <Tab Title="@(userConfig.GetText("common_services"))" Position=1>
+                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddCommonService">@(userConfig.GetText("add_common_service"))</button>
+                        <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive"/>
+                    </Tab>
+                }
+                <Tab Title="@(userConfig.GetText("regular_connections"))" Position=2>
+                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">@(userConfig.GetText("add_connection"))</button>
+                    <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive"/>
+                </Tab>
+            </TabSet>
+        </div>
+        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
+            Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="@GlobalConst.kModeller"/>
+    }
+}
+else
+{
+    <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler" ClosingAction="SetRestoreTab"/>
+}
+<ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp"/>
+<ShowHistory @bind-Display="showHistory" Applications="apps" SelectedApp="selectedApp"/>
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public string? AppId { get; set; }
+
+    private bool tabSelected = false;
+    private bool restoreTab = false;
+    private ModellingAppHandler? appHandler;
+    private List<FwoOwner> apps = new();
+    private FwoOwner selectedApp = new();
+    private bool appSelected = false;
+    private bool manualAppServer = false;
+
+    private bool appActive = false;
+    private bool showHistory = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // if use has modeller role, choose it before all others for this menu
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kModeller, GlobalConst.kAdmin, GlobalConst.kAuditor });
+        await InitAppList();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (appSelected && appHandler != null)
+        {
+            if(!tabSelected)
+            {
+                appHandler.InitActiveTab();
+                tabSelected = true;
+            }
+            else if(restoreTab)
+            {
+                appHandler.RestoreTab();
+                restoreTab = false;
+            }
+        }
+    }
+
+    private bool SetRestoreTab()
+    {
+        restoreTab = true;
+        return true;
+    }
+
+    private async Task InitAppList()
+    {
+        try
+        {
+            await GetOwnApps();
+            if (apps.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
+            }
+            else
+            {
+                if(AppId != null)
+                {
+                    await HandleLink();
+                }
+                else
+                {
+                    selectedApp = apps.First();
+                }
+                await InitApp(selectedApp);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task GetOwnApps()
+    {
+        try
+        {
+            if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor))
+            {
+                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwnersWithConn);
+            }
+            else
+            {
+                UpdateOwnerships(); // qad: userConfig may not be properly filled
+                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void UpdateOwnerships()
+    {
+        string ownerString = authenticationStateTask!.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners").Value;
+        if(ownerString != null)
+        {
+            string[] separatingStrings = { ",", "{", "}" };
+            string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
+        }
+    }
+
+    private async Task HandleLink()
+    {
+        FwoOwner? existingApp = apps.FirstOrDefault(a => a.ExtAppId == AppId);
+        if(existingApp != null)
+        {
+            selectedApp = existingApp;
+        }
+        else
+        {
+            selectedApp = apps.First();
+        }
+    }
+
+    private async Task InitApp(FwoOwner newApp)
+    {
+        try
+        {
+            appSelected = false;
+            selectedApp = newApp;
+            bool isOwner = authenticationStateTask!.Result.User.IsInRole(GlobalConst.kModeller) && userConfig.User.Ownerships.Contains(selectedApp.Id);
+            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner);
+            await appHandler.Init();
+            appActive = selectedApp.Active;
+            if(isOwner)
+            {
+                apiConnection.SetRole(GlobalConst.kModeller);
+            }
+            else
+            {
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kAdmin, GlobalConst.kAuditor});
+            }
+            appSelected = true;
+            tabSelected = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void ManualAppServer()
+    {
+        manualAppServer = true;
+    }
+
+    public string DisplayApp(FwoOwner app)
+    {
+        string tooltip = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9004")}\"")
+            : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9003")}\"";
+        string textToDisplay = (app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "*") : "!") + app.Display(userConfig.GetText("common_service"));
+        string textClass = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "text-success") : "text-danger";
+        return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
+    }
+
+    private async Task ShowHistory()
+    {
+        showHistory = true;
+    }
+
+    private async Task Report()
+    {
+
+    }
+
+    private async Task ExtRequest()
+    {
+
+    }
+}

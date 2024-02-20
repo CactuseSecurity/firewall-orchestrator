@@ -14,33 +14,35 @@
     {
         <div class="form-group row">
             <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
-            <div class="col-sm-2">
+            <div class="col-sm-3">
                 <Dropdown ElementType="UiUser" @bind-SelectedElement="actUser" ElementToString="@(u => u.Name)" Elements="uiUsers" >
                     <ElementTemplate Context="user">
                         @user.Name
                     </ElementTemplate>
                 </Dropdown>
             </div>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="SelectUser">@(userConfig.GetText("select"))</button>
+            <button type="button" class="btn btn-sm btn-primary col-sm-1" @onclick="SelectUser">@(userConfig.GetText("select"))</button>
         </div>
         <hr />
     }
-    <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" Sortable="true" Filterable="true"/>
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
-        @if(seeAllUsers)
-        {
-            <Column TableItem="LogEntry" Title="@(userConfig.GetText("user"))" Field="@(x => x.UserId)" Sortable="true">
-                <Template>
-                    @(uiUsers.FirstOrDefault(x => x.DbId == context.UserId)?.Name ?? context.UserId.ToString())
-                </Template>
-            </Column>
-        }
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" Sortable="true" Filterable="true"/>
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
-        <Pager ShowPageNumber="true" ShowTotalCount="true" />
-    </Table>
+    <div class="vheight75">
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
+            @if(seeAllUsers)
+            {
+                <Column TableItem="LogEntry" Title="@(userConfig.GetText("user"))" Field="@(x => x.UserId)" Sortable="true">
+                    <Template>
+                        @(uiUsers.FirstOrDefault(x => x.DbId == context.UserId)?.Name ?? context.UserId.ToString())
+                    </Template>
+                </Column>
+            }
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
 }
 else
 {
@@ -67,7 +69,7 @@ else
     {
         try
         {
-            seeAllUsers = authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("auditor");
+            seeAllUsers = authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor);
             if(seeAllUsers)
             {
                 uiUsers.Add(new UiUser(){ DbId = -1, Name = userConfig.GetText("all") });

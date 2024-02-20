@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/implementations"
-@attribute [Authorize(Roles = "admin, implementer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kImplementer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -17,13 +17,16 @@
     <div class="form-group row">
         <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("view")):</label>
         <div class="col-sm-2">
-            <Dropdown ElementType="Device" @bind-SelectedElement="selectedDeviceOpt" ElementToString="@(d => d.Name)" Elements="deviceOptions" >
+            <Dropdown ElementType="Device" @bind-SelectedElement="selectedDeviceOpt" ElementToString="@(d => d.Name)" Elements="deviceOptions" AppendWidth="100">
                 <ElementTemplate Context="device">
                     @device.Name
                 </ElementTemplate>
+                <Append>
+                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="SelectDevice">@(userConfig.GetText("select"))</button>
+                </Append>
             </Dropdown>
         </div>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="SelectDevice">@(userConfig.GetText("select"))</button>
+        
     </div>
 
     @if(DisplayTickets)
@@ -69,7 +72,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "admin", "implementer", "fw-admin", "auditor"});
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kAdmin, GlobalConst.kImplementer, GlobalConst.kFwAdmin, GlobalConst.kAuditor});
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.implementation){};
@@ -119,7 +122,7 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("implementer") || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("admin"));
+            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kImplementer) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kFwAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin));
             await reqHandler.Init();
         }
         catch (Exception exception)

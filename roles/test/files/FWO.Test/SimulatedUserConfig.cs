@@ -51,7 +51,12 @@ namespace FWO.Test
             {"last_hit","Last Hit"},
             {"trans_source","Translated Source"},
             {"trans_destination","Translated Destination"},
-            {"trans_services","Translated Services"}
+            {"trans_services","Translated Services"},
+            {"from","from"},
+            {"until","until"},
+            {"C9001","This object was..."},
+            {"C9002","This App Server was..."},
+            {"is_in_use","Is in use"}
         };
 
         public override string GetText(string key)

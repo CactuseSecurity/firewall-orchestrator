@@ -43,7 +43,7 @@
     </div>
 }
 
-<PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)">
+<PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.Small>
     <Body>
         <p>@(reloginDialogText)</p>
         <div class="input-group">
@@ -196,7 +196,7 @@
     private void OnAlertUpdate(List<Alert> alerts)
     {
         user = authenticationStateTask!.Result.User;
-        showAlert = (user.IsInRole("admin") || user.IsInRole("fw-admin") || user.IsInRole("auditor")) && alerts.Count() > 0;
+        showAlert = (user.IsInRole(GlobalConst.kAdmin) || user.IsInRole(GlobalConst.kFwAdmin) || user.IsInRole(GlobalConst.kAuditor)) && alerts.Count() > 0;
         InvokeAsync(StateHasChanged);
     }
 
@@ -350,14 +350,14 @@
     {
         try
         {
-            Log.WriteAlert ($"source: \"{GlobalConfig.kUi}\"",
+            Log.WriteAlert ($"source: \"{GlobalConst.kUi}\"",
                 $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
             
             List<Alert> openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
             
             var Variables = new
             {
-                source = GlobalConfig.kUi,
+                source = GlobalConst.kUi,
                 userId = userConfig.User.DbId,
                 title = title,
                 description = message,

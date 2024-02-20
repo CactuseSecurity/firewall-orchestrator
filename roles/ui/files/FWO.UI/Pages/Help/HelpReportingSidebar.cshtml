@@ -1,21 +1,39 @@
 ﻿@using FWO.Config.Api
 @inject UserConfig userConfig
 
-<nav class="sidebar fixed sidebar-dark bg-dark shadow">
-    <div class="sidebar-main d-flex flex-row" style="left:0px;">
-        <div class="sidebar-dark bg-dark" style="width:250px; overflow-x:scroll;">
-            <ul class="sidebar-nav mr-auto">
+<nav class="sidebar fixed sidebar-help shadow">
+    <div class="sidebar-help d-flex flex-row" style="left:0px;">
+        <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
+            <ul class="sidebar-help me-auto">
                 <p></p>
                 <h5>@userConfig.GetText("reporting")</h5>
-                <a class="nav-link" href="/help/reporting/reporttypes/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("report_types")</a>
-                <a class="nav-link" href="/help/reporting/filter/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("filter_syntax")</a>
-                <a class="nav-link" href="/help/reporting/templates/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("templates")</a>
-                <a class="nav-link" href="/help/reporting/export/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("export")</a>
-                <a class="nav-link" href="/help/reporting/scheduling/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("scheduling")</a>
-                <a class="nav-link" href="/help/reporting/archive/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("archive")</a>
-                <a class="nav-link" href="/help/reporting/output/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("report_data_output")</a>
-                <a class="nav-link" href="/help/reporting/leftside/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("left_sidebar")</a>
-                <a class="nav-link" href="/help/reporting/rightside/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("right_sidebar")</a>
+                <a class="nav-link" href="/help/reporting/reporttypes/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-list"></span> @(userConfig.GetText("report_types"))
+                </a>
+                <a class="nav-link" href="/help/reporting/filter/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-eye"></span> @(userConfig.GetText("filter_syntax"))
+                </a>
+                <a class="nav-link" href="/help/reporting/templates/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-document"></span> @(userConfig.GetText("templates"))
+                </a>
+                <a class="nav-link" href="/help/reporting/export/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-arrow-thick-right"></span> @(userConfig.GetText("export"))
+                </a>
+                <a class="nav-link" href="/help/reporting/scheduling/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-timer"></span> @(userConfig.GetText("scheduling"))
+                </a>
+                <a class="nav-link" href="/help/reporting/archive/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-hard-drive"></span> @(userConfig.GetText("archive"))
+                </a>
+                <a class="nav-link" href="/help/reporting/output/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-share"></span> @(userConfig.GetText("report_data_output"))
+                </a>
+                <a class="nav-link" href="/help/reporting/leftside/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-collapse-left"></span> @(userConfig.GetText("left_sidebar"))
+                </a>
+                <a class="nav-link" href="/help/reporting/rightside/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-collapse-right"></span> @(userConfig.GetText("right_sidebar"))
+                </a>
             </ul>
         </div>
     </div>

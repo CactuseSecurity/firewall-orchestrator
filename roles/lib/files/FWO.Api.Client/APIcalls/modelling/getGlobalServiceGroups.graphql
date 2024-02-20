@@ -1,0 +1,10 @@
+query getGlobalServiceGroups{
+  modelling_service_group (where: { is_global: { _eq: true } } order_by: { name: asc }){
+    ...serviceGroupDetails
+    services: service_service_groups{
+      service{
+        ...serviceDetails
+      }
+    }
+  }
+}

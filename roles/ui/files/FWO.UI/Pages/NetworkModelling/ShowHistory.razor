@@ -1,0 +1,109 @@
+﻿@using FWO.Config.Api
+
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("show_history") )" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+                <Authorized>
+                    <div class="form-group row">
+                        <label class="col-form-label col-sm-2">@(userConfig.GetText("show_all")):</label>
+                        <div class="col-sm-1">
+                            <input type="checkbox" value="SelectAll" @onchange="async () => { SelectAll = !SelectAll; await GetHistory(); }"/>
+                        </div>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+            <div class="vheight60">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingHistoryEntry" Items="history" PageSize="100">
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true">
+                        <Template>
+                            @(Applications.FirstOrDefault(x => x.Id == context.AppId)?.Name ?? context.AppId.ToString())
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_type"))" Field="@(x => x.ChangeType)" Sortable="true">
+                        <Template>
+                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ChangeType), context.ChangeType)))
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true">
+                        <Template>
+                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ObjectType), context.ObjectType)))
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.ChangeText)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("changed_by"))" Field="@(x => x.Changer)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_time"))" Field="@(x => x.ChangeTime)" Sortable="true" Filterable="true" />
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                </Table>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public List<FwoOwner> Applications { get; set; } = new();
+
+    [Parameter]
+    public FwoOwner SelectedApp { get; set; } = new();
+
+    private List<ModellingHistoryEntry> history = new();
+    private bool SelectAll = false;
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display)
+        {
+            await GetHistory();
+        }
+    }
+
+    async Task GetHistory()
+    {
+        try
+        {
+            if(SelectAll)
+            {
+                history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistory);
+            }
+            else
+            {
+                history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistoryForApp, new {appId = SelectedApp.Id});
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        SelectAll = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

@@ -1,6 +1,6 @@
 # library for FWORCH API calls
 from asyncio.log import logger
-from distutils.log import debug
+# from distutils.log import debug
 import re
 import traceback
 from sqlite3 import Timestamp
@@ -63,7 +63,8 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
         if int(fwo_globals.debug_level) > 4:
             logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
         if show_progress:
-            print('.', end='', flush=True)
+            pass
+            # print('.', end='', flush=True)
         if r != None:
             return r.json()
         else:
@@ -215,6 +216,20 @@ def lock_import(fwo_api_base_url, jwt, query_variables):
     else:
         return -1
 
+def count_rule_changes_per_import(fwo_api_base_url, jwt, import_id):
+    logger = getFwoLogger()
+    change_count_query = """
+        query count_rule_changes($importId: bigint!) {
+            changelog_rule_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+        }"""
+    try:
+        count_result = call(fwo_api_base_url, jwt, change_count_query, query_variables={'importId': import_id}, role='importer')
+        rule_changes_in_import = int(count_result['data']['changelog_rule_aggregate']['aggregate']['count'])
+    except:
+        logger.exception("failed to count changes for import id " + str(import_id))
+        rule_changes_in_import = 0
+    return rule_changes_in_import
+
 
 def count_changes_per_import(fwo_api_base_url, jwt, import_id):
     logger = getFwoLogger()
@@ -242,11 +257,11 @@ def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, e
     logger = getFwoLogger()
     error_during_import_unlock = 0
     query_variables = {"stopTime": stop_time, "importId": current_import_id,
-                       "success": error_count == 0, "changesFound": change_count > 0}
+                       "success": error_count == 0, "changesFound": change_count > 0, "changeNumber": change_count}
 
     unlock_mutation = """
-        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!) {
-            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changesFound}) {
+        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!, $changeNumber: Int!) {
+            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changesFound, security_relevant_changes_counter: $changeNumber}) {
                 affected_rows
             }
         }"""
@@ -353,8 +368,9 @@ def update_hit_counter(fwo_api_base_url, jwt, mgm_id, query_variables):
             
             return 0
         else:
-            logger.debug("found no rules with hit information for mgm_id " + str(mgm_id))
-            return 1
+            if len(query_variables['config']['rules'])>0:
+                logger.debug("found rules without hit information for mgm_id " + str(mgm_id))
+                return 1
     else:
         logger.debug("no rules found for mgm_id " + str(mgm_id))
         return 1

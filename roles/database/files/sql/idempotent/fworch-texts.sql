@@ -12,6 +12,146 @@ INSERT INTO txt VALUES ('English', 				'English',	'English');
 INSERT INTO txt VALUES ('German', 				'German',	'Deutsch');
 INSERT INTO txt VALUES ('German', 				'English',	'German');
 
+-- enum values
+INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
+INSERT INTO txt VALUES ('master', 			    'English', 	'Master');
+INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
+INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
+INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
+INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
+INSERT INTO txt VALUES ('rule_modify',          'German',   'Regel &auml;ndern');
+INSERT INTO txt VALUES ('rule_modify',          'English',  'Modify Rule');
+INSERT INTO txt VALUES ('rule_delete',          'German',   'Regel l&ouml;schen');
+INSERT INTO txt VALUES ('rule_delete',          'English',  'Delete Rule');
+INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
+INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
+INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
+INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
+INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
+INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
+INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
+INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
+INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
+INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
+INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
+INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
+INSERT INTO txt VALUES ('DoNothing',			'German', 	'Keine Aktion');
+INSERT INTO txt VALUES ('DoNothing',			'English', 	'Do Nothing');
+INSERT INTO txt VALUES ('AutoPromote',			'German', 	'Autom. Weiterleitung');
+INSERT INTO txt VALUES ('AutoPromote',			'English', 	'Auto-forward');
+INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
+INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
+INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
+INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
+INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
+INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
+INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
+INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');
+INSERT INTO txt VALUES ('RequestTask',			'English', 	'Request Task');
+INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftrag');
+INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
+INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
+INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
+INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
+INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
+INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
+INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
+INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
+INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'Nach Pfadanalyse');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste eintragen');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
+INSERT INTO txt VALUES ('Sunday',               'German', 	'Sonntag');
+INSERT INTO txt VALUES ('Sunday',               'English', 	'Sunday');
+INSERT INTO txt VALUES ('Monday',               'German', 	'Montag');
+INSERT INTO txt VALUES ('Monday',               'English', 	'Monday');
+INSERT INTO txt VALUES ('Tuesday',              'German', 	'Dienstag');
+INSERT INTO txt VALUES ('Tuesday',              'English', 	'Tuesday');
+INSERT INTO txt VALUES ('Wednesday',            'German', 	'Mittwoch');
+INSERT INTO txt VALUES ('Wednesday',            'English', 	'Wednesday');
+INSERT INTO txt VALUES ('Thursday',             'German', 	'Donnerstag');
+INSERT INTO txt VALUES ('Thursday',             'English', 	'Thursday');
+INSERT INTO txt VALUES ('Friday',               'German', 	'Freitag');
+INSERT INTO txt VALUES ('Friday',               'English', 	'Friday');
+INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
+INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
+INSERT INTO txt VALUES ('Rules', 			    'German', 	'Regel-Report');
+INSERT INTO txt VALUES ('Rules', 			    'English', 	'Rules Report');
+INSERT INTO txt VALUES ('Changes', 			    'German', 	'Changes-Report');
+INSERT INTO txt VALUES ('Changes', 			    'English', 	'Changes Report');
+INSERT INTO txt VALUES ('Statistics', 			'German', 	'Statistik-Report');
+INSERT INTO txt VALUES ('Statistics', 			'English', 	'Statistics Report');
+INSERT INTO txt VALUES ('NatRules', 			'German', 	'NAT-Regel-Report');
+INSERT INTO txt VALUES ('NatRules', 			'English', 	'NAT Rules Report');
+INSERT INTO txt VALUES ('ResolvedRules', 	    'German', 	'Regel-Report (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('ResolvedRules', 		'English', 	'Rules Report (resolved)');
+INSERT INTO txt VALUES ('ResolvedRulesTech', 	'German', 	'Regel-Report (technisch)');
+INSERT INTO txt VALUES ('ResolvedRulesTech', 	'English', 	'Rules Report (technical)');
+INSERT INTO txt VALUES ('Recertification', 	    'German', 	'Rezertifizierungs-Report');
+INSERT INTO txt VALUES ('Recertification', 		'English', 	'Recertification Report');
+INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes-Report (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes Report (resolved)');
+INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (technisch)');
+INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
+INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Report');
+INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
+INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
+INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
+INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
+INSERT INTO txt VALUES ('exclusive', 	        'English', 	'Exclusive');
+INSERT INTO txt VALUES ('AppRole', 	            'German', 	'App Rolle');
+INSERT INTO txt VALUES ('AppRole', 	            'English', 	'App Role');
+INSERT INTO txt VALUES ('AppZone', 	            'German', 	'Anwendungszone');
+INSERT INTO txt VALUES ('AppZone', 	            'English', 	'App Zone');
+INSERT INTO txt VALUES ('NetworkZone', 	        'German', 	'Netzwerkzone');
+INSERT INTO txt VALUES ('NetworkZone', 	        'English', 	'Network Zone');
+INSERT INTO txt VALUES ('NetworkArea', 	        'German', 	'Netzwerkarea');
+INSERT INTO txt VALUES ('NetworkArea', 	        'English', 	'Network Area');
+INSERT INTO txt VALUES ('Connection', 	        'German', 	'Verbindung');
+INSERT INTO txt VALUES ('Connection', 	        'English', 	'Connection');
+INSERT INTO txt VALUES ('AppServer', 	        'German', 	'App Server');
+INSERT INTO txt VALUES ('AppServer', 	        'English', 	'App Server');
+INSERT INTO txt VALUES ('ServiceGroup', 	    'German', 	'Dienstgruppe');
+INSERT INTO txt VALUES ('ServiceGroup', 	    'English', 	'Service Group');
+INSERT INTO txt VALUES ('Service', 	            'German', 	'Dienst');
+INSERT INTO txt VALUES ('Service', 	            'English', 	'Service');
+INSERT INTO txt VALUES ('Insert', 	            'German', 	'Einf&uuml;gen');
+INSERT INTO txt VALUES ('Insert', 	            'English', 	'Insert');
+INSERT INTO txt VALUES ('Update', 	            'German', 	'&Auml;ndern');
+INSERT INTO txt VALUES ('Update', 	            'English', 	'Update');
+INSERT INTO txt VALUES ('Delete', 	            'German', 	'L&ouml;schen');
+INSERT INTO txt VALUES ('Delete', 	            'English', 	'Delete');
+INSERT INTO txt VALUES ('Assign', 	            'German', 	'Zuweisen');
+INSERT INTO txt VALUES ('Assign', 	            'English', 	'Assign');
+INSERT INTO txt VALUES ('Unassign', 	        'German', 	'Zuweisung aufheben');
+INSERT INTO txt VALUES ('Unassign', 	        'English', 	'Unassign');
+INSERT INTO txt VALUES ('MarkDeleted', 	        'German', 	'Als gel&ouml;scht markieren');
+INSERT INTO txt VALUES ('MarkDeleted', 	        'English', 	'Mark Deleted');
+INSERT INTO txt VALUES ('Reactivate', 	        'German', 	'Reaktivieren');
+INSERT INTO txt VALUES ('Reactivate', 	        'English', 	'Reactivate');
+INSERT INTO txt VALUES ('SimpleText', 	        'German', 	'Einfacher Text (kein &Auml;nderungsreport)');
+INSERT INTO txt VALUES ('SimpleText', 	        'English', 	'Simple Text (no Change Report)');
+INSERT INTO txt VALUES ('HtmlInBody', 	        'German', 	'Html in Email');
+INSERT INTO txt VALUES ('HtmlInBody', 	        'English', 	'Html in email body');
+INSERT INTO txt VALUES ('PdfAsAttachment', 	    'German', 	'Pdf als Anhang');
+INSERT INTO txt VALUES ('PdfAsAttachment', 	    'English', 	'Pdf as Attachment');
+INSERT INTO txt VALUES ('HtmlAsAttachment', 	'German', 	'Html als Anhang');
+INSERT INTO txt VALUES ('HtmlAsAttachment', 	'English', 	'Html as Attachment');
+INSERT INTO txt VALUES ('CsvAsAttachment', 	    'German', 	'Csv als Anhang');
+INSERT INTO txt VALUES ('CsvAsAttachment', 	    'English', 	'Csv as Attachment');
+INSERT INTO txt VALUES ('JsonAsAttachment', 	'German', 	'Json als Anhang');
+INSERT INTO txt VALUES ('JsonAsAttachment', 	'English', 	'Json as Attachment');
+
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
 INSERT INTO txt VALUES ('cancel', 				'English',	'Cancel');
@@ -147,9 +287,10 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Modellierung von Soll-Kommunikationsprofilen z.B. nach Anwendung getrennt (Know Your Application)</li>
     <li>Web-Oberfl&auml;che: Compliance Matrix Modul</li>
     <li>Web-Oberfl&auml;che: Report f&uuml;r ungenutzte Regeln mit L&ouml;sch-Ticket-Integration</li>
-    <li>Importer: Email-Benachrichtigung bei sicherheitsrelevanten &Auml;nderungen</li>
+    <li>Reporting: Email-Benachrichtigung bei sicherheitsrelevanten &Auml;nderungen inklusive &Auml;nderungsreport</li>
     <li>Importer Check Point: Grundlegender Inline-Layer-Support</li>
     <li>Importer Modul f&uuml;r Stand-Alone FortiGate Import via REST API</li>
     <li>Firewall-Regel-Rezertifizierungsmodul: beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
@@ -159,9 +300,10 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>Modelling module for defining target communication profiles for segregated networks (e.g. per application: Know Your Application)</li>
     <li>Web User Interface: Compliance Matrix Modul</li>
     <li>Web User Interface: Report for unused rules directly integration delete rule workflow</li>
-    <li>Importer: Email notification on detecting security relevant changes during import</li>
+    <li>Reporting: Notification on detecting security relevant changes of firewall rules including change report in emails</li>
     <li>Importer Check Point: basic inline layer support</li>
     <li>Importer: Module for stand-alone FortiGate import via REST API</li>
     <li>Rule recertification module: remove unnecessary rules and meet current regulatory requirements.</li>
@@ -177,6 +319,7 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
     <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig Generierung</li>
     <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
     <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
+    <li><a href="/networkmodelling">Modellierung</a>: Erlaubt die verteilte Modellierung von Kommunikationsverbindungen (Soll-Zustand)</li>
     <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
     <li><a href="/compliance/zones/configuration">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
     <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
@@ -194,6 +337,7 @@ The following top-level menu items are available (depending on role memberships)
     <li><a href="/report/generation">Reporting</a>: Ad-hoc generation and scheduling of reports</li>
     <li><a href="/request/ticketsoverview">Workflow</a>: Ticketing system for requesting and processing firewall changes</li>
     <li><a href="/certification">Recertification</a>: Rulebase sanitization by continuously cleaning up existing rules</li>
+    <li><a href="/networkmodelling">Modelling</a>: Allows for distributed modelling of network connections (target state)</li>
     <li><a href="/network_analysis">Network Analysis</a>: Path analysis - which firewall is crossed when routing between two IP addresses?</li>
     <li><a href="/compliance/zones/configuration">Compliance</a>: Defining zone matrix and access compliance</li>
     <li><a href="/monitoring">Monitoring</a>: Alarms, log files, import status, ...</li>
@@ -290,6 +434,16 @@ INSERT INTO txt VALUES ('check_times', 			'German',	'Pr&uuml;fung Datumswerte');
 INSERT INTO txt VALUES ('check_times', 			'English',	'Check time values');
 INSERT INTO txt VALUES ('select_device',		'German', 	'Device(s) ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_device',		'English', 	'Select device(s)');
+INSERT INTO txt VALUES ('tenant_vis_devices',   'German', 	'Mandanten-Firewalls');
+INSERT INTO txt VALUES ('tenant_vis_devices',	'English', 	'Tenant firewalls');
+INSERT INTO txt VALUES ('edit_vis_devices',		'German', 	'Devices f&uuml;r Mandant');
+INSERT INTO txt VALUES ('edit_vis_devices',		'English', 	'Devices for tenant');
+INSERT INTO txt VALUES ('hide',         		'German', 	'versteckt');
+INSERT INTO txt VALUES ('hide',         		'English', 	'hidden');
+INSERT INTO txt VALUES ('shared',         		'German', 	'geteilt');
+INSERT INTO txt VALUES ('shared',         		'English', 	'shared');
+INSERT INTO txt VALUES ('unfiltered',      		'German', 	'ungefiltert');
+INSERT INTO txt VALUES ('unfiltered',      		'English', 	'unfiltered');
 INSERT INTO txt VALUES ('select_all',		    'German', 	'Alle ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_all',		    'English', 	'Select all');
 INSERT INTO txt VALUES ('clear_all',		    'German', 	'Auswahl leeren');
@@ -718,6 +872,8 @@ INSERT INTO txt VALUES ('all_gateways',         'German', 	'Alle Gateways');
 INSERT INTO txt VALUES ('all_gateways',         'English', 	'All Gateways');
 INSERT INTO txt VALUES ('insert_ip',            'German', 	'IP einf&uuml;gen');
 INSERT INTO txt VALUES ('insert_ip',            'English', 	'Insert IP');
+INSERT INTO txt VALUES ('insert_port',          'German', 	'Port einf&uuml;gen');
+INSERT INTO txt VALUES ('insert_port',          'English', 	'Insert port');
 INSERT INTO txt VALUES ('state_actions',        'German', 	'Statusaktionen');
 INSERT INTO txt VALUES ('state_actions',        'English', 	'State Actions');
 INSERT INTO txt VALUES ('add_action',           'German', 	'Aktion hinzuf&uuml;gen');
@@ -760,104 +916,6 @@ INSERT INTO txt VALUES ('button_text',			'German', 	'Schaltertext');
 INSERT INTO txt VALUES ('button_text',			'English', 	'Button Text');
 INSERT INTO txt VALUES ('path_analysis',		'German', 	'Pfadanalyse');
 INSERT INTO txt VALUES ('path_analysis',		'English', 	'Path analysis');
-
--- enum values
-INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
-INSERT INTO txt VALUES ('master', 			    'English', 	'Master');
-INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
-INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
-INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
-INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
-INSERT INTO txt VALUES ('rule_modify',          'German',   'Regel &auml;ndern');
-INSERT INTO txt VALUES ('rule_modify',          'English',  'Modify Rule');
-INSERT INTO txt VALUES ('rule_delete',          'German',   'Regel l&ouml;schen');
-INSERT INTO txt VALUES ('rule_delete',          'English',  'Delete Rule');
-INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
-INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
-INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
-INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
-INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
-INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
-INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
-INSERT INTO txt VALUES ('None',			        'English', 	'None');
-INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
-INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
-INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
-INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
-INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
-INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
-INSERT INTO txt VALUES ('DoNothing',			'German', 	'Keine Aktion');
-INSERT INTO txt VALUES ('DoNothing',			'English', 	'Do Nothing');
-INSERT INTO txt VALUES ('AutoPromote',			'German', 	'Autom. Weiterleitung');
-INSERT INTO txt VALUES ('AutoPromote',			'English', 	'Auto-forward');
-INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
-INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
-INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
-INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
-INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
-INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
-INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
-INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
-INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
-INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');
-INSERT INTO txt VALUES ('RequestTask',			'English', 	'Request Task');
-INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftrag');
-INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
-INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
-INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
-INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
-INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
-INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
-INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
-INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
-INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
-INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'Nach Pfadanalyse');
-INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
-INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste eintragen');
-INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
-INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
-INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
-INSERT INTO txt VALUES ('Sunday',               'German', 	'Sonntag');
-INSERT INTO txt VALUES ('Sunday',               'English', 	'Sunday');
-INSERT INTO txt VALUES ('Monday',               'German', 	'Montag');
-INSERT INTO txt VALUES ('Monday',               'English', 	'Monday');
-INSERT INTO txt VALUES ('Tuesday',              'German', 	'Dienstag');
-INSERT INTO txt VALUES ('Tuesday',              'English', 	'Tuesday');
-INSERT INTO txt VALUES ('Wednesday',            'German', 	'Mittwoch');
-INSERT INTO txt VALUES ('Wednesday',            'English', 	'Wednesday');
-INSERT INTO txt VALUES ('Thursday',             'German', 	'Donnerstag');
-INSERT INTO txt VALUES ('Thursday',             'English', 	'Thursday');
-INSERT INTO txt VALUES ('Friday',               'German', 	'Freitag');
-INSERT INTO txt VALUES ('Friday',               'English', 	'Friday');
-INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
-INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
-INSERT INTO txt VALUES ('Rules', 			    'German', 	'Regel-Report');
-INSERT INTO txt VALUES ('Rules', 			    'English', 	'Rules Report');
-INSERT INTO txt VALUES ('Changes', 			    'German', 	'Changes-Report');
-INSERT INTO txt VALUES ('Changes', 			    'English', 	'Changes Report');
-INSERT INTO txt VALUES ('Statistics', 			'German', 	'Statistik-Report');
-INSERT INTO txt VALUES ('Statistics', 			'English', 	'Statistics Report');
-INSERT INTO txt VALUES ('NatRules', 			'German', 	'NAT-Regel-Report');
-INSERT INTO txt VALUES ('NatRules', 			'English', 	'NAT Rules Report');
-INSERT INTO txt VALUES ('ResolvedRules', 	    'German', 	'Regel-Report (aufgel&ouml;st)');
-INSERT INTO txt VALUES ('ResolvedRules', 		'English', 	'Rules Report (resolved)');
-INSERT INTO txt VALUES ('ResolvedRulesTech', 	'German', 	'Regel-Report (technisch)');
-INSERT INTO txt VALUES ('ResolvedRulesTech', 	'English', 	'Rules Report (technical)');
-INSERT INTO txt VALUES ('Recertification', 	    'German', 	'Rezertifizierungs-Report');
-INSERT INTO txt VALUES ('Recertification', 		'English', 	'Recertification Report');
-INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes-Report (aufgel&ouml;st)');
-INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes Report (resolved)');
-INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (technisch)');
-INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
-INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Report');
-INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
-INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
-INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
-INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
-INSERT INTO txt VALUES ('exclusive', 	        'English', 	'Exclusive');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
@@ -938,6 +996,197 @@ INSERT INTO txt VALUES ('at_startup',           'German',   'Beim Hochfahren');
 INSERT INTO txt VALUES ('at_startup',           'English',  'At startup');
 INSERT INTO txt VALUES ('daily',                'German',   'T&auml;glich');
 INSERT INTO txt VALUES ('daily',                'English',  'Daily');
+
+-- network modelling
+INSERT INTO txt VALUES ('network_modelling', 	'German',	'Netzwerkmodellierung');
+INSERT INTO txt VALUES ('network_modelling', 	'English',	'Network Modelling');
+INSERT INTO txt VALUES ('modelling', 	        'German',	'Modellierung');
+INSERT INTO txt VALUES ('modelling', 	        'English',	'Modelling');
+INSERT INTO txt VALUES ('application', 	        'German',	'Applikation');
+INSERT INTO txt VALUES ('application', 	        'English',	'Application');
+INSERT INTO txt VALUES ('applications', 	    'German',	'Applikationen');
+INSERT INTO txt VALUES ('applications', 	    'English',	'Applications');
+INSERT INTO txt VALUES ('library', 	            'German',	'Bibliothek');
+INSERT INTO txt VALUES ('library', 	            'English',	'Library');
+INSERT INTO txt VALUES ('app_server', 	        'German',	'App Server');
+INSERT INTO txt VALUES ('app_server', 	        'English',	'App Server');
+INSERT INTO txt VALUES ('app_role', 	        'German',	'App Rolle');
+INSERT INTO txt VALUES ('app_role', 	        'English',	'App Role');
+INSERT INTO txt VALUES ('app_roles', 	        'German',	'App Rollen');
+INSERT INTO txt VALUES ('app_roles', 	        'English',	'App Roles');
+INSERT INTO txt VALUES ('preview', 	            'German',	'Vorschau');
+INSERT INTO txt VALUES ('preview', 	            'English',	'Preview');
+INSERT INTO txt VALUES ('comm_profile', 	    'German',	'Kommunikationsprofil');
+INSERT INTO txt VALUES ('comm_profile', 	    'English',	'Communication Profile');
+INSERT INTO txt VALUES ('connection', 	        'German',	'Verbindung');
+INSERT INTO txt VALUES ('connection', 	        'English',	'Connection');
+INSERT INTO txt VALUES ('connections', 	        'German',	'Verbindungen');
+INSERT INTO txt VALUES ('connections', 	        'English',	'Connections');
+INSERT INTO txt VALUES ('add_connection', 	    'German',	'Verbindung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_connection', 	    'English',	'Add Connection');
+INSERT INTO txt VALUES ('edit_connection', 	    'German',	'Verbindung bearbeiten');
+INSERT INTO txt VALUES ('edit_connection', 	    'English',	'Edit Connection');
+INSERT INTO txt VALUES ('save_connection', 	    'German',	'Verbindung speichern');
+INSERT INTO txt VALUES ('save_connection', 	    'English',	'Save Connection');
+INSERT INTO txt VALUES ('delete_connection', 	'German',	'Verbindung l&ouml;schen');
+INSERT INTO txt VALUES ('delete_connection', 	'English',	'Delete Connection');
+INSERT INTO txt VALUES ('remove_connection', 	'German',	'Verbindung entfernen');
+INSERT INTO txt VALUES ('remove_connection', 	'English',	'Remove Connection');
+INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
+INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
+INSERT INTO txt VALUES ('func_reason', 	        'English',	'Functional Reason');
+INSERT INTO txt VALUES ('to_source', 	        'German',	'Zu Quelle');
+INSERT INTO txt VALUES ('to_source', 	        'English',	'To Source');
+INSERT INTO txt VALUES ('to_dest', 	            'German',	'Zu Ziel');
+INSERT INTO txt VALUES ('to_dest', 	            'English',	'To Destination');
+INSERT INTO txt VALUES ('to_service', 	        'German',	'Zu Dienst');
+INSERT INTO txt VALUES ('to_service', 	        'English',	'To Service');
+INSERT INTO txt VALUES ('data_inconsistent',    'German', 	'Daten inkonsistent');
+INSERT INTO txt VALUES ('data_inconsistent',    'English', 	'Data inconsistent');
+INSERT INTO txt VALUES ('add_app_role', 	    'German',	'Neue App Rolle');
+INSERT INTO txt VALUES ('add_app_role', 	    'English',	'New App Role');
+INSERT INTO txt VALUES ('edit_app_role', 	    'German',	'App Rolle bearbeiten');
+INSERT INTO txt VALUES ('edit_app_role', 	    'English',	'Edit App Role');
+INSERT INTO txt VALUES ('save_app_role', 	    'German',	'App Rolle speichern');
+INSERT INTO txt VALUES ('save_app_role', 	    'English',	'Save App Role');
+INSERT INTO txt VALUES ('delete_app_role', 	    'German',	'App Rolle l&ouml;schen');
+INSERT INTO txt VALUES ('delete_app_role', 	    'English',	'Delete App Role');
+INSERT INTO txt VALUES ('to_app_role', 	        'German',	'Zu App Rolle');
+INSERT INTO txt VALUES ('to_app_role', 	        'English',	'To App Role');
+INSERT INTO txt VALUES ('add_service', 	        'German',	'Dienst hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_service', 	        'English',	'Add Service');
+INSERT INTO txt VALUES ('edit_service', 	    'German',	'Dienst bearbeiten');
+INSERT INTO txt VALUES ('edit_service', 	    'English',	'Edit Service');
+INSERT INTO txt VALUES ('save_service', 	    'German',	'Dienst speichern');
+INSERT INTO txt VALUES ('save_service', 	    'English',	'Save Service');
+INSERT INTO txt VALUES ('delete_service', 	    'German',	'Dienst l&ouml;schen');
+INSERT INTO txt VALUES ('delete_service', 	    'English',	'Delete Service');
+INSERT INTO txt VALUES ('ext_request', 	        'German',	'Externer Antrag');
+INSERT INTO txt VALUES ('ext_request', 	        'English',	'External Request');
+INSERT INTO txt VALUES ('area', 	            'German',	'Area');
+INSERT INTO txt VALUES ('area', 	            'English',	'Area');
+INSERT INTO txt VALUES ('interface', 	        'German',	'Schnittstelle');
+INSERT INTO txt VALUES ('interface', 	        'English',	'Interface');
+INSERT INTO txt VALUES ('interfaces', 	        'German',	'Schnittstellen');
+INSERT INTO txt VALUES ('interfaces', 	        'English',	'Interfaces');
+INSERT INTO txt VALUES ('provided_interfaces', 	'German',	'Bereitgestellte Schnittstellen');
+INSERT INTO txt VALUES ('provided_interfaces', 	'English',	'Provided Interfaces');
+INSERT INTO txt VALUES ('remove_interface', 	'German',	'Schnittstelle entfernen');
+INSERT INTO txt VALUES ('remove_interface', 	'English',	'Remove Interface');
+INSERT INTO txt VALUES ('use',                  'German', 	'Benutzen');
+INSERT INTO txt VALUES ('use',                  'English', 	'Use');
+INSERT INTO txt VALUES ('services_group', 	    'German',	'Dienstgruppe');
+INSERT INTO txt VALUES ('services_group', 	    'English',	'Service Group');
+INSERT INTO txt VALUES ('services_groups', 	    'German',	'Dienstgruppen');
+INSERT INTO txt VALUES ('services_groups', 	    'English',	'Service Groups');
+INSERT INTO txt VALUES ('to_services_group', 	'German',	'Zu Dienstgruppe');
+INSERT INTO txt VALUES ('to_services_group', 	'English',	'To Service Group');
+INSERT INTO txt VALUES ('add_service_group', 	'German',	'Dienstgruppe hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_service_group', 	'English',	'Add Service Group');
+INSERT INTO txt VALUES ('edit_service_group', 	'German',	'Dienstgruppe bearbeiten');
+INSERT INTO txt VALUES ('edit_service_group', 	'English',	'Edit Service Group');
+INSERT INTO txt VALUES ('save_service_group', 	'German',	'Dienstgruppe speichern');
+INSERT INTO txt VALUES ('save_service_group', 	'English',	'Save Service Group');
+INSERT INTO txt VALUES ('delete_service_group', 'German',	'Dienstgruppe l&ouml;schen');
+INSERT INTO txt VALUES ('delete_service_group', 'English',	'Delete Service Group');
+INSERT INTO txt VALUES ('add_app_server', 	    'German',	'Neuer App Server');
+INSERT INTO txt VALUES ('add_app_server', 	    'English',	'New App Server');
+INSERT INTO txt VALUES ('edit_app_server', 	    'German',	'App Server bearbeiten');
+INSERT INTO txt VALUES ('edit_app_server', 	    'English',	'Edit App Server');
+INSERT INTO txt VALUES ('save_app_server', 	    'German',	'App Server speichern');
+INSERT INTO txt VALUES ('save_app_server', 	    'English',	'Save App Server');
+INSERT INTO txt VALUES ('delete_app_server', 	'German',	'App Server l&ouml;schen');
+INSERT INTO txt VALUES ('delete_app_server', 	'English',	'Delete App Server');
+INSERT INTO txt VALUES ('created_by',		    'German', 	'Erstellt von');
+INSERT INTO txt VALUES ('created_by',		    'English', 	'Created by');
+INSERT INTO txt VALUES ('log_change',		    'German', 	'&Auml;nderung loggen');
+INSERT INTO txt VALUES ('log_change',		    'English', 	'Log Change');
+INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie');
+INSERT INTO txt VALUES ('show_history',		    'English', 	'Show History');
+INSERT INTO txt VALUES ('changed_by',		    'German', 	'Ge&auml;ndert von');
+INSERT INTO txt VALUES ('changed_by',		    'English', 	'Changed by');
+INSERT INTO txt VALUES ('object_id',            'German', 	'Objekt-Id');
+INSERT INTO txt VALUES ('object_id',            'English', 	'Object Id');
+INSERT INTO txt VALUES ('predef_services',      'German', 	'Vordefinierte Dienste');
+INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined Services');
+INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
+INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
+INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
+INSERT INTO txt VALUES ('used_interface',       'English', 	'Used Interface');
+INSERT INTO txt VALUES ('reactivate',           'German', 	'Reaktivieren');
+INSERT INTO txt VALUES ('reactivate',           'English', 	'Reactivate');
+INSERT INTO txt VALUES ('search_nw_object',     'German', 	'Netzwerkobjekt suchen');
+INSERT INTO txt VALUES ('search_nw_object',     'English', 	'Search Network Object');
+INSERT INTO txt VALUES ('remove_nw_object', 	'German',	'Netzwerkobjekt entfernen');
+INSERT INTO txt VALUES ('remove_nw_object', 	'English',	'Remove Network Object');
+INSERT INTO txt VALUES ('is_in_use', 	        'German',	'Wird benutzt');
+INSERT INTO txt VALUES ('is_in_use', 	        'English',	'Is in use');
+INSERT INTO txt VALUES ('deactivate',           'German', 	'Deaktivieren');
+INSERT INTO txt VALUES ('deactivate',           'English', 	'Deactivate');
+INSERT INTO txt VALUES ('common_service',       'German', 	'Common Service');
+INSERT INTO txt VALUES ('common_service',       'English', 	'Common Service');
+INSERT INTO txt VALUES ('common_services',      'German', 	'Common Services');
+INSERT INTO txt VALUES ('common_services',      'English', 	'Common Services');
+INSERT INTO txt VALUES ('add_common_service', 	'German',	'Common Service hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_common_service', 	'English',	'Add Common Service');
+INSERT INTO txt VALUES ('regular_connection',   'German', 	'Standard-Verbindung');
+INSERT INTO txt VALUES ('regular_connection',   'English', 	'Regular Connection');
+INSERT INTO txt VALUES ('regular_connections', 	'German',	'Standard-Verbindungen');
+INSERT INTO txt VALUES ('regular_connections', 	'English',	'Regular Connections');
+INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
+INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
+
+-- compliance
+INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
+INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
+INSERT INTO txt VALUES ('network_zones',		'German', 	'Netzwerkzonen');
+INSERT INTO txt VALUES ('network_zones',		'English', 	'Network zones');
+INSERT INTO txt VALUES ('matrix',				'German', 	'Matrix');
+INSERT INTO txt VALUES ('matrix',				'English', 	'Matrix');
+INSERT INTO txt VALUES ('checks',				'German', 	'&Uuml;berpr&uuml;fung');
+INSERT INTO txt VALUES ('checks',				'English', 	'Checks');
+INSERT INTO txt VALUES ('check',				'German', 	'&Uuml;berpr&uuml;fen');
+INSERT INTO txt VALUES ('check',				'English', 	'Check');
+INSERT INTO txt VALUES ('zone_comm_matrix',		'German', 	'Netzwerkzonen-Kommunikationsmatrix');
+INSERT INTO txt VALUES ('zone_comm_matrix',		'English', 	'Network zone communication matrix');
+INSERT INTO txt VALUES ('network_zone_config',	'German', 	'Netzwerkzonen-Konfiguration');
+INSERT INTO txt VALUES ('network_zone_config',	'English', 	'Network zone configuration');
+INSERT INTO txt VALUES ('network_zone_check',	'German', 	'Netzwerkzonen-Compliancepr&uuml;fung');
+INSERT INTO txt VALUES ('network_zone_check',	'English', 	'Network zone compliance check');
+INSERT INTO txt VALUES ('allowed_communication','German', 	'Erlaubte Kommunikation');
+INSERT INTO txt VALUES ('allowed_communication','English', 	'Allowed communication');
+INSERT INTO txt VALUES ('subzones',				'German', 	'Subzonen');
+INSERT INTO txt VALUES ('subzones',				'English', 	'Subzones');
+INSERT INTO txt VALUES ('superzone',			'German', 	'Superzone');
+INSERT INTO txt VALUES ('superzone',			'English', 	'Superzone');
+INSERT INTO txt VALUES ('edit_zone_title',		'German', 	'Netzwerkzone editieren');
+INSERT INTO txt VALUES ('edit_zone_title',		'English', 	'Edit network zone');
+INSERT INTO txt VALUES ('add_ip_addresses',		'German', 	'IP Adresse(n) hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_ip_addresses',		'English', 	'Add IP Addresses');
+INSERT INTO txt VALUES ('delete_zone_title',	'German', 	'Netzwerkzone l&ouml;schen');
+INSERT INTO txt VALUES ('delete_zone_title',	'English', 	'Delete network zone');
+INSERT INTO txt VALUES ('delete_zone_text',		'German', 	'Sind Sie sich sicher, dass sie die Netzwerkzone % l&ouml;schen wollen?');
+INSERT INTO txt VALUES ('delete_zone_text',		'English', 	'Are you sure you want to delete the network zone %?');
+INSERT INTO txt VALUES ('to',					'German', 	'Nach');
+INSERT INTO txt VALUES ('to',					'English', 	'To');
+INSERT INTO txt VALUES ('allowed_comm_dests',   'German',   'Erlaubte Kommunikation (Nach)');
+INSERT INTO txt VALUES ('allowed_comm_dests',   'English',  'Allowed communication (to)');
+INSERT INTO txt VALUES ('allowed_comm_srcs',    'German',   'Erlaubte Kommunikation (Von)');
+INSERT INTO txt VALUES ('allowed_comm_srcs',    'English',  'Allowed communication (from)');
+INSERT INTO txt VALUES ('relogin',              'German', 	'Erneut anmelden');
+INSERT INTO txt VALUES ('relogin',              'English', 	'Re-Login');
+INSERT INTO txt VALUES ('relogin_error',        'German', 	'Fehler bei der erneuten Anmeldung');
+INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
+INSERT INTO txt VALUES ('internet_local_zone',  'German', 	'Internet / Lokal');
+INSERT INTO txt VALUES ('internet_local_zone',  'English', 	'Internet / Local');
+INSERT INTO txt VALUES ('rule_conform',         'German', 	'Regelkonform');
+INSERT INTO txt VALUES ('rule_conform',     	'English', 	'In accordance with the rules');
+INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
+INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
+INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
+INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
+
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
 INSERT INTO txt VALUES ('devices',				'English', 	'Devices');
@@ -1123,7 +1372,7 @@ INSERT INTO txt VALUES ('remove_user',          'German', 	'Nutzer entfernen');
 INSERT INTO txt VALUES ('remove_user',          'English', 	'Remove user');
 INSERT INTO txt VALUES ('get_user_from_ldap',   'German',	'Nutzer von LDAP holen');
 INSERT INTO txt VALUES ('get_user_from_ldap',   'English',	'Get user from LDAP');
-INSERT INTO txt VALUES ('select_from_ldap',     'German',	'von LDAP ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_from_ldap',     'German',	'Von LDAP ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_from_ldap',     'English',	'Select from LDAP');
 INSERT INTO txt VALUES ('synchronize', 			'German',	'Mit LDAP Synchronisieren');
 INSERT INTO txt VALUES ('synchronize', 			'English',	'Synchronize to LDAP');
@@ -1136,11 +1385,11 @@ INSERT INTO txt VALUES ('user',                 'English', 	'User');
 INSERT INTO txt VALUES ('group',                'German', 	'Gruppe');
 INSERT INTO txt VALUES ('group',                'English', 	'Group');
 INSERT INTO txt VALUES ('owner_group',          'German', 	'Eigent&uuml;mergruppe');
-INSERT INTO txt VALUES ('owner_group',          'English', 	'Owner group');
+INSERT INTO txt VALUES ('owner_group',          'English', 	'Owner Group');
 INSERT INTO txt VALUES ('into_ldap',            'German', 	'in LDAP');
 INSERT INTO txt VALUES ('into_ldap',            'English', 	'into LDAP');
-INSERT INTO txt VALUES ('from_ldap',            'German', 	'von LDAP');
-INSERT INTO txt VALUES ('from_ldap',            'English', 	'from LDAP');
+INSERT INTO txt VALUES ('from_ldap',            'German', 	'Von LDAP');
+INSERT INTO txt VALUES ('from_ldap',            'English', 	'From LDAP');
 INSERT INTO txt VALUES ('search_pattern',       'German', 	'Suchmuster');
 INSERT INTO txt VALUES ('search_pattern',       'English', 	'Search Pattern');
 INSERT INTO txt VALUES ('internal_group',       'German', 	'Interne Gruppe');
@@ -1243,6 +1492,12 @@ INSERT INTO txt VALUES ('impChangeNotifyBody',      'German', 	'Text der &Auml;n
 INSERT INTO txt VALUES ('impChangeNotifyBody',      'English', 	'Body of change notification emails');
 INSERT INTO txt VALUES ('impChangeNotifyActive',    'German', 	'&Auml;nderungsbenachrichtigung aktiv?');
 INSERT INTO txt VALUES ('impChangeNotifyActive',    'English', 	'Change notification active?');
+INSERT INTO txt VALUES ('impChangeNotifyType','German', 	'&Auml;nderungsbenachrichtigungstyp');
+INSERT INTO txt VALUES ('impChangeNotifyType','English', 	'Change notification type');
+INSERT INTO txt VALUES ('impChangeNotifySleepTime','German','&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden)');
+INSERT INTO txt VALUES ('impChangeNotifySleepTime','English','Change notification sleep time (in seconds)');
+INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenachrichtigungs-Start');
+INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start');
@@ -1463,8 +1718,12 @@ INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in
 INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert Interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
 INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
+INSERT INTO txt VALUES ('comm_svc_possible',    'German',   'Common Service zugelassen');
+INSERT INTO txt VALUES ('comm_svc_possible',    'English',  'Common Service Possible');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
+INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher (DN)');
+INSERT INTO txt VALUES ('main_responsible',     'English',  'Main responsible person (DN)');
 INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');
@@ -1481,6 +1740,38 @@ INSERT INTO txt VALUES ('text',                 'German', 	'Text');
 INSERT INTO txt VALUES ('text',                 'English', 	'Text');
 INSERT INTO txt VALUES ('custom_text',          'German', 	'Angepasster Text');
 INSERT INTO txt VALUES ('custom_text',          'English', 	'Custom Text');
+INSERT INTO txt VALUES ('allowServerInConn',    'German', 	'Server in Verbindung erlauben');
+INSERT INTO txt VALUES ('allowServerInConn',    'English', 	'Allow Servers in Connection');
+INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in Verbindung erlauben');
+INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
+INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen in &Uuml;bersicht');
+INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
+INSERT INTO txt VALUES ('reducedProtocolSet',   'German',   'Reduzierten Protokollset darstellen');
+INSERT INTO txt VALUES ('reducedProtocolSet',   'English',  'Display reduced Protocol set');
+INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad und Name von Appdaten-Import (ohne Endung)');
+INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path and Name of App data import (without ending)');
+INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
+INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
+INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
+INSERT INTO txt VALUES ('importAppDataStartAt', 'English', 	'Import App data start at');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad und Name von Subnetzdaten-Import (ohne Endung)');
+INSERT INTO txt VALUES ('importSubnetDataPath', 'English', 	'Path and Name of subnet data import (without ending)');
+INSERT INTO txt VALUES ('importSubnetDataSleepTime','German','Import Subnetzdaten-Intervall (in Stunden)');
+INSERT INTO txt VALUES ('importSubnetDataSleepTime','English','Import Subnet data sleep time (in hours)');
+INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten-Start');
+INSERT INTO txt VALUES ('importSubnetDataStartAt','English','Import Subnet data start at');
+INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorgeschrieben');
+INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
+INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
+INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
+INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
+INSERT INTO txt VALUES ('freePartLength',       'English',  'Free Part Length');
+INSERT INTO txt VALUES ('networkAreaPattern',   'German',   'Muster Netzwerkarea');
+INSERT INTO txt VALUES ('networkAreaPattern',   'English',  'Network Area Pattern');
+INSERT INTO txt VALUES ('appRolePattern',       'German',   'Muster App Rolle');
+INSERT INTO txt VALUES ('appRolePattern',       'English',  'App Role Pattern');
+INSERT INTO txt VALUES ('import_source',        'German',   'Importquelle');
+INSERT INTO txt VALUES ('import_source',        'English',  'Import Source');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1597,7 +1888,14 @@ INSERT INTO txt VALUES ('changes_found',        'German', 	' &Auml;nderungen gef
 INSERT INTO txt VALUES ('changes_found',        'English',	' changes found');
 INSERT INTO txt VALUES ('found_no_changes',     'German', 	'keine &Auml;nderungen gefunden');
 INSERT INTO txt VALUES ('found_no_changes',     'English',	'no changes found');
-
+INSERT INTO txt VALUES ('scheduled_app_import', 'German',   'Termingesteuerter App-Import');
+INSERT INTO txt VALUES ('scheduled_app_import', 'English',  'Scheduled App Import');
+INSERT INTO txt VALUES ('scheduled_subnet_import','German', 'Termingesteuerter Subnetz-Import');
+INSERT INTO txt VALUES ('scheduled_subnet_import','English','Scheduled Subnet Import');
+INSERT INTO txt VALUES ('imp_change_notification','German', '&Auml;nderungsbenachrichtigung');
+INSERT INTO txt VALUES ('imp_change_notification','English','Import Change Notification');
+INSERT INTO txt VALUES ('credentials',           'German', 	'Login-Daten');
+INSERT INTO txt VALUES ('credentials',           'English', 'Credentials');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -1680,55 +1978,16 @@ INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
--- compliance
-INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
-INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
-INSERT INTO txt VALUES ('network_zones',		'German', 	'Netzwerkzonen');
-INSERT INTO txt VALUES ('network_zones',		'English', 	'Network zones');
-INSERT INTO txt VALUES ('matrix',				'German', 	'Matrix');
-INSERT INTO txt VALUES ('matrix',				'English', 	'Matrix');
-INSERT INTO txt VALUES ('checks',				'German', 	'&Uuml;berpr&uuml;fung');
-INSERT INTO txt VALUES ('checks',				'English', 	'Checks');
-INSERT INTO txt VALUES ('check',				'German', 	'&Uuml;berpr&uuml;fen');
-INSERT INTO txt VALUES ('check',				'English', 	'Check');
-INSERT INTO txt VALUES ('zone_comm_matrix',		'German', 	'Netzwerkzonen-Kommunikationsmatrix');
-INSERT INTO txt VALUES ('zone_comm_matrix',		'English', 	'Network zone communication matrix');
-INSERT INTO txt VALUES ('network_zone_config',	'German', 	'Netzwerkzonen-Konfiguration');
-INSERT INTO txt VALUES ('network_zone_config',	'English', 	'Network zone configuration');
-INSERT INTO txt VALUES ('network_zone_check',	'German', 	'Netzwerkzonen-Compliancepr&uuml;fung');
-INSERT INTO txt VALUES ('network_zone_check',	'English', 	'Network zone compliance check');
-INSERT INTO txt VALUES ('allowed_communication','German', 	'Erlaubte Kommunikation');
-INSERT INTO txt VALUES ('allowed_communication','English', 	'Allowed communication');
-INSERT INTO txt VALUES ('subzones',				'German', 	'Subzonen');
-INSERT INTO txt VALUES ('subzones',				'English', 	'Subzones');
-INSERT INTO txt VALUES ('superzone',			'German', 	'Superzone');
-INSERT INTO txt VALUES ('superzone',			'English', 	'Superzone');
-INSERT INTO txt VALUES ('edit_zone_title',		'German', 	'Netzwerkzone editieren');
-INSERT INTO txt VALUES ('edit_zone_title',		'English', 	'Edit network zone');
-INSERT INTO txt VALUES ('add_ip_addresses',		'German', 	'IP Adresse(n) hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('add_ip_addresses',		'English', 	'Add IP Addresses');
-INSERT INTO txt VALUES ('delete_zone_title',	'German', 	'Netzwerkzone l&ouml;schen');
-INSERT INTO txt VALUES ('delete_zone_title',	'English', 	'Delete network zone');
-INSERT INTO txt VALUES ('delete_zone_text',		'German', 	'Sind Sie sich sicher, dass sie die Netzwerkzone % l&ouml;schen wollen?');
-INSERT INTO txt VALUES ('delete_zone_text',		'English', 	'Are you sure you want to delete the network zone %?');
-INSERT INTO txt VALUES ('to',					'German', 	'Nach');
-INSERT INTO txt VALUES ('to',					'English', 	'To');
-INSERT INTO txt VALUES ('allowed_comm_dests',   'German',   'Erlaubte Kommunikation (Nach)');
-INSERT INTO txt VALUES ('allowed_comm_dests',   'English',  'Allowed communication (to)');
-INSERT INTO txt VALUES ('allowed_comm_srcs',    'German',   'Erlaubte Kommunikation (Von)');
-INSERT INTO txt VALUES ('allowed_comm_srcs',    'English',  'Allowed communication (from)');
-INSERT INTO txt VALUES ('relogin',              'German', 	'Erneut anmelden');
-INSERT INTO txt VALUES ('relogin',              'English', 	'Re-Login');
-INSERT INTO txt VALUES ('relogin_error',        'German', 	'Fehler bei der erneuten Anmeldung');
-INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
-INSERT INTO txt VALUES ('internet_local_zone',  'German', 	'Internet / Lokal');
-INSERT INTO txt VALUES ('internet_local_zone',  'English', 	'Internet / Local');
-INSERT INTO txt VALUES ('rule_conform',         'German', 	'Regelkonform');
-INSERT INTO txt VALUES ('rule_conform',     	'English', 	'In accordance with the rules');
-INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
-INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
-INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
-INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
+INSERT INTO txt VALUES ('import_interfaces',    'German', 	'Import-Schnittstellen');
+INSERT INTO txt VALUES ('import_interfaces',    'English', 	'Import Interfaces');
+INSERT INTO txt VALUES ('import_app_data',      'German', 	'Applikationsdaten-Import');
+INSERT INTO txt VALUES ('import_app_data',      'English', 	'Application Data Import');
+INSERT INTO txt VALUES ('import_subnet_data',   'German', 	'Subnetzdaten-Import');
+INSERT INTO txt VALUES ('import_subnet_data',   'English', 	'Subnet Data Import');
+INSERT INTO txt VALUES ('general',              'German', 	'Allgemein');
+INSERT INTO txt VALUES ('general',              'English', 	'General');
+INSERT INTO txt VALUES ('naming_convention',    'German',   'Namenskonvention');
+INSERT INTO txt VALUES ('naming_convention',    'English',  'Naming Convention');
 
 
 -- text codes (roughly) categorized: 
@@ -1736,6 +1995,7 @@ INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones ex
 -- E: error texts
 -- A: Api errors
 -- T: texts from external sources (Ldap, other database tables)
+-- C: Contextual Info (Tooltips)
 -- H: help pages
 -- 0000-0999: General
 -- 1000-1999: Reporting
@@ -1752,6 +2012,7 @@ INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones ex
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
+-- 9000-9999: Modelling
 
 -- generic success messages
 INSERT INTO txt VALUES ('S_add_title',          'German',   'Erstellen erfolgreich');
@@ -1893,6 +2154,8 @@ INSERT INTO txt VALUES ('U5320', 'German',  'Mehrere Email-Adressen mit Komma tr
 INSERT INTO txt VALUES ('U5320', 'English', 'Multiple email addresses can be separated by using commas');
 INSERT INTO txt VALUES ('U5321', 'German',  'Anzeige und &Uuml;berschreiben aller dargestellten Texte');
 INSERT INTO txt VALUES ('U5321', 'English', 'Show and overwrite all shown texts');
+INSERT INTO txt VALUES ('U5322', 'German',  'Verwaltung der Voreinstellungen f&uuml;r die Netzwerk-Modellierung');
+INSERT INTO txt VALUES ('U5322', 'English', 'Administration of default settings for network modelling');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -1936,6 +2199,22 @@ INSERT INTO txt VALUES ('U8002', 'English', 'New approval added to task.');
 INSERT INTO txt VALUES ('U8003', 'German',  'Sind sie sicher, dass sie abbrechen wollen? Bereits erzeugte Auftr&auml;ge gehen verloren.');
 INSERT INTO txt VALUES ('U8003', 'English', 'Are you sure you want to cancel? Already Created tasks will be lost.');
 
+INSERT INTO txt VALUES ('U9001', 'German',  'Sind sie sicher, dass sie folgende Verbindung l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9001', 'English', 'Are you sure you want to delete connection: ');
+INSERT INTO txt VALUES ('U9002', 'German',  'Sind sie sicher, dass sie folgende App Rolle l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9002', 'English', 'Are you sure you want to delete App Role: ');
+INSERT INTO txt VALUES ('U9003', 'German',  'Sind sie sicher, dass sie folgenden Dienst l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9003', 'English', 'Are you sure you want to delete service: ');
+INSERT INTO txt VALUES ('U9004', 'German',  'Sind sie sicher, dass sie folgende Dienstgruppe l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9004', 'English', 'Are you sure you want to delete service group: ');
+INSERT INTO txt VALUES ('U9005', 'German',  'Sind sie sicher, dass sie folgende App Server reaktivieren wollen: ');
+INSERT INTO txt VALUES ('U9005', 'English', 'Are you sure you want to reactivate App Server: ');
+INSERT INTO txt VALUES ('U9006', 'German',  'Sind sie sicher, dass sie folgendes Objekt aus der Auswahlliste l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9006', 'English', 'Are you sure you want to delete following object from selection list: ');
+INSERT INTO txt VALUES ('U9007', 'German',  'Der folgende App Server wird verwendet. Sind sie sicher, dass sie ihn deaktivieren wollen: ');
+INSERT INTO txt VALUES ('U9007', 'English', 'Following App Server is in use. Are you sure you want to deactivate it: ');
+INSERT INTO txt VALUES ('U9008', 'German',  'Sind sie sicher, dass sie folgenden App Server l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9008', 'English', 'Are you sure you want to delete App Server: ');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
@@ -1957,7 +2236,6 @@ INSERT INTO txt VALUES ('E_delete_title',       'German',   'Fehler beim L&ouml;
 INSERT INTO txt VALUES ('E_delete_title',       'English',  'Deletion error');
 INSERT INTO txt VALUES ('E_delete_message',     'German',   'Bei der L&ouml;schung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
 INSERT INTO txt VALUES ('E_delete_message',     'English',  'An unexpected error occurred while deleting the item. Please report the error if it cannot be resolved.');
-
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -2222,8 +2500,26 @@ INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is n
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
 
-
-
+INSERT INTO txt VALUES ('E9001', 'German',  'Sie haben Modellier-Rechte f&uuml;r keine Applikation.');
+INSERT INTO txt VALUES ('E9001', 'English', 'You have no modeller rights for any application.');
+INSERT INTO txt VALUES ('E9002', 'German',  'Keine Area verf&uuml;gbar.');
+INSERT INTO txt VALUES ('E9002', 'English', 'No areas available.');
+INSERT INTO txt VALUES ('E9003', 'German',  'Id schon vergeben. Bitte eine andere ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E9003', 'English', 'Id already used. Please choose another.');
+INSERT INTO txt VALUES ('E9004', 'German',  'Dienst und Quelle oder Ziel m&uuml;ssen ausgef&uuml;llt sein.');
+INSERT INTO txt VALUES ('E9004', 'English', 'Service and source or Destination have to be filled.');
+INSERT INTO txt VALUES ('E9005', 'German',  'Der Schnittstellentyp kann nicht zwischen Quelle und Ziel ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('E9005', 'English', 'The Interface type cannot be changed between Source and Destination.');
+INSERT INTO txt VALUES ('E9006', 'German',  'Quelle, Dienst und Ziel m&uuml;ssen gef&uuml;llt sein.');
+INSERT INTO txt VALUES ('E9006', 'English', 'Source, Service and Destination have to be filled.');
+INSERT INTO txt VALUES ('E9007', 'German',  'Dienst kann nicht gel&ouml;scht werden, da er in Benutzung ist: ');
+INSERT INTO txt VALUES ('E9007', 'English', 'Service cannot be deleted because it is in use: ');
+INSERT INTO txt VALUES ('E9008', 'German',  'Dienstgruppe kann nicht gel&ouml;scht werden, da sie in Benutzung ist: ');
+INSERT INTO txt VALUES ('E9008', 'English', 'Service Group cannot be deleted because it is in use: ');
+INSERT INTO txt VALUES ('E9009', 'German',  'App Rolle kann nicht gel&ouml;scht werden, da sie in Benutzung ist: ');
+INSERT INTO txt VALUES ('E9009', 'English', 'App Role cannot be deleted because it is in use: ');
+INSERT INTO txt VALUES ('E9010', 'German',  'IP-Adresse wurde schon verwendet.');
+INSERT INTO txt VALUES ('E9010', 'English', 'IP address is already used.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -2284,6 +2580,19 @@ INSERT INTO txt VALUES ('T0106', 'German',  'Aktuell aktive unbenutzte Regeln al
 INSERT INTO txt VALUES ('T0106', 'English', 'Currently active unused rules of all gateways');
 INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Rezertifizierung anstehen');
 INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
+
+-- Contextual Info (Tooltips)
+INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
+INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
+INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');
+INSERT INTO txt VALUES ('C9001', 'English', 'This object was deactivated and should be removed from Connection.');
+INSERT INTO txt VALUES ('C9002', 'German',  'Dieser App Server wurde noch in keiner App Rolle oder Verbindung verwendet.');
+INSERT INTO txt VALUES ('C9002', 'English', 'This App Server was not used in any App Role or Connection.');
+INSERT INTO txt VALUES ('C9003', 'German',  'Diese App wurde deaktiviert.');
+INSERT INTO txt VALUES ('C9003', 'English', 'This app was deactivated.');
+INSERT INTO txt VALUES ('C9004', 'German',  'In dieser App wurden noch keine Verbindungen angelegt.');
+INSERT INTO txt VALUES ('C9004', 'English', 'In this app no connections have been created.');
+
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -2734,7 +3043,7 @@ F&uuml;r das ordnungsgem&auml;&szlig;e Funktionieren des Rezertifzierungsprozess
 <H4>Berechtigungen</H4>
 <ul>
     <li>Angemeldete Nutzer m&uuml;ssen die Rolle "Recertifier" besitzen</li>
-    <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Vollst&auml;ndiger Name*:" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
+    <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Hauptverantwortlicher (DN)" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
 </ul>
 <H4>Konfiguration der Eigent&uuml;mer</H4>
     M&ouml;chte man keine Verteilung der Zust&auml;ndigkeit auf mehrere Eigent&uuml;mer vornehmen, so ist es ausreichend, dem Eigent&uuml;mer "Super-Owner" eine Gruppe von Rezertifizierern zuzuordnen,
@@ -3067,9 +3376,11 @@ INSERT INTO txt VALUES ('H5001', 'English', 'In the settings section the setup a
 ');
 INSERT INTO txt VALUES ('H5011', 'German',  'Im ersten Kapitel "Ger&auml;te" wird das Setup der Datenquellen behandelt: 
     Die Abschnitte <a href="/help/settings/managements">Managements</a> und <a href="/help/settings/gateways">Gateways</a> dienen der Definition der verbundenen Hardware.
+    Hinzu kommt die Verwaltung der <a href="/help/settings/credentials">Import-Zugangsdaten</a>.
 ');
 INSERT INTO txt VALUES ('H5011', 'English', 'In the first chapter "Devices" the setup of the report data sources is done:
     The sections <a href="/help/settings/managements">Managements</a> and <a href="/help/settings/gateways">Gateways</a> are for the definition of the connected hardware.
+    Additionally there is the administration of the <a href="/help/settings/credentials">Import Credentials</a>.
 ');
 INSERT INTO txt VALUES ('H5012', 'German',  'Das Kapitel "Berechtigungen" bietet die Funktionalit&auml;t f&uuml;r die Nutzerverwaltung:
     In <a href="/help/settings/ldap">LDAP-Verbindungen</a> k&ouml;nnen externe Verbindungen zus&auml;tzlich zum internen LDAP definiert werden.
@@ -3085,10 +3396,12 @@ INSERT INTO txt VALUES ('H5012', 'English', 'The chapter "Authorization" offers 
 ');
 INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann der Administrator <a href="/help/settings/defaults">Standardeinstellungen</a> vornehmen,
     die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/email">Email-</a>, <a href="/help/settings/importer">Importer-</a> und
-    <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren.
+    <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren. Hinzu kommen die modulspezifischen 
+    <a href="/help/settings/recertificationgeneral">Allgemeinen Rezertifizierungs-</a> und <a href="/help/settings/modelling">Modellierungseinstellungen</a>.
 ');
 INSERT INTO txt VALUES ('H5013', 'English', 'In the "Defaults" chapter the administrator can define <a href="/help/settings/defaults">Default Values</a> applicable to all users
     and define <a href="/help/settings/email">email-</a>, <a href="/help/settings/importer">importer-</a> and  <a href="/help/settings/passwordpolicy">Password Policy</a> settings.
+    Additionally there are the module specific <a href="/help/settings/recertificationgeneral">General Recertification</a> and <a href="/help/settings/modelling">Modelling Settings</a>.
 ');
 INSERT INTO txt VALUES ('H5014', 'German',  'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. Hier k&ouml;nnen das individuelle <a href="/help/settings/password">Password</a>,
     die bevorzugte <a href="/help/settings/language">Sprache</a> und <a href="/help/settings/report">Reporting</a>-Einstellungen gesetzt werden.
@@ -3396,7 +3709,7 @@ INSERT INTO txt VALUES ('H5213', 'English', 'Tls: Flag if TLS is used for commun
 INSERT INTO txt VALUES ('H5214', 'German',  'Mandantenebene: Wenn Mandanten Teil des Distinguished Name (Dn) des Nutzers sind, definiert diese Zahl die Pfadtiefe, wo dieser zu finden ist. 
     Das beginnt mit 1 f&uuml;r das erste Element von rechts. Wenn keine Mandanten genutzt werden, auf 0 setzen.
 ');
-INSERT INTO txt VALUES ('H5214', 'English', 'Tenant Level: If tenants are part of the distinguished names (Dn) of the user, this number defines the level in the path, where they are found.
+INSERT INTO txt VALUES ('H5214', 'English', 'Tenant Level: If tenants are part of the distinguished name (Dn) of the user, this number defines the level in the path, where they are found.
     Starting with 1 for the first Dn element from the right. Set to 0 if no tenants are used.
 ');
 INSERT INTO txt VALUES ('H5215', 'German',  'Typ*: Implementierungstyp des Ldap, welcher die Syntax des Zugangs festlegt. Zur Zeit werden "OpenLdap" und "ActiveDirectory" unterst&uuml;tzt.
@@ -3503,24 +3816,32 @@ INSERT INTO txt VALUES ('H5278', 'English', 'Pwd Chg Req: Flag that the user has
     The flag is set when a new user is added or when the admin has reset the password, 
     except for users with auditor role, because that role is not allowed to make any changes in the system.
 ');
+INSERT INTO txt VALUES ('H5279', 'German',  'Von LDAP: Ldap, in dem der Nutzer angelegt ist. Dies kann sowohl das interne, als auch ein in den <a href="/help/settings/ldap">Ldap-Einstellungen</a> definiertes externes Ldap sein.');
+INSERT INTO txt VALUES ('H5279', 'English', 'From LDAP: Ldap, where the user is registered. This can be the internal as well as an external Ldap as defined in the <a href="/help/settings/ldap">Ldap Settings</a>.');
+INSERT INTO txt VALUES ('H5280', 'German',  'In LDAP: Ldap, in dem der Nutzer angelegt werden soll. Angeboten werden sowohl das interne, als auch alle in den <a href="/help/settings/ldap">Ldap-Einstellungen</a> definierten externen Ldaps, in denen Schreibrechte bestehen.');
+INSERT INTO txt VALUES ('H5280', 'English', 'Into LDAP: Ldap, where the user should be registered. Offered are the internal as well as all external Ldaps as defined in the <a href="/help/settings/ldap">Ldap Settings</a>, where write permissions are given.');
 INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren. Dabei besteht die M&ouml;glichkeit, sie gleich einer Rolle zuzuordnen.
     Weitere Rollenzuordnungen k&ouml;nnen dann unter <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
-    Wenn Beispieldaten (definiert durch die Endung "_demo" vom Gruppennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
-    Die L&ouml;schung ist nicht m&ouml;glich, wenn Nutzer, die nicht als Beispielnutzer gekennzeichnet sind (Name endet nicht auf "_demo"), der Gruppe zugeordnet sind.
 ');
 INSERT INTO txt VALUES ('H5301', 'English', 'Groups of users can be defined by the admin in the internal Ldap. When adding there is the possibility to assign a role membership.
     Further memberships can be administrated in the <a href="/help/settings/roles">roles</a> section.<br>
-    If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
+');
+INSERT INTO txt VALUES ('H5302', 'German',  'Wenn Beispieldaten (definiert durch die Endung "_demo" vom Gruppennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
+    Die L&ouml;schung ist nicht m&ouml;glich, wenn Nutzer, die nicht als Beispielnutzer gekennzeichnet sind (Name endet nicht auf "_demo"), der Gruppe zugeordnet sind.
+');
+INSERT INTO txt VALUES ('H5302', 'English', 'If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
     The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
 ');
 INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden.');
 INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups.');
-INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) der Gruppe zugeordnet oder von dieser entfernt werden.');
-INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) can be assigned to or removed from the user groups.');
+INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) oder aus einem zu durchsuchenden Ldap der Gruppe zugeordnet bzw. von dieser entfernt werden.');
+INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) or searched from an Ldap can be assigned to resp. removed from the user groups.');
 INSERT INTO txt VALUES ('H5313', 'German',  'Name: Name der Nutzergruppe.');
 INSERT INTO txt VALUES ('H5313', 'English', 'Name: Name of the user group.');
 INSERT INTO txt VALUES ('H5314', 'German',  'Nutzer: Liste der der Gruppe zugeordneten Nutzer.');
 INSERT INTO txt VALUES ('H5314', 'English', 'Users: List of assigned users to the group.');
+INSERT INTO txt VALUES ('H5315', 'German',  'Eigent&uuml;mergruppe: Kann f&uuml;r die Eigent&uuml;merverwaltung beim Rezertifizieren oder Modellieren verwendet werden.');
+INSERT INTO txt VALUES ('H5315', 'English', 'Owner Group: Can be used for owner administration in recertification or modelling modules.');
 INSERT INTO txt VALUES ('H5331', 'German',  'Alle definierten Rollen werden mit einer kurzen Erkl&auml;rung dargestellt.<br>
     Der Admin kann Nutzer oder Nutzergruppen den Rollen zuweisen bzw. von diesen entfernen.
 ');
@@ -3595,49 +3916,8 @@ INSERT INTO txt VALUES ('H5414', 'English', 'Completely auto-fill right sidebar:
 ');
 INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): Legt fest, wie lange die Daten in der Datenbank gehalten werden (wird noch nicht unterst&uuml;tzt).');
 INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database (currently not supported).');
-INSERT INTO txt VALUES ('H5416', 'German',  '
-    <ul>
-        <li>Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;fen. Default-Wert = 40.</li>
-        <li>Zertifikate beim Import pr&uuml;fen: Sollen bei den API-Calls in Richtung der Firewalls nur g&uuml;ltige Zertifikate akzeptiert werden?. 
-            Sollte nur auf "aktiv" gesetzt werden, wenn alle Firewalls offiziell signierte Zertifikate besitzen, 
-            andernfalls ist ein Import nicht m&ouml;glich. Default-Wert = "inaktiv".</li>
-        <li>Zertifikatswarnungen unterdr&uuml;cken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
-            Firewalls ausgegeben werden? Default-Wert = "inaktiv".</li>
-        <li>FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.</li>
-        <li>&Auml;nderungsbenachrichtigung via Email
-            <ul>
-                <li>&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese 
-                    Einstellung zu aktivieren. Default-Wert = "inaktiv".</li>
-                <li>Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
-                    sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".</li>
-                <li>Titel der &Auml;nderungsbenachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".</li>
-                <li>Text der &Auml;nderungsbenachrichtigung: Start des Email-Textes. Die Email enth&auml;lt stets den Namen und die ID des 
-                    ge&auml;nderten Managements sowie die Anzahl der festgestellten &Auml;nderungen. Default-Wert = "leer".</li>
-            </ul>
-        </li>
-    </ul>
-');
-INSERT INTO txt VALUES ('H5416', 'English', '
-    <ul>
-        <li>Import sleep time (in seconds): Time between import loops; default value=40.</li>
-        <li>Check certificates during import: During API calls towards Firewalls shall only valid certificates be accepted?. 
-            This should only be set to "active" if all firewall API certificates are valid, otherwise an import will not be possible.
-            Default value = "inactive".</li>
-        <li>Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".</li>
-        <li>FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.</li>
-        <li>Change notification via email:
-            <ul>
-                <li>Change notification active?: When an import finds security relevant changes, should an email be sent out?
-                Default value = "inactive".</li>
-                <li>Recipient email addresses for change notifications: A comma-separated list of email addresses, which will get information in the case of 
-                    security relevant changes found during import of a firewall management. Default value = "empty".</li>
-                <li>Subject of change notification emails: Subject line for notification emails. Default value = "empty".</li>
-                <li>Body of change notification emails: Start of the email text. The email will always contain name and ID of the changed 
-                    firewall management as well as the number of changes. Default value = "empty".</li>
-            </ul>
-        </li>
-    </ul>
-');
+INSERT INTO txt VALUES ('H5416', 'German',  '&Auml;nderungsbenachrichtigung via Email:');
+INSERT INTO txt VALUES ('H5416', 'English', 'Change notification via email:');
 INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll.');
 INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified.');
 INSERT INTO txt VALUES ('H5418', 'German',  'Rezertifizierungserinnerungsintervall (in Tagen): Zeit vor dem F&auml;lligkeitsdatum, ab der eine Regel als f&auml;llig hervorgehoben werden soll.');
@@ -3652,11 +3932,11 @@ INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: L
 INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');
 INSERT INTO txt VALUES ('H5423', 'German',  'Nachrichten-Anzeigedauer (in Sekunden): legt fest, wie lange Erfolgs-Nachrichten dargestellt werden, bis sie automatisch ausgeblendet werden.
     Fehler-Nachrichten erscheinen dreimal so lange. Beim Wert 0 werden die Nachrichten nicht automatisch ausgeblendet.
-    Die Nutzer-Meldungen k&ouml;nnen auch danach noch unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> eingesehen werden.
+    Die Nutzer-Meldungen k&ouml;nnen auch danach noch im Monitoring unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> eingesehen werden.
 ');
 INSERT INTO txt VALUES ('H5423', 'English', 'Message view time (in seconds): defines how long success messages are displayed, until they fade out automatically.
     Error messages are displayed 3 times as long. Value 0 means that the messages do not fade out.
-    All user messages can still be reviewed at <a href="/help/monitoring/ui_messages">UI Messages</a>.
+    All user messages can still be reviewed in the monitoring tab at <a href="/help/monitoring/ui_messages">UI Messages</a>.
 ');
 INSERT INTO txt VALUES ('H5424', 'German',  'Startzeit t&auml;glicher Check: legt die Zeit fest, wann der t&auml;gliche Check durchgef&uuml;hrt werden soll.');
 INSERT INTO txt VALUES ('H5424', 'English', 'Daily check start at: defines the time when the daily check should happen.');
@@ -3679,9 +3959,9 @@ INSERT INTO txt VALUES ('H5433', 'German',  'Autom. Anlegen L&ouml;schantrag: So
 INSERT INTO txt VALUES ('H5433', 'English', 'Autocreate delete rule ticket: When a rule has been fully de-certified, should a delete ticket be automatically generated?');
 INSERT INTO txt VALUES ('H5434', 'German',  'Titel f&uuml;r L&ouml;schantrag: Titel des zu erzeugenden L&ouml;sch-Tickets.');
 INSERT INTO txt VALUES ('H5434', 'English', 'Title delete ticket: Subject line of the delete ticket to be generated.');
-INSERT INTO txt VALUES ('H5435', 'German',  'Grund f&uuml;r L&ouml;sch-Antrag: Text f&uuml;r den Grund des zu erzeugenden L&ouml;sch-Tickets.');
+INSERT INTO txt VALUES ('H5435', 'German',  'Grund f&uuml;r L&ouml;schantrag: Text f&uuml;r den Grund des zu erzeugenden L&ouml;sch-Tickets.');
 INSERT INTO txt VALUES ('H5435', 'English', 'Reason delete ticket: Text for the reason of the delete ticket to be generated.');
-INSERT INTO txt VALUES ('H5436', 'German',  'Titel f&uuml;r L&ouml;sch Auftrag: Titel der zu erzeugenden L&ouml;schaufgabe.');
+INSERT INTO txt VALUES ('H5436', 'German',  'Titel f&uuml;r L&ouml;schauftrag: Titel der zu erzeugenden L&ouml;schaufgabe.');
 INSERT INTO txt VALUES ('H5436', 'English', 'Title delete rule task: Title of the delete task to be generated.');
 INSERT INTO txt VALUES ('H5437', 'German',  'Grund f&uuml;r L&ouml;schauftrag: Begr&uuml;ndungstext f&uuml;r die zu erzeugende L&ouml;schaufgabe.');
 INSERT INTO txt VALUES ('H5437', 'English', 'Reason for delete rule task: Text for the reason of the delete task to be generated.');
@@ -3724,6 +4004,8 @@ INSERT INTO txt VALUES ('H5452', 'German',  'Max erlaubte Importdauer (in Stunde
 INSERT INTO txt VALUES ('H5452', 'English', 'Max allowed import duration (in hours): Upper limit for the accepted import duration in the daily check.');
 INSERT INTO txt VALUES ('H5453', 'German',  'Max erlaubtes Importintervall (in Stunden): Obergrenze, welcher Abstand zwischen zwei Imports im t&auml;glichen Check noch akzeptiert wird.');
 INSERT INTO txt VALUES ('H5453', 'English', 'Max import interval (in hours): Upper limit for the accepted interval between two imports in the daily check.');
+INSERT INTO txt VALUES ('H5454', 'German',  'Regel-Eigent&uuml;merschaftsmodus: (Gemischt/Exklusiv) Wird z. Zt. nicht genutzt.');
+INSERT INTO txt VALUES ('H5454', 'English', 'Rule Ownership Mode: (Mixed/Exclusive) Currently not in use.');
 
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
@@ -3747,27 +4029,80 @@ INSERT INTO txt VALUES ('H5481', 'German',  'Ein Rezertifizierer kann einige per
 INSERT INTO txt VALUES ('H5481', 'English', 'A recertifier can overwrite some personal settings for the recertification report. 
     The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
 ');
-INSERT INTO txt VALUES ('H5491', 'German',  'Firewall Orchestrator kann Benachrichtigungen versenden, z.B. f&uuml;r anstehende Rezertifizierungen oder wenn beim Import 
-    &Auml;nderungen festgestellt wurden.
+INSERT INTO txt VALUES ('H5483', 'German',  '&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese 
+    Einstellung zu aktivieren. Default-Wert = "inaktiv".
+');
+INSERT INTO txt VALUES ('H5483', 'English', 'Change notification active?: When an import finds security relevant changes, should an email be sent out?
+    Default value = "inactive".
+');
+INSERT INTO txt VALUES ('H5484', 'German',  '&Auml;nderungsbenachrichtigungstyp: Art und Umfang, in dem die &Auml;nderungsbenachrichtigung gesendet werden soll:
     <ul>
-        <li>Der Name oder die IP-Adresse des SMTP-Servers f&uuml;r ausgehende Emails wird im Feld "Adresse" eingetragen.</li>
-        <li>Der TCP-Port des SMTP-Servers (meist 25, 587 oder 465, abh&auml;ngig von der verwendeten Verschl&uumlsselung) wird im "Port"-Feld eingetragen.</li>
-        <li>Anschlie&szlig;end wird die gew&uuml;nschte Art der Verschl&uuml;sselung eingestellt (None=unverschl&uuml;sselt / StartTls / Tls)</li>
-        <li>Verlangt der SMTP-Server eine Authentisierung, so sind Email-Nutzer und Email-Nutzer-Passwort in den beiden folgenden Feldern einzutragen. Anderfalls k&ouml;nnen diese Felder leer gelassen werden.</li>
-        <li>Schlie&szlig;kann nach eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.</li>
+        <li>Einfacher Text (kein &Auml;nderungsreport): Es wird nur der hier definierte Text der &Auml;nderungsbenachrichtigung gesendet.</li>
+        <li>Html in Email: Ein Changes Report wird zu den im Import gefundenen &Auml;nderungen erstellt und in der email als Html versendet.</li>
+        <li>Pdf als Anhang: Ein Changes Report wird erstellt und der email als Pdf-Datei angeh&auml;ngt.</li>
+        <li>Html als Anhang: Ein Changes Report wird erstellt und der email als Html-Datei angeh&auml;ngt.</li>
+        <li>Json als Anhang: Ein Changes Report wird erstellt und der email als Json-Datei angeh&auml;ngt.</li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H5491', 'English', 'Firewall Orchestrator is able to send out notifications, e.g. for upcoming recertifications or when an import found changes in the firewall configuration.<br>
+INSERT INTO txt VALUES ('H5484', 'English', 'Change notification type: Defines how and with which content the notification should be sent:
     <ul>
-        <li>Enter the name of IP address of your outgoing SMTP server in the field Feld "Adress".</li>
-        <li>The TCP port of the SMTP server (usually 25, 587 or 465, depending on the encryption method used) is entered in the "Port" field.</li>
-        <li>Choose the desired encryption type (None=clear-text / StartTls / Tls)</li>
-        <li>If the SMTP server requires authentication, enter Email User name and password in the following two fields. Otherwise leave empty.</li>
-        <li>Finally an individual sender address can be configured using the field "Email sender address".</li>
+        <li>Simple Text (no Change Report): Only the body of change notification emails as defined below is sent.</li>
+        <li>Html in email body: A Changes Report is created and sent as Html in the email body</li>
+        <li>Pdf as Attachment: A Changes Report is created and attached to the email as Pdf file.</li>
+        <li>Html as Attachment: A Changes Report is created and attached to the email as Html file.</li>
+        <li>Json as Attachment: A Changes Report is created and attached to the email as Json file.</li>
     </ul>
 ');
+INSERT INTO txt VALUES ('H5485', 'German',  '&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5485', 'English', 'Change notification sleep time (in seconds): Time between the checks for imported changes.');
+INSERT INTO txt VALUES ('H5486', 'German',  '&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5486', 'English', 'Change notification start at: Start time for the import change checks.');
+INSERT INTO txt VALUES ('H5487', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
+    sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".
+');
+INSERT INTO txt VALUES ('H5487', 'English', 'Recipient email addresses for change notifications: A comma-separated list of email addresses, which will get information in the case of 
+    security relevant changes found during import of a firewall management. Default value = "empty".
+');
+INSERT INTO txt VALUES ('H5488', 'German',  'Titel der &Auml;nderungsbenachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H5488', 'English', 'Subject of change notification emails: Subject line for notification emails. Default value = "empty".');
+INSERT INTO txt VALUES ('H5489', 'German',  'Text der &Auml;nderungsbenachrichtigung: Start des Email-Textes f&uuml;r alle &Auml;nderungsbenachrichtigungstypen. Die Email enth&auml;lt danach stets
+    eine Liste der Namen und IDs der ge&auml;nderten Managements sowie die Anzahl der festgestellten &Auml;nderungen. Default-Wert = "leer".
+');
+INSERT INTO txt VALUES ('H5489', 'English', 'Body of change notification emails: Start of the email text for all change notification types. The email will subsequently always contain
+    a list of names and IDs of the changed firewall management as well as the number of changes. Default value = "empty".
+');
+INSERT INTO txt VALUES ('H5491', 'German',  'Firewall Orchestrator kann Benachrichtigungen versenden, z.B. f&uuml;r anstehende Rezertifizierungen oder wenn beim Import &Auml;nderungen festgestellt wurden.');
+INSERT INTO txt VALUES ('H5491', 'English', 'Firewall Orchestrator is able to send out notifications, e.g. for upcoming recertifications or when an import found changes in the firewall configuration.<br>');
+INSERT INTO txt VALUES ('H5491a','German',  'Der Name oder die IP-Adresse des SMTP-Servers f&uuml;r ausgehende Emails wird im Feld "Adresse" eingetragen.');
+INSERT INTO txt VALUES ('H5491a','English', 'Enter the name of IP address of your outgoing SMTP server in the field Feld "Adress".');
+INSERT INTO txt VALUES ('H5491b','German',  'Der TCP-Port des SMTP-Servers (meist 25, 587 oder 465, abh&auml;ngig von der verwendeten Verschl&uumlsselung) wird im "Port"-Feld eingetragen.');
+INSERT INTO txt VALUES ('H5491b','English', 'The TCP port of the SMTP server (usually 25, 587 or 465, depending on the encryption method used) is entered in the "Port" field.');
+INSERT INTO txt VALUES ('H5491c','German',  'Anschlie&szlig;end wird die gew&uuml;nschte Art der Verschl&uuml;sselung eingestellt (None=unverschl&uuml;sselt / StartTls / Tls)');
+INSERT INTO txt VALUES ('H5491c','English', 'Choose the desired encryption type (None=clear-text / StartTls / Tls)');
+INSERT INTO txt VALUES ('H5491d','German',  'Verlangt der SMTP-Server eine Authentisierung, so sind Email-Nutzer und Email-Nutzer-Passwort in den beiden Feldern einzutragen. Anderfalls k&ouml;nnen diese Felder leer gelassen werden.');
+INSERT INTO txt VALUES ('H5491d','English', 'If the SMTP server requires authentication, enter Email User name and password in the two fields. Otherwise leave empty.');
+INSERT INTO txt VALUES ('H5491e','German',  'Schlie&szlig;lich kann auch eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.');
+INSERT INTO txt VALUES ('H5491e','English', 'Finally an individual sender address can be configured using the field "Email sender address".');
+INSERT INTO txt VALUES ('H5492','German',   'Verbindung testen: Es wird eine Test-email an die oben eingerichtete email-Adresse versandt.');
+INSERT INTO txt VALUES ('H5492','English',  'Test connection: A test email is sent to the above defined email address.');
 INSERT INTO txt VALUES ('H5495', 'German',  'Die folgenden Einstellungen wirken sich auf das Import-Modul (python) aus.');
 INSERT INTO txt VALUES ('H5495', 'English', 'The following settings apply to the Import Module (python)');
+INSERT INTO txt VALUES ('H5496', 'German',  'Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;ufen. Default-Wert = 40.');
+INSERT INTO txt VALUES ('H5496', 'English', 'Import sleep time (in seconds): Time between import loops; default value=40.');
+INSERT INTO txt VALUES ('H5497', 'German',  'Zertifikate beim Import pr&uuml;fen: Sollen bei den API-Calls in Richtung der Firewalls nur g&uuml;ltige Zertifikate akzeptiert werden?. 
+    Sollte nur auf "aktiv" gesetzt werden, wenn alle Firewalls offiziell signierte Zertifikate besitzen, 
+    andernfalls ist ein Import nicht m&ouml;glich. Default-Wert = "inaktiv".
+');
+INSERT INTO txt VALUES ('H5497', 'English', 'Check certificates during import: During API calls towards Firewalls shall only valid certificates be accepted?. 
+    This should only be set to "active" if all firewall API certificates are valid, otherwise an import will not be possible.
+    Default value = "inactive".
+');
+INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;cken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
+    Firewalls ausgegeben werden? Default-Wert = "inaktiv".
+');
+INSERT INTO txt VALUES ('H5498', 'English', 'Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".');
+INSERT INTO txt VALUES ('H5499', 'German',  'FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.');
+INSERT INTO txt VALUES ('H5499', 'English', 'FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.');
 INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Stati zugeordnet werden.
     Die Aktion wird dann bei Eintreffen der hier definierten Bedingungen angeboten bzw. ausgef&uuml;hrt.
 ');
@@ -3930,19 +4265,19 @@ INSERT INTO txt VALUES ('H5581', 'English', 'In this chapter the existing owners
 ');
 INSERT INTO txt VALUES ('H5582', 'German',  'Name: Name der Eigent&uuml;mers');
 INSERT INTO txt VALUES ('H5582', 'English', 'Name: Owner name');
-INSERT INTO txt VALUES ('H5583', 'German',  'Vollst&auml;ndiger Name: Name und Ldap-Pfad des zugeordneten Nutzers.
-    Mindestens eines der Felder "Vollst&auml;ndiger Name" oder "Gruppe" muss gef&uuml;llt sein.
+INSERT INTO txt VALUES ('H5583', 'German',  'Hauptverantwortlicher (DN): Name und Ldap-Pfad des zugeordneten Nutzers.
+    Mindestens eines der Felder "Hauptverantwortlicher (DN)" oder "Gruppe" muss gef&uuml;llt sein.
 ');
-INSERT INTO txt VALUES ('H5583', 'English', 'Distinguished Name: Name and Ldap path of the associated user.
-    At least one of the fields "Distinguished Name" or "Group" has to be filled.
+INSERT INTO txt VALUES ('H5583', 'English', 'Main responsible person (DN): Name and Ldap path of the associated user.
+    At least one of the fields "Main responsible person (DN)" or "Group" has to be filled.
 ');
 INSERT INTO txt VALUES ('H5584', 'German',  'Gruppe: Name und Ldap-Pfad der zugeordneten Nutzergruppe.
     Die referenzierte Gruppe muss in den <a href="/help/settings/groups">Gruppen-Einstellungen</a> als Eigent&uuml;mergruppe markiert sein.
-    Mindestens eines der Felder "Vollst&auml;ndiger Name" oder "Gruppe" muss gef&uuml;llt sein.
+    Mindestens eines der Felder "Hauptverantwortlicher (DN)" oder "Gruppe" muss gef&uuml;llt sein.
 ');
 INSERT INTO txt VALUES ('H5584', 'English', 'Group: Name and Ldap path of the associated user group.
     The referenced group has to be marked as owner group in the <a href="/help/settings/groups">Group settings</a>.
-    At least one of the fields "Distinguished Name" or "Group" has to be filled.
+    At least one of the fields "Main responsible person (DN)" or "Group" has to be filled.
 ');
 INSERT INTO txt VALUES ('H5585', 'German',  'Mandant: Der Mandant, dem der Eigent&uuml;mer zugeordnet ist.');
 INSERT INTO txt VALUES ('H5585', 'English', 'Tenant: Tenant to which the owner is assigned to.');
@@ -3956,6 +4291,114 @@ INSERT INTO txt VALUES ('H5589', 'German',  'Regeln: Dem Eigent&uuml;mer k&ouml;
 INSERT INTO txt VALUES ('H5589', 'English', 'Rules: specific rules, defined by gateway and rule Uid, can be assigned to the owner.');
 INSERT INTO txt VALUES ('H5590', 'German',  'IP-Adressen: Dem Eigent&uuml;mer k&ouml;nnen hier einzelne IP-Adressen zugeordnet werden.');
 INSERT INTO txt VALUES ('H5590', 'English', 'IP Addresses: IP addresses can be assigned to the owner.');
+INSERT INTO txt VALUES ('H5591', 'German',  'Common Service zugelassen: Modellierern wird erlaubt, hier Common Services anzulegen.');
+INSERT INTO txt VALUES ('H5591', 'English', 'Common Service Possible: Allows modellers to create common services inside.');
+INSERT INTO txt VALUES ('H5592', 'German',  'Importquelle: Falls importiert das dort vergebene Label (sh. <a href="/help/settings/modelling">Modellierungseinstellungen</a>).');
+INSERT INTO txt VALUES ('H5592', 'English', 'Import Source: If imported the label given there (see <a href="/help/settings/modelling">Modelling Settings</a>).');
+
+INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die Einstellungen f&uuml;r die Netzwerk-Modellierung verwaltet.
+    Dies betrifft Vordefinierte Dienste, Darstellung verschiedener Elemente, Definition von Namenskonventionen sowie Scheduling-Einstellungen f&uuml;r die zu importierenden Objekte:
+');
+INSERT INTO txt VALUES ('H5601', 'English', 'On this page all types of modelling settings are administrated.
+    This includes Predefined Services, Display options of different elements, definition of naming conventions as well as scheduling settings for the objects to be imported:
+');
+INSERT INTO txt VALUES ('H5602', 'German',  'Vordefinierte Dienste: Hier wird dem Administrator ein Men&uuml; angeboten, um Dienste und Gruppierungen von Diensten vorzudefinieren,
+    zu bearbeiten oder zu l&ouml;schen. Diese stehen dann allen Applikationen zur Verf&uuml;gung.
+');
+INSERT INTO txt VALUES ('H5602', 'English', 'Predefined Services: Offers a menu to the administrator to define, change or delete predefined services or service groups.
+    These services are available for all applications.
+');
+INSERT INTO txt VALUES ('H5603', 'German',  'Server in Verbindung erlauben: Steuert, ob in der Bibliothek neben den App Rollen auch App Server zur direkten Verwendung in den Verbindungen angeboten werden.');
+INSERT INTO txt VALUES ('H5603', 'English', 'Allow Servers in Connection: Controls, if App Servers are offered in the Library besides the App Roles for direct use in the connections.');
+INSERT INTO txt VALUES ('H5604', 'German',  'Einfache Dienste in Verbindung erlauben: Steuert, ob in der Bibliothek neben den Servicegruppen auch einfache Services zur direkten Verwendung in den Verbindungen angeboten werden.');
+INSERT INTO txt VALUES ('H5604', 'English', 'Allow Simple Services in Connection: Controls, if simple Services are offered in the Library besides the Service Groups for direct use in the connections.');
+INSERT INTO txt VALUES ('H5605', 'German',  'Max. Anzahl Zeilen in &Uuml;bersicht: Definiert die Zeilenzahl innerhalb eines Eintrags in der &Uuml;bersichtstabelle der Verbindungen, ab der die Elemente eingeklappt dargestellt werden.');
+INSERT INTO txt VALUES ('H5605', 'English', 'Max. Number of Rows in Overview: Defines the number of rows inside an entry of the connections overview table, from which the elements are displayed retracted.');
+INSERT INTO txt VALUES ('H5606', 'German',  'Netzwerkarea vorgeschrieben: Wenn dieses Flag gesetzt ist, m&uuml;ssen die auszuw&auml;hlenden App Server einer festen Area zugeordnet sein.
+    Es werden dann beim Zusammenstellen einer App Rolle in der Bibliothek nur die der aktuell ausgew&auml;hlten Area zugeh&ouml;rigen App Server angeboten.
+    F&uuml;r die Namensgebung der App Rolle wird dann die in den folgenden Punkten definierte Namenskonvention angewendet.
+');
+INSERT INTO txt VALUES ('H5606', 'English', 'Network Area Required: If this flag is set, the App Servers used have to be associated to a fixed area.
+    When defining an App Role, only the App Servers belonging to the selected area are displayed in the library.
+    Naming of the App Role is then restricted to the naming convention defined in the following settings.
+');
+INSERT INTO txt VALUES ('H5607', 'German',  'L&auml;nge fixer Teil: L&auml;nge des vorgebenen Teils des Namensmusters einer App Rolle.');
+INSERT INTO txt VALUES ('H5607', 'English', 'Fixed Part Length: Length of the predefined part of the name pattern of an App Role.');
+INSERT INTO txt VALUES ('H5608', 'German',  'L&auml;nge freier Teil: L&auml;nge des frei zu vergebenden Teils des Namens einer App Rolle.');
+INSERT INTO txt VALUES ('H5608', 'English', 'Free Part Length: Length of the free part of the name pattern of an App Role.');
+INSERT INTO txt VALUES ('H5609', 'German',  'Muster Netzwerkarea: Definiert, wie der Name einer Netzwerkarea beginnt (z.B "NA").');
+INSERT INTO txt VALUES ('H5609', 'English', 'Network Area Pattern: Defines the beginning of a network area name (e.g. "NA").');
+INSERT INTO txt VALUES ('H5610', 'German',  'Muster App Rolle: Definiert, wie der Name einer App Rolle beginnt (z.B. "AR").
+    Zu einer Netzwerkarea (z.B. "NAxx") wird dann ein Name der App Rolle (z.B. "ARxx") mit der oben definierten L&auml;nge des fixen Teils vorgegeben.
+');
+INSERT INTO txt VALUES ('H5610', 'English', 'App Role Pattern: Defines the beginning of an App Role name (e.g. "AR").
+    According to an network area name (e.g. "NAxx"), an App Role name (e.g. "ARxx") is preset in the length of the fixed part defined above.
+');
+INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden die vollst&auml;ndigen Pfade f&uuml;r eventuell vorhandene Importskripte und -dateien eingegeben.
+    Der Importprozess pr&uuml;ft f&uuml;r jede der eingegebenen Datenquellen zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. 
+    Anschliessend wird eine Datei desselben Namens mit der Endung .json gesucht und ggf. importiert. 
+    Es gibt f&uuml;r den Import pro Datenquelle also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
+    welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/appdataimport">Import-Schnittstellen</a> beschrieben.
+');
+INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Here the full paths of provided import scripts and files are inserted.
+    The import process checks for each data source, if a script of this name with ending .py exists and executes it.
+    Then a file of this name with ending .json is searched and imported if found.
+    Thus there is the possibility for each data source to provide a file for direct import or a script to catch the import data and create the app data import file.
+    The structure of the import file is described at <a href="/help/API/appdataimport">Import Interfaces</a>.
+');
+INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
+    Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0. 
+');
+INSERT INTO txt VALUES ('H5612', 'English', 'Import App data sleep time (in hours): Time between App data import loops.
+    A value 0 means, that the App data import is deactivated. Default value = 0.
+');
+INSERT INTO txt VALUES ('H5613', 'German',  'Import Appdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Appdaten-Importe gerechnet werden.');
+INSERT INTO txt VALUES ('H5613', 'English', 'Import App data start at: Defines a referential time from which the App data import intervals are calculated.');
+INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird der vollst&auml;ndige Pfad f&uuml;r ein eventuell vorhandenes Importskript oder einer Import-Datei eingegeben.
+    Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
+    gesucht und ggf. importiert. Es gibt f&uuml;r den Import also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
+    welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/subnetdataimport">Import-Schnittstellen</a> beschrieben.
+');
+INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): Here the full path of a provided import script or file is inserted.
+    The import process checks, if a script of this name with ending .py exists and executes it.
+    Then a file of this name with ending .json is searched and imported if found.
+    Thus there is the possibility to provide a file for direct import or a script to catch the import data and create the subnet data import file.
+    The structure of the import file is described at <a href="/help/API/subnetdataimport">Import Interfaces</a>.
+');
+INSERT INTO txt VALUES ('H5615', 'German',  'Import Subnetzdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Subnetzdaten-Import-L&auml;ufen.
+    Ein Wert 0 bedeutet, dass der Subnetzdaten-Import deaktiviert ist. Default-Wert = 0.
+');
+INSERT INTO txt VALUES ('H5615', 'English', 'Import Subnet data sleep time (in hours): Time between Subnet data import loops.
+    A value 0 means, that the Subnet data import is deactivated. Default value = 0.
+');
+INSERT INTO txt VALUES ('H5616', 'German',  'Import Subnetzdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Subnetzdaten-Importe gerechnet werden.');
+INSERT INTO txt VALUES ('H5616', 'English', 'Import Subnet data start at: Import App data start at: Defines a referential time from which the Subnte data import intervals are calculated.');
+INSERT INTO txt VALUES ('H5617', 'German',  'Reduzierten Protokollset darstellen: Nur eine begrenzte Zahl von Protokollen wird zur Auswahl angeboten (TCP, UDP, ICMP).');
+INSERT INTO txt VALUES ('H5617', 'English', 'Display reduced Protocol set: Offer only a reduced number of protocols for selection (TCP, UDP, ICMP).');
+INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
+    Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
+    Die hier gemachten &Auml;nderungen werden in der UI beim n&auml;chsten Login sichtbar, bei Hilfetexten erst nach dem n&auml;chsten Restart.
+');
+INSERT INTO txt VALUES ('H5701', 'English', 'The language dependent texts stored in the database can be overwritten individually.
+    In doing so, system texts are not changed but crossfaded by the texts defined here. The changes made here become visible in the UI with the next login,
+    help texts only after the next restart.
+');
+INSERT INTO txt VALUES ('H5702', 'German',  'Im ersten Schritt muss die betroffene Sprache ausgew&auml;hlt werden. Dann erscheint die Zeile zur eigentlichen Textsuche.');
+INSERT INTO txt VALUES ('H5702', 'English', 'In the first step the language to be handled has to be selected. Then the row for the text search appears.');
+INSERT INTO txt VALUES ('H5703', 'German',  'Bei Eingabe eines Suchstrings erscheinen alle hinterlegten Texte, welche diesen beinhalten.
+    Wird das Feld leer gelassen, erscheinen alle verf&uuml;gbaren Texte der gew&auml;hlten Sprache.
+    Durch das Setzen des "Hilfetexte ignorieren"-Flags werden die Hilfetexte (Schl&uuml;ssel beginnend mit "H"), bei der Suche nicht ber&uuml;cksichtigt.
+');
+INSERT INTO txt VALUES ('H5703', 'English', 'When entering a search string, all texts containing this are displayed. If left empty, all texts of the selected language are displayed.
+    By setting the "Ignore Help Texts" flag all Help texts (Key beginning with "H") are disregarded.
+');
+INSERT INTO txt VALUES ('H5704', 'German',  'In der Tabelle der Suchergebnisse k&ouml;nnen pro Schl&uuml;ssel neue Texte definiert,
+    bereits vorhandene durch Setzen des "L&ouml;schen"-Flags zum L&ouml;schen vorgemerkt werden. Wird nur der Text entfernt, wird der Systemtext mit Leertext &uuml;berschrieben!
+    Die &Auml;nderungen werden erst durch das Bet&auml;tigen des "Speichern"-Knopfes wirksam.
+');
+INSERT INTO txt VALUES ('H5704', 'English', 'In the table of search results new texts can be defined per key, existing texts can be marked for deletion by setting the "Delete" flag.
+    If only a text is removed, the system text will be overwritten by an empty text! All changes get effective only by pressing the "Save" button.
+');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>
@@ -4048,6 +4491,76 @@ INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uu
 INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
 INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
 INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');
+INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> definierten Pfaden und Namen gespeist.
+    Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
+');
+INSERT INTO txt VALUES ('H6921', 'English', 'The import of application data is fed from one or several .json files with paths and names defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
+    There also python scripts with the same names can be provided to create these files. The structure of the .json file is as following:
+');
+INSERT INTO txt VALUES ('H6922', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
+    <ul>
+        <li>app_id_external: Eindeutige Kennzeichnung der Applikation. Dies ist ggf. &uuml;ber verschiedene Importquellen hinweg sicherzustellen.</li>
+        <li>name: Dargestellter Name der Applikation.</li>
+        <li>main_user: Die DN der hauptverantwortlichen Person. Mindestens eines der Felder main_user, modellers oder modeller_groups sollte gef&uuml;llt sein, damit ein Zugriff 
+            auf diese Applikation m&ouml;glich ist. (Ansonsten muss dieses in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> manuell nachgeholt werden.)</li>
+        <li>modellers: Hier werden die DNs von allen zur Bearbeitung dieser Applikation Berechtigten angegeben.</li>
+        <li>modeller_groups: Hier k&ouml;nnen die DNs von Gruppen angegeben werden. Zur Zeit werden diese genauso wie die Eintr&auml;ge unter "modellers" behandelt.</li>
+        <li>criticality: Hier kann optional ein String zur Kennzeichnung der Kritikalit&auml;t der Applikation definiert werden.</li>
+        <li>import_source: String zur Kennzeichnung der Importquelle. Dient zur Unterscheidung bei mehreren Quellen.</li>
+        <li>app_servers: Liste aller zur Applikation zugeordneten Host-Adressen.
+            <ul>
+                <li>name: Optionaler Name zur Darstellung</li>
+                <li>ip: IP-Adresse</li>
+            </ul>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following meaning:
+    <ul>
+        <li>app_id_external: Unique identification string of the application. This has to be ensured over several import sources.</li>
+        <li>name: Displayed name of the application.</li>
+        <li>main_user: DN of the main responsible person. At least one of the fields main_user, modellers or modeller_groups should be filled to ensure access
+            to the application. (Else this has to be ensured manually in the <a href="/help/settings/owners">Owner Settings</a> afterwards.)</li>
+        <li>modellers: Here the DNs of all persons authorized to work on this application have to be delivered.</li>
+        <li>modeller_groups: Here DNs of user groups can be delivered. Currently they are handled the same way as the entries in "modellers".</li>
+        <li>criticality: An optional string to mark the criticality of the application can be defined here.</li>
+        <li>import_source: String to identify the import source. Necessary to distinguish between several sources.</li>
+        <li>app_servers: List of all host addresses assigned to the application:
+            <ul>
+                <li>name: Optional name for display</li>
+                <li>ip: IP address</li>
+            </ul>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von Subnetzdaten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> definierten Pfad und Namen gespeist.
+    Dort kann auch ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Datei hinterlegt werden. Die .json-Datei hat die folgende Struktur:
+');
+INSERT INTO txt VALUES ('H6931', 'English', 'The import of subnet data is fed from a .json file with path and name defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
+    There also a python script with the same name can be provided to create this file. the structure of the .json file is as following:
+');
+INSERT INTO txt VALUES ('H6932', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
+    <ul>
+        <li>name: Dargestellter Name der Area.</li>
+        <li>id_string: Eindeutige Kennzeichnung der Area.</li>
+        <li>subnets: Liste alle Subnetze der Area:
+            <li>name: Optionaler Name zur Darstellung.</li>
+            <li>ip: IP-Adresse oder Start-IP-Addresse, falls Bereiche definiert werden sollen.</li>
+            <li>ip_end: Ende-IP-Addresse, falls Bereiche definiert werden sollen. Sonst leer lassen oder denselben Wert wie in "ip" liefern.</li>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6932', 'English', 'These fields have the following meaning:
+    <ul>
+        <li>name: Displayed name of the area</li>
+        <li>id_string: Unique identification string of the area.</li>
+        <li>subnets: List of all subnets of the area:
+            <li>name: Optional name for display.</li>
+            <li>ip: IP address or start IP address, if ranges are to be defined.</li>
+            <li>ip_end: end IP address, if ranges are to be defined. Else leave empty or fill with the same value as "ip".</li>
+        </li>
+    </ul>
+');
 
 INSERT INTO txt VALUES ('H7001', 'German', 'Im diesem Reiter werden die Monitoringwerkzeuge zur Verf&uuml;gung gestellt.
     Die meisten Abschnitte k&ouml;nnen nur von Nutzern mit den verschiedenen Administrator-Rollen gesehen und genutzt werden.
@@ -4904,4 +5417,122 @@ INSERT INTO txt VALUES ('H8717', 'English', '<H4>7) Activate Planning phase</H4>
             -&amp;gt; State Matrix: Save
         </li>
     </ul>
+');
+
+INSERT INTO txt VALUES ('H9001', 'German',  'Insbesondere in gr&ouml;sseren Netzwerken besteht der Bedarf, die vielf&auml;ltigen Verbindungen zwischen den Teilnehmern zu modellieren,
+    um sie so einer weitergehenden Verwaltung zug&auml;nglich zu machen. Dieses Modul stellt die Hilfsmittel, bereits vorhandene <a href="/help/modelling/applications">Applikationen</a> von anderen Systemen zu importieren
+    und ihre Elemente nach vorgegebenen Kriterien zu verkn&uuml;pfen. Dadurch wird ein Kommunikationsprofil erzeugt, bestehend aus einem Satz von <a href="/help/modelling/connections">Verbindungen und Schnittstellen</a>.<br>
+    Zur Definition der Schnittstellen und Verbindungen wird auf der linken Seite eine Bibliothek bereitgestellt, in der zun&auml;chst die zur Applikation zugeordneten 
+    (in der Regel aus Fremdsystemen <a href="/help/settings/modelling">importierten</a>) Host-Adressen (App-Server) angeboten werden. Diese k&ouml;nnen im ersten Schritt zu App-Rollen geb&uuml;ndelt werden (sh. <a href="/help/modelling/networkobjects">Netzwerkobjekte</a>).
+    Die App-Rollen (und je nach <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> auch die App-Server selbst) k&ouml;nnen dann als Quelle oder Ziel in die zu erstellende Verbindung &uuml;bertragen werden.
+    Hinzu k&ouml;nnen noch weitere Objekte (z. B. Netzwerke) kommen, und es k&ouml;nnen (interne und externe) Schnittstellen eingebunden werden.<br>
+    Desweiteren werden in der Bibliothek vordefinierte (vom Administrator eingestellte) <a href="/help/modelling/services">Dienste</a> angeboten. Diese k&ouml;nnen durch selbst definierte Dienste erg&auml;nzt, 
+    als Dienstgruppen geb&uuml;ndelt und dann in den zu definierenden Verbindungen verwendet werden.
+');
+INSERT INTO txt VALUES ('H9001', 'English', 'Especially in greater networks there is the demand to model the connections between the participants,
+    with the aim of further administration. This module provides tools to import already existing <a href="/help/modelling/applications">applications</a> from other systems
+    and to connect their elements by predefined criteria. By doing this a communication profile is created, composed by a set of <a href="/help/modelling/connections">connections and interfaces</a>.<br>
+    To define interfaces and connections a library is provided on the left side, where at the beginning the host addresses (App Server) associated to the application 
+    (which usually are <a href="/help/settings/modelling">imported</a> from external systems) are offered. They can in a first step be bundled to App Roles (see <a href="/help/modelling/networkobjects">Network Objects</a>).
+    These App Roles (and depending on the <a href="/help/settings/modelling">Modelling Settings</a> also the App Servers themselves) can be used as source or destination in the connections to be created.
+    Additionally further objects (e.g. networks) and (internal or external) interfaces can be integrated.<br>
+    Furthermore the library offers predefined <a href="/help/modelling/services">Services</a> (inserted by the administrator). They can be complemented by self defined services, bundled as Service Groups,
+    and used in the connections.
+');
+INSERT INTO txt VALUES ('H9011', 'German',  'Eine Applikation ist aus Sicht des Firewall Orchestrators ein Beh&auml;lter, in dem aus zugeordneten Host-Adressen ein Kommunikationsprofil erstellt wird.
+    Sie wird in der Regel extern aus den Anforderungen und Gegebenheiten der jeweiligen Unternehmung definiert und kann &uuml;ber eine Importschnittstelle in den Firewall Orchestrator importiert
+    (oder auch manuell angelegt) werden.
+    Das Kommunikationsprofil besteht aus einem Satz von Schnittstellen und Verbindungen welche die Kommunikation sowohl intern als auch mit anderen Applikationen definieren.<br>
+    Jeder Modellierer bekommt die ihm zug&auml;nglichen Applikationen dargestellt. D.h.
+    <ul>
+        <li>Der Nutzer muss die Rolle "Modellierer" besitzen (Voraussetzung, dass diese Seite &uuml;berhaupt dargestellt wird).
+            Die Rollen k&ouml;nnen vom Administrator in den <a href="/help/settings/roles">Rollen-Einstellungen</a> gesetzt werden.</li>
+        <li>Die Applikationen wurden mit den entsprechenden Skripten importiert (<a href="/help/settings/modelling">Modelling-Einstellungen</a>)
+            oder vom Administrator manuell angelegt (<a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a>).</li>
+        <li>Der Nutzer ist entweder in den <a href="/help/settings/groups">Gruppen-Einstellungen</a> der entsprechenden "ModellerGroup" der Applikation
+            (wird beim Import automatisch angelegt) oder in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> direkt zugeordnet.</li>
+    </ul>
+    Eine Applikation kann durch den Administrator in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> als "Common Service zugelassen" markiert werden.
+    Nur dann k&ouml;nnen auch Common Services angelegt werden.
+');
+INSERT INTO txt VALUES ('H9011', 'English', 'An application is - from the perspective of the Firewall Orchestrator - a container, where a communication profile is defined on basis of associated host addresses.
+    Generally the application is defined externally by the requests and conditions of the enterprise and can be imported to the Firewall Orchestrator via import interface (or created manually).
+    The communication profile consists of a set of interfaces and connections, which define the communication both internally and to other applications.<br>
+    For each modeller his accessible applications are displayed. That means
+    <ul>
+        <li>The user has to have the role "modeller" (precondition that this page is displayed at all).
+            Roles are set by the administrator in <a href="/help/settings/roles">Role Settings</a>.</li>
+        <li>Applications have been imported by respective scripts (<a href="/help/settings/modelling">Modelling Settings</a>)
+            or manually created by the administrator (<a href="/help/settings/owners">Owner Settings</a>).</li>
+        <li>The user is assigned to the application via the appropriate "ModellerGroup" (automatically created by the import)
+            in the <a href="/help/settings/groups">Group Settings</a> or directly in the <a href="/help/settings/owners">Owner Settings</a>.</li>
+    </ul>
+    An application can be marked by the administrator as "Common Service Possible" in the <a href="/help/settings/owners">Owner Settings</a>.
+    Only in this case Common Services can be created in this application.
+');
+INSERT INTO txt VALUES ('H9021', 'German',  'Verbindungen sind die Hauptbestandteile des Kommunikationsprofils. Es wird zwischen verschiedenen Arten von Verbindungen unterschieden:');
+INSERT INTO txt VALUES ('H9021', 'English', 'Connections are the main components of the communication profile. There are different types of connections:');
+INSERT INTO txt VALUES ('H9022', 'German',  'Schnittstellen: Sie dienen in erster Linie der Modellierung von (aus Sicht der Applikation) externen Verbindungen oder der B&uuml;ndelung interner Objekte.
+    Es m&uuml;ssen in der Applikation neben dem Dienst entweder Quelle oder Ziel definiert werden. Die Schnittstellen werden in den anderen Applikationen
+    zur Auswahl angeboten und k&ouml;nnen dort in der Definition von eigenen Verbindungen verwendet werden.
+');
+INSERT INTO txt VALUES ('H9022', 'English', 'Interfaces: They serve primarily the modelling of (relative to the application) external connections or the bundling of internal objects.
+    Besides the service either source or destination have to be defined in the application. The interfaces are offered to other applications to use
+    them in the definition of own connections.
+');
+INSERT INTO txt VALUES ('H9023', 'German',  'Standard-Verbindungen: Zentrale Objekte zur Modellierung der Kommunikationsverbindungen. Dabei m&uuml;ssen Quelle, Dienst und Ziel aus den in der Bibliothek 
+    angebotenen Ntzwerkobjekten bzw. Services gew&auml;hlt werden. Es k&ouml;nnen auch eigene oder externe Schnittstellen eingebunden werden. Dann m&uuml;ssen nur noch die "offenen Enden"
+    (je nach Schnittstelle Quelle oder Ziel) aus der Bibliothek hinzugef&uuml;gt werden.
+');
+INSERT INTO txt VALUES ('H9023', 'English', 'Regular Connections: Essential objects for modelling the communication. Source, Service and Destination have to be selected from the network resp. service objects 
+    offered in the library. Additionally own or external interfaces can be integrated. In this case only the "open ends" (source or destination, depending on the inetrface type)
+    have to be added from the library.
+');
+INSERT INTO txt VALUES ('H9024', 'German',  'Common Services: K&ouml;nnen nur definiert werden, wenn die Applikation durch den Administrator in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> 
+    daf&uuml;r freigegeben wurde. Sie sind formal wie Standard-Verbindungen aufgebaut. 
+');
+INSERT INTO txt VALUES ('H9024', 'English', 'Common Services: Can only be defined, if the application is marked as permitted in the <a href="/help/settings/owners">Owner Settings</a> by the administrator.
+    Formally they are structured as regular connections.
+');
+INSERT INTO txt VALUES ('H9031', 'German',  'Netzwerkobjekte werden zur Definition von Quelle und Ziel der Verbindungen ben&ouml;tigt. Es wird zwischen verschiedenen Arten von Netzwerkobjekten unterschieden:');
+INSERT INTO txt VALUES ('H9031', 'English', 'Network objects are used to define source and destination of the connections. There are different types of network objects:');
+INSERT INTO txt VALUES ('H9032', 'German',  'App-Server: Die elementaren Bausteine (Host-Adressen), die der Applikation zugeordnet sind. Sie werden in der Regel mit den Applikationen importiert
+    (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/appdataimport">Import-Schnittstelle</a>), k&ouml;nnen aber auch manuell vom Administrator angelegt werden.
+    Je nach Einstellung (abh&auml;ngig von den jeweiligen Vorgaben des Unternehmens) k&ouml;nnen die App-Server direkt in die Verbindungen &uuml;bernommen werden oder m&uuml;ssen zuerst in App-Rollen geb&uuml;ndelt werden.
+');
+INSERT INTO txt VALUES ('H9032', 'English', 'App Server: Elementary components (host addresses) associated to the application. Usually they are imported with the applications
+    (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/appdataimport">Import Interface</a>), but can also be created manually by the administrator.
+    Depending on the settings (according to company requirements) App Servers can be used directly in the connections or have to be bundled in App Roles first.
+');
+INSERT INTO txt VALUES ('H9033', 'German',  'App-Rollen: Dienen der B&uuml;ndelung von App-Servern. Falls in den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a> so vorgesehen,
+    m&uuml;ssen sie einer Netzwerkarea zugeh&ouml;ren. Beim Erstellen der App-Rolle muss dann zun&auml;chst eine Area ausgew&auml;hlt werden, nur von dieser werden dann die App-Server in der Bibliothek angeboten.
+    Die Namen der App-Rollen m&uuml;ssen dann einer ebenfalls in den Einstellungen vorgegebenen Namenskonvention folgen.
+');
+INSERT INTO txt VALUES ('H9033', 'English', 'App Roles: Used for bundling of App Servers. If required in the <a href="/help/settings/modelling">Modelling Settings</a>,
+    they have to belong to a network area. When creating an App Role, first a network area has to be selected, only App Servers belonging to this are are displayed then in the library.
+    Names of the App Roles have to comply to a naming convention, defined in the Modelling Settings.
+');
+INSERT INTO txt VALUES ('H9034', 'German',  'Netzwerkareas: Werden &uuml;ber die Subnetzdaten-Importschnittstelle (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/subnetdataimport">Import-Schnittstelle</a>) importiert.
+    Sie k&ouml;nnen aus der Bibliothek heraus gesucht, selektiert und anschliessend in Quelle oder Ziel der Verbindungen &uuml;bernommen werden.
+');
+INSERT INTO txt VALUES ('H9034', 'English', 'Network Areas: Are imported via the Subnet Data Import Interface (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/subnetdataimport">Import Interface</a>).
+    They can be searched an selected from the library and then used for source and destination of the connections.
+');
+INSERT INTO txt VALUES ('H9041', 'German',  'Es wird zwischen einfachen Diensten und Dienstgruppen unterschieden. In den <a href="/help/settings/modelling">Modellierungs-Einstellungen</a>
+    kann festgelegt werden, dass nur Dienstgruppen in der Definition von Verbindungen genutzt werden k&ouml;nnen, ansonsten sind auch einfache Dienste zugelassen.
+');
+INSERT INTO txt VALUES ('H9041', 'English', 'There is a differentiation between simple services and Service Groups. It can be defined in the <a href="/help/settings/modelling">Modelling Settings</a>,
+    that only Service Groups are allowed to be used in the definition of connections, else also simple services are permitted.
+');
+INSERT INTO txt VALUES ('H9042', 'German',  'Dienste: Einfache Dienste werden durch Port (einfach oder Intervall) und Protokoll definiert und k&ouml;nnen einen Namen zugewiesen bekommen.
+    Die Definition kann durch den Modellierer selbst vorgenommen werden, es k&ouml;nnen aber auch - falls vorhanden - vom Administrator vordefinierte Dienste verwendet werden.
+');
+INSERT INTO txt VALUES ('H9042', 'English', 'Services: Simple services are defined by port (single or range) and protocol and can have a name assigned.
+    Definition can be done by the modeller, but also - if available - predefined services by the administrator can be used.
+');
+INSERT INTO txt VALUES ('H9043', 'German',  'Dienstgruppen: In Dienstgruppen k&ouml;nnen die einfachen Dienste zusammengefasst werden. Hier muss ein Name vergeben werden, es k&ouml;nnen auch Kommentare hinzugef&uuml;gt werden.
+    Auch hier kann die Definition durch den Modellierer selbst erfolgen oder auch vom Administrator vordefinierte Dienstgruppen verwendet werden.
+');
+INSERT INTO txt VALUES ('H9043', 'English', 'Service Groups: Simple services can be bundled in Service Groups. A name has to be given to them, comments can be added.
+    Again definition can be done by the modeller, but also Service Groups predefined by the administrator can be used.
 ');

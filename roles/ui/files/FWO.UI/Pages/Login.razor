@@ -21,7 +21,7 @@
 
 @if (showLoginForm)
 {
-    <div class="row m-4 justify-content-center">
+    <div class="center-div">
         <div>
             <br><br>
             <img src="images/FWO_logo.png">
@@ -32,19 +32,22 @@
                     <div class="form-group">
                         <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput" @ref="usernameInput">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group mt-3">
                         <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
                     </div>
                     @if (loginInProgress == false)
                     {
-                        <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
+                        <button type="submit" class="btn btn-block btn-primary mt-3" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
                         @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
                     }
                     else
                     {
-                        <div class="spinner-border text-primary align-self-center" role="status"></div>
+                        <div class="spinner-border text-primary align-self-center mt-3 mb-3" role="status"></div>
                     }
-                    <label class="m-2">@errorMessage</label>
+                    @if(!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <label class="m-2">@errorMessage</label>
+                    }
                 </form>
             </div>
         </div>
@@ -54,30 +57,28 @@
 @if (showPasswordChangeForm)
 {
     <div class="row m-4 justify-content-center">
-        <div>
-            <h2 class="text-center"> @(userConfig.GetText("change_password")) </h2>
-            <div class="shadow-sm card p-3" style="width: 250px;">
-                <form class="d-flex flex-column">
-                    <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="OldPasswordInput" placeholder="@(userConfig.GetText("old_password"))" value="@oldPassword" @oninput="OnOldPasswordInput">
-                    </div>
-                    <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="NewPasswordInput1" placeholder="@(userConfig.GetText("new_password"))" value="@newPassword1" @oninput="OnNewPassword1Input">
-                    </div>
-                    <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2" @oninput="OnNewPassword2Input">
-                    </div>
-                    @if (passwordChangeInProgress == false)
-                    {
-                        <button type="button" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="oi oi-account-login"></div></button>
-                    }
-                    else
-                    {
-                        <div class="spinner-border text-primary align-self-center" role="status"></div>
-                    }
-                    <label class="m-2">@chgPwErrorMessage</label>
-                </form>
-            </div>
+        <h2 class="text-center"> @(userConfig.GetText("change_password")) </h2>
+        <div class="shadow-sm card p-3" style="width: 250px;">
+            <form class="d-flex flex-column">
+                <div class="form-group">
+                    <input type="password" class="form-control @InputClass" id="OldPasswordInput" placeholder="@(userConfig.GetText("old_password"))" value="@oldPassword" @oninput="OnOldPasswordInput">
+                </div>
+                <div class="form-group mt-2">
+                    <input type="password" class="form-control @InputClass" id="NewPasswordInput1" placeholder="@(userConfig.GetText("new_password"))" value="@newPassword1" @oninput="OnNewPassword1Input">
+                </div>
+                <div class="form-group mt-2">
+                    <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2" @oninput="OnNewPassword2Input">
+                </div>
+                @if (passwordChangeInProgress == false)
+                {
+                    <button type="button" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="oi oi-account-login"></div></button>
+                }
+                else
+                {
+                    <div class="spinner-border text-primary align-self-center" role="status"></div>
+                }
+                <label class="m-2">@chgPwErrorMessage</label>
+            </form>
         </div>
     </div>
 }
@@ -184,10 +185,6 @@
                         showPasswordChangeForm = true;
                         StateHasChanged();
                     }
-
-                    // add User information after successful login
-                    userConfig.User.Tenant = await ((AuthStateProvider)AuthService).getTenantFromJwt(userConfig.User.Jwt, ApiConnection);
-                    userConfig.User.Roles = ((AuthStateProvider)AuthService).getAllowedRoles(userConfig.User.Jwt);
                 }
                 else
                 {

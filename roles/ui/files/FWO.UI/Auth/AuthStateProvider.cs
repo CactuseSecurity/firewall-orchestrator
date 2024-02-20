@@ -54,7 +54,7 @@ namespace FWO.Ui.Auth
             if (jwtReader.Validate())
             {
                 // importer is not allowed to login
-                if (jwtReader.ContainsRole("importer"))
+                if (jwtReader.ContainsRole(GlobalConst.kImporter))
                 {
                     throw new AuthenticationException("login_importer_error");
                 }
@@ -82,6 +82,9 @@ namespace FWO.Ui.Auth
                 string userDn = user.FindFirstValue("x-hasura-uuid");
                 await userConfig.SetUserInformation(userDn, apiConnection);
                 userConfig.User.Jwt = jwtString;
+                userConfig.User.Tenant = await getTenantFromJwt(userConfig.User.Jwt, apiConnection);
+                userConfig.User.Roles = getAllowedRoles(userConfig.User.Jwt);
+                userConfig.User.Ownerships = getAssignedOwners(userConfig.User.Jwt);
                 circuitHandler.User = userConfig.User;
 
                 // Add jwt expiry timer
@@ -156,7 +159,7 @@ namespace FWO.Ui.Auth
 
                 if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
                 {
-                    tenant = await Tenant.getTenantById(apiConnection, tenantId);
+                    tenant = await Tenant.getSingleTenant(apiConnection, tenantId);
                 }
                 // else
                 // {
@@ -168,7 +171,25 @@ namespace FWO.Ui.Auth
 
         public List<string> getAllowedRoles(string jwtString)
         {
-            List<string> allowedRoles = new List<string>();
+            return GetClaimList(jwtString, "x-hasura-allowed-roles");
+        }
+
+        public List<int> getAssignedOwners(string jwtString)
+        {
+            List<int> ownerIds = new();
+            List<string> ownerClaims = GetClaimList(jwtString, "x-hasura-editable-owners");
+            if(ownerClaims.Count > 0)
+            {
+                string[] separatingStrings = { ",", "{", "}" };
+                string[] owners = ownerClaims[0].Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                ownerIds = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
+            }
+            return ownerIds;
+        }
+
+        private List<string> GetClaimList(string jwtString, string claimType)
+        {
+            List<string> claimList = new List<string>();
             JwtReader jwtReader = new JwtReader(jwtString);
             if (jwtReader.Validate())
             {
@@ -181,13 +202,13 @@ namespace FWO.Ui.Auth
                 );
                 foreach (Claim claim in identity.Claims)
                 {
-                    if (claim.Type == "x-hasura-allowed-roles")
+                    if (claim.Type == claimType)
                     {
-                        allowedRoles.Add(claim.Value);
+                        claimList.Add(claim.Value);
                     }
                 }
             }
-            return allowedRoles;
+            return claimList;
         }
     }
 }

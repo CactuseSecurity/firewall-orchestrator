@@ -15,7 +15,6 @@ import fwo_globals
 import jsonpickle
 from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, ConfigFileNotFound, FwLoginFailed, ImportRecursionLimitReached
 from fwo_base import split_config
-from fwo_mail import send_change_notification_mail
 import re
 
 
@@ -159,12 +158,9 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
             # todo: if no objects found at all: at least throw a warning
 
             try: # get change count from db
-                change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
-                if change_count>0:
-                    emailConfig = fwo_api.get_config_values(fwo_config['fwo_api_base_url'], jwt, keyFilter="email")
-                    impChangeNotifyConfig = fwo_api.get_config_values(fwo_config['fwo_api_base_url'], jwt, keyFilter="impChangeNotify")
-                    notificationConfig = dict(emailConfig, **impChangeNotifyConfig) # merge the two config dicts
-                    send_change_notification_mail(notificationConfig, change_count, mgm_details['name'], mgm_id)
+                # change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
+                # temporarily only count rule changes until change report also includes other changes
+                change_count = fwo_api.count_rule_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
             except:
                 logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
                 raise

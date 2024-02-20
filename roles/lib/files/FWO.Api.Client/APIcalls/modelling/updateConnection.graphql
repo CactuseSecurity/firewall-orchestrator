@@ -1,0 +1,22 @@
+mutation updateConnection(
+  $id: Int!
+  $name: String
+  $appId: Int
+  $reason: String
+  $isInterface: Boolean
+  $usedInterfaceId: Int
+  $commonSvc: Boolean
+  ) {
+  update_modelling_connection_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      name: $name
+      app_id: $appId
+      reason: $reason
+      is_interface: $isInterface
+      used_interface_id: $usedInterfaceId
+      common_service: $commonSvc
+  }) {
+    UpdatedId: id
+  }
+}

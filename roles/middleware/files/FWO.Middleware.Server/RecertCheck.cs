@@ -159,7 +159,7 @@ namespace FWO.Middleware.Server
                 UserConfig userConfig = new UserConfig(globalConfig);
 
                 DeviceFilter deviceFilter = new DeviceFilter();
-                deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
                 deviceFilter.applyFullDeviceSelection(true);
 
                 ReportParams reportParams = new ReportParams((int) ReportType.Recertification, deviceFilter);

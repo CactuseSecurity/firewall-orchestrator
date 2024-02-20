@@ -3,7 +3,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -30,7 +30,7 @@
 @if (AllImplTasks != null && AllImplTasks.Count > 0)
 {
     <div class="m-2">
-        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
             <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
@@ -50,7 +50,7 @@
                             {
                                 @if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestStartedState)
                                 {
-                                    <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
+                                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kFwAdmin}")">
                                         <Authorized Context="ctx">
                                             <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
                                         </Authorized>
@@ -116,7 +116,7 @@
     </div>
 }
 
-<PopUp Title="@(userConfig.GetText("check_impltasks"))" Show="@DisplayInfo" Large="true" OnClose="() => DisplayInfo = false">
+<PopUp Title="@(userConfig.GetText("check_impltasks"))" Show="@DisplayInfo" Size=PopupSize.Large OnClose="() => DisplayInfo = false">
     <Body>
         @if (DisplayInfo)
         {
@@ -126,8 +126,8 @@
             }
             else
             {
-                <div class="m-2">
-                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<string, bool>" Items="deviceCheck" PageSize="0" ColumnReorder="true">
+                <div class="m-2 vheight75">
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="KeyValuePair<string, bool>" Items="deviceCheck" PageSize="0" ColumnReorder="true">
                         <Column TableItem="KeyValuePair<string, bool>" Title="@(userConfig.GetText("device"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" />
                         <Column TableItem="KeyValuePair<string, bool>" Title="@(userConfig.GetText("impltask_created"))" Field="@(x => x.Value)" Sortable="false">
                             <Template>
@@ -177,7 +177,7 @@
     [Parameter]
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new List<string>(){"implementer", "fw-admin"};
+    static List<string> validRoles = new List<string>(){GlobalConst.kImplementer, GlobalConst.kFwAdmin};
     private bool DisplayInfo = false;
     private List<KeyValuePair<string, bool>> deviceCheck = new List<KeyValuePair<string, bool>>();
 

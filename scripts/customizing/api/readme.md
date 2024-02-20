@@ -1,0 +1,3 @@
+# Customizing Script for using the FWO API during Install or Upgrade
+
+If you want to customize via API you can place scripts in /scripts/customizing/api before initial installation or upgrade. These scripts will be copied to your appliance and executed automatically at the end of the install or upgrade process. They will **not** be on your appliance permanently, the next upgrade will discard your scripts. Thus make sure the scope of your scripts is to trigger a one time config change, for exampe in the datebase. Config files can be stored in /scripts/customizing/api/config and used by your script from there.

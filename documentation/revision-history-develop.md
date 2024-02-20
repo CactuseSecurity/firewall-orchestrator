@@ -141,6 +141,37 @@ bugfix release:
 # 7.2.6 - 06.10.2023 DEVELOP
 - importer Checkpoint: adding network object type support for 'CpmiVsClusterNetobj' (for VSX virtual switches)
 
-# 7.3 - 22.10.2023 DEVOP
+# 7.3 - 22.10.2023 DEVELOP
 - cleanup unused database views and functions
 - first working tenant ip-based filtering
+
+# 7.3.1 - 26.10.23 DEVELOP
+- introducing unfiltered_managements and devices for tenant filtering
+- fixing missing api perms fw-admin (management)
+- rename management & device tenat_id fields to unfiltered_tenant_id
+- fixing UI device selector crashes
+
+# 7.3.2 - 09.12.2023 DEVELOP
+- Modelling first version
+
+# 7.3.3 - 08.01.2024 DEVELOP
+- Moving to vanilla bootstrap css v5.3.2
+- adding extended tenant to device mapping settings (depending on latest bootstrap version) - closes  #2280
+- fix for log locking for import process
+
+# 7.3.4 - 09.01.2024 DEVELOP
+- Scheduled import change notification
+
+# 7.3.5 - 15.01.2024 DEVELOP
+- importer log locking fix (only fixing import stopping so far)
+- import change notification:
+  - DB extensions import_control.security_relevant_changes_counter
+  - removing python import notification
+  - writing to change counter after import (inpreparation for notification enhancement)
+- importer demo tenant device mapping additions (upgrade)
+- installer: introducing venv for newer ansible versions and thereby removing version handling
+
+# 7.3.6 - 23.01.2024 DEVELOP
+- common service handling
+- fixes credentials when installing without demo data
+- fix error with pdf creation on debian testing

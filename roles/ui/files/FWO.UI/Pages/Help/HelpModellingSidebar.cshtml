@@ -1,0 +1,26 @@
+﻿@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<nav class="sidebar fixed sidebar-help shadow">
+    <div class="sidebar-help d-flex flex-row" style="left:0px;">
+        <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
+            <ul class="sidebar-help me-auto">
+                <p></p>
+                <h5>@userConfig.GetText("modelling")</h5>
+                <a class="nav-link" href="/help/modelling/applications/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-flag"></span> @(userConfig.GetText("applications"))
+                </a>
+                <a class="nav-link" href="/help/modelling/connections/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-transfer"></span> @(userConfig.GetText("connections"))
+                </a>
+                <a class="nav-link" href="/help/modelling/networkobjects/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-laptop"></span> @(userConfig.GetText("network_objects"))
+                </a>
+                <a class="nav-link" href="/help/modelling/services/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-wrench"></span> @(userConfig.GetText("services"))
+                </a>
+
+            </ul>
+        </div>
+    </div>
+</nav>

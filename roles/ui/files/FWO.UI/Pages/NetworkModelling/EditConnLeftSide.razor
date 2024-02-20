@@ -1,0 +1,479 @@
+@using FWO.Config.Api
+@using FWO.Ui.Display
+@using FWO.Api.Data
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+    <div class="form-group row pad-10 mt-3 me-auto justify-content-between">
+        <h3>@(userConfig.GetText("library"))</h3>
+        <h4>@ConnHandler.Application.Display()</h4>
+    </div>
+    <div class="col-sm-11 border rounded m-2 p-2">
+        <h5>@(userConfig.GetText("network_objects"))</h5>
+        <div class="form-group row">
+            <div class="col-sm-9">
+                <DraggableList AllElements="ConnHandler.AvailableNwElems" @bind-SelectedElements="selectedNwElems" 
+                    HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25"/>
+            </div>
+            <div class="col-sm-3">
+                @if(!ConnHandler.SrcDropForbidden() && selectedNwElems.Count > 0)
+                {
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                        {NetworkElemsToConn(true);
+                        ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_source"))</button>
+                }
+                @if(!ConnHandler.DstDropForbidden() && selectedNwElems.Count > 0)
+                {
+                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() =>
+                        {NetworkElemsToConn(false);
+                        ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_dest"))</button>
+                }
+            </div>
+        </div>
+        <div class="btn-group mt-1">
+            <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">@(userConfig.GetText("search_nw_object"))</button>
+            <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_app_role"))</button>
+            @if(selectedNwElems.Count == 1)
+            {
+                @if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppRole)
+                {
+                    if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
+                    {
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => 
+                            {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value));
+                            ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                            {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value));
+                            selectedNwElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                    }
+                }
+                else if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppServer)
+                {
+
+                }
+                else
+                {
+                    if(!(ResolveNwGroupObject(selectedNwElems[0].Value)?.IsDeleted ?? true))
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
+                            {ConnHandler.RequestRemoveNwGrpObject(ResolveNwGroupObject(selectedNwElems[0].Value));
+                            selectedNwElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("remove"))</button>
+                    }
+                }
+
+            }
+        </div>
+        <br><br>
+        @if(!ConnHandler.svcReadOnly)
+        {
+            <h5>@(userConfig.GetText("services"))</h5>
+            <div class="form-group row">
+                <div class="col-sm-9">
+                    <DraggableList AllElements="ConnHandler.AvailableSvcElems" @bind-SelectedElements="selectedSvcElems" 
+                        HandleDragStart="HandleSvcDragStart" Display="@DisplaySvcObject" MaxHeight="25"/>
+                </div>
+                <div class="col-sm-3">
+                    @if(selectedSvcElems.Count > 0)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                            {ServiceElemsToConn(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("to_service"))</button>
+                    }
+                </div>
+            </div>
+            <div class="btn-group mt-1">
+                <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("add_service_group"))</button>
+                @if(selectedSvcElems.Count == 1)
+                {
+                    @if(selectedSvcElems[0].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+                    {
+                        if(!ResolveSvcGrp(selectedSvcElems[0].Value)?.IsGlobal ?? true)
+                        {
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
+                                {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value));
+                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service_group"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                                {await ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedSvcElems[0].Value));
+                                selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                        }
+                    }
+                    else
+                    {
+                        if(!(ResolveSvc(selectedSvcElems[0].Value)?.IsGlobal ?? true))
+                        {
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
+                                {ConnHandler.EditService(ResolveSvc(selectedSvcElems[0].Value));
+                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("edit_service"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                                {await ConnHandler.RequestDeleteService(ResolveSvc(selectedSvcElems[0].Value));
+                                selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("delete"))</button>
+                        }
+                    }
+                }
+            </div>
+        }
+        @if(!ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.UsedInterfaceId == null)
+        {
+            <br><br>
+            <h5>@(userConfig.GetText("interfaces"))</h5>
+            <div class="form-group row">
+                <div class="col-sm-9">
+                    <DraggableList AllElements="ConnHandler.PreselectedInterfaces" @bind-SelectedElements="selectedInterfaces" 
+                        HandleDragStart="HandleConnDragStart" Display="@ConnHandler.DisplayInterface" MaxHeight="10" Multiselect="false"/>
+                </div>
+                <div class="col-sm-3">
+                    @if(selectedInterfaces.Count > 0)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                            {ConnHandler.InterfaceToConn(selectedInterfaces[0]); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("use"))</button>
+                    }
+                </div>
+            </div>
+            <div class="btn-group mt-1">
+                <button type="button" class="btn btn-sm btn-success" @onclick="SearchInterface">@(userConfig.GetText("search"))</button>
+                @if(selectedInterfaces.Count == 1)
+                {
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
+                        {ConnHandler.RequestRemovePreselectedInterface(selectedInterfaces[0]);
+                        selectedInterfaces = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(userConfig.GetText("remove"))</button>
+                }
+            </div>
+            <br>
+        }
+    </div>
+</Sidebar>
+<EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="ConnHandler.AddAppRoleMode"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteAppRole)"
+    Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@GlobalConst.kModeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
+<EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="ConnHandler.AddSvcGrpMode"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteServiceGroup)"
+    Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@GlobalConst.kModeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
+<EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
+<ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteService)"
+    Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@GlobalConst.kModeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
+<SearchInterface @bind-Display="SearchInterfaceMode" @bind-PreselectedInterfaces="ConnHandler.PreselectedInterfaces" SelectAction="InterfaceToConn"
+    DisplayInterface="ConnHandler.DisplayInterface" Application="ConnHandler.Application"/>
+<ConfirmDelete @bind-Display="ConnHandler.RemovePreselectedInterfaceMode" PerformAction="async () => await WrapAsync(ConnHandler.RemovePreselectedInterface)" 
+    Title="@userConfig.GetText("remove_connection")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@GlobalConst.kModeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
+<SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects"
+    Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
+<ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
+    Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@GlobalConst.kModeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter] 
+    public ModellingDnDContainer Container { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ModellingDnDContainer> ContainerChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public ModellingConnectionHandler ConnHandler { get; set; }
+
+    [Parameter]
+    public EventCallback<ModellingConnectionHandler> ConnHandlerChanged { get; set; }
+
+
+    private List<KeyValuePair<int, long>> selectedNwElems = new();
+    private List<KeyValuePair<int, int>> selectedSvcElems = new();
+    private List<ModellingConnection> selectedInterfaces = new();
+    private bool SearchInterfaceMode = false;
+    private bool SearchNwObjectMode = false;
+    private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+
+
+    private bool InterfaceToConn(ModellingConnection interf)
+    {
+        ConnHandler.InterfaceToConn(interf);
+        ConnHandlerChanged.InvokeAsync(ConnHandler);
+        return true;
+    }
+
+    private void NetworkElemsToConn(bool toSource)
+    {
+        List<ModellingNwGroup> nwGroups = new();
+        List<ModellingAppRole> appRoles = new();
+        List<ModellingAppServer> appServers = new();
+        foreach(var elem in selectedNwElems)
+        {
+            if(elem.Key == (int)ModellingTypes.ObjectType.AppRole)
+            {
+                ModellingAppRole? AppRole = ResolveAppRole(elem.Value);
+                if(AppRole != null)
+                {
+                    appRoles.Add(AppRole);
+                }
+            }
+            else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)elem.Key))
+            {
+                ModellingNwGroup? nwGroup = ResolveNwGroupObject(elem.Value);
+                if(nwGroup != null)
+                {
+                    nwGroups.Add(nwGroup);
+                }
+            }
+            else if(elem.Key == (int)ModellingTypes.ObjectType.AppServer)
+            {
+                ModellingAppServer? appServer = ResolveAppServer(elem.Value);
+                if(appServer != null)
+                {
+                    appServers.Add(appServer);
+                }
+            }
+        }
+        if(appRoles.Count > 0)
+        {
+            if(toSource)
+            {
+                ConnHandler.AppRolesToSource(appRoles);
+            }
+            else
+            {
+                ConnHandler.AppRolesToDestination(appRoles);
+            }
+        }
+        if(nwGroups.Count > 0)
+        {
+            if(toSource)
+            {
+                ConnHandler.NwGroupToSource(nwGroups);
+            }
+            else
+            {
+                ConnHandler.NwGroupToDestination(nwGroups);
+            }
+        }
+        if(appServers.Count > 0)
+        {
+            if(toSource)
+            {
+                ConnHandler.AppServerToSource(appServers);
+            }
+            else
+            {
+                ConnHandler.AppServerToDestination(appServers);
+            }
+        }
+        selectedNwElems = new();
+    }
+
+    private void ServiceElemsToConn()
+    {
+        List<ModellingServiceGroup> serviceGroups = new();
+        List<ModellingService> services = new();
+        foreach(var elem in selectedSvcElems)
+        {
+            if(elem.Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+            {
+                ModellingServiceGroup? svcGrp = ResolveSvcGrp(elem.Value);
+                if (svcGrp != null)
+                {
+                    serviceGroups.Add(svcGrp);
+                }
+            }
+            else
+            {
+                ModellingService? svc = ResolveSvc(elem.Value);
+                if (svc != null)
+                {
+                    services.Add(svc);
+                }
+            }
+        }
+        if(serviceGroups.Count > 0)
+        {
+            ConnHandler.ServiceGrpsToConn(serviceGroups);
+        }
+        if(services.Count > 0)
+        {
+            ConnHandler.ServicesToConn(services);
+        }
+    }
+
+    private bool HandleNwDragStart(DragEventArgs e, KeyValuePair<int, long> selectedNwElem)
+    {
+        if(!selectedNwElems.Contains(selectedNwElem))
+        {
+            selectedNwElems.Add(selectedNwElem);
+        }
+        Container.Clear();
+        foreach(var elem in selectedNwElems)
+        {
+            if(elem.Key == (int)ModellingTypes.ObjectType.AppRole)
+            {
+                ModellingAppRole? AppRole = ResolveAppRole(elem.Value);
+                if(AppRole != null)
+                {
+                    Container.AppRoleElements.Add(AppRole);
+                }
+            }
+            else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)elem.Key))
+            {
+                ModellingNwGroup? nwGroup = ResolveNwGroupObject(elem.Value);
+                if(nwGroup != null)
+                {
+                    Container.NwGroupElements.Add(nwGroup);
+                }
+            }
+            else if(elem.Key == (int)ModellingTypes.ObjectType.AppServer)
+            {
+                ModellingAppServer? appServer = ResolveAppServer(elem.Value);
+                if(appServer != null)
+                {
+                    Container.AppServerElements.Add(appServer);
+                }
+            }
+        }
+        selectedNwElems = new();
+        return true;
+    }
+
+    private bool HandleSvcDragStart(DragEventArgs e, KeyValuePair<int, int> selectedSvcElem)
+    {
+        if(!selectedSvcElems.Contains(selectedSvcElem))
+        {
+            selectedSvcElems.Add(selectedSvcElem);
+        }
+        Container.Clear();
+        foreach(var elem in selectedSvcElems)
+        {
+            if(elem.Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+            {
+                ModellingServiceGroup? svcGrp = ResolveSvcGrp(elem.Value);
+                if (svcGrp != null)
+                {
+                    Container.SvcGrpElements.Add(svcGrp);
+                }
+            }
+            else
+            {
+                ModellingService? svc = ResolveSvc(elem.Value);
+                if (svc != null)
+                {
+                    Container.SvcElements.Add(svc);
+                }
+            }
+        }
+        selectedSvcElems = new();
+        return true;
+    }
+
+    private bool HandleConnDragStart(DragEventArgs e, ModellingConnection selectedConn)
+    {
+        Container.Clear();
+        Container.ConnElement = selectedConn;
+        selectedInterfaces = new();
+        return true;
+    }
+
+    public string DisplayNwObject(KeyValuePair<int, long> nwObject)
+    {
+        return ResolveNwObject(ConnHandler.AvailableNwElems[ConnHandler.AvailableNwElems.FindIndex(x => x.Key == nwObject.Key && x.Value == nwObject.Value)])?.DisplayWithIcon() ?? "";
+    }
+
+    public string DisplaySvcObject(KeyValuePair<int, int> svcObject)
+    {
+        return ResolveSvcObject(ConnHandler.AvailableSvcElems[ConnHandler.AvailableSvcElems.FindIndex(x => x.Key == svcObject.Key && x.Value == svcObject.Value)])?.DisplayWithIcon() ?? "";
+    }
+
+    private ModellingNwObject? ResolveNwObject(KeyValuePair<int, long> selectedObj)
+    {
+        if(selectedObj.Key == (int)ModellingTypes.ObjectType.AppRole)
+        {
+            return ResolveAppRole(selectedObj.Value);
+        }
+        else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)selectedObj.Key))
+        {
+            return ResolveNwGroupObject(selectedObj.Value);
+        }
+        else if(selectedObj.Key == (int)ModellingTypes.ObjectType.AppServer)
+        {
+            return ResolveAppServer(selectedObj.Value);
+        }
+        else
+        {
+            return new ModellingNwObject();
+        }
+    }
+
+    private ModellingAppServer? ResolveAppServer(long selectedId)
+    {
+        return ConnHandler.AvailableAppServers.FirstOrDefault(x => x.Id == selectedId);
+    }
+
+    private ModellingAppRole? ResolveAppRole(long selectedId)
+    {
+        ModellingAppRole? appRole = ConnHandler.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
+        if(appRole != null)
+        {
+            foreach (var appServerWrapper in appRole.AppServers)
+            {
+                appServerWrapper.Content.TooltipText = userConfig.GetText("C9000");
+            }
+        }
+        return appRole;
+    }
+
+    private ModellingNwGroup? ResolveNwGroupObject(long selectedId)
+    {
+        return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId)?.Content;
+    }
+
+    private ModellingSvcObject? ResolveSvcObject(KeyValuePair<int, int> selectedObj)
+    {
+        if(selectedObj.Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+        {
+            return ResolveSvcGrp(selectedObj.Value);
+        }
+        else if(selectedObj.Key == (int)ModellingTypes.ObjectType.Service)
+        {
+            return ResolveSvc(selectedObj.Value);
+        }
+        else
+        {
+            return new ModellingSvcObject();
+        }
+    }
+
+    private ModellingService? ResolveSvc(int selectedId)
+    {
+        return ConnHandler.AvailableServices.FirstOrDefault(x => x.Id == selectedId);
+    }
+
+    private ModellingServiceGroup? ResolveSvcGrp(int selectedId)
+    {
+        return ConnHandler.AvailableServiceGroups.FirstOrDefault(x => x.Id == selectedId);
+    }
+
+    private void SearchInterface()
+    {
+        SearchInterfaceMode = true;
+    }
+
+    private void SearchNwObject()
+    {
+        SearchNwObjectMode = true;
+    }
+
+    private async Task DataInconsistent()
+    {
+
+    }
+
+    private async Task WrapAsync(Func<Task> calledFunc)
+    {
+        await calledFunc();
+        await ConnHandlerChanged.InvokeAsync(ConnHandler);
+    }
+}

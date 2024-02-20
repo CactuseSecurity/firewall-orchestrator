@@ -40,6 +40,10 @@
             <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await Search(); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
         </div>
         <div class="col-sm-2">
+            <input class="form-check-input" type="checkbox" @bind="caseSensitive">
+            <label class="form-check-label">@(userConfig.GetText("case_sensitive"))</label>
+        </div>
+        <div class="col-sm-2">
             <input class="form-check-input" type="checkbox" @bind="ignoreHelpTexts">
             <label class="form-check-label">@(userConfig.GetText("ignore_helptexts"))</label>
         </div>
@@ -98,6 +102,7 @@
     private List<TextEntry> results = new();
     private bool displayResults = false;
     private bool ignoreHelpTexts = true;
+    private bool caseSensitive = false;
 
     protected override void OnInitialized()
     {
@@ -128,7 +133,7 @@
         results = new();
         foreach(var entry in actDict)
         {
-            if (!(ignoreHelpTexts && entry.Key.StartsWith("H")) && entry.Value.Contains(searchString))
+            if (!(ignoreHelpTexts && entry.Key.StartsWith("H")) && (caseSensitive ? entry.Value.Contains(searchString) : entry.Value.ToLower().Contains(searchString.ToLower())))
             {
                 results.Add(new TextEntry(){ Key = entry.Key, Text = entry.Value, CustomText = actCustomDict.ContainsKey(entry.Key) ? actCustomDict[entry.Key] : ""});
             }

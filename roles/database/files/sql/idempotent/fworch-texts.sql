@@ -1736,6 +1736,8 @@ INSERT INTO txt VALUES ('customize_texts',		'German', 	'Texte anpassen');
 INSERT INTO txt VALUES ('customize_texts',		'English', 	'Customize Texts');
 INSERT INTO txt VALUES ('ignore_helptexts',		'German', 	'Hilfetexte ignorieren');
 INSERT INTO txt VALUES ('ignore_helptexts',		'English', 	'Ignore help texts');
+INSERT INTO txt VALUES ('case_sensitive',		'German', 	'');
+INSERT INTO txt VALUES ('case_sensitive',		'English', 	'Schreibungsabh&auml;ngig');
 INSERT INTO txt VALUES ('key',                  'German', 	'Schl&uuml;ssel');
 INSERT INTO txt VALUES ('key',                  'English', 	'Key');
 INSERT INTO txt VALUES ('text',                 'German', 	'Text');
@@ -4409,11 +4411,11 @@ INSERT INTO txt VALUES ('H5701', 'English', 'The language dependent texts stored
 INSERT INTO txt VALUES ('H5702', 'German',  'Im ersten Schritt muss die betroffene Sprache ausgew&auml;hlt werden. Dann erscheint die Zeile zur eigentlichen Textsuche.');
 INSERT INTO txt VALUES ('H5702', 'English', 'In the first step the language to be handled has to be selected. Then the row for the text search appears.');
 INSERT INTO txt VALUES ('H5703', 'German',  'Bei Eingabe eines Suchstrings erscheinen alle hinterlegten Texte, welche diesen beinhalten.
-    Wird das Feld leer gelassen, erscheinen alle verf&uuml;gbaren Texte der gew&auml;hlten Sprache.
+    Wird das Feld leer gelassen, erscheinen alle verf&uuml;gbaren Texte der gew&auml;hlten Sprache. Die Suche kann wahlweise auch schreibungsabh&auml;ngig durchgef&uuml;hrt werden.
     Durch das Setzen des "Hilfetexte ignorieren"-Flags werden die Hilfetexte (Schl&uuml;ssel beginnend mit "H"), bei der Suche nicht ber&uuml;cksichtigt.
 ');
 INSERT INTO txt VALUES ('H5703', 'English', 'When entering a search string, all texts containing this are displayed. If left empty, all texts of the selected language are displayed.
-    By setting the "Ignore Help Texts" flag all Help texts (Key beginning with "H") are disregarded.
+    Optionally the search can be case-sensitive. By setting the "Ignore Help Texts" flag all Help texts (Key beginning with "H") are disregarded.
 ');
 INSERT INTO txt VALUES ('H5704', 'German',  'In der Tabelle der Suchergebnisse k&ouml;nnen pro Schl&uuml;ssel neue Texte definiert,
     bereits vorhandene durch Setzen des "L&ouml;schen"-Flags zum L&ouml;schen vorgemerkt werden. Wird nur der Text entfernt, wird der Systemtext mit Leertext &uuml;berschrieben!

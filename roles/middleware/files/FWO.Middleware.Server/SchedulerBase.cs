@@ -11,7 +11,7 @@ namespace FWO.Middleware.Server
 	/// <summary>
 	/// Class handling the scheduler for the import change notifications
 	/// </summary>
-    public class SchedulerBase
+    public abstract class SchedulerBase
     {
 		/// <summary>
 		/// API connection
@@ -23,7 +23,7 @@ namespace FWO.Middleware.Server
 		/// </summary>
         protected GlobalConfig globalConfig;
 
-        private List<Alert> openAlerts = new List<Alert>();
+        private List<Alert> openAlerts = new();
 
     
 		/// <summary>
@@ -40,14 +40,12 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// set scheduling timer from config values, to be overwritten for specific scheduler
 		/// </summary>
-        protected virtual void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
-        {}
+        protected abstract void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _);
 
 		/// <summary>
 		/// start the scheduling timer, to be overwritten for specific scheduler
 		/// </summary>
-        protected virtual void StartScheduleTimer()
-        {}
+        protected abstract void StartScheduleTimer();
 
 		/// <summary>
 		/// set an alert in error case with 
@@ -76,8 +74,9 @@ namespace FWO.Middleware.Server
                 {
                     alertId = returnIds[0].NewId;
                     // Acknowledge older alert for same problem
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode && x.ManagementId == mgmtId
-                        && compareDesc ? x.Description == description : true);
+                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode && 
+                        (x.ManagementId == mgmtId || (x.ManagementId == null && mgmtId == null))
+                        && (compareDesc ? x.Description == description : true));
                     if(existingAlert != null)
                     {
                         await AcknowledgeAlert(existingAlert.Id);

@@ -7,10 +7,7 @@ using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.RequestParameters;
 using System.Security.Authentication;
-using Microsoft.AspNetCore.Authentication.OAuth;
 using Novell.Directory.Ldap;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authorization;
 using System.Data;
 
 namespace FWO.Middleware.Controllers
@@ -167,13 +164,15 @@ namespace FWO.Middleware.Controllers
             user.Email = ldap.GetEmail(ldapUser);
 
             // Get groups of user
-            user.Groups = ldap.GetGroups(ldapUser);
+            user.Groups = await GetGroups(ldapUser, ldap);
+            Log.WriteDebug("Get Groups", $"Found groups for user: {string.Join("; ", user.Groups)}");
 
             // Get roles of user
             user.Roles = await GetRoles(user);
 
             // Get tenant of user
             user.Tenant = await GetTenantAsync(ldapUser, ldap);
+            Log.WriteDebug("Get Tenants", $"Found tenant for user: {user.Tenant?.Name ?? ""}");
 
             // Remember the hosting ldap
             user.LdapConnection.Id = ldap.Id;
@@ -182,15 +181,43 @@ namespace FWO.Middleware.Controllers
             return await jwtWriter.CreateJWT(user, lifetime);
         }
 
+        public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
+        {
+            List<string> userGroups = ldap.GetGroups(ldapUser);
+            if (!ldap.IsInternal())
+            {
+                object groupsLock = new object();
+                List<Task> ldapRoleRequests = new List<Task>();
+
+                foreach (Ldap currentLdap in ldaps)
+                {
+                    if (currentLdap.IsInternal())
+                    {
+                        ldapRoleRequests.Add(Task.Run(() =>
+                        {
+                            // Get groups from current Ldap
+                            List<string> currentGroups = currentLdap.GetGroups(new List<string>() {ldapUser.Dn});
+                            lock (groupsLock)
+                            {
+                                currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();
+                                userGroups.AddRange(currentGroups);
+                            }
+                        }));
+                    }
+                }
+                await Task.WhenAll(ldapRoleRequests);
+            }
+            return userGroups;
+        }
+
         public async Task<(LdapEntry, Ldap)> GetLdapEntry(UiUser user, bool validatePassword)
         {
-            Log.WriteDebug("User Authentication", $"Trying to ldap entry for user: {user.Name + " " + user.Dn}...");
+            Log.WriteDebug("User Authentication", $"Trying to get ldap entry for user: {user.Name + " " + user.Dn}...");
 
             if (user.Dn == "" && user.Name == "")
             {
                 throw new Exception("A0001 Invalid credentials. Username / User DN must not be empty.");
             }
-
             else
             {
                 LdapEntry? ldapEntry = null;

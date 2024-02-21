@@ -1,7 +1,7 @@
 ﻿@implements IDisposable
 
 <!-- Display the tab headers -->
-<ul class="nav nav-tabs nav-fill sticky-marker @(DarkMode ? "bg-transparent" : "")" style="@(DarkMode ? "--bs-nav-tabs-border-color: transparent;" : "")">
+<ul class="nav nav-tabs  @(WholeWidth ? "nav-fill" : "") sticky-marker @(DarkMode ? "bg-transparent" : "")" style="@(DarkMode ? "--bs-nav-tabs-border-color: transparent;" : "")">
     @foreach (Tab tab in Tabs)
     {
         <li class="nav-item">
@@ -36,6 +36,9 @@
 
     [Parameter]
     public bool KeepPanelsAlive { get; set; }
+
+    [Parameter]
+    public bool WholeWidth { get; set; } = true;
 
     public List<Tab> Tabs = new List<Tab>();
 

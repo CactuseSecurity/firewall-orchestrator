@@ -4111,6 +4111,18 @@
               },
               "select_permissions": [
                 {
+                  "role": "anonymous",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "approver",
                   "permission": {
                     "columns": [
@@ -16503,6 +16515,30 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "middleware-server",
                   "permission": {

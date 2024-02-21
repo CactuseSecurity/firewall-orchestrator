@@ -56,6 +56,9 @@
                 <a class="nav-link" href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-document"></span> @(userConfig.GetText("password_policy"))
                 </a>
+                <a class="nav-link" href="/help/settings/customtexts/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-text"></span> @(userConfig.GetText("customize_texts"))
+                </a>
                 <p></p>
                 <h5>@(userConfig.GetText("workflow"))</h5>
                 <a class="nav-link" href="/help/settings/stateactions/?lang=@($"{userConfig.GetUserLanguage()}")">

@@ -347,3 +347,18 @@ adding report template format fk and permissions
 - restrictions
   - since tenant filtering is not done in the API but in the UI, the API should not be exposed to the tenants
   
+### 8.0 19.02.2024 MAIN
+- Introducing new Network Modelling module
+  - allows your organisation to define the target state of all network connection on a per-application basis (or other distributed ownerships)
+- Backend
+  - Introducing Scheduled import change notification including inline or attached change report (replacing simple import notification from import module)
+  - upgrade hasura graphql API to 2.37.0
+- UI
+  - New look and feel: Moving to vanilla bootstrap css v5.3.2 (allowing for future up to date css usage)
+  - ip based tenant filtering: introducing unfiltered_managements and devices and adding extended tenant to device mapping settings
+- Installer (breaking change!)
+  - introducing venv for newer ansible versions and thereby removing annoying ansible version handling in installer (see https://github.com/CactuseSecurity/firewall-orchestrator/blob/main/documentation/installer/basic-installation.md for details)
+- bugfixes for
+  - import log locking
+  - integration tests with credentials when installing without demo data
+  - pdf creation on debian testing plattform (trixie)

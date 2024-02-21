@@ -10,10 +10,13 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("customize_texts"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("customize_texts"))</h3>
+    <HelpLink Page="settings/customtexts"/>
+</div>
 @(userConfig.GetText("U5321"))
 <hr />
-<div class="form-group row">
+<div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5702"))">
     <label class="col-form-label col-sm-1">@(userConfig.GetText("language")):</label>
     <div class="col-sm-4">
         <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
@@ -28,7 +31,7 @@
 </div>
 @if(dictsLoaded)
 {
-    <div class="form-group row">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5703"))">
         <label class="col-form-label col-sm-1">@(userConfig.GetText("search")):</label>
         <div class="col-sm-4">
             <input type="text" class="form-control form-control-sm" @bind="searchString" />
@@ -44,7 +47,7 @@
 }
 @if(displayResults)
 {
-    <div class="m-2 vheight75">
+    <div class="m-2 vheight75" data-toggle="tooltip" title="@(userConfig.PureLine("H5704"))">
         <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="TextEntry" Items="results" PageSize="0" ColumnReorder="true">
             <Column TableItem="TextEntry" Title="@(userConfig.GetText("key"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" />
             <Column TableItem="TextEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.Text)" Sortable="true" Filterable="true" />

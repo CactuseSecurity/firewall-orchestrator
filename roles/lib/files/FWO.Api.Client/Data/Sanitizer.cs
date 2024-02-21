@@ -28,7 +28,7 @@ namespace FWO.Api.Data
         // Ldap names: more restrictive due to Ldap restrictions. Chars not allowed (would have to be escaped in Dn):   +;,\"<>#
         public static string SanitizeLdapNameMand(string input, ref bool shortened)
         {
-            string output = Regex.Replace(input, @"[^\w\.\*\-\:\?@/\(\)]", "").Trim();
+            string output = Regex.Replace(input, @"[^\w\.\*\-\:\?@/\(\) ]", "").Trim();
             if(output.Length < input.Length)
             {
                 shortened = true;
@@ -49,7 +49,7 @@ namespace FWO.Api.Data
         // Ldap path (Dn): Additionally needed on top of Ldap names chars:   =,
         public static string SanitizeLdapPathMand(string input, ref bool shortened)
         {
-            string output = Regex.Replace(input, @"[^\w\.\*\-\:\?@/\(\)\=\,]", "").Trim();
+            string output = Regex.Replace(input, @"[^\w\.\*\-\:\?@/\(\)\=\, ]", "").Trim();
             if(output.Length < input.Length)
             {
                 shortened = true;

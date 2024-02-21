@@ -9,14 +9,17 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("recert_settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("recert_settings"))</h3>
+    <HelpLink Page="settings/recertificationpersonal"/>
+</div>
 @(userConfig.GetText("U5414"))
 <hr />
 
 @if (configData != null)
 {
      <form onsubmit="return false">
-        <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5419"))">
             <label for="recertificationDisplayPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
             <div class="col-sm-2">
                 <input id="recertificationDisplayPeriod" type="number" min="0" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />

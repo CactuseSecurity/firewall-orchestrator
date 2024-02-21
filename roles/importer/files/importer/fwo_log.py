@@ -57,21 +57,21 @@ class LogLock:
 
 
 # Used to accquire lock before log processing
-class LogFilter(logging.Filter):
-    def filter(self, record):
-        # Acquire lock
-        LogLock.semaphore.acquire()
-        # Return True to allow the log record to be processed
-        return True
+# class LogFilter(logging.Filter):
+#     def filter(self, record):
+#         # Acquire lock
+#         LogLock.semaphore.acquire()
+#         # Return True to allow the log record to be processed
+#         return True
 
 
 # Used to release lock after log processing
-class LogHandler(logging.StreamHandler):
-    def emit(self, record):
-        # Call the parent class's emit method to perform the actual logging
-        super().emit(record)
-        # Release lock
-        LogLock.semaphore.release()
+# class LogHandler(logging.StreamHandler):
+#     def emit(self, record):
+#         # Call the parent class's emit method to perform the actual logging
+#         super().emit(record)
+#         # Release lock
+#         LogLock.semaphore.release()
 
 
 def getFwoLogger():
@@ -82,15 +82,16 @@ def getFwoLogger():
         log_level = logging.INFO
 
     logger = logging.getLogger()
-    log_handler = LogHandler(stream=sys.stdout)
-    log_filter = LogFilter()
+    #log_handler = LogHandler(stream=sys.stdout)
+    #log_filter = LogFilter()
 
     log_format = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
-    log_handler.setLevel(log_level)
-    log_handler.addFilter(log_filter)
-    handlers = [log_handler]
+    #log_handler.setLevel(log_level)
+    #log_handler.addFilter(log_filter)
+    #handlers = [log_handler]
     
-    logging.basicConfig(format=log_format, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=log_level)
+    #logging.basicConfig(format=log_format, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=log_level)
+    logging.basicConfig(format=log_format, datefmt="%Y-%m-%dT%H:%M:%S%z", level=log_level)
     logger.setLevel(log_level)
 
     # Set log level for noisy requests/connectionpool module to WARNING:
@@ -112,15 +113,16 @@ def getFwoAlertLogger(debug_level=0):
         llevel = logging.INFO
 
     logger = logging.getLogger() # use root logger
-    log_handler = LogHandler(stream=sys.stdout)
-    log_filter = LogFilter()
+    # log_handler = LogHandler(stream=sys.stdout)
+    # log_filter = LogFilter()
 
     logformat = "%(asctime)s %(message)s"
-    log_handler.setLevel(llevel)
-    log_handler.addFilter(log_filter)
-    handlers = [log_handler]
+    # log_handler.setLevel(llevel)
+    # log_handler.addFilter(log_filter)
+    # handlers = [log_handler]
 
-    logging.basicConfig(format=logformat, datefmt="", handlers=handlers, level=llevel)
+    # logging.basicConfig(format=logformat, datefmt="", handlers=handlers, level=llevel)
+    logging.basicConfig(format=logformat, datefmt="", level=llevel)
     logger.setLevel(llevel)
 
     # set log level for noisy requests/connectionpool module to WARNING: 

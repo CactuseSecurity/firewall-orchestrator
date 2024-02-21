@@ -11,7 +11,7 @@
         <EditConnLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-ConnHandler="ConnHandler"/>
     }
     <div style="margin-left: @($"{(ConnHandler.ReadOnly ? 0 : sidebarLeftWidth) + 10}px");">
-        <h3>@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface") : userConfig.GetText("connection"))</h3>
+        <h3>@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface") : (ConnHandler.ActConn.IsCommonService ? userConfig.GetText("common_service") : userConfig.GetText("connection")))</h3>
             @if(ConnHandler.ActConn.UsedInterfaceId != null)
             {
                 <label class="col-sm-12">@(userConfig.GetText("used_interface")): @ConnHandler.InterfaceName</label>
@@ -21,15 +21,6 @@
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                     <input type="text" class="col-sm-9" @bind="ConnHandler.ActConn.Name" />
                 </div>
-                @if(ConnHandler.Application.CommSvcPossible && !ConnHandler.ActConn.IsInterface)
-                {
-                    <div class="form-group row mt-2">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("common_service")):</label>
-                        <div class="col-sm-1">
-                            <input type="checkbox" @bind="ConnHandler.ActConn.IsCommonService">
-                        </div>
-                    </div>
-                }
                 <div class="form-group row mt-2 me-auto">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("func_reason"))*:</label>
                     <textarea rows="3" type="text" class="col-sm-9" @bind="ConnHandler.ActConn.Reason" />
@@ -215,6 +206,9 @@
     [Parameter]
     public EventCallback<ModellingConnectionHandler> ConnHandlerChanged { get; set; }
 
+    [Parameter]
+    public Func<bool> ClosingAction { get; set; } = DefaultInit.DoNothingSync;
+
 
     private ModellingDnDContainer Container { get; set; } = new();
     private int sidebarInitWidth = GlobalConfig.kSidebarLeftWidth + 300;
@@ -331,6 +325,7 @@
     private void Close()
     {
         ConnHandler.Close();
+        ClosingAction();
         workInProgress = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);

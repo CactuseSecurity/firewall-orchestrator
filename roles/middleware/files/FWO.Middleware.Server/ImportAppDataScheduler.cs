@@ -25,10 +25,7 @@ namespace FWO.Middleware.Server
         }
     
         private ImportAppDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
-        {
-            globalConfig.OnChange += GlobalConfig_OnChange;
-            StartScheduleTimer();
-        }
+        {}
 
 		/// <summary>
 		/// set scheduling timer from config values
@@ -38,7 +35,7 @@ namespace FWO.Middleware.Server
             ScheduleTimer.Stop();
             if(globalConfig.ImportAppDataSleepTime > 0)
             {
-                ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * 3600000; // convert hours to milliseconds
+                ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * GlobalConst.kHoursToMilliseconds;
                 StartScheduleTimer();
             }
         }
@@ -80,7 +77,7 @@ namespace FWO.Middleware.Server
             ImportAppDataTimer.Stop();
             ImportAppDataTimer = new();
             ImportAppDataTimer.Elapsed += ImportAppData;
-            ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * 3600000;  // convert hours to milliseconds
+            ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * GlobalConst.kHoursToMilliseconds;
             ImportAppDataTimer.AutoReset = true;
             ImportAppDataTimer.Start();
             Log.WriteDebug("Import App Data scheduler", "ImportAppDataTimer started.");

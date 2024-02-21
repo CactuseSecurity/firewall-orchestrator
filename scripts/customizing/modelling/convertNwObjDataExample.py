@@ -27,11 +27,12 @@ def getLogger(debug_level_in=0):
         llevel = logging.INFO
 
     logger = logging.getLogger() # use root logger
-    logHandler = logging.StreamHandler(stream=stdout)
+    # logHandler = logging.StreamHandler(stream=stdout)
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
-    logHandler.setLevel(llevel)
-    handlers = [logHandler]
-    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=llevel)
+    # logHandler.setLevel(llevel)
+    # handlers = [logHandler]
+    # logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=llevel)
+    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
     logger.setLevel(llevel)
 
     #set log level for noisy requests/connectionpool module to WARNING: 
@@ -131,10 +132,11 @@ if __name__ == "__main__":
         else:
             subnetName = ""
 
-        zoneNameParts = nameParts[0].split('_')
+        zoneNamePartsDots = nameParts[0].split('.')
 
-        zoneId = zoneNameParts[0][2:7]
-        areaName = zoneNameParts[1]
+        zoneNamePartsUnderscore = zoneNamePartsDots[0].split('_')
+        zoneId = zoneNamePartsUnderscore[0][2:7]
+        areaName = '_'.join(zoneNamePartsUnderscore[1:])
         normSubnet = {
             "na-id": naId,
             "na-name": areaName,

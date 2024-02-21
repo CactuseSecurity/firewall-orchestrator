@@ -11,12 +11,12 @@ from fwo_exception import FwLoginFailed
 
 def api_call(url, params = {}, headers = {}, data = {}, credentials = '', show_progress=False, method='get'):
     logger = getFwoLogger()
-    result_type='xml'
+    result_type='json'
     request_headers = {'Content-Type': 'application/json'}
     for header_key in headers:
         request_headers[header_key] = headers[header_key]
-    if key != '':
-        request_headers["Authorization"] = 'Basic ' + '{credentials}'.format(key=key)
+    if credentials != '':
+        request_headers["Authorization"] = 'Basic {credentials}'.format(credentials=credentials.decode("utf-8"))
         result_type='json'
 
     if method == "post":
@@ -24,7 +24,7 @@ def api_call(url, params = {}, headers = {}, data = {}, credentials = '', show_p
     elif method == "get":
         response = requests.get(url, params=params, headers=request_headers, verify=fwo_globals.verify_certs)
     else:
-        raise Exception("unknown HTTP method found in palo_getter")
+        raise Exception("unknown HTTP method found in nsx_getter")
     
     # error handling:
     exception_text = ''
@@ -59,34 +59,34 @@ def api_call(url, params = {}, headers = {}, data = {}, credentials = '', show_p
     return body_json
 
 
-def login(apiuser, apipwd, apihost):
-    base_url = "https://{apihost}/api/?type=keygen&user={apiuser}&password={apipwd}".format(apihost=apihost, apiuser=apiuser, apipwd=apipwd)
-    try:
-        body = api_call(base_url, method="get", headers={}, data={})
-    except Exception as e:
-        raise FwLoginFailed("Palo FW login to firewall=" + str(apihost) + " failed; Message: " + str(e)) from None
+# def login(apiuser, apipwd, apihost):
+#     base_url = "https://{apihost}/api/?type=keygen&user={apiuser}&password={apipwd}".format(apihost=apihost, apiuser=apiuser, apipwd=apipwd)
+#     try:
+#         body = api_call(base_url, method="get", headers={}, data={})
+#     except Exception as e:
+#         raise FwLoginFailed("Palo FW login to firewall=" + str(apihost) + " failed; Message: " + str(e)) from None
     
-    if 'response' in body and 'result' in body['response'] and 'key' in body['response']['result'] and not body['response']['result']['key'] == None:
-        key = body['response']['result']['key']
-    else:
-        raise FwLoginFailed("Palo FW login to firewall=" + str(apihost) + " failed") from None
+#     if 'response' in body and 'result' in body['response'] and 'key' in body['response']['result'] and not body['response']['result']['key'] == None:
+#         key = body['response']['result']['key']
+#     else:
+#         raise FwLoginFailed("Palo FW login to firewall=" + str(apihost) + " failed") from None
     
-    if fwo_globals.debug_level > 2:
-        logger = getFwoLogger()
-        logger.debug("Login successful. Received key: " + key)
+#     if fwo_globals.debug_level > 2:
+#         logger = getFwoLogger()
+#         logger.debug("Login successful. Received key: " + key)
 
-    return key
+#     return key
 
 
-def update_config_with_palofw_api_call(key, api_base_url, config, api_path, obj_type='generic', parameters={}, payload={}, show_progress=False, limit: int=1000, method="get"):
+def update_config_with_nsxdcfw_api_call(api_base_url, config, api_path, credentials='', obj_type='generic', parameters={}, payload={}, show_progress=False, limit: int=1000, method="get"):
     returned_new_data = True
     
     full_result = []
-    result = api_call(api_base_url + api_path,key=key, params=parameters, data=payload, show_progress=show_progress, method=method)
-    if "entry" in result:
-        returned_new_data = len(result['entry'])>0
-    else:
-        returned_new_data = False
+    result = api_call(api_base_url, credentials=credentials, params=parameters, data=payload, show_progress=show_progress, method=method)
+    # if "entry" in result:
+    #     returned_new_data = len(result['entry'])>0
+    # else:
+    #     returned_new_data = False
     if returned_new_data:
-        full_result.extend(result["entry"])           
-        config.update({obj_type: full_result})
+        # full_result.extend(result)           
+        config.update({obj_type: result})

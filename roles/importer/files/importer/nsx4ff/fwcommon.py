@@ -1,14 +1,15 @@
 import sys
+import base64
 from common import importer_base_dir
-sys.path.append(importer_base_dir + "/paloaltomanagement2023ff")
-from palo_service import normalize_svcobjects
-from palo_application import normalize_application_objects
-from palo_rule import normalize_access_rules
-from palo_network import normalize_nwobjects
-from palo_zone import normalize_zones
-from palo_getter import login, update_config_with_palofw_api_call
+sys.path.append(importer_base_dir + "/nsx4ff")
+from nsx_service import normalize_svcobjects
+from nsx_application import normalize_application_objects
+from nsx_rule import normalize_access_rules
+from nsx_network import normalize_nwobjects
+from nsx_zone import normalize_zones
+from nsx_getter import update_config_with_nsxdcfw_api_call
 from fwo_log import getFwoLogger
-from palo_base import api_version_str
+from nsx_base import api_version_str
 
 def has_config_changed(full_config, mgm_details, force=False):
     # dummy - may be filled with real check later on
@@ -26,10 +27,11 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         apipwd = mgm_details["import_credential"]['secret']
         apiuser = mgm_details["import_credential"]['user']
         apihost = mgm_details["hostname"]
+        domain = mgm_details["configPath"]
 
         vsys_objects   = ["/Network/Zones", "/Objects/Addresses", "/Objects/Services", "/Objects/AddressGroups", "/Objects/ServiceGroups", "/Objects/Tags"]
         predef_objects = ["/Objects/Applications"]
-        rulebase_names = ["/Policies/SecurityRules", "/Policies/NATRules"]
+        rulebase_names = ["security-policies"] # , "/Policies/NATRules"]
 
         for obj_path in vsys_objects:
             full_config[obj_path] = []
@@ -37,23 +39,19 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         for obj_path in predef_objects:
             full_config[obj_path] = []
         
-        # login
-        key = login(apiuser, apipwd, apihost)
-        if key == None or key == "":
-            logger.error('Did not succeed in logging in to Palo API, no key returned.')
-            return 1
+        credentials = base64.b64encode((apiuser + ":" + apipwd).encode())
 
         ## get objects:
-        base_url =  "https://{apihost}/restapi/v{api_version_str}".format(apihost=apihost, api_version_str=api_version_str)
+        # base_url =  "https://{apihost}/policy/api/v1/infra/domains/{domain}/security-policies/[policy name]".format(apihost=apihost, api_version_str=api_version_str)
 
-        vsys_name = "vsys1" # TODO - automate this hard-coded name
-        location = "vsys"       # alternative: panorama-pushed
+        # vsys_name = "vsys1" # TODO - automate this hard-coded name
+        # location = "vsys"       # alternative: panorama-pushed
 
-        for obj_path in vsys_objects:
-            update_config_with_palofw_api_call(key, base_url, full_config, obj_path + "?location={location}&vsys={vsys_name}".format(location=location, vsys_name=vsys_name), obj_type=obj_path)
+        # for obj_path in vsys_objects:
+        #     update_config_with_nsxdcfw_api_call(key, base_url, full_config, obj_path + "?location={location}&vsys={vsys_name}".format(location=location, vsys_name=vsys_name), obj_type=obj_path)
 
-        for obj_path in predef_objects:
-            update_config_with_palofw_api_call(key, base_url, full_config, obj_path + "?location={location}".format(location="predefined"), obj_type=obj_path)
+        # for obj_path in predef_objects:
+        #     update_config_with_nsxdcfw_api_call(key, base_url, full_config, obj_path + "?location={location}".format(location="predefined"), obj_type=obj_path)
 
         # users
         
@@ -65,10 +63,11 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
             full_config['devices'].update({ dev_id: {} })
 
             for obj_path in rulebase_names:
-                update_config_with_palofw_api_call(
-                        key, base_url, full_config['devices'][device['id']], 
-                        obj_path + "?location={location}&vsys={vsys_name}".format(location="vsys", vsys_name=dev_name),
-                        obj_type=obj_path)
+                base_url =  "https://{apihost}/policy/api/v1/infra/domains/{domain}/{rulebase_name}/{policy_name}".format(apihost=apihost, domain=domain, policy_name=dev_name, rulebase_name=obj_path)
+                update_config_with_nsxdcfw_api_call(
+                        base_url, full_config['devices'][device['id']], 
+                        obj_path,
+                        obj_type=obj_path, credentials=credentials)
 
     ##################
     # now we normalize relevant parts of the raw config and write the results to config2import dict

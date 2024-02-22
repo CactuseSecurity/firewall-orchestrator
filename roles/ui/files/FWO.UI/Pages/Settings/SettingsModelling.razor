@@ -64,23 +64,29 @@
                     <input type="checkbox" @bind="namingConvention.NetworkAreaRequired">
                 </div>
             </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5609"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("networkAreaPattern"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.NetworkAreaPattern" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5610"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("appRolePattern"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.AppRolePattern" />
+            </div>
+        </div>
+        <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5607"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("fixedPartLength"):</label>
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
              </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" @bind="namingConvention.UseAppPart">
+                </div>
+            </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5608"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("freePartLength"):</label>
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FreePartLength" />
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5609"))">
-            <div class="row col-sm-6">
-                <label class="col-form-label col-sm-4">@userConfig.GetText("networkAreaPattern"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.NetworkAreaPattern" />
-            </div>
-            <div class="row col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5610"))">
-                <label class="col-form-label col-sm-4">@userConfig.GetText("appRolePattern"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.AppRolePattern" />
             </div>
         </div>
         <hr />

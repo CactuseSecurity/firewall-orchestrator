@@ -140,11 +140,5 @@ namespace FWO.Test
         {
             Assert.AreEqual("00002", await AppRoleHandler.ProposeFreeAppRoleNumber(TestArea));
         }
-
-        [Test]
-        public void TestReconstructAreaIdString()
-        {
-            Assert.AreEqual("NA50", AppRoleHandler.ReconstructAreaIdString(new(){ Id = 1, IdString = "AR5000001" }));
-        }
     }
 }

@@ -1770,6 +1770,8 @@ INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Te
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
 INSERT INTO txt VALUES ('freePartLength',       'English',  'Free Part Length');
+INSERT INTO txt VALUES ('useAppPart',           'German',   'Eigent&uuml;mernamen verwenden');
+INSERT INTO txt VALUES ('useAppPart',           'English',  'Use Owner Name');
 INSERT INTO txt VALUES ('networkAreaPattern',   'German',   'Muster Netzwerkarea');
 INSERT INTO txt VALUES ('networkAreaPattern',   'English',  'Network Area Pattern');
 INSERT INTO txt VALUES ('appRolePattern',       'German',   'Muster App Rolle');
@@ -4338,17 +4340,19 @@ INSERT INTO txt VALUES ('H5606', 'English', 'Network Area Required: If this flag
     When defining an App Role, only the App Servers belonging to the selected area are displayed in the library.
     Naming of the App Role is then restricted to the naming convention defined in the following settings.
 ');
-INSERT INTO txt VALUES ('H5607', 'German',  'L&auml;nge fixer Teil: L&auml;nge des vorgebenen Teils des Namensmusters einer App Rolle.');
-INSERT INTO txt VALUES ('H5607', 'English', 'Fixed Part Length: Length of the predefined part of the name pattern of an App Role.');
-INSERT INTO txt VALUES ('H5608', 'German',  'L&auml;nge freier Teil: L&auml;nge des frei zu vergebenden Teils des Namens einer App Rolle.');
-INSERT INTO txt VALUES ('H5608', 'English', 'Free Part Length: Length of the free part of the name pattern of an App Role.');
+INSERT INTO txt VALUES ('H5607', 'German',  'L&auml;nge fixer Teil: L&auml;nge des vorgebenen Teils des Namensmusters einer App Rolle (ohne den ggf. vorhandenen Eigent&uuml;merteil variabler L&auml;nge).');
+INSERT INTO txt VALUES ('H5607', 'English', 'Fixed Part Length: Length of the predefined part of the name pattern of an App Role (without the owner part of variable length if activated).');
+INSERT INTO txt VALUES ('H5608', 'German',  'L&auml;nge freier Teil: L&auml;nge des frei zu vergebenden Teils des Namens einer App Rolle (nur f&uuml;r den Namensvorschlag beim Neuanlegen relevant).');
+INSERT INTO txt VALUES ('H5608', 'English', 'Free Part Length: Length of the free part of the name pattern of an App Role (only relevant for name proposal during creation).');
 INSERT INTO txt VALUES ('H5609', 'German',  'Muster Netzwerkarea: Definiert, wie der Name einer Netzwerkarea beginnt (z.B "NA").');
 INSERT INTO txt VALUES ('H5609', 'English', 'Network Area Pattern: Defines the beginning of a network area name (e.g. "NA").');
 INSERT INTO txt VALUES ('H5610', 'German',  'Muster App Rolle: Definiert, wie der Name einer App Rolle beginnt (z.B. "AR").
     Zu einer Netzwerkarea (z.B. "NAxx") wird dann ein Name der App Rolle (z.B. "ARxx") mit der oben definierten L&auml;nge des fixen Teils vorgegeben.
+    Ist die L&auml;nge des Musters gr&ouml;sser als die L&auml;nge des fixen Teils, wird der &uuml;bersch&uuml;ssige Teil nicht ber&uuml;cksichtigt.
 ');
 INSERT INTO txt VALUES ('H5610', 'English', 'App Role Pattern: Defines the beginning of an App Role name (e.g. "AR").
     According to an network area name (e.g. "NAxx"), an App Role name (e.g. "ARxx") is preset in the length of the fixed part defined above.
+    If the length of the pattern is greater than the fixed part length, the surplus part is ignored.
 ');
 INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden die vollst&auml;ndigen Pfade f&uuml;r eventuell vorhandene Importskripte und -dateien eingegeben.
     Der Importprozess pr&uuml;ft f&uuml;r jede der eingegebenen Datenquellen zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. 
@@ -4393,6 +4397,8 @@ INSERT INTO txt VALUES ('H5617', 'German',  'Reduzierten Protokollset darstellen
 INSERT INTO txt VALUES ('H5617', 'English', 'Display reduced Protocol set: Offer only a reduced number of protocols for selection (TCP, UDP, ICMP).');
 INSERT INTO txt VALUES ('H5618', 'German',  'Nutzung von Piktogrammen: Vorzugsweise Nutzung von Piktogrammen wo sinnvoll. Wird vom Administrator allgemein vorausgew&auml;hlt, kann aber vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.');
 INSERT INTO txt VALUES ('H5618', 'English', 'Prefer use of Icons: Use icons where reasonnable. Generally set by the administrator but can be overwritten in the personal settings of the user.');
+INSERT INTO txt VALUES ('H5619', 'German',  'Eigent&uuml;mernamen verwenden: Der Name des Eigent&uuml;mers fliesst in den mittleren Teil der Namenskonvention f&uuml;r App-Rollen ein.');
+INSERT INTO txt VALUES ('H5619', 'English', 'Use Owner Name: The name of the owner is used in the middle part of the naming convention for App Roles.');
 INSERT INTO txt VALUES ('H5621', 'German',  'Ein Modellierer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Darstellung der Modellierung &uuml;berschreiben.
     Ausgangswert ist der vom Admin in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> gesetzte Wert.
 ');

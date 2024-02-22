@@ -40,8 +40,9 @@
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
                             @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
                             {
-                                <input type="text" class="col-sm-2" readonly @bind="AppRoleHandler.ActAppRole.IdStringFixedPart" />
-                                <input type="text" class="col-sm-6" @bind="AppRoleHandler.ActAppRole.IdStringFreePart" />
+                                <input type="text" class="col-sm-4" readonly @bind="AppRoleHandler.ActAppRole.ManagedIdString.CombinedFixPart" />
+                                <span class="col-sm-1">@AppRoleHandler.ActAppRole.ManagedIdString.Separator</span>
+                                <input type="text" class="col-sm-3" @bind="AppRoleHandler.ActAppRole.ManagedIdString.FreePart" />
                             }
                             else
                             {
@@ -189,16 +190,7 @@
             if(!workInProgress)
             {
                 workInProgress = true;
-                AppRoleHandler.ActAppRole.Area = newArea;
-                if(newArea != null)
-                {
-                    if(newArea.IdString.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
-                    {
-                        AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
-                        AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
-                    }
-                }
-                await AppRoleHandler.SelectAppServersFromArea(newArea);
+                await AppRoleHandler.InitAppRole(newArea);
                 workInProgress = false;
             }
         }

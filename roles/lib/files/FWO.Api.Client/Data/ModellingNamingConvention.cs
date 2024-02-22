@@ -8,6 +8,9 @@ namespace FWO.Api.Data
         [JsonProperty("networkAreaRequired"), JsonPropertyName("networkAreaRequired")]
         public bool NetworkAreaRequired { get; set; } = false;
 
+        [JsonProperty("useAppPart"), JsonPropertyName("useAppPart")]
+        public bool UseAppPart { get; set; } = false;
+
         [JsonProperty("fixedPartLength"), JsonPropertyName("fixedPartLength")]
         public int FixedPartLength { get; set; }
 

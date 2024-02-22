@@ -9,54 +9,13 @@ namespace FWO.Api.Data
         public int GroupType { get; set; }
 
         [JsonProperty("id_string"), JsonPropertyName("id_string")]
-        public string IdString { get; set; } = "";
-        public string IdStringFixedPart
-        { 
-            get
-            { 
-                return IdString.Length >= FixedPartLength ? IdString.Substring(0, FixedPartLength) : IdString;
-            }
-            set
-            { 
-                if(IdString.Length >= FixedPartLength)
-                {
-                    IdString = value + IdString.Substring(FixedPartLength);
-                }
-                else
-                {
-                    IdString = value;
-                }
-            }
-        }
-        public string IdStringFreePart
+        public string IdString
         {
-            get
-            {
-                return IdString.Length >= FixedPartLength ? IdString.Substring(FixedPartLength) : "";
-            }
-            set
-            {
-                if(IdString.Length >= FixedPartLength)
-                {
-                    IdString = IdString.Substring(0, FixedPartLength) + value;
-                }
-                else
-                {
-                    for (int i = 0; i < FixedPartLength - IdString.Length; i++)
-                    {
-                        IdString += " ";
-                    }
-                    IdString += value;
-                }
-            }
+            get { return ManagedIdString.Whole; }
+            set { ManagedIdString = new (value); }
         }
+        public ModellingManagedIdString ManagedIdString { get; set; } = new ();
 
-        public int FixedPartLength;
-
-        public void SetFixedPartLength(int fixedPartLength)
-        {
-            FixedPartLength = fixedPartLength;
-        }
 
         public override string Display()
         {
@@ -76,7 +35,7 @@ namespace FWO.Api.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            IdString = Sanitizer.SanitizeMand(IdString, ref shortened);
+            ManagedIdString.FreePart = Sanitizer.SanitizeMand(ManagedIdString.FreePart, ref shortened);
             return shortened;
         }
 

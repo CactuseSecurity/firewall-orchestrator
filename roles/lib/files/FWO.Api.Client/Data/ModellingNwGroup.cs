@@ -29,7 +29,7 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-folder\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.NwGroup}\"></span> " + DisplayHtml();
         }
 
         public override bool Sanitize()

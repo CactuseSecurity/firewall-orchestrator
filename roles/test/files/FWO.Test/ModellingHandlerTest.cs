@@ -117,13 +117,13 @@ namespace FWO.Test
                 ServiceGroups = new(){ new(){ Content = new(){ Name = "SvcGroup1", IsGlobal = true}}},
                 Services = new(){ new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Name = "UDP"}} }}
             };
-            List<string> expectedSrc = new(){"<span class=\"\"><span class=\"oi oi-folder\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
-                                             "<span class=\"\"><span class=\"oi oi-list-rich\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span></span>",
-                                             "<span class=\"\"><span class=\"oi oi-laptop\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside1 (10.0.0.0)</span></span></span></span>",
-                                             "<span class=\"\"><span class=\"oi oi-laptop\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside2 (10.0.0.5)</span></span></span></span>"};
-            List<string> expectedDst = new(){"<span class=\"text-secondary\"><span class=\"oi oi-laptop\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside3 (11.0.0.1)</span></span></span></span>"};
-            List<string> expectedSvc = new(){"<span class=\"text-secondary\"><span class=\"oi oi-list-rich\"></span> <span><b>SvcGroup1</b></span></span>",
-                                             "<span class=\"text-secondary\"><span class=\"oi oi-wrench\"></span> <span>Svc1 (1111/UDP)</span></span>"};
+            List<string> expectedSrc = new(){$"<span class=\"\"><span class=\"{Icons.NwGroup}\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
+                                             $"<span class=\"\"><span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span></span>",
+                                             $"<span class=\"\"><span class=\"{Icons.AppServer}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside1 (10.0.0.0)</span></span></span></span>",
+                                             $"<span class=\"\"><span class=\"{Icons.AppServer}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside2 (10.0.0.5)</span></span></span></span>"};
+            List<string> expectedDst = new(){$"<span class=\"text-secondary\"><span class=\"{Icons.AppServer}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside3 (11.0.0.1)</span></span></span></span>"};
+            List<string> expectedSvc = new(){$"<span class=\"text-secondary\"><span class=\"{Icons.ServiceGroup}\"></span> <span><b>SvcGroup1</b></span></span>",
+                                             $"<span class=\"text-secondary\"><span class=\"{Icons.Service}\"></span> <span>Svc1 (1111/UDP)</span></span>"};
             Assert.AreEqual(expectedSrc, AppHandler.GetSrcNames(conn));
             Assert.AreEqual(expectedDst, AppHandler.GetDstNames(conn));
             Assert.AreEqual(expectedSvc, AppHandler.GetSvcNames(conn));

@@ -89,11 +89,11 @@
             </div>
             <div class="btn-group mt-1">
                 <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                    @(ConnHandler.DisplayButton("add_service_group", Icons.Add, "services_group"))</button>
+                    @(ConnHandler.DisplayButton("add_service_group", Icons.Add, "", Icons.ServiceGroup))</button>
                 @if(userConfig.AllowServiceInConn)
                 {
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateService(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                        @(ConnHandler.DisplayButton("add_service", Icons.Add, "service"))</button>
+                        @(ConnHandler.DisplayButton("add_service", Icons.Add, "", Icons.Service))</button>
                 }
                 @if(selectedSvcElems.Count == 1)
                 {

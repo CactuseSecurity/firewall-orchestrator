@@ -1,4 +1,4 @@
-namespace FWO.Config.Api
+namespace FWO.Api.Data
 {
     public struct GlobalConst
     {
@@ -42,11 +42,18 @@ namespace FWO.Config.Api
     
     public struct Icons
     {
-        public const string Add = "oi-plus";
-        public const string Edit = "oi-wrench";
-        public const string Delete = "oi-trash";
-        public const string Search = "oi-magnifying-glass";
-        public const string Use = "oi-arrow-thick-right";
-        public const string Unuse = "oi-arrow-thick-left";
+        public const string Add = "oi oi-plus";
+        public const string Edit = "oi oi-wrench";
+        public const string Delete = "oi oi-trash";
+        public const string Search = "oi oi-magnifying-glass";
+        public const string Use = "oi oi-arrow-thick-right";
+        public const string Unuse = "oi oi-arrow-thick-left";
+
+        public const string ModObject = "oi oi-tag";
+        public const string Service = "oi oi-wrench";
+        public const string ServiceGroup = "oi oi-list-rich";
+        public const string AppServer = "oi oi-laptop";
+        public const string AppRole = "oi oi-list-rich";
+        public const string NwGroup = "oi oi-folder";
     }
 }

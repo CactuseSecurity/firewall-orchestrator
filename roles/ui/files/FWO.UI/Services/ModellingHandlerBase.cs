@@ -35,8 +35,8 @@ namespace FWO.Ui.Services
         public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
         {
             string tooltip = userConfig.ModIconify ? $"data-toggle=\"tooltip\" title=\"{@userConfig.PureLine(text)}\"" : "";
-            string iconToDisplay = $"<span class=\"oi {icon}\" {@tooltip}/>";
-            string objIconToDisplay = $"<span class=\"oi {objIcon}\"/>";
+            string iconToDisplay = $"<span class=\"{icon}\" {@tooltip}/>";
+            string objIconToDisplay = $"<span class=\"{objIcon}\"/>";
             
             return (MarkupString)(userConfig.ModIconify ? 
                 iconToDisplay + (iconText != "" ? " " + userConfig.GetText(iconText) : "") + (objIcon != "" ? " " + objIconToDisplay : "")

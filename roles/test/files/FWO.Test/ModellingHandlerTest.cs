@@ -42,6 +42,15 @@ namespace FWO.Test
             new(){ Content = new(){ Name = "Testsubnet2", Ip = "11.0.0.0/30", IpEnd = "11.0.0.0/30" }}
         }};
 
+        static readonly ModellingNamingConvention NamingConvention1 = new()
+        {
+            NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 4, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+        };
+        static readonly ModellingNamingConvention NamingConvention2 = new()
+        {
+            NetworkAreaRequired = true, UseAppPart = true, FixedPartLength = 4, FreePartLength = 3, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+        };
+
         ModellingAppRoleHandler? AppRoleHandler;
         ModellingAppHandler? AppHandler;
 
@@ -138,7 +147,19 @@ namespace FWO.Test
         [Test]
         public async Task TestProposeFreeAppRoleNumber()
         {
-            Assert.AreEqual("00002", await AppRoleHandler.ProposeFreeAppRoleNumber(TestArea));
+            ModellingManagedIdString idFixString = new() { NamingConvention = NamingConvention1 };
+            idFixString.ConvertAreaToAppRoleFixedPart(TestArea.IdString);
+            idFixString.SetAppPartFromExtId("APP-1234");
+            Assert.AreEqual("00002", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
+
+            idFixString.NamingConvention = NamingConvention2;
+            idFixString.ConvertAreaToAppRoleFixedPart("NA91");
+            idFixString.SetAppPartFromExtId("APP-1234");
+            AppRoleHandler.NamingConvention = NamingConvention2;
+            Assert.AreEqual("003", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
+
+            idFixString.ConvertAreaToAppRoleFixedPart("NA99");
+            Assert.AreEqual("001", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
         }
     }
 }

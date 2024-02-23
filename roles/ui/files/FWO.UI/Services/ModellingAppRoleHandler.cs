@@ -62,7 +62,7 @@ namespace FWO.Ui.Services
                 if(newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
                 {
                     ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
-                    ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(newArea);
+                    ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);
                 }
             }
             OrigId = new(ActAppRole.ManagedIdString);
@@ -150,37 +150,42 @@ namespace FWO.Ui.Services
             return false;
         }
 
-        public async Task<string> ProposeFreeAppRoleNumber(ModellingNetworkArea area)
+        public async Task<string> ProposeFreeAppRoleNumber(ModellingManagedIdString idFixString)
         {
-            double maxNumbers = Math.Pow(10, NamingConvention.FreePartLength) - 1;
-            string idFix = ModellingManagedIdString.ConvertAreaToAppRole(area.IdString, NamingConvention);
-            List<ModellingAppRole>? newestARs = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = idFix + "%" });
+            int proposedNumber = 1;
+            List<ModellingAppRole>? newestARs = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = idFixString.CombinedFixPart + "%" });
             if(newestARs != null && newestARs.Count > 0)
             {
                 newestARs[0].ManagedIdString.NamingConvention = NamingConvention;
-                if(int.TryParse(newestARs[0].ManagedIdString.FreePart, out int aRNumber))
+                if(int.TryParse(newestARs[0].ManagedIdString.FreePart, out int newestARNumber))
                 {
-                    aRNumber++;
-                    while(aRNumber <= maxNumbers)
+                    proposedNumber = await SearchFrom(idFixString, newestARNumber + 1);
+                    if(proposedNumber == 0)
                     {
-                        if(!await IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
-                        {
-                            return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
-                        }
-                        aRNumber++;
+                        proposedNumber = await SearchFrom(idFixString, 1);
                     }
-                }
-                aRNumber = 1;
-                while(aRNumber <= maxNumbers)
-                {
-                    if(!await IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
-                    {
-                        return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
-                    }
-                    aRNumber++;
                 }
             }
-            return 1.ToString($"D{NamingConvention.FreePartLength}");
+            return ProposedString(proposedNumber);
+        }
+
+        private async Task<int> SearchFrom(ModellingManagedIdString idFixString, int aRNumber)
+        {
+            double maxNumbers = Math.Pow(10, NamingConvention.FreePartLength) - 1;
+            while(aRNumber <= maxNumbers)
+            {
+                if(!await IdStringAlreadyUsed(idFixString.CombinedFixPart + idFixString.Separator + ProposedString(aRNumber)))
+                {
+                    return aRNumber;
+                }
+                aRNumber++;
+            }
+            return 0;
+        }
+
+        private string ProposedString(int aRNumber)
+        {
+            return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
         }
 
         private async Task AddAppRoleToDb()

@@ -7,7 +7,11 @@ namespace FWO.Test
 internal class ModellingHandlerTestApiConn : SimulatedApiConnection
     {
         const string AppRoleId1 = "AR5000001";
+        const string AppRoleId2 = "AR9101234-002";
+        const string AppRoleId3 = "AR9901234-999";
         ModellingAppRole AppRole1 = new(){ Id = 1, IdString = AppRoleId1 };
+        ModellingAppRole AppRole2 = new(){ Id = 2, IdString = AppRoleId2 };
+        ModellingAppRole AppRole3 = new(){ Id = 3, IdString = AppRoleId3 };
 
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
@@ -18,10 +22,21 @@ internal class ModellingHandlerTestApiConn : SimulatedApiConnection
                 List<ModellingAppRole>? appRoles = new();
                 if(query == ModellingQueries.getNewestAppRoles)
                 {
-                    string pattern = variables.GetType().GetProperties().First(o => o.Name == "pattern").GetValue(variables, null).ToString();
-                    if(variables != null && (pattern == AppRoleId1 || pattern == "AR50%"))
+                    if(variables != null)
                     {
-                        appRoles = new(){ AppRole1 };
+                        string pattern = variables.GetType().GetProperties().First(o => o.Name == "pattern").GetValue(variables, null)?.ToString();
+                        if(pattern == AppRoleId1 || pattern == "AR50%")
+                        {
+                            appRoles = new(){ AppRole1 };
+                        }
+                        else if(pattern == AppRoleId2 || pattern == "AR9101234%")
+                        {
+                            appRoles = new(){ AppRole2 };
+                        }
+                        else if(pattern == AppRoleId3 || pattern == "AR9901234%")
+                        {
+                            appRoles = new(){ AppRole3 };
+                        }
                     }
                 }
                 else

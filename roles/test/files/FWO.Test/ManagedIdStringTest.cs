@@ -12,31 +12,15 @@ namespace FWO.Test
 
         static readonly ModellingNamingConvention NamingConvention1 = new()
         {
-            NetworkAreaRequired = true,
-            UseAppPart = false,
-            FixedPartLength = 2,
-            FreePartLength = 5,
-            NetworkAreaPattern = "NA",
-            AppRolePattern = "AR"
+            NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 2, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR"
         };
         static readonly ModellingNamingConvention NamingConvention2 = new()
         {
-            NetworkAreaRequired = true,
-            UseAppPart = true,
-            FixedPartLength = 4,
-            FreePartLength = 3,
-            NetworkAreaPattern = "NA",
-            AppRolePattern = "AR"
+            NetworkAreaRequired = true, UseAppPart = true, FixedPartLength = 4, FreePartLength = 3, NetworkAreaPattern = "NA", AppRolePattern = "AR"
         };
-
         ModellingNamingConvention NamingConvention3 = new()
         {
-            NetworkAreaRequired = true,
-            UseAppPart = true,
-            FixedPartLength = 4,
-            FreePartLength = 3,
-            NetworkAreaPattern = "",
-            AppRolePattern = "A"
+            NetworkAreaRequired = true, UseAppPart = true, FixedPartLength = 4, FreePartLength = 3, NetworkAreaPattern = "", AppRolePattern = "A"
         };
 
 

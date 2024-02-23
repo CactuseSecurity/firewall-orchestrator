@@ -5511,19 +5511,19 @@ INSERT INTO txt VALUES ('H9022', 'English', 'Interfaces: They serve primarily th
     Besides the service either source or destination have to be defined in the application. The interfaces are offered to other applications to use
     them in the definition of own connections.
 ');
-INSERT INTO txt VALUES ('H9023', 'German',  'Standard-Verbindungen: Zentrale Objekte zur Modellierung der Kommunikationsverbindungen. Dabei m&uuml;ssen Quelle, Dienst und Ziel aus den in der Bibliothek 
+INSERT INTO txt VALUES ('H9023', 'German',  'Standard: Zentrale Objekte zur Modellierung der Kommunikationsverbindungen. Dabei m&uuml;ssen Quelle, Dienst und Ziel aus den in der Bibliothek 
     angebotenen Ntzwerkobjekten bzw. Services gew&auml;hlt werden. Es k&ouml;nnen auch eigene oder externe Schnittstellen eingebunden werden. Dann m&uuml;ssen nur noch die "offenen Enden"
     (je nach Schnittstelle Quelle oder Ziel) aus der Bibliothek hinzugef&uuml;gt werden.
 ');
-INSERT INTO txt VALUES ('H9023', 'English', 'Regular Connections: Essential objects for modelling the communication. Source, Service and Destination have to be selected from the network resp. service objects 
+INSERT INTO txt VALUES ('H9023', 'English', 'Connections: Essential objects for modelling the communication. Source, Service and Destination have to be selected from the network resp. service objects 
     offered in the library. Additionally own or external interfaces can be integrated. In this case only the "open ends" (source or destination, depending on the inetrface type)
     have to be added from the library.
 ');
 INSERT INTO txt VALUES ('H9024', 'German',  'Common Services: K&ouml;nnen nur definiert werden, wenn die Applikation durch den Administrator in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> 
-    daf&uuml;r freigegeben wurde. Sie sind formal wie Standard-Verbindungen aufgebaut. 
+    daf&uuml;r freigegeben wurde. Sie sind formal wie normale Verbindungen aufgebaut, d&uuml;rfen aber keine Schnittstellen verwenden. 
 ');
 INSERT INTO txt VALUES ('H9024', 'English', 'Common Services: Can only be defined, if the application is marked as permitted in the <a href="/help/settings/owners">Owner Settings</a> by the administrator.
-    Formally they are structured as regular connections.
+    Formally they are structured as regular connections but are not allowed to use interfaces.
 ');
 INSERT INTO txt VALUES ('H9031', 'German',  'Netzwerkobjekte werden zur Definition von Quelle und Ziel der Verbindungen ben&ouml;tigt. Es wird zwischen verschiedenen Arten von Netzwerkobjekten unterschieden:');
 INSERT INTO txt VALUES ('H9031', 'English', 'Network objects are used to define source and destination of the connections. There are different types of network objects:');

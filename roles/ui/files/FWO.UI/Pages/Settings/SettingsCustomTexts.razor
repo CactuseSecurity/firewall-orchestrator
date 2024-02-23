@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/settings/customtexts"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -72,7 +72,7 @@
     </div>
 }
 <hr />
-<AuthorizeView Roles="@GlobalConst.kAdmin">
+<AuthorizeView Roles="@Roles.Admin">
     <Authorized>
         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault="true" @onclick="Save">@(userConfig.GetText("save"))</button>
     </Authorized>

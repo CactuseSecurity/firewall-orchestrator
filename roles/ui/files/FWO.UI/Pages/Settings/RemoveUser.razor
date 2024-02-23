@@ -20,7 +20,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await Remove(selectedUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
                 </Authorized>

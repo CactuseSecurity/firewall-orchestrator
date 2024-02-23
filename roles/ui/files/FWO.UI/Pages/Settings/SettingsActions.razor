@@ -6,7 +6,7 @@
 @using FWO.Middleware.Client
 
 @page "/settings/stateactions"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -243,7 +243,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAction">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -308,7 +308,7 @@ else
             statesPlus = new List<RequestState>(states);
             statesPlus.Add(AutomaticState);
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
-            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, GlobalConst.kApprover);
+            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Roles.Approver);
         }
         catch (Exception exception)
         {

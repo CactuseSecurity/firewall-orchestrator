@@ -9,7 +9,7 @@
 @using RestSharp
 
 @page "/settings/roles"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -29,7 +29,7 @@
             <Template>
                 <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5341") + "\r\n" + userConfig.PureLine("H5351") +
                         "\r\n" + userConfig.PureLine("H5352") + "\r\n" + userConfig.PureLine("H5353"))">
-                    @if (context.Name != GlobalConst.kMiddlewareServer && context.Name != GlobalConst.kAnonymous)
+                    @if (context.Name != Roles.MiddlewareServer && context.Name != Roles.Anonymous)
                     {
                         <button type="button" class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("assign_user_group"))</button>
                         @if(context.Users.Count > 0)
@@ -158,7 +158,7 @@
     {
         if (selectedUserToRemove.Dn != "")
         {
-            if (actRole.Name == GlobalConst.kAdmin && actRole.Users.Count < 2)
+            if (actRole.Name == Roles.Admin && actRole.Users.Count < 2)
             {
                 DisplayMessageInUi(null, userConfig.GetText("remove_user_group_from_role"), userConfig.GetText("E5256"), true);
             }

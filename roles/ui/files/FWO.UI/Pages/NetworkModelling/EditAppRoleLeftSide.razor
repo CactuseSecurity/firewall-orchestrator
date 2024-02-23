@@ -23,7 +23,7 @@
             </div>
         }
     </div>
-    @* <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+    @* <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
         </NotAuthorized> 

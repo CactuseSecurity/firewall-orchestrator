@@ -4,7 +4,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/daily_check_logs"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
 
 <h3>@(userConfig.GetText("daily_checks"))</h3>
 @(userConfig.GetText("U7501"))

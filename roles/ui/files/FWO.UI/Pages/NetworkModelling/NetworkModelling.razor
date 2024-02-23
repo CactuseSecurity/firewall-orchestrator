@@ -2,7 +2,7 @@
 @using FWO.Ui.Display
 
 @page "/networkmodelling/{appId?}"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kModeller}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -48,7 +48,7 @@
             @if(appActive)
             {
                 <div class="btn-group ms-5">
-                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">@(appHandler.DisplayButton("edit_app_server", Icons.Edit, "app_server"))</button>
                         </Authorized>
@@ -77,7 +77,7 @@
             </TabSet>
         </div>
         <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
-            Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="@GlobalConst.kModeller"/>
+            Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="@Roles.Modeller"/>
     }
 }
 else
@@ -112,7 +112,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kModeller, GlobalConst.kAdmin, GlobalConst.kAuditor });
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
         await InitAppList();
     }
 
@@ -171,7 +171,7 @@ else
     {
         try
         {
-            if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor))
+            if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
             {
                 apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwnersWithConn);
             }
@@ -217,17 +217,17 @@ else
         {
             appSelected = false;
             selectedApp = newApp;
-            bool isOwner = authenticationStateTask!.Result.User.IsInRole(GlobalConst.kModeller) && userConfig.User.Ownerships.Contains(selectedApp.Id);
+            bool isOwner = authenticationStateTask!.Result.User.IsInRole(Roles.Modeller) && userConfig.User.Ownerships.Contains(selectedApp.Id);
             appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner);
             await appHandler.Init();
             appActive = selectedApp.Active;
             if(isOwner)
             {
-                apiConnection.SetRole(GlobalConst.kModeller);
+                apiConnection.SetRole(Roles.Modeller);
             }
             else
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kAdmin, GlobalConst.kAuditor});
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor});
             }
             appSelected = true;
             tabSelected = false;

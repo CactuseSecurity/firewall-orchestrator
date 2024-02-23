@@ -13,7 +13,7 @@
         {
             <div class="btn-group" role="group">
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
                     </Authorized>
@@ -25,7 +25,7 @@
         }
         else
         {
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
             </AuthorizeView>
         }

@@ -75,7 +75,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                apiConnection.SetRole(GlobalConst.kAdmin);
+                apiConnection.SetRole(Roles.Admin);
                 if(await CheckAppServerInUse(actAppServer))
                 {
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = true });

@@ -46,7 +46,7 @@
                             </Dropdown>
                         </div>
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@GlobalConst.kAdmin">
+                            <AuthorizeView Roles="@Roles.Admin">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddUser(selectedUiUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                                 </Authorized>
@@ -65,7 +65,7 @@
                             <Dropdown ElementType="string" @bind-SelectedElement="selectedInternalGroupDn" Elements="Array.ConvertAll(internalGroups.ToArray(), x => x.Dn).ToList()" />
                         </div>
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@GlobalConst.kAdmin">
+                            <AuthorizeView Roles="@Roles.Admin">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddGroup(selectedInternalGroupDn); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                                 </Authorized>

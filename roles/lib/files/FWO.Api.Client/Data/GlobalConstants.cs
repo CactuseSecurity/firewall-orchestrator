@@ -22,22 +22,25 @@ namespace FWO.Api.Data
         public const string kManual = "manual";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
-
-        public const string kAnonymous = "anonymous";
-        public const string kAdmin = "admin";
-        public const string kAuditor = "auditor";
-        public const string kMiddlewareServer = "middleware-server";
-        public const string kImporter = "importer";
-        public const string kFwAdmin = "fw-admin";
-        public const string kRecertifier = "recertifier";
-        public const string kModeller = "modeller";
-        public const string kReporter = "reporter";
-        public const string kReporterViewAll = "reporter-viewall";
-        public const string kRequester = "requester";
-        public const string kApprover = "approver";
-        public const string kPlanner = "planner";
-        public const string kImplementer = "implementer";
-        public const string kReviewer = "reviewer";
+    }
+    
+    public struct Roles
+    {
+        public const string Anonymous = "anonymous";
+        public const string Admin = "admin";
+        public const string Auditor = "auditor";
+        public const string MiddlewareServer = "middleware-server";
+        public const string Importer = "importer";
+        public const string FwAdmin = "fw-admin";
+        public const string Recertifier = "recertifier";
+        public const string Modeller = "modeller";
+        public const string Reporter = "reporter";
+        public const string ReporterViewAll = "reporter-viewall";
+        public const string Requester = "requester";
+        public const string Approver = "approver";
+        public const string Planner = "planner";
+        public const string Implementer = "implementer";
+        public const string Reviewer = "reviewer";
     }
     
     public struct Icons

@@ -10,7 +10,7 @@
 @using FWO.Recert
 
 @page "/settings/owners"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -30,7 +30,7 @@
         {
             <button type="button" class="btn btn-sm btn-success" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
         }
-        <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
+        <AuthorizeView Roles="@Roles.Admin" Context="ctx">
             <Authorized>
                 @if (!recertCalcInProgress)
                 {
@@ -70,7 +70,7 @@
                         <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditOwner(context)">@(userConfig.GetText("edit"))</button>
                         @if(!context.IsDefault)
                         {
-                            <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
+                            <AuthorizeView Roles="@Roles.Admin" Context="ctx">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
                                 </Authorized>
@@ -301,7 +301,7 @@
             <div class="btn-group">
                 @if(!Readonly || !userConfig.AllowManualOwnerAdmin)
                 {
-                    <AuthorizeView Roles="@GlobalConst.kAdmin">
+                    <AuthorizeView Roles="@Roles.Admin">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-primary" @onclick="SaveOwner">@(userConfig.GetText("save"))</button>
                         </Authorized>

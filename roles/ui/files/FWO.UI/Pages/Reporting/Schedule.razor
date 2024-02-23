@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 @page "/report/schedule"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}")]
 
 <ReportTabset></ReportTabset>
 
@@ -17,7 +17,7 @@
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
         <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("actions"))">
             <Template>
-                @if (context.Owner.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(GlobalConst.kAdmin))
+                @if (context.Owner.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(Roles.Admin))
                 {
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; actDate = actTime = context.StartTime; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>

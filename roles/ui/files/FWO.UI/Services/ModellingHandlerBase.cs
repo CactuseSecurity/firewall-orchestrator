@@ -32,11 +32,15 @@ namespace FWO.Ui.Services
             IsOwner = isOwner;
         }
         
-        public MarkupString DisplayButton(string text, string icon, string iconText = "")
+        public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
         {
             string tooltip = userConfig.ModIconify ? $"data-toggle=\"tooltip\" title=\"{@userConfig.PureLine(text)}\"" : "";
-            string iconToDisplay = $"<span class=\"oi {icon}\" {@tooltip}\"/>";
-            return (MarkupString)(userConfig.ModIconify ? iconToDisplay + (iconText != "" ? " " + userConfig.GetText(iconText) : "") : userConfig.GetText(text));
+            string iconToDisplay = $"<span class=\"oi {icon}\" {@tooltip}/>";
+            string objIconToDisplay = $"<span class=\"oi {objIcon}\"/>";
+            
+            return (MarkupString)(userConfig.ModIconify ? 
+                iconToDisplay + (iconText != "" ? " " + userConfig.GetText(iconText) : "") + (objIcon != "" ? " " + objIconToDisplay : "")
+                : userConfig.GetText(text));
         }
 
         protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text, int? applicationId)

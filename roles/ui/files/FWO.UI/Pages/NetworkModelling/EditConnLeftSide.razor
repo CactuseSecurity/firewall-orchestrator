@@ -34,9 +34,9 @@
         </div>
         <div class="btn-group mt-1">
             <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">
-                @(ConnHandler.DisplayButton("search_nw_object", Icons.Search, "network_object"))</button>
+                @(ConnHandler.DisplayButton("search_nw_object", Icons.Search))</button>
             <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                @(ConnHandler.DisplayButton("add_app_role", Icons.Add, "app_role"))</button>
+                @(ConnHandler.DisplayButton("add_app_role", Icons.Add))</button>
             @if(selectedNwElems.Count == 1)
             {
                 @if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppRole)
@@ -90,6 +90,11 @@
             <div class="btn-group mt-1">
                 <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                     @(ConnHandler.DisplayButton("add_service_group", Icons.Add, "services_group"))</button>
+                @if(userConfig.AllowServiceInConn)
+                {
+                    <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateService(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                        @(ConnHandler.DisplayButton("add_service", Icons.Add, "service"))</button>
+                }
                 @if(selectedSvcElems.Count == 1)
                 {
                     @if(selectedSvcElems[0].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
@@ -123,7 +128,7 @@
                 }
             </div>
         }
-        @if(!ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.UsedInterfaceId == null)
+        @if(!ConnHandler.ActConn.IsInterface && !ConnHandler.ActConn.IsCommonService && ConnHandler.ActConn.UsedInterfaceId == null)
         {
             <br><br>
             <h5>@(userConfig.GetText("interfaces"))</h5>
@@ -206,11 +211,6 @@
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
     
-    @* private MarkupString DisplayButton(string text, string icon, string iconText = "")
-    {
-        return (MarkupString)(userConfig.ModIconify ? icon + (iconText != "" ? " " + userConfig.GetText(iconText) : "") : userConfig.GetText(text));
-    } *@
-
     private bool InterfaceToConn(ModellingConnection interf)
     {
         ConnHandler.InterfaceToConn(interf);

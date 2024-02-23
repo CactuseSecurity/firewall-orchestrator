@@ -25,7 +25,7 @@
     </div>
     <div class="btn-group mt-2">
         <button type="button" class="btn btn-sm btn-success" @onclick="() =>
-            {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("add_service", Icons.Add, "service"))</button>
+            {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("add_service", Icons.Add))</button>
         @if(selectedServices.Count == 1)
         {
             <button type="button" class="btn btn-sm btn-warning" @onclick="() =>

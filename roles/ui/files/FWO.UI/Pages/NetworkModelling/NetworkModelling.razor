@@ -60,17 +60,17 @@
         <div class="m-2 vheight75">
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
                 <Tab Title="@(userConfig.GetText("connections"))" Position=0>
-                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">@(appHandler.DisplayButton("add_connection", Icons.Add, "connection"))</button>
+                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">@(appHandler.DisplayButton("add_connection", Icons.Add))</button>
                     <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive"/>
                 </Tab>
                 <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
-                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">@(appHandler.DisplayButton("add_interface", Icons.Add, "interface"))</button>
+                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">@(appHandler.DisplayButton("add_interface", Icons.Add))</button>
                     <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler" AppActive="appActive"/>
                 </Tab>
                 @if(selectedApp.CommSvcPossible)
                 {
                     <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
-                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service", Icons.Add, "common_service"))</button>
+                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service", Icons.Add))</button>
                         <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive"/>
                     </Tab>
                 }

@@ -12,7 +12,7 @@
         @if (Display)
         {
             <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appServerListHandler.CreateAppServer">
-                @(appServerListHandler.DisplayButton("add_app_server", Icons.Add, "app_server"))</button>
+                @(appServerListHandler.DisplayButton("add_app_server", Icons.Add))</button>
             <div class="vheight75">
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingAppServer"
                         Items="appServerListHandler.ManualAppServers" PageSize="0" ColumnReorder="true">

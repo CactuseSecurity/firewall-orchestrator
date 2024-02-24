@@ -23,40 +23,4 @@ namespace FWO.Api.Data
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
     }
-    
-    public struct Roles
-    {
-        public const string Anonymous = "anonymous";
-        public const string Admin = "admin";
-        public const string Auditor = "auditor";
-        public const string MiddlewareServer = "middleware-server";
-        public const string Importer = "importer";
-        public const string FwAdmin = "fw-admin";
-        public const string Recertifier = "recertifier";
-        public const string Modeller = "modeller";
-        public const string Reporter = "reporter";
-        public const string ReporterViewAll = "reporter-viewall";
-        public const string Requester = "requester";
-        public const string Approver = "approver";
-        public const string Planner = "planner";
-        public const string Implementer = "implementer";
-        public const string Reviewer = "reviewer";
-    }
-    
-    public struct Icons
-    {
-        public const string Add = "oi oi-plus";
-        public const string Edit = "oi oi-wrench";
-        public const string Delete = "oi oi-trash";
-        public const string Search = "oi oi-magnifying-glass";
-        public const string Use = "oi oi-arrow-thick-right";
-        public const string Unuse = "oi oi-arrow-thick-left";
-
-        public const string ModObject = "oi oi-tag";
-        public const string Service = "oi oi-wrench";
-        public const string ServiceGroup = "oi oi-list-rich";
-        public const string AppServer = "oi oi-laptop";
-        public const string AppRole = "oi oi-list-rich";
-        public const string NwGroup = "oi oi-folder";
-    }
 }

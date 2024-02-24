@@ -27,7 +27,7 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"{Icons.AppServer}\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.Host}\"></span> " + DisplayHtml();
         }
 
         public override bool Sanitize()

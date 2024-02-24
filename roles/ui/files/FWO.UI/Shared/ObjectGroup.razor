@@ -303,34 +303,6 @@
         return GetIDPrefix(objCategory) + objId;
     }
 
-    @* private string GetIconClass(ObjCategory objCategory, string type)
-    {
-        switch (type)
-        {
-            case "group" when objCategory == ObjCategory.user:
-                return "oi oi-people";
-            case "group":
-                return "oi oi-list-rich";
-            case "host":
-                return "oi oi-laptop";
-            case "network":
-                return "oi oi-rss";
-            case "ip_range":
-                return "oi oi-resize-width";
-            default:
-                switch (objCategory)
-                {
-                    case ObjCategory.nobj:
-                        return "oi oi-laptop";
-                    case ObjCategory.nsrv:
-                        return "oi oi-wrench";
-                    case ObjCategory.user:
-                        return "oi oi-person";
-                }
-                return "";
-        }
-    } *@
-
     RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name)
     {
         RsbTab targetTab = Tab == RsbTab.all ? RsbTab.all : RsbTab.report;

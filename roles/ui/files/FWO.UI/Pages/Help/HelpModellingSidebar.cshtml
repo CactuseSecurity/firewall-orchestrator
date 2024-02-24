@@ -1,4 +1,6 @@
 ﻿@using FWO.Config.Api
+@using FWO.Api.Data
+
 @inject UserConfig userConfig
 
 <nav class="sidebar fixed sidebar-help shadow">
@@ -8,16 +10,16 @@
                 <p></p>
                 <h5>@userConfig.GetText("modelling")</h5>
                 <a class="nav-link" href="/help/modelling/applications/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-flag"></span> @(userConfig.GetText("applications"))
+                    <span class="@Icons.Owner"></span> @(userConfig.GetText("applications"))
                 </a>
                 <a class="nav-link" href="/help/modelling/connections/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-transfer"></span> @(userConfig.GetText("connections"))
+                    <span class="@Icons.Connection"></span> @(userConfig.GetText("connections"))
                 </a>
                 <a class="nav-link" href="/help/modelling/networkobjects/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-laptop"></span> @(userConfig.GetText("network_objects"))
+                    <span class="@Icons.NwObject"></span> @(userConfig.GetText("network_objects"))
                 </a>
                 <a class="nav-link" href="/help/modelling/services/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-wrench"></span> @(userConfig.GetText("services"))
+                    <span class="@Icons.Service"></span> @(userConfig.GetText("services"))
                 </a>
 
             </ul>

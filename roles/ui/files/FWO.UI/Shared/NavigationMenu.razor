@@ -21,42 +21,42 @@
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <a href="/report/generation" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
-                        <span class="oi oi-spreadsheet"></span> @(userConfig.GetText("reporting"))
+                        <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
                     </a>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}, {Roles.Auditor}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="@firstPage">
-                        <span class="oi oi-comment-square"></span> @(userConfig.GetText("workflow"))
+                        <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
                     </NavLink>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/certification">
-                        <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
+                        <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
                     </NavLink>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/networkmodelling">
-                        <span class="oi oi-puzzle-piece"></span> @(userConfig.GetText("modelling"))
+                        <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
                     </NavLink>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/network_analysis">
-                        <span class="oi oi-spreadsheet"></span> @(userConfig.GetText("network_analysis"))
+                        <span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
                     </NavLink>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.Auditor}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.ReporterViewAll}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/compliance/zones/matrix">
-                        <span class="oi oi-dashboard"></span> @(userConfig.GetText("compliance"))
+                        <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
                     </NavLink>
                 </li>
             </AuthorizeView>
@@ -66,10 +66,10 @@
                 <li class="nav-item px-2">
                     @* d-flex align-items-center *@
                     <NavLink class="nav-link" href="/monitoring">
-                        <span class="oi oi-monitor">
+                        <span class="@Icons.Monitoring">
                             @if (ShowAlert)
                             {
-                                <span class="oi oi-bell" style="color: red; margin-left: 5px; width: 15px; height: 10px;"></span>
+                                <span class="@Icons.Alarm" style="color: red; margin-left: 5px; width: 15px; height: 10px;"></span>
                             }
                         </span>
                         @(userConfig.GetText("monitoring"))
@@ -77,7 +77,7 @@
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/settings">
-                        <span class="oi oi-cog"></span> @(userConfig.GetText("settings"))
+                        <span class="@Icons.Settings"></span> @(userConfig.GetText("settings"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
@@ -85,7 +85,7 @@
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/settings/user">
-                        <span class="oi oi-person"></span> @(userConfig.User.Name.ToUpper())
+                        <span class="@Icons.User"></span> @(userConfig.User.Name.ToUpper())
                     </NavLink>
                 </li>
             </ul>

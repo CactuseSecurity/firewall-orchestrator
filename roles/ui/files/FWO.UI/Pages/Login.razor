@@ -38,7 +38,7 @@
                     @if (loginInProgress == false)
                     {
                         <button type="submit" class="btn btn-block btn-primary mt-3" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
-                        @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
+                        @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="@Icons.Login"></div></button> *@
                     }
                     else
                     {
@@ -71,7 +71,7 @@
                 </div>
                 @if (passwordChangeInProgress == false)
                 {
-                    <button type="button" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="oi oi-account-login"></div></button>
+                    <button type="button" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="@Icons.Login"></div></button>
                 }
                 else
                 {

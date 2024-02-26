@@ -13,7 +13,7 @@
 @page "/report/generation"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}")]
 
-@inject ApiConnection Connection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @* ==== LEFT SIDEBAR ==== *@
@@ -29,43 +29,7 @@
     </div>
     @if (selectedReportType==ReportType.Recertification)
     {
-        <div class="p-3">
-            <h5 class="text-left">@(userConfig.GetText("recert_parameter"))</h5>
-            <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
-            <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="recertLookAheadDays" />
-            <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
-            <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
-                @bind-SelectedElement="selectedOwner" Elements="ownerList">
-                <ElementTemplate Context="owner">
-                    @owner.Name
-                </ElementTemplate>
-            </Dropdown>
-            <br>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
-                    @bind="recertShowAnyMatch"
-                    @oninput="@(async () => { 
-                            recertShowAnyMatch = !recertShowAnyMatch;
-                            if (!recertShowAnyMatch) 
-                            {
-                                if (filterInput.Length>0)
-                                {
-                                    filterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
-                                }
-                                else
-                                {
-                                    filterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
-                                }
-                            }
-                            else 
-                            {
-                                filterInput =  filterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
-                                filterInput =  filterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
-                            }
-                        })" />
-                <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
-            </div>
-        </div>
+        <ReportRecertParamSelection @bind-FilterInput="filterInput" @bind-RecertFilter="actRecertFilter"/>
     }
     else if(selectedReportType==ReportType.UnusedRules)
     {
@@ -86,21 +50,18 @@
     }
     @if (selectedReportType != ReportType.Statistics && tenantList.Count > 1)
     {
-        if (tenantFilteringAllowed)
-        {
-            <div class="p-3">
-                <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
-                <Dropdown
-                    @ref="tenantSelector"
-                    SelectedElementChanged="TenantViewChanged"
-                    ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
-                    Elements="tenantList">
-                    <ElementTemplate Context="tenant">
-                        @tenant.Name
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        }
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
+            <Dropdown
+                @ref="tenantSelector"
+                SelectedElementChanged="TenantViewChanged"
+                ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
+                Elements="tenantList">
+                <ElementTemplate Context="tenant">
+                    @tenant.Name
+                </ElementTemplate>
+            </Dropdown>
+        </div>
     }
     else
     {
@@ -252,8 +213,6 @@
     private Management? globalStats = null;
 
     private ReportType selectedReportType = ReportType.Rules;
-    private FwoOwner? selectedOwner = null;
-    private List<FwoOwner> ownerList = new List<FwoOwner>();
     private Tenant? selectedTenantView = null;
     private List<Tenant> tenantList = new List<Tenant>();
 
@@ -268,8 +227,7 @@
     private TimeFilter savedTimeFilter = new TimeFilter();
     private string displayedTimeSelection = "";
     private bool ShowSelectTimeDialog = false;
-    private bool recertShowAnyMatch = true;
-    private int recertLookAheadDays = 0;
+    private RecertFilter actRecertFilter = new();
     private int unusedDays = 0;
     private bool ShowCreateTicketDialog = false;
 
@@ -302,11 +260,10 @@
         {
             displayedTimeSelection = userConfig.GetText("now");
             unusedDays = userConfig.UnusedTolerance;
-            deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-            ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if (tenantFilteringAllowed)
             {
-                tenantList = await Connection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+                tenantList = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
                 tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
             }
 
@@ -314,8 +271,6 @@
             {
                 collapseDevices = true;
             }
-
-            recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
@@ -353,7 +308,7 @@
     private async Task SetDeviceVisibility(List<ManagementSelect> mgms, Tenant tenantView)
     {
         // TODO: not used yet
-        List<ManagementSelect> visibleDevices = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+        // List<ManagementSelect> visibleDevices = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
 
         // List<TenantGateway> tenantGatewayList = new List<TenantGateway>(selectedTenantView.TenantVisibleGateways);
         // List<TenantViewGateway> tenantGatewayList = new List<TenantViewGateway>();
@@ -447,7 +402,7 @@
 
         if (template.ReportParams.TenantFilter.IsActive)
         {
-            Tenant tenantFromTemplate = await Tenant.getSingleTenant(Connection, template.ReportParams.TenantFilter.TenantId);
+            Tenant tenantFromTemplate = await Tenant.getSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
             await tenantSelector.SelectElement(tenantFromTemplate);
             await TenantViewChanged(tenantFromTemplate);
         }
@@ -470,12 +425,7 @@
             actTimeFilter = template.ReportParams.TimeFilter;
         }
         DisplaySelectedTime();
-        if(template.ReportParams.RecertFilter.RecertOwnerList.Count > 0)
-        {
-            selectedOwner = ownerList.FirstOrDefault(o => o.Id == template.ReportParams.RecertFilter.RecertOwnerList.First());
-        }
-        recertShowAnyMatch = template.ReportParams.RecertFilter.RecertShowAnyMatch;
-        recertLookAheadDays = template.ReportParams.RecertFilter.RecertificationDisplayPeriod;
+        actRecertFilter = new(template.ReportParams.RecertFilter);
         unusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
     }
 
@@ -569,7 +519,7 @@
                 if(currentReport!.ReportType == ReportType.Statistics)
                 {
                     globalStats = new Management();
-                    await currentReport.Generate(0, Connection,
+                    await currentReport.Generate(0, apiConnection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -589,7 +539,7 @@
                 }
                 else
                 {
-                    await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
+                    await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
                     managementsReportIntermediate =>
                     {
                         managementsReport = managementsReportIntermediate;
@@ -644,7 +594,7 @@
         // check for unsupported devices
         if(selectedReportType == ReportType.UnusedRules)
         {
-            var result = await ReportBase.GetUsageDataUnsupportedDevices(Connection, deviceFilter);
+            var result = await ReportBase.GetUsageDataUnsupportedDevices(apiConnection, deviceFilter);
             reducedDeviceFilter = result.reducedDeviceFilter;
             unsupportedList = result.unsupportedList;
             if(unsupportedList.Count > 0)
@@ -687,12 +637,6 @@
 
     private ReportTemplate ConstructReportTemplate()
     {
-        List<int> ownerList = new List<int>();
-        if (selectedOwner != null)
-        {
-            ownerList.Add(selectedOwner.Id);
-        }
-
         ReportParams reportParams = new ReportParams((int)selectedReportType, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter);
         reportParams.TimeFilter = savedTimeFilter;
         if (selectedReportType != ReportType.Statistics)
@@ -707,12 +651,7 @@
             reportParams.TenantFilter = new TenantFilter(selectedTenantView);
 
         }
-        reportParams.RecertFilter = new RecertFilter()
-        {
-            RecertOwnerList = ownerList,
-            RecertShowAnyMatch = recertShowAnyMatch,
-            RecertificationDisplayPeriod = recertLookAheadDays
-        };
+        reportParams.RecertFilter = new RecertFilter(actRecertFilter);
         reportParams.UnusedFilter = new UnusedFilter() 
         {
             UnusedForDays = unusedDays, 

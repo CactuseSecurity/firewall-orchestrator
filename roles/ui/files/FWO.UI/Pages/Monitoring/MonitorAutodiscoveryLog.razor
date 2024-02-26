@@ -4,7 +4,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/autodiscovery_logs"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
 
 <h3>@(userConfig.GetText("autodiscovery_logs"))</h3>
 @(userConfig.GetText("U7401"))
@@ -60,7 +60,7 @@ else
 
             JwtReader jwt = new JwtReader(userConfig.User.Jwt);
             jwt.Validate();
-            if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin))
+            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);

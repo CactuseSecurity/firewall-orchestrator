@@ -50,15 +50,15 @@ namespace FWO.Ui.Services
         public void InitActiveTab()
         {
             int tab = 0;
-            if(GetInterfaces().Count == 0)
+            if(GetRegularConnections().Count == 0)
             {
-                if (Application.CommSvcPossible && GetCommonServices().Count > 0)
+                if (GetInterfaces().Count > 0)
                 {
                     tab = 1;
                 }
-                else if (GetRegularConnections().Count > 0)
+                else if (Application.CommSvcPossible && GetCommonServices().Count > 0)
                 {
-                    tab = Application.CommSvcPossible ? 2 : 1;
+                    tab = 2;
                 }
             }
             tabset.SetActiveTab(tab);

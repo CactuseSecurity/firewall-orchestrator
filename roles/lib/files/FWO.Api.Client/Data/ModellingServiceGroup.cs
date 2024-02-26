@@ -20,7 +20,7 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-list-rich\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.ServiceGroup}\"></span> " + DisplayHtml();
         }
 
         public override bool Sanitize()

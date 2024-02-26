@@ -5,7 +5,7 @@
 @using System.Text.Json
 
 @page "/settings/statematrix"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -109,7 +109,7 @@
         }
     }
     <hr />
-    <AuthorizeView Roles="@GlobalConst.kAdmin">
+    <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveMatrix" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
             <button type="button" class="btn btn-sm btn-danger" @onclick="InitResetMatrix" @onclick:preventDefault>@(userConfig.GetText("reset_to_default"))</button>
@@ -130,7 +130,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@GlobalConst.kAdmin">
+                <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-danger" @onclick="SaveMatrix">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -152,7 +152,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@GlobalConst.kAdmin">
+                <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-danger" @onclick="ResetMatrix">@(userConfig.GetText("reset_to_default"))</button>
                     </Authorized>
@@ -214,7 +214,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@GlobalConst.kAdmin">
+                <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="ApplySelection">@(userConfig.GetText("select"))</button>
                     </Authorized>

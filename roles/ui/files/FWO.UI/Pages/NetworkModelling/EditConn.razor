@@ -181,7 +181,7 @@
                 {
                     @if(ConnHandler.ActConn.UsedInterfaceId != null)
                     {
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(userConfig.GetText("remove_interface"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(ConnHandler.DisplayButton("remove_interface", Icons.Unuse, "interface"))</button>
                     }
                 }
             </div>
@@ -211,7 +211,7 @@
 
 
     private ModellingDnDContainer Container { get; set; } = new();
-    private int sidebarInitWidth = GlobalConfig.kSidebarLeftWidth + 300;
+    private int sidebarInitWidth = GlobalConst.kSidebarLeftWidth + 300;
     private int sidebarLeftWidth;
     
     private List<ModellingService> services = new();

@@ -1,4 +1,6 @@
 ﻿@using FWO.Config.Api
+@using FWO.Api.Data
+
 @inject UserConfig userConfig
 
 <nav class="sidebar fixed sidebar-help shadow">
@@ -8,25 +10,25 @@
                 <p></p>
                 <h5>@(userConfig.GetText("workflow"))</h5>
                 <a class="nav-link" href="/help/workflow/objects/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-layers"></span> @(userConfig.GetText("objects"))
+                    <span class="@Icons.Tickets"></span> @(userConfig.GetText("objects"))
                 </a>
                 <a class="nav-link" href="/help/workflow/tasktypes/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-browser"></span> @(userConfig.GetText("task_types"))
+                    <span class="@Icons.Type"></span> @(userConfig.GetText("task_types"))
                 </a>
                 <a class="nav-link" href="/help/workflow/phases/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-loop-square"></span> @(userConfig.GetText("phases_roles"))
+                    <span class="@Icons.Phase"></span> @(userConfig.GetText("phases_roles"))
                 </a>
                 <a class="nav-link" href="/help/workflow/states/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-tag"></span> @(userConfig.GetText("state_handling"))
+                    <span class="@Icons.State"></span> @(userConfig.GetText("state_handling"))
                 </a>
                 <a class="nav-link" href="/help/workflow/actions/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-arrow-right"></span> @(userConfig.GetText("actions"))
+                    <span class="@Icons.Action"></span> @(userConfig.GetText("actions"))
                 </a>
                 <a class="nav-link" href="/help/workflow/checklist/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-check"></span> @(userConfig.GetText("checklist"))
+                    <span class="@Icons.Check"></span> @(userConfig.GetText("checklist"))
                 </a>
                 <a class="nav-link" href="/help/workflow/examples/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-eye"></span> @(userConfig.GetText("examples"))
+                    <span class="@Icons.Example"></span> @(userConfig.GetText("examples"))
                 </a>
             </ul>
         </div>

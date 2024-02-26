@@ -54,7 +54,7 @@ namespace FWO.Ui.Auth
             if (jwtReader.Validate())
             {
                 // importer is not allowed to login
-                if (jwtReader.ContainsRole(GlobalConst.kImporter))
+                if (jwtReader.ContainsRole(Roles.Importer))
                 {
                     throw new AuthenticationException("login_importer_error");
                 }

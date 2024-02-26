@@ -12,13 +12,13 @@
             <Template>
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-primary" @onclick="async () => 
-                        { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(userConfig.GetText("details"))</button>
+                        { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(AppHandler.DisplayButton("details", Icons.Search))</button>
                     @if(AppActive)
                     {
                         <button type="button" class="btn btn-sm btn-warning" @onclick="async () => 
-                            { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(userConfig.GetText("edit"))</button>
+                            { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(AppHandler.DisplayButton("edit", Icons.Edit))</button>
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
-                            { AppHandler.RequestDeleteConnection(context); AppHandlerChanged.InvokeAsync(AppHandler); }">@(userConfig.GetText("delete"))</button>
+                            { AppHandler.RequestDeleteConnection(context); AppHandlerChanged.InvokeAsync(AppHandler); }">@(AppHandler.DisplayButton("delete", Icons.Delete))</button>
                     }
                 </div>
             </Template>

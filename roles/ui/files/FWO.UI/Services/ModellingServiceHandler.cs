@@ -10,15 +10,17 @@ namespace FWO.Ui.Services
     {
         public ModellingService ActService { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
+        public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
         private ModellingService ActServiceOrig { get; set; } = new();
 
 
         public ModellingServiceHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            ModellingService service, List<ModellingService> availableServices, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            ModellingService service, List<ModellingService> availableServices, List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
             : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
             ActService = service;
             AvailableServices = availableServices;
+            AvailableSvcElems = availableSvcElems;
             ActServiceOrig = new ModellingService(ActService);
         }
         
@@ -96,6 +98,7 @@ namespace FWO.Ui.Services
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Service, ActService.Id,
                         $"New Service: {ActService.Display()}", Application.Id);
                     AvailableServices.Add(ActService);
+                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.Service, ActService.Id));
                 }
             }
             catch (Exception exception)

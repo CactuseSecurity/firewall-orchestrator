@@ -1,7 +1,7 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -34,7 +34,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kFwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => {StatefulObject.SetOptComment(optComm); await Save(StatefulObject); await Close();}">@(userConfig.GetText("save"))</button>
                 </Authorized>

@@ -12,11 +12,8 @@ namespace FWO.Config.Api
     public class GlobalConfig : Config
     {
         /// <summary>
-        /// Global string constants used e.g. as database keys etc.
+        /// Global config constants
         /// </summary>
-        public static readonly int kSidebarLeftWidth = 300;
-        public static readonly int kSidebarRightWidth = 300;
-
         public string productVersion { get; set; }
         public Language[] uiLanguages { get; set; }
         public Dictionary<string, Dictionary<string, string>> langDict { get; set; }

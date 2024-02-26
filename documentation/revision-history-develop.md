@@ -175,3 +175,7 @@ bugfix release:
 - common service handling
 - fixes credentials when installing without demo data
 - fix error with pdf creation on debian testing
+
+# 8.0.1 - 20.02.2024 DEVELOP
+- iconify modelling
+- add missing config values

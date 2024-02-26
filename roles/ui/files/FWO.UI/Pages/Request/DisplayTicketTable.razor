@@ -1,7 +1,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject UserConfig userConfig
 

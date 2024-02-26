@@ -1,5 +1,8 @@
 namespace FWO.Api.Data
 {
+    /// <summary>
+    /// Global string constants used e.g. as database keys etc.
+    /// </summary>
     public struct GlobalConst
     {
         public const string kEnglish = "English";

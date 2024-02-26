@@ -2,7 +2,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -263,7 +263,7 @@
         <div class="btn-group">
             @if (ReqHandler.EditReqTaskMode)
             {
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kFwAdmin}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -274,7 +274,7 @@
             }
             else if (ReqHandler.PlanReqTaskMode)
             {
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kPlanner}, {GlobalConst.kFwAdmin}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("change_state"))</button>
                     </Authorized>
@@ -285,7 +285,7 @@
             }
             else if (ReqHandler.ApproveReqTaskMode)
             {
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kApprover}, {GlobalConst.kFwAdmin}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(userConfig.GetText("approve"))</button>
                     </Authorized>

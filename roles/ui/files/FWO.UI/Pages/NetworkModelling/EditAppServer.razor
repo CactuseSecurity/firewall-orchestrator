@@ -1,6 +1,6 @@
 ﻿@using FWO.Config.Api
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -23,7 +23,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await AppServerHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
                 </Authorized>

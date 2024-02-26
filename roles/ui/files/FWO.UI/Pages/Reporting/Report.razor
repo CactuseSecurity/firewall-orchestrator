@@ -11,7 +11,7 @@
 @using System.Diagnostics
 
 @page "/report/generation"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}")]
 
 @inject ApiConnection Connection
 @inject UserConfig userConfig
@@ -137,7 +137,7 @@
         <ReportExport ReportToExport="currentReport"></ReportExport>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(userConfig.GetText("save_as_template"))</button>
         @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
-            && (authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kRequester) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor)))
+            && (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)))
         {
             <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
         }
@@ -275,8 +275,8 @@
 
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
-    private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
-    private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
+    private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
+    private int sidebarRightWidth = GlobalConst.kSidebarRightWidth;
 
     private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
 
@@ -293,8 +293,8 @@
 
     private bool collapseDevices = false;
 
-    private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole(GlobalConst.kReporterViewAll) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin)
-        || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kFwAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor);
+    private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
 
     protected override async Task OnInitializedAsync()
     {

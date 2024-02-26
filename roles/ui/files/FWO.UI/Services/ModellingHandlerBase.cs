@@ -2,6 +2,7 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using Microsoft.AspNetCore.Components;
 
 
 namespace FWO.Ui.Services
@@ -31,6 +32,17 @@ namespace FWO.Ui.Services
             IsOwner = isOwner;
         }
         
+        public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
+        {
+            string tooltip = userConfig.ModIconify ? $"data-toggle=\"tooltip\" title=\"{@userConfig.PureLine(text)}\"" : "";
+            string iconToDisplay = $"<span class=\"{icon}\" {@tooltip}/>";
+            string objIconToDisplay = $"<span class=\"{objIcon}\"/>";
+            
+            return (MarkupString)(userConfig.ModIconify ? 
+                iconToDisplay + (iconText != "" ? " " + userConfig.GetText(iconText) : "") + (objIcon != "" ? " " + objIconToDisplay : "")
+                : userConfig.GetText(text));
+        }
+
         protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text, int? applicationId)
         {
             try

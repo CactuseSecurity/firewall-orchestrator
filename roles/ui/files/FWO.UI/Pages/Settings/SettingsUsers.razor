@@ -9,7 +9,7 @@
 @using RestSharp
 
 @page "/settings/users"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -25,7 +25,7 @@
 
 <div class="btn-group m-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5261"))">
     <button type="button" class="btn btn-sm btn-success" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
-    <AuthorizeView Roles="@GlobalConst.kAdmin">
+    <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-info" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
         </Authorized>
@@ -209,7 +209,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -242,7 +242,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => ResetPassword()">@(userConfig.GetText("set"))</button>
                 </Authorized>
@@ -368,7 +368,7 @@
         await GetRolesFromInternalLdap();
         SynchronizeUsersToRoles();
 
-        availableRoles = roles.Where(x => (x.Name != GlobalConst.kAnonymous && x.Name != GlobalConst.kMiddlewareServer)).OrderBy(x => x.Name).ToList();
+        availableRoles = roles.Where(x => (x.Name != Roles.Anonymous && x.Name != Roles.MiddlewareServer)).OrderBy(x => x.Name).ToList();
     }
 
     private void SynchronizeUsersToGroups()
@@ -682,7 +682,7 @@
         if(selectedRole != null)
         {
             user.Roles.Add(selectedRole.Name);
-            if (selectedRole.Name == GlobalConst.kAuditor)
+            if (selectedRole.Name == Roles.Auditor)
             {
                 user.PasswordMustBeChanged = false;
             }

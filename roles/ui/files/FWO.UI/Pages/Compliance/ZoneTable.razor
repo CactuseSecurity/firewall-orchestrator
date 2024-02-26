@@ -34,7 +34,7 @@
 			</ExpandableList>
 		</Template>
 	</Column>
-	<AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")" Context="authContext">
+	<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")" Context="authContext">
 		<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("actions"))" Context="networkZone">
 			<Template>
 				<div class="btn-group">

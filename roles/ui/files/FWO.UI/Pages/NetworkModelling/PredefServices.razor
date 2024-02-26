@@ -1,7 +1,7 @@
 ﻿@using FWO.Config.Api
 @using FWO.Ui.Display
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -18,7 +18,7 @@
                         <Template>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(userConfig.GetText("edit"))</button>
-                                <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
+                                <AuthorizeView Roles="@Roles.Admin" Context="ctx">
                                     <Authorized>
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(userConfig.GetText("delete"))</button>
                                     </Authorized>
@@ -164,7 +164,7 @@
     {
         try
         {
-            apiConnection.SetRole(GlobalConst.kAdmin);
+            apiConnection.SetRole(Roles.Admin);
             if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
             {
                 await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,

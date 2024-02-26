@@ -2,6 +2,7 @@
 @using FWO.Config.Api.Data
 @using FWO.Ui.Services
 @using FWO.Api.Client
+@using FWO.Api.Data
 
 @inherits LayoutComponentBase
 @layout MainLayout
@@ -17,59 +18,59 @@
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("requests"))</h5>
                 </li>
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}, {GlobalConst.kRequester}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}")">
                     <li class="nav-item px-2">
                         <NavLink class="nav-link" href="request/ticketsoverview">
-                            <span class="oi oi-layers"></span> @(userConfig.GetText("tickets"))
+                            <span class="@Icons.Tickets"></span> @(userConfig.GetText("tickets"))
                         </NavLink>
                     </li>
                 </AuthorizeView>
                 @if(stateMatrix.PhaseActive[WorkflowPhases.request])
                 {
-                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kAuditor}")">
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/tickets">
-                                <span class="oi oi-comment-square"></span> @(userConfig.GetText("create_ticket"))
+                                <span class="@Icons.Workflow"></span> @(userConfig.GetText("create_ticket"))
                             </NavLink>
                         </li>
                     </AuthorizeView>
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.approval])
                 {
-                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kApprover}, {GlobalConst.kAuditor}")">
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/approvals">
-                                <span class="oi oi-check"></span> @(userConfig.GetText("approvals"))
+                                <span class="@Icons.Approval"></span> @(userConfig.GetText("approvals"))
                             </NavLink>
                         </li>
                     </AuthorizeView>
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.planning])
                 {
-                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kPlanner}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.Auditor}, {Roles.FwAdmin}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/plannings">
-                                <span class="oi oi-project"></span> @(userConfig.GetText("plannings"))
+                                <span class="@Icons.Planning"></span> @(userConfig.GetText("plannings"))
                             </NavLink>
                         </li>
                     </AuthorizeView>
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.implementation])
                 {
-                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kImplementer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Auditor}, {Roles.FwAdmin}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/implementations">
-                                <span class="oi oi-task"></span> @(userConfig.GetText("implementations"))
+                                <span class="@Icons.Implementation"></span> @(userConfig.GetText("implementations"))
                             </NavLink>
                         </li>
                     </AuthorizeView>
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.review])
                 {
-                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}")">
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Reviewer}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/reviews">
-                                <span class="oi oi-check"></span> @(userConfig.GetText("reviews"))
+                                <span class="@Icons.Review"></span> @(userConfig.GetText("reviews"))
                             </NavLink>
                         </li>
                     </AuthorizeView>

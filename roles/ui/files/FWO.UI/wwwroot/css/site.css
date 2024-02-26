@@ -261,6 +261,7 @@ h5 {
     /* color: black; */
     color-scheme: dark;
     background-image: linear-gradient(#e4e8ec, #9b9797);
+    overflow: auto;
 }
 
 .sidebar-main {

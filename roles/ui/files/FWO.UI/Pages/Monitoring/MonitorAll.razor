@@ -5,7 +5,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/monitor_all"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
 
 <h3>@(userConfig.GetText("monitoring"))</h3>
 

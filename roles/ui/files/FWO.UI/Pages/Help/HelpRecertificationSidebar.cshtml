@@ -1,4 +1,6 @@
 ﻿@using FWO.Config.Api
+@using FWO.Api.Data
+
 @inject UserConfig userConfig
 
 <nav class="sidebar fixed sidebar-help shadow">
@@ -8,16 +10,16 @@
                 <p></p>
                 <h5>@(userConfig.GetText("recertification"))</h5>
                 <a class="nav-link" href="/help/recertification/recert_require/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-eye"></span> @(userConfig.GetText("requirements"))
+                    <span class="@Icons.Requirement"></span> @(userConfig.GetText("requirements"))
                 </a>
                 <a class="nav-link" href="/help/recertification/workflow/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("workflow"))
+                    <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
                 </a>
                 <a class="nav-link" href="/help/recertification/recert_logic/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-cog"></span> @(userConfig.GetText("recert_logic"))
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("recert_logic"))
                 </a>
                 <a class="nav-link" href="/help/recertification/owner_import/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-people"></span> @(userConfig.GetText("owner_import"))
+                    <span class="@Icons.UserGroup"></span> @(userConfig.GetText("owner_import"))
                 </a>
             </ul>
         </div>

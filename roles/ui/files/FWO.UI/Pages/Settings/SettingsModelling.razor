@@ -5,14 +5,14 @@
 @using FWO.Ui.Pages.NetworkModelling
 
 @page "/settings/modelling"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
 <div class="input-group">
-    <h3>@(userConfig.GetText("network_modelling"))</h3>
+    <h3>@(userConfig.GetText("modelling_settings"))</h3>
     <HelpLink Page="settings/modelling"/>
 </div>
 @(userConfig.GetText("U5322"))
@@ -40,8 +40,14 @@
         </div>
         <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5605"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines")):</label>
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines"))*:</label>
                 <input type="number" min="0" class="col-sm-3" @bind="configData!.OverviewDisplayLines" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("modIconify"))*:</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" class="w-100" @bind="configData!.ModIconify">
+                </div>
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("reducedProtocolSet")):</label>
@@ -58,23 +64,29 @@
                     <input type="checkbox" @bind="namingConvention.NetworkAreaRequired">
                 </div>
             </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5609"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("networkAreaPattern"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.NetworkAreaPattern" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5610"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("appRolePattern"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.AppRolePattern" />
+            </div>
+        </div>
+        <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5607"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("fixedPartLength"):</label>
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
              </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" @bind="namingConvention.UseAppPart">
+                </div>
+            </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5608"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("freePartLength"):</label>
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FreePartLength" />
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5609"))">
-            <div class="row col-sm-6">
-                <label class="col-form-label col-sm-4">@userConfig.GetText("networkAreaPattern"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.NetworkAreaPattern" />
-            </div>
-            <div class="row col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5610"))">
-                <label class="col-form-label col-sm-4">@userConfig.GetText("appRolePattern"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.AppRolePattern" />
             </div>
         </div>
         <hr />
@@ -117,7 +129,7 @@
         </div>
     </form>
     <hr />
-    <AuthorizeView Roles="@GlobalConst.kAdmin">
+    <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
@@ -126,7 +138,7 @@
         </NotAuthorized> 
     </AuthorizeView>
     <br><br>
-    @* <p>@(userConfig.GetText("U5303"))</p> *@
+    <p>@(userConfig.GetText("U5303"))</p>
 }
 else
 {
@@ -199,7 +211,7 @@ else
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 PathsToDelete = new();
                 PathsToAdd = new();
-                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
             else
             {
@@ -208,7 +220,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
         }
     }
 }

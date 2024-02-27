@@ -141,8 +141,7 @@ namespace FWO.Ui.Auth
         public async Task<Tenant> getTenantFromJwt(string jwtString, ApiConnection apiConnection)
         {
             JwtReader jwtReader = new JwtReader(jwtString);
-            Tenant tenant = new Tenant();
-            int tenantId;
+            Tenant tenant = new();
 
             if (jwtReader.Validate())
             {
@@ -157,9 +156,9 @@ namespace FWO.Ui.Auth
                 // Set user information
                 user = new ClaimsPrincipal(identity);
 
-                if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
+                if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out int tenantId))
                 {
-                    tenant = await Tenant.getSingleTenant(apiConnection, tenantId);
+                    tenant = await Tenant.getSingleTenant(apiConnection, tenantId) ?? new();
                 }
                 // else
                 // {

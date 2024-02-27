@@ -45,26 +45,9 @@
             </div>
         </div>
     }
-    @if (selectedReportType != ReportType.Statistics && tenantList.Count > 1)
+    @if (selectedReportType != ReportType.Statistics)
     {
-        <div class="p-3">
-            <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
-            <Dropdown
-                @ref="tenantSelector"
-                SelectedElementChanged="TenantViewChanged"
-                ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
-                Elements="tenantList">
-                <ElementTemplate Context="tenant">
-                    @tenant.Name
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    }
-    else
-    {
-        <div class="p-3">
-            <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant.Name</h5>
-        </div>
+        <ReportTenantSelection SelectedTenant="selectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed"/>
     }
 
     @if (selectedReportType.IsRuleRelatedReport())
@@ -162,7 +145,7 @@
 @* ==== RIGHT SIDEBAR ==== *@
 @if (selectedReportType.IsRuleRelatedReport())
 {
-    <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport" AllTabVisible="(tenantFilteringAllowed && selectedTenantView == null)" />
+    <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport" AllTabVisible="(tenantFilteringAllowed && selectedTenant == null)" />
     <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 }
 
@@ -191,15 +174,12 @@
     private Management? globalStats = null;
 
     private ReportType selectedReportType = ReportType.Rules;
-    private Tenant? selectedTenantView = null;
-    private List<Tenant> tenantList = new List<Tenant>();
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
     private List<string> unsupportedList = new List<string>();
     private DeviceFilter reducedDeviceFilter = new DeviceFilter();
-
-    private Dropdown<Tenant> tenantSelector;
+    private Tenant? selectedTenant = null;
 
     private TimeFilter actTimeFilter = new();
     private TimeFilter savedTimeFilter = new();
@@ -250,11 +230,6 @@
             displayedTimeSelection = userConfig.GetText("now");
             unusedDays = userConfig.UnusedTolerance;
             deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-            if (tenantFilteringAllowed)
-            {
-                tenantList = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
-                tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
-            }
 
             if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
             {
@@ -270,8 +245,7 @@
 
     private void ReportTypeChanged(ReportType newReportType)
     {
-        // clear report data when switching reportType
-        // as we would be missing src/dst/svc information in some cases           
+        // clear report data when switching reportType as we would be missing src/dst/svc information in some cases           
         managementsReport = new Management[] {};
         globalStats = null;
         selectedReportType = newReportType;
@@ -296,11 +270,6 @@
 
     private async Task SetDeviceVisibility(List<ManagementSelect> mgms, Tenant tenantView)
     {
-        // TODO: not used yet
-        // List<ManagementSelect> visibleDevices = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-
-        // List<TenantGateway> tenantGatewayList = new List<TenantGateway>(selectedTenantView.TenantVisibleGateways);
-        // List<TenantViewGateway> tenantGatewayList = new List<TenantViewGateway>();
         if ((userConfig.User.Tenant.Id==null || userConfig.User.Tenant.Id==1) && tenantView.Id!=1)
         {
             // filtering for tenant simulation only done by a tenant0 user
@@ -336,10 +305,10 @@
             bool mgmVisible = false;
             foreach (DeviceSelect gw in mgm.Devices)
             {
-                // gw.Visible = tenantGatewayList.Exists(d => d.Id == gw.Id);
                 gw.Visible = tenantView.VisibleGatewayIds.Contains(gw.Id);
                 if (gw.Visible)
-                {   // one gateway is visible, so the management must be visible
+                {   
+                    // one gateway is visible, so the management must be visible
                     mgmVisible = true;
                 }
                 else
@@ -356,21 +325,19 @@
         }    
     }
 
-    /// sets deviceFilter.Managements and selectedTenantView according to either
+    /// sets deviceFilter.Managements and selectedTenant according to either
     /// a) selected tenant for tenant simulation
     /// b) tenant of the user logged in (if belonging to tenant <> tenant0)
     private async Task TenantViewChanged(Tenant newTenantView)
     {
-        // clear report data when switching Tenant
-        // as we would be missing src/dst/svc information in some cases           
+        selectedTenant = newTenantView;
+
+        // clear report data when switching Tenant as we would be missing src/dst/svc information in some cases           
         managementsReport = new Management[] {};
         globalStats = null;
 
-        // adjust device filter to newly selected tenant view
-        selectedTenantView = newTenantView;
-
         // we must modify the device visibility in the device filter
-        if (selectedTenantView==null || selectedTenantView.Id == 1)
+        if (selectedTenant==null || selectedTenant.Id == 1)
         {
            // tenant0 or no tenant selected --> all devices are visible            
             MarkAllDevicesVisible(deviceFilter.Managements);
@@ -378,10 +345,10 @@
         else
         {
             // not all devices are visible
-            await SetDeviceVisibility(deviceFilter.Managements, selectedTenantView);
+            await SetDeviceVisibility(deviceFilter.Managements, selectedTenant);
         }
         selectAll = !deviceFilter.isAnyDeviceFilterSet();
-        StateHasChanged(); // redisplay LSB
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SyncFiltersFromTemplate(ReportTemplate template)
@@ -389,17 +356,12 @@
         filterInput = template.Filter;
         selectedReportType = (ReportType)template.ReportParams.ReportType;
 
+        Tenant? tenantFromTemplate,
         if (template.ReportParams.TenantFilter.IsActive)
         {
-            Tenant tenantFromTemplate = await Tenant.getSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
-            await tenantSelector.SelectElement(tenantFromTemplate);
-            await TenantViewChanged(tenantFromTemplate);
+            tenantFromTemplate = await Tenant.getSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
         }
-        else
-        {
-            await tenantSelector.SelectElement(null);
-            await TenantViewChanged(null);
-        }
+        await TenantViewChanged(tenantFromTemplate);
 
         if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
         {
@@ -636,12 +598,12 @@
         if (selectedReportType != ReportType.Statistics)
         {
             // also make sure the report a user belonging to a tenant <> 1 sees, gets the additional filters in DynGraphqlQuery.cs
-            if (selectedTenantView==null && userConfig.User.Tenant.Id>1)
+            if (selectedTenant==null && userConfig.User.Tenant.Id>1)
             {
-                selectedTenantView = userConfig.User.Tenant;
+                selectedTenant = userConfig.User.Tenant;
                 // TODO: when admin selects a tenant filter, add the corresponding device filter to make sure only those devices are reported that the tenant is allowed to see
             }
-            reportParams.TenantFilter = new TenantFilter(selectedTenantView);
+            reportParams.TenantFilter = new TenantFilter(selectedTenant);
         }
         reportParams.RecertFilter = new RecertFilter(actRecertFilter);
         reportParams.UnusedFilter = new UnusedFilter() 

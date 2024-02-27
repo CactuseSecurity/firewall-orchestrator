@@ -160,11 +160,11 @@ namespace FWO.Api.Data
             return tenantUpdateParams;
         }
 
-        public static async Task<Tenant> getSingleTenant(ApiConnection conn, int tenantId)
+        public static async Task<Tenant?> getSingleTenant(ApiConnection conn, int tenantId)
         {
             Tenant[] tenants = Array.Empty<Tenant>(); 
             tenants = await conn.SendQueryAsync<Tenant[]>(AuthQueries.getTenants, new { tenant_id = tenantId });
-            if (tenants.Length>0)
+            if (tenants.Length > 0)
             {
                 return tenants[0];
             }

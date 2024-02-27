@@ -104,13 +104,16 @@
                     <label class="col-sm-8">@(DisplayTime())</label>
                 </div>
             }
-            <div class="form-group row mt-2">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
-                <div class="form-group row col-sm-9">
-                    <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
-                    <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
+            @if(reportTypeInEdit.IsRuleRelatedReport())
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
+                    <div class="form-group row col-sm-9">
+                        <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
+                        <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
+                    </div>
                 </div>
-            </div>
+            }
             <div class="form-group row mt-2">
                 <label for="saveTemplateFilterLineTextarea" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("filter")):</label>
                 <textarea id="saveTemplateFilterLineTextarea" class="col-sm-8" @bind="reportTemplateInEdit.Filter" />
@@ -157,6 +160,15 @@
     private Collapse collapseControl = new Collapse();
     private DeviceFilter DeviceFilterOrig = new();
 
+    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -169,6 +181,8 @@
         try
         {
             reportTemplates = (await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates, new { userId = userConfig.User.DbId })).ToList();
+            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsRuleRelatedReport() || 
+                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport())).ToList();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)

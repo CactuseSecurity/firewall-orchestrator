@@ -18,7 +18,7 @@
 
     <div class="navbar-collapse me-auto nav-main-left @NavMenuCollapseClass">
         <ul class="navbar-nav me-auto">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
                 <li class="nav-item px-2">
                     <a href="/report/generation" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
                         <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))

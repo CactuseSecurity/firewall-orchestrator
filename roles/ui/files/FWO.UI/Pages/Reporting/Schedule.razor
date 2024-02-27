@@ -7,9 +7,9 @@
 @inject UserConfig userConfig
 
 @page "/report/schedule"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
-<ReportTabset></ReportTabset>
+<ReportTabset/>
 
 <button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
 
@@ -168,7 +168,7 @@
 
 @code
 {
-    private GraphQlApiSubscription<ScheduledReport[]>? scheduledReportsSubscription;
+    private GraphQlApiSubscription<List<ScheduledReport>>? scheduledReportsSubscription;
     private List<ScheduledReport> scheduledReports = new List<ScheduledReport>();
     private ScheduledReport scheduledReportInEdit = new ScheduledReport();
     private DateTime actDate = DateTime.Today;
@@ -179,23 +179,35 @@
 
     private int uiUserDbId;
 
-    ReportTemplate[] reportTemplates = new ReportTemplate[0];
+    List<ReportTemplate> reportTemplates = new ();
 
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     private AuthenticationState? authenticationState;
+    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             // Initial fetch to speed up loading before subscription is established
-            scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
-            scheduledReportsSubscription = apiConnection.GetSubscription<ScheduledReport[]>(HandleSubscriptionError, OnReportScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
-            reportTemplates = await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates);
+            scheduledReports = (await apiConnection.SendQueryAsync<List<ScheduledReport>>(ReportQueries.getReportSchedules));
+            scheduledReportsSubscription = apiConnection.GetSubscription<List<ScheduledReport>>(HandleSubscriptionError, OnReportScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
+            reportTemplates = await apiConnection.SendQueryAsync<List<ReportTemplate>>(ReportQueries.getReportTemplates);
+            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsRuleRelatedReport() || 
+                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport())).ToList();
             uiUserDbId = userConfig.User.DbId;
             authenticationState = await authenticationStateTask!;
         }
@@ -210,10 +222,10 @@
         await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("schedule_tile"), userConfig.GetText("schedule_upd_err_msg"), true));
     }
 
-    private async void OnReportScheduleUpdate(ScheduledReport[] newScheduledReports)
+    private async void OnReportScheduleUpdate(List<ScheduledReport> newScheduledReports)
     {
         Log.WriteDebug("Report Scheduling", "Received report schedule update.");
-        scheduledReports = newScheduledReports.ToList();
+        scheduledReports = newScheduledReports;
         await InvokeAsync(StateHasChanged);
     }
 

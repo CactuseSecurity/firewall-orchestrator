@@ -7,9 +7,9 @@
 @inject UserConfig userConfig
 
 @page "/report/archive"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
-<ReportTabset></ReportTabset>
+<ReportTabset/>
 
 <div class="vheight75">
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportFile" Items="archivedReports" PageSize="0">

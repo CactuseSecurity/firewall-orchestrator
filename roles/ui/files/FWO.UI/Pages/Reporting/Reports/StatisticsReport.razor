@@ -1,0 +1,43 @@
+﻿@using FWO.Ui.Display
+@using FWO.Config.Api
+@using FWO.Report.Filter
+
+@inject UserConfig userConfig
+
+@if (GlobalStats != null)
+{
+    <h5>@(userConfig.GetText("glob_no_obj"))</h5>
+    <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="Management" Items="new Management[] {GlobalStats}">
+        <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+        <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+        <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+        <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+    </Table>
+}
+@foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+{
+    <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+        <h6>@(userConfig.GetText("total_no_obj_mgt"))</h6>
+        <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="Management" Items="new Management[] {management}" PageSize="0">
+            <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+            <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+            <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+            <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+        </Table>
+
+        <h6>@(userConfig.GetText("no_rules_gtw"))</h6>
+        <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="Device" Items="management.Devices" PageSize="0">
+            <Column TableItem="Device" Title="@(userConfig.GetText("gateway"))" Field="@(Device => Device.Name)" />
+            <Column TableItem="Device" Title="@(userConfig.GetText("no_of_rules"))" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
+        </Table>
+    </Collapse>
+}
+
+@code
+{
+    [Parameter]
+    public Management[] Managements { get; set; } = new Management[]{};
+
+    [Parameter]
+    public Management? GlobalStats { get; set; }
+}

@@ -105,6 +105,8 @@ INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (tech
 INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
 INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Report');
 INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
+INSERT INTO txt VALUES ('Connections', 	        'German', 	'Verbindungs-Report');
+INSERT INTO txt VALUES ('Connections', 	        'English', 	'Connections Report');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');

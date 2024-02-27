@@ -3,15 +3,12 @@
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
 @using FWO.Api.Data
-@using System
-@using System.Threading
-@using System.Text.RegularExpressions
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
 
 @page "/report/generation"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -70,7 +67,10 @@
         </div>
     }
 
-    <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
+    @if (selectedReportType.IsRuleRelatedReport())
+    {
+        <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
+    }
 </Sidebar>
 
 @* ==== Middle div ==== *@
@@ -134,34 +134,7 @@
                         break;
 
                     case ReportType.Statistics:
-                        @if (globalStats != null)
-                        {
-                            <h5>@(userConfig.GetText("glob_no_obj"))</h5>
-                            <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
-                                <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
-                            </Table>
-                        }
-                        @foreach (Management management in managementsReport.Where(mgt => !mgt.Ignore))
-                        {
-                            <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                                <h6>@(userConfig.GetText("total_no_obj_mgt"))</h6>
-                                <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="Management" Items="new Management[] {management}" PageSize="0">
-                                    <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                    <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                    <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                    <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
-                                </Table>
-
-                                <h6>@(userConfig.GetText("no_rules_gtw"))</h6>
-                                <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="Device" Items="management.Devices" PageSize="0">
-                                    <Column TableItem="Device" Title="@(userConfig.GetText("gateway"))" Field="@(Device => Device.Name)" />
-                                    <Column TableItem="Device" Title="@(userConfig.GetText("no_of_rules"))" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
-                                </Table>
-                            </Collapse>
-                        }
+                        <StatisticsReport Managements="managementsReport" GlobalStats="globalStats"/>
                         break;
 
                     default:
@@ -187,12 +160,16 @@
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@
-<RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport" AllTabVisible="(tenantFilteringAllowed && selectedTenantView == null)" />
-<AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
+@if (selectedReportType.IsRuleRelatedReport())
+{
+    <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport" AllTabVisible="(tenantFilteringAllowed && selectedTenantView == null)" />
+    <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
+}
 
 @* ==== POPUPS ==== *@
 <ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="selectedReportType" @bind-ActTimeFilter="actTimeFilter" @bind-SavedTimeFilter="savedTimeFilter" DisplayTime="DisplaySelectedTime"/>
 <ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/>
+
 
 @code
 {
@@ -210,6 +187,7 @@
     private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
     private Management[] managementsReport = new Management[0];
+    List<int> relevantManagementIds = new();
     private Management? globalStats = null;
 
     private ReportType selectedReportType = ReportType.Rules;
@@ -223,8 +201,8 @@
 
     private Dropdown<Tenant> tenantSelector;
 
-    private TimeFilter actTimeFilter = new TimeFilter();
-    private TimeFilter savedTimeFilter = new TimeFilter();
+    private TimeFilter actTimeFilter = new();
+    private TimeFilter savedTimeFilter = new();
     private string displayedTimeSelection = "";
     private bool ShowSelectTimeDialog = false;
     private RecertFilter actRecertFilter = new();
@@ -254,10 +232,21 @@
     private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
         || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
 
+    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            selectedReportType = showRuleRelatedReports ? ReportType.Rules : ReportType.Connections;
             displayedTimeSelection = userConfig.GetText("now");
             unusedDays = userConfig.UnusedTolerance;
             deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
@@ -499,7 +488,7 @@
         Management[] managementsReportOrig = managementsReport;
         try
         {
-            if (!deviceFilter.isAnyDeviceFilterSet())  // display warning
+            if (selectedReportType.IsRuleRelatedReport() && !deviceFilter.isAnyDeviceFilterSet())  // display warning
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
                 return;
@@ -509,33 +498,16 @@
             await PrepareReportGeneration();
 
             // save selected managements before resetting
-            List<int> relevantManagements = deviceFilter.getSelectedManagements();
+            relevantManagementIds = deviceFilter.getSelectedManagements();
 
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
 
             try
             {
-                if(currentReport!.ReportType == ReportType.Statistics)
+                if(currentReport.ReportType == ReportType.Statistics)
                 {
-                    globalStats = new Management();
-                    await currentReport.Generate(0, apiConnection,
-                        managementsReportIntermediate =>
-                        {
-                            managementsReport = managementsReportIntermediate;
-                            setRelevantManagements(relevantManagements);
-                            return InvokeAsync(() =>
-                            {
-                                foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
-                                {
-                                    globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                                    globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                                    globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                                    globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                                }
-                                StateHasChanged();
-                            });
-                        }, token);
+                    await GenerateStatisticsReport(token);
                 }
                 else
                 {
@@ -543,7 +515,7 @@
                     managementsReportIntermediate =>
                     {
                         managementsReport = managementsReportIntermediate;
-                        setRelevantManagements(relevantManagements);
+                        setRelevantManagements();
                         return InvokeAsync(StateHasChanged);
                     }, token);
                     if (currentReport.ReportType == ReportType.Recertification)
@@ -605,6 +577,28 @@
         currentReport = ReportBase.ConstructReport(ConstructReportTemplate(), userConfig);
     }
 
+    private async Task GenerateStatisticsReport(CancellationToken token)
+    {
+        globalStats = new Management();
+        await currentReport.Generate(0, apiConnection,
+            managementsReportIntermediate =>
+            {
+                managementsReport = managementsReportIntermediate;
+                setRelevantManagements();
+                return InvokeAsync(() =>
+                {
+                    foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
+                    {
+                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                    }
+                    StateHasChanged();
+                });
+            }, token);
+    }
+
     private bool PrepareMetadata(Management[] Managements)
     {
         bool rulesFound = false;
@@ -627,11 +621,11 @@
         DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
-    private void setRelevantManagements(List<int> relevantManagements)
+    private void setRelevantManagements()
     {
         foreach (Management mgm in managementsReport)
         {
-            mgm.Ignore = !relevantManagements.Contains(mgm.Id);
+            mgm.Ignore = !relevantManagementIds.Contains(mgm.Id);
         }
     }
 
@@ -646,10 +640,8 @@
             {
                 selectedTenantView = userConfig.User.Tenant;
                 // TODO: when admin selects a tenant filter, add the corresponding device filter to make sure only those devices are reported that the tenant is allowed to see
-
             }
             reportParams.TenantFilter = new TenantFilter(selectedTenantView);
-
         }
         reportParams.RecertFilter = new RecertFilter(actRecertFilter);
         reportParams.UnusedFilter = new UnusedFilter() 
@@ -657,7 +649,6 @@
             UnusedForDays = unusedDays, 
             CreationTolerance = userConfig.CreationTolerance
         };
-
         return new ReportTemplate(filterInput, reportParams);
     }
 
@@ -719,14 +710,18 @@
             ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
             ReportType.Recertification,
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
-            ReportType.Statistics
+            ReportType.Statistics,
+            ReportType.Connections
         };
         foreach (ReportType reportType in orderedReportTypeList)
         {
             ReportType? foundType = ListIn.Find(x => x == reportType);
             if (foundType != null)
             {
-                ListOut.Add(reportType);
+                if(showRuleRelatedReports && reportType.IsRuleRelatedReport() || showModellingReports && reportType.IsModellingReport())
+                {
+                    ListOut.Add(reportType);
+                }
                 ListIn.Remove(reportType);
             }
         }

@@ -88,5 +88,8 @@ def update_config_with_nsxdcfw_api_call(api_base_url, config, api_path, credenti
     # else:
     #     returned_new_data = False
     if returned_new_data:
+        if 'results' in result:
+            config.update({obj_type: result['results']})
+        else:
         # full_result.extend(result)           
-        config.update({obj_type: result})
+            config.update({obj_type: result})

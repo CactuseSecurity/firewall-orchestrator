@@ -4,16 +4,16 @@ from fwo_const import list_delimiter
 import ipaddress
 
 
-def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
+def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None, domain="default"):
     logger = getFwoLogger()
     nw_objects = []
     nw_tagged_groups = {}
-    for obj_orig in full_config["/Objects/Addresses"]:
-        nw_objects.append(parse_object(obj_orig, import_id, config2import, nw_objects))
-        if 'tag' in obj_orig and 'member' in obj_orig['tag']:
-            logger.info("found simple network object with tags: " + obj_orig['@name'])
-            for t in obj_orig['tag']['member']:
-                collect_tag_information(nw_tagged_groups, "#"+t, obj_orig['@name'])
+    # for obj_orig in full_config["/Objects/Addresses"]:
+    #     nw_objects.append(parse_object(obj_orig, import_id, config2import, nw_objects))
+    #     if 'tag' in obj_orig and 'member' in obj_orig['tag']:
+    #         logger.info("found simple network object with tags: " + obj_orig['@name'])
+    #         for t in obj_orig['tag']['member']:
+    #             collect_tag_information(nw_tagged_groups, "#"+t, obj_orig['@name'])
 
     for tag in nw_tagged_groups:
         logger.info("handling nw_tagged_group: " + tag + " with members: " + list_delimiter.join(nw_tagged_groups[tag]))
@@ -28,22 +28,22 @@ def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=
         obj['obj_member_refs'] = list_delimiter.join(members)
         nw_objects.append(obj)
 
-    for obj_grp_orig in full_config["/Objects/AddressGroups"]:
-        logger.info("found network group: " + obj_grp_orig['@name'])
-        obj_grp = extract_base_object_infos(obj_grp_orig, import_id, config2import, nw_objects)
-        obj_grp["obj_typ"] = "group"
-        if 'static' in obj_grp_orig and 'filter' in obj_grp_orig['static']:
-            obj_grp["obj_member_refs"], obj_grp["obj_member_names"] = parse_static_obj_group(obj_grp_orig, import_id, nw_objects, config2import)
-        if 'dynamic' in obj_grp_orig and 'filter' in obj_grp_orig['dynamic']:
-            members = parse_dynamic_object_group(obj_grp_orig, nw_tagged_groups)
-            obj_grp["obj_member_refs"] = list_delimiter.join(members)
-            obj_grp["obj_member_names"] = list_delimiter.join(members)
-        nw_objects.append(obj_grp)
-        if 'tag' in obj_grp_orig and 'member' in obj_grp_orig['tag']:
-            logger.info("found network group with tags: " + obj_grp_orig['@name'])
-            for t in obj_grp_orig['tag']['member']:
-                logger.info("    found tag " + t)
-                collect_tag_information(nw_tagged_groups, "#"+t, obj_grp_orig['@name'])
+        for obj_grp_orig in full_config["/infra/domains/{domain}/groups".format(domain=domain)]:
+            logger.info("found network group: " + obj_grp_orig['@name'])
+            obj_grp = extract_base_object_infos(obj_grp_orig, import_id, config2import, nw_objects)
+            obj_grp["obj_typ"] = "group"
+            if 'static' in obj_grp_orig and 'filter' in obj_grp_orig['static']:
+                obj_grp["obj_member_refs"], obj_grp["obj_member_names"] = parse_static_obj_group(obj_grp_orig, import_id, nw_objects, config2import)
+            if 'dynamic' in obj_grp_orig and 'filter' in obj_grp_orig['dynamic']:
+                members = parse_dynamic_object_group(obj_grp_orig, nw_tagged_groups)
+                obj_grp["obj_member_refs"] = list_delimiter.join(members)
+                obj_grp["obj_member_names"] = list_delimiter.join(members)
+            nw_objects.append(obj_grp)
+            if 'tag' in obj_grp_orig and 'member' in obj_grp_orig['tag']:
+                logger.info("found network group with tags: " + obj_grp_orig['@name'])
+                for t in obj_grp_orig['tag']['member']:
+                    logger.info("    found tag " + t)
+                    collect_tag_information(nw_tagged_groups, "#"+t, obj_grp_orig['@name'])
     
     config2import['network_objects'] = nw_objects
 

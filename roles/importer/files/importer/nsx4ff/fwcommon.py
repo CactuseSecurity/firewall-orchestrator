@@ -3,10 +3,10 @@ import base64
 from common import importer_base_dir
 sys.path.append(importer_base_dir + "/nsx4ff")
 from nsx_service import normalize_svcobjects
-from nsx_application import normalize_application_objects
+# from nsx_application import normalize_application_objects
 from nsx_rule import normalize_access_rules
 from nsx_network import normalize_nwobjects
-from nsx_zone import normalize_zones
+# from nsx_zone import normalize_zones
 from nsx_getter import update_config_with_nsxdcfw_api_call
 from fwo_log import getFwoLogger
 from nsx_base import api_version_str
@@ -29,15 +29,18 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         apihost = mgm_details["hostname"]
         domain = mgm_details["configPath"]
 
-        vsys_objects   = ["/Network/Zones", "/Objects/Addresses", "/Objects/Services", "/Objects/AddressGroups", "/Objects/ServiceGroups", "/Objects/Tags"]
-        predef_objects = ["/Objects/Applications"]
+        vsys_base_objects   = ["/infra/services"]
+        vsys_object_groups   = ["/infra/domains/{domain}/groups".format(domain=domain)]
+        vsys_objects   = vsys_object_groups + vsys_base_objects
+
+        #predef_objects = ["/Objects/Applications"]
         rulebase_names = ["security-policies"] # , "/Policies/NATRules"]
 
         for obj_path in vsys_objects:
             full_config[obj_path] = []
 
-        for obj_path in predef_objects:
-            full_config[obj_path] = []
+        # for obj_path in predef_objects:
+        #     full_config[obj_path] = []
         
         credentials = base64.b64encode((apiuser + ":" + apipwd).encode())
 
@@ -47,8 +50,10 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         # vsys_name = "vsys1" # TODO - automate this hard-coded name
         # location = "vsys"       # alternative: panorama-pushed
 
-        # for obj_path in vsys_objects:
-        #     update_config_with_nsxdcfw_api_call(key, base_url, full_config, obj_path + "?location={location}&vsys={vsys_name}".format(location=location, vsys_name=vsys_name), obj_type=obj_path)
+
+        for obj_path in vsys_objects:
+            base_url =  "https://{apihost}/policy/api/v1{path}".format(apihost=apihost, path=obj_path)
+            update_config_with_nsxdcfw_api_call(base_url, full_config, obj_path, obj_type=obj_path, credentials=credentials)
 
         # for obj_path in predef_objects:
         #     update_config_with_nsxdcfw_api_call(key, base_url, full_config, obj_path + "?location={location}".format(location="predefined"), obj_type=obj_path)
@@ -72,9 +77,9 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     ##################
     # now we normalize relevant parts of the raw config and write the results to config2import dict
 
-    normalize_nwobjects(full_config, config2import, current_import_id, jwt=jwt, mgm_id=mgm_details['id'])
+    normalize_nwobjects(full_config, config2import, current_import_id, jwt=jwt, mgm_id=mgm_details['id'], domain=domain)
     normalize_svcobjects(full_config, config2import, current_import_id)
-    normalize_application_objects(full_config, config2import, current_import_id)
+    # normalize_application_objects(full_config, config2import, current_import_id)
     # normalize_users(full_config, config2import, current_import_id, user_scope)
 
     # adding default any and predefined objects
@@ -93,7 +98,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         "obj_typ": "network", "obj_ip": "0.0.0.0/0", "control_id": current_import_id}
     config2import["network_objects"].append(any_nw_object)
 
-    normalize_zones(full_config, config2import, current_import_id)
+    # normalize_zones(full_config, config2import, current_import_id)
     normalize_access_rules(full_config, config2import, current_import_id, mgm_details=mgm_details)
     # normalize_nat_rules(full_config, config2import, current_import_id, jwt=jwt)
 

@@ -4,13 +4,13 @@ from fwo_log import getFwoLogger
 
 def normalize_svcobjects(full_config, config2import, import_id):
     svc_objects = []
-    for svc_orig in full_config["/Objects/Services"]:
+    for svc_orig in full_config["/infra/services"]:
         svc_objects.append(parse_svc(svc_orig, import_id,config2import))
-    for svc_grp_orig in full_config["/Objects/ServiceGroups"]:
-        svc_grp = extract_base_svc_infos(svc_grp_orig, import_id)
-        svc_grp["svc_typ"] = "group"
-        svc_grp["svc_member_refs"] , svc_grp["svc_member_names"] = parse_svc_group(svc_grp_orig,config2import)
-        svc_objects.append(svc_grp)
+    # for svc_grp_orig in full_config["/Objects/ServiceGroups"]:
+    #     svc_grp = extract_base_svc_infos(svc_grp_orig, import_id)
+    #     svc_grp["svc_typ"] = "group"
+    #     svc_grp["svc_member_refs"] , svc_grp["svc_member_names"] = parse_svc_group(svc_grp_orig,config2import)
+    #     svc_objects.append(svc_grp)
     config2import['service_objects'] += svc_objects
 
 
@@ -28,11 +28,12 @@ def parse_svc_group(orig_grp,config2import):
     
 def extract_base_svc_infos(svc_orig, import_id):
     svc = {}
-    if "@name" in svc_orig:
-        svc["svc_uid"] = svc_orig["@name"]
-        svc["svc_name"] = svc_orig["@name"]
-    if "comment" in svc_orig:
-        svc["svc_comment"] = svc_orig["comment"]
+    if "display_name" in svc_orig:
+        svc["svc_name"] = svc_orig["display_name"]
+    if "id" in svc_orig:
+        svc["svc_uid"] = svc_orig["id"]
+    if "description" in svc_orig:
+        svc["svc_comment"] = svc_orig["description"]
     svc["svc_timeout"] = None
     svc["svc_color"] = None
     svc["control_id"] = import_id 
@@ -42,32 +43,38 @@ def extract_base_svc_infos(svc_orig, import_id):
 
 def parse_svc(svc_orig, import_id,config2import):
     svc = extract_base_svc_infos(svc_orig, import_id)
-    if 'protocol' in svc_orig:
-        proto_string = 'undefined'
-        if 'tcp' in svc_orig['protocol']:
-            svc["ip_proto"] = 6
-            proto_string = 'tcp'
-            svc["svc_port"] = svc_orig['protocol']['tcp']['port']
-        elif 'udp' in svc_orig['protocol']:
-            svc["ip_proto"] = 17
-            proto_string = 'udp'
-            
-        if proto_string=='undefined':
-            svc["svc_name"] += " [Protocol \"" + str(svc_orig["protocol"]) + "\" not supported]"
-        else:
-            port_string = svc_orig['protocol'][proto_string]['port']
-            if ',' in port_string:
-                svc["svc_typ"] = "group"
-                svc["svc_port"] = None
-                members = []
-                for p in port_string.split(","):
-                    hlp_svc = create_helper_service(p, proto_string, svc["svc_name"], import_id)
-                    add_service(hlp_svc, config2import)
-                    members.append(hlp_svc['svc_uid'])
-                svc["svc_members"] = list_delimiter.join(members)                
-                svc["svc_member_refs"] = list_delimiter.join(members)                
-            else:   # just a single port (range)
-                extract_port_for_service(port_string, svc)
+    if 'service_entries' in svc_orig:
+        for se in svc_orig['service_entries']:  # TODO: handle list of service entries
+            if 'l4_protocol' in se:
+                proto_string = 'undefined'
+                if se['l4_protocol'] == 'TCP':
+                    svc["ip_proto"] = 6
+                    proto_string = 'tcp'
+                if se['l4_protocol'] == 'UDP':
+                    svc["ip_proto"] = 17
+                    proto_string = 'udp'
+                
+                if 'destination_ports' in se and len(se['destination_ports'])>0:
+                    svc["svc_port"] = se['destination_ports'][0]    # TODO: handle list of ports!
+                else:
+                    pass
+                    
+                if proto_string=='undefined':
+                    svc["svc_name"] += " [Protocol \"" + str(se["l4_protocol"]) + "\" not supported]"
+                # else:
+                #     port_string = svc_orig['protocol'][proto_string]['port']
+                #     if ',' in port_string:
+                #         svc["svc_typ"] = "group"
+                #         svc["svc_port"] = None
+                #         members = []
+                #         for p in port_string.split(","):
+                #             hlp_svc = create_helper_service(p, proto_string, svc["svc_name"], import_id)
+                #             add_service(hlp_svc, config2import)
+                #             members.append(hlp_svc['svc_uid'])
+                #         svc["svc_members"] = list_delimiter.join(members)                
+                #         svc["svc_member_refs"] = list_delimiter.join(members)                
+                #     else:   # just a single port (range)
+                #         extract_port_for_service(port_string, svc)
     return svc
 
 

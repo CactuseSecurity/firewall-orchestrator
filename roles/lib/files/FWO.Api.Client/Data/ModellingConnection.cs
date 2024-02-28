@@ -124,7 +124,7 @@ namespace FWO.Api.Data
             {
                 return "common_service";
             }
-            return "regular_connection";
+            return "connection";
         }
 
         public bool SourceFilled()

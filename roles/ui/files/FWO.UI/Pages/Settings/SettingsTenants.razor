@@ -10,7 +10,7 @@
 @using RestSharp
 
 @page "/settings/tenants"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -220,7 +220,7 @@
     {
         try
         {
-            addDeleteAllowed = authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor);
+            addDeleteAllowed = authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
             await GetTenantsFromLdap();
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
         }

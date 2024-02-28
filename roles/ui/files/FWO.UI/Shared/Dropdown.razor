@@ -1,5 +1,6 @@
 ﻿@using System.Reflection
 @using System.Diagnostics;
+@using FWO.Api.Data
 @typeparam ElementType
 
 @inject DomEventService eventService
@@ -7,7 +8,7 @@
 
 <div id="@($"dropdown-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
 	<label id="@($"dropdown-input-prepend-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")">
-		<span id="@($"dropdown-input-prepend-icon-{Id}")" class="oi oi-magnifying-glass"></span>
+		<span id="@($"dropdown-input-prepend-icon-{Id}")" class="@Icons.Search"></span>
 	</label>
 	<input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onclick="ShowMenu" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
 	@if (Append != null)
@@ -29,7 +30,7 @@
 							@ElementTemplate(element)
 							@if ((Nullable || Multiselect))
 							{
-								<i id="@($"dropdown-menu-selected-x-{Id + i++}")" class="ms-2 oi oi-x"></i>
+								<i id="@($"dropdown-menu-selected-x-{Id + i++}")" class="ms-2 @(Icons.Close)"></i>
 							}
 						</div>
 					</button>

@@ -90,27 +90,27 @@ namespace FWO.Api.Data
 
         public string Host()
         {
-            return (Address != "" ? Address + ":" + Port : "");
+            return Address != "" ? Address + ":" + Port : "";
         }
         
         public bool IsWritable()
         {
-            return (WriteUser != null && WriteUser != "");
+            return WriteUser != null && WriteUser != "";
         }
 
         public bool HasGroupHandling()
         {
-            return (GroupSearchPath != null && GroupSearchPath != "");
+            return GroupSearchPath != null && GroupSearchPath != "";
         }
 
         public bool HasRoleHandling()
         {
-            return (RoleSearchPath != null && RoleSearchPath != "");
+            return RoleSearchPath != null && RoleSearchPath != "";
         }
 
         public bool IsInternal()
         {
-            return ((new DistName(UserSearchPath)).IsInternal());
+            return new DistName(UserSearchPath).IsInternal();
         }
     }
 }

@@ -261,24 +261,24 @@ namespace FWO.Report
             switch (objType)
             {
                 case "group" when objCategory == ObjCategory.user:
-                    return "oi oi-people";
+                    return Icons.UserGroup;
                 case "group":
-                    return "oi oi-list-rich";
+                    return Icons.ObjGroup;
                 case "host":
-                    return "oi oi-laptop";
+                    return Icons.Host;
                 case "network":
-                    return "oi oi-rss";
+                    return Icons.Network;
                 case "ip_range":
-                    return "oi oi-resize-width";
+                    return Icons.Range;
                 default:
                     switch (objCategory)
                     {
                         case ObjCategory.nobj:
-                            return "oi oi-laptop";
+                            return Icons.NwObject;
                         case ObjCategory.nsrv:
-                            return "oi oi-wrench";
+                            return Icons.Service;
                         case ObjCategory.user:
-                            return "oi oi-person";
+                            return Icons.User;
                     }
                     return "";
             }

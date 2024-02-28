@@ -1,4 +1,6 @@
-﻿@typeparam ElementType
+﻿@using FWO.Api.Data
+
+@typeparam ElementType
 
 <ul class="list-group @(StdLayout ? "mb-2" : "")">
 	@for (int i = 0; i < ElementsToAdd.Count; i++)
@@ -7,7 +9,7 @@
 		<li class="bg-success-subtle @(StdLayout ? StdClass : AltClass) d-flex justify-content-between">
 			<div class="@(StdLayout ? "" : AltElemClass)">@(Display(ElementsToAdd[i]))</div>
 			<span @onclick="() => {ElementsToAdd.Remove(ElementsToAdd[j]);AfterRemoveAction();}" class="@(StdLayout ? "" : AltButtonClass) badge bg-danger">
-				<i class="oi oi-x text-light"></i>
+				<i class="@(Icons.Close) text-light"></i>
 			</span>
 		</li>
 	}

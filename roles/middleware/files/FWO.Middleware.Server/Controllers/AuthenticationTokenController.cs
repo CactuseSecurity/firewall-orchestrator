@@ -100,7 +100,7 @@ namespace FWO.Middleware.Controllers
                 try
                 {
                     await authManager.AuthorizeUserAsync(adminUser, validatePassword: true);
-                    if (!adminUser.Roles.Contains(GlobalConst.kAdmin))
+                    if (!adminUser.Roles.Contains(Roles.Admin))
                     {
                         throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
                     }
@@ -239,7 +239,7 @@ namespace FWO.Middleware.Controllers
                             if (currentLdapEntry != null)
                             {
                                 // User was successfully authenticated via this LDAP
-                                if(user.Name == GlobalConst.kImporter)
+                                if(user.Name == Roles.Importer)
                                 {
                                     Log.WriteDebug("User Authentication", $"User {user.Name + " " + currentLdapEntry.Dn} found.");
                                 }
@@ -320,7 +320,7 @@ namespace FWO.Middleware.Controllers
             {
                 // Use anonymous role
                 Log.WriteWarning("Missing roles", $"No roles for user \"{user.Dn}\" could be found. Using anonymous role.");
-                userRoles.Add(GlobalConst.kAnonymous);
+                userRoles.Add(Roles.Anonymous);
             }
 
             return userRoles;

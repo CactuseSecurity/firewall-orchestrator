@@ -60,7 +60,8 @@ namespace FWO.Ui.Services
             try
             {
                 service.IsGlobal = ActServiceGroup.IsGlobal;
-                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi, IsOwner);
+                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service,
+                    AvailableServices, AvailableSvcElems, AddServiceMode, DisplayMessageInUi, IsOwner);
                 EditServiceMode = true;
             }
             catch (Exception exception)

@@ -51,7 +51,7 @@
             <div class="btn-group">
                 @if(SvcGroupHandler.IsOwner)
                 {
-                    <AuthorizeView Roles="@(AsAdmin? GlobalConst.kAdmin : GlobalConst.kModeller)">
+                    <AuthorizeView Roles="@(AsAdmin? Roles.Admin : Roles.Modeller)">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await SvcGroupHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
                         </Authorized>
@@ -95,7 +95,7 @@
     public bool AsAdmin { get; set; } = false;
 
     private ModellingDnDContainer Container { get; set; } = new();
-    int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
+    int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth + 300;
     private bool workInProgress = false;
 
 

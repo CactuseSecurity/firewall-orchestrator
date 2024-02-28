@@ -176,5 +176,9 @@ bugfix release:
 - fixes credentials when installing without demo data
 - fix error with pdf creation on debian testing
 
-# 7.3.7 - 29.02.2024 DEVELOP
+# 8.0.1 - 20.02.2024 DEVELOP
+- iconify modelling
+- add missing config values
+
+# 8.0.2 - 29.02.2024 DEVELOP
 - adding firewall importer support for NSX

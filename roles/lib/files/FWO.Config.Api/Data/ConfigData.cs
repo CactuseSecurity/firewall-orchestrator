@@ -243,6 +243,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
         public string ModNamingConvention { get; set; } = "";
 
+        [JsonProperty("modIconify"), JsonPropertyName("modIconify")]
+        public bool ModIconify { get; set; } = true;
+
 
         public ConfigData(bool editable = false)
         {

@@ -535,7 +535,8 @@ namespace FWO.Ui.Services
         {
             try
             {
-                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service, AvailableServices, AddServiceMode, DisplayMessageInUi, IsOwner);
+                ServiceHandler = new ModellingServiceHandler(apiConnection, userConfig, Application, service,
+                    AvailableServices, AvailableSvcElems, AddServiceMode, DisplayMessageInUi, IsOwner);
                 EditServiceMode = true;
             }
             catch (Exception exception)

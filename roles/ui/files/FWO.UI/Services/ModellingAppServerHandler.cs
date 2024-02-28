@@ -34,7 +34,7 @@ namespace FWO.Ui.Services
                 if(CheckAppServer())
                 {
                     bool saveOk = true;
-                    apiConnection.SetRole(GlobalConst.kAdmin);
+                    apiConnection.SetRole(Roles.Admin);
                     if(AddMode)
                     {
                         saveOk &= await AddAppServerToDb();

@@ -43,7 +43,7 @@
         uiUserDbId = userConfig.User.DbId;
         authenticationState = await authenticationStateTask!;
 
-        if(authenticationState.User.IsInRole(GlobalConst.kModeller))
+        if(authenticationState.User.IsInRole(Roles.Modeller))
         {
             NavigationManager.NavigateTo($"/networkmodelling/{AppId ?? ""}");
         }

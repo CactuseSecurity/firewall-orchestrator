@@ -19,26 +19,26 @@
             <div class="col-sm-2">
                 <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
                     {SvcGroupHandler.ServicesToSvcGroup(selectedServices);
-                    SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("to_services_group"))</button>
+                    SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("to_services_group", Icons.Use))</button>
             </div>
         }
     </div>
     <div class="btn-group mt-2">
         <button type="button" class="btn btn-sm btn-success" @onclick="() =>
-            {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("add_service"))</button>
+            {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("add_service", Icons.Add))</button>
         @if(selectedServices.Count == 1)
         {
             <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
-                {SvcGroupHandler.EditService(selectedServices.First()); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("edit_service"))</button>
+                {SvcGroupHandler.EditService(selectedServices.First()); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("edit_service", Icons.Edit))</button>
             <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                 {await SvcGroupHandler.RequestDeleteService(selectedServices.First()); selectedServices = new();
-                await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(userConfig.GetText("delete"))</button>
+                await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("delete", Icons.Delete))</button>
         }
     </div>
 </div>
 <EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AddMode="SvcGroupHandler.AddServiceMode" AsAdmin="AsAdmin"/>
 <ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}"
-    Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? GlobalConst.kAdmin : GlobalConst.kModeller)"
+    Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? Roles.Admin : Roles.Modeller)"
     DeleteAllowed="SvcGroupHandler.DeleteAllowed" Enabled="SvcGroupHandler.IsOwner"/>
 
 

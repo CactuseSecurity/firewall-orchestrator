@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api
 @using FWO.Config.Api.Data
+@using FWO.Api.Data
 
 @inherits LayoutComponentBase
 @layout MainLayout
@@ -9,67 +10,67 @@
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="me-2 ms-2 mt-4 mb-4">
         <ul class="navbar-nav navbar-dark flex-column">
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kImporter}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>@(userConfig.GetText("devices"))</h5>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/credentials">
-                        <span class="oi oi-key"></span> @(userConfig.GetText("import_credential"))
+                        <span class="@Icons.Credential"></span> @(userConfig.GetText("import_credential"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/managements">
-                        <span class="oi oi-inbox"></span> @(userConfig.GetText("managements"))
+                        <span class="@Icons.Management"></span> @(userConfig.GetText("managements"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/gateways">
-                        <span class="oi oi-shield"></span> @(userConfig.GetText("gateways"))
+                        <span class="@Icons.Gateway"></span> @(userConfig.GetText("gateways"))
                     </NavLink>
                 </li>
             </AuthorizeView>
             <hr />
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5012"))">
                     <h5>@(userConfig.GetText("authorization"))</h5>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/ldap">
-                        <span class="oi oi-key"></span> @(userConfig.GetText("ldap_conns"))
+                        <span class="@Icons.Ldap"></span> @(userConfig.GetText("ldap_conns"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/tenants">
-                        <span class="oi oi-command"></span> @(userConfig.GetText("tenants"))
+                        <span class="@Icons.Tenant"></span> @(userConfig.GetText("tenants"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/users">
-                        <span class="oi oi-person"></span> @(userConfig.GetText("users"))
+                        <span class="@Icons.User"></span> @(userConfig.GetText("users"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/groups">
-                        <span class="oi oi-people"></span> @(userConfig.GetText("groups"))
+                        <span class="@Icons.UserGroup"></span> @(userConfig.GetText("groups"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/roles">
-                        <span class="oi oi-tags"></span> @(userConfig.GetText("roles"))
+                        <span class="@Icons.Role"></span> @(userConfig.GetText("roles"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/owners">
-                        <span class="oi oi-flag"></span> @(userConfig.GetText("owners"))
+                        <span class="@Icons.Owner"></span> @(userConfig.GetText("owners"))
                     </NavLink>
                 </li>
                 <hr />
@@ -78,37 +79,37 @@
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/email">
-                        <span class="oi oi-envelope-closed"></span> @(userConfig.GetText("email_settings"))
+                        <span class="@Icons.Email"></span> @(userConfig.GetText("email_settings"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/importer">
-                        <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("importer_settings"))
+                        <span class="@Icons.Import"></span> @(userConfig.GetText("importer_settings"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/defaults">
-                        <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
+                        <span class="@Icons.Settings"></span> @(userConfig.GetText("standards"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/recertificationgeneral">
-                        <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
+                        <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/modelling">
-                        <span class="oi oi-puzzle-piece"></span> @(userConfig.GetText("modelling"))
+                        <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/passwordpolicy">
-                        <span class="oi oi-document"></span> @(userConfig.GetText("password_policy"))
+                        <span class="@Icons.Policy"></span> @(userConfig.GetText("password_policy"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/customtexts">
-                        <span class="oi oi-text"></span> @(userConfig.GetText("customize_texts"))
+                        <span class="@Icons.Text"></span> @(userConfig.GetText("customize_texts"))
                     </NavLink>
                 </li>
                 <hr />
@@ -117,22 +118,22 @@
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/stateactions">
-                        <span class="oi oi-arrow-right"></span> @(userConfig.GetText("state_actions"))
+                        <span class="@Icons.Action"></span> @(userConfig.GetText("state_actions"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/statedefinitions">
-                        <span class="oi oi-tag"></span> @(userConfig.GetText("state_definitions"))
+                        <span class="@Icons.State"></span> @(userConfig.GetText("state_definitions"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/statematrix">
-                        <span class="oi oi-loop-square"></span> @(userConfig.GetText("state_matrix"))
+                        <span class="@Icons.Matrix"></span> @(userConfig.GetText("state_matrix"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/workflowcustomizing">
-                        <span class="oi oi-cog"></span> @(userConfig.GetText("customizing"))
+                        <span class="@Icons.Settings"></span> @(userConfig.GetText("customizing"))
                     </NavLink>
                 </li>
             </AuthorizeView>
@@ -142,21 +143,28 @@
             </li>
             <li class="nav-item px-2">
                 <NavLink class="nav-link" href="settings/password">
-                    <span class="oi oi-account-login"></span> @(userConfig.GetText("password"))
+                    <span class="@Icons.Login"></span> @(userConfig.GetText("password"))
                 </NavLink>
                 <NavLink class="nav-link" href="settings/language">
-                    <span class="oi oi-comment-square"></span> @(userConfig.GetText("language"))
+                    <span class="@Icons.Language"></span> @(userConfig.GetText("language"))
                 </NavLink>
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}")">
                     <NavLink class="nav-link" href="settings/report">
-                        <span class="oi oi-list"></span> @(userConfig.GetText("reporting"))
+                        <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
                     </NavLink>
                 </AuthorizeView>
             </li>
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/recertificationpersonal">
-                        <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
+                        <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/modellingpersonal">
+                        <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
                     </NavLink>
                 </li>
             </AuthorizeView>

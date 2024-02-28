@@ -40,7 +40,7 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-wrench\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.Service}\"></span> " + DisplayHtml();
         }
 
         public static NetworkService ToNetworkService(ModellingService service)

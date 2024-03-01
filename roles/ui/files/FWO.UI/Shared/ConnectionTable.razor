@@ -1,12 +1,14 @@
 @using FWO.Config.Api
 @using FWO.Ui.Display
+@using FWO.Api.Data
+@using BlazorTable
 
 @inject UserConfig userConfig
 
 
 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection"
         Items="Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
-    @if(userConfig.AllowManualOwnerAdmin)
+    @if(userConfig.AllowManualOwnerAdmin && !Readonly)
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
@@ -76,6 +78,8 @@
     [Parameter]
     public bool AppActive { get; set; } = false;
 
+    [Parameter]
+    public bool Readonly { get; set; } = false;
 
     private string getTableRowClass(ModellingConnection conn)
     {

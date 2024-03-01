@@ -7,39 +7,25 @@
 @if(AppHandler != null)
 {
     <H5>@AppHandler.Application.Display(userConfig.GetText("common_service"))</H5>
-    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection"
-            Items="AppHandler.Connections" PageSize="0" ColumnReorder="true">
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
-            <Template>
-                <ExpandableList2 Elements="AppHandler.GetSrcNames(context)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">
-                    <ElementTemplate>
-                        @((MarkupString)src)
-                    </ElementTemplate>
-                </ExpandableList2>
-            </Template>
-        </Column>
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("service"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
-            <Template>
-                <ExpandableList2 Elements="AppHandler.GetSvcNames(context)" Context="svc" AlwaysShowElements="@userConfig.OverviewDisplayLines">
-                    <ElementTemplate>
-                        @((MarkupString)svc)
-                    </ElementTemplate>
-                </ExpandableList2>
-            </Template>
-        </Column>
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("destination"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
-            <Template>
-                <ExpandableList2 Elements="AppHandler.GetDstNames(context)" Context="dest" AlwaysShowElements="@userConfig.OverviewDisplayLines">
-                    <ElementTemplate>
-                        @((MarkupString)dest)
-                    </ElementTemplate>
-                </ExpandableList2>
-            </Template>
-        </Column>
-    </Table>
+
+    @if(AppHandler.GetRegularConnections().Count > 0)
+    {
+        <Collapse Title="@userConfig.GetText("connections")" Style="@("primary")" StartToggled="false">
+            <ConnectionTable Connections="@AppHandler.GetRegularConnections()" AppHandler="AppHandler" Readonly="true"/>
+        </Collapse>
+    }
+    @if(AppHandler.GetInterfaces().Count > 0)
+    {
+        <Collapse Title="@userConfig.GetText("interfaces")" Style="@("primary")" StartToggled="false">
+            <ConnectionTable Connections="@AppHandler.GetInterfaces()" AppHandler="AppHandler" Readonly="true"/>
+        </Collapse>
+    }
+    @if(AppHandler.GetCommonServices().Count > 0)
+    {
+        <Collapse Title="@userConfig.GetText("common_services")" Style="@("primary")" StartToggled="false">
+            <ConnectionTable Connections="@AppHandler.GetCommonServices()" AppHandler="AppHandler" Readonly="true"/>
+        </Collapse>
+    }
 }
 
 @code

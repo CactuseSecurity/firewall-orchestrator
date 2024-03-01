@@ -6,6 +6,7 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
 @if(!appHandler?.EditConnMode ?? true)
 {
@@ -34,7 +35,7 @@
         }
         <div class="col-sm-6">
             <div class="btn-group">
-                @* <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
+                <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button>
                 <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
                 @* <button type="button" class="btn btn-sm btn-dark ms-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
             </div>
@@ -221,14 +222,14 @@ else
         return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
     }
 
-    private async Task ShowHistory()
+    private void ShowHistory()
     {
         showHistory = true;
     }
 
     private async Task Report()
     {
-
+        NavigationManager.NavigateTo($"/report/generation/{selectedApp.Id}");
     }
 
     private async Task ExtRequest()

@@ -29,6 +29,9 @@
     [Parameter]
     public EventCallback<ModellingFilter> ModellingFilterChanged { get; set; }
 
+    [Parameter]
+    public int? InjectedAppId { get; set; } = null;
+
     private List<FwoOwner> ownerList = new List<FwoOwner>();
 
 
@@ -39,7 +42,7 @@
             ownerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
             if(ownerList.Count > 0)
             {
-                ModellingFilter.SelectedOwner = ownerList.First();
+                ModellingFilter.SelectedOwner = InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(o => o.Id == InjectedAppId) ?? ownerList.First();
             }
         }
         catch (Exception exception)

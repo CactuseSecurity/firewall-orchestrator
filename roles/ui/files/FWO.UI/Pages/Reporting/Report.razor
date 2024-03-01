@@ -7,7 +7,7 @@
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
 
-@page "/report/generation"
+@page "/report/generation/{appId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
@@ -32,7 +32,7 @@
         }
         else if (actReportFilters.ReportType.IsModellingReport())
         {
-            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter"/>
+            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId"/>
         }
         else if(actReportFilters.ReportType==ReportType.UnusedRules)
         {
@@ -140,7 +140,7 @@
         {
             if (reportGenerationDuration != 0)
             {
-                if (reportGenerationDuration<600)
+                if (reportGenerationDuration < 600)
                 {
                     <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
                 }
@@ -175,6 +175,9 @@
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
+    [Parameter]
+    public string? AppId { get; set; }
+
     public double reportGenerationDuration;
     DateTime startTime = DateTime.Now;
     private bool processing = false;
@@ -191,6 +194,8 @@
     
     private ReportFilters actReportFilters = new ();
     private bool InitDone = false;
+    private int? injectedAppId = null;
+    private bool autoGenerateReport = false;
 
     private List<string> unsupportedList = new List<string>();
     private bool ShowSelectTimeDialog = false;
@@ -232,13 +237,36 @@
         try
         {
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-            actReportFilters.Init(userConfig, showRuleRelatedReports);
+            if(int.TryParse(AppId, out int appId))
+            {
+                actReportFilters.Init(userConfig, false);
+                injectedAppId = appId;
+                List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(Api.Client.Queries.OwnerQueries.getEditableOwners, new { appIds = appId });
+                if(owners.Count > 0)
+                {
+                    actReportFilters.ModellingFilter.SelectedOwner = owners.First();
+                    autoGenerateReport = true;
+                }
+            }
+            else
+            {
+                actReportFilters.Init(userConfig, showRuleRelatedReports);
+            }
             InitDone = true;
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(autoGenerateReport)
+        {
+            await GenerateReport();
+            autoGenerateReport = false;
         }
     }
 
@@ -383,6 +411,7 @@
                 DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", unsupportedList), true);
             }
         }
+
         currentReport = ReportBase.ConstructReport(ConstructReportTemplate(), userConfig);
     }
 

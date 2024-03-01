@@ -61,7 +61,7 @@ namespace FWO.Ui.Services
         public bool EditSvcGrpMode = false;
         public bool DeleteSvcGrpMode = false;
 
-        private List<FwoOwner> apps = new();
+        private List<FwoOwner> allApps = new();
         private ModellingAppRole actAppRole = new();
         private ModellingNwGroup actNwGrpObj = new();
         private ModellingConnection actInterface = new();
@@ -104,7 +104,7 @@ namespace FWO.Ui.Services
                 }
                 RefreshSelectedNwObjects();
                 InterfaceName = await ExtractUsedInterface(ActConn);
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                allApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
             }
             catch (Exception exception)
             {
@@ -116,7 +116,7 @@ namespace FWO.Ui.Services
         {
             if(inter != null)
             {
-                FwoOwner? app = apps.FirstOrDefault(x => x.Id == inter.AppId);
+                FwoOwner? app = allApps.FirstOrDefault(x => x.Id == inter.AppId);
                 if(app != null)
                 {
                     return inter.DisplayWithOwner(app);

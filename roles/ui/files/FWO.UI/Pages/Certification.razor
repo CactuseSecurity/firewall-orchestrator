@@ -254,7 +254,7 @@
             {
                 if(currentReport != null)
                 {
-                    await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
+                    await currentReport.GenerateMgt(userConfig.ElementsPerFetch, apiConnection,
                     managementsReportIntermediate =>
                     {
                         managements = managementsReportIntermediate;

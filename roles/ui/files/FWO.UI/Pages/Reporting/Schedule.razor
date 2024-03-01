@@ -206,7 +206,7 @@
             scheduledReports = (await apiConnection.SendQueryAsync<List<ScheduledReport>>(ReportQueries.getReportSchedules));
             scheduledReportsSubscription = apiConnection.GetSubscription<List<ScheduledReport>>(HandleSubscriptionError, OnReportScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
             reportTemplates = await apiConnection.SendQueryAsync<List<ReportTemplate>>(ReportQueries.getReportTemplates);
-            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsRuleRelatedReport() || 
+            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
                                                            showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport())).ToList();
             uiUserDbId = userConfig.User.DbId;
             authenticationState = await authenticationStateTask!;

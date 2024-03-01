@@ -147,14 +147,14 @@ namespace FWO.Middleware.Server
 
                     ReportBase reportRules = ReportBase.ConstructReport(report.Template, userConfig);
                     Management[] managementsReport = Array.Empty<Management>();
-                    await reportRules.Generate(int.MaxValue, apiConnectionUserContext, 
+                    await reportRules.GenerateMgt(int.MaxValue, apiConnectionUserContext, 
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
                             SetRelevantManagements(ref managementsReport, report.Template.ReportParams.DeviceFilter);
                             return Task.CompletedTask;
                         }, token);
-                    await reportRules.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+                    await reportRules.GetMgtObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
 
                     WriteReportFile(reportRules, report.OutputFormat, reportFile);
                     await SaveReport(reportFile, reportRules.SetDescription(), apiConnectionUserContext);
@@ -179,7 +179,7 @@ namespace FWO.Middleware.Server
                 }
                 if(reportParams.ReportType == (int)ReportType.UnusedRules)
                 {
-                    reportParams.DeviceFilter = (await ReportBase.GetUsageDataUnsupportedDevices(apiConnection, reportParams.DeviceFilter)).reducedDeviceFilter;
+                    reportParams.DeviceFilter = (await ReportDevicesBase.GetUsageDataUnsupportedDevices(apiConnection, reportParams.DeviceFilter)).reducedDeviceFilter;
                 }
             }
             catch (Exception)

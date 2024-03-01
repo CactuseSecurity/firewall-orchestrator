@@ -11,14 +11,54 @@ using Newtonsoft.Json;
 
 namespace FWO.Report
 {
-    public class ReportRules : ReportBase
+    public class ReportRules : ReportDevicesBase
     {
-        public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
-
         private const int ColumnCount = 12;
 
+        public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
+        public override async Task GenerateMgt(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
+        {
+            Query.QueryVariables["limit"] = rulesPerFetch;
+            Query.QueryVariables["offset"] = 0;
+            bool gotNewObjects = true;
+
+            Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
+
+            Managements = new Management[managementsWithRelevantImportId.Length];
+            int i;
+            for (i = 0; i < managementsWithRelevantImportId.Length; i++)
+            {
+                // setting mgmt and relevantImporId QueryVariables 
+                Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                if (ReportType != ReportType.Recertification)
+                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
+                Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0];
+                Managements[i].Import = managementsWithRelevantImportId[i].Import;
+            }
+
+            while (gotNewObjects)
+            {
+                if (ct.IsCancellationRequested)
+                {
+                    Log.WriteDebug("Generate Rules Report", "Task cancelled");
+                    ct.ThrowIfCancellationRequested();
+                }
+                gotNewObjects = false;
+                Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
+                for (i = 0; i < managementsWithRelevantImportId.Length; i++)
+                {
+                    Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                    if (ReportType != ReportType.Recertification)
+                        Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+                    gotNewObjects |= Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
+                }
+                await callback(Managements);
+            }
+            SetReportedRuleIds();
+        }
+
+        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
         {
             bool gotAllObjects = true; //whether the fetch count limit was reached during fetching
 
@@ -103,47 +143,6 @@ namespace FWO.Report
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
 
             return fetchCount <= maxFetchCycles;
-        }
-
-        public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
-        {
-            Query.QueryVariables["limit"] = rulesPerFetch;
-            Query.QueryVariables["offset"] = 0;
-            bool gotNewObjects = true;
-
-            Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
-
-            Managements = new Management[managementsWithRelevantImportId.Length];
-            int i;
-            for (i = 0; i < managementsWithRelevantImportId.Length; i++)
-            {
-                // setting mgmt and relevantImporId QueryVariables 
-                Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                if (ReportType != ReportType.Recertification)
-                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
-                Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0];
-                Managements[i].Import = managementsWithRelevantImportId[i].Import;
-            }
-
-            while (gotNewObjects)
-            {
-                if (ct.IsCancellationRequested)
-                {
-                    Log.WriteDebug("Generate Rules Report", "Task cancelled");
-                    ct.ThrowIfCancellationRequested();
-                }
-                gotNewObjects = false;
-                Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
-                for (i = 0; i < managementsWithRelevantImportId.Length; i++)
-                {
-                    Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                    if (ReportType != ReportType.Recertification)
-                        Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-                    gotNewObjects |= Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
-                }
-                await callback(Managements);
-            }
-            SetReportedRuleIds();
         }
 
         public override string SetDescription()

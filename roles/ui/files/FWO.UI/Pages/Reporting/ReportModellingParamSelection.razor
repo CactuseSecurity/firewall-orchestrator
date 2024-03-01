@@ -1,0 +1,50 @@
+﻿@using FWO.Config.Api
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<div class="p-3">
+    <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
+    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="true" 
+            @bind-SelectedElement="ModellingFilter.SelectedOwner" Elements="ownerList">
+        <ElementTemplate Context="owner">
+            @owner.Display(userConfig.GetText("common_service"))
+        </ElementTemplate>
+    </Dropdown>
+</div>
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public ModellingFilter ModellingFilter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ModellingFilter> ModellingFilterChanged { get; set; }
+
+    private List<FwoOwner> ownerList = new List<FwoOwner>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ownerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+            if(ownerList.Count > 0)
+            {
+                ModellingFilter.SelectedOwner = ownerList.First();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+}

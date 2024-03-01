@@ -8,27 +8,15 @@ using FWO.Logging;
 
 namespace FWO.Report
 {
-    public class ReportStatistics : ReportBase
+    public class ReportStatistics : ReportDevicesBase
     {
         // TODO: Currently generated in Report.razor as well as here, because of export. Remove dupliacte.
         private Management globalStatisticsManagement = new Management();
 
-        public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
+        public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback)
-        {
-            await callback(Managements);
-            // currently no further objects to be fetched
-            GotObjectsInReport = true;
-            return true;
-        }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
-        {
-            return Task.FromResult<bool>(true);
-        }
-
-        public override async Task Generate(int _, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
+        public override async Task GenerateMgt(int _, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
@@ -57,6 +45,19 @@ namespace FWO.Report
                 globalStatisticsManagement.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
             }
+        }
+
+        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback)
+        {
+            await callback(Managements);
+            // currently no further objects to be fetched
+            GotObjectsInReport = true;
+            return true;
+        }
+
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
+        {
+            return Task.FromResult<bool>(true);
         }
 
         public override string ExportToJson()

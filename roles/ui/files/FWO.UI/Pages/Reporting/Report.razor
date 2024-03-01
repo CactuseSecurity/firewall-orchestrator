@@ -30,6 +30,10 @@
         {
             <ReportRecertParamSelection @bind-FilterInput="filterInput" @bind-RecertFilter="actReportFilters.RecertFilter"/>
         }
+        else if (actReportFilters.ReportType.IsModellingReport())
+        {
+            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter"/>
+        }
         else if(actReportFilters.ReportType==ReportType.UnusedRules)
         {
             <div class="p-3">
@@ -47,13 +51,13 @@
                 </div>
             </div>
         }
-        @if (actReportFilters.ReportType != ReportType.Statistics)
-        {
-            <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed"/>
-        }
 
-        @if (actReportFilters.ReportType.IsRuleRelatedReport())
+        @if (actReportFilters.ReportType.IsDeviceRelatedReport())
         {
+            @if (actReportFilters.ReportType != ReportType.Statistics)
+            {
+                <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed"/>
+            }
             <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll"></DeviceSelection>
         }
     </Sidebar>
@@ -122,6 +126,10 @@
                             <StatisticsReport Managements="managementsReport" GlobalStats="globalStats"/>
                             break;
 
+                        case ReportType.Connections:
+                            <ConnectionsReport AppHandler="appHandler"/>
+                            break;
+
                         default:
                             break;
                     }
@@ -145,7 +153,7 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    @if (actReportFilters.ReportType.IsRuleRelatedReport())
+    @if (actReportFilters.ReportType.IsDeviceRelatedReport())
     {
         <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
             @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport" AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)" />
@@ -168,16 +176,19 @@
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     public double reportGenerationDuration;
+    DateTime startTime = DateTime.Now;
     private bool processing = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
     private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
     private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
+    private List<ModellingConnection> connectionReport = new();
+    private ModellingAppHandler? appHandler;
     private Management[] managementsReport = new Management[0];
     List<int> relevantManagementIds = new();
     private Management? globalStats = null;
-
+    
     private ReportFilters actReportFilters = new ();
     private bool InitDone = false;
 
@@ -244,6 +255,7 @@
         // clear report data when switching reportType as we would be missing src/dst/svc information in some cases           
         managementsReport = new Management[] {};
         globalStats = null;
+        connectionReport = new();
         reportGenerationDuration = 0;
     }
 
@@ -287,7 +299,7 @@
         Management[] managementsReportOrig = managementsReport;
         try
         {
-            if (actReportFilters.ReportType.IsRuleRelatedReport() && !actReportFilters.DeviceFilter.isAnyDeviceFilterSet())  // display warning
+            if (actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.isAnyDeviceFilterSet())
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
                 return;
@@ -299,18 +311,29 @@
             // save selected managements before resetting
             relevantManagementIds = actReportFilters.DeviceFilter.getSelectedManagements();
 
-            DateTime startTime = DateTime.Now;
+            startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
 
             try
             {
-                if(currentReport.ReportType == ReportType.Statistics)
+                if(currentReport.ReportType.IsModellingReport())
+                {
+                    await currentReport.GenerateCon(userConfig.ElementsPerFetch, apiConnection,
+                    connectionReportIntermediate =>
+                    {
+                        connectionReport = connectionReportIntermediate;
+                        return InvokeAsync(StateHasChanged);
+                    }, token);
+                    appHandler = new (apiConnection, userConfig, actReportFilters.ModellingFilter.SelectedOwner, DisplayMessageInUi);
+                    await appHandler.Init(connectionReport);
+                }
+                else if(currentReport.ReportType == ReportType.Statistics)
                 {
                     await GenerateStatisticsReport(token);
                 }
                 else
                 {
-                    await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
+                    await currentReport.GenerateMgt(userConfig.ElementsPerFetch, apiConnection,
                     managementsReportIntermediate =>
                     {
                         managementsReport = managementsReportIntermediate;
@@ -329,20 +352,7 @@
             }
 
             processing = false;
-            if(NoRuleFound())
-            {
-                if(currentReport is ReportRules || currentReport is ReportNatRules)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
-                }
-                else if (actReportFilters.ReportType.IsChangeReport())
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
-                }
-            }
-
-            Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
-            rsbTabset?.SetActiveTab(1);
+            PostProcess();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
@@ -365,7 +375,7 @@
         // check for unsupported devices
         if(actReportFilters.ReportType == ReportType.UnusedRules)
         {
-            var result = await ReportBase.GetUsageDataUnsupportedDevices(apiConnection, actReportFilters.DeviceFilter);
+            var result = await ReportDevicesBase.GetUsageDataUnsupportedDevices(apiConnection, actReportFilters.DeviceFilter);
             actReportFilters.ReducedDeviceFilter = result.reducedDeviceFilter;
             unsupportedList = result.unsupportedList;
             if(unsupportedList.Count > 0)
@@ -379,7 +389,7 @@
     private async Task GenerateStatisticsReport(CancellationToken token)
     {
         globalStats = new Management();
-        await currentReport.Generate(0, apiConnection,
+        await currentReport.GenerateMgt(0, apiConnection,
             managementsReportIntermediate =>
             {
                 managementsReport = managementsReportIntermediate;
@@ -412,6 +422,24 @@
                     }
                 }
         return rulesFound;
+    }
+
+    private void PostProcess()
+    {
+        if(actReportFilters.ReportType.IsDeviceRelatedReport() && currentReport.NoRuleFound())
+        {
+            if(currentReport is ReportRules || currentReport is ReportNatRules)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+            }
+            else if (actReportFilters.ReportType.IsChangeReport())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+            }
+        }
+        
+        Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
+        rsbTabset?.SetActiveTab(1);
     }
 
     private void CancelGeneration()
@@ -461,28 +489,6 @@
         }
     }
 
-    private bool NoRuleFound()
-    {
-        if(currentReport != null)
-        {
-            foreach(var mgmt in currentReport.Managements)
-            {
-                foreach(var dev in mgmt.Devices)
-                {
-                    if(dev.Rules != null && dev.Rules.Count() > 0)
-                    {
-                        return false;
-                    }
-                    if(dev.RuleChanges != null && dev.RuleChanges.Count() > 0)
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
     private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
     {
         List<ReportType> ListOut = new List<ReportType>();
@@ -499,7 +505,7 @@
             ReportType? foundType = ListIn.Find(x => x == reportType);
             if (foundType != null)
             {
-                if(showRuleRelatedReports && reportType.IsRuleRelatedReport() || showModellingReports && reportType.IsModellingReport())
+                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
                 {
                     ListOut.Add(reportType);
                 }

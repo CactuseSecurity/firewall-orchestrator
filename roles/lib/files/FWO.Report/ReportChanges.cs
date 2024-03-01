@@ -9,26 +9,13 @@ using System.Text.Json;
 using Newtonsoft.Json;
 namespace FWO.Report
 {
-    public class ReportChanges : ReportBase
+    public class ReportChanges : ReportDevicesBase
     {
         private const int ColumnCount = 13;
 
-        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
+        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback)
-        {
-            await callback(Managements);
-            // currently no further objects to be fetched
-            GotObjectsInReport = true;
-            return true;
-        }
-
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override async Task Generate(int changesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
+        public override async Task GenerateMgt(int changesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
@@ -48,6 +35,19 @@ namespace FWO.Report
                 gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables));
                 await callback(Managements);
             }
+        }
+
+        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback)
+        {
+            await callback(Managements);
+            // currently no further objects to be fetched
+            GotObjectsInReport = true;
+            return true;
+        }
+
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
+        {
+            throw new NotImplementedException();
         }
 
         public override string SetDescription()

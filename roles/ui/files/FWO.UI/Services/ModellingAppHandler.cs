@@ -25,15 +25,23 @@ namespace FWO.Ui.Services
             : base (apiConnection, userConfig, application, false, displayMessageInUi, isOwner)
         {}
         
-        public async Task Init()
+        public async Task Init(List<ModellingConnection>? connections = null)
         {
             try
             {
-                var queryParam = new
+                if(connections == null)
                 {
-                    appId = Application.Id
-                };
-                Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, queryParam);
+                    var queryParam = new
+                    {
+                        appId = Application.Id
+                    };
+                    Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, queryParam);
+                }
+                else
+                {
+                    Connections = connections;
+                }
+                
                 foreach(var conn in Connections)
                 {
                     conn.ExtractNwGroups();

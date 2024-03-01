@@ -73,7 +73,7 @@ namespace FWO.Report.Filter
             }
         }
 
-        public static bool IsRuleRelatedReport(this ReportType reportType)
+        public static bool IsDeviceRelatedReport(this ReportType reportType)
         {
             return reportType.IsRuleReport() || reportType.IsChangeReport() || reportType == ReportType.Statistics;
         }

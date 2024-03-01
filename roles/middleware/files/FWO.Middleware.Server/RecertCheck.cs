@@ -172,7 +172,7 @@ namespace FWO.Middleware.Server
 
                 Management[] managements = new Management[0];
 
-                await currentReport.Generate(int.MaxValue, apiConnection,
+                await currentReport.GenerateMgt(int.MaxValue, apiConnection,
                 managementsReportIntermediate =>
                 {
                     managements = managementsReportIntermediate;

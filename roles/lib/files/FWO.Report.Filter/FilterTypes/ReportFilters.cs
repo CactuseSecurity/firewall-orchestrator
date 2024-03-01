@@ -7,21 +7,23 @@ namespace FWO.Report.Filter
     {
         public ReportType ReportType { get; set; } = ReportType.Rules;
 
-        public DeviceFilter DeviceFilter { get; set; } = new DeviceFilter();
-        public DeviceFilter ReducedDeviceFilter { get; set; } = new DeviceFilter();
+        public DeviceFilter DeviceFilter { get; set; } = new();
+        public DeviceFilter ReducedDeviceFilter { get; set; } = new();
         public bool SelectAll = true;
         public bool CollapseDevices = false;
 
-        public TimeFilter TimeFilter { get; set; } = new TimeFilter();
-        public TimeFilter SavedTimeFilter { get; set; } = new TimeFilter();
+        public TimeFilter TimeFilter { get; set; } = new();
+        public TimeFilter SavedTimeFilter { get; set; } = new();
 
-        public TenantFilter TenantFilter { get; set; } = new TenantFilter();
+        public TenantFilter TenantFilter { get; set; } = new();
         public Tenant? SelectedTenant = null;
 
-        public RecertFilter RecertFilter { get; set; } = new RecertFilter();
+        public RecertFilter RecertFilter { get; set; } = new();
 
-        public UnusedFilter UnusedFilter { get; set; } = new UnusedFilter();
+        public UnusedFilter UnusedFilter { get; set; } = new();
         public int UnusedDays = 0;
+
+        public ModellingFilter ModellingFilter { get; set; } = new();
 
         public string DisplayedTimeSelection = "";
 
@@ -60,6 +62,7 @@ namespace FWO.Report.Filter
             SetDisplayedTimeSelection();
             RecertFilter = new(template.ReportParams.RecertFilter);
             UnusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
+            ModellingFilter = template.ReportParams.ModellingFilter;
         }
 
         public ReportParams ToReportParams()
@@ -72,12 +75,13 @@ namespace FWO.Report.Filter
                 {
                     UnusedForDays = UnusedDays, 
                     CreationTolerance = userConfig.CreationTolerance
-                }
+                },
+                ModellingFilter = new ModellingFilter(ModellingFilter)
             };
             if (ReportType != ReportType.Statistics)
             {
                 // also make sure the report a user belonging to a tenant <> 1 sees, gets the additional filters in DynGraphqlQuery.cs
-                if (SelectedTenant == null && userConfig.User.Tenant.Id > 1)
+                if (SelectedTenant == null && userConfig.User.Tenant?.Id > 1)
                 {
                     SelectedTenant = userConfig.User.Tenant;
                     // TODO: when admin selects a tenant filter, add the corresponding device filter to make sure only those devices are reported that the tenant is allowed to see

@@ -3,6 +3,7 @@ using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 
 
 namespace FWO.Ui.Services
@@ -194,6 +195,40 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
                 return true;
+            }
+        }
+
+        public static async Task<List<FwoOwner>> GetOwnApps(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig,
+            ApiConnection apiConnection, Action<Exception?, string, string, bool> DisplayMessageInUi)
+        {
+            List<FwoOwner> apps = new();
+            try
+            {
+                if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+                {
+                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                }
+                else
+                {
+                    UpdateOwnerships(authenticationStateTask,userConfig); // qad: userConfig may not be properly filled
+                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+            return apps;
+        }
+
+        private static void UpdateOwnerships(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig)
+        {
+            string? ownerString = authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners")?.Value;
+            if(ownerString != null)
+            {
+                string[] separatingStrings = { ",", "{", "}" };
+                string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
             }
         }
     }

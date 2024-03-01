@@ -143,7 +143,7 @@ else
     {
         try
         {
-            await GetOwnApps();
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
             if (apps.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
@@ -164,37 +164,6 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-        }
-    }
-
-    private async Task GetOwnApps()
-    {
-        try
-        {
-            if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
-            {
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwnersWithConn);
-            }
-            else
-            {
-                UpdateOwnerships(); // qad: userConfig may not be properly filled
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-        }
-    }
-
-    private void UpdateOwnerships()
-    {
-        string ownerString = authenticationStateTask!.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners").Value;
-        if(ownerString != null)
-        {
-            string[] separatingStrings = { ",", "{", "}" };
-            string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
         }
     }
 

@@ -127,7 +127,7 @@ namespace FWO.Middleware.Server
 
                 Management[] managements = Array.Empty<Management>();
 
-                await changeReport.Generate(int.MaxValue, apiConnection,
+                await changeReport.GenerateMgt(int.MaxValue, apiConnection,
                 managementsReportIntermediate =>
                 {
                     managements = managementsReportIntermediate;

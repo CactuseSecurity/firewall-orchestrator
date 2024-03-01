@@ -79,7 +79,7 @@
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
                     <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.Count > 0 ? 
-                        ownerList.FirstOrDefault(o => o.Id == reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First())?.Name ?? 
+                        recertOwnerList.FirstOrDefault(o => o.Id == reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First())?.Name ?? 
                         reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First().ToString() : "")</label>
                 </div>
             }
@@ -90,27 +90,43 @@
                     <input id="saveTemplateUnused" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
                 </div>
             }
-            else if(reportTemplateInEdit.ReportParams.TenantFilter.IsActive)
-            {
-                <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
-                    <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.TenantFilter.TenantId)</label>
-                </div>
-            }
-            else
+            else if(reportTypeInEdit.IsDeviceRelatedReport())
             {
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("report_time")):</label>
                     <label class="col-sm-8">@(DisplayTime())</label>
                 </div>
             }
-            @if(reportTypeInEdit.IsRuleRelatedReport())
+
+            @if(reportTemplateInEdit.ReportParams.TenantFilter.IsActive)
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                    <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.TenantFilter.TenantId)</label>
+                </div>
+            }
+
+            @if(reportTypeInEdit.IsDeviceRelatedReport())
             {
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
                     <div class="form-group row col-sm-9">
                         <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
                         <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="true" 
+                                @bind-SelectedElement="reportTemplateInEdit.ReportParams.ModellingFilter.SelectedOwner" Elements="modOwnerList">
+                            <ElementTemplate Context="owner">
+                                @(owner.Display(userConfig.GetText("common_service")))
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                 </div>
             }
@@ -147,7 +163,8 @@
     public List<ReportTemplate> reportTemplates { get; set; } = new List<ReportTemplate>();
     public ReportTemplate reportTemplateInEdit = new ReportTemplate();
     private ReportType reportTypeInEdit = ReportType.Rules;
-    private List<FwoOwner> ownerList = new List<FwoOwner>();
+    private List<FwoOwner> recertOwnerList = new List<FwoOwner>();
+    private List<FwoOwner> modOwnerList = new List<FwoOwner>();
 
     private string tmpTemplateCommentKey = "";
     private string tmpTemplateComment = "";
@@ -173,7 +190,8 @@
     protected override async Task OnInitializedAsync()
     {
         await RefreshTemplates();
-        ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+        recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+        modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
     }
 
     public async Task RefreshTemplates()
@@ -181,7 +199,7 @@
         try
         {
             reportTemplates = (await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates, new { userId = userConfig.User.DbId })).ToList();
-            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsRuleRelatedReport() || 
+            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
                                                            showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport())).ToList();
             await InvokeAsync(StateHasChanged);
         }

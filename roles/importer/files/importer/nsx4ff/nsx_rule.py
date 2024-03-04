@@ -39,6 +39,8 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
         for dev_id in full_config['devices'].keys():
             for rulebase in list(full_config['devices'][dev_id].keys()):
                 for rule_orig in full_config['devices'][dev_id][rulebase]['rules']:
+
+                    # set some default values first
                     rule = {'rule_src': 'any', 'rule_dst': 'any', 'rule_svc': 'any',
                     'rule_src_refs': 'any_obj_placeholder', 'rule_dst_refs': 'any_obj_placeholder',
                     'rule_src_neg': False, 'rule_dst_neg': False,
@@ -94,14 +96,14 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                         rule['rule_track'] = 'none'
 
                     if "source_groups" in rule_orig:
-                        rule['rule_src_refs'] = ','.join(rule_orig["source_groups"])
-                        # rule['rule_src_refs'], rule["rule_src"] = parse_obj_list(source_objects, import_id, config2import['network_objects'], rule["rule_uid"])
+                        #rule['rule_src_refs'] = ','.join(rule_orig["source_groups"])
+                        rule['rule_src_refs'], rule["rule_src"] = parse_obj_list(rule_orig["source_groups"], import_id, config2import['network_objects'], rule["rule_uid"])
                     else:
                         logger.warning("found undefined source in rule: " + str(rule_orig))
 
                     if "destination_groups" in rule_orig:
-                        rule['rule_dst_refs'] = ','.join(rule_orig["destination_groups"])
-                        # rule['rule_dst_refs'], rule["rule_dst"] = parse_obj_list(destination_objects, import_id, config2import['network_objects'], rule["rule_uid"])
+                        #rule['rule_dst_refs'] = ','.join(rule_orig["destination_groups"])
+                        rule['rule_dst_refs'], rule["rule_dst"] = parse_obj_list(rule_orig["destination_groups"], import_id, config2import['network_objects'], rule["rule_uid"])
                     else:
                         logger.warning("found undefined destination in rule: " + str(rule_orig))
 

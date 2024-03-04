@@ -123,8 +123,9 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     #     if apps[0] == 'any':
                     #         apps = []
                     
-                    # rule['rule_svc_refs'], rule["rule_svc"] = parse_svc_list(apps + services, import_id, config2import['service_objects'], rule["rule_uid"], type='service')
-                    rule['rule_svc_refs'], rule["rule_svc"] = parse_svc_list(services, import_id, config2import['service_objects'], rule["rule_uid"], type='service')
+                    if services != [ "ANY" ]:
+                        # rule['rule_svc_refs'], rule["rule_svc"] = parse_svc_list(apps + services, import_id, config2import['service_objects'], rule["rule_uid"], type='service')
+                        rule['rule_svc_refs'], rule["rule_svc"] = parse_svc_list(services, import_id, config2import['service_objects'], rule["rule_uid"], type='service')
 
                     rule_number += 1
                     rules.append(rule)

@@ -122,7 +122,6 @@ def parse_svc_list(svc_list, import_id, obj_list, id, type='network'):
     return list_delimiter.join(refs), list_delimiter.join(names)
 
 
-
 def lookup_svc_obj_name(obj_name, obj_list, import_id, type='network'):
     logger = getFwoLogger()
     for o in obj_list:

@@ -3,14 +3,13 @@
 
 @typeparam InputDataType
 
-@if (Data != null && FetchObjects != null && NameExtractor != null&& NetworkObjectExtractor != null && NetworkServiceExtractor != null && NetworkUserExtractor != null)
+@if (Data != null && NameExtractor != null)
 {
     @foreach (InputDataType obj in Data)
     {
-        <ObjectGroup FetchObjects="FetchObjects" Recert="Recert" Tab="Tab" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed" InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor"
-                     NetworkObjectExtractor="NetworkObjectExtractor"
-                     NetworkServiceExtractor="NetworkServiceExtractor"
-                     NetworkUserExtractor="NetworkUserExtractor" />
+        <ObjectGroup FetchObjects="FetchObjects" Recert="Recert" Tab="Tab" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed"
+            InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor" NetworkObjectExtractor="NetworkObjectExtractor"
+            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor"/>
         <div class="mb-1"></div>
     }
 }

@@ -66,5 +66,10 @@ namespace FWO.Api.Data
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
         }
+
+        public static NetworkService[] ResolveAsNetworkServices(List<ModellingServiceWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => ModellingService.ToNetworkService(wrapper.Content));
+        }
     }
 }

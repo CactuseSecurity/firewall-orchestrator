@@ -11,7 +11,10 @@ namespace FWO.Report
     {
         all = 10, 
         report = 20, 
-        rule = 30
+        rule = 30,
+
+        usedObj = 40,
+        unusedObj = 50
     }
 
     public enum ObjCategory
@@ -19,7 +22,8 @@ namespace FWO.Report
         all = 0,
         nobj = 1, 
         nsrv = 2, 
-        user = 3
+        user = 3,
+        appSvc = 4
     }
 
     public abstract class ReportBase

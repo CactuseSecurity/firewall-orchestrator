@@ -167,7 +167,7 @@ namespace FWO.Middleware.Server
                                 connectionReport = connectionReportIntermediate;
                                 return Task.CompletedTask;
                             }, token);
-                        await report.GetConObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+                        //await report.GetConObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                     }
                     WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
                     await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);

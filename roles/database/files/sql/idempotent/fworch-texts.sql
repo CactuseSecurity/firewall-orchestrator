@@ -388,6 +388,8 @@ Choose from the following contact options:
 ');
 
 -- reporting
+INSERT INTO txt VALUES ('report',		        'German', 	'Report');
+INSERT INTO txt VALUES ('report',		        'English', 	'Report');
 INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
 INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
 INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
@@ -548,6 +550,10 @@ INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
 INSERT INTO txt VALUES ('rules',		        'English', 	'Rules');
 INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
+INSERT INTO txt VALUES ('used_objects',		    'German', 	'Benutzte Objekte');
+INSERT INTO txt VALUES ('used_objects',		    'English', 	'Used Objects');
+INSERT INTO txt VALUES ('unused_objects',		'German', 	'Unbenutzte Objekte');
+INSERT INTO txt VALUES ('inused_objects',		'English', 	'Unused Objects');
 INSERT INTO txt VALUES ('rule_deleted',         'German', 	'Regel gel&ouml;scht');
 INSERT INTO txt VALUES ('rule_deleted',         'English', 	'Rule deleted');
 INSERT INTO txt VALUES ('rule_added',           'German', 	'Regel hinzugef&uuml;gt');
@@ -1014,6 +1020,8 @@ INSERT INTO txt VALUES ('library', 	            'German',	'Bibliothek');
 INSERT INTO txt VALUES ('library', 	            'English',	'Library');
 INSERT INTO txt VALUES ('app_server', 	        'German',	'App Server');
 INSERT INTO txt VALUES ('app_server', 	        'English',	'App Server');
+INSERT INTO txt VALUES ('app_servers', 	        'German',	'App Server');
+INSERT INTO txt VALUES ('app_servers', 	        'English',	'App Servers');
 INSERT INTO txt VALUES ('app_role', 	        'German',	'App Rolle');
 INSERT INTO txt VALUES ('app_role', 	        'English',	'App Role');
 INSERT INTO txt VALUES ('app_roles', 	        'German',	'App Rollen');

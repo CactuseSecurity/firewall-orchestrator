@@ -153,12 +153,13 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    @if (actReportFilters.ReportType.IsDeviceRelatedReport())
-    {
-        <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
-            @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport" AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)" />
-        <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
-    }
+    <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
+        @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="actReportFilters.ReportType.IsDeviceRelatedReport() ? managementsReport : null" 
+        ConnectionsReport="actReportFilters.ReportType.IsModellingReport() ? connectionReport : null"
+        AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
+        SelectedReportType = "actReportFilters.ReportType"/>
+    <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
+
 }
 
 @* ==== POPUPS ==== *@
@@ -186,7 +187,7 @@
     private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
     private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
-    private List<ModellingConnection> connectionReport = new();
+    private List<OwnerReport> connectionReport = new();
     private ModellingAppHandler? appHandler;
     private Management[] managementsReport = new Management[0];
     List<int> relevantManagementIds = new();
@@ -341,19 +342,21 @@
 
             startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
+            connectionReport = new();
 
             try
             {
                 if(currentReport.ReportType.IsModellingReport())
                 {
+                    connectionReport.Add(new OwnerReport(){ Name = actReportFilters.ModellingFilter.SelectedOwner.Name });
                     await currentReport.GenerateCon(userConfig.ElementsPerFetch, apiConnection,
                     connectionReportIntermediate =>
                     {
-                        connectionReport = connectionReportIntermediate;
+                        connectionReport[0].Connections = connectionReportIntermediate;
                         return InvokeAsync(StateHasChanged);
                     }, token);
                     appHandler = new (apiConnection, userConfig, actReportFilters.ModellingFilter.SelectedOwner, DisplayMessageInUi);
-                    await appHandler.Init(connectionReport);
+                    await appHandler.Init(connectionReport[0].Connections);
                 }
                 else if(currentReport.ReportType == ReportType.Statistics)
                 {

@@ -23,6 +23,18 @@ namespace FWO.Api.Data
             return $"<span class=\"{Icons.ServiceGroup}\"></span> " + DisplayHtml();
         }
 
+        public NetworkService ToNetworkServiceGroup()
+        {
+            return new()
+            {
+                Id = Id,
+                Name = Name ?? "",
+                Comment = Comment ?? "",
+                Type = new NetworkServiceType(){ Name = "group" },
+                ServiceGroups = ModellingServiceGroupWrapper.ResolveAsNetworkServiceGroup(Services ?? new List<ModellingServiceWrapper>())
+            };
+        }
+
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
@@ -40,6 +52,11 @@ namespace FWO.Api.Data
         public static ModellingServiceGroup[] Resolve(List<ModellingServiceGroupWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+
+        public static Group<NetworkService>[] ResolveAsNetworkServiceGroup(List<ModellingServiceWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkService> {Id = wrapper.Content.Id, Object = ModellingService.ToNetworkService(wrapper.Content)});
         }
     }
 }

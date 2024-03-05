@@ -84,12 +84,27 @@
                                     </Content2>
                                 </ContentSwap>
                             }
-                            <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
+                            @if(context.CreateTime.Time.Year > 1)
+                            {
+                                <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
+                            }
                             <Detail Title="@(userConfig.GetText("comment"))" Data=@context.Comment />
                         </DetailTemplate>
                     </Table>
                 </Collapse>
             }
+            @* @if(AppServerExtractor != null)
+            {
+                <Collapse Title="@(userConfig.GetText("app_servers"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.appSvc)">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="ModellingAppServer" Items="@AppServerExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                        <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
+                            <Template>
+                                @((MarkupString)context.DisplayHtml())
+                            </Template>
+                        </Column>
+                    </Table>
+                </Collapse>
+            } *@
             @if(NetworkServiceExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)">
@@ -141,7 +156,10 @@
                                     </Content2>
                                 </ContentSwap>
                             }
-                            <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
+                            @if(context.CreateTime.Time.Year > 1)
+                            {
+                                <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
+                            }
                             <Detail Title="@(userConfig.GetText("comment"))" Data=@context.Comment />
                         </DetailTemplate>
                     </Table>
@@ -241,6 +259,10 @@
 
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
+
+    // [Parameter]
+    // public Func<InputDataType, IEnumerable<ModellingAppServer>>? AppServerExtractor { get; set; }
+
 
     // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
     public InputDataType? Content { get; set; }

@@ -30,7 +30,7 @@ namespace FWO.Api.Data
                 Id = Id,
                 Name = Name ?? "",
                 Comment = Comment ?? "",
-                Type = new NetworkServiceType(){ Name = "group" },
+                Type = new NetworkServiceType(){ Name = ObjectType.Group },
                 ServiceGroups = ModellingServiceGroupWrapper.ResolveAsNetworkServiceGroup(Services ?? new List<ModellingServiceWrapper>())
             };
         }

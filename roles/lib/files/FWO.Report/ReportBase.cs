@@ -22,8 +22,8 @@ namespace FWO.Report
         all = 0,
         nobj = 1, 
         nsrv = 2, 
-        user = 3,
-        appSvc = 4
+        user = 3 //,
+        // appSvc = 4
     }
 
     public abstract class ReportBase
@@ -204,15 +204,15 @@ namespace FWO.Report
         {
             switch (objType)
             {
-                case "group" when objCategory == ObjCategory.user:
+                case ObjectType.Group when objCategory == ObjCategory.user:
                     return Icons.UserGroup;
-                case "group":
+                case ObjectType.Group:
                     return Icons.ObjGroup;
-                case "host":
+                case ObjectType.Host:
                     return Icons.Host;
-                case "network":
+                case ObjectType.Network:
                     return Icons.Network;
-                case "ip_range":
+                case ObjectType.IPRange:
                     return Icons.Range;
                 default:
                     switch (objCategory)

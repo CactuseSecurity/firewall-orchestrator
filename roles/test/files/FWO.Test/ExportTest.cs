@@ -11,17 +11,17 @@ namespace FWO.Test
     [Parallelizable]
     internal class ExportTest
     {
-        static NetworkObject TestIp1 = new NetworkObject(){ Id = 1, Name = "TestIp1", IP = "1.2.3.4/32", IpEnd = "1.2.3.4/32", Type = new NetworkObjectType(){ Name = "network" }};
-        static NetworkObject TestIp2 = new NetworkObject(){ Id = 2, Name = "TestIp2", IP = "127.0.0.1/32", IpEnd = "127.0.0.1/32", Type = new NetworkObjectType(){ Name = "network" }};
-        static NetworkObject TestIpRange = new NetworkObject(){ Id = 3, Name = "TestIpRange", IP = "1.2.3.4/32", IpEnd = "1.2.3.5/32", Type = new NetworkObjectType(){ Name = "ip_range" }};
-        static NetworkObject TestIpNew = new NetworkObject(){ Id = 4, Name = "TestIpNew", IP = "10.0.6.0/32", IpEnd = "10.0.6.255/32", Type = new NetworkObjectType(){ Name = "network" }};
-        static NetworkObject TestIp1Changed = new NetworkObject(){ Id = 5, Name = "TestIp1Changed", IP = "2.3.4.5/32", IpEnd = "2.3.4.5/32", Type = new NetworkObjectType(){ Name = "host" }};
+        static NetworkObject TestIp1 = new NetworkObject(){ Id = 1, Name = "TestIp1", IP = "1.2.3.4/32", IpEnd = "1.2.3.4/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
+        static NetworkObject TestIp2 = new NetworkObject(){ Id = 2, Name = "TestIp2", IP = "127.0.0.1/32", IpEnd = "127.0.0.1/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
+        static NetworkObject TestIpRange = new NetworkObject(){ Id = 3, Name = "TestIpRange", IP = "1.2.3.4/32", IpEnd = "1.2.3.5/32", Type = new NetworkObjectType(){ Name = ObjectType.IPRange }};
+        static NetworkObject TestIpNew = new NetworkObject(){ Id = 4, Name = "TestIpNew", IP = "10.0.6.0/32", IpEnd = "10.0.6.255/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
+        static NetworkObject TestIp1Changed = new NetworkObject(){ Id = 5, Name = "TestIp1Changed", IP = "2.3.4.5/32", IpEnd = "2.3.4.5/32", Type = new NetworkObjectType(){ Name = ObjectType.Host }};
 
         static NetworkService TestService1 = new NetworkService(){  Id = 1, DestinationPort = 443, DestinationPortEnd = 443, Name = "TestService1", Protocol = new NetworkProtocol { Name = "TCP" }};
         static NetworkService TestService2 = new NetworkService(){  Id = 2, DestinationPort = 6666, DestinationPortEnd = 7777, Name = "TestService2", Protocol = new NetworkProtocol { Name = "UDP" }};
 
         static NetworkUser TestUser1 = new NetworkUser(){ Id = 1, Name = "TestUser1" };
-        static NetworkUser TestUser2 = new NetworkUser(){ Id = 2, Name = "TestUser2", Type = new NetworkUserType() { Name = "group"} };
+        static NetworkUser TestUser2 = new NetworkUser(){ Id = 2, Name = "TestUser2", Type = new NetworkUserType() { Name = ObjectType.Group} };
 
         static Rule Rule1 = new Rule();
         static Rule Rule1Changed = new Rule();

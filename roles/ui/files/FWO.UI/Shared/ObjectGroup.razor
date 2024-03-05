@@ -54,7 +54,7 @@
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
                             <Detail Title="@(userConfig.GetText("ip"))" Data=@NwObjDisplay.DisplayIp(context.IP, context.IpEnd, context.Type.Name) />
                             <Detail Title="@(userConfig.GetText("zone"))" Data=@context.Zone?.Name />
-                            @if (context.Type.Name == "group" && context.ObjectGroups != null && context.ObjectGroupFlats != null)
+                            @if (context.Type.Name == ObjectType.Group && context.ObjectGroups != null && context.ObjectGroupFlats != null)
                             {
                                 <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
                                     <Content1>
@@ -73,7 +73,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                                if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 
@@ -118,7 +118,7 @@
                         <DetailTemplate TableItem="NetworkService">
                             <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type.Name />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
-                            @if (context.Type.Name != "group")
+                            @if (context.Type.Name != ObjectType.Group)
                             {
                                 <Detail Title="@(userConfig.GetText("source_port"))" Data=@(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
                                 <Detail Title="@(userConfig.GetText("destination_port"))" Data=@(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
@@ -126,7 +126,7 @@
                                 <Detail Title="@(userConfig.GetText("code"))" Data=@context.Code />
                                 <Detail Title="@(userConfig.GetText("timeout"))" Data=@context.Timeout.ToString() />
                             }
-                            @if (context.Type.Name == "group" && context.ServiceGroups != null && context.ServiceGroupFlats != null)
+                            @if (context.Type.Name == ObjectType.Group && context.ServiceGroups != null && context.ServiceGroupFlats != null)
                             {
                                 <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
                                     <Content1>
@@ -145,7 +145,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                                if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 
@@ -179,7 +179,7 @@
                             <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type?.Name />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
                             <Detail Title="@(userConfig.GetText("real_name"))" Data=@($"{context.FirstName} {context.LastName}") />
-                            @if (context.Type != null && context.Type.Name == "group" && context.UserGroups != null && context.UserGroupFlats != null)
+                            @if (context.Type != null && context.Type.Name == ObjectType.Group && context.UserGroups != null && context.UserGroupFlats != null)
                             {
                                 <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
                                     <Content1>
@@ -198,7 +198,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                                if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 

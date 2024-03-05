@@ -26,4 +26,12 @@ namespace FWO.Api.Data
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
     }
+
+    public struct ObjectType
+    {
+        public const string Group = "group";
+        public const string Host = "host";
+        public const string Network = "network";
+        public const string IPRange = "ip_range";
+    }
 }

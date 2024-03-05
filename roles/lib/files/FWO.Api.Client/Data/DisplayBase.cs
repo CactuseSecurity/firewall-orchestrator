@@ -65,7 +65,7 @@ namespace FWO.Api.Data
             IPAddressRange IpRange;
             string IpStart;
             string IpEnd;
-            if (nwObjType != "group")
+            if (nwObjType != ObjectType.Group)
             {
                 if (ip2 == null)
                 {
@@ -96,14 +96,14 @@ namespace FWO.Api.Data
                             if (IpRange != null)
                             {
                                 result = inBrackets ? " (" : "";
-                                if (nwObjType == "network")
+                                if (nwObjType == ObjectType.Network)
                                 {
                                     result += IpRange.ToCidrString();
                                 }
                                 else
                                 {
                                     result += IpStart;
-                                    if (nwObjType.Contains("range"))
+                                    if (nwObjType.Contains(ObjectType.IPRange))
                                     {
                                         result += $"-{IpEnd}";
                                     }
@@ -152,13 +152,13 @@ namespace FWO.Api.Data
         {
             if (ip1 == ip2)
             {
-                return "host";
+                return ObjectType.Host;
             }
             if (SpanSingleNetwork(ip1, ip2))
             {
-                return "network";
+                return ObjectType.Network;
             }
-            return "iprange";
+            return ObjectType.IPRange;
         }
 
         private static bool isV6Address(string ip)

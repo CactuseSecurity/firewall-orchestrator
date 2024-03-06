@@ -42,6 +42,7 @@ namespace FWO.Report.Filter.Ast
             {
                 string QueryVarName = AddVariable<string>(query, "dst", Operator.Kind, Value.Text);
                 query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
+                query.connectionWhereStatement += $"nwobject_connections: {{connection_field: {{ _eq: 2 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }}";
             }
             return query;
         }
@@ -55,6 +56,7 @@ namespace FWO.Report.Filter.Ast
             {
                 string QueryVarName = AddVariable<string>(query, "src", Operator.Kind, Value.Text);
                 query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
+                query.connectionWhereStatement += $"nwobject_connections: {{connection_field: {{ _eq: 1 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }}";
             }
             return query;
         }
@@ -145,6 +147,9 @@ namespace FWO.Report.Filter.Ast
                                 }}
                             }}
                         }}";
+            ipFilterString = $@" ip_end: {{ _gte: ${QueryVarNameFirst1} }} ip: {{ _lte: ${QueryVarNameLast2} }}";
+            int conField = location == "src" ? 1 : 2;
+            query.connectionWhereStatement += $"nwobject_connections: {{connection_field: {{ _eq: {conField} }}, owner_network: {{ {ipFilterString} }} }}";
             return query;
         }
 

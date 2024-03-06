@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using FWO.Report.Filter;
 
 namespace FWO.Report.Filter.Ast
 {
@@ -52,11 +48,16 @@ namespace FWO.Report.Filter.Ast
             string queryVarName = AddVariable<string>(query, "fullTextFiler", Operator.Kind, semanticValue!);
             string queryOperator = ExtractOperator();
 
-            List<string> ruleFieldNames = new List<string>() { "rule_src", "rule_dst", "rule_svc", "rule_action", "rule_name", "rule_comment", "rule_uid" };  // TODO: add comment later
-            List<string> searchParts = new List<string>();
+            List<string> ruleFieldNames = new () { "rule_src", "rule_dst", "rule_svc", "rule_action", "rule_name", "rule_comment", "rule_uid" };  // TODO: add comment later
+            List<string> ruleSearchParts = new ();
             foreach (string field in ruleFieldNames)
-                searchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
-            query.ruleWhereStatement += $"_or: [ {string.Join(", ", searchParts)} ]";
+                ruleSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
+            query.ruleWhereStatement += $"_or: [ {string.Join(", ", ruleSearchParts)} ]";
+            //     List<string> connFieldNames = new () { "name" };
+            //     List<string> connSearchParts = new ();
+            //     foreach (string field in connFieldNames)
+            //         connSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
+            //     query.connectionWhereStatement += $"_or: [ {string.Join(", ", connSearchParts)} ]";
             return query;
         }
 
@@ -97,6 +98,7 @@ namespace FWO.Report.Filter.Ast
         {
             string queryVarName = AddVariable<string>(query, "proto", Operator.Kind, semanticValue!);
             query.ruleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}";
+            query.connectionWhereStatement += $"service_connections: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}";
             return query;
         }
 
@@ -111,6 +113,7 @@ namespace FWO.Report.Filter.Ast
         {
             string queryVarName = AddVariable<string>(query, "svc", Operator.Kind, semanticValue!);
             query.ruleWhereStatement += $"rule_services: {{service: {{svcgrp_flats: {{serviceBySvcgrpFlatMemberId: {{svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }}";
+            query.connectionWhereStatement += $"service_connections: {{service: {{name: {{ {ExtractOperator()}: ${queryVarName} }} }} }}";
             return query;
         }
     }

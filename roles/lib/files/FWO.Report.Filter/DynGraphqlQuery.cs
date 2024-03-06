@@ -246,7 +246,7 @@ namespace FWO.Report.Filter
             {
                 query.QueryParameters.Add("$appId: Int!");
                 query.QueryVariables["appId"] = modellingFilter.SelectedOwner.Id;
-                query.connectionWhereStatement = $@"app_id: {{ _eq: $appId }}";
+                query.connectionWhereStatement += $@"{{app_id: {{ _eq: $appId }} }}";
             }
         }
 
@@ -303,16 +303,19 @@ namespace FWO.Report.Filter
             DynGraphqlQuery query = new DynGraphqlQuery(filter.Filter);
 
             query.ruleWhereStatement += "_and: [";
+            query.connectionWhereStatement += "_and: [";
 
             SetFixedFilters(ref query, filter);
 
             query.ruleWhereStatement += "{";
+            query.connectionWhereStatement += "{";
 
             // now we convert the ast into a graphql query:
             if (ast != null)
                 ast.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
 
             query.ruleWhereStatement += "}] ";
+            query.connectionWhereStatement += "}] ";
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
 

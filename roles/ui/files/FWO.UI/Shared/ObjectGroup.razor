@@ -260,6 +260,9 @@
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
 
+    [Parameter]
+    public bool Reload { get; set; } = false;
+
     // [Parameter]
     // public Func<InputDataType, IEnumerable<ModellingAppServer>>? AppServerExtractor { get; set; }
 
@@ -275,7 +278,17 @@
     {
         Content = InitialContent;
         if (StartContentDetailed)
+        {
             await FetchContent(ObjCategory.all);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Reload)
+        {
+            Content = InitialContent;
+        }
     }
 
     private string GetIDPrefix(ObjCategory objCategory, RsbTab? tab = null, bool toMgmtObj = false)

@@ -9,7 +9,7 @@
     {
         <ObjectGroup FetchObjects="FetchObjects" Recert="Recert" Tab="Tab" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed"
             InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor" NetworkObjectExtractor="NetworkObjectExtractor"
-            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor"/>
+            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor" Reload="Reload"/>
         <div class="mb-1"></div>
     }
 }
@@ -48,4 +48,7 @@
 
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
+    
+    [Parameter]
+    public bool Reload { get; set; } = false;
 }

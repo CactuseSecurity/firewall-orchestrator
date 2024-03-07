@@ -127,7 +127,7 @@
                             break;
 
                         case ReportType.Connections:
-                            <ConnectionsReport AppHandler="appHandler"/>
+                            <ConnectionsReport AppHandler="appHandler" AllCommonServices="globalComSvc"/>
                             break;
 
                         default:
@@ -192,6 +192,7 @@
     private Management[] managementsReport = new Management[0];
     List<int> relevantManagementIds = new();
     private Management? globalStats = null;
+    private List<ModellingConnection>? globalComSvc = null;
     
     private ReportFilters actReportFilters = new ();
     private bool InitDone = false;
@@ -285,6 +286,7 @@
         managementsReport = new Management[] {};
         globalStats = null;
         connectionReport = new();
+        globalComSvc = null;
         reportGenerationDuration = 0;
     }
 
@@ -357,6 +359,7 @@
                     }, token);
                     appHandler = new (apiConnection, userConfig, actReportFilters.ModellingFilter.SelectedOwner, DisplayMessageInUi);
                     await appHandler.Init(connectionReport[0].Connections);
+                    globalComSvc = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
                 }
                 else if(currentReport.ReportType == ReportType.Statistics)
                 {

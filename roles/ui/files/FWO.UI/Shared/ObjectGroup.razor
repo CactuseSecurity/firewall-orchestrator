@@ -56,33 +56,46 @@
                             <Detail Title="@(userConfig.GetText("zone"))" Data=@context.Zone?.Name />
                             @if (context.Type.Name == ObjectType.Group && context.ObjectGroups != null && context.ObjectGroupFlats != null)
                             {
-                                <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
-                                    <Content1>
-                                        @foreach (Group<NetworkObject> member in context.ObjectGroups)
+                                if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
+                                {
+                                    foreach (Group<NetworkObject> member in context.ObjectGroups)
+                                    {
+                                        if(member.Object != null)
                                         {
-                                            if(member.Object != null)
-                                            {
-                                                @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
-                                                <br>
-                                            }
+                                            <div><span class=\"{Icons.NwObject}\"></span> @DisplayBase.DisplayIpWithName(member.Object)</div>
                                         }
-                                    </Content1>
-                                    <Content2>
-                                        @{ List<long> shownMemberIds = new List<long>(); }
-                                        @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
-                                        {
-                                            if(member.Object != null)
+                                    }
+                                }
+                                else
+                                {
+                                    <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
+                                        <Content1>
+                                            @foreach (Group<NetworkObject> member in context.ObjectGroups)
                                             {
-                                                if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
-                                                    continue;
-                                                shownMemberIds.Add(member.Object.Id);
+                                                if(member.Object != null)
+                                                {
+                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    <br>
+                                                }
+                                            }
+                                        </Content1>
+                                        <Content2>
+                                            @{ List<long> shownMemberIds = new List<long>(); }
+                                            @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
+                                            {
+                                                if(member.Object != null)
+                                                {
+                                                    if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
+                                                        continue;
+                                                    shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
-                                                <br>
+                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    <br>
+                                                }
                                             }
-                                        }
-                                    </Content2>
-                                </ContentSwap>
+                                        </Content2>
+                                    </ContentSwap>
+                                }
                             }
                             @if(context.CreateTime.Time.Year > 1)
                             {
@@ -128,33 +141,46 @@
                             }
                             @if (context.Type.Name == ObjectType.Group && context.ServiceGroups != null && context.ServiceGroupFlats != null)
                             {
-                                <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
-                                    <Content1>
-                                        @foreach (Group<NetworkService> member in context.ServiceGroups)
+                                if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
+                                {
+                                    foreach (Group<NetworkService> member in context.ServiceGroups)
+                                    {
+                                        if(member.Object != null)
                                         {
-                                            if(member.Object != null)
-                                            {
-                                                @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
-                                                <br>
-                                            }
+                                            <div><span class=\"{Icons.Service}\"></span> @DisplayBase.DisplayService(member.Object, false)</div>
                                         }
-                                    </Content1>
-                                    <Content2>
-                                        @{ List<long> shownMemberIds = new List<long>(); }
-                                        @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
-                                        {
-                                            if(member.Object != null)
+                                    }
+                                }
+                                else
+                                {
+                                    <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
+                                        <Content1>
+                                            @foreach (Group<NetworkService> member in context.ServiceGroups)
                                             {
-                                                if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
-                                                    continue;
-                                                shownMemberIds.Add(member.Object.Id);
+                                                if(member.Object != null)
+                                                {
+                                                    @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    <br>
+                                                }
+                                            }
+                                        </Content1>
+                                        <Content2>
+                                            @{ List<long> shownMemberIds = new List<long>(); }
+                                            @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
+                                            {
+                                                if(member.Object != null)
+                                                {
+                                                    if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
+                                                        continue;
+                                                    shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
-                                                <br>
+                                                    @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    <br>
+                                                }
                                             }
-                                        }
-                                    </Content2>
-                                </ContentSwap>
+                                        </Content2>
+                                    </ContentSwap>
+                                }
                             }
                             @if(context.CreateTime.Time.Year > 1)
                             {
@@ -340,6 +366,10 @@
 
     RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name)
     {
+        @* if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
+        {
+            return @<span class="@ReportBase.GetIconClass(objCategory, type)">@name</span>;
+        } *@
         RsbTab targetTab = Tab == RsbTab.all ? RsbTab.all : RsbTab.report;
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
 

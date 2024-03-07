@@ -16,7 +16,7 @@ namespace FWO.Api.Data
 
         public override string Display()
         {
-            return (IsDeleted ? "!" : "") + (InUse ? "" : "*") + DisplayBase.DisplayIpWithName(ToNetworkObject());
+            return (IsDeleted ? "!" : "") + (InUse ? "" : "*") + DisplayBase.DisplayIpWithName(ToNetworkObject(this));
         }
 
         public override string DisplayHtml()
@@ -38,14 +38,14 @@ namespace FWO.Api.Data
             return shortened;
         }
 
-        public NetworkObject ToNetworkObject()
+        public static NetworkObject ToNetworkObject(ModellingAppServer appServer)
         {
             return new NetworkObject()
             {
-                Id = Id,
-                Name = Name,
-                IP = Ip,
-                IpEnd = Ip
+                Id = appServer.Id,
+                Name = appServer.Name,
+                IP = appServer.Ip,
+                IpEnd = appServer.Ip
             };
         }
 

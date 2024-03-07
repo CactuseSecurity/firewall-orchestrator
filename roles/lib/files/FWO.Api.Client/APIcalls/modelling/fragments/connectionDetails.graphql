@@ -1,6 +1,9 @@
 fragment connectionDetails on modelling_connection {
   id
   app_id
+  owner{
+    name
+  }
   name
   reason
   is_interface

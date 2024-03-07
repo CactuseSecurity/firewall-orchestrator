@@ -27,7 +27,23 @@
 
         public List<NetworkObject> GetAllNetworkObjects()
         {
-            return Array.ConvertAll(GetAllAppServers().ToArray(), x => x.ToNetworkObject()).ToList();
+            List<NetworkObject> allObjects = new();
+            foreach(var conn in Connections)
+            {
+                List<NetworkObject> objList = new();
+                foreach (var objGrp in conn.SourceAppRoles)
+                {
+                    objList.Add(objGrp.Content.ToNetworkObjectGroup());
+                }
+                foreach (var objGrp in conn.DestinationAppRoles)
+                {
+                    objList.Add(objGrp.Content.ToNetworkObjectGroup());
+                }
+                allObjects = allObjects.Union(objList).ToList();
+                allObjects = allObjects.Union(Array.ConvertAll(GetAllAppServers().ToArray(), x => ModellingAppServer.ToNetworkObject(x)).ToList()).ToList();
+            }
+            return allObjects;
+
         }
 
         public List<NetworkService> GetAllServices()

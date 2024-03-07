@@ -38,6 +38,18 @@ namespace FWO.Api.Data
             return $"<span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
+        public NetworkObject ToNetworkObjectGroup()
+        {
+            return new()
+            {
+                Id = Id,
+                Name = Name ?? "",
+                Comment = Comment ?? "",
+                Type = new NetworkObjectType(){ Name = ObjectType.Group },
+                ObjectGroups = ModellingAppRoleWrapper.ResolveAsNetworkObjectGroup(AppServers ?? new List<ModellingAppServerWrapper>())
+            };
+        }
+
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
@@ -55,6 +67,11 @@ namespace FWO.Api.Data
         public static ModellingAppRole[] Resolve(List<ModellingAppRoleWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+
+        public static Group<NetworkObject>[] ResolveAsNetworkObjectGroup(List<ModellingAppServerWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkObject> {Id = wrapper.Content.Id, Object = ModellingAppServer.ToNetworkObject(wrapper.Content)});
         }
     }
 }

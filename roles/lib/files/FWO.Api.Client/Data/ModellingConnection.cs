@@ -11,6 +11,9 @@ namespace FWO.Api.Data
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
         public int AppId { get; set; }
 
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner App { get; set; } = new();
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; } = "";
 

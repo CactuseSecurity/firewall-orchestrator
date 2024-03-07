@@ -6,4 +6,9 @@ fragment serviceGroupDetails on modelling_service_group {
   comment
   creator
   creation_date
+  services: service_service_groups{
+    service{
+      ...serviceDetails
+    }
+  }
 }

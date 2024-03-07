@@ -22,8 +22,14 @@
     }
     @if(AppHandler.GetCommonServices().Count > 0)
     {
-        <Collapse Title="@userConfig.GetText("common_services")" Style="@("primary")" StartToggled="false">
+        <Collapse Title="@userConfig.GetText("own_common_services")" Style="@("primary")" StartToggled="false">
             <ConnectionTable Connections="@AppHandler.GetCommonServices()" AppHandler="AppHandler" Readonly="true"/>
+        </Collapse>
+    }
+    @if(AllCommonServices != null && AllCommonServices.Count > 0)
+    {
+        <Collapse Title="@userConfig.GetText("global_common_services")" Style="@("primary")" StartToggled="false">
+            <ConnectionTable Connections="@AllCommonServices" AppHandler="AppHandler" Readonly="true" ShowAppName="true"/>
         </Collapse>
     }
 }
@@ -32,4 +38,7 @@
 {
     [Parameter]
     public ModellingAppHandler? AppHandler { get; set; } = null;
+
+    [Parameter]
+    public List<ModellingConnection>? AllCommonServices { get; set; } = null;
 }

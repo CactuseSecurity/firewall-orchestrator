@@ -1013,7 +1013,7 @@ namespace FWO.Test
             };
         }
 
-        private ManagementReport[] ConstructRuleReport(bool resolved)
+        private List<ManagementReport> ConstructRuleReport(bool resolved)
         {
             Rule1 = InitRule1(resolved);
             Rule2 = InitRule2(resolved);
@@ -1034,10 +1034,10 @@ namespace FWO.Test
                         } 
                     }
                 }
-            }.ToArray();
+            };
         }
 
-        private ManagementReport[] ConstructRecertReport()
+        private List<ManagementReport> ConstructRecertReport()
         {
             RecertRule1 = InitRule1(false);
             RecertRule1.Metadata.RuleRecertification = new List<Recertification>()
@@ -1082,10 +1082,10 @@ namespace FWO.Test
                         } 
                     }
                 }
-            }.ToArray();
+            };
         }
 
-        private ManagementReport[] ConstructNatRuleReport()
+        private List<ManagementReport> ConstructNatRuleReport()
         {
             NatRule = InitRule1(false);
             NatRule.NatData = new NatData()
@@ -1121,10 +1121,10 @@ namespace FWO.Test
                         new Device(){ Name = "TestDev", Rules = new Rule[]{ NatRule }} 
                     }
                 }
-            }.ToArray();
+            };
         }
 
-        private ManagementReport[] ConstructChangeReport(bool resolved)
+        private List<ManagementReport> ConstructChangeReport(bool resolved)
         {
             Rule1 = InitRule1(resolved);
             Rule1Changed = InitRule1(resolved);
@@ -1196,7 +1196,7 @@ namespace FWO.Test
                         }
                     }
                 }
-            }.ToArray();
+            };
         }
 
         private string removeGenDate(string exportString, bool html = false, bool json = false)

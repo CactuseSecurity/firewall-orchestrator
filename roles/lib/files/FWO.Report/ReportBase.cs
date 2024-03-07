@@ -85,7 +85,7 @@ namespace FWO.Report
             ReportType = reportType;
         }
 
-        public virtual Task GenerateMgt(int rulesPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback, CancellationToken ct)
+        public virtual Task GenerateMgt(int rulesPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
@@ -94,7 +94,7 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        public virtual Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback) // to be called when exporting
+        public virtual Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback) // to be called when exporting
         {
             throw new NotImplementedException();
         }
@@ -103,7 +103,7 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        public virtual Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
+        public virtual Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
         {
             throw new NotImplementedException();
         }

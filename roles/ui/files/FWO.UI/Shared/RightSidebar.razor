@@ -30,7 +30,7 @@
                         </div>
                     </Tab>
                 }
-                @if(ManagementsReport != null && ManagementsReport.Length > 0 && (CurrentReport?.ReportType.IsDeviceRelatedReport() ?? false))
+                @if(ManagementsReport != null && ManagementsReport.Count > 0 && (CurrentReport?.ReportType.IsDeviceRelatedReport() ?? false))
                 {
                     <Tab Title="@(userConfig.GetText("report"))">
                         <div class="d-md-flex justify-content-md-end sticky-marker-45">
@@ -117,7 +117,7 @@
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
 
     [Parameter]
-    public ManagementReport[]? ManagementsReport { get; set; }
+    public List<ManagementReport>? ManagementsReport { get; set; }
 
     [Parameter]
     public bool AllTabVisible { get; set; } = true;
@@ -126,12 +126,12 @@
     public ReportType SelectedReportType  { get; set; } = ReportType.Rules;
 
     [Parameter]
-    public List<OwnerReport>? ConnectionsReport  { get; set; }
+    public List<OwnerReport>? ConnectionsReport { get; set; }
         
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
-    private ManagementReport[] managementsAllObjects = new ManagementReport[0];
+    private List<ManagementReport> managementsAllObjects = new ();
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
@@ -145,7 +145,7 @@
                 if(AllTabVisible)
                 {
                     PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
-                    managementsAllObjects = await Connection.SendQueryAsync<ManagementReport[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                    managementsAllObjects = await Connection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, paginationVariables);
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -156,11 +156,11 @@
         });
     }
 
-    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<ManagementReport[], Task> callback, long id = 0, bool nat = false)
+    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<List<ManagementReport>, Task> callback, long id = 0, bool nat = false)
     {
         Log.WriteDebug("Fetching Content..", $"nat: {nat}");
 
-        ManagementReport[] managementReports = new ManagementReport[0];
+        List<ManagementReport> managementReports = new ();
 
         try
         {
@@ -231,18 +231,18 @@
         }
     }
 
-    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<ManagementReport[], Task> callback)
+    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<List<ManagementReport>, Task> callback)
     {
         // lazy fetch all objects for right sidebar
         try
         {
-            ManagementReport[] managementReports = new ManagementReport[0];
+            List<ManagementReport> managementReports = new ();
             bool newObjects = true;
             int fetchCount = 0;
 
             while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
-                ManagementReport[] managementsCurrentFetch = await Connection.SendQueryAsync<ManagementReport[]>(query, queryVars);
+                List<ManagementReport> managementsCurrentFetch = await Connection.SendQueryAsync<List<ManagementReport>>(query, queryVars);
                 if (fetchCount == 1)
                 {
                     managementReports = managementsCurrentFetch;

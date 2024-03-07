@@ -187,10 +187,10 @@
     private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
     private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
-    private List<OwnerReport> connectionReport = new();
+    private List<OwnerReport> connectionReport = new ();
     private ModellingAppHandler? appHandler;
-    private ManagementReport[] managementsReport = new ManagementReport[0];
-    List<int> relevantManagementIds = new();
+    private List<ManagementReport> managementsReport = new ();
+    List<int> relevantManagementIds = new ();
     private ManagementReport? globalStats = null;
     private List<ModellingConnection>? globalComSvc = null;
     
@@ -283,7 +283,7 @@
     private void ResetReport()
     {
         // clear report data when switching reportType as we would be missing src/dst/svc information in some cases           
-        managementsReport = new ManagementReport[] {};
+        managementsReport = new ();
         globalStats = null;
         connectionReport = new();
         globalComSvc = null;
@@ -327,7 +327,7 @@
         selectedItemsChangeReportTable.Clear();
 
         // save original report for exception case
-        ManagementReport[] managementsReportOrig = managementsReport;
+        List<ManagementReport> managementsReportOrig = managementsReport;
         try
         {
             if (actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.isAnyDeviceFilterSet())
@@ -343,7 +343,7 @@
             relevantManagementIds = actReportFilters.DeviceFilter.getSelectedManagements();
 
             startTime = DateTime.Now;
-            managementsReport = new ManagementReport[0]; // reset management data when switching between reports
+            managementsReport = new(); // reset management data when switching between reports
             connectionReport = new();
 
             try
@@ -443,7 +443,7 @@
             }, token);
     }
 
-    private bool PrepareMetadata(ManagementReport[] ManagementReports)
+    private bool PrepareMetadata(List<ManagementReport> ManagementReports)
     {
         bool rulesFound = false;
         foreach (var managementReport in ManagementReports)

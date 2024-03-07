@@ -15,14 +15,14 @@ namespace FWO.Report
 
         public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
-        public override async Task GenerateMgt(int changesPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback, CancellationToken ct)
+        public override async Task GenerateMgt(int changesPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
-            ManagementReports = Array.Empty<ManagementReport>();
+            ManagementReports = new ();
 
-            ManagementReports = await apiConnection.SendQueryAsync<ManagementReport[]>(Query.FullQuery, Query.QueryVariables);
+            ManagementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
 
             while (gotNewObjects)
             {
@@ -32,12 +32,12 @@ namespace FWO.Report
                     ct.ThrowIfCancellationRequested();
                 }
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = ManagementReports.Merge(await apiConnection.SendQueryAsync<ManagementReport[]>(Query.FullQuery, Query.QueryVariables));
+                gotNewObjects = ManagementReports.Merge(await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables));
                 await callback(ManagementReports);
             }
         }
 
-        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
+        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
         {
             await callback(ManagementReports);
             // currently no further objects to be fetched
@@ -45,7 +45,7 @@ namespace FWO.Report
             return true;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
         {
             throw new NotImplementedException();
         }

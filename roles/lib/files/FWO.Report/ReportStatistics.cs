@@ -16,13 +16,13 @@ namespace FWO.Report
         public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
 
-        public override async Task GenerateMgt(int _, ApiConnection apiConnection, Func<ManagementReport[], Task> callback, CancellationToken ct)
+        public override async Task GenerateMgt(int _, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback, CancellationToken ct)
         {
-            ManagementReport[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
+            List<Management> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
-            List<ManagementReport> resultList = new ();
+            ManagementReports = new ();
 
-            foreach (ManagementReport relevantMgmt in managementsWithRelevantImportId)
+            foreach (Management relevantMgmt in managementsWithRelevantImportId)
             {
                 if (ct.IsCancellationRequested)
                 {
@@ -33,9 +33,8 @@ namespace FWO.Report
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = relevantMgmt.Id;
                 Query.QueryVariables["relevantImportId"] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
-                resultList.Add((await apiConnection.SendQueryAsync<ManagementReport[]>(Query.FullQuery, Query.QueryVariables))[0]);
+                ManagementReports.Add((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
             }
-            ManagementReports = resultList.ToArray();
             await callback(ManagementReports);
 
             foreach (ManagementReport mgm in ManagementReports.Where(mgt => !mgt.Ignore))
@@ -47,7 +46,7 @@ namespace FWO.Report
             }
         }
 
-        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
+        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
         {
             await callback(ManagementReports);
             // currently no further objects to be fetched
@@ -55,7 +54,7 @@ namespace FWO.Report
             return true;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
         {
             return Task.FromResult<bool>(true);
         }
@@ -63,7 +62,8 @@ namespace FWO.Report
         public override string ExportToJson()
         {
             globalStatisticsManagement.Name = "global statistics";
-            ManagementReport[] combinedManagements = (new ManagementReport[] { globalStatisticsManagement }).Concat(ManagementReports.Where(mgt => !mgt.Ignore)).ToArray();
+            List<ManagementReport> combinedManagements = new (){ globalStatisticsManagement };
+            combinedManagements.AddRange(ManagementReports.Where(mgt => !mgt.Ignore));
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
 

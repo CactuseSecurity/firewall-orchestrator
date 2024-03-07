@@ -17,24 +17,25 @@ namespace FWO.Report
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
-        public override async Task GenerateMgt(int rulesPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback, CancellationToken ct)
+        public override async Task GenerateMgt(int rulesPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
 
-            ManagementReport[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
+            List<Management> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
-            ManagementReports = new ManagementReport[managementsWithRelevantImportId.Length];
-            int i;
-            for (i = 0; i < managementsWithRelevantImportId.Length; i++)
+            ManagementReports = new ();
+            foreach(var management in managementsWithRelevantImportId)
             {
-                // setting mgmt and relevantImporId QueryVariables 
-                Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                Query.QueryVariables["mgmId"] = management.Id;
                 if (ReportType != ReportType.Recertification)
-                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
-                ManagementReports[i] = (await apiConnection.SendQueryAsync<ManagementReport[]>(Query.FullQuery, Query.QueryVariables))[0];
-                ManagementReports[i].Import = managementsWithRelevantImportId[i].Import;
+                {
+                    Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
+                }
+                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
+                managementReport.Import = management.Import;
+                ManagementReports.Add(managementReport);
             }
 
             while (gotNewObjects)
@@ -46,19 +47,25 @@ namespace FWO.Report
                 }
                 gotNewObjects = false;
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
-                for (i = 0; i < managementsWithRelevantImportId.Length; i++)
+                foreach(var management in managementsWithRelevantImportId)
                 {
-                    Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                    Query.QueryVariables["mgmId"] = management.Id;
                     if (ReportType != ReportType.Recertification)
-                        Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-                    gotNewObjects |= ManagementReports[i].Merge((await apiConnection.SendQueryAsync<ManagementReport[]>(Query.FullQuery, Query.QueryVariables))[0]);
+                    {
+                        Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+                    }
+                    ManagementReport? mgtToFill = ManagementReports.FirstOrDefault(m => m.Id == management.Id);
+                    if(mgtToFill != null)
+                    {
+                        gotNewObjects |= mgtToFill.Merge((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
+                    }
                 }
                 await callback(ManagementReports);
             }
             SetReportedRuleIds();
         }
 
-        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback) // to be called when exporting
+        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback) // to be called when exporting
         {
             bool gotAllObjects = true; //whether the fetch count limit was reached during fetching
 
@@ -86,7 +93,7 @@ namespace FWO.Report
             return gotAllObjects;
         }
 
-        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
+        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
         {
             if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
@@ -117,7 +124,7 @@ namespace FWO.Report
             ManagementReport allFilteredObjects = new ();
             while (newObjects && ++fetchCount <= maxFetchCycles)
             {
-                filteredObjects = (await apiConnection.SendQueryAsync<ManagementReport[]>(query, objQueryVariables))[0];
+                filteredObjects = (await apiConnection.SendQueryAsync<List<ManagementReport>>(query, objQueryVariables))[0];
 
                 if (fetchCount == 1)
                 {

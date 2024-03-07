@@ -4,7 +4,7 @@
 
 @inject UserConfig userConfig
 
-@foreach (Management management in Managements)
+@foreach (var management in Managements)
 {
     @if (management.Devices.Where(device => device.Rules != null && device.Rules.Count() > 0).Count() > 0)
     {
@@ -251,7 +251,7 @@
     public int Width { get; set; }
 
     [Parameter]
-    public Management[] Managements { get; set; } = new Management[]{};
+    public List<ManagementReport> Managements { get; set; } = new ();
 
     private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;

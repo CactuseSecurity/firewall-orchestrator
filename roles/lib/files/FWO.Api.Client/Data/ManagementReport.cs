@@ -68,13 +68,18 @@ namespace FWO.Api.Data
 
     public static class ManagementUtility
     {
-        public static bool Merge(this ManagementReport[] managements, ManagementReport[] managementsToMerge)
+        public static bool Merge(this List<ManagementReport> managementReports, List<ManagementReport> managementReportsToMerge)
         {
             bool newObjects = false;
 
-            for (int i = 0; i < managementsToMerge.Length; i++)
-                newObjects |= managements[i].Merge(managementsToMerge[i]);
-
+            foreach(var managementReportToMerge in managementReportsToMerge)
+            {
+                ManagementReport? mgmtToFill = managementReports.FirstOrDefault(m => m.Id == managementReportToMerge.Id);
+                if(mgmtToFill!= null)
+                {
+                    newObjects |= mgmtToFill.Merge(managementReportToMerge);
+                }
+            }
             return newObjects;
         }
 
@@ -109,32 +114,32 @@ namespace FWO.Api.Data
             return newObjects;
         }
 
-        public static bool MergeReportObjects(this ManagementReport managementReport, ManagementReport managementToMerge)
+        public static bool MergeReportObjects(this ManagementReport managementReport, ManagementReport managementReportToMerge)
         {
             bool newObjects = false;
 
-            if (managementReport.ReportObjects != null && managementToMerge.ReportObjects != null && managementToMerge.ReportObjects.Length > 0)
+            if (managementReport.ReportObjects != null && managementReportToMerge.ReportObjects != null && managementReportToMerge.ReportObjects.Length > 0)
             {
-                managementReport.ReportObjects = managementReport.ReportObjects.Concat(managementToMerge.ReportObjects).ToArray();
+                managementReport.ReportObjects = managementReport.ReportObjects.Concat(managementReportToMerge.ReportObjects).ToArray();
                 newObjects = true;
             }
 
-            if (managementReport.ReportServices != null && managementToMerge.ReportServices != null && managementToMerge.ReportServices.Length > 0)
+            if (managementReport.ReportServices != null && managementReportToMerge.ReportServices != null && managementReportToMerge.ReportServices.Length > 0)
             {
-                managementReport.ReportServices = managementReport.ReportServices.Concat(managementToMerge.ReportServices).ToArray();
+                managementReport.ReportServices = managementReport.ReportServices.Concat(managementReportToMerge.ReportServices).ToArray();
                 newObjects = true;
             }
 
-            if (managementReport.ReportUsers != null && managementToMerge.ReportUsers != null && managementToMerge.ReportUsers.Length > 0)
+            if (managementReport.ReportUsers != null && managementReportToMerge.ReportUsers != null && managementReportToMerge.ReportUsers.Length > 0)
             {
-                managementReport.ReportUsers = managementReport.ReportUsers.Concat(managementToMerge.ReportUsers).ToArray();
+                managementReport.ReportUsers = managementReport.ReportUsers.Concat(managementReportToMerge.ReportUsers).ToArray();
                 newObjects = true;
             }
 
-            if (managementReport.Devices != null && managementToMerge.Devices != null && managementToMerge.Devices.Length > 0)
+            if (managementReport.Devices != null && managementReportToMerge.Devices != null && managementReportToMerge.Devices.Length > 0)
             {
                 // important: if any management still returns rules, newObjects is set to true
-                if (managementReport.Devices.Merge(managementToMerge.Devices) == true)
+                if (managementReport.Devices.Merge(managementReportToMerge.Devices) == true)
                     newObjects = true;
             }
             return newObjects;

@@ -9,17 +9,17 @@ namespace FWO.Report
 {
     public abstract class ReportDevicesBase : ReportBase
     {
-        public ManagementReport[] ManagementReports = new ManagementReport[] { };
+        public List<ManagementReport> ManagementReports = new ();
 
         public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base (query, UserConfig, reportType)
         {}
 
-        public async Task<ManagementReport[]> getRelevantImportIds(ApiConnection apiConnection)
+        public async Task<List<Management>> getRelevantImportIds(ApiConnection apiConnection)
         {
             Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
             ImpIdQueryVariables["time"] = Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat);
             ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
-            return await apiConnection.SendQueryAsync<ManagementReport[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+            return await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
         }
 
         public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)
@@ -94,7 +94,7 @@ namespace FWO.Report
             {
                 report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
             }
-            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(ManagementReports, m => m.NameAndDeviceNames()))}\",");
+            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(ManagementReports.ToArray(), m => m.NameAndDeviceNames()))}\",");
             report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
             report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
             report.AppendLine($"\"data protection level\": \"For internal use only\",");

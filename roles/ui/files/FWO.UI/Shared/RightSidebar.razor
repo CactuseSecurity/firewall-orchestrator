@@ -23,7 +23,7 @@
                         </div>
                         <div class="mt-2">
                             <CascadingValue Value="collapseSidebarAll">
-                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.all" InputDataType="Management" Data="managementsAllObjects"
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.all" InputDataType="ManagementReport" Data="managementsAllObjects"
                                     NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                     NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                             </CascadingValue>
@@ -38,7 +38,7 @@
                         </div>
                         <div class="mt-2">
                             <CascadingValue Value="collapseSidebarReport">
-                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.report" InputDataType="Management" 
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.report" InputDataType="ManagementReport" 
                                     Data="ManagementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))"
                                     NameExtractor="man => man.Name"
                                     NetworkObjectExtractor="man => man.ReportObjects"
@@ -117,7 +117,7 @@
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
 
     [Parameter]
-    public Management[]? ManagementsReport { get; set; }
+    public ManagementReport[]? ManagementsReport { get; set; }
 
     [Parameter]
     public bool AllTabVisible { get; set; } = true;
@@ -131,7 +131,7 @@
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
-    private Management[] managementsAllObjects = new Management[0];
+    private ManagementReport[] managementsAllObjects = new ManagementReport[0];
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
@@ -145,7 +145,7 @@
                 if(AllTabVisible)
                 {
                     PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
-                    managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                    managementsAllObjects = await Connection.SendQueryAsync<ManagementReport[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -156,11 +156,11 @@
         });
     }
 
-    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Management[], Task> callback, long id = 0, bool nat = false)
+    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<ManagementReport[], Task> callback, long id = 0, bool nat = false)
     {
         Log.WriteDebug("Fetching Content..", $"nat: {nat}");
 
-        Management[] managements = new Management[0];
+        ManagementReport[] managementReports = new ManagementReport[0];
 
         try
         {
@@ -231,30 +231,30 @@
         }
     }
 
-    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<Management[], Task> callback)
+    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<ManagementReport[], Task> callback)
     {
         // lazy fetch all objects for right sidebar
         try
         {
-            Management[] managements = new Management[0];
+            ManagementReport[] managementReports = new ManagementReport[0];
             bool newObjects = true;
             int fetchCount = 0;
 
             while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
-                Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, queryVars);
+                ManagementReport[] managementsCurrentFetch = await Connection.SendQueryAsync<ManagementReport[]>(query, queryVars);
                 if (fetchCount == 1)
                 {
-                    managements = managementsCurrentFetch;
+                    managementReports = managementsCurrentFetch;
                 }
                 else
                 {
-                    newObjects = managements.Merge(managementsCurrentFetch);
+                    newObjects = managementReports.Merge(managementsCurrentFetch);
                 }
 
                 if (queryVars.ContainsKey("offset"))
                     queryVars["offset"] = (int)queryVars["offset"] + userConfig.ElementsPerFetch;
-                await callback(managements);
+                await callback(managementReports);
             }
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");

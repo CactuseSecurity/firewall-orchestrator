@@ -52,8 +52,10 @@ namespace FWO.Test
         public void RulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting rules report html generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.Rules);
-            reportRules.Managements = ConstructRuleReport(false);
+            ReportRules reportRules = new (query, userConfig, ReportType.Rules)
+            {
+                ManagementReports = ConstructRuleReport(false)
+            };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Rules Report</title>" +
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
@@ -101,8 +103,10 @@ namespace FWO.Test
         public void ResolvedRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved html generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRules);
-            reportRules.Managements = ConstructRuleReport(true);
+            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRules)
+            {
+                ManagementReports = ConstructRuleReport(true)
+            };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Rules Report (resolved)</title>" +
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
@@ -135,8 +139,10 @@ namespace FWO.Test
         public void ResolvedRulesTechGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved html generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRulesTech);
-            reportRules.Managements = ConstructRuleReport(true);
+            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRulesTech)
+            {
+                ManagementReports = ConstructRuleReport(true)
+            };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Rules Report (technical)</title>" +
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
@@ -169,8 +175,10 @@ namespace FWO.Test
         public void UnusedRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting unused rules report html generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.UnusedRules);
-            reportRules.Managements = ConstructRuleReport(false);
+            ReportRules reportRules = new (query, userConfig, ReportType.UnusedRules)
+            {
+                ManagementReports = ConstructRuleReport(false)
+            };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Unused Rules Report</title>" +
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
@@ -218,8 +226,10 @@ namespace FWO.Test
         public void RecertReportGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting recert report html generation");
-            ReportRules reportRecerts = new ReportRules(query, userConfig, ReportType.Recertification);
-            reportRecerts.Managements = ConstructRecertReport();
+            ReportRules reportRecerts = new (query, userConfig, ReportType.Recertification)
+            {
+                ManagementReports = ConstructRecertReport()
+            };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Recertification Report</title>" +
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
@@ -284,8 +294,10 @@ namespace FWO.Test
         public void NatRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting nat rules report html generation");
-            ReportNatRules reportNatRules = new ReportNatRules(query, userConfig, ReportType.NatRules);
-            reportNatRules.Managements = ConstructNatRuleReport();
+            ReportNatRules reportNatRules = new (query, userConfig, ReportType.NatRules)
+            {
+                ManagementReports = ConstructNatRuleReport()
+            };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>NAT Rules Report</title>" +
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
@@ -332,8 +344,10 @@ namespace FWO.Test
         public void ChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report html generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.Changes);
-            reportChanges.Managements = ConstructChangeReport(false);
+            ReportChanges reportChanges = new (query, userConfig, ReportType.Changes)
+            {
+                ManagementReports = ConstructChangeReport(false)
+            };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report</title>" +
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
@@ -396,8 +410,10 @@ namespace FWO.Test
         public void ResolvedChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved html generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChanges);
-            reportChanges.Managements = ConstructChangeReport(true);
+            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChanges)
+            {
+                ManagementReports = ConstructChangeReport(true)
+            };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report (resolved)</title>" +
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
@@ -456,8 +472,10 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report tech html generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChangesTech);
-            reportChanges.Managements = ConstructChangeReport(true);
+            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChangesTech)
+            {
+                ManagementReports = ConstructChangeReport(true)
+            };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report (technical)</title>" +
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
@@ -518,8 +536,10 @@ namespace FWO.Test
         public void ResolvedRulesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved csv generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRules);
-            reportRules.Managements = ConstructRuleReport(true);
+            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRules)
+            {
+                ManagementReports = ConstructRuleReport(true)
+            };
 
             string expectedCsvResult = "# report type: Rules Report (resolved)" +
             "# report generation date: Z (UTC)" +
@@ -538,8 +558,10 @@ namespace FWO.Test
         public void ResolvedRulesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting rules report tech csv generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRulesTech);
-            reportRules.Managements = ConstructRuleReport(true);
+            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRulesTech)
+            {
+                ManagementReports = ConstructRuleReport(true)
+            };
 
             string expectedCsvResult = "# report type: Rules Report (technical)" +
             "# report generation date: Z (UTC)" +
@@ -558,8 +580,10 @@ namespace FWO.Test
         public void ResolvedChangesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChanges);
-            reportChanges.Managements = ConstructChangeReport(true);
+            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChanges)
+            {
+                ManagementReports = ConstructChangeReport(true)
+            };
 
             string expectedCsvResult = "# report type: Changes Report (resolved)" +
             "# report generation date: Z (UTC)" +
@@ -585,8 +609,10 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report tech csv generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChangesTech);
-            reportChanges.Managements = ConstructChangeReport(true);
+            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChangesTech)
+            {
+                ManagementReports = ConstructChangeReport(true)
+            };
 
             string expectedCsvResult = "# report type: Changes Report (technical)" +
             "# report generation date: Z (UTC)" +
@@ -607,21 +633,34 @@ namespace FWO.Test
         public void RulesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting rules report json generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.Rules);
-            reportRules.Managements = ConstructRuleReport(false);
+            ReportRules reportRules = new (query, userConfig, ReportType.Rules)
+            {
+                ManagementReports = ConstructRuleReport(false)
+            };
 
             string expectedJsonResult = 
-            "[{\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
+            "[{\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": []," +
+            "\"reportNetworkObjects\": [{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "{\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "{\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}]," +
+            "\"reportServiceObjects\": [{\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
+            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}," +
+            "{\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
+            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}]," +
+            "\"reportUserObjects\": [{\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}," +
+            "{\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}]," +
+            "\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+            "\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
             "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
             "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null," +
             "\"devices\": [{\"id\": 0,\"name\": \"TestDev\",\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
             "\"management\": {\"id\": 0,\"name\": \"\",\"hostname\": \"\"," +
             "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
             "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null," +
-            "\"devices\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": []," +
+            "\"devices\": []," +
             "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
-            "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}},\"local_rulebase_name\": null,\"global_rulebase_name\": null,\"package_name\": null,\"importDisabled\": false,\"hideInUi\": false,\"comment\": null," +
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0}," +
+            "\"local_rulebase_name\": null,\"global_rulebase_name\": null,\"package_name\": null,\"importDisabled\": false,\"hideInUi\": false,\"comment\": null," +
             "\"rules\": [{\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
             "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0," +
             "\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
@@ -651,19 +690,9 @@ namespace FWO.Test
             "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\"," +
             "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"recert_history\": [],\"dev_id\": 0,\"rule_uid\": \"\",\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
             "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []},\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"dev_id\": 0,\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceName\": \"\"}],\"changelog_rules\": null,\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
-            "\"Selected\": false,\"Relevant\": false,\"AwaitMgmt\": false,\"Delete\": false,\"ActionId\": 0}],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": []," +
-            "\"reportNetworkObjects\": [{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "{\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "{\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}]," +
-            "\"reportServiceObjects\": [{\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
-            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}," +
-            "{\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
-            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}]," +
-            "\"reportUserObjects\": [{\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}," +
-            "{\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}]," +
+            "\"Selected\": false,\"Relevant\": false,\"AwaitMgmt\": false,\"Delete\": false,\"ActionId\": 0}]," +
             "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": []," +
-            "\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}}]";
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0}]";
             // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportRules.ExportToJson(), true, true))));
             Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
         }
@@ -672,8 +701,10 @@ namespace FWO.Test
         public void ResolvedRulesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report json generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRules);
-            reportRules.Managements = ConstructRuleReport(true);
+            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRules)
+            {
+                ManagementReports = ConstructRuleReport(true)
+            };
 
             string expectedJsonResult = 
             "{\"report type\": \"Rules Report (resolved)\",\"report generation date\": \"Z (UTC)\"," +
@@ -695,8 +726,10 @@ namespace FWO.Test
         public void ResolvedRulesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report tech json generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRulesTech);
-            reportRules.Managements = ConstructRuleReport(true);
+            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRulesTech)
+            {
+                ManagementReports = ConstructRuleReport(true)
+            };
 
             string expectedJsonResult = 
             "{\"report type\": \"Rules Report (technical)\",\"report generation date\": \"Z (UTC)\"," +
@@ -719,21 +752,24 @@ namespace FWO.Test
         public void ChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting changes report json generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.Changes);
-            reportChanges.Managements = ConstructChangeReport(false);
+            ReportChanges reportChanges = new (query, userConfig, ReportType.Changes)
+            {
+                ManagementReports = ConstructChangeReport(false)
+            };
 
             string expectedJsonResult = 
-            "[{\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
+            "[{\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": [],\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+            "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+            "\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
             "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
             "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null," +
             "\"devices\": [{\"id\": 0,\"name\": \"TestDev\",\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
             "\"management\": {\"id\": 0,\"name\": \"\",\"hostname\": \"\"," +
             "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
             "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null," +
-            "\"devices\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": []," +
+            "\"devices\": []," +
             "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
-            "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}}," +
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0}," +
             "\"local_rulebase_name\": null,\"global_rulebase_name\": null,\"package_name\": null,\"importDisabled\": false,\"hideInUi\": false,\"comment\": null,\"rules\": null," +
             "\"changelog_rules\": [{\"import\": {\"time\": \"2023-04-05T12:00:00\"},\"change_action\": \"I\"," +
             "\"old\": {\"rule_id\": 0,\"rule_uid\": \"\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"\",\"rule_comment\": \"\",\"rule_disabled\": false," +
@@ -809,8 +845,8 @@ namespace FWO.Test
             "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"recert_history\": [],\"dev_id\": 0,\"rule_uid\": \"\",\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
             "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
             "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"dev_id\": 0,\"DisplayOrderNumber\": 0,\"Certified\": false,\"DeviceName\": \"\"},\"DeviceName\": \"\"}],\"rules_aggregate\": {\"aggregate\": {\"count\": 0}},\"Selected\": false,\"Relevant\": false,\"AwaitMgmt\": false,\"Delete\": false,\"ActionId\": 0}]," +
-            "\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": [],\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}}]";
+            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0}]";
             Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
         }
 
@@ -818,8 +854,10 @@ namespace FWO.Test
         public void ResolvedChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChanges);
-            reportChanges.Managements = ConstructChangeReport(true);
+            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChanges)
+            {
+                ManagementReports = ConstructChangeReport(true)
+            };
 
             string expectedJsonResult = 
             "{\"report type\": \"Changes Report (resolved)\",\"report generation date\": \"Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\",\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
@@ -848,8 +886,10 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChangesTech);
-            reportChanges.Managements = ConstructChangeReport(true);
+            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChangesTech)
+            {
+                ManagementReports = ConstructChangeReport(true)
+            };
 
             string expectedJsonResult = 
             "{\"report type\": \"Changes Report (technical)\",\"report generation date\": \"Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\",\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
@@ -973,13 +1013,13 @@ namespace FWO.Test
             };
         }
 
-        private Management[] ConstructRuleReport(bool resolved)
+        private ManagementReport[] ConstructRuleReport(bool resolved)
         {
             Rule1 = InitRule1(resolved);
             Rule2 = InitRule2(resolved);
-            return new List<Management>()
+            return new List<ManagementReport>()
             {
-                new Management()
+                new ManagementReport()
                 { 
                     Name = "TestMgt",
                     ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
@@ -997,7 +1037,7 @@ namespace FWO.Test
             }.ToArray();
         }
 
-        private Management[] ConstructRecertReport()
+        private ManagementReport[] ConstructRecertReport()
         {
             RecertRule1 = InitRule1(false);
             RecertRule1.Metadata.RuleRecertification = new List<Recertification>()
@@ -1025,9 +1065,9 @@ namespace FWO.Test
                     IpMatch = TestIpRange.Name
                 }
             };
-            return new List<Management>()
+            return new List<ManagementReport>()
             {
-                new Management()
+                new ManagementReport()
                 { 
                     Name = "TestMgt",
                     ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
@@ -1045,7 +1085,7 @@ namespace FWO.Test
             }.ToArray();
         }
 
-        private Management[] ConstructNatRuleReport()
+        private ManagementReport[] ConstructNatRuleReport()
         {
             NatRule = InitRule1(false);
             NatRule.NatData = new NatData()
@@ -1068,9 +1108,9 @@ namespace FWO.Test
                     new ServiceWrapper(){ Content = TestService2 }
                 }
             };
-            return new List<Management>()
+            return new List<ManagementReport>()
             {
-                new Management()
+                new ManagementReport()
                 { 
                     Name = "TestMgt",
                     ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange, TestIpNew, TestIp1Changed },
@@ -1084,7 +1124,7 @@ namespace FWO.Test
             }.ToArray();
         }
 
-        private Management[] ConstructChangeReport(bool resolved)
+        private ManagementReport[] ConstructChangeReport(bool resolved)
         {
             Rule1 = InitRule1(resolved);
             Rule1Changed = InitRule1(resolved);
@@ -1142,9 +1182,9 @@ namespace FWO.Test
                 ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
                 OldRule = Rule2
             };
-            return new List<Management>()
+            return new List<ManagementReport>()
             {
-                new Management()
+                new ManagementReport()
                 { 
                     Name = "TestMgt",
                     Devices = new Device[]

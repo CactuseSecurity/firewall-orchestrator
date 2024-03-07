@@ -14,15 +14,15 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new StringBuilder();
-            NatRuleDisplayHtml ruleDisplay = new NatRuleDisplayHtml(userConfig);
+            StringBuilder report = new ();
+            NatRuleDisplayHtml ruleDisplay = new (userConfig);
 
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+            foreach (var managementReport in ManagementReports.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"<h3>{management.Name}</h3>");
+                report.AppendLine($"<h3>{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");
 
-                foreach (Device device in management.Devices)
+                foreach (Device device in managementReport.Devices)
                 {
                     if (device.Rules != null && device.Rules.Length > 0)
                     {
@@ -81,7 +81,7 @@ namespace FWO.Report
                 // show all objects used in this management's rules
 
                 int objNumber = 1;
-                if (management.ReportObjects != null)
+                if (managementReport.ReportObjects != null)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
                     report.AppendLine("<hr>");
@@ -95,7 +95,7 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
-                    foreach (NetworkObject nwobj in management.ReportObjects)
+                    foreach (NetworkObject nwobj in managementReport.ReportObjects)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
@@ -113,7 +113,7 @@ namespace FWO.Report
                     report.AppendLine("</table>");
                 }
 
-                if (management.ReportServices != null)
+                if (managementReport.ReportServices != null)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
                     report.AppendLine("<hr>");
@@ -129,7 +129,7 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
-                    foreach (NetworkService svcobj in management.ReportServices)
+                    foreach (NetworkService svcobj in managementReport.ReportServices)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
@@ -151,7 +151,7 @@ namespace FWO.Report
                     report.AppendLine("</table>");
                 }
 
-                if (management.ReportUsers != null)
+                if (managementReport.ReportUsers != null)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
                     report.AppendLine("<hr>");
@@ -165,7 +165,7 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
-                    foreach (NetworkUser userobj in management.ReportUsers)
+                    foreach (NetworkUser userobj in managementReport.ReportUsers)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");

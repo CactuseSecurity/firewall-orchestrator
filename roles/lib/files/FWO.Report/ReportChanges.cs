@@ -15,14 +15,14 @@ namespace FWO.Report
 
         public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
-        public override async Task GenerateMgt(int changesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
+        public override async Task GenerateMgt(int changesPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
-            Managements = Array.Empty<Management>();
+            ManagementReports = Array.Empty<ManagementReport>();
 
-            Managements = await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables);
+            ManagementReports = await apiConnection.SendQueryAsync<ManagementReport[]>(Query.FullQuery, Query.QueryVariables);
 
             while (gotNewObjects)
             {
@@ -32,20 +32,20 @@ namespace FWO.Report
                     ct.ThrowIfCancellationRequested();
                 }
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables));
-                await callback(Managements);
+                gotNewObjects = ManagementReports.Merge(await apiConnection.SendQueryAsync<ManagementReport[]>(Query.FullQuery, Query.QueryVariables));
+                await callback(ManagementReports);
             }
         }
 
-        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
         {
-            await callback(Managements);
+            await callback(ManagementReports);
             // currently no further objects to be fetched
             GotObjectsInReport = true;
             return true;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
         {
             throw new NotImplementedException();
         }
@@ -55,7 +55,7 @@ namespace FWO.Report
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleChangeCounter = 0;
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var management in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 managementCounter++;
@@ -78,7 +78,7 @@ namespace FWO.Report
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine($"\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
 
-                foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                foreach (var management in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
                 {
                     foreach (Device gateway in management.Devices)
@@ -121,7 +121,7 @@ namespace FWO.Report
             StringBuilder report = new StringBuilder();
             RuleChangeDisplayHtml ruleChangeDisplayHtml = new RuleChangeDisplayHtml(userConfig);
 
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var management in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 report.AppendLine($"<h3>{management.Name}</h3>");
@@ -192,7 +192,7 @@ namespace FWO.Report
             }
             else if (ReportType.IsChangeReport())
             {
-                return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
+                return System.Text.Json.JsonSerializer.Serialize(ManagementReports.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }
             else
             {
@@ -206,7 +206,7 @@ namespace FWO.Report
             report.Append(DisplayReportHeaderJson());
             report.AppendLine("\"managements\": [");
             RuleChangeDisplayJson ruleChangeDisplayJson = new RuleChangeDisplayJson(userConfig);
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var management in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 report.AppendLine($"{{\"{management.Name}\": {{");

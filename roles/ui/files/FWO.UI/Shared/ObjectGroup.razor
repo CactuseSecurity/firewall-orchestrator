@@ -254,7 +254,7 @@
     AnchorNavToRSB? anchorNavToRSB { get; set; }
 
     [Parameter]
-    public Func<RsbTab, ObjCategory, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
+    public Func<RsbTab, ObjCategory, Func<ManagementReport[], Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
     public bool Recert { get; set; }
@@ -334,7 +334,7 @@
         }
         switch (Content)
         {
-            case Management m:
+            case ManagementReport m:
                 idPref += "m" + m.Id + "-";
                 break;
             case Rule r:
@@ -398,12 +398,12 @@
                 {
                     switch (Content)
                     {
-                        case Management m:
+                        case ManagementReport m:
                             await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
                                     int id = m.Id;
-                                    Management? m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
+                                    ManagementReport? m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
                                     if (m_updated != null)
                                     {
                                         switch (objCategory)

@@ -11,18 +11,18 @@ namespace FWO.Report
     public class ReportStatistics : ReportDevicesBase
     {
         // TODO: Currently generated in Report.razor as well as here, because of export. Remove dupliacte.
-        private Management globalStatisticsManagement = new Management();
+        private ManagementReport globalStatisticsManagement = new ();
 
         public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
 
-        public override async Task GenerateMgt(int _, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
+        public override async Task GenerateMgt(int _, ApiConnection apiConnection, Func<ManagementReport[], Task> callback, CancellationToken ct)
         {
-            Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
+            ManagementReport[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
-            List<Management> resultList = new List<Management>();
+            List<ManagementReport> resultList = new ();
 
-            foreach (Management relevantMgmt in managementsWithRelevantImportId)
+            foreach (ManagementReport relevantMgmt in managementsWithRelevantImportId)
             {
                 if (ct.IsCancellationRequested)
                 {
@@ -33,12 +33,12 @@ namespace FWO.Report
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = relevantMgmt.Id;
                 Query.QueryVariables["relevantImportId"] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
-                resultList.Add((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
+                resultList.Add((await apiConnection.SendQueryAsync<ManagementReport[]>(Query.FullQuery, Query.QueryVariables))[0]);
             }
-            Managements = resultList.ToArray();
-            await callback(Managements);
+            ManagementReports = resultList.ToArray();
+            await callback(ManagementReports);
 
-            foreach (Management mgm in Managements.Where(mgt => !mgt.Ignore))
+            foreach (ManagementReport mgm in ManagementReports.Where(mgt => !mgt.Ignore))
             {
                 globalStatisticsManagement.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
@@ -47,15 +47,15 @@ namespace FWO.Report
             }
         }
 
-        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
         {
-            await callback(Managements);
+            await callback(ManagementReports);
             // currently no further objects to be fetched
             GotObjectsInReport = true;
             return true;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ManagementReport[], Task> callback)
         {
             return Task.FromResult<bool>(true);
         }
@@ -63,15 +63,15 @@ namespace FWO.Report
         public override string ExportToJson()
         {
             globalStatisticsManagement.Name = "global statistics";
-            Management[] combinedManagements = (new Management[] { globalStatisticsManagement }).Concat(Managements.Where(mgt => !mgt.Ignore)).ToArray();
+            ManagementReport[] combinedManagements = (new ManagementReport[] { globalStatisticsManagement }).Concat(ManagementReports.Where(mgt => !mgt.Ignore)).ToArray();
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
 
         public override string ExportToCsv()
         {
-            StringBuilder csvBuilder = new StringBuilder();
+            StringBuilder csvBuilder = new ();
 
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+            foreach (ManagementReport managementReport in ManagementReports.Where(mgt => !mgt.Ignore))
             {
                 //foreach (var item in collection)
                 //{
@@ -84,7 +84,7 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new StringBuilder();
+            StringBuilder report = new ();
 
             report.AppendLine($"<h3>{userConfig.GetText("glob_no_obj")}</h3>");
             report.AppendLine("<table>");
@@ -103,9 +103,9 @@ namespace FWO.Report
             report.AppendLine("</table>");
             report.AppendLine("<hr>");
 
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+            foreach (ManagementReport managementReport in ManagementReports.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"<h4>{userConfig.GetText("no_of_obj")} - {management.Name}</h4>");
+                report.AppendLine($"<h4>{userConfig.GetText("no_of_obj")} - {managementReport.Name}</h4>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("network_objects")}</th>");
@@ -114,10 +114,10 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("rules")}</th>");
                 report.AppendLine("</tr>");
                 report.AppendLine("<tr>");
-                report.AppendLine($"<td>{management.NetworkObjectStatistics.ObjectAggregate.ObjectCount}</td>");
-                report.AppendLine($"<td>{management.ServiceObjectStatistics.ObjectAggregate.ObjectCount}</td>");
-                report.AppendLine($"<td>{management.UserObjectStatistics.ObjectAggregate.ObjectCount}</td>");
-                report.AppendLine($"<td>{management.RuleStatistics.ObjectAggregate.ObjectCount }</td>");
+                report.AppendLine($"<td>{managementReport.NetworkObjectStatistics.ObjectAggregate.ObjectCount}</td>");
+                report.AppendLine($"<td>{managementReport.ServiceObjectStatistics.ObjectAggregate.ObjectCount}</td>");
+                report.AppendLine($"<td>{managementReport.UserObjectStatistics.ObjectAggregate.ObjectCount}</td>");
+                report.AppendLine($"<td>{managementReport.RuleStatistics.ObjectAggregate.ObjectCount }</td>");
                 report.AppendLine("</tr>");
                 report.AppendLine("</table>");
                 report.AppendLine("<br>");
@@ -128,7 +128,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("gateway")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("rules")}</th>");
                 report.AppendLine("</tr>");
-                foreach (Device device in management.Devices)
+                foreach (Device device in managementReport.Devices)
                 {
                     if (device.RuleStatistics != null)
                     {

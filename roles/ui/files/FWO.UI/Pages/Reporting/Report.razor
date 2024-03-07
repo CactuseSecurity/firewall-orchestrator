@@ -189,9 +189,9 @@
 
     private List<OwnerReport> connectionReport = new();
     private ModellingAppHandler? appHandler;
-    private Management[] managementsReport = new Management[0];
+    private ManagementReport[] managementsReport = new ManagementReport[0];
     List<int> relevantManagementIds = new();
-    private Management? globalStats = null;
+    private ManagementReport? globalStats = null;
     private List<ModellingConnection>? globalComSvc = null;
     
     private ReportFilters actReportFilters = new ();
@@ -283,7 +283,7 @@
     private void ResetReport()
     {
         // clear report data when switching reportType as we would be missing src/dst/svc information in some cases           
-        managementsReport = new Management[] {};
+        managementsReport = new ManagementReport[] {};
         globalStats = null;
         connectionReport = new();
         globalComSvc = null;
@@ -327,7 +327,7 @@
         selectedItemsChangeReportTable.Clear();
 
         // save original report for exception case
-        Management[] managementsReportOrig = managementsReport;
+        ManagementReport[] managementsReportOrig = managementsReport;
         try
         {
             if (actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.isAnyDeviceFilterSet())
@@ -343,7 +343,7 @@
             relevantManagementIds = actReportFilters.DeviceFilter.getSelectedManagements();
 
             startTime = DateTime.Now;
-            managementsReport = new Management[0]; // reset management data when switching between reports
+            managementsReport = new ManagementReport[0]; // reset management data when switching between reports
             connectionReport = new();
 
             try
@@ -423,7 +423,7 @@
 
     private async Task GenerateStatisticsReport(CancellationToken token)
     {
-        globalStats = new Management();
+        globalStats = new ManagementReport();
         await currentReport.GenerateMgt(0, apiConnection,
             managementsReportIntermediate =>
             {
@@ -431,7 +431,7 @@
                 setRelevantManagements();
                 return InvokeAsync(() =>
                 {
-                    foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
+                    foreach (var mgm in managementsReport.Where(mgt => !mgt.Ignore))
                     {
                         globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
                         globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
@@ -443,11 +443,11 @@
             }, token);
     }
 
-    private bool PrepareMetadata(Management[] Managements)
+    private bool PrepareMetadata(ManagementReport[] ManagementReports)
     {
         bool rulesFound = false;
-        foreach (Management management in Managements)
-            foreach (Device device in management.Devices)
+        foreach (var managementReport in ManagementReports)
+            foreach (Device device in managementReport.Devices)
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
@@ -485,7 +485,7 @@
 
     private void setRelevantManagements()
     {
-        foreach (Management mgm in managementsReport)
+        foreach (var mgm in managementsReport)
         {
             mgm.Ignore = !relevantManagementIds.Contains(mgm.Id);
         }

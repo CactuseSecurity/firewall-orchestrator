@@ -31,6 +31,10 @@ namespace FWO.Api.Data
                 {
                     result.Append($" ({ports}/{service.Protocol?.Name})");
                 }
+                else if (service.Protocol?.Name != null)
+                {
+                    result.Append($" ({service.Protocol?.Name})");
+                }
             }
             return result;
         }

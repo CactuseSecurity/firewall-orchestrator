@@ -170,7 +170,7 @@ namespace FWO.Middleware.Server
                 };
                 ReportBase? currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
 
-                Management[] managements = new Management[0];
+                List<ManagementReport> managements = new ();
 
                 await currentReport.GenerateMgt(int.MaxValue, apiConnection,
                 managementsReportIntermediate =>

@@ -20,7 +20,7 @@ namespace FWO.Report
         {
             List<Management> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
-            ManagementReports = new ();
+            ReportData.ManagementData = new ();
 
             foreach (Management relevantMgmt in managementsWithRelevantImportId)
             {
@@ -33,11 +33,11 @@ namespace FWO.Report
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = relevantMgmt.Id;
                 Query.QueryVariables["relevantImportId"] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
-                ManagementReports.Add((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
+                ReportData.ManagementData.Add((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
             }
-            await callback(ManagementReports);
+            await callback(ReportData.ManagementData);
 
-            foreach (ManagementReport mgm in ManagementReports.Where(mgt => !mgt.Ignore))
+            foreach (ManagementReport mgm in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 globalStatisticsManagement.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
@@ -48,7 +48,7 @@ namespace FWO.Report
 
         public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
         {
-            await callback(ManagementReports);
+            await callback(ReportData.ManagementData);
             // currently no further objects to be fetched
             GotObjectsInReport = true;
             return true;
@@ -63,7 +63,7 @@ namespace FWO.Report
         {
             globalStatisticsManagement.Name = "global statistics";
             List<ManagementReport> combinedManagements = new (){ globalStatisticsManagement };
-            combinedManagements.AddRange(ManagementReports.Where(mgt => !mgt.Ignore));
+            combinedManagements.AddRange(ReportData.ManagementData.Where(mgt => !mgt.Ignore));
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
 
@@ -71,7 +71,7 @@ namespace FWO.Report
         {
             StringBuilder csvBuilder = new ();
 
-            foreach (ManagementReport managementReport in ManagementReports.Where(mgt => !mgt.Ignore))
+            foreach (ManagementReport managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 //foreach (var item in collection)
                 //{
@@ -103,7 +103,7 @@ namespace FWO.Report
             report.AppendLine("</table>");
             report.AppendLine("<hr>");
 
-            foreach (ManagementReport managementReport in ManagementReports.Where(mgt => !mgt.Ignore))
+            foreach (ManagementReport managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 report.AppendLine($"<h4>{userConfig.GetText("no_of_obj")} - {managementReport.Name}</h4>");
                 report.AppendLine("<table>");

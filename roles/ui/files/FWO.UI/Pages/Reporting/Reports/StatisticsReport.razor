@@ -4,7 +4,7 @@
 
 @inject UserConfig userConfig
 
-@if (GlobalStats != null)
+@if (Managements.Count > 0)
 {
     <h5>@(userConfig.GetText("glob_no_obj"))</h5>
     <div class="d-flex">
@@ -44,5 +44,5 @@
     public List<ManagementReport> Managements { get; set; } = new ();
 
     [Parameter]
-    public ManagementReport? GlobalStats { get; set; }
+    public ManagementReport GlobalStats { get; set; } = new ();
 }

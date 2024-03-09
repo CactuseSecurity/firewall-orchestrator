@@ -9,14 +9,12 @@ namespace FWO.Report
 {
     public abstract class ReportDevicesBase : ReportBase
     {
-        public List<ManagementReport> ManagementReports = new ();
-
         public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base (query, UserConfig, reportType)
         {}
 
         public async Task<List<Management>> getRelevantImportIds(ApiConnection apiConnection)
         {
-            Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
+            Dictionary<string, object> ImpIdQueryVariables = new ();
             ImpIdQueryVariables["time"] = Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat);
             ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
             return await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
@@ -24,8 +22,8 @@ namespace FWO.Report
 
         public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)
         {
-            List<string> unsupportedList = new List<string>();
-            DeviceFilter reducedDeviceFilter = new DeviceFilter(deviceFilter);
+            List<string> unsupportedList = new ();
+            DeviceFilter reducedDeviceFilter = new (deviceFilter);
             foreach (ManagementSelect management in reducedDeviceFilter.Managements)
             {
                 foreach (DeviceSelect device in management.Devices)
@@ -58,7 +56,7 @@ namespace FWO.Report
 
         public override bool NoRuleFound()
         {
-            foreach(var mgmt in ManagementReports)
+            foreach(var mgmt in ReportData.ManagementData)
             {
                 foreach(var dev in mgmt.Devices)
                 {
@@ -78,7 +76,7 @@ namespace FWO.Report
         public override string SetDescription()
         {
             int managementCounter = 0;
-            foreach (var managementReport in ManagementReports.Where(mgt => !mgt.Ignore))
+            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 managementCounter++;
             }
@@ -94,7 +92,7 @@ namespace FWO.Report
             {
                 report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
             }
-            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(ManagementReports.ToArray(), m => m.NameAndDeviceNames()))}\",");
+            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(ReportData.ManagementData.ToArray(), m => m.NameAndDeviceNames()))}\",");
             report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
             report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
             report.AppendLine($"\"data protection level\": \"For internal use only\",");
@@ -110,7 +108,7 @@ namespace FWO.Report
             {
                 report.AppendLine($"# date of configuration shown: {DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
             }
-            report.AppendLine($"# device filter: {string.Join(" ", Array.ConvertAll(ManagementReports.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames(" ")))}");
+            report.AppendLine($"# device filter: {string.Join(" ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames(" ")))}");
             report.AppendLine($"# other filters: {Query.RawFilter}");
             report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
             report.AppendLine($"# data protection level: For internal use only");
@@ -120,29 +118,7 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            if (string.IsNullOrEmpty(htmlExport))
-            {
-                HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-                HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
-                HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
-                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                if(ReportType.IsChangeReport())
-                {
-                    string timeRange = $"{userConfig.GetText("change_time")}: " +
-                        $"{userConfig.GetText("from")}: {ToUtcString(Query.QueryVariables["start"]?.ToString())}, " +
-                        $"{userConfig.GetText("until")}: {ToUtcString(Query.QueryVariables["stop"]?.ToString())}";
-                    HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
-                }
-                else
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
-                    HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
-                }
-                HtmlTemplate = HtmlTemplate.Replace("##DeviceFilter##", string.Join("; ", Array.ConvertAll(ManagementReports.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames())));
-                HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
-                htmlExport = HtmlTemplate.ToString();
-            }
-            return htmlExport;
+            return GenerateHtmlFrame(title, filter, date, htmlReport, string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames())));
         }
     }
 }

@@ -61,11 +61,15 @@ namespace FWO.Api.Data
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
 
+        public int OrderNumber { get; set; } = 0;
+
+
         public ModellingConnection()
         {}
 
         public ModellingConnection(ModellingConnection conn)
         {
+           OrderNumber = conn.OrderNumber;
            Id = conn.Id;
            AppId = conn.AppId;
            Name = conn.Name;

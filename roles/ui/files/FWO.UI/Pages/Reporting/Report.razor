@@ -111,23 +111,23 @@
                         case ReportType.Recertification:
                         case ReportType.UnusedRules:
                         case ReportType.NatRules:
-                            <RulesReport Managements="managementsReport" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" 
+                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" 
                                 @bind-SelectedRules="selectedItemsRuleReportTable" />
                             break;
 
                         case ReportType.Changes:
                         case ReportType.ResolvedChanges:
                         case ReportType.ResolvedChangesTech:
-                            <ChangesReport Managements="managementsReport" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                            <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
                                 @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
                             break;
 
                         case ReportType.Statistics:
-                            <StatisticsReport Managements="managementsReport" GlobalStats="globalStats"/>
+                            <StatisticsReport Managements="currentReport.ReportData.ManagementData" GlobalStats="currentReport.ReportData.GlobalStats"/>
                             break;
 
                         case ReportType.Connections:
-                            <ConnectionsReport AppHandler="appHandler" AllCommonServices="globalComSvc"/>
+                            <ConnectionsReport AppHandler="appHandler" AllCommonServices="currentReport.ReportData.GlobalComSvc"/>
                             break;
 
                         default:
@@ -154,8 +154,7 @@
 
     @* ==== RIGHT SIDEBAR ==== *@
     <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
-        @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="actReportFilters.ReportType.IsDeviceRelatedReport() ? managementsReport : null" 
-        ConnectionsReport="actReportFilters.ReportType.IsModellingReport() ? connectionReport : null"
+        @bind-SelectedRules="selectedItemsRuleReportTable" 
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
         SelectedReportType = "actReportFilters.ReportType"/>
     <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
@@ -187,12 +186,8 @@
     private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
     private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
-    private List<OwnerReport> connectionReport = new ();
     private ModellingAppHandler? appHandler;
-    private List<ManagementReport> managementsReport = new ();
     List<int> relevantManagementIds = new ();
-    private ManagementReport? globalStats = null;
-    private List<ModellingConnection>? globalComSvc = null;
     
     private ReportFilters actReportFilters = new ();
     private bool InitDone = false;
@@ -282,11 +277,11 @@
 
     private void ResetReport()
     {
-        // clear report data when switching reportType as we would be missing src/dst/svc information in some cases           
-        managementsReport = new ();
-        globalStats = null;
-        connectionReport = new();
-        globalComSvc = null;
+        // clear report data when switching reportType as we would be missing src/dst/svc information in some cases
+        if (currentReport != null)
+        {
+            currentReport.ReportData = new ();
+        }
         reportGenerationDuration = 0;
     }
 
@@ -327,7 +322,7 @@
         selectedItemsChangeReportTable.Clear();
 
         // save original report for exception case
-        List<ManagementReport> managementsReportOrig = managementsReport;
+        List<ManagementReport> managementsReportOrig = currentReport?.ReportData.ManagementData ?? new();
         try
         {
             if (actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.isAnyDeviceFilterSet())
@@ -336,30 +331,16 @@
                 return;
             }
             processing = true;
+            startTime = DateTime.Now;
 
             await PrepareReportGeneration();
-
-            // save selected managements before resetting
-            relevantManagementIds = actReportFilters.DeviceFilter.getSelectedManagements();
-
-            startTime = DateTime.Now;
-            managementsReport = new(); // reset management data when switching between reports
-            connectionReport = new();
+            ResetReport(); // reset management data when switching between reports
 
             try
             {
                 if(currentReport.ReportType.IsModellingReport())
                 {
-                    connectionReport.Add(new OwnerReport(){ Name = actReportFilters.ModellingFilter.SelectedOwner.Name });
-                    await currentReport.GenerateCon(userConfig.ElementsPerFetch, apiConnection,
-                    connectionReportIntermediate =>
-                    {
-                        connectionReport[0].Connections = connectionReportIntermediate;
-                        return InvokeAsync(StateHasChanged);
-                    }, token);
-                    appHandler = new (apiConnection, userConfig, actReportFilters.ModellingFilter.SelectedOwner, DisplayMessageInUi);
-                    await appHandler.Init(connectionReport[0].Connections);
-                    globalComSvc = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+                    await GenerateConnectionsReport(token);
                 }
                 else if(currentReport.ReportType == ReportType.Statistics)
                 {
@@ -370,13 +351,13 @@
                     await currentReport.GenerateMgt(userConfig.ElementsPerFetch, apiConnection,
                     managementsReportIntermediate =>
                     {
-                        managementsReport = managementsReportIntermediate;
+                        currentReport.ReportData.ManagementData = managementsReportIntermediate;
                         setRelevantManagements();
                         return InvokeAsync(StateHasChanged);
                     }, token);
                     if (currentReport.ReportType == ReportType.Recertification)
                     {
-                        PrepareMetadata(managementsReport);
+                        PrepareMetadata(currentReport.ReportData.ManagementData);
                     }
                 }
             }
@@ -392,7 +373,7 @@
         catch (Exception exception)
         {
             processing = false;
-            managementsReport = managementsReportOrig;
+            currentReport.ReportData.ManagementData = managementsReportOrig;
             reportTemplateControl.Uncollapse();
             await InvokeAsync(StateHasChanged);
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
@@ -419,24 +400,42 @@
         }
 
         currentReport = ReportBase.ConstructReport(ConstructReportTemplate(), userConfig);
+
+        // save selected managements before resetting
+        relevantManagementIds = actReportFilters.DeviceFilter.getSelectedManagements();
+    }
+
+    private async Task GenerateConnectionsReport(CancellationToken token)
+    {
+        currentReport.ReportData.OwnerData.Add(new OwnerReport(){ Name = actReportFilters.ModellingFilter.SelectedOwner.Name });
+        await currentReport.GenerateCon(userConfig.ElementsPerFetch, apiConnection,
+        connIntermediate =>
+        {
+            currentReport.ReportData.OwnerData[0].Connections = connIntermediate;
+            return InvokeAsync(StateHasChanged);
+        }, token);
+        appHandler = new (apiConnection, userConfig, actReportFilters.ModellingFilter.SelectedOwner, DisplayMessageInUi);
+        await appHandler.Init(currentReport.ReportData.OwnerData[0].Connections);
+        currentReport.ReportData.GlobalComSvc = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+
     }
 
     private async Task GenerateStatisticsReport(CancellationToken token)
     {
-        globalStats = new ManagementReport();
+        currentReport.ReportData.GlobalStats = new ();
         await currentReport.GenerateMgt(0, apiConnection,
             managementsReportIntermediate =>
             {
-                managementsReport = managementsReportIntermediate;
+                currentReport.ReportData.ManagementData = managementsReportIntermediate;
                 setRelevantManagements();
                 return InvokeAsync(() =>
                 {
-                    foreach (var mgm in managementsReport.Where(mgt => !mgt.Ignore))
+                    foreach (var mgm in currentReport.ReportData.ManagementData.Where(mgt => !mgt.Ignore))
                     {
-                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                        currentReport.ReportData.GlobalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                        currentReport.ReportData.GlobalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                        currentReport.ReportData.GlobalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                        currentReport.ReportData.GlobalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
                     }
                     StateHasChanged();
                 });
@@ -485,7 +484,7 @@
 
     private void setRelevantManagements()
     {
-        foreach (var mgm in managementsReport)
+        foreach (var mgm in currentReport.ReportData.ManagementData)
         {
             mgm.Ignore = !relevantManagementIds.Contains(mgm.Id);
         }

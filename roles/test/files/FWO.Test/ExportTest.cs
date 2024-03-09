@@ -54,7 +54,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting rules report html generation");
             ReportRules reportRules = new (query, userConfig, ReportType.Rules)
             {
-                ManagementReports = ConstructRuleReport(false)
+                ReportData = ConstructRuleReport(false)
             };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Rules Report</title>" +
@@ -105,7 +105,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting rules report resolved html generation");
             ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRules)
             {
-                ManagementReports = ConstructRuleReport(true)
+                ReportData = ConstructRuleReport(true)
             };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Rules Report (resolved)</title>" +
@@ -141,7 +141,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting rules report resolved html generation");
             ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRulesTech)
             {
-                ManagementReports = ConstructRuleReport(true)
+                ReportData = ConstructRuleReport(true)
             };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Rules Report (technical)</title>" +
@@ -177,7 +177,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting unused rules report html generation");
             ReportRules reportRules = new (query, userConfig, ReportType.UnusedRules)
             {
-                ManagementReports = ConstructRuleReport(false)
+                ReportData = ConstructRuleReport(false)
             };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Unused Rules Report</title>" +
@@ -228,7 +228,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting recert report html generation");
             ReportRules reportRecerts = new (query, userConfig, ReportType.Recertification)
             {
-                ManagementReports = ConstructRecertReport()
+                ReportData = ConstructRecertReport()
             };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Recertification Report</title>" +
@@ -296,7 +296,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting nat rules report html generation");
             ReportNatRules reportNatRules = new (query, userConfig, ReportType.NatRules)
             {
-                ManagementReports = ConstructNatRuleReport()
+                ReportData = ConstructNatRuleReport()
             };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>NAT Rules Report</title>" +
@@ -346,7 +346,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting changes report html generation");
             ReportChanges reportChanges = new (query, userConfig, ReportType.Changes)
             {
-                ManagementReports = ConstructChangeReport(false)
+                ReportData = ConstructChangeReport(false)
             };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report</title>" +
@@ -412,7 +412,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting changes report resolved html generation");
             ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChanges)
             {
-                ManagementReports = ConstructChangeReport(true)
+                ReportData = ConstructChangeReport(true)
             };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report (resolved)</title>" +
@@ -474,7 +474,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting changes report tech html generation");
             ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChangesTech)
             {
-                ManagementReports = ConstructChangeReport(true)
+                ReportData = ConstructChangeReport(true)
             };
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report (technical)</title>" +
@@ -538,7 +538,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting rules report resolved csv generation");
             ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRules)
             {
-                ManagementReports = ConstructRuleReport(true)
+                ReportData = ConstructRuleReport(true)
             };
 
             string expectedCsvResult = "# report type: Rules Report (resolved)" +
@@ -560,7 +560,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting rules report tech csv generation");
             ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRulesTech)
             {
-                ManagementReports = ConstructRuleReport(true)
+                ReportData = ConstructRuleReport(true)
             };
 
             string expectedCsvResult = "# report type: Rules Report (technical)" +
@@ -582,7 +582,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
             ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChanges)
             {
-                ManagementReports = ConstructChangeReport(true)
+                ReportData = ConstructChangeReport(true)
             };
 
             string expectedCsvResult = "# report type: Changes Report (resolved)" +
@@ -611,7 +611,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting changes report tech csv generation");
             ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChangesTech)
             {
-                ManagementReports = ConstructChangeReport(true)
+                ReportData = ConstructChangeReport(true)
             };
 
             string expectedCsvResult = "# report type: Changes Report (technical)" +
@@ -635,7 +635,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting rules report json generation");
             ReportRules reportRules = new (query, userConfig, ReportType.Rules)
             {
-                ManagementReports = ConstructRuleReport(false)
+                ReportData = ConstructRuleReport(false)
             };
 
             string expectedJsonResult = 
@@ -703,7 +703,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting resolved rules report json generation");
             ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRules)
             {
-                ManagementReports = ConstructRuleReport(true)
+                ReportData = ConstructRuleReport(true)
             };
 
             string expectedJsonResult = 
@@ -728,7 +728,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting resolved rules report tech json generation");
             ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRulesTech)
             {
-                ManagementReports = ConstructRuleReport(true)
+                ReportData = ConstructRuleReport(true)
             };
 
             string expectedJsonResult = 
@@ -754,7 +754,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting changes report json generation");
             ReportChanges reportChanges = new (query, userConfig, ReportType.Changes)
             {
-                ManagementReports = ConstructChangeReport(false)
+                ReportData = ConstructChangeReport(false)
             };
 
             string expectedJsonResult = 
@@ -856,7 +856,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
             ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChanges)
             {
-                ManagementReports = ConstructChangeReport(true)
+                ReportData = ConstructChangeReport(true)
             };
 
             string expectedJsonResult = 
@@ -888,7 +888,7 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
             ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChangesTech)
             {
-                ManagementReports = ConstructChangeReport(true)
+                ReportData = ConstructChangeReport(true)
             };
 
             string expectedJsonResult = 
@@ -1013,31 +1013,34 @@ namespace FWO.Test
             };
         }
 
-        private List<ManagementReport> ConstructRuleReport(bool resolved)
+        private ReportData ConstructRuleReport(bool resolved)
         {
             Rule1 = InitRule1(resolved);
             Rule2 = InitRule2(resolved);
-            return new List<ManagementReport>()
+            return new ReportData()
             {
-                new ManagementReport()
-                { 
-                    Name = "TestMgt",
-                    ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
-                    ReportServices = new NetworkService[]{ TestService1, TestService2 },
-                    ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
-                    Devices = new Device[]
+                ManagementData = new List<ManagementReport>()
+                {
+                    new ManagementReport()
                     { 
-                        new Device()
+                        Name = "TestMgt",
+                        ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
+                        ReportServices = new NetworkService[]{ TestService1, TestService2 },
+                        ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
+                        Devices = new Device[]
                         { 
-                            Name = "TestDev",
-                            Rules = new Rule[]{ Rule1, Rule2 }
-                        } 
+                            new Device()
+                            { 
+                                Name = "TestDev",
+                                Rules = new Rule[]{ Rule1, Rule2 }
+                            } 
+                        }
                     }
                 }
             };
         }
 
-        private List<ManagementReport> ConstructRecertReport()
+        private ReportData ConstructRecertReport()
         {
             RecertRule1 = InitRule1(false);
             RecertRule1.Metadata.RuleRecertification = new List<Recertification>()
@@ -1065,27 +1068,30 @@ namespace FWO.Test
                     IpMatch = TestIpRange.Name
                 }
             };
-            return new List<ManagementReport>()
+            return new ReportData()
             {
-                new ManagementReport()
-                { 
-                    Name = "TestMgt",
-                    ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
-                    ReportServices = new NetworkService[]{ TestService1, TestService2 },
-                    ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
-                    Devices = new Device[]
+                ManagementData = new List<ManagementReport>()
+                {
+                    new ManagementReport()
                     { 
-                        new Device()
+                        Name = "TestMgt",
+                        ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
+                        ReportServices = new NetworkService[]{ TestService1, TestService2 },
+                        ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
+                        Devices = new Device[]
                         { 
-                            Name = "TestDev", 
-                            Rules = new Rule[]{ RecertRule1, RecertRule2 }
-                        } 
+                            new Device()
+                            { 
+                                Name = "TestDev", 
+                                Rules = new Rule[]{ RecertRule1, RecertRule2 }
+                            } 
+                        }
                     }
                 }
             };
         }
 
-        private List<ManagementReport> ConstructNatRuleReport()
+        private ReportData ConstructNatRuleReport()
         {
             NatRule = InitRule1(false);
             NatRule.NatData = new NatData()
@@ -1108,23 +1114,26 @@ namespace FWO.Test
                     new ServiceWrapper(){ Content = TestService2 }
                 }
             };
-            return new List<ManagementReport>()
+            return new ReportData()
             {
-                new ManagementReport()
-                { 
-                    Name = "TestMgt",
-                    ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange, TestIpNew, TestIp1Changed },
-                    ReportServices = new NetworkService[]{ TestService1, TestService2 },
-                    ReportUsers = new NetworkUser[]{ TestUser2 },
-                    Devices = new Device[]
+                ManagementData = new List<ManagementReport>()
+                {
+                    new ManagementReport()
                     { 
-                        new Device(){ Name = "TestDev", Rules = new Rule[]{ NatRule }} 
+                        Name = "TestMgt",
+                        ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange, TestIpNew, TestIp1Changed },
+                        ReportServices = new NetworkService[]{ TestService1, TestService2 },
+                        ReportUsers = new NetworkUser[]{ TestUser2 },
+                        Devices = new Device[]
+                        { 
+                            new Device(){ Name = "TestDev", Rules = new Rule[]{ NatRule }} 
+                        }
                     }
                 }
             };
         }
 
-        private List<ManagementReport> ConstructChangeReport(bool resolved)
+        private ReportData ConstructChangeReport(bool resolved)
         {
             Rule1 = InitRule1(resolved);
             Rule1Changed = InitRule1(resolved);
@@ -1182,17 +1191,20 @@ namespace FWO.Test
                 ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
                 OldRule = Rule2
             };
-            return new List<ManagementReport>()
+            return new ReportData()
             {
-                new ManagementReport()
-                { 
-                    Name = "TestMgt",
-                    Devices = new Device[]
-                    {
-                        new Device()
-                        { 
-                            Name = "TestDev",
-                            RuleChanges = new RuleChange[]{ ruleChange1, ruleChange2, ruleChange3, ruleChange4 }
+                ManagementData = new List<ManagementReport>()
+                {
+                    new ManagementReport()
+                    { 
+                        Name = "TestMgt",
+                        Devices = new Device[]
+                        {
+                            new Device()
+                            { 
+                                Name = "TestDev",
+                                RuleChanges = new RuleChange[]{ ruleChange1, ruleChange2, ruleChange3, ruleChange4 }
+                            }
                         }
                     }
                 }

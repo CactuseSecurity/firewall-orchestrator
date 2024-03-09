@@ -17,7 +17,7 @@ namespace FWO.Report
             StringBuilder report = new ();
             NatRuleDisplayHtml ruleDisplay = new (userConfig);
 
-            foreach (var managementReport in ManagementReports.Where(mgt => !mgt.Ignore))
+            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 report.AppendLine($"<h3>{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");

@@ -30,7 +30,7 @@
                         </div>
                     </Tab>
                 }
-                @if(ManagementsReport != null && ManagementsReport.Count > 0 && (CurrentReport?.ReportType.IsDeviceRelatedReport() ?? false))
+                @if(CurrentReport?.ReportData.ManagementData.Count > 0 && (CurrentReport?.ReportType.IsRuleReport() ?? false))
                 {
                     <Tab Title="@(userConfig.GetText("report"))">
                         <div class="d-md-flex justify-content-md-end sticky-marker-45">
@@ -39,7 +39,7 @@
                         <div class="mt-2">
                             <CascadingValue Value="collapseSidebarReport">
                                 <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.report" InputDataType="ManagementReport" 
-                                    Data="ManagementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))"
+                                    Data="CurrentReport.ReportData.ManagementData.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))"
                                     NameExtractor="man => man.Name"
                                     NetworkObjectExtractor="man => man.ReportObjects"
                                     NetworkServiceExtractor="man => man.ReportServices"
@@ -67,7 +67,7 @@
                         </div>
                     </Tab>
                 }
-                @if(ConnectionsReport != null && ConnectionsReport.Count > 0 && (CurrentReport?.ReportType.IsModellingReport() ?? false))
+                @if(CurrentReport?.ReportData.OwnerData.Count > 0 && (CurrentReport?.ReportType.IsModellingReport() ?? false))
                 {
                     <Tab Title="@(userConfig.GetText("used_objects"))">
                         <div class="d-md-flex justify-content-md-end sticky-marker-45">
@@ -76,7 +76,7 @@
                         <div class="mt-2">
                             <CascadingValue Value="collapseSidebarReport">
                                 <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.usedObj" InputDataType="OwnerReport" 
-                                    Data="ConnectionsReport"
+                                    Data="CurrentReport.ReportData.OwnerData"
                                     NameExtractor="own => own.Name" 
                                     NetworkObjectExtractor="own => own.GetAllNetworkObjects()"
                                     NetworkServiceExtractor="own => own.GetAllServices()"
@@ -117,16 +117,10 @@
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
 
     [Parameter]
-    public List<ManagementReport>? ManagementsReport { get; set; }
-
-    [Parameter]
     public bool AllTabVisible { get; set; } = true;
 
     [Parameter]
     public ReportType SelectedReportType  { get; set; } = ReportType.Rules;
-
-    [Parameter]
-    public List<OwnerReport>? ConnectionsReport { get; set; }
         
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();

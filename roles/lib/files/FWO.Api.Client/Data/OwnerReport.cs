@@ -14,6 +14,15 @@
             Connections = new (report.Connections);
         }
 
+        public void AssignConnectionNumbers()
+        {
+            int connNumber = 1;
+            foreach (var conn in Connections)
+            {
+                conn.OrderNumber = connNumber++;
+            }
+        }
+
         public List<ModellingAppServer> GetAllAppServers()
         {
             List<ModellingAppServer> allAppServers = new();

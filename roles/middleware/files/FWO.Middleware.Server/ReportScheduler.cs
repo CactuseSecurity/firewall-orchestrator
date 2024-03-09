@@ -148,7 +148,7 @@ namespace FWO.Middleware.Server
                     ReportBase report = ReportBase.ConstructReport(reportSchedule.Template, userConfig);
                     if(report.ReportType.IsDeviceRelatedReport())
                     {
-                        Management[] managementsReport = Array.Empty<Management>();
+                        List<ManagementReport> managementsReport = new ();
                         await report.GenerateMgt(int.MaxValue, apiConnectionUserContext, 
                             managementsReportIntermediate =>
                             {
@@ -258,12 +258,12 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private static void SetRelevantManagements(ref Management[] managementsReport, DeviceFilter deviceFilter)
+        private static void SetRelevantManagements(ref List<ManagementReport> managementsReport, DeviceFilter deviceFilter)
         {
             if (deviceFilter.isAnyDeviceFilterSet())
             {
                 List<int> relevantManagements = deviceFilter.getSelectedManagements();
-                foreach (Management mgm in managementsReport)
+                foreach (var mgm in managementsReport)
                 {
                     mgm.Ignore = !relevantManagements.Contains(mgm.Id);
                 }

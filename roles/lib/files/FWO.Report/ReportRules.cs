@@ -25,7 +25,7 @@ namespace FWO.Report
 
             List<Management> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
-            ManagementReports = new ();
+            ReportData.ManagementData = new ();
             foreach(var management in managementsWithRelevantImportId)
             {
                 Query.QueryVariables["mgmId"] = management.Id;
@@ -35,7 +35,7 @@ namespace FWO.Report
                 }
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
                 managementReport.Import = management.Import;
-                ManagementReports.Add(managementReport);
+                ReportData.ManagementData.Add(managementReport);
             }
 
             while (gotNewObjects)
@@ -54,13 +54,13 @@ namespace FWO.Report
                     {
                         Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
                     }
-                    ManagementReport? mgtToFill = ManagementReports.FirstOrDefault(m => m.Id == management.Id);
+                    ManagementReport? mgtToFill = ReportData.ManagementData.FirstOrDefault(m => m.Id == management.Id);
                     if(mgtToFill != null)
                     {
                         gotNewObjects |= mgtToFill.Merge((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
                     }
                 }
-                await callback(ManagementReports);
+                await callback(ReportData.ManagementData);
             }
             SetReportedRuleIds();
         }
@@ -71,7 +71,7 @@ namespace FWO.Report
 
             if (!GotObjectsInReport)
             {
-                foreach (var managementReport in ManagementReports)
+                foreach (var managementReport in ReportData.ManagementData)
                 {
                     if (managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId is not null)
                     {
@@ -99,7 +99,7 @@ namespace FWO.Report
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
 
             int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds")!;
-            ManagementReport managementReport = ManagementReports.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
+            ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
 
             objQueryVariables.Add("ruleIds", "{" + string.Join(", ", managementReport.ReportedRuleIds) + "}");
             objQueryVariables.Add("importId", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
@@ -144,7 +144,7 @@ namespace FWO.Report
 
                 objQueryVariables["offset"] = (int)objQueryVariables["offset"] + elementsPerFetch;
 
-                await callback(ManagementReports);
+                await callback(ReportData.ManagementData);
             }
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
@@ -157,7 +157,7 @@ namespace FWO.Report
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleCounter = 0;
-            foreach (var managementReport in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
             {
                 managementCounter++;
@@ -172,7 +172,7 @@ namespace FWO.Report
 
         private void SetReportedRuleIds()
         {
-            foreach (var mgt in ManagementReports)
+            foreach (var mgt in ReportData.ManagementData)
             {
                 foreach (Device dev in mgt.Devices.Where(d => (d.Rules != null && d.Rules.Length > 0)))
                 {
@@ -195,7 +195,7 @@ namespace FWO.Report
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine($"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
 
-                foreach (var managementReport in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
                 {
                     foreach (Device gateway in managementReport.Devices)
@@ -250,7 +250,7 @@ namespace FWO.Report
             }
             else if (ReportType.IsRuleReport())
             {
-                return System.Text.Json.JsonSerializer.Serialize(ManagementReports.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
+                return System.Text.Json.JsonSerializer.Serialize(ReportData.ManagementData.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }
             else
             {
@@ -264,7 +264,7 @@ namespace FWO.Report
             report.Append(DisplayReportHeaderJson());
             report.AppendLine("\"managements\": [");
             RuleDisplayJson ruleDisplayJson = new (userConfig);
-            foreach (var managementReport in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
             {
                 report.AppendLine($"{{\"{managementReport.Name}\": {{");
@@ -328,7 +328,7 @@ namespace FWO.Report
             StringBuilder report = new ();
             RuleDisplayHtml ruleDisplayHtml = new (userConfig);
 
-            foreach (var managementReport in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
             {
                 managementReport.AssignRuleNumbers();

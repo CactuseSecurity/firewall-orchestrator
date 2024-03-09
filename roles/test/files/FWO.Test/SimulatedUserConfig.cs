@@ -56,7 +56,9 @@ namespace FWO.Test
             {"until","until"},
             {"C9001","This object was..."},
             {"C9002","This App Server was..."},
-            {"is_in_use","Is in use"}
+            {"is_in_use","Is in use"},
+            {"devices","Devices"},
+            {"owners","Owners"}
         };
 
         public override string GetText(string key)

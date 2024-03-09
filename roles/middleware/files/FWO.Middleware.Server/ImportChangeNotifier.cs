@@ -125,7 +125,7 @@ namespace FWO.Middleware.Server
 
                 changeReport = ReportBase.ConstructReport(new ReportTemplate("", await SetFilters()), userConfig);
 
-                Management[] managements = Array.Empty<Management>();
+                List<ManagementReport> managements = new();
 
                 await changeReport.GenerateMgt(int.MaxValue, apiConnection,
                 managementsReportIntermediate =>

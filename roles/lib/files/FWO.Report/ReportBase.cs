@@ -28,7 +28,7 @@ namespace FWO.Report
 
     public abstract class ReportBase
     {
-        protected StringBuilder HtmlTemplate = new StringBuilder($@"
+        protected StringBuilder HtmlTemplate = new ($@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -61,7 +61,7 @@ namespace FWO.Report
         <p>Filter: ##Filter##</p>
         <p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>
         <p>##GeneratedOn##: ##Date## (UTC)</p>
-        <p>Devices: ##DeviceFilter##</p>
+        <p>##OtherFilters##</p>
         <hr>
         ##Body##
     </body>
@@ -70,11 +70,12 @@ namespace FWO.Report
         public readonly DynGraphqlQuery Query;
         protected UserConfig userConfig;
         public ReportType ReportType;
+        public ReportData ReportData;
 
         protected string htmlExport = "";
 
         // Pdf converter
-        protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
+        protected static readonly SynchronizedConverter converter = new (new PdfTools());
         public bool GotObjectsInReport { get; protected set; } = false;
 
 
@@ -89,6 +90,7 @@ namespace FWO.Report
         {
             throw new NotImplementedException();
         }
+
         public virtual Task GenerateCon(int _, ApiConnection apiConnection, Func<List<ModellingConnection>, Task> callback, CancellationToken ct)
         {
             throw new NotImplementedException();
@@ -98,6 +100,7 @@ namespace FWO.Report
         {
             throw new NotImplementedException();
         }
+
         public virtual Task<bool> GetConObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ModellingConnection>, Task> callback) // to be called when exporting
         {
             throw new NotImplementedException();
@@ -142,7 +145,50 @@ namespace FWO.Report
             };
         }
 
-        public string ToUtcString(string? timestring)
+        protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)
+        {
+            if (string.IsNullOrEmpty(htmlExport))
+            {
+                HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
+                HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
+                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
+                if(ReportType.IsChangeReport())
+                {
+                    string timeRange = $"{userConfig.GetText("change_time")}: " +
+                        $"{userConfig.GetText("from")}: {ToUtcString(Query.QueryVariables["start"]?.ToString())}, " +
+                        $"{userConfig.GetText("until")}: {ToUtcString(Query.QueryVariables["stop"]?.ToString())}";
+                    HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
+                }
+                else if(ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
+                    HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>", "");
+                }
+
+                if(deviceFilter != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+                }
+                else if (ownerFilter != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##OtherFilters##</p>", "");
+                }
+                HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
+                htmlExport = HtmlTemplate.ToString();
+            }
+            return htmlExport;
+        }
+
+        public static string ToUtcString(string? timestring)
         {
             try
             {

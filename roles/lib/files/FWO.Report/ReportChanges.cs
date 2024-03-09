@@ -20,9 +20,8 @@ namespace FWO.Report
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
-            ManagementReports = new ();
 
-            ManagementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
+            ReportData.ManagementData = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
 
             while (gotNewObjects)
             {
@@ -32,14 +31,14 @@ namespace FWO.Report
                     ct.ThrowIfCancellationRequested();
                 }
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = ManagementReports.Merge(await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables));
-                await callback(ManagementReports);
+                gotNewObjects = ReportData.ManagementData.Merge(await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables));
+                await callback(ReportData.ManagementData);
             }
         }
 
         public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
         {
-            await callback(ManagementReports);
+            await callback(ReportData.ManagementData);
             // currently no further objects to be fetched
             GotObjectsInReport = true;
             return true;
@@ -55,7 +54,7 @@ namespace FWO.Report
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleChangeCounter = 0;
-            foreach (var management in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 managementCounter++;
@@ -78,7 +77,7 @@ namespace FWO.Report
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine($"\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
 
-                foreach (var management in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
                 {
                     foreach (Device gateway in management.Devices)
@@ -121,7 +120,7 @@ namespace FWO.Report
             StringBuilder report = new StringBuilder();
             RuleChangeDisplayHtml ruleChangeDisplayHtml = new RuleChangeDisplayHtml(userConfig);
 
-            foreach (var management in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 report.AppendLine($"<h3>{management.Name}</h3>");
@@ -192,7 +191,7 @@ namespace FWO.Report
             }
             else if (ReportType.IsChangeReport())
             {
-                return System.Text.Json.JsonSerializer.Serialize(ManagementReports.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
+                return System.Text.Json.JsonSerializer.Serialize(ReportData.ManagementData.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }
             else
             {
@@ -206,7 +205,7 @@ namespace FWO.Report
             report.Append(DisplayReportHeaderJson());
             report.AppendLine("\"managements\": [");
             RuleChangeDisplayJson ruleChangeDisplayJson = new RuleChangeDisplayJson(userConfig);
-            foreach (var management in ManagementReports.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 report.AppendLine($"{{\"{management.Name}\": {{");

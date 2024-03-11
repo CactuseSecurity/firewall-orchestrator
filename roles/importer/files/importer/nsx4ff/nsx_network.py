@@ -125,7 +125,7 @@ def lookup_obj_uid(obj_uid, obj_list, import_id, type='network'):
         refs, names = add_ip_obj([obj_uid], obj_list, import_id)
         return refs ## assuming only one object here
     elif type=='service':
-        logger.warning("could not find service object " + str(svc_uid))
+        logger.warning("could not find service object " + str(obj_uid))
     else:
         logger.warning("unknown object type '" + type + "' for object " + str(obj_uid))
     return None

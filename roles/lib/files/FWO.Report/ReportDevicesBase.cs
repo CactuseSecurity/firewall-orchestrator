@@ -116,6 +116,11 @@ namespace FWO.Report
             return $"{report}";
         }
 
+        public static string ConstructLink(string type, string symbol, long id, string name, OutputLocation location, int mgmtId, string style)
+        {
+            return ConstructLink(type, symbol, id, name, location, $"m{mgmtId}", style);
+        }
+
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
             return GenerateHtmlFrame(title, filter, date, htmlReport, string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames())));

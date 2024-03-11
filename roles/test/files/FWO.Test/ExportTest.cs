@@ -96,7 +96,7 @@ namespace FWO.Test
             "<tr><td>1</td><td>TestUser1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportRules.ExportToHtml(), true))));
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -132,7 +132,7 @@ namespace FWO.Test
             "<td>not<br>TestService2 (6666-7777/UDP)</td>" +
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportRules.ExportToHtml(), true))));
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -168,7 +168,7 @@ namespace FWO.Test
             "<td>not<br>6666-7777/UDP</td>" +
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportRules.ExportToHtml(), true))));
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -219,7 +219,7 @@ namespace FWO.Test
             "<tr><td>1</td><td>TestUser1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportRules.ExportToHtml(), true))));
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -287,7 +287,7 @@ namespace FWO.Test
             "<tr><td>1</td><td>TestUser1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportRecerts.ExportToHtml(), true))));
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRecerts.ExportToHtml(), true)));
         }
 
         [Test]
@@ -337,7 +337,7 @@ namespace FWO.Test
             "<h4>Users</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
             "</table></table></body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportNatRules.ExportToHtml(), true))));
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportNatRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -403,7 +403,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportChanges.ExportToHtml(), true))));
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
         }
 
         [Test]
@@ -465,7 +465,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportChanges.ExportToHtml(), true))));
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
         }
 
         [Test]
@@ -528,9 +528,30 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportChanges.ExportToHtml(), true))));
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
         }
 
+        [Test]
+        public void ConnectionsGenerateHtml()
+        {
+            Log.WriteInfo("Test Log", "starting connection report html generation");
+            ReportConnections reportConnections = new (query, userConfig, ReportType.Connections)
+            {
+                ReportData = ConstructConnectionReport(false)
+            };
+
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Connections Report</title>" +
+            "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
+            "<body>" +
+            "<h2>Connections Report</h2>" +
+            "<p>Filter: TestFilter</p>" +
+            "<p>Generated on: Z (UTC)</p>" +
+            "<p>Owners: TestOwner</p><hr>" +
+            "<h3>TestOwner</h3>" +
+
+            "</body></html>";
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportConnections.ExportToHtml(), true)));
+        }
 
         [Test]
         public void ResolvedRulesGenerateCsv()
@@ -684,7 +705,7 @@ namespace FWO.Test
             "\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
             "\"Ignore\": false}]";
             // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportRules.ExportToJson(), true, true))));
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -709,7 +730,7 @@ namespace FWO.Test
             "\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"],\"destination zone\": \"\",\"destination negated\": true," +
             "\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"],\"service negated\": true," +
             "\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
         }
 
        [Test]
@@ -735,7 +756,7 @@ namespace FWO.Test
             "\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"],\"destination zone\": \"\"," +
             "\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4-1.2.3.5\"],\"service negated\": true," +
             "\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -829,7 +850,7 @@ namespace FWO.Test
             "\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": [],\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
             "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
             "\"Ignore\": false}]";
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -861,7 +882,7 @@ namespace FWO.Test
             "\"destination zone\": \"\",\"destination negated\": true,\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"]," +
             "\"service negated\": true,\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
             // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -892,7 +913,7 @@ namespace FWO.Test
             "\"source zone\": \"\",\"source negated\": true,\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"]," +
             "\"destination zone\": \"\",\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4-1.2.3.5\"]," +
             "\"service negated\": true,\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
 
@@ -1004,18 +1025,18 @@ namespace FWO.Test
                 ManagementData = new List<ManagementReport>()
                 {
                     new ()
-                    { 
+                    {
                         Name = "TestMgt",
                         ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
                         ReportServices = new NetworkService[]{ TestService1, TestService2 },
                         ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
                         Devices = new DeviceReport[]
-                        { 
+                        {
                             new ()
-                            { 
+                            {
                                 Name = "TestDev",
                                 Rules = new Rule[]{ Rule1, Rule2 }
-                            } 
+                            }
                         }
                     }
                 }
@@ -1147,27 +1168,27 @@ namespace FWO.Test
             Rule2Changed.ServiceNegated = false;
             Rule2Changed.Disabled = true;
 
-            RuleChange ruleChange1 = new RuleChange()
+            RuleChange ruleChange1 = new ()
             {
                 ChangeAction = 'I',
                 ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
                 NewRule = Rule1
             };
-            RuleChange ruleChange2 = new RuleChange()
+            RuleChange ruleChange2 = new ()
             {
                 ChangeAction = 'C',
                 ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
                 OldRule = Rule1,
                 NewRule = Rule1Changed
             };
-            RuleChange ruleChange3 = new RuleChange()
+            RuleChange ruleChange3 = new ()
             {
                 ChangeAction = 'C',
                 ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
                 OldRule = Rule2,
                 NewRule = Rule2Changed
             };
-            RuleChange ruleChange4 = new RuleChange()
+            RuleChange ruleChange4 = new ()
             {
                 ChangeAction = 'D',
                 ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
@@ -1188,6 +1209,20 @@ namespace FWO.Test
                                 RuleChanges = new RuleChange[]{ ruleChange1, ruleChange2, ruleChange3, ruleChange4 }
                             }
                         }
+                    }
+                }
+            };
+        }
+
+        private ReportData ConstructConnectionReport(bool resolved)
+        {
+            return new ReportData()
+            {
+                OwnerData = new List<OwnerReport>()
+                {
+                    new ()
+                    {
+                        Name = "TestOwner",
                     }
                 }
             };

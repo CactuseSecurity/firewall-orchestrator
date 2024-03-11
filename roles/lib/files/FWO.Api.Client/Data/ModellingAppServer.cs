@@ -43,6 +43,7 @@ namespace FWO.Api.Data
             return new NetworkObject()
             {
                 Id = appServer.Id,
+                Number = appServer.Number,
                 Name = appServer.Name,
                 IP = appServer.Ip,
                 IpEnd = appServer.Ip
@@ -55,6 +56,7 @@ namespace FWO.Api.Data
         public ModellingAppServer(ModellingAppServer appServer)
         {
             Id = appServer.Id;
+            Number = appServer.Number;
             AppId = appServer.AppId;
             Name = appServer.Name;
             IsDeleted = appServer.IsDeleted;

@@ -15,6 +15,7 @@ namespace FWO.Test
             {"Changes","Changes Report"},
             {"ResolvedChanges","Changes Report (resolved)"},
             {"ResolvedChangesTech","Changes Report (technical)"},
+            {"Connections","Connections Report"},
             {"date_of_config","Time of configuration"},
             {"generated_on","Generated on"},
             {"negated","not"},

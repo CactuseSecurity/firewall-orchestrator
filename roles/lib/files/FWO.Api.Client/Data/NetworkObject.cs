@@ -53,6 +53,8 @@ namespace FWO.Api.Data
         [JsonProperty("objgrp_flats"), JsonPropertyName("objgrp_flats")]
         public GroupFlat<NetworkObject>[] ObjectGroupFlats { get; set; } = new GroupFlat<NetworkObject>[]{};
 
+        public long Number;
+
         public override bool Equals(object? obj)
         {
             return obj switch

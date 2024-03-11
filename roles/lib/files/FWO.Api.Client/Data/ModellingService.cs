@@ -24,6 +24,7 @@ namespace FWO.Api.Data
         public ModellingService(ModellingService service)
         {
             Id = service.Id;
+            Number = service.Number;
             AppId = service.AppId;
             Name = service.Name;
             Port = service.Port;
@@ -48,6 +49,7 @@ namespace FWO.Api.Data
             return new NetworkService()
             {
                 Id = service.Id,
+                Number = service.Number,
                 Name = service?.Name ?? "",
                 DestinationPort = service?.Port,
                 DestinationPortEnd = service?.PortEnd,

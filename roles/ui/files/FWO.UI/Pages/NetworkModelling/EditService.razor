@@ -147,7 +147,7 @@
         IpProtocol? esp = ListIn.Find(x => x.Name.ToLower() == "esp");
         if(esp != null)
         {
-            ListOut.Add(new NetworkProtocol(esp){ Name = esp.Name + "/IPsec(vpn)" });
+            ListOut.Add(new NetworkProtocol(esp));
             ListIn.Remove(esp);
         }
         if(!userConfig.ReducedProtocolSet)

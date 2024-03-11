@@ -25,6 +25,7 @@ namespace FWO.Api.Data
             return new ModellingNwGroup()
             {
                 Id = Id,
+                Number = Number,
                 GroupType = GroupType,
                 IdString = IdString,
                 Name = Name,
@@ -43,6 +44,7 @@ namespace FWO.Api.Data
             return new()
             {
                 Id = Id,
+                Number = Number,
                 Name = Name ?? "",
                 Comment = Comment ?? "",
                 Type = new NetworkObjectType(){ Name = ObjectType.Group },

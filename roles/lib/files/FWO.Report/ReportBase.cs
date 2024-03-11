@@ -25,6 +25,13 @@ namespace FWO.Report
         user = 3
     }
 
+    public struct ObjCatString
+    {
+        public const string NwObj = "nwobj";
+        public const string Svc = "svc";
+        public const string User = "user";
+    }
+
     public enum OutputLocation
     {
         export,
@@ -135,6 +142,12 @@ namespace FWO.Report
             };
         }
 
+        public static string ConstructLink(string type, string symbol, long id, string name, OutputLocation location, string reportId, string style)
+        {
+            string link = location == OutputLocation.export ? $"#" : $"{location}/generation#goto-report-{reportId}-";
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
+        }
+
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
@@ -176,12 +189,6 @@ namespace FWO.Report
                 htmlExport = HtmlTemplate.ToString();
             }
             return htmlExport;
-        }
-
-        public static string ConstructLink(string type, string symbol, long id, string name, OutputLocation location, int mgmtId, string style)
-        {
-            string link = location == OutputLocation.export ? $"#" : $"{location}/generation#goto-report-m{mgmtId}-";
-            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
         public static string ToUtcString(string? timestring)

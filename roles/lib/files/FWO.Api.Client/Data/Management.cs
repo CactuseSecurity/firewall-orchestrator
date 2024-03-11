@@ -114,14 +114,6 @@ namespace FWO.Api.Data
             return Hostname + ":" + Port;
         }
         
-        public void AssignRuleNumbers()
-        {
-            foreach (Device device in Devices)
-            {
-                device.AssignRuleNumbers();
-            }
-        }
-
         public virtual bool Sanitize()
         {
             bool shortened = false;
@@ -134,11 +126,6 @@ namespace FWO.Api.Data
             CloudSubscriptionId = Sanitizer.SanitizeOpt(CloudSubscriptionId, ref shortened);
             CloudTenantId = Sanitizer.SanitizeOpt(CloudTenantId, ref shortened);
             return shortened;
-        }
-
-        public string NameAndDeviceNames(string separator = ", ")
-        {
-            return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
         }
     }
 }

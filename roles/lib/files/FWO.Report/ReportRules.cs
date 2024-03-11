@@ -17,13 +17,13 @@ namespace FWO.Report
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
-        public override async Task GenerateMgt(int rulesPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback, CancellationToken ct)
+        public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
 
-            List<Management> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
+            List<ManagementReport> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
             ReportData.ManagementData = new ();
             foreach(var management in managementsWithRelevantImportId)
@@ -60,12 +60,12 @@ namespace FWO.Report
                         gotNewObjects |= mgtToFill.Merge((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
                     }
                 }
-                await callback(ReportData.ManagementData);
+                await callback(ReportData);
             }
             SetReportedRuleIds();
         }
 
-        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback) // to be called when exporting
+        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting
         {
             bool gotAllObjects = true; //whether the fetch count limit was reached during fetching
 
@@ -93,7 +93,7 @@ namespace FWO.Report
             return gotAllObjects;
         }
 
-        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
+        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
             if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
@@ -144,7 +144,7 @@ namespace FWO.Report
 
                 objQueryVariables["offset"] = (int)objQueryVariables["offset"] + elementsPerFetch;
 
-                await callback(ReportData.ManagementData);
+                await callback(ReportData);
             }
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
@@ -161,7 +161,7 @@ namespace FWO.Report
                     Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
             {
                 managementCounter++;
-                foreach (Device device in managementReport.Devices.Where(dev => dev.Rules != null && dev.Rules.Length > 0))
+                foreach (var device in managementReport.Devices.Where(dev => dev.Rules != null && dev.Rules.Length > 0))
                 {
                     deviceCounter++;
                     ruleCounter += device.Rules!.Length;
@@ -174,7 +174,7 @@ namespace FWO.Report
         {
             foreach (var mgt in ReportData.ManagementData)
             {
-                foreach (Device dev in mgt.Devices.Where(d => (d.Rules != null && d.Rules.Length > 0)))
+                foreach (var dev in mgt.Devices.Where(d => (d.Rules != null && d.Rules.Length > 0)))
                 {
                     foreach (Rule rule in dev.Rules)
                     {
@@ -198,11 +198,11 @@ namespace FWO.Report
                 foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
                 {
-                    foreach (Device gateway in managementReport.Devices)
+                    foreach (var gateway in managementReport.Devices)
                     {
                         if (gateway.Rules != null && gateway.Rules.Length > 0)
                         {
-                            foreach (Rule rule in gateway.Rules)
+                            foreach (var rule in gateway.Rules)
                             {
                                 if (string.IsNullOrEmpty(rule.SectionHeader))
                                 {
@@ -269,12 +269,12 @@ namespace FWO.Report
             {
                 report.AppendLine($"{{\"{managementReport.Name}\": {{");
                 report.AppendLine($"\"gateways\": [");
-                foreach (Device gateway in managementReport.Devices)
+                foreach (var gateway in managementReport.Devices)
                 {
                     if (gateway.Rules != null && gateway.Rules.Length > 0)
                     {
                         report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
-                        foreach (Rule rule in gateway.Rules)
+                        foreach (var rule in gateway.Rules)
                         {
                             report.Append("{");
                             if (string.IsNullOrEmpty(rule.SectionHeader))
@@ -336,7 +336,7 @@ namespace FWO.Report
                 report.AppendLine($"<h3>{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");
 
-                foreach (Device device in managementReport.Devices)
+                foreach (var device in managementReport.Devices)
                 {
                     if (device.Rules != null && device.Rules.Length > 0)
                     {
@@ -380,7 +380,7 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void appendRulesForDeviceHtml(ref StringBuilder report, Device device, RuleDisplayHtml ruleDisplayHtml)
+        private void appendRulesForDeviceHtml(ref StringBuilder report, DeviceReport device, RuleDisplayHtml ruleDisplayHtml)
         {
             if (device.ContainsRules())
             {
@@ -388,7 +388,7 @@ namespace FWO.Report
                 report.AppendLine("<hr>");
                 report.AppendLine("<table>");
                 appendRuleHeadlineHtml(ref report);
-                foreach (Rule rule in device.Rules!)
+                foreach (var rule in device.Rules!)
                 {
                     if (string.IsNullOrEmpty(rule.SectionHeader))
                     {
@@ -453,7 +453,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
-                foreach (NetworkObject nwobj in managementReport.ReportObjects)
+                foreach (var nwobj in managementReport.ReportObjects)
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");
@@ -490,7 +490,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
                 objNumber = 1;
-                foreach (NetworkService svcobj in managementReport.ReportServices)
+                foreach (var svcobj in managementReport.ReportServices)
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");
@@ -529,7 +529,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
                 objNumber = 1;
-                foreach (NetworkUser userobj in managementReport.ReportUsers)
+                foreach (var userobj in managementReport.ReportUsers)
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");

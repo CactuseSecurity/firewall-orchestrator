@@ -150,11 +150,9 @@
         });
     }
 
-    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<List<ManagementReport>, Task> callback, long id = 0, bool nat = false)
+    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<ReportData, Task> callback, long id = 0, bool nat = false)
     {
         Log.WriteDebug("Fetching Content..", $"nat: {nat}");
-
-        List<ManagementReport> managementReports = new ();
 
         try
         {
@@ -225,12 +223,12 @@
         }
     }
 
-    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<List<ManagementReport>, Task> callback)
+    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<ReportData, Task> callback)
     {
         // lazy fetch all objects for right sidebar
         try
         {
-            List<ManagementReport> managementReports = new ();
+            ReportData reportData = new();
             bool newObjects = true;
             int fetchCount = 0;
 
@@ -239,16 +237,16 @@
                 List<ManagementReport> managementsCurrentFetch = await Connection.SendQueryAsync<List<ManagementReport>>(query, queryVars);
                 if (fetchCount == 1)
                 {
-                    managementReports = managementsCurrentFetch;
+                    reportData.ManagementData = managementsCurrentFetch;
                 }
                 else
                 {
-                    newObjects = managementReports.Merge(managementsCurrentFetch);
+                    newObjects = reportData.ManagementData.Merge(managementsCurrentFetch);
                 }
 
                 if (queryVars.ContainsKey("offset"))
                     queryVars["offset"] = (int)queryVars["offset"] + userConfig.ElementsPerFetch;
-                await callback(managementReports);
+                await callback(reportData);
             }
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");

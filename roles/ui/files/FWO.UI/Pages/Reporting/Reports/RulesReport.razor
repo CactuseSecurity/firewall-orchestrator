@@ -1,5 +1,6 @@
 ﻿@using FWO.Ui.Display
 @using FWO.Config.Api
+@using FWO.Report
 @using FWO.Report.Filter
 
 @inject UserConfig userConfig
@@ -12,7 +13,7 @@
 
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
 
-            @foreach (Device device in management.Devices)
+            @foreach (var device in management.Devices)
             {
                 @if (device.Rules != null && device.Rules.Length > 0 && ruleDisplay != null)
                 {

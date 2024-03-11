@@ -6,13 +6,6 @@ using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
-    public enum OutputLocation
-    {
-        export,
-        report,
-        certification
-    }
-
     public class RuleDisplayHtml: RuleDisplayBase
     {
         public RuleDisplayHtml(UserConfig userConfig) : base(userConfig)
@@ -92,26 +85,20 @@ namespace FWO.Ui.Display
             return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => getLastRecertifierDisplayString(countString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        protected string ConstructLink(string type, string symbol, long id, string name, OutputLocation location, int mgmtId, string style, ReportType reportType = ReportType.Rules)
-        {
-            string link = location == OutputLocation.export ? $"#" : $"{location}/generation#goto-report-m{mgmtId}-";
-            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
-        }
-
         protected string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
             return DisplayNetworkLocation(networkLocation, reportType, 
                 reportType.IsResolvedReport() || networkLocation.User == null ? null :
-                ConstructLink("user", ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name), networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style, reportType),
+                ReportBase.ConstructLink("user", ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name), networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style),
                 reportType.IsResolvedReport() ? null :
-                ConstructLink("nwobj", ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name), networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style, reportType)
+                ReportBase.ConstructLink("nwobj", ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name), networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style)
                 ).ToString();
         }
 
         protected string ServiceToHtml(NetworkService service, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
             return DisplayService(service, reportType, reportType.IsResolvedReport() ? null : 
-                ConstructLink("svc", ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Id, service.Name, location, mgmtId, style, reportType)).ToString();
+                ReportBase.ConstructLink("svc", ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Id, service.Name, location, mgmtId, style)).ToString();
         }
 
         private string DisplaySourceOrDestination(Rule rule, OutputLocation location, ReportType reportType, string style, bool isSource)

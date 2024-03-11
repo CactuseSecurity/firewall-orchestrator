@@ -348,10 +348,10 @@
                 }
                 else
                 {
-                    await currentReport.GenerateMgt(userConfig.ElementsPerFetch, apiConnection,
+                    await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
                     managementsReportIntermediate =>
                     {
-                        currentReport.ReportData.ManagementData = managementsReportIntermediate;
+                        currentReport.ReportData.ManagementData = managementsReportIntermediate.ManagementData;
                         setRelevantManagements();
                         return InvokeAsync(StateHasChanged);
                     }, token);
@@ -407,26 +407,38 @@
 
     private async Task GenerateConnectionsReport(CancellationToken token)
     {
-        currentReport.ReportData.OwnerData.Add(new OwnerReport(){ Name = actReportFilters.ModellingFilter.SelectedOwner.Name });
-        await currentReport.GenerateCon(userConfig.ElementsPerFetch, apiConnection,
-        connIntermediate =>
+        foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners.Where(o => o.Id > 0))
         {
-            currentReport.ReportData.OwnerData[0].Connections = connIntermediate;
-            return InvokeAsync(StateHasChanged);
-        }, token);
-        appHandler = new (apiConnection, userConfig, actReportFilters.ModellingFilter.SelectedOwner, DisplayMessageInUi);
-        await appHandler.Init(currentReport.ReportData.OwnerData[0].Connections);
-        currentReport.ReportData.GlobalComSvc = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+            OwnerReport actOwnerData = new(){ Name = selectedOwner.Name };
+            currentReport.ReportData.OwnerData.Add(actOwnerData);
+            await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
+            connIntermediate =>
+            {
+                actOwnerData.Connections = connIntermediate.OwnerData.First().Connections;
+                return InvokeAsync(StateHasChanged);
+            }, token);
 
+            await PrepareReportData(selectedOwner, actOwnerData);
+        }
+        currentReport.ReportData.GlobalComSvc = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+    }
+
+    async Task PrepareReportData(FwoOwner selectedOwner, OwnerReport ownerData)
+    {
+        appHandler = new (apiConnection, userConfig, selectedOwner, DisplayMessageInUi);
+        await appHandler.Init(ownerData.Connections);
+        ownerData.RegularConnections = appHandler.GetRegularConnections();
+        ownerData.Interfaces = appHandler.GetInterfaces();
+        ownerData.CommonServices = appHandler.GetCommonServices();
     }
 
     private async Task GenerateStatisticsReport(CancellationToken token)
     {
         currentReport.ReportData.GlobalStats = new ();
-        await currentReport.GenerateMgt(0, apiConnection,
+        await currentReport.Generate(0, apiConnection,
             managementsReportIntermediate =>
             {
-                currentReport.ReportData.ManagementData = managementsReportIntermediate;
+                currentReport.ReportData.ManagementData = managementsReportIntermediate.ManagementData;
                 setRelevantManagements();
                 return InvokeAsync(() =>
                 {
@@ -446,11 +458,11 @@
     {
         bool rulesFound = false;
         foreach (var managementReport in ManagementReports)
-            foreach (Device device in managementReport.Devices)
+            foreach (var device in managementReport.Devices)
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
-                    foreach (Rule rule in device.Rules!)
+                    foreach (var rule in device.Rules!)
                     {
                         rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
                     }
@@ -534,7 +546,7 @@
             ReportType.Statistics,
             ReportType.Connections
         };
-        foreach (ReportType reportType in orderedReportTypeList)
+        foreach (var reportType in orderedReportTypeList)
         {
             ReportType? foundType = ListIn.Find(x => x == reportType);
             if (foundType != null)

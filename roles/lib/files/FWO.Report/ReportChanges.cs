@@ -7,6 +7,7 @@ using FWO.Config.Api;
 using FWO.Logging;
 using System.Text.Json;
 using Newtonsoft.Json;
+
 namespace FWO.Report
 {
     public class ReportChanges : ReportDevicesBase
@@ -15,7 +16,7 @@ namespace FWO.Report
 
         public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
-        public override async Task GenerateMgt(int changesPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback, CancellationToken ct)
+        public override async Task Generate(int changesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
@@ -32,19 +33,19 @@ namespace FWO.Report
                 }
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
                 gotNewObjects = ReportData.ManagementData.Merge(await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables));
-                await callback(ReportData.ManagementData);
+                await callback(ReportData);
             }
         }
 
-        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
+        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
-            await callback(ReportData.ManagementData);
+            await callback(ReportData);
             // currently no further objects to be fetched
             GotObjectsInReport = true;
             return true;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
             throw new NotImplementedException();
         }
@@ -58,7 +59,7 @@ namespace FWO.Report
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 managementCounter++;
-                foreach (Device device in management.Devices.Where(dev => dev.RuleChanges != null && dev.RuleChanges.Length > 0))
+                foreach (var device in management.Devices.Where(dev => dev.RuleChanges != null && dev.RuleChanges.Length > 0))
                 {
                     deviceCounter++;
                     ruleChangeCounter += device.RuleChanges!.Length;
@@ -80,11 +81,11 @@ namespace FWO.Report
                 foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
                 {
-                    foreach (Device gateway in management.Devices)
+                    foreach (var gateway in management.Devices)
                     {
                         if (gateway.RuleChanges != null && gateway.RuleChanges.Length > 0)
                         {
-                            foreach (RuleChange ruleChange in gateway.RuleChanges)
+                            foreach (var ruleChange in gateway.RuleChanges)
                             {
                                 report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
                                 report.Append(ruleChangeDisplayCsv.OutputCsv(gateway.Name));
@@ -126,7 +127,7 @@ namespace FWO.Report
                 report.AppendLine($"<h3>{management.Name}</h3>");
                 report.AppendLine("<hr>");
 
-                foreach (Device device in management.Devices)
+                foreach (var device in management.Devices)
                 {
                     report.AppendLine($"<h4>{device.Name}</h4>");
                     report.AppendLine("<hr>");
@@ -150,7 +151,7 @@ namespace FWO.Report
 
                     if (device.RuleChanges != null)
                     {
-                        foreach (RuleChange ruleChange in device.RuleChanges)
+                        foreach (var ruleChange in device.RuleChanges)
                         {
                             report.AppendLine("<tr>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(ruleChange)}</td>");
@@ -210,12 +211,12 @@ namespace FWO.Report
             {
                 report.AppendLine($"{{\"{management.Name}\": {{");
                 report.AppendLine($"\"gateways\": [");
-                foreach (Device gateway in management.Devices)
+                foreach (var gateway in management.Devices)
                 {
                     if (gateway.RuleChanges != null && gateway.RuleChanges.Length > 0)
                     {
                         report.Append($"{{\"{gateway.Name}\": {{\n\"rule changes\": [");
-                        foreach (RuleChange ruleChange in gateway.RuleChanges)
+                        foreach (var ruleChange in gateway.RuleChanges)
                         {
                             report.Append("{");
                             report.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
@@ -253,9 +254,9 @@ namespace FWO.Report
             report.Append("}"); // EO top
 
             dynamic? json = JsonConvert.DeserializeObject(report.ToString());
-            JsonSerializerSettings settings = new JsonSerializerSettings();
+            JsonSerializerSettings settings = new ();
             settings.Formatting = Formatting.Indented;
-            return Newtonsoft.Json.JsonConvert.SerializeObject(json, settings);            
+            return JsonConvert.SerializeObject(json, settings);            
         }
     }
 }

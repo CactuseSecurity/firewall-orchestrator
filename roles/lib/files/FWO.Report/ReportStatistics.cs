@@ -16,13 +16,13 @@ namespace FWO.Report
         public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
 
-        public override async Task GenerateMgt(int _, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback, CancellationToken ct)
+        public override async Task Generate(int _, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            List<Management> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
+            List<ManagementReport> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
             ReportData.ManagementData = new ();
 
-            foreach (Management relevantMgmt in managementsWithRelevantImportId)
+            foreach (var relevantMgmt in managementsWithRelevantImportId)
             {
                 if (ct.IsCancellationRequested)
                 {
@@ -35,7 +35,7 @@ namespace FWO.Report
                 Query.QueryVariables["relevantImportId"] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
                 ReportData.ManagementData.Add((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
             }
-            await callback(ReportData.ManagementData);
+            await callback(ReportData);
 
             foreach (ManagementReport mgm in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
@@ -46,15 +46,15 @@ namespace FWO.Report
             }
         }
 
-        public override async Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
+        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
-            await callback(ReportData.ManagementData);
+            await callback(ReportData);
             // currently no further objects to be fetched
             GotObjectsInReport = true;
             return true;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
             return Task.FromResult<bool>(true);
         }
@@ -128,7 +128,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("gateway")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("rules")}</th>");
                 report.AppendLine("</tr>");
-                foreach (Device device in managementReport.Devices)
+                foreach (var device in managementReport.Devices)
                 {
                     if (device.RuleStatistics != null)
                     {

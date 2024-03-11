@@ -1,27 +1,42 @@
 ﻿using Newtonsoft.Json;
 using System.Text.Json.Serialization;
+using FWO.Api.Data;
 
-namespace FWO.Api.Data
+namespace FWO.Report
 {
-    public class ManagementReport : Management
+    public class ManagementReport
     {
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("devices"), JsonPropertyName("devices")]
+        public DeviceReport[] Devices { get; set; } = Array.Empty<DeviceReport>();
+
+        [JsonProperty("import"), JsonPropertyName("import")]
+        public Import Import { get; set; } = new Import();
+
+        public long? RelevantImportId { get; set; }
+
         [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
-        public NetworkObject[] Objects { get; set; } = new NetworkObject[]{};
+        public NetworkObject[] Objects { get; set; } = Array.Empty<NetworkObject>();
 
         [JsonProperty("serviceObjects"), JsonPropertyName("serviceObjects")]
-        public NetworkService[] Services { get; set; } = new NetworkService[]{};
+        public NetworkService[] Services { get; set; } = Array.Empty<NetworkService>();
 
         [JsonProperty("userObjects"), JsonPropertyName("userObjects")]
-        public NetworkUser[] Users { get; set; } = new NetworkUser[]{};
+        public NetworkUser[] Users { get; set; } = Array.Empty<NetworkUser>();
 
         [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
-        public NetworkObject[] ReportObjects { get; set; } = new NetworkObject[]{};
+        public NetworkObject[] ReportObjects { get; set; } = Array.Empty<NetworkObject>();
 
         [JsonProperty("reportServiceObjects"), JsonPropertyName("reportServiceObjects")]
-        public NetworkService[] ReportServices { get; set; } = new NetworkService[]{};
+        public NetworkService[] ReportServices { get; set; } = Array.Empty<NetworkService>();
 
         [JsonProperty("reportUserObjects"), JsonPropertyName("reportUserObjects")]
-        public NetworkUser[] ReportUsers { get; set; } = new NetworkUser[]{};
+        public NetworkUser[] ReportUsers { get; set; } = Array.Empty<NetworkUser>();
 
 
         //[JsonProperty("rule_id"), JsonPropertyName("rule_id")]
@@ -40,11 +55,24 @@ namespace FWO.Api.Data
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
+        public bool Ignore { get; set; }
+
+
         public ManagementReport()
         {}
 
-        public ManagementReport(ManagementReport managementReport) : base(managementReport)
+        public ManagementReport(ManagementReport managementReport)
         {
+            Id = managementReport.Id;
+            Name = managementReport.Name;
+            Devices = managementReport.Devices;
+            Import = managementReport.Import;
+            if (managementReport.Import != null && managementReport.Import.ImportAggregate != null &&
+                managementReport.Import.ImportAggregate.ImportAggregateMax != null &&
+                managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
+            {
+                RelevantImportId = managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+            }
             Objects = managementReport.Objects;
             Services = managementReport.Services;
             Users = managementReport.Users;
@@ -57,12 +85,20 @@ namespace FWO.Api.Data
             ServiceObjectStatistics = managementReport.ServiceObjectStatistics;
             UserObjectStatistics = managementReport.UserObjectStatistics;
             RuleStatistics = managementReport.RuleStatistics;
+            Ignore = managementReport.Ignore;
         }
 
-        public override bool Sanitize()
+        public void AssignRuleNumbers()
         {
-            bool shortened = base.Sanitize();
-            return shortened;
+            foreach (var device in Devices)
+            {
+                device.AssignRuleNumbers();
+            }
+        }
+
+        public string NameAndDeviceNames(string separator = ", ")
+        {
+            return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
         }
     }
 

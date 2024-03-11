@@ -150,14 +150,7 @@
                 {
                     if (!ReportToExport.GotObjectsInReport)
                     {
-                        if((bool)ReportToExport?.ReportType.IsModellingReport())
-                        {
-                            await ReportToExport.GetConObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
-                        }
-                        else
-                        {
-                            await ReportToExport.GetMgtObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
-                        }
+                        await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
                     }
 
                     if (ExportHtml)

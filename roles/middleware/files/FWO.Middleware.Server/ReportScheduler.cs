@@ -148,27 +148,24 @@ namespace FWO.Middleware.Server
                     ReportBase report = ReportBase.ConstructReport(reportSchedule.Template, userConfig);
                     if(report.ReportType.IsDeviceRelatedReport())
                     {
-                        List<ManagementReport> managementsReport = new ();
-                        await report.GenerateMgt(int.MaxValue, apiConnectionUserContext, 
-                            managementsReportIntermediate =>
+                        await report.Generate(int.MaxValue, apiConnectionUserContext, 
+                            rep =>
                             {
-                                managementsReport = managementsReportIntermediate;
-                                SetRelevantManagements(ref managementsReport, reportSchedule.Template.ReportParams.DeviceFilter);
+                                report.ReportData.ManagementData = rep.ManagementData;
+                                SetRelevantManagements(ref report.ReportData.ManagementData, reportSchedule.Template.ReportParams.DeviceFilter);
                                 return Task.CompletedTask;
                             }, token);
-                        await report.GetMgtObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                     }
                     else
                     {
-                        List<ModellingConnection> connectionReport = new();
-                        await report.GenerateCon(int.MaxValue, apiConnectionUserContext,
-                            connectionReportIntermediate =>
+                        await report.Generate(int.MaxValue, apiConnectionUserContext,
+                            rep =>
                             {
-                                connectionReport = connectionReportIntermediate;
+                                report.ReportData.OwnerData = rep.OwnerData;
                                 return Task.CompletedTask;
                             }, token);
-                        //await report.GetConObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                     }
+                    await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                     WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
                     await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
                     Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.Owner.Name}\" with id \"{reportSchedule.Owner.DbId}\" successfully generated.");

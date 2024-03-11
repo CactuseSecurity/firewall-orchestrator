@@ -22,7 +22,7 @@ namespace FWO.Report
                 report.AppendLine($"<h3>{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");
 
-                foreach (Device device in managementReport.Devices)
+                foreach (var device in managementReport.Devices)
                 {
                     if (device.Rules != null && device.Rules.Length > 0)
                     {
@@ -46,7 +46,7 @@ namespace FWO.Report
                         report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                         report.AppendLine("</tr>");
 
-                        foreach (Rule rule in device.Rules)
+                        foreach (var rule in device.Rules)
                         {
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
@@ -95,7 +95,7 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
-                    foreach (NetworkObject nwobj in managementReport.ReportObjects)
+                    foreach (var nwobj in managementReport.ReportObjects)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
@@ -129,7 +129,7 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
-                    foreach (NetworkService svcobj in managementReport.ReportServices)
+                    foreach (var svcobj in managementReport.ReportServices)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
@@ -165,7 +165,7 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
-                    foreach (NetworkUser userobj in managementReport.ReportUsers)
+                    foreach (var userobj in managementReport.ReportUsers)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");

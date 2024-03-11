@@ -124,19 +124,17 @@ namespace FWO.Middleware.Server
                 UserConfig userConfig = new(globalConfig);
 
                 changeReport = ReportBase.ConstructReport(new ReportTemplate("", await SetFilters()), userConfig);
-
-                List<ManagementReport> managements = new();
-
-                await changeReport.GenerateMgt(int.MaxValue, apiConnection,
-                managementsReportIntermediate =>
-                {
-                    managements = managementsReportIntermediate;
-                    foreach (Management mgm in managements)
+                ReportData reportData = new();
+                await changeReport.Generate(int.MaxValue, apiConnection,
+                    rep =>
                     {
-                        mgm.Ignore = !deviceFilter.getSelectedManagements().Contains(mgm.Id);
-                    }
-                    return Task.CompletedTask;
-                }, token);
+                        reportData.ManagementData = rep.ManagementData;
+                        foreach (var mgm in reportData.ManagementData)
+                        {
+                            mgm.Ignore = !deviceFilter.getSelectedManagements().Contains(mgm.Id);
+                        }
+                        return Task.CompletedTask;
+                    }, token);
             }
             catch (Exception exception)
             {

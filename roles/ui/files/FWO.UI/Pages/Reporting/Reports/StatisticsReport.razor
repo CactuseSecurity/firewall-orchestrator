@@ -1,5 +1,6 @@
 ﻿@using FWO.Ui.Display
 @using FWO.Config.Api
+@using FWO.Report
 @using FWO.Report.Filter
 
 @inject UserConfig userConfig
@@ -30,9 +31,9 @@
         </div>
         <h6>@(userConfig.GetText("no_rules_gtw"))</h6>
         <div class="d-flex">
-            <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="Device" Items="managementReport.Devices" PageSize="0">
-                <Column TableItem="Device" Title="@(userConfig.GetText("gateway"))" Field="@(Device => Device.Name)" />
-                <Column TableItem="Device" Title="@(userConfig.GetText("no_of_rules"))" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
+            <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="DeviceReport" Items="managementReport.Devices" PageSize="0">
+                <Column TableItem="DeviceReport" Title="@(userConfig.GetText("gateway"))" Field="@(d => d.Name)" />
+                <Column TableItem="DeviceReport" Title="@(userConfig.GetText("no_of_rules"))" Field="@(d => d.RuleStatistics.ObjectAggregate.ObjectCount)" />
             </Table>
         </div>
     </Collapse>

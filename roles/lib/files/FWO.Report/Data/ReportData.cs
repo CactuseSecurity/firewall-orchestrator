@@ -1,4 +1,6 @@
-﻿namespace FWO.Api.Data
+﻿using FWO.Api.Data;
+
+namespace FWO.Report
 {
     public class ReportData
     {

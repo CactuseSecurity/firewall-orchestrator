@@ -254,10 +254,10 @@
             {
                 if(currentReport != null)
                 {
-                    await currentReport.GenerateMgt(userConfig.ElementsPerFetch, apiConnection,
+                    await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
                     managementsReportIntermediate =>
                     {
-                        managementsReport = managementsReportIntermediate;
+                        managementsReport = managementsReportIntermediate.ManagementData;
                         return InvokeAsync(StateHasChanged);
                     }, token);
                 }
@@ -314,12 +314,12 @@
         rulesFound = false;
         foreach (var management in managementsReport)
         {
-            foreach (Device device in management.Devices)
+            foreach (var device in management.Devices)
             {
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
-                    foreach (Rule rule in device.Rules!)
+                    foreach (var rule in device.Rules!)
                     {
                         rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
                     }
@@ -382,11 +382,11 @@
 
         foreach (var management in managementsReport)
         {
-            foreach (Device device in management.Devices)
+            foreach (var device in management.Devices)
             {
                 if(device.Rules != null)
                 {
-                    foreach (Rule rule in device.Rules)
+                    foreach (var rule in device.Rules)
                     {
                         if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
                         {

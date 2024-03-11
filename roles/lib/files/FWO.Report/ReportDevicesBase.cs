@@ -12,12 +12,12 @@ namespace FWO.Report
         public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base (query, UserConfig, reportType)
         {}
 
-        public async Task<List<Management>> getRelevantImportIds(ApiConnection apiConnection)
+        public async Task<List<ManagementReport>> getRelevantImportIds(ApiConnection apiConnection)
         {
             Dictionary<string, object> ImpIdQueryVariables = new ();
             ImpIdQueryVariables["time"] = Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat);
             ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
-            return await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+            return await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
         }
 
         public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)

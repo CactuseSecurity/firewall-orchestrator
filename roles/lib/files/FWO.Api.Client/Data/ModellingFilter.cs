@@ -2,7 +2,12 @@ namespace FWO.Api.Data
 {
     public class ModellingFilter
     {
-        public FwoOwner SelectedOwner {get; set;} = new ();
+        public List<FwoOwner> SelectedOwners {get; set;} = new ();
+        public FwoOwner SelectedOwner 
+        {
+            get { return SelectedOwners.FirstOrDefault() ?? new(); }
+            set { SelectedOwners = new() { value }; }
+        }
 
 
         public ModellingFilter()
@@ -10,7 +15,7 @@ namespace FWO.Api.Data
 
         public ModellingFilter(ModellingFilter modellingFilter)
         {
-            SelectedOwner = modellingFilter.SelectedOwner;
+            SelectedOwners = modellingFilter.SelectedOwners;
         }
     }
 }

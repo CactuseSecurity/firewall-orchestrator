@@ -11,14 +11,13 @@ namespace FWO.Report
     {
         public ReportConnections(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
-        public override async Task GenerateCon(int connectionsPerFetch, ApiConnection apiConnection, Func<List<ModellingConnection>, Task> callback, CancellationToken ct)
+        public override async Task Generate(int connectionsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            List<ModellingConnection> conns = new();
             // Query.QueryVariables["limit"] = connectionsPerFetch;
             // Query.QueryVariables["offset"] = 0;
             // bool gotNewObjects = true;
 
-            conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(Query.FullQuery, Query.QueryVariables);
+            List<ModellingConnection> conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(Query.FullQuery, Query.QueryVariables);
 
             // while (gotNewObjects)
             // {
@@ -32,15 +31,16 @@ namespace FWO.Report
             //     gotNewObjects = newConnections.Count > 0;
             //     ReportData.OwnerData.Connections.AddRange(newConnections);
 
-            await callback(conns);
+            ReportData reportData = new() { OwnerData = new() { new(){ Connections = conns } } };
+            await callback(reportData);
 
             // }
             //ReportData.OwnerData.Add(new(){ Connections = conns });
         }
 
-        public override async Task<bool> GetConObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ModellingConnection>, Task> callback)
+        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
-            await callback (ReportData.OwnerData[0].Connections);
+            await callback (ReportData);
             // currently no further objects to be fetched
             GotObjectsInReport = true;
             return true;
@@ -51,28 +51,46 @@ namespace FWO.Report
             StringBuilder report = new ();
             foreach (var ownerReport in ReportData.OwnerData)
             {
-                ownerReport.AssignConnectionNumbers();
-
-
                 report.AppendLine($"<h3>{ownerReport.Name}</h3>");
-                report.AppendLine("<hr>");
-                report.AppendLine("<table>");
-                AppendConnectionHeadlineHtml(ref report);
-                foreach (var connection in ownerReport.Connections)
+                if(ownerReport.RegularConnections.Count > 0)
                 {
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<td>{connection.OrderNumber}</td>");
-                    report.AppendLine($"<td>{connection.Id}</td>");
-                    report.AppendLine($"<td>{connection.Name}</td>");
-                    report.AppendLine($"<td>{connection.Reason}</td>");
-
-
+                    report.AppendLine($"<h4>{userConfig.GetText("connections")}</h4>");
+                    AppendConnectionsGroupHtml(ownerReport.RegularConnections, ref report);
+                }
+                if(ownerReport.Interfaces.Count > 0)
+                {
+                    report.AppendLine($"<h4>{userConfig.GetText("interfaces")}</h4>");
+                    AppendConnectionsGroupHtml(ownerReport.Interfaces, ref report);
+                }
+                if(ownerReport.CommonServices.Count > 0)
+                {
+                    report.AppendLine($"<h4>{userConfig.GetText("common_services")}</h4>");
+                    AppendConnectionsGroupHtml(ownerReport.CommonServices, ref report);
                 }
 
-                // show all objects used in this management's rules
+                // show all objects used
             }
-
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+        }
+
+        private void AppendConnectionsGroupHtml(List<ModellingConnection> connections, ref StringBuilder report)
+        {
+            OwnerReport.AssignConnectionNumbers(connections);
+            report.AppendLine("<table>");
+            AppendConnectionHeadlineHtml(ref report);
+            foreach (var connection in connections)
+            {
+                report.AppendLine("<tr>");
+                report.AppendLine($"<td>{connection.OrderNumber}</td>");
+                report.AppendLine($"<td>{connection.Id}</td>");
+                report.AppendLine($"<td>{connection.Name}</td>");
+                report.AppendLine($"<td>{connection.Reason}</td>");
+                report.AppendLine($"<td>{String.Join("<br>", OwnerReport.GetSrcNames(connection))}</td>");
+                report.AppendLine($"<td>{String.Join("<br>", OwnerReport.GetSvcNames(connection))}</td>");
+                report.AppendLine($"<td>{String.Join("<br>", OwnerReport.GetDstNames(connection))}</td>");
+            }
+            report.AppendLine("</table>");
+            report.AppendLine("<hr>");
         }
 
         private void AppendConnectionHeadlineHtml(ref StringBuilder report)

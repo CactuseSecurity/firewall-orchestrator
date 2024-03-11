@@ -22,8 +22,14 @@ namespace FWO.Report
         all = 0,
         nobj = 1, 
         nsrv = 2, 
-        user = 3 //,
-        // appSvc = 4
+        user = 3
+    }
+
+    public enum OutputLocation
+    {
+        export,
+        report,
+        certification
     }
 
     public abstract class ReportBase
@@ -70,7 +76,7 @@ namespace FWO.Report
         public readonly DynGraphqlQuery Query;
         protected UserConfig userConfig;
         public ReportType ReportType;
-        public ReportData ReportData;
+        public ReportData ReportData = new();
 
         protected string htmlExport = "";
 
@@ -86,27 +92,11 @@ namespace FWO.Report
             ReportType = reportType;
         }
 
-        public virtual Task GenerateMgt(int rulesPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
 
-        public virtual Task GenerateCon(int _, ApiConnection apiConnection, Func<List<ModellingConnection>, Task> callback, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback); // to be called when exporting
 
-        public virtual Task<bool> GetMgtObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback) // to be called when exporting
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual Task<bool> GetConObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<List<ModellingConnection>, Task> callback) // to be called when exporting
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<List<ManagementReport>, Task> callback)
+        public virtual Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
             throw new NotImplementedException();
         }
@@ -186,6 +176,12 @@ namespace FWO.Report
                 htmlExport = HtmlTemplate.ToString();
             }
             return htmlExport;
+        }
+
+        public static string ConstructLink(string type, string symbol, long id, string name, OutputLocation location, int mgmtId, string style)
+        {
+            string link = location == OutputLocation.export ? $"#" : $"{location}/generation#goto-report-m{mgmtId}-";
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
         public static string ToUtcString(string? timestring)

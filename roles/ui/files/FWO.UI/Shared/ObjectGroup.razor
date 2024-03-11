@@ -42,7 +42,8 @@
             @if(NetworkObjectExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(ObjCategory.nobj)">
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject"
+                            Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
@@ -106,22 +107,11 @@
                     </Table>
                 </Collapse>
             }
-            @* @if(AppServerExtractor != null)
-            {
-                <Collapse Title="@(userConfig.GetText("app_servers"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.appSvc)">
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="ModellingAppServer" Items="@AppServerExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
-                        <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
-                            <Template>
-                                @((MarkupString)context.DisplayHtml())
-                            </Template>
-                        </Column>
-                    </Table>
-                </Collapse>
-            } *@
             @if(NetworkServiceExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)">
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService"
+                            Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@ReportBase.GetIconClass(ObjCategory.nsrv, context.Type.Name)">&nbsp;</span>
@@ -194,7 +184,8 @@
             @if(NetworkUserExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.user)">
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive"
+                            TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@ReportBase.GetIconClass(ObjCategory.user, context.Type.Name)">&nbsp;</span>
@@ -254,7 +245,7 @@
     AnchorNavToRSB? anchorNavToRSB { get; set; }
 
     [Parameter]
-    public Func<RsbTab, ObjCategory, Func<List<ManagementReport>, Task>, long, bool, Task>? FetchObjects { get; set; }
+    public Func<RsbTab, ObjCategory, Func<ReportData, Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
     public bool Recert { get; set; }
@@ -392,7 +383,8 @@
             if (Tab == RsbTab.rule && objCategory != ObjCategory.all)
                 return;
 
-            if (objCategory == ObjCategory.all && !ContentIsDetailed || objCategory == ObjCategory.nobj && !nobjDetailed || objCategory == ObjCategory.nsrv && !nsrvDetailed || objCategory == ObjCategory.user && !userDetailed)
+            if (objCategory == ObjCategory.all && !ContentIsDetailed || objCategory == ObjCategory.nobj && !nobjDetailed ||
+                objCategory == ObjCategory.nsrv && !nsrvDetailed || objCategory == ObjCategory.user && !userDetailed)
             {
                 if(FetchObjects != null)
                 {
@@ -403,7 +395,7 @@
                                 managementsUpdate =>
                                 {
                                     int id = m.Id;
-                                    ManagementReport? m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
+                                    ManagementReport? m_updated = managementsUpdate.ManagementData.FirstOrDefault(mgmt => mgmt.Id == m.Id);
                                     if (m_updated != null)
                                     {
                                         switch (objCategory)
@@ -429,7 +421,7 @@
                             await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
-                                    Rule? r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
+                                    Rule? r_updated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
                                     if (r_updated != null)
                                     {
                                         r_updated.DeviceName = r.DeviceName;

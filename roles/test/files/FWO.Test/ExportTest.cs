@@ -639,28 +639,8 @@ namespace FWO.Test
             };
 
             string expectedJsonResult = 
-            "[{\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": []," +
-            "\"reportNetworkObjects\": [{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "{\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "{\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}]," +
-            "\"reportServiceObjects\": [{\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
-            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}," +
-            "{\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
-            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}]," +
-            "\"reportUserObjects\": [{\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}," +
-            "{\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}]," +
-            "\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
-            "\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
-            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
-            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null," +
-            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\",\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"management\": {\"id\": 0,\"name\": \"\",\"hostname\": \"\"," +
-            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
-            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null," +
-            "\"devices\": []," +
-            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0}," +
-            "\"local_rulebase_name\": null,\"global_rulebase_name\": null,\"package_name\": null,\"importDisabled\": false,\"hideInUi\": false,\"comment\": null," +
+            "[{\"id\": 0,\"name\": \"TestMgt\"," +
+            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\"," +
             "\"rules\": [{\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
             "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0," +
             "\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
@@ -689,10 +669,20 @@ namespace FWO.Test
             "\"usr\": {\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
             "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\"," +
             "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"recert_history\": [],\"dev_id\": 0,\"rule_uid\": \"\",\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
-            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []},\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"dev_id\": 0,\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceName\": \"\"}],\"changelog_rules\": null,\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
-            "\"Selected\": false,\"Relevant\": false,\"AwaitMgmt\": false,\"Delete\": false,\"ActionId\": 0}]," +
-            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0}]";
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []},\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"dev_id\": 0,\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceName\": \"\"}],\"changelog_rules\": null,\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}}]," +
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null," +
+            "\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": []," +
+            "\"reportNetworkObjects\": [{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "{\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "{\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}]," +
+            "\"reportServiceObjects\": [{\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
+            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}," +
+            "{\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
+            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}]," +
+            "\"reportUserObjects\": [{\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}," +
+            "{\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}]," +
+            "\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+            "\"Ignore\": false}]";
             // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportRules.ExportToJson(), true, true))));
             Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
         }
@@ -758,19 +748,9 @@ namespace FWO.Test
             };
 
             string expectedJsonResult = 
-            "[{\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": [],\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
-            "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
-            "\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
-            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
-            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null," +
-            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\",\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"management\": {\"id\": 0,\"name\": \"\",\"hostname\": \"\"," +
-            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
-            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null," +
-            "\"devices\": []," +
-            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0}," +
-            "\"local_rulebase_name\": null,\"global_rulebase_name\": null,\"package_name\": null,\"importDisabled\": false,\"hideInUi\": false,\"comment\": null,\"rules\": null," +
+            "[{\"id\": 0,\"name\": \"TestMgt\"," +
+            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\"," +
+            "\"rules\": null," +
             "\"changelog_rules\": [{\"import\": {\"time\": \"2023-04-05T12:00:00\"},\"change_action\": \"I\"," +
             "\"old\": {\"rule_id\": 0,\"rule_uid\": \"\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"\",\"rule_comment\": \"\",\"rule_disabled\": false," +
             "\"rule_services\": [],\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_tos\": [],\"rule_action\": \"\",\"rule_track\": \"\",\"section_header\": \"\"," +
@@ -844,9 +824,11 @@ namespace FWO.Test
             "\"rule_services\": [],\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_tos\": [],\"rule_action\": \"\",\"rule_track\": \"\",\"section_header\": \"\"," +
             "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"recert_history\": [],\"dev_id\": 0,\"rule_uid\": \"\",\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
             "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
-            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"dev_id\": 0,\"DisplayOrderNumber\": 0,\"Certified\": false,\"DeviceName\": \"\"},\"DeviceName\": \"\"}],\"rules_aggregate\": {\"aggregate\": {\"count\": 0}},\"Selected\": false,\"Relevant\": false,\"AwaitMgmt\": false,\"Delete\": false,\"ActionId\": 0}]," +
-            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0}]";
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"dev_id\": 0,\"DisplayOrderNumber\": 0,\"Certified\": false,\"DeviceName\": \"\"},\"DeviceName\": \"\"}],\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}}]," +
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null," +
+            "\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": [],\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+            "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+            "\"Ignore\": false}]";
             Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
         }
 
@@ -1021,15 +1003,15 @@ namespace FWO.Test
             {
                 ManagementData = new List<ManagementReport>()
                 {
-                    new ManagementReport()
+                    new ()
                     { 
                         Name = "TestMgt",
                         ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
                         ReportServices = new NetworkService[]{ TestService1, TestService2 },
                         ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
-                        Devices = new Device[]
+                        Devices = new DeviceReport[]
                         { 
-                            new Device()
+                            new ()
                             { 
                                 Name = "TestDev",
                                 Rules = new Rule[]{ Rule1, Rule2 }
@@ -1045,13 +1027,13 @@ namespace FWO.Test
             RecertRule1 = InitRule1(false);
             RecertRule1.Metadata.RuleRecertification = new List<Recertification>()
             {
-                new Recertification()
+                new ()
                 {
                     NextRecertDate  = DateTime.Now.AddDays(5),
                     FwoOwner = new FwoOwner(){ Name = "TestOwner1" },
                     IpMatch = TestIp1.Name
                 },
-                new Recertification()
+                new ()
                 {
                     NextRecertDate  = DateTime.Now.AddDays(-5),
                     FwoOwner = new FwoOwner(){ Name = "TestOwner2" },
@@ -1061,7 +1043,7 @@ namespace FWO.Test
             RecertRule2 = InitRule2(false);
             RecertRule2.Metadata.RuleRecertification = new List<Recertification>()
             {
-                new Recertification()
+                new ()
                 {
                     NextRecertDate  = DateTime.Now,
                     FwoOwner = new FwoOwner(){ Name = "TestOwner1" },
@@ -1072,15 +1054,15 @@ namespace FWO.Test
             {
                 ManagementData = new List<ManagementReport>()
                 {
-                    new ManagementReport()
+                    new ()
                     { 
                         Name = "TestMgt",
                         ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
                         ReportServices = new NetworkService[]{ TestService1, TestService2 },
                         ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
-                        Devices = new Device[]
+                        Devices = new DeviceReport[]
                         { 
-                            new Device()
+                            new ()
                             { 
                                 Name = "TestDev", 
                                 Rules = new Rule[]{ RecertRule1, RecertRule2 }
@@ -1099,34 +1081,34 @@ namespace FWO.Test
                 TranslatedSourceNegated = false,
                 TranslatedFroms = new NetworkLocation[]
                 {
-                    new NetworkLocation(TestUser2, TestIp1Changed)
+                    new (TestUser2, TestIp1Changed)
                 },
                 TranslatedDestinationNegated = true,
                 TranslatedTos = new NetworkLocation[]
                 {
-                    new NetworkLocation(new NetworkUser(), TestIp1Changed),
-                    new NetworkLocation(new NetworkUser(), TestIpNew)
+                    new (new NetworkUser(), TestIp1Changed),
+                    new (new NetworkUser(), TestIpNew)
                 },
                 TranslatedServiceNegated = false,
                 TranslatedServices = new ServiceWrapper[]
                 {
-                    new ServiceWrapper(){ Content = TestService1 },
-                    new ServiceWrapper(){ Content = TestService2 }
+                    new (){ Content = TestService1 },
+                    new (){ Content = TestService2 }
                 }
             };
             return new ReportData()
             {
                 ManagementData = new List<ManagementReport>()
                 {
-                    new ManagementReport()
+                    new ()
                     { 
                         Name = "TestMgt",
                         ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange, TestIpNew, TestIp1Changed },
                         ReportServices = new NetworkService[]{ TestService1, TestService2 },
                         ReportUsers = new NetworkUser[]{ TestUser2 },
-                        Devices = new Device[]
+                        Devices = new DeviceReport[]
                         { 
-                            new Device(){ Name = "TestDev", Rules = new Rule[]{ NatRule }} 
+                            new (){ Name = "TestDev", Rules = new Rule[]{ NatRule }} 
                         }
                     }
                 }
@@ -1142,10 +1124,10 @@ namespace FWO.Test
             if(resolved)
             {
                 Rule1Changed.Froms[0].Object.ObjectGroupFlats[0].Object = TestIp1Changed;
-                Rule1Changed.Tos = new NetworkLocation[]{new NetworkLocation(new NetworkUser(), new NetworkObject(){ObjectGroupFlats = new GroupFlat<NetworkObject>[]
+                Rule1Changed.Tos = new NetworkLocation[]{new (new NetworkUser(), new NetworkObject(){ObjectGroupFlats = new GroupFlat<NetworkObject>[]
                 {
-                    new GroupFlat<NetworkObject>(){ Object = TestIpRange },
-                    new GroupFlat<NetworkObject>(){ Object = TestIpNew }
+                    new (){ Object = TestIpRange },
+                    new (){ Object = TestIpNew }
                 }})};  
             }
             else
@@ -1153,8 +1135,8 @@ namespace FWO.Test
                 Rule1Changed.Froms[0].Object = TestIp1Changed;
                 Rule1Changed.Tos = new NetworkLocation[]
                 {
-                    new NetworkLocation(new NetworkUser(), TestIpRange),
-                    new NetworkLocation(new NetworkUser(), TestIpNew)
+                    new (new NetworkUser(), TestIpRange),
+                    new (new NetworkUser(), TestIpNew)
                 };
             }
             Rule1Changed.Uid = "";
@@ -1195,12 +1177,12 @@ namespace FWO.Test
             {
                 ManagementData = new List<ManagementReport>()
                 {
-                    new ManagementReport()
+                    new ()
                     { 
                         Name = "TestMgt",
-                        Devices = new Device[]
+                        Devices = new DeviceReport[]
                         {
-                            new Device()
+                            new ()
                             { 
                                 Name = "TestDev",
                                 RuleChanges = new RuleChange[]{ ruleChange1, ruleChange2, ruleChange3, ruleChange4 }

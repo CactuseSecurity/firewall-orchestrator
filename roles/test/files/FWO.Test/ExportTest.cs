@@ -61,10 +61,10 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>Rules Report</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<p>Devices: TestMgt [TestDev]</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
             "<h4>TestDev</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
@@ -82,19 +82,19 @@ namespace FWO.Test
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
             "<h4>Network Objects</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>ip_range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "</table>" +
             "<h4>Network Services</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td>TestService1</td><td><a name=svc1>TestService1</a></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td>TestService2</td><td><a name=svc2>TestService2</a></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
             "</table>" +
             "<h4>Users</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td>TestUser1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
             Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
@@ -112,10 +112,10 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>Rules Report (resolved)</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<p>Devices: TestMgt [TestDev]</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
             "<h4>TestDev</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
@@ -148,10 +148,10 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>Rules Report (technical)</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<p>Devices: TestMgt [TestDev]</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
             "<h4>TestDev</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
@@ -184,10 +184,10 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>Unused Rules Report</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<p>Devices: TestMgt [TestDev]</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
             "<h4>TestDev</h4><hr>" +
             "<table><tr><th>No.</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
@@ -205,19 +205,19 @@ namespace FWO.Test
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
             "<h4>Network Objects</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>ip_range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "</table>" +
             "<h4>Network Services</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td>TestService1</td><td><a name=svc1>TestService1</a></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td>TestService2</td><td><a name=svc2>TestService2</a></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
             "</table>" +
             "<h4>Users</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td>TestUser1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
             Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
@@ -235,10 +235,10 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>Recertification Report</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<p>Devices: TestMgt [TestDev]</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
             "<h4>TestDev</h4><hr>" +
             "<table><tr><th>No.</th><th>Next Recertification Date</th><th>Owner</th><th>IP address match</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
@@ -275,17 +275,17 @@ namespace FWO.Test
             "<td>uid2:123</td>" +
             "<td>comment2</td></tr></table>" +
             "<h4>Network Objects</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>ip_range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "</table>" +
             "<h4>Network Services</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td>TestService1</td><td><a name=svc1>TestService1</a></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td>TestService2</td><td><a name=svc2>TestService2</a></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
             "</table>" +
             "<h4>Users</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td>TestUser1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
             Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRecerts.ExportToHtml(), true)));
         }
@@ -303,10 +303,10 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>NAT Rules Report</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<p>Devices: TestMgt [TestDev]</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
             "<h4>TestDev</h4><hr>" +
             "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Translated Source</th><th>Translated Destination</th><th>Translated Services</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
@@ -324,18 +324,18 @@ namespace FWO.Test
             "<td>uid1</td>" +
             "<td>comment1</td></tr></table>" +
             "<h4>Network Objects</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>ip_range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>4</td><td><a name=nwobj4>TestIpNew</a></td><td>network</td><td>10.0.6.0/24</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>5</td><td><a name=nwobj5>TestIp1Changed</a></td><td>host</td><td>2.3.4.5</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>4</td><td><a name=nwobj4>TestIpNew</a></td><td>Network</td><td>10.0.6.0/24</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>5</td><td><a name=nwobj5>TestIp1Changed</a></td><td>Host</td><td>2.3.4.5</td><td></td><td></td><td></td></tr>" +
             "</table>" +
             "<h4>Network Services</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td>TestService1</td><td><a name=svc1>TestService1</a></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td>TestService2</td><td><a name=svc2>TestService2</a></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
             "</table>" +
             "<h4>Users</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></table></body></html>";
             Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportNatRules.ExportToHtml(), true)));
         }
@@ -353,10 +353,10 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>Changes Report</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<p>Devices: TestMgt [TestDev]</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
             "<h4>TestDev</h4><hr>" +
             "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
@@ -419,10 +419,10 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>Changes Report (resolved)</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<p>Devices: TestMgt [TestDev]</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
             "<h4>TestDev</h4><hr>" +
             "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
@@ -481,10 +481,10 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>Changes Report (technical)</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<p>Devices: TestMgt [TestDev]</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
             "<h4>TestDev</h4><hr>" +
             "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
@@ -544,11 +544,54 @@ namespace FWO.Test
             "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
             "<body>" +
             "<h2>Connections Report</h2>" +
-            "<p>Filter: TestFilter</p>" +
             "<p>Generated on: Z (UTC)</p>" +
-            "<p>Owners: TestOwner</p><hr>" +
+            "<p>Owners: TestOwner</p>" +
+            "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestOwner</h3>" +
+            "<h4>Connections</h4><table>" +
+            "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
+            "<tr><td>1</td><td>101</td><td>Conn1</td><td></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">ServiceGroup1</a><br>" +
+            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">AppRole1 ()</a></td></table><hr>" +
+            "<h4>Interfaces</h4><table>" +
+            "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
+            "<tr><td>1</td><td>102</td><td>Inter2</td><td></td><td></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc3\" target=\"_top\" style=\"\"></a><br>" +
+            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc4\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\"> ()</a><br>" +
+            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
+            "<h4>Own Common Services</h4><table>" +
+            "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
+            "<tr><td>1</td><td>103</td><td>ComSvc3</td><td></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc3\" target=\"_top\" style=\"\"></a><br>" +
+            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc4\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
 
+            "<h4>Network Objects</h4>" +
+            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th></tr>" +
+            "<tr><td>1</td><td>21</td><td><a name=nwobj1>AppRole1</a></td><td></td>" +
+            "<tr><td>2</td><td>0</td><td><a name=nwobj2></a></td><td></td>" +
+            "<tr><td>3</td><td>11</td><td><a name=nwobj3>AppServer1</a></td><td>1.0.0.0</td>" +
+            "<tr><td>4</td><td>12</td><td><a name=nwobj4>AppServer2</a></td><td>2.0.0.0</td>" +
+            "</table><hr>" +
+            "<h4>Network Services</h4>" +
+            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th></tr>" +
+            "<tr><td>1</td><td>41</td><td><a name=svc1>ServiceGroup1</a></td><td></td><td></td>" +
+            "<tr><td>2</td><td>31</td><td><a name=svc2>Service1</a></td><td>TCP</td><td>1234</td>" +
+            "<tr><td>3</td><td>0</td><td><a name=svc3></a></td><td></td><td></td>" +
+            "<tr><td>4</td><td>32</td><td><a name=svc4>Service2</a></td><td>UDP</td><td>2345</td>" +
+            "</table><hr>" +
+
+            "<h3>Global Common Services</h3><table>" +
+            "<tr><th>No.</th><th>Id</th><th>Owner</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
+            "<tr><td>1</td><td>103</td><td>App1</td><td>ComSvc3</td><td></td>" +
+            "<td><span class=\"\" ><span class=\"\" ><span class=\"\">AppServer1 (1.0.0.0)</span></span></span></td>" +
+            "<td><span></span><br>" +
+            "<span>Service2 (2345/UDP)</span></td>" +
+            "<td><span class=\"\" ><span class=\"\" ><span class=\"\">AppServer2 (2.0.0.0)</span></span></span></td></table><hr>" +
             "</body></html>";
             Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportConnections.ExportToHtml(), true)));
         }
@@ -1214,21 +1257,59 @@ namespace FWO.Test
             };
         }
 
-        private ReportData ConstructConnectionReport(bool resolved)
+        private static ReportData ConstructConnectionReport(bool resolved)
         {
-            return new ReportData()
+            ModellingAppServer AppServer1 = new() {Id = 11, Number = 1, Name = "AppServer1", Ip = "1.0.0.0"};
+            ModellingAppServer AppServer2 = new() {Id = 12, Number = 2, Name = "AppServer2", Ip = "2.0.0.0"};
+            ModellingAppRole AppRole1 = new() { Id = 21, Number = 3, Name = "AppRole1", Comment = "CommAR1", AppServers = new() { new() { Content = AppServer1 } } };
+            ModellingService Service1 = new() { Id = 31, Number = 1, Name = "Service1", Port = 1234, Protocol = new() { Name = "TCP" } };
+            ModellingService Service2 = new() { Id = 32, Number = 2, Name = "Service2", Port = 2345, Protocol = new() { Name = "UDP" } };
+            ModellingServiceGroup ServiceGroup1 = new() { Id = 41, Number = 3, Name = "ServiceGroup1", Comment = "CommSG1", Services = new(){ new() { Content = Service1 } } };
+            ModellingConnection Conn1 = new() 
+            { 
+                Id = 101, Name = "Conn1", 
+                SourceAppServers = new(){ new() { Content = AppServer1 } },
+                DestinationAppRoles = new(){ new() { Content = AppRole1 } },
+                Services = new(){ new() { Content = Service1 } },
+                ServiceGroups = new(){ new() { Content = ServiceGroup1 } }
+            };
+            ModellingConnection Inter2 = new() 
+            { 
+                Id = 102, Name = "Inter2", 
+                DestinationAppServers = new(){ new() { Content = AppServer2 } },
+                DestinationAppRoles = new(){ new() {} },
+                Services = new(){ new() { Content = Service2 } },
+                ServiceGroups = new(){ new() {} }
+            };
+            ModellingConnection ComSvc3 = new() 
+            { 
+                Id = 103, Name = "ComSvc3", App = new(){ Name = "App1" },
+                SourceAppServers = new(){ new() { Content = AppServer1 } },
+                DestinationAppServers = new(){ new() { Content = AppServer2 } },
+                Services = new(){ new() { Content = Service2 } },
+                ServiceGroups = new(){ new() {} }
+            };
+
+            ReportData reportData = new ()
             {
-                OwnerData = new List<OwnerReport>()
+                OwnerData = new ()
                 {
                     new ()
                     {
                         Name = "TestOwner",
+                        Connections = new(){ Conn1, Inter2, ComSvc3 },
+                        RegularConnections = new(){ Conn1 },
+                        Interfaces = new(){ Inter2 },
+                        CommonServices = new(){ ComSvc3 },
                     }
-                }
+                },
+                GlobalComSvc = new(){ ComSvc3 }
             };
+            reportData.OwnerData.First().PrepareObjectData();
+            return reportData;
         }
 
-        private string removeGenDate(string exportString, bool html = false, bool json = false)
+        private static string removeGenDate(string exportString, bool html = false, bool json = false)
         {
             string dateText = html ? "<p>Generated on: " : "report generation date" + (json ? "\"" : "") + ": " + (json ? "\"" : "");
             int startGenTime = exportString.IndexOf(dateText);
@@ -1239,7 +1320,7 @@ namespace FWO.Test
             return exportString;
         }
 
-        private string removeLinebreaks(string exportString)
+        private static string removeLinebreaks(string exportString)
         {
             while(exportString.Contains("\n "))
             {

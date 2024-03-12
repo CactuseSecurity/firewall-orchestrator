@@ -51,7 +51,7 @@
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkObject">
-                            <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type.Name />
+                            <Detail Title="@(userConfig.GetText("type"))" Data=@userConfig.GetText(context.Type.Name) />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
                             <Detail Title="@(userConfig.GetText("ip"))" Data=@NwObjDisplay.DisplayIp(context.IP, context.IpEnd, context.Type.Name) />
                             <Detail Title="@(userConfig.GetText("zone"))" Data=@context.Zone?.Name />
@@ -119,7 +119,7 @@
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkService">
-                            <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type.Name />
+                            <Detail Title="@(userConfig.GetText("type"))" Data=@userConfig.GetText(context.Type.Name) />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
                             @if (context.Type.Name != ObjectType.Group)
                             {
@@ -193,7 +193,7 @@
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkUser">
-                            <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type?.Name />
+                            <Detail Title="@(userConfig.GetText("type"))" Data=@(context.Type != null ? userConfig.GetText(context.Type?.Name) : "") />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
                             <Detail Title="@(userConfig.GetText("real_name"))" Data=@($"{context.FirstName} {context.LastName}") />
                             @if (context.Type != null && context.Type.Name == ObjectType.Group && context.UserGroups != null && context.UserGroupFlats != null)

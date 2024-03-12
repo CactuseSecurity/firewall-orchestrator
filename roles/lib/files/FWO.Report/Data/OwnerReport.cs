@@ -19,7 +19,12 @@ namespace FWO.Report
         public OwnerReport(OwnerReport report)
         {
             Name = report.Name;
-            Connections = new (report.Connections);
+            Connections = report.Connections;
+            RegularConnections = report.RegularConnections;
+            Interfaces = report.Interfaces;
+            CommonServices = report.CommonServices;
+            AllObjects = report.AllObjects;
+            AllServices = report.AllServices;
         }
 
         public static void AssignConnectionNumbers(List<ModellingConnection> connections)
@@ -96,7 +101,30 @@ namespace FWO.Report
             return allServices;
         }
 
-        public List<string> GetSrcNames(ModellingConnection conn)
+        public static List<string> GetSrcNames(ModellingConnection conn)
+        {
+            List<string> names = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList().ConvertAll(s => s.DisplayHtml());
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayHtml()));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.DisplayHtml()));
+            return names;
+        }
+
+        public static List<string> GetDstNames(ModellingConnection conn)
+        {
+            List<string> names = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList().ConvertAll(s => s.DisplayHtml());
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayHtml()));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.DisplayHtml()));
+            return names;
+        }
+
+        public static List<string> GetSvcNames(ModellingConnection conn)
+        {
+            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayHtml());
+            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayHtml()));
+            return names;
+        }
+
+        public List<string> GetLinkedSrcNames(ModellingConnection conn)
         {
             List<string> names = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s)));
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s))));
@@ -104,7 +132,7 @@ namespace FWO.Report
             return names;
         }
         
-        public List<string> GetDstNames(ModellingConnection conn)
+        public List<string> GetLinkedDstNames(ModellingConnection conn)
         {
             List<string> names = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s)));
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s))));
@@ -112,7 +140,7 @@ namespace FWO.Report
             return names;
         }
 
-        public List<string> GetSvcNames(ModellingConnection conn)
+        public List<string> GetLinkedSvcNames(ModellingConnection conn)
         {
             List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, ResolveSvcNumber(s)));
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, ResolveSvcNumber(s))));

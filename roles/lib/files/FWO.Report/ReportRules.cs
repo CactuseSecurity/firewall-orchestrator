@@ -457,8 +457,8 @@ namespace FWO.Report
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");
-                    report.AppendLine($"<td><a name=nwobj{nwobj.Id}>{nwobj.Name}</a></td>");
-                    report.AppendLine($"<td>{nwobj.Type.Name}</td>");
+                    report.AppendLine($"<td><a name={ObjCatString.NwObj}{nwobj.Id}>{nwobj.Name}</a></td>");
+                    report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
                     report.AppendLine($"<td>{NwObjDisplay.DisplayIp(nwobj.IP, nwobj.IpEnd, nwobj.Type.Name)}</td>");
                     if (nwobj.MemberNames != null && nwobj.MemberNames.Contains('|'))
                         report.AppendLine($"<td>{string.Join("<br>", nwobj.MemberNames.Split('|'))}</td>");
@@ -494,8 +494,8 @@ namespace FWO.Report
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");
-                    report.AppendLine($"<td>{svcobj.Name}</td>");
-                    report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
+                    report.AppendLine($"<td><a name={ObjCatString.Svc}{svcobj.Id}>{svcobj.Name}</a></td>");
+                    report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
                     report.AppendLine($"<td>{((svcobj.Type.Name!=ObjectType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
                     if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
                         report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
@@ -533,8 +533,8 @@ namespace FWO.Report
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");
-                    report.AppendLine($"<td>{userobj.Name}</td>");
-                    report.AppendLine($"<td><a name=user{userobj.Id}>{userobj.Name}</a></td>");
+                    report.AppendLine($"<td><a name={ObjCatString.User}{userobj.Id}>{userobj.Name}</a></td>");
+                    report.AppendLine($"<td>{(userobj.Type.Name != "" ? userConfig.GetText(userobj.Type.Name) : "")}</td>");
                     if (userobj.MemberNames != null && userobj.MemberNames.Contains("|"))
                         report.AppendLine($"<td>{string.Join("<br>", userobj.MemberNames.Split('|'))}</td>");
                     else

@@ -59,7 +59,19 @@ namespace FWO.Test
             {"C9002","This App Server was..."},
             {"is_in_use","Is in use"},
             {"devices","Devices"},
-            {"owners","Owners"}
+            {"owners","Owners"},
+            {"filter","Filter"},
+            {"id","Id"},
+            {"ip","Ip"},
+            {"group","Group"},
+            {"host","Host"},
+            {"network","Network"},
+            {"ip_range","IP Range"},
+            {"connections","Connections"},
+            {"interfaces","Interfaces"},
+            {"own_common_services","Own Common Services"},
+            {"global_common_services","Global Common Services"},
+            {"func_reason","Functional Reason"}
         };
 
         public override string GetText(string key)

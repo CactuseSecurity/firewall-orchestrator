@@ -650,6 +650,10 @@ INSERT INTO txt VALUES ('delete_unused_rule',	'German', 	'Unbenutzte Regel l&oum
 INSERT INTO txt VALUES ('delete_unused_rule',   'English', 	'Delete unused rule');
 INSERT INTO txt VALUES ('delete_unused_rules',	'German', 	'Unbenutzte Regeln l&ouml;schen');
 INSERT INTO txt VALUES ('delete_unused_rules',  'English', 	'Delete unused rules');
+INSERT INTO txt VALUES ('network',              'German', 	'Netzwerk');
+INSERT INTO txt VALUES ('network',              'English', 	'network');
+INSERT INTO txt VALUES ('ip_range',             'German', 	'Ip-Bereich');
+INSERT INTO txt VALUES ('ip_range',             'English', 	'Ip Range');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -2656,10 +2660,11 @@ INSERT INTO txt VALUES ('H1101', 'German',  '<li> Alle Filter sind schreibungsun
     <li> Alle Filterausdr&uuml;cke m&uuml;ssen logisch mit den Operatoren: and, or, not miteinander kombiniert werden.</li>
     <li> Klammern k&ouml;nnen genutzt werden, um die Filterausdr&uuml;cke zu strukturieren.</li>
     <li> Anf&uuml;hrungszeichen (") k&ouml;nnen optional f&uuml;r Wertdefinitionen genutzt werden. Wenn Leerzeichen im Wert vorkommen (z.B. f&uuml;r Datum/Zeit-Werte), m&uuml;ssen sie genutzt werden.</li>
-    <li> Ein Gateway muss ausgew&auml;hlt werden. Dies kann manuell oder &uuml;ber die linke Randleiste, von wo die Auswahl automatisch in den Filter integriert wird, erfolgen.</li>
+    <li> Muss ein Gateway ausgew&auml;hlt werden, kann dies manuell oder &uuml;ber die linke Randleiste, von wo die Auswahl automatisch in den Filter integriert wird, erfolgen.</li>
     <li> Zeitfilterung funktioniert zur Zeit nur f&uuml;r Zeitpunkte vor dem letzten Import, der einen Config Change gefunden hat. </li>
     <li> Regeln werden immer in voller Tiefe durchsucht, d.h. alle Gruppen in Quell-, Ziel- und Dienstfeldern werden aufgel&ouml;st.
         Zur Zeit gibt es noch keine M&ouml;glichkeit, nur auf der obersten Regelebene zu suchen.</li>
+    <li> Auch Verbindungen k&ouml;nnen mit den entsprechenden Schl&uuml;sselw&ouml;rtern f&uuml;r Quelle, Dienst und Ziel durchsucht werden.</li>
 ');
 INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensitive.</li>
     <li> There are multiple variants for most keywords, e.g. DestinationPort filters can be written as:
@@ -2667,10 +2672,11 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> All filter statements must be logically combined using either: and, or, not.</li>
     <li> Brackets can be used for structuring the filter statement.</li>
     <li> Quotation marks (") can be used optionally for the value definition. If there are white spaces in the value (e.g. for date/time values) the quotation marks have to be used.</li>
-    <li> A gateway has to be selected. This can be done manually or via the left sidebar, from where the selection is automatically integrated to the filter.</li>
+    <li> If a gateway has to be selected, this can be done manually or via the left sidebar, from where the selection is automatically integrated to the filter.</li>
     <li> Time filtering currently only works for points in time before the last import that found a config change. </li>
     <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
         There is currently no option to only search at the rule top-level.</li>
+    <li> Also connections can be filtered with the respective keywords for source, service and destination.</li>
 ');
 INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Auswahl:
 <ul>
@@ -2686,6 +2692,8 @@ INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Au
     <li>&Auml;nderungen (aufgel&ouml;st) - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden. Default-Report-Zeitraum: dieses Jahr</li>
     <li>&Auml;nderungen (technisch)- wie der aufgel&ouml;ste &Auml;nderungs-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitraum: dieses Jahr</li>
     <li>Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt</li>
+    <li>Verbindungen - Anzeige aller in einer Applikation modellierten Verbindungen, Schnittstellen und eigener Common Services mit zus&auml;tzlicher Auflistung aller hierin verwendeter Netzwerk- und Serviceobjekte.
+        Hinzu kommt eine Liste aller globalen Common Services.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report types:
@@ -2701,6 +2709,8 @@ INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report t
     <li>Changes (resolved) - display all changes in a defined time interval but not showing any group structure but only resolved group content. Default report interval: this year</li>
     <li>Changes (technical) - display all changes in a defined time interval resolving groups and not showing object names. Default report interval: this year</li>
     <li>Statistics - display statistical data on the number of objects and rules. Default report time: now</li>
+    <li>Connections - display of all connections, interfaces and Common Services modelled in an application with additional lists of all network and service objects used here.
+        Additionally a list of all global Common Services is given.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
@@ -2816,12 +2826,12 @@ INSERT INTO txt VALUES ('H1303', 'English', 'After clicking the "Export Report" 
 INSERT INTO txt VALUES ('H1401', 'German',  'Im unteren Teil der Hauptseite werden die Ausgabedaten des generierten Reports dargestellt.
     Unerw&uuml;nschte Spalten k&ouml;nnen mit der jeweiligen "-" Schaltfl&auml;che ausgeblendet werden.
     Wenn dargestellt, k&ouml;nnen die Spalten auch zum Sortieren oder Filtern genutzt werden.<br>
-    Die zur Verf&uuml;gung stehenden Datenspalten sind:
+    Die in regelbasierten Reports zur Verf&uuml;gung stehenden Datenspalten sind:
 ');
 INSERT INTO txt VALUES ('H1401', 'English', 'In the lower part of the main page the output data of the generated report is displayed.
     Unwanted columns can be removed by clicking on the respective "-" button. 
     If diplayed the columns can be used for sorting or filtering.<br>
-    The available data columns are:
+    The available data columns in rule based reports are:
 ');
 INSERT INTO txt VALUES ('H1402', 'German',  '<li>Nummer</li><li>Name</li><li>Quellzone</li><li>Quelle</li><li>Zielzone</li>
     <li>Ziel</li><li>Dienste</li><li>Aktion</li><li>Logging</li><li>Aktiviert</li><li>UID</li><li>Kommentar</li>
@@ -2831,18 +2841,20 @@ INSERT INTO txt VALUES ('H1402', 'English', '<li>Number</li><li>Name</li><li>Sou
 ');
 INSERT INTO txt VALUES ('H1403', 'German',  'Zus&auml;tzlich werden in einzelnen Reporttypen weitere Spalten dargestellt:
     <ul>
-        <li>Changes report: &Auml;nderungszeit, &Auml;nderungstyp (Regelnummerierung entf&auml;llt daf&uuml;r)</li>
+        <li>Changes Report: &Auml;nderungszeit, &Auml;nderungstyp (Regelnummerierung entf&auml;llt daf&uuml;r)</li>
         <li>Unbenutzte-Regel-Report: Letzter Treffer</li>
         <li>NAT-Regel-Report: Umgesetzte Quelle, Umgesetztes Ziel, Umgesetzte Dienste</li>
         <li>Rezertifizierungs-Report: Datum n&auml;chste Rezertifizierung, Eigent&uuml;mer, IP-Adress-&Uuml;bereinstimmung, Letzter Treffer</li>
+        <li>Verbindungs-Report: Hier werden die Spalten Nummer, Name, Fachliche Begr&uuml;ndung, Quelle, Dienst und Ziel angeboten</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H1403', 'English', 'Additionally in the different Report Types further columns are displayed:
     <ul>
-        <li>Changes report: Change Time, Change Type (but no rule numbering)</li>
+        <li>Changes Report: Change Time, Change Type (but no rule numbering)</li>
         <li>Unused Rules Report: Last Hit</li>
         <li>NAT Rules Report: Translated Source, Translated Destination, Translated Services</li>
         <li>Recertification Report: Next Recertification Date, Owner, IP address match, Last Hit</li>
+        <li>Connections report: Here the columns Number, Name, Functional Reason, Source, Service and Destination are offered.</li>
     </ul>
 ');
 
@@ -2910,16 +2922,22 @@ INSERT INTO txt VALUES ('H1511', 'English', 'Only for Recertification Report: Re
     <li>Show any rules: If flag is set, rules with Ip 0.0.0.0 in source or destination are shown.
         When deselecting an excluding statement is added to the filter line.</li></ul>
 ');
-INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat drei Reiter: Unter "Alle" werden alle aktuell abgeholten Objekte dargestellt,
+INSERT INTO txt VALUES ('H1512', 'German',  'Nur beim Verbindungs-Report: Eigent&uuml;mer: Hier kann aus den dem Nutzer zur Modellierung zugeordneten Eigent&uuml;merschaften ausgew&auml;hlt werden. 
+');
+INSERT INTO txt VALUES ('H1512', 'English', 'Only for Connections Report: Owner: Select the modelling owner out of the ownerships related to the user.
+');
+INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
     Im Reiter "Regel" sind dann nur die Objekte der in der Reportausgabe ausgew&auml;hlten Regeln dargestellt.<br>
     ("Alle"- und "Regel"-Reiter werden mit derselben Funktionalit&auml;t auch im Rezertifizierungsdialog angeboten).<br>
+    In eigent&uuml;merbasierten Reports erscheint der Reiter "Benutzte Objekte", in dem alle in den Verbindungen verwendeten Objekte aufgelistet werden.<br>
     Folgende Daten werden soweit verf&uuml;gbar dargestellt, gruppiert nach den ausgew&auml;hlten Devices:
 ');
-INSERT INTO txt VALUES ('H1601', 'English', 'There are three Tabs shown in the right sidebar: The "All" tab displays all currently fetched objects,
+INSERT INTO txt VALUES ('H1601', 'English', 'There are several tabs shown in the right sidebar, depending on the report type: In rule based reports the "All" tab displays all currently fetched objects,
     whereas in the "Report" tab only the objects of the rules of the report are shown.
     In the "Rule" tab only objects of rules selected in the report output are dispalyed.<br>
     ("All" and "Rule" tab are also offered in the Recertification dialogue with the same functionality).<br>
+    In owner based reports the Tab "Used Objects" is displayed, where all objects used in the connections are listed.<br>
     The following data are displayed if available, grouped by the selected devices:
 ');
 INSERT INTO txt VALUES ('H1602', 'German',  '<li>Netzwerkobjekte: Name, Typ, IP, Zone, ggf. Gruppenmitglieder, zuletzt ge&auml;ndert, Kommentar</li>
@@ -5466,23 +5484,27 @@ INSERT INTO txt VALUES ('H8717', 'English', '<H4>7) Activate Planning phase</H4>
 
 INSERT INTO txt VALUES ('H9001', 'German',  'Insbesondere in gr&ouml;sseren Netzwerken besteht der Bedarf, die vielf&auml;ltigen Verbindungen zwischen den Teilnehmern zu modellieren,
     um sie so einer weitergehenden Verwaltung zug&auml;nglich zu machen. Dieses Modul stellt die Hilfsmittel, bereits vorhandene <a href="/help/modelling/applications">Applikationen</a> von anderen Systemen zu importieren
-    und ihre Elemente nach vorgegebenen Kriterien zu verkn&uuml;pfen. Dadurch wird ein Kommunikationsprofil erzeugt, bestehend aus einem Satz von <a href="/help/modelling/connections">Verbindungen und Schnittstellen</a>.<br>
+    und ihre Elemente nach vorgegebenen Kriterien zu verkn&uuml;pfen. Dadurch wird ein Kommunikationsprofil erzeugt, bestehend aus einem Satz von <a href="/help/modelling/connections">Verbindungen und Schnittstellen</a>.<br><br>
     Zur Definition der Schnittstellen und Verbindungen wird auf der linken Seite eine Bibliothek bereitgestellt, in der zun&auml;chst die zur Applikation zugeordneten 
     (in der Regel aus Fremdsystemen <a href="/help/settings/modelling">importierten</a>) Host-Adressen (App-Server) angeboten werden. Diese k&ouml;nnen im ersten Schritt zu App-Rollen geb&uuml;ndelt werden (sh. <a href="/help/modelling/networkobjects">Netzwerkobjekte</a>).
     Die App-Rollen (und je nach <a href="/help/settings/modelling">Modellierungseinstellungen</a> auch die App-Server selbst) k&ouml;nnen dann als Quelle oder Ziel in die zu erstellende Verbindung &uuml;bertragen werden.
     Hinzu k&ouml;nnen noch weitere Objekte (z. B. Netzwerke) kommen, und es k&ouml;nnen (interne und externe) Schnittstellen eingebunden werden.<br>
     Desweiteren werden in der Bibliothek vordefinierte (vom Administrator eingestellte) <a href="/help/modelling/services">Dienste</a> angeboten. Diese k&ouml;nnen durch selbst definierte Dienste erg&auml;nzt, 
-    als Dienstgruppen geb&uuml;ndelt und dann in den zu definierenden Verbindungen verwendet werden.
+    als Dienstgruppen geb&uuml;ndelt und dann in den zu definierenden Verbindungen verwendet werden.<br><br>
+    F&uuml;r das erstellte Kommunikationsprofil kann per Knopfdruck automatisch ein Verbindungs-Report erstellt werden. Er wird dann in dem <a href="/help/reporting">Report-Modul</a> dargestellt. 
+    Dort stehen dann die vom Report-Modul bereitgestellten Funktionalit&auml;ten zur weiteren Eingrenzung mittels zus&auml;tzlicher Filter, Erzeugung von Vorlagen und Terminen, sowie der Archivierung zur Verf&uuml;gung.
 ');
 INSERT INTO txt VALUES ('H9001', 'English', 'Especially in greater networks there is the demand to model the connections between the participants,
     with the aim of further administration. This module provides tools to import already existing <a href="/help/modelling/applications">applications</a> from other systems
-    and to connect their elements by predefined criteria. By doing this a communication profile is created, composed by a set of <a href="/help/modelling/connections">connections and interfaces</a>.<br>
+    and to connect their elements by predefined criteria. By doing this a communication profile is created, composed by a set of <a href="/help/modelling/connections">connections and interfaces</a>.<br><br>
     To define interfaces and connections a library is provided on the left side, where at the beginning the host addresses (App Server) associated to the application 
     (which usually are <a href="/help/settings/modelling">imported</a> from external systems) are offered. They can in a first step be bundled to App Roles (see <a href="/help/modelling/networkobjects">Network Objects</a>).
     These App Roles (and depending on the <a href="/help/settings/modelling">Modelling Settings</a> also the App Servers themselves) can be used as source or destination in the connections to be created.
     Additionally further objects (e.g. networks) and (internal or external) interfaces can be integrated.<br>
     Furthermore the library offers predefined <a href="/help/modelling/services">Services</a> (inserted by the administrator). They can be complemented by self defined services, bundled as Service Groups,
-    and used in the connections.
+    and used in the connections.<br><br>
+    For the communication profile a Connections Report can be created automatically. It is displayed in the <a href="/help/reporting">Report module</a>.
+    Here the reporting functionalities for further filtering, creation of templates and schedules, as well as archiving can be used.
 ');
 INSERT INTO txt VALUES ('H9011', 'German',  'Eine Applikation ist aus Sicht des Firewall Orchestrators ein Beh&auml;lter, in dem aus zugeordneten Host-Adressen ein Kommunikationsprofil erstellt wird.
     Sie wird in der Regel extern aus den Anforderungen und Gegebenheiten der jeweiligen Unternehmung definiert und kann &uuml;ber eine Importschnittstelle in den Firewall Orchestrator importiert

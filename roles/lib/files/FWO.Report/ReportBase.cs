@@ -71,10 +71,10 @@ namespace FWO.Report
     </head>
     <body>
         <h2>##Title##</h2>
-        <p>Filter: ##Filter##</p>
         <p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>
         <p>##GeneratedOn##: ##Date## (UTC)</p>
         <p>##OtherFilters##</p>
+        <p>##Filter##</p>
         <hr>
         ##Body##
     </body>
@@ -153,7 +153,7 @@ namespace FWO.Report
             if (string.IsNullOrEmpty(htmlExport))
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-                HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 if(ReportType.IsChangeReport())

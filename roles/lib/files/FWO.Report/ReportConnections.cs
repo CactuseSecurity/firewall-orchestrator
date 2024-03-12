@@ -65,41 +65,64 @@ namespace FWO.Report
                 }
                 if(ownerReport.CommonServices.Count > 0)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("common_services")}</h4>");
+                    report.AppendLine($"<h4>{userConfig.GetText("own_common_services")}</h4>");
                     AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, ref report);
                 }
 
                 AppendNetworkObjectsHtml(ownerReport.AllObjects, ref report);
                 AppendNetworkServicesHtml(ownerReport.AllServices, ref report);
             }
+            if(ReportData.GlobalComSvc.Count > 0)
+            {
+                report.AppendLine($"<h3>{userConfig.GetText("global_common_services")}</h3>");
+                AppendConnectionsGroupHtml(ReportData.GlobalComSvc, null, ref report);
+            }
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        private void AppendConnectionsGroupHtml(List<ModellingConnection> connections, OwnerReport ownerReport, ref StringBuilder report)
+        private void AppendConnectionsGroupHtml(List<ModellingConnection> connections, OwnerReport? ownerReport, ref StringBuilder report)
         {
             OwnerReport.AssignConnectionNumbers(connections);
+            bool IsGlobalComSvc = ownerReport == null;
             report.AppendLine("<table>");
-            AppendConnectionHeadlineHtml(ref report);
+            AppendConnectionHeadlineHtml(ref report, IsGlobalComSvc);
             foreach (var connection in connections)
             {
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{connection.OrderNumber}</td>");
                 report.AppendLine($"<td>{connection.Id}</td>");
+                if(IsGlobalComSvc)
+                {
+                    report.AppendLine($"<td>{connection.App.Name}</td>");
+                }
                 report.AppendLine($"<td>{connection.Name}</td>");
                 report.AppendLine($"<td>{connection.Reason}</td>");
-                report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetSrcNames(connection))}</td>");
-                report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetSvcNames(connection))}</td>");
-                report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetDstNames(connection))}</td>");
+                if(IsGlobalComSvc)
+                {
+                    report.AppendLine($"<td>{String.Join("<br>", OwnerReport.GetSrcNames(connection))}</td>");
+                    report.AppendLine($"<td>{String.Join("<br>", OwnerReport.GetSvcNames(connection))}</td>");
+                    report.AppendLine($"<td>{String.Join("<br>", OwnerReport.GetDstNames(connection))}</td>");
+                }
+                else
+                {
+                    report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedSrcNames(connection))}</td>");
+                    report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedSvcNames(connection))}</td>");
+                    report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedDstNames(connection))}</td>");
+                }
             }
             report.AppendLine("</table>");
             report.AppendLine("<hr>");
         }
 
-        private void AppendConnectionHeadlineHtml(ref StringBuilder report)
+        private void AppendConnectionHeadlineHtml(ref StringBuilder report, bool showOwnerName)
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
+            if(showOwnerName)
+            {
+                report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
+            }
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("func_reason")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
@@ -118,7 +141,7 @@ namespace FWO.Report
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{nwObj.Number}</td>");
                 report.AppendLine($"<td>{nwObj.Id}</td>");
-                report.AppendLine($"<td>{nwObj.Name}</td>");
+                report.AppendLine($"<td><a name={ObjCatString.NwObj}{nwObj.Number}>{nwObj.Name}</a></td>");
                 report.AppendLine($"<td>{nwObj.IP}</td>");
             }
             report.AppendLine("</table>");
@@ -145,7 +168,7 @@ namespace FWO.Report
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{svc.Number}</td>");
                 report.AppendLine($"<td>{svc.Id}</td>");
-                report.AppendLine($"<td>{svc.Name}</td>");
+                report.AppendLine($"<td><a name={ObjCatString.Svc}{svc.Number}>{svc.Name}</a></td>");
                 report.AppendLine($"<td>{svc.Protocol.Name}</td>");
                 report.AppendLine($"<td>{svc.DestinationPort}</td>");
             }

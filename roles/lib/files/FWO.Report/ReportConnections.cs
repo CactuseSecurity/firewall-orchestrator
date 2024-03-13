@@ -143,6 +143,7 @@ namespace FWO.Report
                 report.AppendLine($"<td>{nwObj.Id}</td>");
                 report.AppendLine($"<td><a name={ObjCatString.NwObj}{nwObj.Number}>{nwObj.Name}</a></td>");
                 report.AppendLine($"<td>{nwObj.IP}</td>");
+                report.AppendLine(nwObj.MemberNamesAsHtml());
             }
             report.AppendLine("</table>");
             report.AppendLine("<hr>");
@@ -155,6 +156,7 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("ip")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
             report.AppendLine("</tr>");
         }
 
@@ -171,6 +173,7 @@ namespace FWO.Report
                 report.AppendLine($"<td><a name={ObjCatString.Svc}{svc.Number}>{svc.Name}</a></td>");
                 report.AppendLine($"<td>{svc.Protocol.Name}</td>");
                 report.AppendLine($"<td>{svc.DestinationPort}</td>");
+                report.AppendLine(svc.MemberNamesAsHtml());
             }
             report.AppendLine("</table>");
             report.AppendLine("<hr>");
@@ -184,6 +187,7 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
             report.AppendLine("</tr>");
         }
 

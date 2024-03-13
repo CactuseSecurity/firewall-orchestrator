@@ -64,32 +64,16 @@ namespace FWO.Api.Data
             return Id.GetHashCode();
         }
 
-        //  user_id
-        //  user_uid
-        //  user_name
-        //  user_comment
-        //  user_lastname
-        //  user_firstname
-        //  usr_typ_id
-        //  stm_usr_typ {
-        //    usr_typ_name
-        //  }
-        //  user_member_names
-        //  user_member_refs
-        //  usergrps {
-        //    id: usergrp_id
-        //    byId: usrByUsergrpMemberId {
-        //      user_id
-        //      user_name
-        //    }
-        //  }
-        //  usergrp_flats {
-        //    flat_id: usergrp_flat_id
-        //    byFlatId: usrByUsergrpFlatMemberId {
-        //      user_id
-        //      user_name
-        //    }
-        //  }
-
+        public string MemberNamesAsHtml()
+        {
+            if (MemberNames != null && MemberNames.Contains("|"))
+            {
+                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
+            }
+            else
+            {
+                return $"<td>{MemberNames}</td>";
+            }
+        }
     }
 }

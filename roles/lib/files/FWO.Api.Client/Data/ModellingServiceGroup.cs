@@ -25,13 +25,15 @@ namespace FWO.Api.Data
 
         public NetworkService ToNetworkServiceGroup()
         {
+            Group<NetworkService>[] serviceGroups = ModellingServiceGroupWrapper.ResolveAsNetworkServiceGroup(Services ?? new List<ModellingServiceWrapper>());
             return new()
             {
                 Id = Id,
                 Name = Name ?? "",
                 Comment = Comment ?? "",
                 Type = new NetworkServiceType(){ Name = ObjectType.Group },
-                ServiceGroups = ModellingServiceGroupWrapper.ResolveAsNetworkServiceGroup(Services ?? new List<ModellingServiceWrapper>())
+                ServiceGroups = serviceGroups,
+                MemberNames = string.Join("|", Array.ConvertAll(serviceGroups, o => o.Object?.Name))
             };
         }
 

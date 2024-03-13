@@ -551,7 +551,7 @@ namespace FWO.Test
             "<h4>Connections</h4><table>" +
             "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
             "<tr><td>1</td><td>101</td><td>Conn1</td><td></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">ServiceGroup1</a><br>" +
             "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">AppRole1 ()</a></td></table><hr>" +
@@ -560,29 +560,29 @@ namespace FWO.Test
             "<tr><td>1</td><td>102</td><td>Inter2</td><td></td><td></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc3\" target=\"_top\" style=\"\"></a><br>" +
             "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc4\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\"> ()</a><br>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\"> ()</a><br>" +
             "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
             "<h4>Own Common Services</h4><table>" +
             "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
             "<tr><td>1</td><td>103</td><td>ComSvc3</td><td></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc3\" target=\"_top\" style=\"\"></a><br>" +
             "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc4\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
 
             "<h4>Network Objects</h4>" +
-            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th></tr>" +
-            "<tr><td>1</td><td>21</td><td><a name=nwobj1>AppRole1</a></td><td></td>" +
-            "<tr><td>2</td><td>0</td><td><a name=nwobj2></a></td><td></td>" +
-            "<tr><td>3</td><td>11</td><td><a name=nwobj3>AppServer1</a></td><td>1.0.0.0</td>" +
-            "<tr><td>4</td><td>12</td><td><a name=nwobj4>AppServer2</a></td><td>2.0.0.0</td>" +
+            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr>" +
+            "<tr><td>1</td><td>21</td><td><a name=nwobj1>AppRole1</a></td><td></td><td>AppServer1</td>" +
+            "<tr><td>2</td><td>11</td><td><a name=nwobj2>AppServer1</a></td><td>1.0.0.0</td><td></td>" +
+            "<tr><td>3</td><td>0</td><td><a name=nwobj3></a></td><td></td><td></td>" +
+            "<tr><td>4</td><td>12</td><td><a name=nwobj4>AppServer2</a></td><td>2.0.0.0</td><td></td>" +
             "</table><hr>" +
             "<h4>Network Services</h4>" +
-            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th></tr>" +
-            "<tr><td>1</td><td>41</td><td><a name=svc1>ServiceGroup1</a></td><td></td><td></td>" +
-            "<tr><td>2</td><td>31</td><td><a name=svc2>Service1</a></td><td>TCP</td><td>1234</td>" +
-            "<tr><td>3</td><td>0</td><td><a name=svc3></a></td><td></td><td></td>" +
-            "<tr><td>4</td><td>32</td><td><a name=svc4>Service2</a></td><td>UDP</td><td>2345</td>" +
+            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr>" +
+            "<tr><td>1</td><td>41</td><td><a name=svc1>ServiceGroup1</a></td><td></td><td></td><td>Service1</td>" +
+            "<tr><td>2</td><td>31</td><td><a name=svc2>Service1</a></td><td>TCP</td><td>1234</td><td></td>" +
+            "<tr><td>3</td><td>0</td><td><a name=svc3></a></td><td></td><td></td><td></td>" +
+            "<tr><td>4</td><td>32</td><td><a name=svc4>Service2</a></td><td>UDP</td><td>2345</td><td></td>" +
             "</table><hr>" +
 
             "<h3>Global Common Services</h3><table>" +

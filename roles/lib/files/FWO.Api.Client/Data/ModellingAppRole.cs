@@ -41,6 +41,7 @@ namespace FWO.Api.Data
 
         public NetworkObject ToNetworkObjectGroup()
         {
+            Group<NetworkObject>[] objectGroups = ModellingAppRoleWrapper.ResolveAsNetworkObjectGroup(AppServers ?? new List<ModellingAppServerWrapper>());
             return new()
             {
                 Id = Id,
@@ -48,7 +49,8 @@ namespace FWO.Api.Data
                 Name = Name ?? "",
                 Comment = Comment ?? "",
                 Type = new NetworkObjectType(){ Name = ObjectType.Group },
-                ObjectGroups = ModellingAppRoleWrapper.ResolveAsNetworkObjectGroup(AppServers ?? new List<ModellingAppServerWrapper>())
+                ObjectGroups = objectGroups,
+                MemberNames = string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name))
             };
         }
 

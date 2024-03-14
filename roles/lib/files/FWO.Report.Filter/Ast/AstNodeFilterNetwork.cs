@@ -1,10 +1,5 @@
 ﻿using NetTools;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using FWO.Logging;
 
 namespace FWO.Report.Filter.Ast
@@ -42,7 +37,8 @@ namespace FWO.Report.Filter.Ast
             {
                 string QueryVarName = AddVariable<string>(query, "dst", Operator.Kind, Value.Text);
                 query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
-                query.connectionWhereStatement += $"nwobject_connections: {{connection_field: {{ _eq: 2 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }}";
+                query.connectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 2 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
+                    $"{{ nwgroup_connections: {{connection_field: {{ _eq: 2 }}, nwgroup: {{ name: {{ {ExtractOperator()}: ${QueryVarName} }}  }} }} }} ]";
             }
             return query;
         }
@@ -56,7 +52,8 @@ namespace FWO.Report.Filter.Ast
             {
                 string QueryVarName = AddVariable<string>(query, "src", Operator.Kind, Value.Text);
                 query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
-                query.connectionWhereStatement += $"nwobject_connections: {{connection_field: {{ _eq: 1 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }}";
+                query.connectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 1 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
+                    $"{{ nwgroup_connections: {{connection_field: {{ _eq: 1 }}, nwgroup: {{ name: {{ {ExtractOperator()}: ${QueryVarName} }}  }} }} }} ]";
             }
             return query;
         }

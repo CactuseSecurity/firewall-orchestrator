@@ -262,8 +262,8 @@
     {
         if(autoGenerateReport)
         {
-            await GenerateReport();
             autoGenerateReport = false;
+            await GenerateReport();
         }
     }
 
@@ -384,9 +384,6 @@
 
     private async Task PrepareReportGeneration()
     {
-        // collapse report templates
-        reportTemplateControl.Collapse();
-
         // check for unsupported devices
         if(actReportFilters.ReportType == ReportType.UnusedRules)
         {
@@ -472,6 +469,8 @@
 
     private void PostProcess()
     {
+        reportTemplateControl.Collapse();
+
         if(actReportFilters.ReportType.IsDeviceRelatedReport() && currentReport.NoRuleFound())
         {
             if(currentReport is ReportRules || currentReport is ReportNatRules)

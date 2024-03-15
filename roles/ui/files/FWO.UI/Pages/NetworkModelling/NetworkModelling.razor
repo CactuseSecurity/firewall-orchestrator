@@ -123,13 +123,13 @@ else
         {
             if(!tabSelected)
             {
-                appHandler.InitActiveTab();
                 tabSelected = true;
+                appHandler.InitActiveTab();
             }
             else if(restoreTab)
             {
-                appHandler.RestoreTab();
                 restoreTab = false;
+                appHandler.RestoreTab();
             }
         }
     }

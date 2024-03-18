@@ -120,44 +120,46 @@ if __name__ == "__main__":
     normSubnetData = { "subnets": {}, "zones": {}, "areas": {} }
     snId = 0
     for subnet in subnetAr:
-        naId = subnet['Subnetzname'][2:4]
-        subnetIp = subnet['Subnetzadresse']
-        netmask = subnet['Subnetzmaske']
-        cidr = str(ipaddress.ip_network(subnetIp + '/' + netmask))
-        
-        nameParts = subnet['Subnetzname'].split('.')
-        zoneName = nameParts[1]
-        if len(nameParts)>=3:
-            subnetName = nameParts[2]
-        else:
-            subnetName = ""
+        # ignore all "reserved" subnets whose name starts with "RES"
+        if not subnet['Subnetzname'].startswith('RES'):
+            naId = subnet['Subnetzname'][2:4]
+            subnetIp = subnet['Subnetzadresse']
+            netmask = subnet['Subnetzmaske']
+            cidr = str(ipaddress.ip_network(subnetIp + '/' + netmask))
+            
+            nameParts = subnet['Subnetzname'].split('.')
+            zoneName = nameParts[1]
+            if len(nameParts)>=3:
+                subnetName = nameParts[2]
+            else:
+                subnetName = ""
 
-        zoneNamePartsDots = nameParts[0].split('.')
+            zoneNamePartsDots = nameParts[0].split('.')
 
-        zoneNamePartsUnderscore = zoneNamePartsDots[0].split('_')
-        zoneId = zoneNamePartsUnderscore[0][2:7]
-        areaName = '_'.join(zoneNamePartsUnderscore[1:])
-        normSubnet = {
-            "na-id": naId,
-            "na-name": areaName,
-            "zone-id": zoneId,
-            "zone-name": zoneName,
-            "ip": cidr,
-            "name": subnetName
-        }
-        normSubnetData['subnets'].update({ snId: normSubnet})
-        snId += 1;
+            zoneNamePartsUnderscore = zoneNamePartsDots[0].split('_')
+            zoneId = zoneNamePartsUnderscore[0][2:7]
+            areaName = '_'.join(zoneNamePartsUnderscore[1:])
+            normSubnet = {
+                "na-id": naId,
+                "na-name": areaName,
+                "zone-id": zoneId,
+                "zone-name": zoneName,
+                "ip": cidr,
+                "name": subnetName
+            }
+            normSubnetData['subnets'].update({ snId: normSubnet})
+            snId += 1;
 
-        # filling areas
-        if not naId in normSubnetData['areas']:
-            normSubnetData['areas'].update({ naId: {"area-name": areaName, "area-id": naId, "subnets": [], "zones": [] }})
-        normSubnetData['areas'][naId]['subnets'].append({"ip": cidr, "name": subnetName })
-        normSubnetData['areas'][naId]['zones'].append({"zone-id": zoneId, "zone-name": zoneName })
+            # filling areas
+            if not naId in normSubnetData['areas']:
+                normSubnetData['areas'].update({ naId: {"area-name": areaName, "area-id": naId, "subnets": [], "zones": [] }})
+            normSubnetData['areas'][naId]['subnets'].append({"ip": cidr, "name": subnetName })
+            normSubnetData['areas'][naId]['zones'].append({"zone-id": zoneId, "zone-name": zoneName })
 
-        # filling zones
-        if not zoneId in normSubnetData['zones']:
-            normSubnetData['zones'].update({ zoneId: { "zone-name": zoneName, "subnets": [] }})
-        normSubnetData['zones'][zoneId]['subnets'].append({"ip": cidr, "name": subnetName })
+            # filling zones
+            if not zoneId in normSubnetData['zones']:
+                normSubnetData['zones'].update({ zoneId: { "zone-name": zoneName, "subnets": [] }})
+            normSubnetData['zones'][zoneId]['subnets'].append({"ip": cidr, "name": subnetName })
 
     # transform output
     transfSubnetData = { "areas": [] }

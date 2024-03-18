@@ -5,6 +5,9 @@ namespace FWO.Api.Data
     /// </summary>
     public struct GlobalConst
     {
+        public const string kFwoBaseDir = "/usr/local/fworch";
+        public const string kMainKeyFile = kFwoBaseDir + "/etc/secrets/main_key";
+
         public const string kEnglish = "English";
 
         public const int kSidebarLeftWidth = 300;
@@ -25,5 +28,8 @@ namespace FWO.Api.Data
         public const string kManual = "manual";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
+
+        public const string kLdapInternalPostfix = "dc=fworch,dc=internal";
+
     }
 }

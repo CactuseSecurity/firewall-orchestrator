@@ -29,7 +29,7 @@
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
-        DELETE FROM tenant WHERE tenant_name='tenant1{{ test_postfix }} OR tenant_name='tenant2{{ test_postfix }}'; 
+        DELETE FROM tenant WHERE tenant_name='tenant1{{ test_postfix }}' OR tenant_name='tenant2{{ test_postfix }}'; 
         END $do$
     listen: "test importer handler"
 

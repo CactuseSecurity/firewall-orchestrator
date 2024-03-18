@@ -180,5 +180,5 @@ bugfix release:
 - iconify modelling
 - add missing config values
 
-# 8.0.2 - 29.02.2024 DEVELOP
-- adding firewall importer support for NSX
+# 8.0.2 - 11.03.2024 DEVELOP
+- first version of NSX import module

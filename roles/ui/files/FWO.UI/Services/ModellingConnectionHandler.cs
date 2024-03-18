@@ -47,6 +47,7 @@ namespace FWO.Ui.Services
         public bool AddAppRoleMode = false;
         public bool EditAppRoleMode = false;
         public bool DeleteAppRoleMode = false;
+        public bool DisplayAppRoleMode = false;
 
         public ModellingServiceHandler? ServiceHandler;
         public List<ModellingService> SvcToDelete { get; set; } = new();
@@ -60,6 +61,7 @@ namespace FWO.Ui.Services
         public bool AddSvcGrpMode = false;
         public bool EditSvcGrpMode = false;
         public bool DeleteSvcGrpMode = false;
+        public bool DisplaySvcGrpMode = false;
 
         private List<FwoOwner> allApps = new();
         private ModellingAppRole actAppRole = new();
@@ -315,6 +317,7 @@ namespace FWO.Ui.Services
 
         public void CreateAppRole()
         {
+            DisplayAppRoleMode = false;
             AddAppRoleMode = true;
             HandleAppRole(new ModellingAppRole(){});
         }
@@ -323,6 +326,17 @@ namespace FWO.Ui.Services
         {
             if(appRole != null)
             {
+                DisplayAppRoleMode = false;
+                AddAppRoleMode = false;
+                HandleAppRole(appRole);
+            }
+        }
+
+        public void DisplayAppRole(ModellingAppRole? appRole)
+        {
+            if(appRole != null)
+            {
+                DisplayAppRoleMode = true;
                 AddAppRoleMode = false;
                 HandleAppRole(appRole);
             }
@@ -333,7 +347,7 @@ namespace FWO.Ui.Services
             try
             {
                 AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles,
-                    appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner);
+                    appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner, DisplayAppRoleMode);
                 EditAppRoleMode = true;
             }
             catch (Exception exception)
@@ -426,6 +440,7 @@ namespace FWO.Ui.Services
 
         public void CreateServiceGroup()
         {
+            DisplaySvcGrpMode = false;
             AddSvcGrpMode = true;
             HandleServiceGroup(new ModellingServiceGroup(){});
         }
@@ -434,6 +449,17 @@ namespace FWO.Ui.Services
         {
             if(serviceGroup != null)
             {
+                DisplaySvcGrpMode = false;
+                AddSvcGrpMode = false;
+                HandleServiceGroup(serviceGroup);
+            }
+        }
+
+        public void DisplayServiceGroup(ModellingServiceGroup? serviceGroup)
+        {
+            if(serviceGroup != null)
+            {
+                DisplaySvcGrpMode = true;
                 AddSvcGrpMode = false;
                 HandleServiceGroup(serviceGroup);
             }
@@ -444,7 +470,7 @@ namespace FWO.Ui.Services
             try
             {
                 SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, Application, AvailableServiceGroups,
-                    serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi, IsOwner);
+                    serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi, IsOwner, DisplaySvcGrpMode);
                 EditSvcGrpMode = true;
             }
             catch (Exception exception)
@@ -530,7 +556,7 @@ namespace FWO.Ui.Services
                 HandleService(service);
             }
         }
-
+        
         public void HandleService(ModellingService service)
         {
             try
@@ -1024,9 +1050,11 @@ namespace FWO.Ui.Services
             AddAppRoleMode = false;
             EditAppRoleMode = false;
             DeleteAppRoleMode = false;
+            DisplayAppRoleMode = false;
             AddSvcGrpMode = false;
             EditSvcGrpMode = false;
             DeleteSvcGrpMode = false;
+            DisplaySvcGrpMode = false;
             AddServiceMode = false;
             EditServiceMode = false;
             DeleteServiceMode = false;

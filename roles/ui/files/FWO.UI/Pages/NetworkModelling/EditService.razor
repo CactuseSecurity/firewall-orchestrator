@@ -11,27 +11,27 @@
         <Body>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                <input type="text" class="col-sm-7" @bind="ServiceHandler.ActService.Name" />
+                <input type="text" class="col-sm-8" @bind="ServiceHandler.ActService.Name" />
             </div>
             <div class="form-group row mt-2">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("protocol"))*:</label>
-                <div class="col-sm-7">
+                <div class="col-sm-3">
                     <Dropdown ElementType="NetworkProtocol" @bind-SelectedElement="ServiceHandler.ActService.Protocol" ElementToString="@(p => p.Name)" Elements="ipProtos" Nullable="false">
                         <ElementTemplate Context="proto">
                             @proto.Name
                         </ElementTemplate>
                     </Dropdown>
                 </div>
+                @if(!(bool)ServiceHandler.ActService.Protocol?.Name.ToLower().StartsWith("esp"))
+                {
+                    <div class="form-group row col-sm-6">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                        <input type="number" min="1" max="65535" class="col-sm-4" @bind="ServiceHandler.ActService.Port" />
+                        <label class="col-sm-1 col-form-label col-form-label-sm"> - </label>
+                        <input type="number" min="1" max="65535" class=" col-sm-4" @bind="ServiceHandler.ActService.PortEnd" />
+                    </div>
+                }
             </div>
-            @if(!(bool)ServiceHandler.ActService.Protocol?.Name.ToLower().StartsWith("esp"))
-            {
-                <div class="form-group row mt-2">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
-                    <input type="number" min="1" max="65535" class="col-sm-3" @bind="ServiceHandler.ActService.Port" />
-                    <label class="col-sm-1 col-form-label col-form-label-sm"> - </label>
-                    <input type="number" min="1" max="65535" class=" col-sm-3" @bind="ServiceHandler.ActService.PortEnd" />
-                </div>
-            }
         </Body>
         <Footer>
             <div class="btn-group">

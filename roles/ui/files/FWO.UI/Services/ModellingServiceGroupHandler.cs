@@ -17,12 +17,12 @@ namespace FWO.Ui.Services
         public bool AddServiceMode = false;
         public bool EditServiceMode = false;
         public bool DeleteServiceMode = false;
-        private ModellingService actService = new();
+        public bool ReadOnly = false;
 
 
         public ModellingServiceGroupHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingServiceGroup> serviceGroups, ModellingServiceGroup serviceGroup, List<ModellingService> availableServices,
-            List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
             : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
             ServiceGroups = serviceGroups;
@@ -30,6 +30,7 @@ namespace FWO.Ui.Services
             ActServiceGroup.AppId = application.Id;
             AvailableServices = availableServices;
             AvailableSvcElems = availableSvcElems;
+            ReadOnly = readOnly;
         }
 
         public void ServicesToSvcGroup(List<ModellingService> services)

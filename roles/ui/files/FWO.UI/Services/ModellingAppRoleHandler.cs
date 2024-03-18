@@ -22,17 +22,19 @@ namespace FWO.Ui.Services
         public ModellingNamingConvention NamingConvention = new();
 
         private ModellingManagedIdString OrigId = new();
+        public bool ReadOnly = false;
 
 
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
-            List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
             : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
             AppRoles = appRoles;
             AvailableAppServers = availableAppServers;
             AvailableNwElems = availableNwElems;
             ActAppRole = appRole;
+            ReadOnly = readOnly;
             ApplyNamingConvention(application.ExtAppId);
         }
 

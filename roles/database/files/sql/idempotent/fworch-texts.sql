@@ -1068,6 +1068,8 @@ INSERT INTO txt VALUES ('save_app_role', 	    'German',	'App Rolle speichern');
 INSERT INTO txt VALUES ('save_app_role', 	    'English',	'Save App Role');
 INSERT INTO txt VALUES ('delete_app_role', 	    'German',	'App Rolle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_role', 	    'English',	'Delete App Role');
+INSERT INTO txt VALUES ('display_app_role',     'German',	'App Rolle darstellen');
+INSERT INTO txt VALUES ('display_app_role',     'English',	'Display App Role');
 INSERT INTO txt VALUES ('to_app_role', 	        'German',	'Zu App Rolle');
 INSERT INTO txt VALUES ('to_app_role', 	        'English',	'To App Role');
 INSERT INTO txt VALUES ('add_service', 	        'German',	'Dienst hinzuf&uuml;gen');
@@ -1106,6 +1108,8 @@ INSERT INTO txt VALUES ('save_service_group', 	'German',	'Dienstgruppe speichern
 INSERT INTO txt VALUES ('save_service_group', 	'English',	'Save Service Group');
 INSERT INTO txt VALUES ('delete_service_group', 'German',	'Dienstgruppe l&ouml;schen');
 INSERT INTO txt VALUES ('delete_service_group', 'English',	'Delete Service Group');
+INSERT INTO txt VALUES ('display_service_group','German',	'Dienstgruppe darstellen');
+INSERT INTO txt VALUES ('display_service_group','English',	'Display Service Group');
 INSERT INTO txt VALUES ('add_app_server', 	    'German',	'Neuer App Server');
 INSERT INTO txt VALUES ('add_app_server', 	    'English',	'New App Server');
 INSERT INTO txt VALUES ('edit_app_server', 	    'German',	'App Server bearbeiten');

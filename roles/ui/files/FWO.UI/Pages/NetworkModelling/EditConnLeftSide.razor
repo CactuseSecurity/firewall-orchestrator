@@ -33,8 +33,11 @@
             </div>
         </div>
         <div class="btn-group mt-1">
-            <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">
-                @(ConnHandler.DisplayButton("search_nw_object", Icons.Search))</button>
+            @if(ConnHandler.Application.CommSvcPossible)
+            {
+                <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">
+                    @(ConnHandler.DisplayButton("search_nw_object", Icons.Search))</button>
+            }
             <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                 @(ConnHandler.DisplayButton("add_app_role", Icons.Add))</button>
             @if(selectedNwElems.Count == 1)
@@ -99,7 +102,14 @@
                 {
                     @if(selectedSvcElems[0].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
                     {
-                        if(!ResolveSvcGrp(selectedSvcElems[0].Value)?.IsGlobal ?? true)
+                        if(ResolveSvcGrp(selectedSvcElems[0].Value)?.IsGlobal ?? true)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="() =>
+                                {ConnHandler.DisplayServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value));
+                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                @(ConnHandler.DisplayButton("display_service_group", Icons.Display))</button>
+                        }
+                        else
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
                                 {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value));
@@ -317,6 +327,7 @@
         {
             ConnHandler.ServicesToConn(services);
         }
+        selectedSvcElems = new();
     }
 
     private bool HandleNwDragStart(DragEventArgs e, KeyValuePair<int, long> selectedNwElem)

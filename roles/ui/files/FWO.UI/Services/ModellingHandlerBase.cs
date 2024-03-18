@@ -37,11 +37,10 @@ namespace FWO.Ui.Services
         {
             string tooltip = userConfig.ModIconify ? $"data-toggle=\"tooltip\" title=\"{@userConfig.PureLine(text)}\"" : "";
             string iconToDisplay = $"<span class=\"{icon}\" {@tooltip}/>";
-            string objIconToDisplay = $"<span class=\"{objIcon}\"/>";
+            string iconTextPart = iconText != "" ? " <span class=\"stdtext\">" + userConfig.GetText(iconText) + "</span>" : "";
+            string objIconToDisplay = objIcon != "" ? $" <span class=\"{objIcon}\"/>" : "";
             
-            return (MarkupString)(userConfig.ModIconify ? 
-                iconToDisplay + (iconText != "" ? " " + userConfig.GetText(iconText) : "") + (objIcon != "" ? " " + objIconToDisplay : "")
-                : userConfig.GetText(text));
+            return (MarkupString)(userConfig.ModIconify ? iconToDisplay + iconTextPart + objIconToDisplay : userConfig.GetText(text));
         }
 
         protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text, int? applicationId)

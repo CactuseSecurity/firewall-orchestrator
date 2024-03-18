@@ -35,15 +35,19 @@ namespace FWO.Ui.Services
         
         public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
         {
+            return DisplayButton(userConfig, text, icon, iconText, objIcon);
+        }
+
+        public static MarkupString DisplayButton(UserConfig userConfig, string text, string icon, string iconText = "", string objIcon = "")
+        {
             string tooltip = userConfig.ModIconify ? $"data-toggle=\"tooltip\" title=\"{@userConfig.PureLine(text)}\"" : "";
             string iconToDisplay = $"<span class=\"{icon}\" {@tooltip}/>";
             string iconTextPart = iconText != "" ? " <span class=\"stdtext\">" + userConfig.GetText(iconText) + "</span>" : "";
             string objIconToDisplay = objIcon != "" ? $" <span class=\"{objIcon}\"/>" : "";
-            
             return (MarkupString)(userConfig.ModIconify ? iconToDisplay + iconTextPart + objIconToDisplay : userConfig.GetText(text));
         }
 
-        protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text, int? applicationId)
+        protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text, int? applicationId)
         {
             try
             {
@@ -64,7 +68,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public static async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text,
+        public static async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text,
             ApiConnection apiConnection, UserConfig userConfig, int? applicationId, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             try
@@ -124,10 +128,10 @@ namespace FWO.Ui.Services
             {
                 if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteService, new { id = actService.Id })).AffectedRows > 0)
                 {
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Service, actService.Id,
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Service, actService.Id,
                         $"Deleted Service: {actService.Display()}", Application.Id);
                     availableServices.Remove(actService);
-                    availableSvcElems?.Remove(availableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.Service && x.Value == actService.Id));
+                    availableSvcElems?.Remove(availableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ModObjectType.Service && x.Value == actService.Id));
                     return false;
                 }
             }

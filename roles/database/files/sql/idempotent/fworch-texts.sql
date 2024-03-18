@@ -1130,6 +1130,8 @@ INSERT INTO txt VALUES ('object_id',            'German', 	'Objekt-Id');
 INSERT INTO txt VALUES ('object_id',            'English', 	'Object Id');
 INSERT INTO txt VALUES ('predef_services',      'German', 	'Vordefinierte Dienste');
 INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined Services');
+INSERT INTO txt VALUES ('common_areas',         'German', 	'Gemeinsame Netzwerkareas');
+INSERT INTO txt VALUES ('common_areas',         'English', 	'Common Network Areas');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
 INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
@@ -4435,6 +4437,12 @@ INSERT INTO txt VALUES ('H5618', 'German',  'Nutzung von Piktogrammen: Vorzugswe
 INSERT INTO txt VALUES ('H5618', 'English', 'Prefer use of Icons: Use icons where reasonnable. Generally set by the administrator but can be overwritten in the personal settings of the user.');
 INSERT INTO txt VALUES ('H5619', 'German',  'Eigent&uuml;mernamen verwenden: Der Name des Eigent&uuml;mers fliesst in den mittleren Teil der Namenskonvention f&uuml;r App-Rollen ein.');
 INSERT INTO txt VALUES ('H5619', 'English', 'Use Owner Name: The name of the owner is used in the middle part of the naming convention for App Roles.');
+INSERT INTO txt VALUES ('H5620', 'German',  'Gemeinsame Netzwerkareas: Vom Administrator vorgegebene Netzwerkareas, welche von allen Verbindungen genutzt werden d&uuml;rfen.
+    Sie sind in der Bibliothek immer sichtbar und stehen dann nicht mehr in der Liste der auszuw&auml;hlenden Areas f&uuml;r Common Services.
+');
+INSERT INTO txt VALUES ('H5620', 'English', 'Common Network Areas: Network areas defined by the administrator, which are permitted to be used by all connections.
+    They are visible in the object library and are not offered in the list of available areas for Common Services. 
+');
 INSERT INTO txt VALUES ('H5621', 'German',  'Ein Modellierer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Darstellung der Modellierung &uuml;berschreiben.
     Ausgangswert ist der vom Admin in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> gesetzte Wert.
 ');

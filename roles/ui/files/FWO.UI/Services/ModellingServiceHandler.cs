@@ -105,10 +105,10 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActService.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Service, ActService.Id,
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Service, ActService.Id,
                         $"New Service: {ActService.Display()}", Application.Id);
                     AvailableServices.Add(ActService);
-                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.Service, ActService.Id));
+                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, ActService.Id));
                 }
             }
             catch (Exception exception)
@@ -130,7 +130,7 @@ namespace FWO.Ui.Services
                     protoId = ActService.Protocol?.Id
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateService, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Service, ActService.Id,
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Service, ActService.Id,
                     $"Updated Service: {ActService.Display()}", Application.Id);
             }
             catch (Exception exception)

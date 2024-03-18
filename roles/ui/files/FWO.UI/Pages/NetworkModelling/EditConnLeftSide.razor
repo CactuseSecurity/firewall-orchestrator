@@ -42,7 +42,7 @@
                 @(ConnHandler.DisplayButton("add_app_role", Icons.Add))</button>
             @if(selectedNwElems.Count == 1)
             {
-                @if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppRole)
+                @if(selectedNwElems[0].Key == (int)ModellingTypes.ModObjectType.AppRole)
                 {
                     if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
                     {
@@ -55,16 +55,17 @@
                             @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
                     }
                 }
-                else if(selectedNwElems[0].Key == (int)ModellingTypes.ObjectType.AppServer)
+                else if(selectedNwElems[0].Key == (int)ModellingTypes.ModObjectType.AppServer)
                 {
 
                 }
                 else
                 {
-                    if(!(ResolveNwGroupObject(selectedNwElems[0].Value)?.IsDeleted ?? true))
+                    ModellingNwGroup? nwGroup = ResolveNwGroupObject(selectedNwElems[0].Value);
+                    if(nwGroup != null && !nwGroup.IsDeleted && ConnHandler.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == nwGroup.Id) == null)
                     {
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
-                            {ConnHandler.RequestRemoveNwGrpObject(ResolveNwGroupObject(selectedNwElems[0].Value));
+                            {ConnHandler.RequestRemoveNwGrpObject(nwGroup);
                             selectedNwElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                             @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
                     }
@@ -100,7 +101,7 @@
                 }
                 @if(selectedSvcElems.Count == 1)
                 {
-                    @if(selectedSvcElems[0].Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+                    @if(selectedSvcElems[0].Key == (int)ModellingTypes.ModObjectType.ServiceGroup)
                     {
                         if(ResolveSvcGrp(selectedSvcElems[0].Value)?.IsGlobal ?? true)
                         {
@@ -235,7 +236,7 @@
         List<ModellingAppServer> appServers = new();
         foreach(var elem in selectedNwElems)
         {
-            if(elem.Key == (int)ModellingTypes.ObjectType.AppRole)
+            if(elem.Key == (int)ModellingTypes.ModObjectType.AppRole)
             {
                 ModellingAppRole? AppRole = ResolveAppRole(elem.Value);
                 if(AppRole != null)
@@ -243,7 +244,7 @@
                     appRoles.Add(AppRole);
                 }
             }
-            else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)elem.Key))
+            else if(ModellingTypes.IsNwGroup((ModellingTypes.ModObjectType)elem.Key))
             {
                 ModellingNwGroup? nwGroup = ResolveNwGroupObject(elem.Value);
                 if(nwGroup != null)
@@ -251,7 +252,7 @@
                     nwGroups.Add(nwGroup);
                 }
             }
-            else if(elem.Key == (int)ModellingTypes.ObjectType.AppServer)
+            else if(elem.Key == (int)ModellingTypes.ModObjectType.AppServer)
             {
                 ModellingAppServer? appServer = ResolveAppServer(elem.Value);
                 if(appServer != null)
@@ -302,7 +303,7 @@
         List<ModellingService> services = new();
         foreach(var elem in selectedSvcElems)
         {
-            if(elem.Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+            if(elem.Key == (int)ModellingTypes.ModObjectType.ServiceGroup)
             {
                 ModellingServiceGroup? svcGrp = ResolveSvcGrp(elem.Value);
                 if (svcGrp != null)
@@ -339,7 +340,7 @@
         Container.Clear();
         foreach(var elem in selectedNwElems)
         {
-            if(elem.Key == (int)ModellingTypes.ObjectType.AppRole)
+            if(elem.Key == (int)ModellingTypes.ModObjectType.AppRole)
             {
                 ModellingAppRole? AppRole = ResolveAppRole(elem.Value);
                 if(AppRole != null)
@@ -347,7 +348,7 @@
                     Container.AppRoleElements.Add(AppRole);
                 }
             }
-            else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)elem.Key))
+            else if(ModellingTypes.IsNwGroup((ModellingTypes.ModObjectType)elem.Key))
             {
                 ModellingNwGroup? nwGroup = ResolveNwGroupObject(elem.Value);
                 if(nwGroup != null)
@@ -355,7 +356,7 @@
                     Container.NwGroupElements.Add(nwGroup);
                 }
             }
-            else if(elem.Key == (int)ModellingTypes.ObjectType.AppServer)
+            else if(elem.Key == (int)ModellingTypes.ModObjectType.AppServer)
             {
                 ModellingAppServer? appServer = ResolveAppServer(elem.Value);
                 if(appServer != null)
@@ -377,7 +378,7 @@
         Container.Clear();
         foreach(var elem in selectedSvcElems)
         {
-            if(elem.Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+            if(elem.Key == (int)ModellingTypes.ModObjectType.ServiceGroup)
             {
                 ModellingServiceGroup? svcGrp = ResolveSvcGrp(elem.Value);
                 if (svcGrp != null)
@@ -418,15 +419,15 @@
 
     private ModellingNwObject? ResolveNwObject(KeyValuePair<int, long> selectedObj)
     {
-        if(selectedObj.Key == (int)ModellingTypes.ObjectType.AppRole)
+        if(selectedObj.Key == (int)ModellingTypes.ModObjectType.AppRole)
         {
             return ResolveAppRole(selectedObj.Value);
         }
-        else if(ModellingTypes.IsNwGroup((ModellingTypes.ObjectType)selectedObj.Key))
+        else if(ModellingTypes.IsNwGroup((ModellingTypes.ModObjectType)selectedObj.Key))
         {
             return ResolveNwGroupObject(selectedObj.Value);
         }
-        else if(selectedObj.Key == (int)ModellingTypes.ObjectType.AppServer)
+        else if(selectedObj.Key == (int)ModellingTypes.ModObjectType.AppServer)
         {
             return ResolveAppServer(selectedObj.Value);
         }
@@ -456,16 +457,21 @@
 
     private ModellingNwGroup? ResolveNwGroupObject(long selectedId)
     {
+        ModellingNwGroupWrapper? comArea = ConnHandler.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == selectedId);
+        if(comArea != null)
+        {
+            return comArea.Content;
+        }
         return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId)?.Content;
     }
 
     private ModellingSvcObject? ResolveSvcObject(KeyValuePair<int, int> selectedObj)
     {
-        if(selectedObj.Key == (int)ModellingTypes.ObjectType.ServiceGroup)
+        if(selectedObj.Key == (int)ModellingTypes.ModObjectType.ServiceGroup)
         {
             return ResolveSvcGrp(selectedObj.Value);
         }
-        else if(selectedObj.Key == (int)ModellingTypes.ObjectType.Service)
+        else if(selectedObj.Key == (int)ModellingTypes.ModObjectType.Service)
         {
             return ResolveSvc(selectedObj.Value);
         }

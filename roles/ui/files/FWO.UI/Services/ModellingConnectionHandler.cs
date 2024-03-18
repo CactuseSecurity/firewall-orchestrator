@@ -2,6 +2,7 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using System.Text.Json;
 
 
 namespace FWO.Ui.Services
@@ -14,6 +15,7 @@ namespace FWO.Ui.Services
         public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         public List<ModellingAppRole> AvailableAppRoles { get; set; } = new();
         public List<ModellingNwGroupWrapper> AvailableSelectedObjects { get; set; } = new();
+        public List<ModellingNwGroupWrapper> AvailableCommonAreas { get; set; } = new();
         public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = new();
         public List<ModellingServiceGroup> AvailableServiceGroups { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
@@ -87,26 +89,68 @@ namespace FWO.Ui.Services
             try
             {
                 PreselectedInterfaces = ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();
+                await InitAvailableNWObjects();
+                await InitAvailableSvcObjects();
+                RefreshSelectedNwObjects();
+                InterfaceName = await ExtractUsedInterface(ActConn);
+                allApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        public async Task InitAvailableNWObjects()
+        {
+            try
+            {
                 AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
+
+                List<ModellingNwGroup> allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
+                List<long> commonAreaIds = new();
+                if(userConfig.ModCommonAreas != "")
+                {
+                    commonAreaIds = JsonSerializer.Deserialize<List<long>>(userConfig.ModCommonAreas) ?? new();
+                }
+                AvailableCommonAreas = new();
+                foreach(var areaId in commonAreaIds)
+                {
+                    ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == areaId);
+                    if(area != null)
+                    {
+                        AvailableCommonAreas.Add(new () { Content = area });
+                    }
+                }
+                
                 AvailableSelectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
+                AvailableSelectedObjects = AvailableSelectedObjects.Where(x => !AvailableCommonAreas.Contains(x)).ToList();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        public async Task InitAvailableSvcObjects()
+        {
+            try
+            {
                 AvailableServiceGroups = (await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups)).Where(x => x.AppId != Application.Id).ToList();
                 AvailableServiceGroups.AddRange(await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id }));
                 AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id });
                 foreach(var svcGrp in AvailableServiceGroups)
                 {
-                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.ServiceGroup, svcGrp.Id));
+                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, svcGrp.Id));
                 }
                 if(userConfig.AllowServiceInConn)
                 {
                     foreach(var svc in AvailableServices)
                     {
-                        AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.Service, svc.Id));
+                        AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, svc.Id));
                     }
                 }
-                RefreshSelectedNwObjects();
-                InterfaceName = await ExtractUsedInterface(ActConn);
-                allApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
             }
             catch (Exception exception)
             {
@@ -131,19 +175,23 @@ namespace FWO.Ui.Services
         public bool RefreshSelectedNwObjects()
         {
             AvailableNwElems = new();
+            foreach(var obj in AvailableCommonAreas)
+            {
+                AvailableNwElems.Add(new KeyValuePair<int, long>(obj.Content.GroupType, obj.Content.Id));
+            }
             foreach(var obj in AvailableSelectedObjects)
             {
                 AvailableNwElems.Add(new KeyValuePair<int, long>(obj.Content.GroupType, obj.Content.Id));
             }
             foreach(var appRole in AvailableAppRoles)
             {
-                AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ObjectType.AppRole, appRole.Id));
+                AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppRole, appRole.Id));
             }
             if(userConfig.AllowServerInConn)
             {
                 foreach(var appServer in AvailableAppServers.Where(x => !x.IsDeleted))
                 {
-                    AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ObjectType.AppServer, appServer.Id));
+                    AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppServer, appServer.Id));
                 }
             }
             return true;
@@ -394,10 +442,10 @@ namespace FWO.Ui.Services
             {
                 if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = actAppRole.Id })).AffectedRows > 0)
                 {
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.AppRole, actAppRole.Id,
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppRole, actAppRole.Id,
                         $"Deleted App Role: {actAppRole.Display()}", Application.Id);
                     AvailableAppRoles.Remove(actAppRole);
-                    AvailableNwElems.Remove(AvailableNwElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.AppRole && x.Value == actAppRole.Id));
+                    AvailableNwElems.Remove(AvailableNwElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ModObjectType.AppRole && x.Value == actAppRole.Id));
                     DeleteAppRoleMode = false;
                 }
             }
@@ -517,10 +565,10 @@ namespace FWO.Ui.Services
             {
                 if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = actServiceGroup.Id })).AffectedRows > 0)
                 {
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.ServiceGroup, actServiceGroup.Id,
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.ServiceGroup, actServiceGroup.Id,
                         $"Deleted Service Group: {actServiceGroup.Display()}", Application.Id);
                     AvailableServiceGroups.Remove(actServiceGroup);
-                    AvailableSvcElems.Remove(AvailableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.ServiceGroup && x.Value == actServiceGroup.Id));
+                    AvailableSvcElems.Remove(AvailableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ModObjectType.ServiceGroup && x.Value == actServiceGroup.Id));
                     DeleteSvcGrpMode = false;
                 }
             }
@@ -825,7 +873,7 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActConn.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"New {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                     if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                     {
@@ -873,7 +921,7 @@ namespace FWO.Ui.Services
                     commonSvc = ActConn.IsCommonService
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                     $"Updated {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
 
                 if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
@@ -911,21 +959,21 @@ namespace FWO.Ui.Services
                 {
                     var Variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Added App Server {appServer.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
                 foreach(var appRole in appRoles)
                 {
                     var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Added App Role {appRole.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
                 foreach(var nwGroup in nwGroups)
                 {
                     var Variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Added Object {nwGroup.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
             }
@@ -943,21 +991,21 @@ namespace FWO.Ui.Services
                 {
                     var Variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Removed App Server {appServer.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
                 foreach(var appRole in appRoles)
                 {
                     var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
                 foreach(var nwGroup in nwGroups)
                 {
                     var Variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Removed Object {nwGroup.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
             }
@@ -975,14 +1023,14 @@ namespace FWO.Ui.Services
                 {
                     var svcParams = new { serviceId = service.Id, connectionId = ActConn.Id };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceToConnection, svcParams);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Added Service {service.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                 }
                 foreach(var serviceGrp in serviceGroups)
                 {
                     var svcGrpParams = new { serviceGroupId = serviceGrp.Id, connectionId = ActConn.Id };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceGroupToConnection, svcGrpParams);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Added Service Group {serviceGrp.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                 }
             }
@@ -1000,14 +1048,14 @@ namespace FWO.Ui.Services
                 {
                     var svcParams = new { serviceId = service.Id, connectionId = ActConn.Id };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceFromConnection, svcParams);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Removed Service {service.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                 }
                 foreach(var serviceGrp in SvcGrpToDelete)
                 {
                     var svcGrpParams = new { serviceGroupId = serviceGrp.Id, connectionId = ActConn.Id };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceGroupFromConnection, svcGrpParams);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.Connection, ActConn.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Removed Service Group {serviceGrp.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
                 }
             }

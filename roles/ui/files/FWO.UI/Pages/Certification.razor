@@ -88,7 +88,7 @@
         }
     </div>
     <hr />
-    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managements" RulesPerPage="rulesPerPage" 
+    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managementsReport" RulesPerPage="rulesPerPage" 
         @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
 </div>
 
@@ -138,7 +138,7 @@
     private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
-    private Management[] managements = new Management[0];
+    private List<ManagementReport> managementsReport = new ();
     
     private bool readonlyMode = false;
     public FwoOwner? selectedOwner = null;
@@ -234,7 +234,7 @@
         readonlyMode = !authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier) || selectedOwner == null;
         selectedRules.Clear();
 
-        Management[] managementsOrig = managements;
+        List<ManagementReport> managementsOrig = managementsReport;
         try
         {
             tokenSource = new CancellationTokenSource();
@@ -248,7 +248,7 @@
             }
 
             prepareReport();
-            managements = new Management[0]; // reset management data when switching between reports
+            managementsReport = new (); // reset management data when switching between reports
 
             try
             {
@@ -257,7 +257,7 @@
                     await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
                     managementsReportIntermediate =>
                     {
-                        managements = managementsReportIntermediate;
+                        managementsReport = managementsReportIntermediate.ManagementData;
                         return InvokeAsync(StateHasChanged);
                     }, token);
                 }
@@ -279,7 +279,7 @@
         catch (Exception exception)
         {
             processing = false;
-            managements = managementsOrig;
+            managementsReport = managementsOrig;
             StateHasChanged();
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
@@ -312,14 +312,14 @@
     private void postProcessReport()
     {
         rulesFound = false;
-        foreach (Management management in managements)
+        foreach (var management in managementsReport)
         {
-            foreach (Device device in management.Devices)
+            foreach (var device in management.Devices)
             {
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
-                    foreach (Rule rule in device.Rules!)
+                    foreach (var rule in device.Rules!)
                     {
                         rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
                     }
@@ -380,13 +380,13 @@
         // collect selected recerts + decerts
         Certifications = new List<Rule>();
 
-        foreach (Management management in managements)
+        foreach (var management in managementsReport)
         {
-            foreach (Device device in management.Devices)
+            foreach (var device in management.Devices)
             {
                 if(device.Rules != null)
                 {
-                    foreach (Rule rule in device.Rules)
+                    foreach (var rule in device.Rules)
                     {
                         if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
                         {

@@ -63,13 +63,27 @@ namespace FWO.Ui.Services
 
         private bool CheckService()
         {
-            if(ActService.Protocol == null || ActService.Protocol.Id == 0 || ActService.Port == null)
+            if(ActService.Protocol == null || ActService.Protocol.Id == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if(ActService.Port < 1 || ActService.Port > 65535 || (ActService.PortEnd != null && 
-                (ActService.PortEnd < 1 || ActService.PortEnd > 65535 || ActService.PortEnd < ActService.Port)))
+            if(ActService.PortEnd == null)
+            {
+                ActService.PortEnd = ActService.Port;
+            }
+            if(ActService.Protocol.Name.ToLower().StartsWith("esp"))
+            {
+                ActService.Port = null;
+                ActService.PortEnd = null;
+            }
+            else if(ActService.Port == null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5102"), true);
+                return false;
+            }
+            if(ActService.Port < 1 || ActService.Port > 65535 ||
+                (ActService.PortEnd != null &&  (ActService.PortEnd < 1 || ActService.PortEnd > 65535 || ActService.PortEnd < ActService.Port)))
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5103"), true);
                 return false;
@@ -95,10 +109,10 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActService.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.Service, ActService.Id,
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Service, ActService.Id,
                         $"New Service: {ActService.Display()}", Application.Id);
                     AvailableServices.Add(ActService);
-                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.Service, ActService.Id));
+                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, ActService.Id));
                 }
             }
             catch (Exception exception)
@@ -120,7 +134,7 @@ namespace FWO.Ui.Services
                     protoId = ActService.Protocol?.Id
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateService, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.Service, ActService.Id,
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Service, ActService.Id,
                     $"Updated Service: {ActService.Display()}", Application.Id);
             }
             catch (Exception exception)

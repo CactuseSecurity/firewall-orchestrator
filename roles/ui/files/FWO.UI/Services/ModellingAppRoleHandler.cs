@@ -22,17 +22,19 @@ namespace FWO.Ui.Services
         public ModellingNamingConvention NamingConvention = new();
 
         private ModellingManagedIdString OrigId = new();
+        public bool ReadOnly = false;
 
 
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
-            List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
             : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
             AppRoles = appRoles;
             AvailableAppServers = availableAppServers;
             AvailableNwElems = availableNwElems;
             ActAppRole = appRole;
+            ReadOnly = readOnly;
             ApplyNamingConvention(application.ExtAppId);
         }
 
@@ -204,7 +206,7 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActAppRole.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"New App Role: {ActAppRole.Display()}", Application.Id);
                     foreach(var appServer in ActAppRole.AppServers)
                     {
@@ -214,13 +216,13 @@ namespace FWO.Ui.Services
                             nwGroupId = ActAppRole.Id
                         };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                             $"Added App Server {appServer.Content.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                     }
                     ActAppRole.Creator = userConfig.User.Name;
                     ActAppRole.CreationDate = DateTime.Now;
                     AppRoles.Add(ActAppRole);
-                    AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ObjectType.AppRole, ActAppRole.Id));
+                    AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppRole, ActAppRole.Id));
                 }
             }
             catch (Exception exception)
@@ -242,7 +244,7 @@ namespace FWO.Ui.Services
                     comment = ActAppRole.Comment
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppRole, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                     $"Updated App Role: {ActAppRole.Display()}", Application.Id);
                 foreach(var appServer in AppServerToDelete)
                 {
@@ -252,7 +254,7 @@ namespace FWO.Ui.Services
                         nwGroupId = ActAppRole.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwObjectFromNwGroup, Vars);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"Removed App Server {appServer.Display()} from App Role: {ActAppRole.Display()}", Application.Id);
                 }
                 foreach(var appServer in AppServerToAdd)
@@ -263,7 +265,7 @@ namespace FWO.Ui.Services
                         nwGroupId = ActAppRole.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"Added App Server {appServer.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                 }
             }

@@ -105,7 +105,7 @@
 </PopUp>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("export_report_download"))" ReportFile="reportExportFile"
-Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
+    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
 
 @code
 {
@@ -149,7 +149,9 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
                 try
                 {
                     if (!ReportToExport.GotObjectsInReport)
+                    {
                         await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
+                    }
 
                     if (ExportHtml)
                     {

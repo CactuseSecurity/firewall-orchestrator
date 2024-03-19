@@ -32,4 +32,12 @@ namespace FWO.Api.Data
         public const string kLdapInternalPostfix = "dc=fworch,dc=internal";
 
     }
+
+    public struct ObjectType
+    {
+        public const string Group = "group";
+        public const string Host = "host";
+        public const string Network = "network";
+        public const string IPRange = "ip_range";
+    }
 }

@@ -79,14 +79,14 @@ namespace FWO.Ui.Services
                 if(await CheckAppServerInUse(actAppServer))
                 {
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = true });
-                    await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ObjectType.AppServer, actAppServer.Id,
+                    await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Mark App Server as deleted: {actAppServer.Display()}", Application.Id);
                     actAppServer.IsDeleted = true;
                     ManualAppServers[ManualAppServers.FindIndex(x => x.Id == actAppServer.Id)] = actAppServer;
                 }
                 else if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppServer, new { id = actAppServer.Id })).AffectedRows > 0)
                 {
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.AppServer, actAppServer.Id,
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Deleted App Server: {actAppServer.Display()}", Application.Id);
                     ManualAppServers.Remove(actAppServer);
                 }
@@ -113,7 +113,7 @@ namespace FWO.Ui.Services
                 if(actAppServer.IsDeleted)
                 {
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = false });
-                    await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ObjectType.AppServer, actAppServer.Id,
+                    await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Reactivate App Server: {actAppServer.Display()}", Application.Id);
                     actAppServer.IsDeleted = false;
                     ManualAppServers[ManualAppServers.FindIndex(x => x.Id == actAppServer.Id)] = actAppServer;

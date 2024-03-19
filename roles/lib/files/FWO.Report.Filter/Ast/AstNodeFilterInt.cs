@@ -54,6 +54,7 @@ namespace FWO.Report.Filter.Ast
             string queryVarName = AddVariable<int>(query, "dport", Operator.Kind, semanticValue);
             query.ruleWhereStatement += "rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte" +
                 ": $" + queryVarName + "}, svc_port_end: {_gte: $" + queryVarName + " } } } } }";
+            query.connectionWhereStatement += $"service_connections: {{service: {{port: {{ _lte: ${queryVarName} }}, port_end: {{ _gte: ${queryVarName} }} }} }}";
             return query;
         }
 

@@ -170,22 +170,22 @@ namespace FWO.Middleware.Server
                 };
                 ReportBase? currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
 
-                Management[] managements = new Management[0];
+                ReportData reportData = new ();
 
                 await currentReport.Generate(int.MaxValue, apiConnection,
-                managementsReportIntermediate =>
+                rep =>
                 {
-                    managements = managementsReportIntermediate;
+                    reportData.ManagementData = rep.ManagementData;
                     return Task.CompletedTask;
                 }, token);
 
-                foreach (Management management in managements)
+                foreach (var management in reportData.ManagementData)
                 {
-                    foreach (Device device in management.Devices)
+                    foreach (var device in management.Devices)
                     {
                         if (device.ContainsRules())
                         {
-                            foreach (Rule rule in device.Rules!)
+                            foreach (var rule in device.Rules!)
                             {
                                 rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
                                 rule.DeviceName = device.Name ?? "";

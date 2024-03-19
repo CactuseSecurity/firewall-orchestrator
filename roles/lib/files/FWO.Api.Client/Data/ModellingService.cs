@@ -24,6 +24,7 @@ namespace FWO.Api.Data
         public ModellingService(ModellingService service)
         {
             Id = service.Id;
+            Number = service.Number;
             AppId = service.AppId;
             Name = service.Name;
             Port = service.Port;
@@ -48,6 +49,7 @@ namespace FWO.Api.Data
             return new NetworkService()
             {
                 Id = service.Id,
+                Number = service.Number,
                 Name = service?.Name ?? "",
                 DestinationPort = service?.Port,
                 DestinationPortEnd = service?.PortEnd,
@@ -65,6 +67,11 @@ namespace FWO.Api.Data
         public static ModellingService[] Resolve(List<ModellingServiceWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+
+        public static NetworkService[] ResolveAsNetworkServices(List<ModellingServiceWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => ModellingService.ToNetworkService(wrapper.Content));
         }
     }
 }

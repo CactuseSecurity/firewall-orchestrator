@@ -52,7 +52,7 @@
         }
     </Body>
     <Footer>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
     </Footer>
 </PopUp>
 <EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" AppServerHandler="appServerListHandler.AppServerHandler" AddMode="appServerListHandler.AddAppServerMode"/>

@@ -10,6 +10,10 @@ body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+.stdtext {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
 a,
 .btn-link {
     color: #0366d6;
@@ -205,6 +209,11 @@ h5 {
 .mh-13 {
     margin-left: 13px;
     margin-right: 13px;
+}
+
+/* add left margin 13px */
+.ml-13 {
+    margin-left: 13px;
 }
 
 /* add margin 20px */

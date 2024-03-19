@@ -34,7 +34,7 @@
                     </Column>
                     <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true">
                         <Template>
-                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ObjectType), context.ObjectType)))
+                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ModObjectType), context.ObjectType)))
                         </Template>
                     </Column>
                     <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />

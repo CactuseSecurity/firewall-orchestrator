@@ -22,7 +22,6 @@
 {
     <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
         @onclick="PredefServices">@(userConfig.GetText("predef_services"))</button>
-
     <form onsubmit="return false">
         <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">
@@ -53,6 +52,23 @@
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("reducedProtocolSet")):</label>
                 <div class="col-sm-2">
                     <input type="checkbox" class="w-100" @bind="configData!.ReducedProtocolSet">
+                </div>
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5620"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("common_areas"):</label>
+            <div class="col-sm-6">
+                <EditList ElementType="ModellingNwGroupWrapper" Elements="commonAreas.ToArray()" ElementsToAdd="AreasToAdd" ElementsToDelete="AreasToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border bg-transparent">@((MarkupString)context.Content.DisplayHtml())</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="SearchArea" @onclick:preventDefault>
+                        @(ModellingHandlerBase.DisplayButton(userConfig, "add_common_area", Icons.Add))</button>
                 </div>
             </div>
         </div>
@@ -102,7 +118,7 @@
                 </EditList>
                 <div class="row col-sm-12 mt-1">
                     <input type="text" class="col-sm-10" @bind="actPath" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
         </div>
@@ -147,7 +163,7 @@ else
     </div>
 }
 <PredefServices @bind-Display="predefServices"/>
-
+<SearchNwObject @bind-Display="searchArea" @bind-ObjectList="commonAreas" CommonAreaMode="true"/>
 
 
 @code
@@ -160,7 +176,13 @@ else
     private List<string> PathsToAdd = new();
     private List<string> PathsToDelete = new();
     private string actPath = "";
+    private List<ModellingNwGroup> allAreas = new();
+    private List<long> commonAreaIds = new();
+    private List<ModellingNwGroupWrapper> commonAreas = new();
+    private List<ModellingNwGroupWrapper> AreasToAdd = new();
+    private List<ModellingNwGroupWrapper> AreasToDelete = new();
     private bool predefServices = false;
+    private bool searchArea = false;
     private ModellingNamingConvention namingConvention = new();
 
 
@@ -171,10 +193,29 @@ else
             configData = await globalConfig.GetEditableConfig();
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? new();
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
+            allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
+            RefreshAreas();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private void RefreshAreas()
+    {
+        if(configData.ModCommonAreas != "")
+        {
+            commonAreaIds = JsonSerializer.Deserialize<List<long>>(configData.ModCommonAreas) ?? new();
+        }
+        commonAreas = new();
+        foreach(var areaId in commonAreaIds)
+        {
+            ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == areaId);
+            if(area != null)
+            {
+                commonAreas.Add(new () { Content = area });
+            }
         }
     }
 
@@ -190,6 +231,11 @@ else
     private void PredefServices()
     {
         predefServices = true;
+    }
+
+    private void SearchArea()
+    {
+        searchArea = true;
     }
 
     private async Task Save()
@@ -208,9 +254,17 @@ else
                 }
                 configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
                 configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
+                commonAreaIds = commonAreas.ConvertAll(x => x.Content.Id);
+                foreach(var area in AreasToDelete)
+                {
+                    commonAreaIds.Remove(area.Content.Id);
+                }
+                configData.ModCommonAreas = JsonSerializer.Serialize(commonAreaIds);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 PathsToDelete = new();
                 PathsToAdd = new();
+                AreasToDelete = new();
+                RefreshAreas();
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
             else

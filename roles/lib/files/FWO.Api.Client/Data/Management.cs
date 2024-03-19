@@ -56,24 +56,6 @@ namespace FWO.Api.Data
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public Device[] Devices { get; set; } = new Device[]{};
 
-        [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
-        public NetworkObject[] Objects { get; set; } = new NetworkObject[]{};
-
-        [JsonProperty("serviceObjects"), JsonPropertyName("serviceObjects")]
-        public NetworkService[] Services { get; set; } = new NetworkService[]{};
-
-        [JsonProperty("userObjects"), JsonPropertyName("userObjects")]
-        public NetworkUser[] Users { get; set; } = new NetworkUser[]{};
-
-        [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
-        public NetworkObject[] ReportObjects { get; set; } = new NetworkObject[]{};
-
-        [JsonProperty("reportServiceObjects"), JsonPropertyName("reportServiceObjects")]
-        public NetworkService[] ReportServices { get; set; } = new NetworkService[]{};
-
-        [JsonProperty("reportUserObjects"), JsonPropertyName("reportUserObjects")]
-        public NetworkUser[] ReportUsers { get; set; } = new NetworkUser[]{};
-
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; } = new DeviceType();
 
@@ -86,21 +68,6 @@ namespace FWO.Api.Data
         public bool Delete { get; set; }
         public long ActionId { get; set; }
 
-        //[JsonProperty("rule_id"), JsonPropertyName("rule_id")]
-        public List<long> ReportedRuleIds { get; set; } = new List<long>();
-        public List<long> ReportedNetworkServiceIds { get; set; } = new List<long>();
-
-        [JsonProperty("objects_aggregate"), JsonPropertyName("objects_aggregate")]
-        public ObjectStatistics NetworkObjectStatistics { get; set; } = new ObjectStatistics();
-
-        [JsonProperty("services_aggregate"), JsonPropertyName("services_aggregate")]
-        public ObjectStatistics ServiceObjectStatistics { get; set; } = new ObjectStatistics();
-
-        [JsonProperty("usrs_aggregate"), JsonPropertyName("usrs_aggregate")]
-        public ObjectStatistics UserObjectStatistics { get; set; } = new ObjectStatistics();
-        
-        [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
-        public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()
         {}
@@ -118,6 +85,7 @@ namespace FWO.Api.Data
             DomainUid = management.DomainUid;
             CloudSubscriptionId = management.CloudSubscriptionId;
             CloudTenantId = management.CloudTenantId;
+            SuperManagerId = management.SuperManagerId;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
             ImportDisabled = management.ImportDisabled;
@@ -126,28 +94,19 @@ namespace FWO.Api.Data
             Comment = management.Comment;
             DebugLevel = management.DebugLevel;
             Devices = management.Devices;
-            Objects = management.Objects;
-            Services = management.Services;
-            Users = management.Users;
-            ReportObjects = management.ReportObjects;
-            ReportServices = management.ReportServices;
-            ReportUsers = management.ReportUsers;
-            DeviceType = management.DeviceType;
+            if (management.DeviceType != null)
+                DeviceType = new DeviceType(management.DeviceType);
             Import = management.Import;
+            if (management.Import != null && management.Import.ImportAggregate != null &&
+                management.Import.ImportAggregate.ImportAggregateMax != null &&
+                management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
+            {
+                RelevantImportId = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+            }
             Ignore = management.Ignore;
             AwaitDevice = management.AwaitDevice;
             Delete = management.Delete;
             ActionId = management.ActionId;
-            ReportedRuleIds = management.ReportedRuleIds;
-            SuperManagerId = management.SuperManagerId;
-            ReportedNetworkServiceIds = management.ReportedNetworkServiceIds;
-            if (management.Import != null && management.Import.ImportAggregate != null &&
-                management.Import.ImportAggregate.ImportAggregateMax != null &&
-                management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                RelevantImportId = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-
-            if (management.DeviceType != null)
-                DeviceType = new DeviceType(management.DeviceType);
         }
 
         public string Host()
@@ -155,15 +114,7 @@ namespace FWO.Api.Data
             return Hostname + ":" + Port;
         }
         
-        public void AssignRuleNumbers()
-        {
-            foreach (Device device in Devices)
-            {
-                device.AssignRuleNumbers();
-            }
-        }
-
-        public bool Sanitize()
+        public virtual bool Sanitize()
         {
             bool shortened = false;
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
@@ -175,86 +126,6 @@ namespace FWO.Api.Data
             CloudSubscriptionId = Sanitizer.SanitizeOpt(CloudSubscriptionId, ref shortened);
             CloudTenantId = Sanitizer.SanitizeOpt(CloudTenantId, ref shortened);
             return shortened;
-        }
-    }
-
-    public static class ManagementUtility
-    {
-        public static bool Merge(this Management[] managements, Management[] managementsToMerge)
-        {
-            bool newObjects = false;
-
-            for (int i = 0; i < managementsToMerge.Length; i++)
-                newObjects |= managements[i].Merge(managementsToMerge[i]);
-
-            return newObjects;
-        }
-
-        public static bool Merge(this Management management, Management managementToMerge)
-        {
-            bool newObjects = false;
-
-            if (management.Objects != null && managementToMerge.Objects != null && managementToMerge.Objects.Length > 0)
-            {
-                management.Objects = management.Objects.Concat(managementToMerge.Objects).ToArray();
-                newObjects = true;
-            }
-
-            if (management.Services != null && managementToMerge.Services != null && managementToMerge.Services.Length > 0)
-            {
-                management.Services = management.Services.Concat(managementToMerge.Services).ToArray();
-                newObjects = true;
-            }
-
-            if (management.Users != null && managementToMerge.Users != null && managementToMerge.Users.Length > 0)
-            {
-                management.Users = management.Users.Concat(managementToMerge.Users).ToArray();
-                newObjects = true;
-            }
-
-            if (management.Devices != null && managementToMerge.Devices != null && managementToMerge.Devices.Length > 0)
-            {
-                // important: if any management still returns rules, newObjects is set to true
-                if (management.Devices.Merge(managementToMerge.Devices) == true)
-                    newObjects = true;
-            }
-            return newObjects;
-        }
-
-        public static bool MergeReportObjects(this Management management, Management managementToMerge)
-        {
-            bool newObjects = false;
-
-            if (management.ReportObjects != null && managementToMerge.ReportObjects != null && managementToMerge.ReportObjects.Length > 0)
-            {
-                management.ReportObjects = management.ReportObjects.Concat(managementToMerge.ReportObjects).ToArray();
-                newObjects = true;
-            }
-
-            if (management.ReportServices != null && managementToMerge.ReportServices != null && managementToMerge.ReportServices.Length > 0)
-            {
-                management.ReportServices = management.ReportServices.Concat(managementToMerge.ReportServices).ToArray();
-                newObjects = true;
-            }
-
-            if (management.ReportUsers != null && managementToMerge.ReportUsers != null && managementToMerge.ReportUsers.Length > 0)
-            {
-                management.ReportUsers = management.ReportUsers.Concat(managementToMerge.ReportUsers).ToArray();
-                newObjects = true;
-            }
-
-            if (management.Devices != null && managementToMerge.Devices != null && managementToMerge.Devices.Length > 0)
-            {
-                // important: if any management still returns rules, newObjects is set to true
-                if (management.Devices.Merge(managementToMerge.Devices) == true)
-                    newObjects = true;
-            }
-            return newObjects;
-        }
-
-        public static string NameAndDeviceNames(this Management management, string separator = ", ")
-        {
-            return $"{management.Name} [{string.Join(separator, Array.ConvertAll(management.Devices, device => device.Name))}]";
         }
     }
 }

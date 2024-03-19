@@ -68,6 +68,10 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5102"), true);
                 return false;
             }
+            if(ActService.PortEnd == null)
+            {
+                ActService.PortEnd = ActService.Port;
+            }
             if(ActService.Protocol.Name.ToLower().StartsWith("esp"))
             {
                 ActService.Port = null;

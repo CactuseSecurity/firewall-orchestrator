@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using System.Text.Json
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
@@ -11,14 +12,14 @@
         {
             <div class="form-group row col-sm-12">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("object_type")):</label>
-                @if(singleType)
+                @if(singleType || CommonAreaMode)
                 {
                     <label class="col-form-label text-primary col-sm-8">@userConfig.GetText(selectedType.ToString())</label>
                 }
                 else
                 {
                     <div class="col-sm-6">
-                        <Dropdown ElementType="ModellingTypes.ObjectType" ElementToString="@(a => userConfig.GetText(a.ToString()))" @bind-SelectedElement="selectedType" Elements="availableTypes">
+                        <Dropdown ElementType="ModellingTypes.ModObjectType" ElementToString="@(a => userConfig.GetText(a.ToString()))" @bind-SelectedElement="selectedType" Elements="availableTypes">
                             <ElementTemplate Context="type">
                                 @userConfig.GetText(type.ToString())
                             </ElementTemplate>
@@ -46,7 +47,7 @@
         <div class="btn-group">
             @if(selectedObject != null)
             {
-                <AuthorizeView Roles="@Roles.Modeller">
+                <AuthorizeView Roles="@(CommonAreaMode ? Roles.Admin : Roles.Modeller)">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-success" @onclick="AddObject">@(userConfig.GetText("select"))</button>
                     </Authorized>
@@ -84,9 +85,12 @@
     [Parameter]
     public Func<bool> Refresh { get; set; } = DefaultInit.DoNothingSync;
 
+    [Parameter]
+    public bool CommonAreaMode { get; set; } = false;
 
-    private List<ModellingTypes.ObjectType> availableTypes = new(){ ModellingTypes.ObjectType.NetworkArea };
-    private ModellingTypes.ObjectType selectedType = ModellingTypes.ObjectType.NetworkArea;
+
+    private List<ModellingTypes.ModObjectType> availableTypes = new(){ ModellingTypes.ModObjectType.NetworkArea };
+    private ModellingTypes.ModObjectType selectedType = ModellingTypes.ModObjectType.NetworkArea;
     private bool singleType = false;
     private bool typeSelected = false;
     private List<ModellingNwGroup> nwObjects = new();
@@ -122,8 +126,12 @@
                 grpType = (int)selectedType
             };
             List<ModellingNwGroup> allNwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, Variables);
-            List<ModellingNwGroupWrapper> selectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
-            nwObjects = allNwObjects.Where(o => selectedObjects.FirstOrDefault(sel => sel.Content.Id == o.Id) == null).ToList();
+            if(userConfig.ModCommonAreas != "")
+            {
+                List<long> commonAreaIds = JsonSerializer.Deserialize<List<long>>(userConfig.ModCommonAreas) ?? new();
+                allNwObjects = allNwObjects.Where(o => !commonAreaIds.Contains(o.Id)).ToList();
+            }
+            nwObjects = allNwObjects.Where(o => ObjectList.FirstOrDefault(sel => sel.Content.Id == o.Id) == null).ToList();
             typeSelected = true;
         }
         catch (Exception exception)
@@ -138,12 +146,15 @@
         {
             if(selectedObject != null)
             {
-                var Variables = new
+                if(!CommonAreaMode)
                 {
-                    appId = Application.Id,
-                    nwGroupId = selectedObject?.Id
-                };
-                await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedNwGroupObject, Variables);
+                    var Variables = new
+                    {
+                        appId = Application.Id,
+                        nwGroupId = selectedObject?.Id
+                    };
+                    await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedNwGroupObject, Variables);
+                }
                 ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject ?? throw new Exception("No Object selected.") });
                 await ObjectListChanged.InvokeAsync(ObjectList);
                 Refresh();

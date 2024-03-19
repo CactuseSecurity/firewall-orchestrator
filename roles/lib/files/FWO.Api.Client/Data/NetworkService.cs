@@ -74,6 +74,8 @@ namespace FWO.Api.Data
         [JsonProperty("svcgrp_flats"), JsonPropertyName("svcgrp_flats")]
         public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; } = new GroupFlat<NetworkService>[]{};
 
+        public long Number;
+
         public override bool Equals(object? obj)
         {
             return obj switch
@@ -86,6 +88,18 @@ namespace FWO.Api.Data
         public override int GetHashCode()
         {
             return Id.GetHashCode();
+        }
+
+        public string MemberNamesAsHtml()
+        {
+            if (MemberNames != null && MemberNames.Contains("|"))
+            {
+                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
+            }
+            else
+            {
+                return $"<td>{MemberNames}</td>";
+            }
         }
     }
 }

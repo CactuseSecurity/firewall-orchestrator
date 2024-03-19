@@ -1,10 +1,11 @@
 ﻿@using FWO.Ui.Display
 @using FWO.Config.Api
+@using FWO.Report
 @using FWO.Report.Filter
 
 @inject UserConfig userConfig
 
-@foreach (Management management in Managements)
+@foreach (var management in Managements)
 {
     @if (management.Devices.Where(device => device.Rules != null && device.Rules.Count() > 0).Count() > 0)
     {
@@ -12,7 +13,7 @@
 
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
 
-            @foreach (Device device in management.Devices)
+            @foreach (var device in management.Devices)
             {
                 @if (device.Rules != null && device.Rules.Length > 0 && ruleDisplay != null)
                 {
@@ -251,7 +252,7 @@
     public int Width { get; set; }
 
     [Parameter]
-    public Management[] Managements { get; set; } = new Management[]{};
+    public List<ManagementReport> Managements { get; set; } = new ();
 
     private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;

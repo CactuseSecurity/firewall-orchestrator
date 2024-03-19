@@ -19,7 +19,7 @@
             Reactivate = 7
         }
 
-        public enum ObjectType
+        public enum ModObjectType
         {
             Connection = 1,
 
@@ -35,26 +35,26 @@
             ServiceGroup = 31,
         }
 
-        public static bool IsNwGroup(this ObjectType objectType)
+        public static bool IsNwGroup(this ModObjectType objectType)
         {
             switch(objectType)
             {
-                case ObjectType.AppRole:
-                case ObjectType.AppZone:
-                case ObjectType.NetworkZone:
-                case ObjectType.NetworkArea:
+                case ModObjectType.AppRole:
+                case ModObjectType.AppZone:
+                case ModObjectType.NetworkZone:
+                case ModObjectType.NetworkArea:
                     return true;
                 default: 
                     return false;
             }
         }
 
-        public static bool IsNwObject(this ObjectType objectType)
+        public static bool IsNwObject(this ModObjectType objectType)
         {
             switch(objectType)
             {
-                case ObjectType.AppServer:
-                case ObjectType.Network:
+                case ModObjectType.AppServer:
+                case ModObjectType.Network:
                     return true;
                 default: 
                     return false;

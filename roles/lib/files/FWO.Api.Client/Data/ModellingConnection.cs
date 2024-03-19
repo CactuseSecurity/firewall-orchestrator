@@ -11,6 +11,9 @@ namespace FWO.Api.Data
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
         public int AppId { get; set; }
 
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner App { get; set; } = new();
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; } = "";
 
@@ -58,11 +61,15 @@ namespace FWO.Api.Data
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
 
+        public int OrderNumber { get; set; } = 0;
+
+
         public ModellingConnection()
         {}
 
         public ModellingConnection(ModellingConnection conn)
         {
+           OrderNumber = conn.OrderNumber;
            Id = conn.Id;
            AppId = conn.AppId;
            Name = conn.Name;
@@ -142,21 +149,21 @@ namespace FWO.Api.Data
             SourceNwGroups = new();
             foreach(var nwGroup in SourceAppRoles)
             {
-                if(nwGroup.Content.GroupType != (int)ModellingTypes.ObjectType.AppRole)
+                if(nwGroup.Content.GroupType != (int)ModellingTypes.ModObjectType.AppRole)
                 {
                     SourceNwGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup.Content.ToBase() });
                 }
             }
-            SourceAppRoles = SourceAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ObjectType.AppRole).ToList();
+            SourceAppRoles = SourceAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ModObjectType.AppRole).ToList();
             DestinationNwGroups = new();
             foreach(var nwGroup in DestinationAppRoles)
             {
-                if(nwGroup.Content.GroupType != (int)ModellingTypes.ObjectType.AppRole)
+                if(nwGroup.Content.GroupType != (int)ModellingTypes.ModObjectType.AppRole)
                 {
                     DestinationNwGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup.Content.ToBase() });
                 }
             }
-            DestinationAppRoles = DestinationAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ObjectType.AppRole).ToList();
+            DestinationAppRoles = DestinationAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ModObjectType.AppRole).ToList();
         }
 
         public bool Sanitize()

@@ -6,6 +6,7 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
 @if(!appHandler?.EditConnMode ?? true)
 {
@@ -34,7 +35,7 @@
         }
         <div class="col-sm-6">
             <div class="btn-group">
-                @* <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
+                <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button>
                 <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
                 @* <button type="button" class="btn btn-sm btn-dark ms-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
             </div>
@@ -122,13 +123,13 @@ else
         {
             if(!tabSelected)
             {
-                appHandler.InitActiveTab();
                 tabSelected = true;
+                appHandler.InitActiveTab();
             }
             else if(restoreTab)
             {
-                appHandler.RestoreTab();
                 restoreTab = false;
+                appHandler.RestoreTab();
             }
         }
     }
@@ -143,7 +144,7 @@ else
     {
         try
         {
-            await GetOwnApps();
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
             if (apps.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
@@ -164,37 +165,6 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-        }
-    }
-
-    private async Task GetOwnApps()
-    {
-        try
-        {
-            if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
-            {
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwnersWithConn);
-            }
-            else
-            {
-                UpdateOwnerships(); // qad: userConfig may not be properly filled
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-        }
-    }
-
-    private void UpdateOwnerships()
-    {
-        string ownerString = authenticationStateTask!.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners").Value;
-        if(ownerString != null)
-        {
-            string[] separatingStrings = { ",", "{", "}" };
-            string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
         }
     }
 
@@ -252,14 +222,14 @@ else
         return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
     }
 
-    private async Task ShowHistory()
+    private void ShowHistory()
     {
         showHistory = true;
     }
 
     private async Task Report()
     {
-
+        NavigationManager.NavigateTo($"/report/generation/{selectedApp.Id}");
     }
 
     private async Task ExtRequest()

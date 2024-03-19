@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
       <ProjectReference Include="..\..\..\lib\files\FWO.Api.Client\FWO.Api.Client.csproj" />
+      <ProjectReference Include="..\..\..\lib\files\FWO.Config.Api\FWO.Config.Api.csproj" />
   </ItemGroup>
 </Project>

@@ -12,6 +12,7 @@ namespace FWO.Api.Data
         public int? AppId { get; set; }
 
         public string TooltipText = "";
+        public long Number;
 
         public virtual string Display()
         {

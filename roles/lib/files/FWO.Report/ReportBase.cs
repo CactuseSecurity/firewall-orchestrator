@@ -1,9 +1,7 @@
 ﻿using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
-using System.Text.Json;
 using System.Text;
 using WkHtmlToPdfDotNet;
 
@@ -13,7 +11,10 @@ namespace FWO.Report
     {
         all = 10, 
         report = 20, 
-        rule = 30
+        rule = 30,
+
+        usedObj = 40,
+        unusedObj = 50
     }
 
     public enum ObjCategory
@@ -24,9 +25,23 @@ namespace FWO.Report
         user = 3
     }
 
+    public struct ObjCatString
+    {
+        public const string NwObj = "nwobj";
+        public const string Svc = "svc";
+        public const string User = "user";
+    }
+
+    public enum OutputLocation
+    {
+        export,
+        report,
+        certification
+    }
+
     public abstract class ReportBase
     {
-        protected StringBuilder HtmlTemplate = new StringBuilder($@"
+        protected StringBuilder HtmlTemplate = new ($@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -56,25 +71,26 @@ namespace FWO.Report
     </head>
     <body>
         <h2>##Title##</h2>
-        <p>Filter: ##Filter##</p>
         <p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>
         <p>##GeneratedOn##: ##Date## (UTC)</p>
-        <p>Devices: ##DeviceFilter##</p>
+        <p>##OtherFilters##</p>
+        <p>##Filter##</p>
         <hr>
         ##Body##
     </body>
 </html>");
 
-        public Management[] Managements = new Management[] { };
-
         public readonly DynGraphqlQuery Query;
         protected UserConfig userConfig;
         public ReportType ReportType;
+        public ReportData ReportData = new();
 
-        private string htmlExport = "";
+        protected string htmlExport = "";
 
         // Pdf converter
-        protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
+        protected static readonly SynchronizedConverter converter = new (new PdfTools());
+        public bool GotObjectsInReport { get; protected set; } = false;
+
 
         public ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
         {
@@ -83,39 +99,61 @@ namespace FWO.Report
             ReportType = reportType;
         }
 
-        public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct);
+        public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
 
-        public bool GotObjectsInReport { get; protected set; } = false;
+        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback); // to be called when exporting
 
-        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
+        public virtual Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
+        {
+            throw new NotImplementedException();
+        }
 
-        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
+        public virtual bool NoRuleFound()
+        {
+            return true;
+        }
 
         public abstract string ExportToCsv();
 
-        public virtual string ExportToJson()
-        {
-            return JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
-        }
+        public abstract string ExportToJson();
 
         public abstract string ExportToHtml();
 
-        public virtual string SetDescription()
+        public abstract string SetDescription();
+
+        public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig)
         {
-            int managementCounter = 0;
-            foreach (var management in Managements.Where(mgt => !mgt.Ignore))
+            DynGraphqlQuery query = Compiler.Compile(reportFilter);
+            ReportType repType = (ReportType)reportFilter.ReportParams.ReportType;
+            return repType switch
             {
-                managementCounter++;
-            }
-            return $"{managementCounter} {userConfig.GetText("managements")}";
+                ReportType.Statistics => new ReportStatistics(query, userConfig, repType),
+                ReportType.Rules => new ReportRules(query, userConfig, repType),
+                ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
+                ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
+                ReportType.Changes => new ReportChanges(query, userConfig, repType),
+                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType),
+                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType),
+                ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
+                ReportType.Recertification => new ReportRules(query, userConfig, repType),
+                ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
+                ReportType.Connections => new ReportConnections(query, userConfig, repType),
+                _ => throw new NotSupportedException("Report Type is not supported."),
+            };
         }
 
-        protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
+        public static string ConstructLink(string type, string symbol, long id, string name, OutputLocation location, string reportId, string style)
+        {
+            string link = location == OutputLocation.export ? $"#" : $"{location}/generation#goto-report-{reportId}-";
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
+        }
+
+        protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-                HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 if(ReportType.IsChangeReport())
@@ -125,19 +163,35 @@ namespace FWO.Report
                         $"{userConfig.GetText("until")}: {ToUtcString(Query.QueryVariables["stop"]?.ToString())}";
                     HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
                 }
-                else
+                else if(ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
                     HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
                 }
-                HtmlTemplate = HtmlTemplate.Replace("##DeviceFilter##", string.Join("; ", Array.ConvertAll(Managements.Where(mgt => !mgt.Ignore).ToArray(), management => management.NameAndDeviceNames())));
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>", "");
+                }
+
+                if(deviceFilter != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+                }
+                else if (ownerFilter != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##OtherFilters##</p>", "");
+                }
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 htmlExport = HtmlTemplate.ToString();
             }
             return htmlExport;
         }
 
-        private string ToUtcString(string? timestring)
+        public static string ToUtcString(string? timestring)
         {
             try
             {
@@ -147,39 +201,6 @@ namespace FWO.Report
             {
                 return timestring != null ? timestring : "";
             }
-        }
-
-        public string DisplayReportHeaderCsv()
-        {
-            StringBuilder report = new StringBuilder();
-            report.AppendLine($"# report type: {userConfig.GetText(ReportType.ToString())}");
-            report.AppendLine($"# report generation date: {DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
-            if(!ReportType.IsChangeReport())
-            {
-                report.AppendLine($"# date of configuration shown: {DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
-            }
-            report.AppendLine($"# device filter: {string.Join(" ", Array.ConvertAll(Managements.Where(mgt => !mgt.Ignore).ToArray(), management => management.NameAndDeviceNames(" ")))}");
-            report.AppendLine($"# other filters: {Query.RawFilter}");
-            report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
-            report.AppendLine($"# data protection level: For internal use only");
-            report.AppendLine($"#");
-            return $"{report.ToString()}";
-        }
-
-        public string DisplayReportHeaderJson()
-        {
-            StringBuilder report = new StringBuilder();
-            report.AppendLine($"\"report type\": \"{userConfig.GetText(ReportType.ToString())}\",");
-            report.AppendLine($"\"report generation date\": \"{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
-            if(!ReportType.IsChangeReport())
-            {
-                report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
-            }
-            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames()))}\",");
-            report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
-            report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
-            report.AppendLine($"\"data protection level\": \"For internal use only\",");
-            return $"{report.ToString()}";
         }
 
         public virtual byte[] ToPdf(PaperKind paperKind, int width = -1, int height = -1)
@@ -228,47 +249,19 @@ namespace FWO.Report
             return converter.Convert(doc);
         }
 
-        public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig)
-        {
-            DynGraphqlQuery query = Compiler.Compile(reportFilter);
-            ReportType repType = (ReportType)reportFilter.ReportParams.ReportType;
-            return repType switch
-            {
-                ReportType.Statistics => new ReportStatistics(query, userConfig, repType),
-                ReportType.Rules => new ReportRules(query, userConfig, repType),
-                ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
-                ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
-                ReportType.Changes => new ReportChanges(query, userConfig, repType),
-                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType),
-                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType),
-                ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
-                ReportType.Recertification => new ReportRules(query, userConfig, repType),
-                ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
-                _ => throw new NotSupportedException("Report Type is not supported."),
-            };
-        }
-
-        public async Task<Management[]> getRelevantImportIds(ApiConnection apiConnection)
-        {
-            Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-            ImpIdQueryVariables["time"] = (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat));
-            ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
-            return await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
-        }
-
         public static string GetIconClass(ObjCategory? objCategory, string? objType)
         {
             switch (objType)
             {
-                case "group" when objCategory == ObjCategory.user:
+                case ObjectType.Group when objCategory == ObjCategory.user:
                     return Icons.UserGroup;
-                case "group":
+                case ObjectType.Group:
                     return Icons.ObjGroup;
-                case "host":
+                case ObjectType.Host:
                     return Icons.Host;
-                case "network":
+                case ObjectType.Network:
                     return Icons.Network;
-                case "ip_range":
+                case ObjectType.IPRange:
                     return Icons.Range;
                 default:
                     switch (objCategory)
@@ -281,40 +274,6 @@ namespace FWO.Report
                             return Icons.User;
                     }
                     return "";
-            }
-        }
-
-        public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)
-        {
-            List<string> unsupportedList = new List<string>();
-            DeviceFilter reducedDeviceFilter = new DeviceFilter(deviceFilter);
-            foreach (ManagementSelect management in reducedDeviceFilter.Managements)
-            {
-                foreach (DeviceSelect device in management.Devices)
-                {
-                    if (device.Selected && !(await UsageDataAvailable(apiConnection, device.Id)))
-                    {
-                        unsupportedList.Add(device.Name ?? "?");
-                        device.Selected = false;
-                    }
-                }
-                if(!DeviceFilter.IsSelectedManagement(management))
-                {
-                    management.Selected = false;
-                }
-            }
-            return (unsupportedList, reducedDeviceFilter);
-        }
-        
-        private static async Task<bool> UsageDataAvailable(ApiConnection apiConnection, int devId)
-        {
-            try
-            {
-                return (await apiConnection.SendQueryAsync<AggregateCount>(FWO.Api.Client.Queries.ReportQueries.getUsageDataCount, new {devId = devId})).Aggregate.Count > 0;
-            }
-            catch(Exception)
-            {
-                return false;
             }
         }
     }

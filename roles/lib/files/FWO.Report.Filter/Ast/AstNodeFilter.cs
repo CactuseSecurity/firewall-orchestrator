@@ -7,7 +7,6 @@ namespace FWO.Report.Filter.Ast
         public Token Name { get; set; } = new Token(new Range(), "", TokenKind.Value);
         public Token Operator { get; set; } = new Token(new Range(), "", TokenKind.Value);
         public Token Value { get; set; } = new Token(new Range(), "", TokenKind.Value);
-        private List<string>? ruleFieldNames { get; set; }
 
         protected void CheckOperator(Token isOperator, bool equalsIsExactEquals, params TokenKind[] expectedOperators)
         {

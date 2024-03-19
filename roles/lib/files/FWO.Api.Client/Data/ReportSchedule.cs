@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ScheduledReport
+    public class ReportSchedule
     {
         [JsonProperty("report_schedule_id"), JsonPropertyName("report_schedule_id")]
         public int Id { get; set; }

@@ -15,6 +15,7 @@ namespace FWO.Api.Data
         public const string Edit = "oi oi-wrench";
         public const string Delete = "oi oi-trash";
         public const string Search = "oi oi-magnifying-glass";
+        public const string Display = "oi oi-eye";
         public const string Use = "oi oi-arrow-thick-right";
         public const string Unuse = "oi oi-arrow-thick-left";
         public const string Close = "oi oi-x";

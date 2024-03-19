@@ -21,6 +21,7 @@ namespace FWO.Report.Filter.Ast
                 "resolvedchangestech" or "resolvedchangetech" => ReportType.ResolvedChangesTech,
                 "natrules" or "nat_rules" => ReportType.NatRules,
                 "recertifications" or "recertification" => ReportType.Recertification,
+                "connections" or "connection" => ReportType.Connections,
                 _ => throw new SemanticException($"Unexpected report type found", Value.Position)
             };
         }

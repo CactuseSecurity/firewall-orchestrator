@@ -10156,6 +10156,28 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "report_id",
+                      "description",
+                      "report_name",
+                      "report_owner_id",
+                      "report_template_id",
+                      "report_type",
+                      "tenant_wide_visible",
+                      "report_json",
+                      "report_csv",
+                      "report_html",
+                      "report_pdf",
+                      "report_end_time",
+                      "report_start_time"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "check": {},
@@ -10243,6 +10265,32 @@
                 },
                 {
                   "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "report_id",
+                      "description",
+                      "report_name",
+                      "report_owner_id",
+                      "report_template_id",
+                      "report_type",
+                      "tenant_wide_visible",
+                      "report_json",
+                      "report_csv",
+                      "report_html",
+                      "report_pdf",
+                      "report_end_time",
+                      "report_start_time"
+                    ],
+                    "filter": {
+                      "report_owner_id": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "modeller",
                   "permission": {
                     "columns": [
                       "report_id",
@@ -10400,6 +10448,32 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "report_pdf",
+                      "report_owner_id",
+                      "report_template_id",
+                      "report_type",
+                      "description",
+                      "tenant_wide_visible",
+                      "report_id",
+                      "report_json",
+                      "report_csv",
+                      "report_html",
+                      "report_end_time",
+                      "report_start_time",
+                      "report_name"
+                    ],
+                    "filter": {
+                      "report_owner_id": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -10491,6 +10565,16 @@
                 },
                 {
                   "role": "fw-admin",
+                  "permission": {
+                    "filter": {
+                      "report_owner_id": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "modeller",
                   "permission": {
                     "filter": {
                       "report_owner_id": {
@@ -10677,6 +10761,25 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "report_schedule_id",
+                      "report_schedule_active",
+                      "report_schedule_name",
+                      "report_schedule_counter",
+                      "report_schedule_every",
+                      "report_schedule_owner",
+                      "report_schedule_repeat",
+                      "report_schedule_repetitions",
+                      "report_template_id",
+                      "report_schedule_start_time"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "check": {},
@@ -10809,6 +10912,28 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "report_schedule_active",
+                      "report_schedule_every",
+                      "report_schedule_id",
+                      "report_schedule_name",
+                      "report_schedule_owner",
+                      "report_schedule_repeat",
+                      "report_schedule_repetitions",
+                      "report_schedule_start_time",
+                      "report_schedule_counter",
+                      "report_template_id"
+                    ],
+                    "filter": {
+                      "report_schedule_owner": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -10939,6 +11064,29 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "report_schedule_active",
+                      "report_schedule_every",
+                      "report_schedule_id",
+                      "report_schedule_name",
+                      "report_schedule_owner",
+                      "report_schedule_repeat",
+                      "report_schedule_repetitions",
+                      "report_schedule_start_time",
+                      "report_schedule_counter",
+                      "report_template_id"
+                    ],
+                    "filter": {
+                      "report_schedule_owner": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -11030,6 +11178,16 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {
+                      "report_schedule_owner": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "filter": {
@@ -11099,6 +11257,22 @@
                 },
                 {
                   "role": "fw-admin",
+                  "permission": {
+                    "check": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    },
+                    "columns": [
+                      "report_schedule_format_name",
+                      "report_schedule_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "modeller",
                   "permission": {
                     "check": {
                       "report_schedule": {
@@ -11200,6 +11374,22 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "report_schedule_format_name",
+                      "report_schedule_id"
+                    ],
+                    "filter": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -11268,6 +11458,29 @@
                 },
                 {
                   "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "report_schedule_format_name",
+                      "report_schedule_id"
+                    ],
+                    "filter": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    },
+                    "check": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "modeller",
                   "permission": {
                     "columns": [
                       "report_schedule_format_name",
@@ -11374,6 +11587,18 @@
                 },
                 {
                   "role": "fw-admin",
+                  "permission": {
+                    "filter": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "modeller",
                   "permission": {
                     "filter": {
                       "report_schedule": {
@@ -11507,6 +11732,23 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "filterline_history",
+                      "report_filter",
+                      "report_template_name",
+                      "report_template_id",
+                      "report_template_owner",
+                      "report_parameters",
+                      "report_template_comment",
+                      "report_template_create"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "check": {},
@@ -11616,6 +11858,35 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "filterline_history",
+                      "report_filter",
+                      "report_parameters",
+                      "report_template_comment",
+                      "report_template_create",
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "report_template_owner": {
+                            "_eq": 0
+                          }
+                        },
+                        {
+                          "report_template_owner": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -11750,6 +12021,27 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "filterline_history",
+                      "report_filter",
+                      "report_parameters",
+                      "report_template_comment",
+                      "report_template_create",
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
+                    ],
+                    "filter": {
+                      "report_template_owner": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -11826,6 +12118,16 @@
                 },
                 {
                   "role": "fw-admin",
+                  "permission": {
+                    "filter": {
+                      "report_template_owner": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "modeller",
                   "permission": {
                     "filter": {
                       "report_template_owner": {

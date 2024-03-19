@@ -17,12 +17,12 @@ namespace FWO.Ui.Services
         public bool AddServiceMode = false;
         public bool EditServiceMode = false;
         public bool DeleteServiceMode = false;
-        private ModellingService actService = new();
+        public bool ReadOnly = false;
 
 
         public ModellingServiceGroupHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingServiceGroup> serviceGroups, ModellingServiceGroup serviceGroup, List<ModellingService> availableServices,
-            List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
             : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
             ServiceGroups = serviceGroups;
@@ -30,6 +30,7 @@ namespace FWO.Ui.Services
             ActServiceGroup.AppId = application.Id;
             AvailableServices = availableServices;
             AvailableSvcElems = availableSvcElems;
+            ReadOnly = readOnly;
         }
 
         public void ServicesToSvcGroup(List<ModellingService> services)
@@ -152,7 +153,7 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActServiceGroup.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.ServiceGroup, ActServiceGroup.Id,
                         $"New Service Group: {ActServiceGroup.Display()}", Application.Id);
                     foreach(var service in ActServiceGroup.Services)
                     {
@@ -162,13 +163,13 @@ namespace FWO.Ui.Services
                             serviceGroupId = ActServiceGroup.Id
                         };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceToServiceGroup, svcParams);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
+                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.ServiceGroup, ActServiceGroup.Id,
                             $"Added Service {service.Content.Display()} to Service Group: {ActServiceGroup.Display()}", Application.Id);
                     }
                     ActServiceGroup.Creator = userConfig.User.Name;
                     ActServiceGroup.CreationDate = DateTime.Now;
                     ServiceGroups.Add(ActServiceGroup);
-                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id));
+                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, ActServiceGroup.Id));
                 }
             }
             catch (Exception exception)
@@ -188,7 +189,7 @@ namespace FWO.Ui.Services
                     comment = ActServiceGroup.Comment,
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateServiceGroup, svcGrpParams);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.ServiceGroup, ActServiceGroup.Id,
                     $"Updated Service Group: {ActServiceGroup.Display()}", Application.Id);
                 foreach(var service in SvcToDelete)
                 {
@@ -198,7 +199,7 @@ namespace FWO.Ui.Services
                         serviceGroupId = ActServiceGroup.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceFromServiceGroup, svcParams);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.ServiceGroup, ActServiceGroup.Id,
                         $"Removed Service {service.Display()} from Service Group: {ActServiceGroup.Display()}", Application.Id);
                 }
                 foreach(var service in SvcToAdd)
@@ -209,7 +210,7 @@ namespace FWO.Ui.Services
                         serviceGroupId = ActServiceGroup.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceToServiceGroup, svcParams);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.ServiceGroup, ActServiceGroup.Id,
                         $"Added Service {service.Display()} to Service Group: {ActServiceGroup.Display()}", Application.Id);
                 }
             }

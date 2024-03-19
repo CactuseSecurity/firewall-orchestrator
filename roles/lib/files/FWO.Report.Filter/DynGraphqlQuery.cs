@@ -17,11 +17,11 @@ namespace FWO.Report.Filter
         public string nwObjWhereStatement { get; set; } = "";
         public string svcObjWhereStatement { get; set; } = "";
         public string userObjWhereStatement { get; set; } = "";
+        public string connectionWhereStatement { get; set; } = "";
         public List<string> QueryParameters { get; set; } = new List<string>()
         {
             " $limit: Int ",
-            " $offset: Int ",
-            " $mgmId: [Int!]" // not needed for change reports??
+            " $offset: Int "
         };
 
         public string ReportTimeString { get; set; } = "";
@@ -132,6 +132,8 @@ namespace FWO.Report.Filter
                         query.QueryVariables["refdate1"] = query.ReportTimeString;
                         query.ruleWhereStatement += $@" rule_metadatum: {{ recertifications: {{ next_recert_date: {{ _lte: $refdate1 }} }} }} ";
                         break;
+                    case ReportType.Connections:
+                        break;
                     default:
                         Log.WriteError("Filter", $"Unexpected report type found: {reportType}");
                         break;
@@ -238,6 +240,16 @@ namespace FWO.Report.Filter
             }
         }
 
+        private static void SetConnectionFilter(ref DynGraphqlQuery query, ModellingFilter? modellingFilter)
+        {
+            if (modellingFilter != null)
+            {
+                query.QueryParameters.Add("$appId: Int!");
+                query.QueryVariables["appId"] = modellingFilter.SelectedOwner.Id;
+                query.connectionWhereStatement += $@"{{app_id: {{ _eq: $appId }} }}";
+            }
+        }
+
         private static void SetUnusedFilter(ref DynGraphqlQuery query, UnusedFilter? unusedFilter)
         {
             if (unusedFilter != null)
@@ -255,23 +267,34 @@ namespace FWO.Report.Filter
 
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
+            if (((ReportType)reportParams.ReportParams.ReportType).IsRuleReport() || reportParams.ReportParams.ReportType == (int)ReportType.Statistics)
+            {
+                query.QueryParameters.Add("$mgmId: [Int!] ");
+            }
+
             // leave out all header texts
-            if (reportParams.ReportParams.ReportType != null &&
-                (reportParams.ReportParams.ReportType == (int)ReportType.Statistics ||
-                 reportParams.ReportParams.ReportType == (int)ReportType.Recertification))
+            if (reportParams.ReportParams.ReportType == (int)ReportType.Statistics ||
+                reportParams.ReportParams.ReportType == (int)ReportType.Recertification)
             {
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
-            SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
             SetTenantFilter(ref query, reportParams);
-            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
-            if (reportParams.ReportParams.ReportType!= null && (ReportType)reportParams.ReportParams.ReportType==ReportType.Recertification)
+            if (((ReportType)reportParams.ReportParams.ReportType).IsDeviceRelatedReport())
+            {
+                SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
+                SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
+            }
+            if ((ReportType)reportParams.ReportParams.ReportType==ReportType.Recertification)
             {
                 SetRecertFilter(ref query, reportParams.ReportParams.RecertFilter);
             }
-            if (reportParams.ReportParams.ReportType!= null && (ReportType)reportParams.ReportParams.ReportType==ReportType.UnusedRules)
+            if ((ReportType)reportParams.ReportParams.ReportType==ReportType.UnusedRules)
             {
                 SetUnusedFilter(ref query, reportParams.ReportParams.UnusedFilter);
+            }
+            if ((ReportType)reportParams.ReportParams.ReportType==ReportType.Connections)
+            {
+                SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
         }
 
@@ -280,16 +303,19 @@ namespace FWO.Report.Filter
             DynGraphqlQuery query = new DynGraphqlQuery(filter.Filter);
 
             query.ruleWhereStatement += "_and: [";
+            query.connectionWhereStatement += "_and: [";
 
             SetFixedFilters(ref query, filter);
 
             query.ruleWhereStatement += "{";
+            query.connectionWhereStatement += "{";
 
             // now we convert the ast into a graphql query:
             if (ast != null)
                 ast.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
 
             query.ruleWhereStatement += "}] ";
+            query.connectionWhereStatement += "}] ";
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
 
@@ -465,6 +491,20 @@ namespace FWO.Report.Filter
                                         }} 
                                 }}
                             }} 
+                        }}
+                    ");
+                    break;
+                    
+                    case ReportType.Connections:
+                    
+                    query.FullQuery = Queries.compact($@"
+                        {ModellingQueries.connectionDetailsFragment}
+                        query getConnections ({paramString})
+                        {{
+                            modelling_connection (where: {{ {query.connectionWhereStatement} }} order_by: {{ is_interface: desc, common_service: desc, name: asc }})
+                            {{
+                                ...connectionDetails
+                            }}
                         }}
                     ");
                     break;

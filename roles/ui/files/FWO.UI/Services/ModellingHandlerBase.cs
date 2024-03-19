@@ -179,6 +179,26 @@ namespace FWO.Ui.Services
             return interfaceName;
         }
 
+        public async Task<ModellingConnection?> GetUsedInterface(ModellingConnection conn)
+        {
+            try
+            {
+                if(conn.UsedInterfaceId != null)
+                {
+                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
+                    if(interf.Count > 0)
+                    {
+                        return interf[0];
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+            return null;
+        }
+
         protected async Task<bool> CheckAppServerInUse(ModellingAppServer appServer)
         {
             try

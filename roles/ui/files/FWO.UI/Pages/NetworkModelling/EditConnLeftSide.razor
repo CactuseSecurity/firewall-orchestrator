@@ -70,7 +70,6 @@
                             @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
                     }
                 }
-
             }
         </div>
         <br><br>
@@ -166,6 +165,10 @@
                         {ConnHandler.RequestRemovePreselectedInterface(selectedInterfaces[0]);
                         selectedInterfaces = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                         @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
+                        {await ConnHandler.DisplaySelectedInterface(selectedInterfaces[0]);
+                        await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                        @(ConnHandler.DisplayButton("display_interface", Icons.Display))</button>
                 }
             </div>
             <br>
@@ -189,6 +192,8 @@
     Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
 <ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
     Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
+<EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
+
 
 @code
 {

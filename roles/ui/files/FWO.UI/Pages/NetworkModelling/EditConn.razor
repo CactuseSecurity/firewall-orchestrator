@@ -12,9 +12,18 @@
     }
     <div style="margin-left: @($"{(ConnHandler.ReadOnly ? 0 : sidebarLeftWidth) + 10}px");">
         <h3>@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface") : (ConnHandler.ActConn.IsCommonService ? userConfig.GetText("common_service") : userConfig.GetText("connection")))</h3>
-            @if(ConnHandler.ActConn.UsedInterfaceId != null)
+            @if(ConnHandler.ActConn.UsedInterfaceId != null && !PopupMode)
             {
-                <label class="col-sm-12">@(userConfig.GetText("used_interface")): @ConnHandler.InterfaceName</label>
+                <div class="col-sm-12 me-auto">
+                    <div class="d-flex flex-row">
+                        <label class="">@(userConfig.GetText("used_interface")): </label>
+                        <h5 class="ml-13">@ConnHandler.InterfaceName</h5>
+                        <button type="button" class="btn btn-sm btn-primary ml-13" @onclick="async () =>
+                            {await ConnHandler.DisplaySelectedInterface(await ConnHandler.GetUsedInterface(ConnHandler.ActConn) ?? new());
+                            await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                            @(ConnHandler.DisplayButton("display_interface", Icons.Display))</button>
+                    </div>
+                </div>
             }
             <div class="col-sm-11 border rounded m-2 p-2">
                 <div class="form-group row me-auto">
@@ -235,7 +244,9 @@
                 }
             </div>
             <div class="ml-13 btn-group">
-                @if(ConnHandler.ReadOnly)
+                @if(PopupMode)
+                {}
+                else if(ConnHandler.ReadOnly)
                 {
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
                 }
@@ -260,6 +271,7 @@
     <InProgress Display="workInProgress"/>
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="false"/>
     <EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="false"/>
+    <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
 }
 
 @code
@@ -281,6 +293,9 @@
 
     [Parameter]
     public Func<bool> ClosingAction { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public bool PopupMode { get; set; } = false;
 
 
     private ModellingDnDContainer Container { get; set; } = new();

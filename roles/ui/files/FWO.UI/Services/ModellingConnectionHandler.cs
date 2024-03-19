@@ -31,6 +31,8 @@ namespace FWO.Ui.Services
         public bool SearchNWObjectMode = false;
         public bool RemoveNwObjectMode = false;
         public bool RemovePreselectedInterfaceMode = false;
+        public bool DisplaySelectedInterfaceMode = false;
+        public ModellingConnectionHandler? IntConnHandler;
 
         public List<ModellingAppServer> SrcAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = new();
@@ -269,6 +271,14 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("remove_interface"), "", true);
             }
+        }
+
+        public async Task DisplaySelectedInterface(ModellingConnection interf)
+        {
+            FwoOwner? app = allApps.FirstOrDefault(x => x.Id == interf.AppId);
+            IntConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, app ?? new(), Connections, interf, false, true, DisplayMessageInUi, false);
+            await IntConnHandler.Init();
+            DisplaySelectedInterfaceMode = true;
         }
 
         public void AppServerToSource(List<ModellingAppServer> srcAppServers)
@@ -1095,6 +1105,7 @@ namespace FWO.Ui.Services
             SearchNWObjectMode = false;
             RemoveNwObjectMode = false;
             RemovePreselectedInterfaceMode = false;
+            DisplaySelectedInterfaceMode = false;
             AddAppRoleMode = false;
             EditAppRoleMode = false;
             DeleteAppRoleMode = false;

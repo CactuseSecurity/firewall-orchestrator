@@ -6,7 +6,7 @@
 
 <div class="p-3">
     <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
-    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="true" 
+    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
             @bind-SelectedElement="ModellingFilter.SelectedOwner" Elements="ownerList">
         <ElementTemplate Context="owner">
             @owner.Display(userConfig.GetText("common_service"))

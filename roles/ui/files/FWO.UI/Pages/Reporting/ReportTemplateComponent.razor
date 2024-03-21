@@ -121,7 +121,7 @@
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
                     <div class="col-sm-8">
-                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="true" 
+                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
                                 @bind-SelectedElement="reportTemplateInEdit.ReportParams.ModellingFilter.SelectedOwner" Elements="modOwnerList">
                             <ElementTemplate Context="owner">
                                 @(owner.Display(userConfig.GetText("common_service")))
@@ -191,7 +191,10 @@
     {
         await RefreshTemplates();
         recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-        modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+        if(showModellingReports)
+        {
+            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+        }
     }
 
     public async Task RefreshTemplates()

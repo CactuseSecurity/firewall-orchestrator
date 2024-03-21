@@ -21,3 +21,15 @@ dn: cn=recertifier,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
 uniquemember: cn=ownergroup_D{{ sample_postfix }},ou=group,{{ openldap_path }}
+
+
+dn: cn=modeller,ou=role,{{ openldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: cn=ownergroup_F{{ sample_postfix }},ou=group,{{ openldap_path }}
+
+
+dn: cn=modeller,ou=role,{{ openldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: cn=ownergroup_D{{ sample_postfix }},ou=group,{{ openldap_path }}

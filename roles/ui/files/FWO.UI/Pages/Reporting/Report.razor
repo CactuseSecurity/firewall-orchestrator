@@ -238,11 +238,14 @@
             {
                 actReportFilters.Init(userConfig, false);
                 injectedAppId = appId;
-                List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(Api.Client.Queries.OwnerQueries.getEditableOwners, new { appIds = appId });
-                if(owners.Count > 0)
+                if(showModellingReports)
                 {
-                    actReportFilters.ModellingFilter.SelectedOwner = owners.First();
-                    autoGenerateReport = true;
+                    List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(Api.Client.Queries.OwnerQueries.getEditableOwners, new { appIds = appId });
+                    if(owners.Count > 0)
+                    {
+                        actReportFilters.ModellingFilter.SelectedOwner = owners.First();
+                        autoGenerateReport = true;
+                    }
                 }
             }
             else

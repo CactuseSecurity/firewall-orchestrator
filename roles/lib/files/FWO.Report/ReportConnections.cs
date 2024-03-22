@@ -135,7 +135,10 @@ namespace FWO.Report
         {
             report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
             report.AppendLine("<table>");
-            AppendNWObjHeadlineHtml(ref report);
+            if(networkObjects.Count > 0)
+            {
+                AppendNWObjHeadlineHtml(ref report);
+            }
             foreach (var nwObj in networkObjects)
             {
                 report.AppendLine("<tr>");
@@ -164,7 +167,10 @@ namespace FWO.Report
         {
             report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
             report.AppendLine("<table>");
-            AppendNWSvcHeadlineHtml(ref report);
+            if(networkServices.Count > 0)
+            {
+                AppendNWSvcHeadlineHtml(ref report);
+            }
             foreach (var svc in networkServices)
             {
                 report.AppendLine("<tr>");

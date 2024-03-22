@@ -123,7 +123,8 @@ namespace FWO.Report.Filter.Ast
         {
             string queryVarName = AddVariable<string>(query, "proto", Operator.Kind, semanticValue!);
             query.ruleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}";
-            query.connectionWhereStatement += $"service_connections: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}";
+            query.connectionWhereStatement += $"_or: [ {{ service_connections: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }}, " +
+                $"{{ service_group_connections: {{service_group: {{ service_service_groups: {{ service: {{ stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} }} }} ]";
             return query;
         }
 
@@ -137,8 +138,10 @@ namespace FWO.Report.Filter.Ast
         private DynGraphqlQuery ExtractServiceFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "svc", Operator.Kind, semanticValue!);
-            query.ruleWhereStatement += $"rule_services: {{ service: {{svcgrp_flats: {{serviceBySvcgrpFlatMemberId: {{svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} ";
-            query.connectionWhereStatement += $"_or: [ {{ service_connections: {{service: {{name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}, {{ service_group_connections: {{service_group: {{name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} ]";
+            query.ruleWhereStatement += $"rule_services: {{ service: {{ svcgrp_flats: {{ serviceBySvcgrpFlatMemberId: {{ svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} ";
+            query.connectionWhereStatement += $"_or: [ {{ service_connections: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}, " +
+                $"{{ service_group_connections: {{service_group: {{ _or: [ {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }}, " +
+                $"{{ service_service_groups: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} ] }} }} }} ]";
             return query;
         }
     }

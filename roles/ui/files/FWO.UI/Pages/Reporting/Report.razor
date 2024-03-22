@@ -127,7 +127,7 @@
                             break;
 
                         case ReportType.Connections:
-                            <ConnectionsReport AppHandler="appHandler" AllCommonServices="currentReport.ReportData.GlobalComSvc"/>
+                            <ConnectionsReport AppHandlers="appHandlers" AllCommonServices="currentReport.ReportData.GlobalComSvc"/>
                             break;
 
                         default:
@@ -136,18 +136,15 @@
                 }
             </div>
         </div>
-        @if (currentReport != null)
+        @if (currentReport != null && reportGenerationDuration != 0)
         {
-            if (reportGenerationDuration != 0)
+            if (reportGenerationDuration < 600)
             {
-                if (reportGenerationDuration < 600)
-                {
-                    <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
-                }
-                else
-                {
-                    <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration/60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
-                }
+                <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
+            }
+            else
+            {
+                <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration/60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
             }
         }
     </div>
@@ -158,7 +155,6 @@
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
         SelectedReportType = "actReportFilters.ReportType"/>
     <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
-
 }
 
 @* ==== POPUPS ==== *@
@@ -179,14 +175,13 @@
     public string? AppId { get; set; }
 
     public double reportGenerationDuration;
-    DateTime startTime = DateTime.Now;
     private bool processing = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
     private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
     private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
-    private ModellingAppHandler? appHandler;
+    private List<ModellingAppHandler> appHandlers = new();
     List<int> relevantManagementIds = new ();
     
     private ReportFilters actReportFilters = new ();
@@ -285,6 +280,7 @@
         {
             currentReport.ReportData = new ();
         }
+        appHandlers = new();
         reportGenerationDuration = 0;
     }
 
@@ -320,12 +316,9 @@
         tokenSource = new CancellationTokenSource();
         var token = tokenSource.Token;
 
-        // clear selected rules
-        selectedItemsRuleReportTable.Clear();
-        selectedItemsChangeReportTable.Clear();
-
         // save original report for exception case
-        List<ManagementReport> managementsReportOrig = currentReport?.ReportData.ManagementData ?? new();
+        ReportData reportOrig = currentReport?.ReportData ?? new();
+
         try
         {
             if (actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.isAnyDeviceFilterSet())
@@ -334,10 +327,7 @@
                 return;
             }
             processing = true;
-            startTime = DateTime.Now;
-
             await PrepareReportGeneration();
-            ResetReport(); // reset management data when switching between reports
 
             try
             {
@@ -371,18 +361,22 @@
 
             processing = false;
             PostProcess();
-            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
             processing = false;
-            currentReport.ReportData.ManagementData = managementsReportOrig;
+            if(currentReport != null)
+            {
+                currentReport.ReportData = reportOrig;
+            }
             reportTemplateControl.Uncollapse();
             await InvokeAsync(StateHasChanged);
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
+        await InvokeAsync(StateHasChanged);
+        Log.WriteDebug("Report Generation", $"Generation Time: {reportGenerationDuration} s.");
     }
 
     private async Task PrepareReportGeneration()
@@ -401,13 +395,20 @@
 
         currentReport = ReportBase.ConstructReport(ConstructReportTemplate(), userConfig);
 
+        // clear selected rules
+        selectedItemsRuleReportTable.Clear();
+        selectedItemsChangeReportTable.Clear();
+
         // save selected managements before resetting
         relevantManagementIds = actReportFilters.DeviceFilter.getSelectedManagements();
+
+         // reset report data when switching between reports
+        ResetReport();
     }
 
     private async Task GenerateConnectionsReport(CancellationToken token)
     {
-        foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners.Where(o => o.Id > 0))
+        foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners)
         {
             OwnerReport actOwnerData = new(){ Name = selectedOwner.Name };
             currentReport.ReportData.OwnerData.Add(actOwnerData);
@@ -425,11 +426,12 @@
 
     async Task PrepareReportData(FwoOwner selectedOwner, OwnerReport ownerData)
     {
-        appHandler = new (apiConnection, userConfig, selectedOwner, DisplayMessageInUi);
+        ModellingAppHandler appHandler = new (apiConnection, userConfig, selectedOwner, DisplayMessageInUi);
         await appHandler.Init(ownerData.Connections);
         ownerData.RegularConnections = appHandler.GetRegularConnections();
         ownerData.Interfaces = appHandler.GetInterfaces();
         ownerData.CommonServices = appHandler.GetCommonServices();
+        appHandlers.Add(appHandler);
     }
 
     private async Task GenerateStatisticsReport(CancellationToken token)
@@ -458,7 +460,9 @@
     {
         bool rulesFound = false;
         foreach (var managementReport in ManagementReports)
+        {
             foreach (var device in managementReport.Devices)
+            {
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
@@ -467,6 +471,8 @@
                         rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
                     }
                 }
+            }
+        }
         return rulesFound;
     }
 
@@ -485,9 +491,6 @@
                 DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
             }
         }
-        
-        Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
-        rsbTabset?.SetActiveTab(1);
     }
 
     private void CancelGeneration()

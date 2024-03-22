@@ -284,8 +284,8 @@ h5 {
     height: 100%;
     width: 4px;
     background-color: black;
-    z-index: 20;
     border-style: double;
+    cursor: ew-resize;
 }
 
 .sidebar-min-max-button {

@@ -8,6 +8,9 @@ namespace FWO.Api.Data
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string Ip { get; set; } = "";
 
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string IpEnd { get; set; } = "";
+
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string ImportSource { get; set; } = "";
 
@@ -34,6 +37,7 @@ namespace FWO.Api.Data
         {
             bool shortened = base.Sanitize();
             Ip = Sanitizer.SanitizeCidrMand(Ip, ref shortened);
+            IpEnd = Sanitizer.SanitizeCidrMand(IpEnd, ref shortened);
             ImportSource = Sanitizer.SanitizeMand(ImportSource, ref shortened);
             return shortened;
         }
@@ -46,7 +50,7 @@ namespace FWO.Api.Data
                 Number = appServer.Number,
                 Name = appServer.Name,
                 IP = appServer.Ip,
-                IpEnd = appServer.Ip
+                IpEnd = appServer.IpEnd
             };
         }
 
@@ -61,6 +65,7 @@ namespace FWO.Api.Data
             Name = appServer.Name;
             IsDeleted = appServer.IsDeleted;
             Ip = appServer.Ip;
+            IpEnd = appServer.IpEnd;
             ImportSource = appServer.ImportSource;
             InUse = appServer.InUse;
         }
@@ -70,7 +75,7 @@ namespace FWO.Api.Data
             return obj switch
             {
                 ModellingAppServer apps => Id == apps.Id && AppId == apps.AppId && Name == apps.Name && IsDeleted == apps.IsDeleted
-                    && Ip == apps.Ip && ImportSource == apps.ImportSource && InUse == apps.InUse,
+                    && Ip == apps.Ip && IpEnd == apps.IpEnd && ImportSource == apps.ImportSource && InUse == apps.InUse,
                 _ => base.Equals(obj),
             };
         }

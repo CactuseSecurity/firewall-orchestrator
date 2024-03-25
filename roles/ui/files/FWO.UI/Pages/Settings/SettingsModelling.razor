@@ -24,13 +24,13 @@
         @onclick="PredefServices">@(userConfig.GetText("predef_services"))</button>
     <form onsubmit="return false">
         <div class="form-group row mt-2">
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("allowServerInConn")):</label>
                 <div class="col-sm-2">
                     <input type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
                 </div>
             </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5604"))">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5604"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("allowServiceInConn")):</label>
                 <div class="col-sm-2">
                     <input type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
@@ -42,13 +42,13 @@
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines"))*:</label>
                 <input type="number" min="0" class="col-sm-3" @bind="configData!.OverviewDisplayLines" />
             </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("modIconify"))*:</label>
                 <div class="col-sm-2">
                     <input type="checkbox" class="w-100" @bind="configData!.ModIconify">
                 </div>
             </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("reducedProtocolSet")):</label>
                 <div class="col-sm-2">
                     <input type="checkbox" class="w-100" @bind="configData!.ReducedProtocolSet">
@@ -61,18 +61,22 @@
             <div class="col-sm-6">
                 <EditList ElementType="CommonArea" Elements="commonAreas.ToArray()" ElementsToDelete="AreasToDelete" StdLayout="false">
                     <Display>
-                        <div class="row">
+                        <div class="row align-items-center">
                             <div class="col-sm-4 border bg-transparent">@((MarkupString)context.Area.Content.DisplayHtml())</div>
                             <div class="col-sm-4">
-                                <label class="col-form-label col-sm-10">@(userConfig.GetText("use_in_src")):</label>
-                                <div class="col-sm-1">
-                                    <input type="checkbox" class="w-100" @bind="context.UseInSrc">
+                                <div class="row align-items-center">
+                                    <div class="col-form-label col-sm-8">@(userConfig.GetText("use_in_src")):</div>
+                                    <div class="col-sm-3">
+                                        <input type="checkbox" class="w-100" @bind="context.UseInSrc">
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-sm-4">
-                                <label class="col-form-label col-sm-10">@(userConfig.GetText("use_in_dst")):</label>
-                                <div class="col-sm-1">
-                                    <input type="checkbox" class="w-100" @bind="context.UseInDst">
+                                <div class="row align-items-center">
+                                    <div class="col-form-label col-sm-8">@(userConfig.GetText("use_in_dst")):</div>
+                                    <div class="col-sm-3">
+                                        <input type="checkbox" class="w-100" @bind="context.UseInDst">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -86,7 +90,7 @@
         </div>
         <hr />
         <div class="form-group row">
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5606"))">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5606"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
                 <div class="col-sm-2">
                     <input type="checkbox" @bind="namingConvention.NetworkAreaRequired">
@@ -106,7 +110,7 @@
                 <label class="col-form-label col-sm-5">@userConfig.GetText("fixedPartLength"):</label>
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
              </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
                 <div class="col-sm-2">
                     <input type="checkbox" @bind="namingConvention.UseAppPart">

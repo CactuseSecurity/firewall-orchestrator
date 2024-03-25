@@ -1808,6 +1808,10 @@ INSERT INTO txt VALUES ('modelling_settings',   'German', 	'Modellierungseinstel
 INSERT INTO txt VALUES ('modelling_settings',   'English', 	'Modelling Settings');
 INSERT INTO txt VALUES ('modIconify',           'German', 	'Nutzung von Piktogrammen');
 INSERT INTO txt VALUES ('modIconify',           'English', 	'Prefer use of Icons');
+INSERT INTO txt VALUES ('use_in_src',           'German', 	'in Quelle');
+INSERT INTO txt VALUES ('use_in_src',           'English', 	'in Source');
+INSERT INTO txt VALUES ('use_in_dst',           'German', 	'in Ziel');
+INSERT INTO txt VALUES ('use_in_dst',           'English', 	'in Destination');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -4441,9 +4445,11 @@ INSERT INTO txt VALUES ('H5619', 'German',  'Eigent&uuml;mernamen verwenden: Der
 INSERT INTO txt VALUES ('H5619', 'English', 'Use Owner Name: The name of the owner is used in the middle part of the naming convention for App Roles.');
 INSERT INTO txt VALUES ('H5620', 'German',  'Gemeinsame Netzwerkareas: Vom Administrator vorgegebene Netzwerkareas, welche von allen Verbindungen genutzt werden d&uuml;rfen.
     Sie sind in der Bibliothek immer sichtbar und stehen dann nicht mehr in der Liste der auszuw&auml;hlenden Areas f&uuml;r Common Services.
+    Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.
 ');
 INSERT INTO txt VALUES ('H5620', 'English', 'Common Network Areas: Network areas defined by the administrator, which are permitted to be used by all connections.
-    They are visible in the object library and are not offered in the list of available areas for Common Services. 
+    They are visible in the object library and are not offered in the list of available areas for Common Services.
+    The flags "in Source" and "in Destination" determine, where the Common Network Area are allowed to be used.
 ');
 INSERT INTO txt VALUES ('H5621', 'German',  'Ein Modellierer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Darstellung der Modellierung &uuml;berschreiben.
     Ausgangswert ist der vom Admin in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> gesetzte Wert.

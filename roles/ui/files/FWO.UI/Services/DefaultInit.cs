@@ -14,5 +14,6 @@ namespace FWO.Ui.Services
 
 
         public static bool DoNothingSync() { return false; }
+        public static bool DoNothingSync(ModellingNwGroup _) { return false; }
     }
 }

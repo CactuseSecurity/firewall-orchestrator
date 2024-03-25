@@ -352,8 +352,8 @@ namespace FWO.Middleware.Server
                 {
                     name = incomingAppServer.Name,
                     appId = appID,
-                    ip = IpAsCidr(incomingAppServer.Ip),  // todo ?
-                    // subnet = incomingAppServer.Subnet,
+                    ip = IpAsCidr(incomingAppServer.Ip),
+                    ipEnd = incomingAppServer.IpEnd != "" ? IpAsCidr(incomingAppServer.IpEnd) : IpAsCidr(incomingAppServer.Ip),
                     importSource = impSource
                 };
                 await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAppServer, Variables);

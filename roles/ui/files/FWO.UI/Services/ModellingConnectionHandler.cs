@@ -1,4 +1,5 @@
 ﻿using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -16,6 +17,7 @@ namespace FWO.Ui.Services
         public List<ModellingAppRole> AvailableAppRoles { get; set; } = new();
         public List<ModellingNwGroupWrapper> AvailableSelectedObjects { get; set; } = new();
         public List<ModellingNwGroupWrapper> AvailableCommonAreas { get; set; } = new();
+        public List<CommonAreaConfig> CommonAreaConfigItems { get; set; } = new();
         public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = new();
         public List<ModellingServiceGroup> AvailableServiceGroups { get; set; } = new();
         public List<ModellingService> AvailableServices { get; set; } = new();
@@ -111,15 +113,15 @@ namespace FWO.Ui.Services
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
 
                 List<ModellingNwGroup> allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
-                List<long> commonAreaIds = new();
+                CommonAreaConfigItems = new();
                 if(userConfig.ModCommonAreas != "")
                 {
-                    commonAreaIds = JsonSerializer.Deserialize<List<long>>(userConfig.ModCommonAreas) ?? new();
+                    CommonAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas) ?? new();
                 }
                 AvailableCommonAreas = new();
-                foreach(var areaId in commonAreaIds)
+                foreach(var comAreaConfig in CommonAreaConfigItems)
                 {
-                    ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == areaId);
+                    ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == comAreaConfig.AreaId);
                     if(area != null)
                     {
                         AvailableCommonAreas.Add(new () { Content = area });
@@ -349,7 +351,8 @@ namespace FWO.Ui.Services
             {
                 foreach(var nwGroup in nwGroups)
                 {
-                    if(ActConn.SourceNwGroups.FirstOrDefault(w => w.Content.Id == nwGroup.Id) == null && !SrcNwGroupsToAdd.Contains(nwGroup))
+                    if(ActConn.SourceNwGroups.FirstOrDefault(w => w.Content.Id == nwGroup.Id) == null && !SrcNwGroupsToAdd.Contains(nwGroup) &&
+                        (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == nwGroup.Id)?.UseInSrc ?? true))
                     {
                         SrcNwGroupsToAdd.Add(nwGroup);
                     }
@@ -364,7 +367,8 @@ namespace FWO.Ui.Services
             {
                 foreach(var nwGroup in nwGroups)
                 {
-                    if(ActConn.DestinationNwGroups.FirstOrDefault(w => w.Content.Id == nwGroup.Id) == null && !DstNwGroupsToAdd.Contains(nwGroup))
+                    if(ActConn.DestinationNwGroups.FirstOrDefault(w => w.Content.Id == nwGroup.Id) == null && !DstNwGroupsToAdd.Contains(nwGroup) &&
+                        (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == nwGroup.Id)?.UseInDst ?? true))
                     {
                         DstNwGroupsToAdd.Add(nwGroup);
                     }

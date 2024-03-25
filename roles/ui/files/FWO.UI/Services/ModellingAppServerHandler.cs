@@ -91,7 +91,8 @@ namespace FWO.Ui.Services
                 {
                     name = ActAppServer.Name,
                     appId = Application.Id,
-                    ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),   // todo ?
+                    ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
+                    ipEnd = ActAppServer.IpEnd != "" ? IPAddressRange.Parse(ActAppServer.IpEnd).ToCidrString() : IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
                     importSource = GlobalConst.kManual  // todo
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;

@@ -69,8 +69,11 @@
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5486"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyStartAt")):</label>
-            <div class="col-sm-2">
-                <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.ImpChangeNotifyStartAt" />
+            <div class="col-sm-4">
+                <div class="row">
+                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="startTime" />
+                    <input type="date" class="col-sm-5" @bind="startDate" />
+                </div>
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5487"))">
@@ -119,6 +122,8 @@ else
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
     private ImpChangeNotificationType selectedImpChgNotType;
+    private DateTime startDate = DateTime.Today;
+    private DateTime startTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
     protected override async Task OnInitializedAsync()
     {
@@ -127,6 +132,7 @@ else
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
             selectedImpChgNotType = (ImpChangeNotificationType)configData.ImpChangeNotifyType;
+            startDate = startTime = configData.ImpChangeNotifyStartAt;
         }
         catch (Exception exception)
         {
@@ -142,6 +148,7 @@ else
             {
                 configData.DefaultLanguage = selectedLanguage.Name;
                 configData.ImpChangeNotifyType = (int)selectedImpChgNotType;
+                configData.ImpChangeNotifyStartAt = startDate.Date.Add(startTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

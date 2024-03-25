@@ -59,10 +59,22 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5620"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("common_areas"):</label>
             <div class="col-sm-6">
-                <EditList ElementType="ModellingNwGroupWrapper" Elements="commonAreas.ToArray()" ElementsToAdd="AreasToAdd" ElementsToDelete="AreasToDelete" StdLayout="false">
+                <EditList ElementType="CommonArea" Elements="commonAreas.ToArray()" ElementsToDelete="AreasToDelete" StdLayout="false">
                     <Display>
                         <div class="row">
-                            <div class="col-sm-12 border bg-transparent">@((MarkupString)context.Content.DisplayHtml())</div>
+                            <div class="col-sm-4 border bg-transparent">@((MarkupString)context.Area.Content.DisplayHtml())</div>
+                            <div class="col-sm-4">
+                                <label class="col-form-label col-sm-10">@(userConfig.GetText("use_in_src")):</label>
+                                <div class="col-sm-1">
+                                    <input type="checkbox" class="w-100" @bind="context.UseInSrc">
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="col-form-label col-sm-10">@(userConfig.GetText("use_in_dst")):</label>
+                                <div class="col-sm-1">
+                                    <input type="checkbox" class="w-100" @bind="context.UseInDst">
+                                </div>
+                            </div>
                         </div>
                     </Display>
                 </EditList>
@@ -163,7 +175,7 @@ else
     </div>
 }
 <PredefServices @bind-Display="predefServices"/>
-<SearchNwObject @bind-Display="searchArea" @bind-ObjectList="commonAreas" CommonAreaMode="true"/>
+<SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true"/>
 
 
 @code
@@ -177,10 +189,10 @@ else
     private List<string> PathsToDelete = new();
     private string actPath = "";
     private List<ModellingNwGroup> allAreas = new();
-    private List<long> commonAreaIds = new();
-    private List<ModellingNwGroupWrapper> commonAreas = new();
-    private List<ModellingNwGroupWrapper> AreasToAdd = new();
-    private List<ModellingNwGroupWrapper> AreasToDelete = new();
+    private List<ModellingNwGroupWrapper> pureAreaList = new();
+    private List<CommonAreaConfig> commAreaConfigItems = new();
+    private List<CommonArea> commonAreas = new();
+    private List<CommonArea> AreasToDelete = new();
     private bool predefServices = false;
     private bool searchArea = false;
     private ModellingNamingConvention namingConvention = new();
@@ -206,17 +218,24 @@ else
     {
         if(configData.ModCommonAreas != "")
         {
-            commonAreaIds = JsonSerializer.Deserialize<List<long>>(configData.ModCommonAreas) ?? new();
+            commAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(configData.ModCommonAreas) ?? new();
         }
         commonAreas = new();
-        foreach(var areaId in commonAreaIds)
+        foreach(var areaInfo in commAreaConfigItems)
         {
-            ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == areaId);
+            ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == areaInfo.AreaId);
             if(area != null)
             {
-                commonAreas.Add(new () { Content = area });
+                commonAreas.Add(new () { Area = new() {Content = area}, UseInSrc = areaInfo.UseInSrc, UseInDst = areaInfo.UseInDst });
             }
         }
+        pureAreaList = commonAreas.ConvertAll(x => x.Area);
+    }
+
+    public bool AddArea(ModellingNwGroup area)
+    {
+        commonAreas.Add(new () { Area = new() {Content = area} });
+        return true;
     }
 
     private void AddPath()
@@ -254,12 +273,16 @@ else
                 }
                 configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
                 configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
-                commonAreaIds = commonAreas.ConvertAll(x => x.Content.Id);
+                commAreaConfigItems = commonAreas.ConvertAll(x => x.ToConfigItem());
                 foreach(var area in AreasToDelete)
                 {
-                    commonAreaIds.Remove(area.Content.Id);
+                    CommonAreaConfig? existingItem = commAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Area.Content.Id);
+                    if (existingItem != null)
+                    {
+                        commAreaConfigItems.Remove(existingItem);
+                    }
                 }
-                configData.ModCommonAreas = JsonSerializer.Serialize(commonAreaIds);
+                configData.ModCommonAreas = JsonSerializer.Serialize(commAreaConfigItems);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 PathsToDelete = new();
                 PathsToAdd = new();

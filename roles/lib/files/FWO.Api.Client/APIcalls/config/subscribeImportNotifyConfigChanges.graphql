@@ -1,0 +1,6 @@
+﻿subscription subscribeImportNotifyConfigChanges {
+  config (where: { _or: [{config_key: {_eq: "impChangeNotifySleepTime"}}, {config_key: {_eq: "impChangeNotifyStartAt"}}, {config_key: {_eq: "impChangeNotifyActive"}} ]}, limit: 3){
+    config_key
+    config_value
+  }
+}

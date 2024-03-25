@@ -23,29 +23,42 @@ namespace FWO.Middleware.Server
 		/// </summary>
         protected GlobalConfig globalConfig;
 
+		/// <summary>
+		/// Global config change subscription
+		/// </summary>
+        protected GraphQlApiSubscription<List<ConfigItem>>? ConfigDataSubscription;
+
         private List<Alert> openAlerts = new();
 
     
 		/// <summary>
 		/// Constructor starting the Schedule timer
 		/// </summary>
-        protected SchedulerBase(ApiConnection apiConnection, GlobalConfig globalConfig)
+        protected SchedulerBase(ApiConnection apiConnection, GlobalConfig globalConfig, string configDataSubscription)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            globalConfig.OnChange += GlobalConfig_OnChange;
-            StartScheduleTimer();
+            ConfigDataSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, configDataSubscription);
         }
 
 		/// <summary>
 		/// set scheduling timer from config values, to be overwritten for specific scheduler
 		/// </summary>
-        protected abstract void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _);
+        protected abstract void OnGlobalConfigChange(List<ConfigItem> _);
 
 		/// <summary>
 		/// start the scheduling timer, to be overwritten for specific scheduler
 		/// </summary>
         protected abstract void StartScheduleTimer();
+
+		/// <summary>
+		/// subscription exception handling
+		/// </summary>
+        protected static void ApiExceptionHandler(Exception exception)
+        {
+            Log.WriteError("Import App Data Config", "Api subscription lead to exception. Retry subscription.", exception);
+            // Subscription will be restored if no exception is thrown here
+        }
 
 		/// <summary>
 		/// set an alert in error case with 

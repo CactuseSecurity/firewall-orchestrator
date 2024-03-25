@@ -28,16 +28,18 @@ namespace FWO.Middleware.Server
             return new AutoDiscoverScheduler(apiConnection, globalConfig);
         }
     
-        private AutoDiscoverScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
+        private AutoDiscoverScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeAutodiscoveryConfigChanges)
         {}
 
 		/// <summary>
 		/// set scheduling timer from config values
 		/// </summary>
-        protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
-            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * GlobalConst.kHoursToMilliseconds;
             ScheduleTimer.Stop();
+            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
+            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * GlobalConst.kHoursToMilliseconds;
             StartScheduleTimer();
         }
 

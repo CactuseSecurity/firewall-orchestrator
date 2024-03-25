@@ -30,7 +30,8 @@ namespace FWO.Middleware.Server
             return new DailyCheckScheduler(apiConnection, config);
         }
 
-        private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
+        private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeDailyCheckConfigChanges)
         {
             if(globalConfig.RecRefreshStartup)
             {
@@ -41,10 +42,11 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// set scheduling timer from fixed value
 		/// </summary>
-        protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
-            DailyCheckTimer.Interval = DailyCheckSleepTime;
             DailyCheckScheduleTimer.Stop();
+            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
+            DailyCheckTimer.Interval = DailyCheckSleepTime;
             StartScheduleTimer();
         }
 

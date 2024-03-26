@@ -144,7 +144,8 @@
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5613"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataStartAt")):</label>
-            <input type="time" step="60" class="col-sm-2" @bind="configData!.ImportAppDataStartAt" />
+            <input type="time" step="60" class="col-sm-2" @bind="appDataTime" />
+            <input type="date" class="col-sm-2" @bind="appDataDate" />
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5614"))">
@@ -157,7 +158,8 @@
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5616"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataStartAt")):</label>
-            <input type="time" step="60" class="col-sm-2" @bind="configData!.ImportSubnetDataStartAt" />
+            <input type="time" step="60" class="col-sm-2" @bind="subnetDataTime" />
+            <input type="date" class="col-sm-2" @bind="subnetDataDate" />
         </div>
     </form>
     <hr />
@@ -200,7 +202,10 @@ else
     private bool predefServices = false;
     private bool searchArea = false;
     private ModellingNamingConvention namingConvention = new();
-
+    private DateTime appDataDate = DateTime.Today;
+    private DateTime appDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private DateTime subnetDataDate = DateTime.Today;
+    private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
     protected override async Task OnInitializedAsync()
     {
@@ -211,6 +216,8 @@ else
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
             allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
             RefreshAreas();
+            appDataDate = appDataTime = configData.ImportAppDataStartAt;
+            subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
         }
         catch (Exception exception)
         {
@@ -267,27 +274,9 @@ else
         {
             if (configData != null)
             {
-                foreach(var path in PathsToDelete)
-                {
-                    appDataPaths.Remove(path);
-                }
-                foreach(var path in PathsToAdd)
-                {
-                    appDataPaths.Add(path);
-                }
-                configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
-                configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
-                commAreaConfigItems = commonAreas.ConvertAll(x => x.ToConfigItem());
-                foreach(var area in AreasToDelete)
-                {
-                    CommonAreaConfig? existingItem = commAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Area.Content.Id);
-                    if (existingItem != null)
-                    {
-                        commAreaConfigItems.Remove(existingItem);
-                    }
-                }
-                configData.ModCommonAreas = JsonSerializer.Serialize(commAreaConfigItems);
+                PrepareConfigData();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
+
                 PathsToDelete = new();
                 PathsToAdd = new();
                 AreasToDelete = new();
@@ -303,5 +292,31 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
         }
+    }
+
+    private void PrepareConfigData()
+    {
+        foreach(var path in PathsToDelete)
+        {
+            appDataPaths.Remove(path);
+        }
+        foreach(var path in PathsToAdd)
+        {
+            appDataPaths.Add(path);
+        }
+        configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
+        configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
+        commAreaConfigItems = commonAreas.ConvertAll(x => x.ToConfigItem());
+        foreach(var area in AreasToDelete)
+        {
+            CommonAreaConfig? existingItem = commAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Area.Content.Id);
+            if (existingItem != null)
+            {
+                commAreaConfigItems.Remove(existingItem);
+            }
+        }
+        configData.ModCommonAreas = JsonSerializer.Serialize(commAreaConfigItems);
+        configData.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
+        configData.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
     }
 }

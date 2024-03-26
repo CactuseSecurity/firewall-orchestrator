@@ -1,4 +1,5 @@
 ﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -24,16 +25,18 @@ namespace FWO.Middleware.Server
             return new ImportChangeNotifyScheduler(apiConnection, globalConfig);
         }
     
-        private ImportChangeNotifyScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
+        private ImportChangeNotifyScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportNotifyConfigChanges)
         {}
 
 		/// <summary>
 		/// set scheduling timer from config values
 		/// </summary>
-        protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
-            if(globalConfig.ImpChangeNotifySleepTime > 0)
+            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
+            if(globalConfig.ImpChangeNotifyActive && globalConfig.ImpChangeNotifySleepTime > 0)
             {
                 ImportChangeNotifyTimer.Interval = globalConfig.ImpChangeNotifySleepTime * 1000; // convert seconds to milliseconds
                 StartScheduleTimer();
@@ -45,7 +48,7 @@ namespace FWO.Middleware.Server
 		/// </summary>
         protected override void StartScheduleTimer()
         {
-            if (globalConfig.ImpChangeNotifySleepTime > 0)
+            if (globalConfig.ImpChangeNotifyActive && globalConfig.ImpChangeNotifySleepTime > 0)
             {
                 DateTime startTime = DateTime.Now;
                 try

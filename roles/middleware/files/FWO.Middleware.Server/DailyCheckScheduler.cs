@@ -34,7 +34,9 @@ namespace FWO.Middleware.Server
         {
             if(globalConfig.RecRefreshStartup)
             {
+                #pragma warning disable CS4014
                 RefreshRecert(); // no need to wait
+                #pragma warning restore CS4014
             }
         }
 
@@ -137,7 +139,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentialsWithoutSecrets);
             bool sampleCredentialExisting = false;
             foreach (var credential in credentials)
             {

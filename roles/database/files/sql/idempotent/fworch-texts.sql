@@ -1094,6 +1094,8 @@ INSERT INTO txt VALUES ('remove_interface', 	'German',	'Schnittstelle entfernen'
 INSERT INTO txt VALUES ('remove_interface', 	'English',	'Remove Interface');
 INSERT INTO txt VALUES ('display_interface',    'German',	'Schnittstelle darstellen');
 INSERT INTO txt VALUES ('display_interface',    'English',	'Display Interface');
+INSERT INTO txt VALUES ('propose_interface',    'German',	'Schnittstelle vorschlagen');
+INSERT INTO txt VALUES ('propose_interface',    'English',	'Propose Interface');
 INSERT INTO txt VALUES ('use',                  'German', 	'Benutzen');
 INSERT INTO txt VALUES ('use',                  'English', 	'Use');
 INSERT INTO txt VALUES ('services_group', 	    'German',	'Dienstgruppe');

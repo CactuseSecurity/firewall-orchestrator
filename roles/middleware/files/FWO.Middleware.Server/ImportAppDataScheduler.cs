@@ -1,4 +1,5 @@
 ﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -24,15 +25,17 @@ namespace FWO.Middleware.Server
             return new ImportAppDataScheduler(apiConnection, globalConfig);
         }
     
-        private ImportAppDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
+        private ImportAppDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportAppDataConfigChanges)
         {}
 
 		/// <summary>
 		/// set scheduling timer from config values
 		/// </summary>
-        protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
+            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
             if(globalConfig.ImportAppDataSleepTime > 0)
             {
                 ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * GlobalConst.kHoursToMilliseconds;

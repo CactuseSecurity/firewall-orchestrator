@@ -4449,7 +4449,7 @@ INSERT INTO txt VALUES ('H5620', 'German',  'Gemeinsame Netzwerkareas: Vom Admin
 ');
 INSERT INTO txt VALUES ('H5620', 'English', 'Common Network Areas: Network areas defined by the administrator, which are permitted to be used by all connections.
     They are visible in the object library and are not offered in the list of available areas for Common Services.
-    The flags "in Source" and "in Destination" determine, where the Common Network Area are allowed to be used.
+    The flags "in Source" and "in Destination" determine, where the Common Network Areas are allowed to be used.
 ');
 INSERT INTO txt VALUES ('H5621', 'German',  'Ein Modellierer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Darstellung der Modellierung &uuml;berschreiben.
     Ausgangswert ist der vom Admin in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> gesetzte Wert.

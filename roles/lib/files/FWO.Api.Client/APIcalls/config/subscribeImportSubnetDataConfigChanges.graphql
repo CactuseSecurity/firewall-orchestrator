@@ -1,5 +1,5 @@
 ﻿subscription subscribeImportSubnetDataConfigChanges {
-  config (where: { _or: [{config_key: {_eq: "importSubnetDataSleepTime"}}, {config_key: {_eq: "importSubnetDataStartAt"}}, {config_key: {_eq: "importSubnetDataPath"}} ]}, limit: 2){
+  config (where: { _or: [{config_key: {_eq: "importSubnetDataSleepTime"}}, {config_key: {_eq: "importSubnetDataStartAt"}}, {config_key: {_eq: "importSubnetDataPath"}} ]}, limit: 3){
     config_key
     config_value
   }

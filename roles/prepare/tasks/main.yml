@@ -1,0 +1,55 @@
+
+- block:
+
+  - name: create maint website dir
+    file:
+      path: "/var/www/html/"
+      state: directory
+      mode: "0755"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+  
+  - name: copy maintenance web site index
+    copy:
+      src: maintenance-info.html
+      dest: "/var/www/html/index.html"
+      mode: "0644"
+
+  - name: cioy maintenance web site image
+    copy:
+      src: men-at-work.jpg
+      dest: "/var/www/html/men-at-work.jpg"
+      mode: "0644"
+
+  - name: copy httpd maintenance config file to ui target
+    template:
+      src: "httpd-maintenance.conf"
+      dest: "{{ http_conf_dir }}/{{ product_name }}-maintenance.conf"
+      owner: root
+      group: root
+
+  - name: enable apache2 maintenance web site
+    command: "a2ensite {{ product_name }}-maintenance"
+    ignore_errors: true
+
+  - name: disable {{ product_name }} web site
+    command: "a2dissite {{ product_name }}-ui"
+
+  - name: restart apache with maintenance site
+    service:
+      name: "{{ webserver_package_name }}"
+      state: restarted     
+
+  when: "installation_mode == 'upgrade' and inventory_hostname in groups['frontends']"
+  become: true
+
+
+- name: stop importer service before making any changes
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+  become: true
+  when: "inventory_hostname in groups['importers'] and not installation_mode == 'new'"
+  loop:
+    - "{{ product_name }}-importer-legacy"
+    - "{{ product_name }}-importer-api"

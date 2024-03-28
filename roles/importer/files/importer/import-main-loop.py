@@ -71,8 +71,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    logLockerTask = LogLockerTask()     # create logLocker
-    logLockerTask.start()           # start Log locking
+    # logLockerTask = LogLockerTask()     # create logLocker
+    # logLockerTask.start()           # start Log locking
 
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 
@@ -192,6 +192,6 @@ if __name__ == '__main__':
             counter += 1
 
     # got break signal stopping background process for handling log locking
-    logLockerTask.stop()
-    logLockerTask.join()
+    # logLockerTask.stop()
+    # logLockerTask.join()
     logger.info("importer-main-loop exited gracefully.")

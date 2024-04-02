@@ -20,8 +20,10 @@
                             <div class="btn-group">
                                 @if((context.ApproverDn == null || context.ApproverDn == "") && !ReqHandler.AddTicketMode && !ReqHandler.ReadOnlyMode)
                                 {
-                                    <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">@(userConfig.GetText("add_comment"))</button>
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 }
                             </div>
                         </Template>

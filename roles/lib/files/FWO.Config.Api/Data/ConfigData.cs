@@ -249,6 +249,21 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
         public string ModCommonAreas { get; set; } = "";
 
+        [JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
+        public string ModReqInterfaceName { get; set; } = "";
+
+        [JsonProperty("modReqEmailSubject"), JsonPropertyName("modReqEmailSubject")]
+        public string ModReqEmailSubject { get; set; } = "";
+
+        [JsonProperty("modReqEmailBody"), JsonPropertyName("modReqEmailBody")]
+        public string ModReqEmailBody { get; set; } = "";
+
+        [JsonProperty("modReqTicketTitle"), JsonPropertyName("modReqTicketTitle")]
+        public string ModReqTicketTitle { get; set; } = "";
+
+        [JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
+        public string ModReqTaskTitle { get; set; } = "";
+
 
         public ConfigData(bool editable = false)
         {

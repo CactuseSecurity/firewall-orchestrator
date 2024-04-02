@@ -3,11 +3,12 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@page "/request/reviews"
+@page "/request/reviews/{ticketId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reviewer}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
 <h3>@(userConfig.GetText("reviews"))</h3>
 <hr />
@@ -31,6 +32,9 @@ else
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
+    [Parameter]
+    public string? TicketId { get; set; }
+
     private RequestHandler reqHandler = new RequestHandler();
     private RequestStateDict states = new RequestStateDict();
     private bool InitComplete = false;
@@ -45,6 +49,7 @@ else
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.review){};
             await Reset();
+            await HandleTicketId();
             reqHandler.SetContinueEnv(ObjAction.review);
     
             InitComplete = true;
@@ -52,6 +57,18 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private async Task HandleTicketId()
+    {
+        if(long.TryParse(TicketId, out long ticketId))
+        {
+            string newPhase = await reqHandler.HandleExtTicketId(WorkflowPhases.review, ticketId);
+            if(newPhase != "")
+            {
+                NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
+            }
         }
     }
 

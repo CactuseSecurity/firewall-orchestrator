@@ -10,6 +10,7 @@ namespace FWO.Ui.Services
 {
     public class ModellingConnectionHandler : ModellingHandlerBase
     {
+        public List<FwoOwner> AllApps { get; set; } = new();
         public List<ModellingConnection> Connections { get; set; } = new();
         public List<ModellingConnection> PreselectedInterfaces { get; set; } = new();
         public ModellingConnection ActConn { get; set; } = new();
@@ -35,6 +36,7 @@ namespace FWO.Ui.Services
         public bool RemovePreselectedInterfaceMode = false;
         public bool DisplaySelectedInterfaceMode = false;
         public ModellingConnectionHandler? IntConnHandler;
+        public int RequesterId = 0;
 
         public List<ModellingAppServer> SrcAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = new();
@@ -69,12 +71,12 @@ namespace FWO.Ui.Services
         public bool DeleteSvcGrpMode = false;
         public bool DisplaySvcGrpMode = false;
 
-        private List<FwoOwner> allApps = new();
         private ModellingAppRole actAppRole = new();
         private ModellingNwGroup actNwGrpObj = new();
         private ModellingConnection actInterface = new();
         private ModellingServiceGroup actServiceGroup = new();
         private ModellingConnection ActConnOrig { get; set; } = new();
+        private bool InitOngoing = false;
 
 
         public ModellingConnectionHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -92,12 +94,31 @@ namespace FWO.Ui.Services
         {
             try
             {
-                PreselectedInterfaces = ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();
-                await InitAvailableNWObjects();
-                await InitAvailableSvcObjects();
-                RefreshSelectedNwObjects();
-                InterfaceName = await ExtractUsedInterface(ActConn);
-                allApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                if(!InitOngoing)
+                {
+                    InitOngoing = true;
+                    await RefreshPreselectedInterfaces();
+                    PreselectedInterfaces = ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();
+                    await InitAvailableNWObjects();
+                    await InitAvailableSvcObjects();
+                    RefreshSelectableNwObjects();
+                    InterfaceName = await ExtractUsedInterface(ActConn);
+                    AllApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                    InitOngoing = false;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        public async Task RefreshPreselectedInterfaces()
+        {
+            try
+            {
+                PreselectedInterfaces = ModellingConnectionWrapper.Resolve(
+                    await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();
             }
             catch (Exception exception)
             {
@@ -141,6 +162,7 @@ namespace FWO.Ui.Services
         {
             try
             {
+                AvailableSvcElems = new();
                 AvailableServiceGroups = (await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups)).Where(x => x.AppId != Application.Id).ToList();
                 AvailableServiceGroups.AddRange(await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id }));
                 AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id });
@@ -162,11 +184,38 @@ namespace FWO.Ui.Services
             }
         }
 
+        //public async Task CreateNewRequestedInterface(System.Security.Claims.ClaimsPrincipal user)
+        public async Task CreateNewRequestedInterface(long ticketId, bool asSource, string name)
+        {
+            //apiConnection.SetProperRole(user, new List<string> { Roles.Modeller, Roles.Admin });
+            ActConn.TicketId = ticketId;
+            string ticketIdString = "(Ticket: "+ ActConn.TicketId.ToString() + ")";
+            ActConn.Name = name + ticketIdString;
+            ActConn.Reason = ticketIdString; // link?
+            ActConn.IsInterface = true;
+            ActConn.IsRequested = true;
+            ModellingAppRoleHandler appRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), true, DisplayMessageInUi);
+            ModellingAppRole dummyAppRole = await appRoleHandler.GetDummyAppRole();
+            if(asSource)
+            {
+                ActConn.SourceAppRoles.Add(new() { Content = dummyAppRole });
+            }
+            else
+            {
+                ActConn.DestinationAppRoles.Add(new() { Content = dummyAppRole });
+            }
+            await AddConnectionToDb();
+
+            ActConn.AppId = RequesterId;
+            await AddToPreselectedList(ActConn);
+            //apiConnection.SwitchBack();
+        }
+
         public string DisplayInterface(ModellingConnection? inter)
         {
             if(inter != null)
             {
-                FwoOwner? app = allApps.FirstOrDefault(x => x.Id == inter.AppId);
+                FwoOwner? app = AllApps.FirstOrDefault(x => x.Id == inter.AppId);
                 if(app != null)
                 {
                     return inter.DisplayWithOwner(app);
@@ -176,7 +225,7 @@ namespace FWO.Ui.Services
             return "";
         }
 
-        public bool RefreshSelectedNwObjects()
+        public bool RefreshSelectableNwObjects()
         {
             AvailableNwElems = new();
             foreach(var obj in AvailableCommonAreas)
@@ -209,6 +258,8 @@ namespace FWO.Ui.Services
             svcReadOnly = true;
             ActConn.IsInterface = false;
             ActConn.UsedInterfaceId = interf.Id;
+            ActConn.InterfaceIsRequested = interf.IsRequested;
+            ActConn.TicketId = interf.TicketId;
             if(srcReadOnly)
             {
                 ActConn.SourceAppServers = new List<ModellingAppServerWrapper>(interf.SourceAppServers){};
@@ -247,6 +298,8 @@ namespace FWO.Ui.Services
             ActConn.Services = new();
             ActConn.ServiceGroups = new();
             ActConn.UsedInterfaceId = null;
+            ActConn.InterfaceIsRequested = false;
+            ActConn.TicketId = null;
             srcReadOnly = false;
             dstReadOnly = false;
             svcReadOnly = false;
@@ -277,7 +330,7 @@ namespace FWO.Ui.Services
 
         public async Task DisplaySelectedInterface(ModellingConnection interf)
         {
-            FwoOwner? app = allApps.FirstOrDefault(x => x.Id == interf.AppId);
+            FwoOwner? app = AllApps.FirstOrDefault(x => x.Id == interf.AppId);
             IntConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, app ?? new(), Connections, interf, false, true, DisplayMessageInUi, false);
             await IntConnHandler.Init();
             DisplaySelectedInterfaceMode = true;
@@ -880,6 +933,8 @@ namespace FWO.Ui.Services
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
+                    isRequested = ActConn.IsRequested,
+                    ticketId = ActConn.TicketId,
                     creator = userConfig.User.Name,
                     commonSvc = ActConn.IsCommonService
                 };
@@ -920,6 +975,27 @@ namespace FWO.Ui.Services
             }
         }
 
+        public async Task AddToPreselectedList(ModellingConnection? requestedInterface)
+        {
+            try
+            {
+                if(requestedInterface != null)
+                {
+                    var Variables = new
+                    {
+                        appId = requestedInterface.AppId,
+                        connectionId = requestedInterface.Id
+                    };
+                    await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedConnection, Variables);
+                    PreselectedInterfaces.Add(requestedInterface);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("add_interface"), "", true);
+            }
+        }
+
         private async Task UpdateConnectionInDb()
         {
             try
@@ -932,6 +1008,7 @@ namespace FWO.Ui.Services
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
+                    isRequested = ActConn.IsRequested,
                     commonSvc = ActConn.IsCommonService
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);

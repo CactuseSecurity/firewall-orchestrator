@@ -47,6 +47,27 @@ namespace FWO.Ui.Services
             return (MarkupString)(userConfig.ModIconify ? iconToDisplay + iconTextPart + objIconToDisplay : userConfig.GetText(text));
         }
 
+        public string DisplayApp(FwoOwner app)
+        {
+            return DisplayApp(userConfig, app);
+        }
+
+        public static string DisplayApp(UserConfig userConfig, FwoOwner app)
+        {
+            string tooltip = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9004")}\"")
+                : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9003")}\"";
+            string textToDisplay = (app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "*") : "!") + app.Display(userConfig.GetText("common_service"));
+            string textClass = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "text-success") : "text-danger";
+            return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
+        }
+
+        public static string DisplayReqInt(UserConfig userConfig, long? ticketId)
+        {
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9007")}\"";
+            string content = $"{userConfig.GetText("interface_requested")}: ({ticketId?.ToString()})";
+            return $"<span class=\"text-danger\" {tooltip}><i>{content}</i></span>";
+        }
+
         protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text, int? applicationId)
         {
             try
@@ -152,23 +173,31 @@ namespace FWO.Ui.Services
                     List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
                     if(interf.Count > 0)
                     {
-                        interfaceName = interf[0].Name ?? "";
-                        if(interf[0].SourceFilled())
+                        conn.SrcFromInterface = interf[0].SourceFilled();
+                        conn.DstFromInterface = interf[0].DestinationFilled();
+                        if(interf[0].IsRequested)
                         {
-                            conn.SrcFromInterface = true;
-                            conn.SourceAppServers = interf[0].SourceAppServers;
-                            conn.SourceAppRoles = interf[0].SourceAppRoles;
-                            conn.SourceNwGroups = interf[0].SourceNwGroups;
+                            conn.InterfaceIsRequested = true;
+                            conn.TicketId = interf[0].TicketId;
                         }
-                        if(interf[0].DestinationFilled())
+                        else
                         {
-                            conn.DstFromInterface = true;
-                            conn.DestinationAppServers = interf[0].DestinationAppServers;
-                            conn.DestinationAppRoles = interf[0].DestinationAppRoles;
-                            conn.DestinationNwGroups = interf[0].DestinationNwGroups;
+                            interfaceName = interf[0].Name ?? "";
+                            if(interf[0].SourceFilled())
+                            {
+                                conn.SourceAppServers = interf[0].SourceAppServers;
+                                conn.SourceAppRoles = interf[0].SourceAppRoles;
+                                conn.SourceNwGroups = interf[0].SourceNwGroups;
+                            }
+                            if(interf[0].DestinationFilled())
+                            {
+                                conn.DestinationAppServers = interf[0].DestinationAppServers;
+                                conn.DestinationAppRoles = interf[0].DestinationAppRoles;
+                                conn.DestinationNwGroups = interf[0].DestinationNwGroups;
+                            }
+                            conn.Services = interf[0].Services;
+                            conn.ServiceGroups = interf[0].ServiceGroups;
                         }
-                        conn.Services = interf[0].Services;
-                        conn.ServiceGroups = interf[0].ServiceGroups;
                     }  
                 }
             }

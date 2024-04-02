@@ -19,10 +19,10 @@ namespace FWO.Api.Client
     public class StateMatrix
     {
         [JsonProperty("matrix"), JsonPropertyName("matrix")]
-        public Dictionary<int, List<int>> Matrix { get; set; } = new Dictionary<int, List<int>>();
+        public Dictionary<int, List<int>> Matrix { get; set; } = new ();
 
         [JsonProperty("derived_states"), JsonPropertyName("derived_states")]
-        public Dictionary<int, int> DerivedStates { get; set; } = new Dictionary<int, int>();
+        public Dictionary<int, int> DerivedStates { get; set; } = new ();
 
         [JsonProperty("lowest_input_state"), JsonPropertyName("lowest_input_state")]
         public int LowestInputState { get; set; }
@@ -42,7 +42,7 @@ namespace FWO.Api.Client
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, TaskType taskType = TaskType.master)
         {
-            GlobalStateMatrix glbStateMatrix = new GlobalStateMatrix();
+            GlobalStateMatrix glbStateMatrix = new ();
             await glbStateMatrix.Init(apiConnection, taskType);
             Matrix = glbStateMatrix.GlobalMatrix[phase].Matrix;
             DerivedStates = glbStateMatrix.GlobalMatrix[phase].DerivedStates;
@@ -61,14 +61,22 @@ namespace FWO.Api.Client
             MinImplTasksNeeded = glbStateMatrix.GlobalMatrix[WorkflowPhases.implementation].LowestInputState;
         }
 
+        public bool getNextActivePhase(ref WorkflowPhases phase)
+        {
+            foreach (var tmpPhase in PhaseActive)
+            {
+                if (tmpPhase.Key > phase && tmpPhase.Value)
+                {
+                    phase = tmpPhase.Key;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public List<int> getAllowedTransitions(int stateIn)
         {
-            List<int> statesOut = new List<int>();
-            if(Matrix.ContainsKey(stateIn))
-            {
-                statesOut = Matrix[stateIn];
-            }
-            return statesOut;
+            return Matrix.ContainsKey(stateIn) ? Matrix[stateIn] : new ();
         }
 
         public int getDerivedStateFromSubStates(List<int> statesIn)
@@ -147,10 +155,11 @@ namespace FWO.Api.Client
             return stateOut;
         }
     }
+
     public class GlobalStateMatrix
     {
         [JsonProperty("config_value"), JsonPropertyName("config_value")]
-        public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = new Dictionary<WorkflowPhases, StateMatrix>();
+        public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = new ();
 
 
         public async Task Init(ApiConnection apiConnection, TaskType taskType = TaskType.master, bool reset = false)
@@ -165,6 +174,7 @@ namespace FWO.Api.Client
                 TaskType.group_create => "reqGrpCreStateMatrix",
                 TaskType.group_modify => "reqGrpModStateMatrix",
                 TaskType.group_delete => "reqGrpDelStateMatrix",
+                TaskType.new_interface => "reqNewIntStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
             };
 

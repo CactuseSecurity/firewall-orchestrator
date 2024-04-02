@@ -90,10 +90,10 @@
 
     private string getTableRowClass(ModellingConnection conn)
     {
-        @* if(conn.IsInterface)
+        if(conn.IsRequested)
         {
             return "td-bg-light-grey";
-        } *@
+        }
         return "";
     }
 }

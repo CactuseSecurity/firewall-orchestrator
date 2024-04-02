@@ -24,6 +24,33 @@ namespace FWO.Ui.Services
             this.userConfig = userConfig;
         }
 
+        public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, string reason = "")
+        {
+            await reqHandler.Init();
+            stateId = reqHandler.MasterStateMatrix.LowestEndState;
+            reqHandler.SelectTicket(new RequestTicket()
+                {
+                    StateId = stateId,
+                    Title = userConfig.ModReqTicketTitle,
+                    Requester = userConfig.User,
+                    Reason = reason
+                },
+                ObjAction.add);
+            reqHandler.SelectReqTask(new RequestReqTask()
+                {
+                    StateId = stateId,
+                    Title = userConfig.ModReqTaskTitle,
+                    TaskType = TaskType.new_interface.ToString(),
+                    Owners = new(){ new() { Owner = owner } },
+                    Reason = reason
+                },
+                ObjAction.add);
+            await reqHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = reqHandler.MasterStateMatrix.LowestEndState}));
+            reqHandler.ActTicket.Tasks.Add(reqHandler.ActReqTask);
+            reqHandler.AddTicketMode = true;
+            return await reqHandler.SaveTicket(reqHandler.ActTicket);
+        }
+
         public async Task CreateDecertRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
         {
             stateId = userConfig.RecDeleteRuleInitState;

@@ -121,6 +121,28 @@
                             </div>
                         </div>
                     }
+                    else if(actTaskType == TaskType.new_interface)
+                    {
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditReqTaskMode)
+                                    {
+                                        <Dropdown ElementType="FwoOwner" @bind-SelectedElement="actOwner" ElementToString="@(o => o.Name)" Elements="ReqHandler.AllOwners">
+                                            <ElementTemplate Context="owner">
+                                                @owner.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@actOwner?.Name</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
                 </div>
                 @if(actTaskType == TaskType.generic)
                 {
@@ -228,7 +250,8 @@
                             <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                             @if(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
                             {
-                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                             }
                         </div>
                         <div class="col-sm-11">
@@ -314,10 +337,10 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
 
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
@@ -329,23 +352,24 @@
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
-    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
-    private List<RuleAction> ruleActions = new List<RuleAction>();
-    private List<Tracking> trackings = new List<Tracking>();
+    private List<TaskType> availableTaskTypes { get; set; } = new ();
+    private List<RuleAction> ruleActions = new ();
+    private List<Tracking> trackings = new ();
 
-    private List<NwObjectElement> actSources = new List<NwObjectElement>();
-    private List<NwObjectElement> actDestinations = new List<NwObjectElement>();
-    private List<NwServiceElement> actServices = new List<NwServiceElement>();
-    private List<NwRuleElement> actRules = new List<NwRuleElement>();
+    private List<NwObjectElement> actSources = new ();
+    private List<NwObjectElement> actDestinations = new ();
+    private List<NwServiceElement> actServices = new ();
+    private List<NwRuleElement> actRules = new ();
     private TaskType actTaskType = TaskType.access;
 
-    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+    private List<RequestStateAction> offeredActions = new ();
     private string allComments = "";
     private IEnumerable<Device> selectedDevices { get; set; } = new List<Device>();
     private Device? actRuleDevice;
     private RuleAction? actRuleAction;
     private Tracking? actTracking;
-    bool firstParamSet = false;
+    private FwoOwner? actOwner;
+    private bool firstParamSet = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -353,6 +377,7 @@
         try
         {
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            actTaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.Last() : TaskType.access;
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
             InitElements();
@@ -373,7 +398,7 @@
                 InitElements();
                 await InitComments();
                 await Reset();
-                if(firstParamSet)
+                if(firstParamSet && !ReqHandler.AddReqTaskMode)
                 {
                     Enum.TryParse<TaskType>(ReqHandler.ActReqTask.TaskType, out actTaskType);
                     if(!availableTaskTypes.Contains(actTaskType))
@@ -423,6 +448,7 @@
         actRuleDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.getRuleDeviceId());
         actRuleAction = ruleActions.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.RuleAction);
         actTracking = trackings.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.Tracking);
+        actOwner = ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner ?? ReqHandler.AllOwners.FirstOrDefault() ?? new();
         StateHasChanged();
     }
 

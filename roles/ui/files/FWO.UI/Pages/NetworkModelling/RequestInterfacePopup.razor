@@ -1,0 +1,142 @@
+﻿@using FWO.Config.Api
+@using FWO.Middleware.Client
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+
+<PopUp Title="@(userConfig.GetText("request_interface"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div data-toggle="tooltip" title="@(userConfig.PureLine("C9005"))">
+                <SelectOwner @bind-SelectedOwner="SelectedOwner" Apps="Apps" />
+            </div>
+            <div class="row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("C9006"))">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("as_source")):</label>
+                <div class="col-sm-1">
+                    <input type="checkbox" class="w-100" @bind="AsSource">
+                </div>
+            </div>
+            <div class="row mt-2 me-auto">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <input type="text" class="col-sm-8" @bind="InterfaceName" />
+            </div>
+            <div class="row mt-2 me-auto">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason"))*:</label>
+                <textarea rows="5" type="text" class="col-sm-9" @bind="Reason" />
+            </div>
+        }
+    </Body>
+    <Footer>
+        @if(SelectedOwner.Id > 0)
+        {
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SendRequest">@(userConfig.GetText("request_interface"))</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_interface"))</button>
+        }
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public List<FwoOwner> Apps { get; set; } = new ();
+
+    [Parameter]
+    public FwoOwner Requester { get; set; } = new ();
+
+    [Parameter]
+    public Func<Task> UpdateParent { get; set; } = DefaultInit.DoNothing;
+
+    private FwoOwner SelectedOwner { get; set; } = new ();
+    private bool AsSource { get; set; } = false;
+    private string InterfaceName { get; set; } = "";
+    private string Reason { get; set; } = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if(Apps.Count > 0)
+        {
+            SelectedOwner = Apps.First();
+        }
+        InterfaceName = userConfig.ModReqInterfaceName;
+    }
+
+    private async Task SendRequest()
+    {
+        try
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin});
+            TicketCreator ticketCreator = new TicketCreator(apiConnection, userConfig);
+            long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, Reason);
+            apiConnection.SwitchBack();
+
+            if(ticketId > 0)
+            {
+                ModellingConnectionHandler ConnHandler = new (apiConnection, userConfig, SelectedOwner, 
+                    new(), new(), true, false, DisplayMessageInUi, false);
+                ConnHandler.RequesterId = Requester.Id;
+                await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName);
+                await SendEmail(ticketId);
+            }
+            await UpdateParent();
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("add_new_request"), "", true);
+        }
+    }
+
+    private async Task SendEmail(long ticketId)
+    {
+        try
+        {
+            EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
+            await emailHelper.Init();
+            string interfaceLink = $"http://localhost:5000/networkmodelling/{SelectedOwner.Id}";
+            string ticketLink = $"http://localhost:5000/request/tickets/{ticketId}";
+            string subject = userConfig.ModReqEmailSubject;
+            string body = $"{Requester.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
+                $"<a target=\"_blank\" href=\"{interfaceLink}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>" +
+                $"<a target=\"_blank\" href=\"{ticketLink}\">{userConfig.GetText("ticket")}: {ticketId.ToString()}</a>";
+            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
+            }
+            else
+            {
+                DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("E9011"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("send_email"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

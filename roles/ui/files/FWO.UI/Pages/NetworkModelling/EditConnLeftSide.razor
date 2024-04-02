@@ -55,11 +55,7 @@
                             @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
                     }
                 }
-                else if(selectedNwElems[0].Key == (int)ModellingTypes.ModObjectType.AppServer)
-                {
-
-                }
-                else
+                else if(selectedNwElems[0].Key != (int)ModellingTypes.ModObjectType.AppServer)
                 {
                     ModellingNwGroup? nwGroup = ResolveNwGroupObject(selectedNwElems[0].Value);
                     if(nwGroup != null && !nwGroup.IsDeleted && ConnHandler.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == nwGroup.Id) == null)
@@ -170,6 +166,10 @@
                         await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                         @(ConnHandler.DisplayButton("display_interface", Icons.Display))</button>
                 }
+                <button type="button" class="btn btn-sm btn-dark" @onclick="async () =>
+                    {await RequestNewInterface();
+                    await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                    @(ConnHandler.DisplayButton("request_interface", Icons.Workflow))</button>
             </div>
             <br>
         }
@@ -189,10 +189,11 @@
 <ConfirmDelete @bind-Display="ConnHandler.RemovePreselectedInterfaceMode" PerformAction="async () => await WrapAsync(ConnHandler.RemovePreselectedInterface)" 
     Title="@userConfig.GetText("remove_connection")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
 <SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects"
-    Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectedNwObjects"/>
+    Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectableNwObjects"/>
 <ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
     Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
 <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
+<RequestInterfacePopup @bind-Display="SelectAppMode" Apps="ConnHandler.AllApps" Requester="ConnHandler.Application" UpdateParent="async () => await WrapAsync(ConnHandler.RefreshPreselectedInterfaces)"/>
 
 
 @code
@@ -224,6 +225,7 @@
     private List<ModellingConnection> selectedInterfaces = new();
     private bool SearchInterfaceMode = false;
     private bool SearchNwObjectMode = false;
+    private bool SelectAppMode = false;
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
     
@@ -504,6 +506,11 @@
     private void SearchNwObject()
     {
         SearchNwObjectMode = true;
+    }
+
+    public async Task RequestNewInterface()
+    {
+        SelectAppMode = true;
     }
 
     private async Task DataInconsistent()

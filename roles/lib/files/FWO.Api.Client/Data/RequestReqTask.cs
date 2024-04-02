@@ -12,21 +12,21 @@ namespace FWO.Api.Data
         public long TicketId { get; set; }
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
-        public List<RequestReqElement> Elements { get; set; } = new List<RequestReqElement>();
+        public List<RequestReqElement> Elements { get; set; } = new ();
 
         [JsonProperty("implementation_tasks"), JsonPropertyName("implementation_tasks")]
-        public List<RequestImplTask> ImplementationTasks { get; set; } = new List<RequestImplTask>();
+        public List<RequestImplTask> ImplementationTasks { get; set; } = new ();
 
         [JsonProperty("request_approvals"), JsonPropertyName("request_approvals")]
-        public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
+        public List<RequestApproval> Approvals { get; set; } = new ();
 
         [JsonProperty("owners"), JsonPropertyName("owners")]
-        public List<FwoOwnerDataHelper> Owners { get; set; } = new List<FwoOwnerDataHelper>();
+        public List<FwoOwnerDataHelper> Owners { get; set; } = new ();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
+        public List<RequestCommentDataHelper> Comments { get; set; } = new ();
 
-        public List<RequestReqElement> RemovedElements { get; set; } = new List<RequestReqElement>();
+        public List<RequestReqElement> RemovedElements { get; set; } = new ();
 
 
         public RequestReqTask()

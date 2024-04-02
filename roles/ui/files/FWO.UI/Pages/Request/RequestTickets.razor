@@ -3,11 +3,12 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@page "/request/tickets"
+@page "/request/tickets/{ticketId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
 <h3>@(userConfig.GetText("create_ticket"))</h3>
 <hr />
@@ -30,7 +31,10 @@ else
     
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
-        
+
+    [Parameter]
+    public string? TicketId { get; set; }
+
     private RequestHandler reqHandler = new RequestHandler();
     private RequestStateDict states = new RequestStateDict();
     private bool InitComplete = false;
@@ -45,11 +49,24 @@ else
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
             await Reset();
+            await HandleTicketId();
             InitComplete = true;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private async Task HandleTicketId()
+    {
+        if(long.TryParse(TicketId, out long ticketId))
+        {
+            string newPhase = await reqHandler.HandleExtTicketId(WorkflowPhases.request, ticketId);
+            if(newPhase != "")
+            {
+                NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
+            }
         }
     }
 

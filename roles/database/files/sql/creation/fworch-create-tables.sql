@@ -1328,7 +1328,8 @@ create table modelling.connection
 	reason Text,
 	is_interface boolean default false,
 	used_interface_id int,
-	is_proposal boolean default false,
+	is_requested boolean default false,
+	ticket_id bigint,
 	common_service boolean default false,
 	creator Varchar,
 	creation_date timestamp default now()

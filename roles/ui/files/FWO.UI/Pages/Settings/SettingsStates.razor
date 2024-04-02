@@ -142,12 +142,12 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestState> states = new List<RequestState>();
-    private List<int> usedStateIds = new List<int>();
-    private RequestStateDict statesDict = new RequestStateDict();
-    private RequestState actState = new RequestState();
+    private List<RequestState> states = new ();
+    private List<int> usedStateIds = new ();
+    private RequestStateDict statesDict = new ();
+    private RequestState actState = new ();
 
-    private List<RequestStateAction> actions = new List<RequestStateAction>();
+    private List<RequestStateAction> actions = new ();
     private RequestStateAction? selectedAction;
 
     private bool EditStateMode = false;

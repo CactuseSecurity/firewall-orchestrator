@@ -5,6 +5,8 @@ fragment connectionDetails on modelling_connection {
   reason
   is_interface
   used_interface_id
+  is_requested
+  ticket_id
   common_service
   creator
   creation_date

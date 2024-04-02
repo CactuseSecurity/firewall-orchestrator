@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 
 namespace FWO.Ui.Services
 {
@@ -26,18 +27,19 @@ namespace FWO.Ui.Services
 
     public class RequestHandler
     {
-        public List<RequestTicket> TicketList { get; set; } = new List<RequestTicket>();
-        public RequestTicket ActTicket { get; set; } = new RequestTicket();
-        public RequestReqTask ActReqTask { get; set; } = new RequestReqTask();
-        public RequestImplTask ActImplTask { get; set; } = new RequestImplTask();
-        public RequestApproval ActApproval { get; set; } = new RequestApproval();
+        public List<RequestTicket> TicketList { get; set; } = new ();
+        public RequestTicket ActTicket { get; set; } = new ();
+        public RequestReqTask ActReqTask { get; set; } = new ();
+        public RequestImplTask ActImplTask { get; set; } = new ();
+        public RequestApproval ActApproval { get; set; } = new ();
 
         public WorkflowPhases Phase = WorkflowPhases.request;
-        public List<Device> Devices = new List<Device>();
-        public List<RequestPriority> PrioList = new List<RequestPriority>();
-        public List<RequestImplTask> AllImplTasks = new List<RequestImplTask>();
-        public StateMatrix ActStateMatrix = new StateMatrix();
-        public StateMatrix MasterStateMatrix = new StateMatrix();
+        public List<Device> Devices = new ();
+        public List<FwoOwner> AllOwners = new ();
+        public List<RequestPriority> PrioList = new ();
+        public List<RequestImplTask> AllImplTasks = new ();
+        public StateMatrix ActStateMatrix = new ();
+        public StateMatrix MasterStateMatrix = new ();
         public ActionHandler ActionHandler;
         public bool ReadOnlyMode = false;
 
@@ -69,9 +71,9 @@ namespace FWO.Ui.Services
         
 
         private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
-        private UserConfig userConfig;
+        public UserConfig userConfig;
         private readonly ApiConnection apiConnection;
-        private StateMatrixDict stateMatrixDict = new StateMatrixDict();
+        private StateMatrixDict stateMatrixDict = new ();
         private RequestDbAccess dbAcc;
 
         private ObjAction contOption = ObjAction.display;
@@ -92,10 +94,11 @@ namespace FWO.Ui.Services
 
         public async Task Init(int viewOpt = 0)
         {
-            ActionHandler = new ActionHandler(apiConnection, this);
+            ActionHandler = new (apiConnection, this);
             await ActionHandler.Init();
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
-            Devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             await stateMatrixDict.Init(Phase, apiConnection);
             MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
             TicketList = await dbAcc.FetchTickets(MasterStateMatrix, viewOpt);
@@ -179,6 +182,55 @@ namespace FWO.Ui.Services
 
         // Tickets
 
+        public async Task<RequestTicket?> ResolveTicket(long ticketId)
+        {
+            List<RequestTicket> AllTicketList = await dbAcc.FetchTickets(MasterStateMatrix, 2);
+            return AllTicketList.FirstOrDefault(x => x.Id == ticketId);
+        }
+
+        public async Task<string> HandleExtTicketId(WorkflowPhases phase, long ticketId)
+        {
+            RequestTicket? ticket = await ResolveTicket(ticketId);
+            if(ticket != null)
+            {
+                if(ticket.StateId < MasterStateMatrix.LowestEndState)
+                {
+                    SelectTicket(ticket, ObjAction.edit);
+                }
+                else if(MasterStateMatrix.IsLastActivePhase)
+                {
+                    SelectTicket(ticket, ObjAction.display);
+                }
+                else
+                {
+                    (WorkflowPhases newPhase, bool foundNewPhase) = await FindNewPhase(phase, ticket.StateId);
+                    if(foundNewPhase)
+                    {
+                        return newPhase.ToString();
+                    }
+                }
+            }
+            return "";
+        }
+
+        private async Task<(WorkflowPhases, bool)> FindNewPhase(WorkflowPhases phase, int stateId)
+        {
+            bool foundNewPhase = false;
+            GlobalStateMatrix glbStateMatrix = new ();
+            await glbStateMatrix.Init(apiConnection, TaskType.master);
+            bool cont = true;
+            while(cont)
+            {
+                bool newPhase = MasterStateMatrix.getNextActivePhase(ref phase);
+                if(newPhase)
+                {
+                    foundNewPhase = true;
+                }
+                cont = stateId >= glbStateMatrix.GlobalMatrix[phase].LowestEndState && newPhase;
+            }
+            return (phase, foundNewPhase);
+        }
+
         public void SelectTicket(RequestTicket ticket, ObjAction action)
         {
             SetTicketEnv(ticket);
@@ -229,7 +281,7 @@ namespace FWO.Ui.Services
             DisplaySaveTicketMode = false;
         }
 
-        public async Task SaveTicket(RequestStatefulObject ticket)
+        public async Task<long> SaveTicket(RequestStatefulObject ticket)
         {
             try
             {
@@ -288,11 +340,13 @@ namespace FWO.Ui.Services
                 await UpdateActTicketStateFromReqTasks();
 
                 ResetTicketActions();
+                return ActTicket.Id;
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("save_request"), "", true);
             }
+            return 0;
         }
 
         public async Task PromoteTicket(RequestStatefulObject ticket)

@@ -85,6 +85,7 @@ namespace FWO.Api.Data
         public const string Matrix = "oi oi-grid-four-up";
         public const string Action = "oi oi-arrow-right";
         public const string Phase = "oi oi-loop-square";
+        public const string Assign = "oi oi-arrow-thick-right"; // "oi-arrow-circle-right" ?
         
         // Monitoring
         public const string Alarm = "oi oi-bell";

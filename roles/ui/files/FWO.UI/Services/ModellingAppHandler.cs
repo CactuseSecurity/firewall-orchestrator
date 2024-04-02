@@ -98,6 +98,11 @@ namespace FWO.Ui.Services
 
         public List<string> GetSrcNames(ModellingConnection conn)
         {
+            if((conn.InterfaceIsRequested && conn.SrcFromInterface) || (conn.IsRequested && conn.SourceFilled()))
+            {
+                return new () { ModellingHandlerBase.DisplayReqInt(userConfig, conn.TicketId) };
+            }
+
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList();
             foreach(var nwGroup in nwGroups)
             {
@@ -118,6 +123,10 @@ namespace FWO.Ui.Services
         
         public List<string> GetDstNames(ModellingConnection conn)
         {
+            if((conn.InterfaceIsRequested && conn.DstFromInterface) || (conn.IsRequested && conn.DestinationFilled()))
+            {
+                return new () { ModellingHandlerBase.DisplayReqInt(userConfig, conn.TicketId) };
+            }
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList();
             foreach(var nwGroup in nwGroups)
             {
@@ -138,6 +147,10 @@ namespace FWO.Ui.Services
 
         public List<string> GetSvcNames(ModellingConnection conn)
         {
+            if(conn.InterfaceIsRequested || conn.IsRequested)
+            {
+                return new () { ModellingHandlerBase.DisplayReqInt(userConfig, conn.TicketId) };
+            }
             List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
             return names;

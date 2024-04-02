@@ -161,7 +161,28 @@
             <input type="time" step="60" class="col-sm-2" @bind="subnetDataTime" />
             <input type="date" class="col-sm-2" @bind="subnetDataDate" />
         </div>
+        <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5622"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqInterfaceName")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqInterfaceName" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqEmailSubject" />
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5624"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailBody")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModReqEmailBody"></textarea>
+        </div>
     </form>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqTicketTitle" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
+        </div>
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>

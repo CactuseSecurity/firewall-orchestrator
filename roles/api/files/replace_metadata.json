@@ -1014,15 +1014,17 @@
                       }
                     },
                     "columns": [
-                      "common_service",
-                      "is_interface",
-                      "creator",
-                      "name",
                       "app_id",
+                      "common_service",
+                      "creation_date",
+                      "creator",
                       "id",
-                      "used_interface_id",
+                      "is_interface",
+                      "is_requested",
+                      "name",
                       "reason",
-                      "creation_date"
+                      "used_interface_id",
+                      "ticket_id"
                     ]
                   },
                   "comment": ""
@@ -1033,15 +1035,17 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "common_service",
-                      "is_interface",
-                      "creator",
-                      "name",
                       "app_id",
+                      "common_service",
+                      "creation_date",
+                      "creator",
                       "id",
-                      "used_interface_id",
+                      "is_interface",
+                      "is_requested",
+                      "name",
                       "reason",
-                      "creation_date"
+                      "ticket_id",
+                      "used_interface_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1054,13 +1058,15 @@
                     "columns": [
                       "common_service",
                       "is_interface",
+                      "is_requested",
                       "creator",
                       "name",
                       "app_id",
                       "id",
                       "used_interface_id",
                       "reason",
-                      "creation_date"
+                      "creation_date",
+                      "ticket_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1073,15 +1079,17 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "common_service",
-                      "is_interface",
-                      "creator",
-                      "name",
                       "app_id",
+                      "common_service",
+                      "creation_date",
+                      "creator",
                       "id",
-                      "used_interface_id",
+                      "is_interface",
+                      "is_requested",
+                      "name",
                       "reason",
-                      "creation_date"
+                      "ticket_id",
+                      "used_interface_id"
                     ],
                     "filter": {
                       "app_id": {
@@ -6995,7 +7003,11 @@
                   "permission": {
                     "columns": [
                       "ldap_connection_id",
-                      "ldap_tenant_level"
+                      "ldap_name",
+                      "ldap_port",
+                      "ldap_server",
+                      "ldap_tenant_level",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -17648,11 +17660,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {

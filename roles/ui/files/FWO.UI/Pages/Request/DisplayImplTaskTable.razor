@@ -11,14 +11,18 @@
 @if (ReqHandler.PlanReqTaskMode)
 {
     <div class="btn-group">
-        <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">@(userConfig.GetText("create_implementation"))</button>
+        <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">
+            @(ModellingHandlerBase.DisplayButton(userConfig, "create_implementation", Icons.Add))</button>
         @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
         {
-            <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">@(userConfig.GetText("check_impltasks"))</button>
-            <button type="button" class="btn btn-warning m-2" @onclick:preventDefault @onclick="AutocreateImplTasks">@(userConfig.GetText("auto_create_impltasks"))</button>
+            <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">
+                @(userConfig.GetText("check_impltasks"))</button>
+            <button type="button" class="btn btn-warning m-2" @onclick:preventDefault @onclick="AutocreateImplTasks">
+                @(userConfig.GetText("auto_create_impltasks"))</button>
             @if(ReqHandler.ActReqTask.ImplementationTasks.Count > 0)
             {
-                <button type="button" class="btn btn-danger m-2" @onclick:preventDefault @onclick="CleanupImplTasks">@(userConfig.GetText("cleanup_impltasks"))</button>
+                <button type="button" class="btn btn-danger m-2" @onclick:preventDefault @onclick="CleanupImplTasks">
+                    @(userConfig.GetText("cleanup_impltasks"))</button>
             }
             else
             {
@@ -34,17 +38,21 @@
             <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">
+                            @(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
                         @if(!ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">@(userConfig.GetText("approvals"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
+                                @(userConfig.GetText("approvals"))</button>
                         }
                         @if (!ReqHandler.ReadOnlyMode)
                         {
                             @if (ReqHandler.PlanReqTaskMode && implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
                             {
-                                <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
+                                <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">
+                                    @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">
+                                    @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                             }
                             else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.TicketList.FirstOrDefault(x => x.Id == implTask.TicketId)?.StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
                             {
@@ -52,17 +60,21 @@
                                 {
                                     <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                                         <Authorized Context="ctx">
-                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">
+                                                @(ModellingHandlerBase.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
                                         </Authorized>
                                         <NotAuthorized Context="ctx">
-                                            <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                            <button type="button" class="btn btn-sm btn-warning" disabled>
+                                                @(ModellingHandlerBase.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
                                         </NotAuthorized>
                                     </AuthorizeView>
                                 }
                                 else if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
                                 {
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "continue_" + Phase.ToString(), Icons.Edit))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 }
                             }
                         }
@@ -160,10 +172,10 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
 
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
@@ -177,7 +189,7 @@
     [Parameter]
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new List<string>(){Roles.Implementer, Roles.FwAdmin};
+    static List<string> validRoles = new (){Roles.Implementer, Roles.FwAdmin};
     private bool DisplayInfo = false;
     private List<KeyValuePair<string, bool>> deviceCheck = new List<KeyValuePair<string, bool>>();
 
@@ -196,7 +208,7 @@
 
     private void AddImplTask()
     {
-        RequestImplTask newTask = new RequestImplTask(ReqHandler.ActReqTask, false)
+        RequestImplTask newTask = new (ReqHandler.ActReqTask, false)
         {
             TaskNumber = ReqHandler.ActReqTask.HighestImplTaskNumber() + 1,
             DeviceId = (ReqHandler.Devices.Count > 0 ? ReqHandler.Devices[0].Id : 0)

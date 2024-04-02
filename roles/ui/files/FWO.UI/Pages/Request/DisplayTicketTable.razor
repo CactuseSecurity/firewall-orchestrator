@@ -7,7 +7,7 @@
 
 @if(Phase == WorkflowPhases.request && !ReqHandler.ReadOnlyMode)
 {
-    <button type="button" class="btn btn-success m-2" @onclick="AddTicket">@(userConfig.GetText("add_new_request"))</button>
+    <button type="button" class="btn btn-success m-2" @onclick="AddTicket">@(ModellingHandlerBase.DisplayButton(userConfig, "add_new_request", Icons.Add))</button>
 }
 
 <div class="m-2 vheight75"> 
@@ -17,11 +17,11 @@
                 <div class="btn-group">
                     @if (Phase == WorkflowPhases.request && context.StateId < ReqHandler.MasterStateMatrix.LowestEndState && !ReqHandler.ReadOnlyMode)
                     {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTicket(context)">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTicket(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                     }
                     else
                     {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowTicketDetails(context)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowTicketDetails(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
                     }
                 </div>
             </Template>
@@ -74,10 +74,10 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
 
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
@@ -103,7 +103,7 @@
 
     private void AddTicket()
     {
-        ReqHandler.SelectTicket(new RequestTicket(){ Requester = userConfig.User }, ObjAction.add);
+        ReqHandler.SelectTicket(new (){ Requester = userConfig.User }, ObjAction.add);
     }
 
     private void EditTicket(RequestTicket ticket)

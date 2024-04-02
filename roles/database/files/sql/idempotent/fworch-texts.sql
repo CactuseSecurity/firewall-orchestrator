@@ -29,6 +29,8 @@ INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern'
 INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
 INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
 INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('new_interface',        'German', 	'Neue Schnittstelle');
+INSERT INTO txt VALUES ('new_interface',        'English', 	'New Interface');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
 INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
@@ -49,6 +51,10 @@ INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
 INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
 INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
 INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
+INSERT INTO txt VALUES ('CreateConnection',	    'German', 	'Verbindung anlegen');
+INSERT INTO txt VALUES ('CreateConnection',		'English', 	'Create Connection');
+INSERT INTO txt VALUES ('UpdateConnection',	    'German', 	'Verbindung &auml;ndern');
+INSERT INTO txt VALUES ('UpdateConnection',		'English', 	'Update Connection');
 INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
 INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
 INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');
@@ -1094,8 +1100,12 @@ INSERT INTO txt VALUES ('remove_interface', 	'German',	'Schnittstelle entfernen'
 INSERT INTO txt VALUES ('remove_interface', 	'English',	'Remove Interface');
 INSERT INTO txt VALUES ('display_interface',    'German',	'Schnittstelle darstellen');
 INSERT INTO txt VALUES ('display_interface',    'English',	'Display Interface');
-INSERT INTO txt VALUES ('propose_interface',    'German',	'Schnittstelle vorschlagen');
-INSERT INTO txt VALUES ('propose_interface',    'English',	'Propose Interface');
+INSERT INTO txt VALUES ('request_interface',    'German',	'Schnittstelle anfordern');
+INSERT INTO txt VALUES ('request_interface',    'English',	'Request Interface');
+INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnittstelle');
+INSERT INTO txt VALUES ('requested_interface',  'English',	'Requested Interface');
+INSERT INTO txt VALUES ('interface_requested',  'German',	'Schnittstelle angefordert');
+INSERT INTO txt VALUES ('interface_requested',  'English',	'Interface requested');
 INSERT INTO txt VALUES ('use',                  'German', 	'Benutzen');
 INSERT INTO txt VALUES ('use',                  'English', 	'Use');
 INSERT INTO txt VALUES ('services_group', 	    'German',	'Dienstgruppe');
@@ -1166,6 +1176,10 @@ INSERT INTO txt VALUES ('regular_connections', 	'German',	'Standard-Verbindungen
 INSERT INTO txt VALUES ('regular_connections', 	'English',	'Regular Connections');
 INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
 INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
+INSERT INTO txt VALUES ('as_source',            'German', 	'Als Quelle');
+INSERT INTO txt VALUES ('as_source',            'English', 	'As Source');
+INSERT INTO txt VALUES ('send_email',           'German', 	'Email senden');
+INSERT INTO txt VALUES ('send_email',           'English', 	'Send email');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -1794,6 +1808,16 @@ INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten
 INSERT INTO txt VALUES ('importSubnetDataStartAt','English','Import Subnet data start at');
 INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorgeschrieben');
 INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
+INSERT INTO txt VALUES ('modReqInterfaceName',  'German',   'Name der beantragten Schnittstelle');
+INSERT INTO txt VALUES ('modReqInterfaceName',  'English',  'Name of requested interface');
+INSERT INTO txt VALUES ('modReqEmailSubject',   'German',   'Titel der Antragsbenachrichtigung');
+INSERT INTO txt VALUES ('modReqEmailSubject',   'English',  'Subject of request emails');
+INSERT INTO txt VALUES ('modReqEmailBody',      'German',   'Text der Antragsbenachrichtigung');
+INSERT INTO txt VALUES ('modReqEmailBody',      'English',  'Body of request emails');
+INSERT INTO txt VALUES ('modReqTicketTitle',    'German',   'Titel des Schnittstellentickets');
+INSERT INTO txt VALUES ('modReqTicketTitle',    'English',  'Title of interface request ticket');
+INSERT INTO txt VALUES ('modReqTaskTitle',      'German',   'Titel des Schnittstellenauftrags');
+INSERT INTO txt VALUES ('modReqTaskTitle',      'English',  'Title of interface request task');
 INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
@@ -2259,6 +2283,8 @@ INSERT INTO txt VALUES ('U9007', 'German',  'Der folgende App Server wird verwen
 INSERT INTO txt VALUES ('U9007', 'English', 'Following App Server is in use. Are you sure you want to deactivate it: ');
 INSERT INTO txt VALUES ('U9008', 'German',  'Sind sie sicher, dass sie folgenden App Server l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U9008', 'English', 'Are you sure you want to delete App Server: ');
+INSERT INTO txt VALUES ('U9011', 'German',  'Benachrichtigung an App-Verantwortliche gesendet.');
+INSERT INTO txt VALUES ('U9011', 'English', 'Email sent to App responsibles.');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
@@ -2564,6 +2590,8 @@ INSERT INTO txt VALUES ('E9009', 'German',  'App Rolle kann nicht gel&ouml;scht 
 INSERT INTO txt VALUES ('E9009', 'English', 'App Role cannot be deleted because it is in use: ');
 INSERT INTO txt VALUES ('E9010', 'German',  'IP-Adresse wurde schon verwendet.');
 INSERT INTO txt VALUES ('E9010', 'English', 'IP address is already used.');
+INSERT INTO txt VALUES ('E9011', 'German',  'Benachrichtigung an App-Verantwortliche konnte nicht gesendet werden.');
+INSERT INTO txt VALUES ('E9011', 'English', 'Email could not be sent to App responsibles.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -2636,6 +2664,12 @@ INSERT INTO txt VALUES ('C9003', 'German',  'Diese App wurde deaktiviert.');
 INSERT INTO txt VALUES ('C9003', 'English', 'This app was deactivated.');
 INSERT INTO txt VALUES ('C9004', 'German',  'In dieser App wurden noch keine Verbindungen angelegt.');
 INSERT INTO txt VALUES ('C9004', 'English', 'In this app no connections have been created.');
+INSERT INTO txt VALUES ('C9005', 'German',  'W&auml;hlen Sie die App, in der die Schnittstelle voraussichtlich angelegt werden soll. Diese kann im Workflow ggf. noch ge&auml;ndert werden');
+INSERT INTO txt VALUES ('C9005', 'English', 'Select app where the interface presumably should be created. This may be changed within the workflow if necessary.');
+INSERT INTO txt VALUES ('C9006', 'German',  'Diese Schnittstelle als Quelle anlegen.');
+INSERT INTO txt VALUES ('C9006', 'English', 'Create this interface as source.');
+INSERT INTO txt VALUES ('C9007', 'German',  'angefrage Schnittstelle - noch auf der Gegenseite zu modellieren!');
+INSERT INTO txt VALUES ('C9007', 'English', 'requested interface - to be modelled in the counterpart!');
 
 
 -- help pages
@@ -4459,6 +4493,20 @@ INSERT INTO txt VALUES ('H5621', 'German',  'Ein Modellierer kann einige pers&ou
 INSERT INTO txt VALUES ('H5621', 'English', 'A modeller can overwrite some personal settings for the modelling layout. 
     The default value is set by the admin in the <a href="/help/settings/modelling">Modelling Settings</a>.
 ');
+INSERT INTO txt VALUES ('H5622', 'German',  'Name der beantragten Schnittstelle: Namensvorschlag bei der Beantragung einer Schnittstelle. Kann vom Antragsteller noch ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('H5622', 'English', 'Name of requested interface: Proposed name of the requested interface. Can be changed by the requester.');
+INSERT INTO txt VALUES ('H5623', 'German',  'Titel der Antragsbenachrichtigung: Betreff der Email-Benachrichtigung an die Beauftragten.');
+INSERT INTO txt VALUES ('H5623', 'English', 'Subject of request emails: Subject of the email to the addressed owners.');
+INSERT INTO txt VALUES ('H5624', 'German',  'Text der Antragsbenachrichtigung: Text der Email-Benachrichtigung an die Beauftragten. Wird noch durch Antragsteller (zu Beginn) und Beauftragtem (am Ende) erg&auml;nzt.
+    Hinzu kommt noch jeweils ein Link auf den Auftrag im Workflowmodul und auf die beauftragte Schnittstelle im Modellierungsmodul.
+');
+INSERT INTO txt VALUES ('H5624', 'English', 'Body of request emails: Text of the email notification to the addressed owners. Will be appended by the requester (at the beginning) and the addressed owner (at the end).
+    Additionally links to the request in the Workflow module and the requested interface in the Modelling module are added.
+');
+INSERT INTO txt VALUES ('H5625', 'German',  'Titel des Schnittstellentickets: Titel, mit dem ein neues Ticket zur Beantragung einer Schnittstelle angelegt wird.');
+INSERT INTO txt VALUES ('H5625', 'English', 'Title of interface request ticket: Title used for the new interface request ticket.');
+INSERT INTO txt VALUES ('H5626', 'German',  'Titel des Schnittstellenauftrags: Titel, mit dem ein neuer Auftrag im Ticket zur Beantragung einer Schnittstelle angelegt wird.');
+INSERT INTO txt VALUES ('H5626', 'English', 'Title of interface request ticket: Title used for the Task in the new interface request ticket.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

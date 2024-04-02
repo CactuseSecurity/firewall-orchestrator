@@ -5,6 +5,7 @@ mutation updateConnection(
   $reason: String
   $isInterface: Boolean
   $usedInterfaceId: Int
+  $isRequested: Boolean
   $commonSvc: Boolean
   ) {
   update_modelling_connection_by_pk(
@@ -15,6 +16,7 @@ mutation updateConnection(
       reason: $reason
       is_interface: $isInterface
       used_interface_id: $usedInterfaceId
+      is_requested: $isRequested
       common_service: $commonSvc
   }) {
     UpdatedId: id

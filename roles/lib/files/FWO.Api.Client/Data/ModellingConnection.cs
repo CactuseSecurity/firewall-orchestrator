@@ -26,6 +26,12 @@ namespace FWO.Api.Data
         [JsonProperty("used_interface_id"), JsonPropertyName("used_interface_id")]
         public long? UsedInterfaceId { get; set; }
 
+        [JsonProperty("is_requested"), JsonPropertyName("is_requested")]
+        public bool IsRequested { get; set; } = false;
+
+        [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
+        public long? TicketId { get; set; }
+
         [JsonProperty("common_service"), JsonPropertyName("common_service")]
         public bool IsCommonService { get; set; } = false;
 
@@ -60,6 +66,7 @@ namespace FWO.Api.Data
 
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
+        public bool InterfaceIsRequested { get; set; } = false;
 
         public int OrderNumber { get; set; } = 0;
 
@@ -76,6 +83,8 @@ namespace FWO.Api.Data
            Reason = conn.Reason;
            IsInterface = conn.IsInterface;
            UsedInterfaceId = conn.UsedInterfaceId;
+           IsRequested = conn.IsRequested;
+           TicketId = conn.TicketId;
            Creator = conn.Creator;
            CreationDate = conn.CreationDate;
            Services = new List<ModellingServiceWrapper>(conn.Services);
@@ -86,6 +95,9 @@ namespace FWO.Api.Data
            DestinationAppServers = new List<ModellingAppServerWrapper>(conn.DestinationAppServers);
            DestinationAppRoles = new List<ModellingAppRoleWrapper>(conn.DestinationAppRoles);
            DestinationNwGroups = new List<ModellingNwGroupWrapper>(conn.DestinationNwGroups);
+           SrcFromInterface = conn.SrcFromInterface;
+           DstFromInterface = conn.DstFromInterface;
+           InterfaceIsRequested = conn.InterfaceIsRequested;
         }
 
         public int CompareTo(ModellingConnection secondConnection)

@@ -99,6 +99,7 @@
                         </div>
                     </div>
                 }
+                <br>
 
                 @if(Phase < WorkflowPhases.implementation)
                 {
@@ -174,10 +175,10 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
     
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
@@ -189,8 +190,8 @@
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
-    private List<int> possibleStates = new List<int>();
-    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+    private List<int> possibleStates = new ();
+    private List<RequestStateAction> offeredActions = new ();
     private bool ConfirmCancelMode = false;
     private RequestPriority? selectedPriority;
 

@@ -29,10 +29,12 @@
                         <div class="col-sm-2">
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
                                 <Authorized>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { PrepAssign(); await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { PrepAssign(); await Assign(StatefulObject); await Close();}" @onclick:preventDefault>
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </Authorized>
                                 <NotAuthorized>
-                                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" disabled>
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </NotAuthorized> 
                             </AuthorizeView>
                         </div>
@@ -47,10 +49,12 @@
                         <label id="backAssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
                         <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>
+                                    @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                             </Authorized>
                             <NotAuthorized>
-                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign1"))</button>
+                                <button type="button" class="btn btn-sm btn-success" disabled>
+                                    @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                             </NotAuthorized> 
                         </AuthorizeView>
                     </form>

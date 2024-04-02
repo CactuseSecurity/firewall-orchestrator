@@ -396,6 +396,7 @@ else
                 TaskType.group_create => "reqGrpCreStateMatrix",
                 TaskType.group_modify => "reqGrpModStateMatrix",
                 TaskType.group_delete => "reqGrpDelStateMatrix",
+                TaskType.new_interface => "reqNewIntStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + actTaskType.ToString()),
             };
 

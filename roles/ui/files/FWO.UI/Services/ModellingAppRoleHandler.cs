@@ -82,6 +82,19 @@ namespace FWO.Ui.Services
             }
         }
 
+        public async Task<ModellingAppRole> GetDummyAppRole()
+        {
+            List<ModellingAppRole> dummyAppRole = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
+            if(dummyAppRole.Count > 0)
+            {
+                return dummyAppRole.First();
+            }
+            ActAppRole.Name = GlobalConst.kDummyAppRole;
+            ActAppRole.IdString = GlobalConst.kDummyAppRole;
+            await AddAppRoleToDb(null);
+            return ActAppRole;
+        }
+
         public async Task<bool> Save()
         {
             try
@@ -102,7 +115,7 @@ namespace FWO.Ui.Services
                     }
                     if(AddMode)
                     {
-                        await AddAppRoleToDb();
+                        await AddAppRoleToDb(Application.Id);
                     }
                     else
                     {
@@ -190,7 +203,7 @@ namespace FWO.Ui.Services
             return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
         }
 
-        private async Task AddAppRoleToDb()
+        private async Task AddAppRoleToDb(int? appId)
         {
             try
             {
@@ -198,7 +211,7 @@ namespace FWO.Ui.Services
                 {
                     name = ActAppRole.Name,
                     idString = ActAppRole.IdString,
-                    appId = Application.Id,
+                    appId = appId,
                     comment = ActAppRole.Comment,
                     creator = userConfig.User.Name
                 };

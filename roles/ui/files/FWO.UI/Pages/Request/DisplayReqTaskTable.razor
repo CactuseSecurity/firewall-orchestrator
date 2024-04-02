@@ -7,7 +7,7 @@
 
 @if (ReqHandler.EditTicketMode)
 {
-    <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddReqTask">@(userConfig.GetText("add_task"))</button>
+    <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddReqTask">@(ModellingHandlerBase.DisplayButton(userConfig, "add_task", Icons.Add))</button>
 }
 @if (ReqHandler.ActTicket.Tasks.Count > 0)
 {
@@ -16,15 +16,19 @@
             <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">
+                                @(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
                         @if(ReqHandler.StateMatrix(context.TaskType).PhaseActive[WorkflowPhases.approval])
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">@(userConfig.GetText("approvals"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">
+                                @(userConfig.GetText("approvals"))</button>
                         }
                         @if (ReqHandler.EditTicketMode && context.StateId < ReqHandler.StateMatrix(context.TaskType).LowestStartedState)
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">@(userConfig.GetText("edit"))</button>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">@(userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">
+                                @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">
+                                @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                         }
                         @if (Phase > WorkflowPhases.request && !ReqHandler.ReadOnlyMode)
                         {
@@ -32,7 +36,8 @@
                             {
                                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                                     <Authorized Context="ctx">
-                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartPhase(context)">
+                                            @(userConfig.GetText("start_" + Phase.ToString()))</button>
                                     </Authorized>
                                     <NotAuthorized Context="ctx">
                                         <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
@@ -41,10 +46,12 @@
                             }
                             else if (context.StateId < ReqHandler.StateMatrix(context.TaskType).LowestEndState)
                             {
-                                <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinuePhase(context)">
+                                    @(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                 @if(Phase == WorkflowPhases.planning)
                                 {
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 }
                             }
                         }
@@ -110,10 +117,10 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
 
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
@@ -124,7 +131,7 @@
     [Parameter]
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new List<string>(){Roles.Planner, Roles.FwAdmin};
+    static List<string> validRoles = new (){Roles.Planner, Roles.FwAdmin};
 
 
     private async Task Reset()

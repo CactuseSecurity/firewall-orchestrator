@@ -166,7 +166,8 @@
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                         @if(ReqHandler.ImplementImplTaskMode)
                         {
-                            <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
+                            <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
+                                @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                         }
                     </div>
                     <div class="col-sm-11">
@@ -228,30 +229,30 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
     
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+    public StateMatrix StateMatrix { get; set; } = new ();
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
 
-    private List<RuleAction> ruleActions = new List<RuleAction>();
-    private List<Tracking> trackings = new List<Tracking>();
+    private List<RuleAction> ruleActions = new ();
+    private List<Tracking> trackings = new ();
     
-    private List<NwObjectElement> actSources = new List<NwObjectElement>();
-    private List<NwObjectElement> actDestinations = new List<NwObjectElement>();
-    private List<NwServiceElement> actServices = new List<NwServiceElement>();
-    private List<NwRuleElement> actRules = new List<NwRuleElement>();
+    private List<NwObjectElement> actSources = new ();
+    private List<NwObjectElement> actDestinations = new ();
+    private List<NwServiceElement> actServices = new ();
+    private List<NwRuleElement> actRules = new ();
     private Device? actDevice;
     private RuleAction? actRuleAction;
     private Tracking? actTracking;
 
-    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+    private List<RequestStateAction> offeredActions = new ();
     private string allComments = "";
 
 

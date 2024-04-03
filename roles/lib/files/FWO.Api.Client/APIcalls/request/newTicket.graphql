@@ -5,6 +5,7 @@ mutation newTicket(
   $requesterId: Int
   $deadline: timestamp
   $priority: Int
+  $ownerId: Int
   $requestTasks: request_reqtask_arr_rel_insert_input
   ) {
   insert_request_ticket(objects: {
@@ -14,6 +15,7 @@ mutation newTicket(
     requester_id: $requesterId
     ticket_deadline: $deadline
     ticket_priority: $priority
+    owner_id: $ownerId
     reqtasks: $requestTasks
   }) {
     returning {

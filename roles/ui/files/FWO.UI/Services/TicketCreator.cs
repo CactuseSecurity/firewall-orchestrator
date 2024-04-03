@@ -33,6 +33,7 @@ namespace FWO.Ui.Services
                     StateId = stateId,
                     Title = userConfig.ModReqTicketTitle,
                     Requester = userConfig.User,
+                    Owner = owner,
                     Reason = reason
                 },
                 ObjAction.add);

@@ -61,7 +61,7 @@
     public List<FwoOwner> Apps { get; set; } = new ();
 
     [Parameter]
-    public FwoOwner Requester { get; set; } = new ();
+    public FwoOwner RequestingOwner { get; set; } = new ();
 
     [Parameter]
     public Func<Task> UpdateParent { get; set; } = DefaultInit.DoNothing;
@@ -85,26 +85,44 @@
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin});
-            TicketCreator ticketCreator = new TicketCreator(apiConnection, userConfig);
-            long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, Reason);
-            apiConnection.SwitchBack();
-
-            if(ticketId > 0)
+            if(CheckInput())
             {
-                ModellingConnectionHandler ConnHandler = new (apiConnection, userConfig, SelectedOwner, 
-                    new(), new(), true, false, DisplayMessageInUi, false);
-                ConnHandler.RequesterId = Requester.Id;
-                await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName);
-                await SendEmail(ticketId);
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin});
+                TicketCreator ticketCreator = new TicketCreator(apiConnection, userConfig);
+                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, Reason);
+                apiConnection.SwitchBack();
+
+                if(ticketId > 0)
+                {
+                    ModellingConnectionHandler ConnHandler = new (apiConnection, userConfig, SelectedOwner, 
+                        new(), new(), true, false, DisplayMessageInUi, false);
+                    ConnHandler.RequesterId = RequestingOwner.Id;
+                    await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName);
+                    await SendEmail(ticketId);
+                }
+                await UpdateParent();
+                Close();
             }
-            await UpdateParent();
-            Close();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("add_new_request"), "", true);
         }
+    }
+
+    private bool CheckInput()
+    {
+        if(Reason == "" || InterfaceName == "")
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_new_request"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if(SelectedOwner.Id == RequestingOwner.Id)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_new_request"), userConfig.GetText("E9012"), true);
+            return false;
+        }
+        return true;
     }
 
     private async Task SendEmail(long ticketId)
@@ -113,10 +131,10 @@
         {
             EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
             await emailHelper.Init();
-            string interfaceLink = $"http://localhost:5000/networkmodelling/{SelectedOwner.Id}";
+            string interfaceLink = $"http://localhost:5000/networkmodelling/{SelectedOwner.Id}"; // todo: correct url
             string ticketLink = $"http://localhost:5000/request/tickets/{ticketId}";
             string subject = userConfig.ModReqEmailSubject;
-            string body = $"{Requester.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
+            string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
                 $"<a target=\"_blank\" href=\"{interfaceLink}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>" +
                 $"<a target=\"_blank\" href=\"{ticketLink}\">{userConfig.GetText("ticket")}: {ticketId.ToString()}</a>";
             if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body))

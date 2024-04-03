@@ -1586,6 +1586,8 @@ INSERT INTO txt VALUES ('undefined',		    'German', 	'nicht definiert');
 INSERT INTO txt VALUES ('undefined',		    'English', 	'undefined');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
+INSERT INTO txt VALUES ('reqOwnerBased',        'German', 	'Eigent&uuml;merbasiert');
+INSERT INTO txt VALUES ('reqOwnerBased',        'English', 	'Owner based');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'English', 	'Allow object search');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
@@ -2592,6 +2594,8 @@ INSERT INTO txt VALUES ('E9010', 'German',  'IP-Adresse wurde schon verwendet.')
 INSERT INTO txt VALUES ('E9010', 'English', 'IP address is already used.');
 INSERT INTO txt VALUES ('E9011', 'German',  'Benachrichtigung an App-Verantwortliche konnte nicht gesendet werden.');
 INSERT INTO txt VALUES ('E9011', 'English', 'Email could not be sent to App responsibles.');
+INSERT INTO txt VALUES ('E9012', 'German',  'Die Schnittstelle sollte nicht in einer eigenen App beantragt werden.');
+INSERT INTO txt VALUES ('E9012', 'English', 'Interface should not be requested in own App.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -4324,13 +4328,15 @@ INSERT INTO txt VALUES ('H5564', 'English', 'Allow object search: During definit
 INSERT INTO txt VALUES ('H5565', 'German',  'Manuelle Eigent&uuml;merverwaltung erlauben: Es wird das manuelle Anlegen und Verwalten von Eigent&uuml;mern durch den Administrator gestattet.');
 INSERT INTO txt VALUES ('H5565', 'English', 'Allow manual owner administration: The manual creation and administration of owners can be permitted.');
 INSERT INTO txt VALUES ('H5566', 'German',  'Autom. Erzeugen von Implementierungs-Auftr&auml;gen: Ist die Planungs-Phase nicht aktiviert, so m&uuml;ssen aus den vorhandenen fachlichen Auftr&auml;gen automatisch jeweils ein oder mehrere Implementierungs-Auftr&auml;ge erzeugt werden.
-    Daf&uuml;r kann zwischen folgenden Optionen gew&auml;hlt werden:
+    Daf&uuml;r kann zwischen folgenden Optionen gew&auml;hlt werden (gilt nur f&uuml;r Auftragstyp "Zugriff"):
 ');
 INSERT INTO txt VALUES ('H5566', 'English', 'Auto-create implementation tasks: If the planning phase is not activated, one or more implementation tasks have to be created automatically from the request task.
-    Therefore the following options can be selected:
+    Therefore the following options can be selected (only valid for Task Type "access"):
 ');
 INSERT INTO txt VALUES ('H5567', 'German',  'Pfadanalyse aktivieren: Dem Planer werden Werkzeuge zur automatischen Pfadanalyse (Pr&uuml;fung, Erzeugen von Implementierungsauftr&auml;gen, Bereinigung) zur Verf&uuml;gung gestellt.');
 INSERT INTO txt VALUES ('H5567', 'English', 'Activate Path Analysis: The planner gets access to tools for automatic path analysis (check, creation of implementation tasks, cleanup).');
+INSERT INTO txt VALUES ('H5568', 'German',  'Eigent&uuml;merbasiert: Darstellung der Antr&auml;ge erfolgt nach Eigent&uuml;mern. diese k&ouml;nnen gegenseitig zugewiesen werden.');
+INSERT INTO txt VALUES ('H5568', 'English', 'Owner based: Display of tickets by ownwer. They can be assigned to each other.');
 INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Es wird kein Implementierungs-Auftrag erzeugt (nur sinnvoll, falls Implementierung und folgende Phasen nicht ben&ouml;tigt werden).');
 INSERT INTO txt VALUES ('H5571', 'English', 'Never: No implementation task is created (only reasonable, if implementation and following phases are not needed).');
 INSERT INTO txt VALUES ('H5572', 'German',  'Nur eines wenn Ger&auml;t vorhanden: Bei mindestens einem vorhandenen Ger&auml;t wird das erste der Liste eingetragen

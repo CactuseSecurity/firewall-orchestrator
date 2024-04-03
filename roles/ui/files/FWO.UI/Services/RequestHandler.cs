@@ -73,7 +73,7 @@ namespace FWO.Ui.Services
         private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         public UserConfig userConfig;
         private readonly ApiConnection apiConnection;
-        private StateMatrixDict stateMatrixDict = new ();
+        private readonly StateMatrixDict stateMatrixDict = new ();
         private RequestDbAccess dbAcc;
 
         private ObjAction contOption = ObjAction.display;
@@ -107,7 +107,7 @@ namespace FWO.Ui.Services
 
         public void FilterForRequester()
         {
-            List<RequestTicket> filteredTicketList = new List<RequestTicket>();
+            List<RequestTicket> filteredTicketList = new ();
             foreach(var ticket in TicketList)
             {
                 if(userConfig.User.DbId == ticket.Requester?.DbId)
@@ -301,7 +301,7 @@ namespace FWO.Ui.Services
                 if(ActTicket.Deadline == null)
                 {
                     int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
-                    ActTicket.Deadline = (tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null);
+                    ActTicket.Deadline = tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null;
                 }
 
                 if (AddTicketMode)
@@ -324,8 +324,7 @@ namespace FWO.Ui.Services
                 {
                     if(reqtask.StateId <= ActTicket.StateId)
                     {
-                        List<int> ticketStateList = new List<int>();
-                        ticketStateList.Add(ActTicket.StateId);
+                        List<int> ticketStateList = new () { ActTicket.StateId };
                         reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
                         await dbAcc.UpdateReqTaskStateInDb(reqtask);
                     }
@@ -407,8 +406,8 @@ namespace FWO.Ui.Services
         public void SetReqTaskMode(ObjAction action)
         {
             ResetReqTaskActions();
-            DisplayReqTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.approve || action == ObjAction.plan);
-            EditReqTaskMode = (action == ObjAction.edit || action == ObjAction.add);
+            DisplayReqTaskMode = action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.approve || action == ObjAction.plan;
+            EditReqTaskMode = action == ObjAction.edit || action == ObjAction.add;
             AddReqTaskMode = action == ObjAction.add;
             PlanReqTaskMode = action == ObjAction.plan;
             ApproveReqTaskMode = action == ObjAction.approve;
@@ -479,7 +478,7 @@ namespace FWO.Ui.Services
         public async Task AssignReqTaskGroup(RequestStatefulObject statefulObject)
         {
             ActReqTask.AssignedGroup = statefulObject.AssignedGroup;
-            ActReqTask.RecentHandler = (ActReqTask.CurrentHandler != null ? ActReqTask.CurrentHandler : userConfig.User);
+            ActReqTask.RecentHandler = ActReqTask.CurrentHandler != null ? ActReqTask.CurrentHandler : userConfig.User;
             if(CheckAssignValues(ActReqTask))
             {
                 await UpdateActReqTaskState();
@@ -490,7 +489,7 @@ namespace FWO.Ui.Services
         public async Task AssignReqTaskBack()
         {
             ActReqTask.AssignedGroup = ActReqTask.RecentHandler?.Dn;
-            ActReqTask.RecentHandler = (ActReqTask.CurrentHandler != null ? ActReqTask.CurrentHandler : userConfig.User);
+            ActReqTask.RecentHandler = ActReqTask.CurrentHandler != null ? ActReqTask.CurrentHandler : userConfig.User;
             await UpdateActReqTaskState();
             DisplayAssignMode = false;
         }
@@ -528,7 +527,7 @@ namespace FWO.Ui.Services
 
         public async Task ConfAddCommentToReqTask(string commentText)
         {
-            RequestComment comment = new RequestComment()
+            RequestComment comment = new ()
             {
                 Scope = RequestObjectScopes.RequestTask.ToString(),
                 CreationDate = DateTime.Now,
@@ -578,7 +577,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                PathAnalysisActionParams pathAnalysisParams = new PathAnalysisActionParams();
+                PathAnalysisActionParams pathAnalysisParams = new ();
                 if(extParams != "")
                 {
                     pathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(extParams) ?? throw new Exception("Extparams could not be parsed.");
@@ -587,7 +586,7 @@ namespace FWO.Ui.Services
                 switch(pathAnalysisParams.Option)
                 {
                     case PathAnalysisOptions.WriteToDeviceList:
-                        ActReqTask.SetDeviceList(await (new PathAnalysis(apiConnection)).getAllDevices(ActReqTask.Elements));
+                        ActReqTask.SetDeviceList(await new PathAnalysis(apiConnection).getAllDevices(ActReqTask.Elements));
                         break;
                     case PathAnalysisOptions.DisplayFoundDevices:
                         SetReqTaskPopUpOpt(ObjAction.displayPathAnalysis);
@@ -640,7 +639,7 @@ namespace FWO.Ui.Services
 
         public async Task AddApproval(string extParams = "")
         {
-            ApprovalParams approvalParams = new ApprovalParams();
+            ApprovalParams approvalParams = new ();
             if(extParams != "")
             {
                 approvalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new Exception("Extparams could not be parsed.");
@@ -649,19 +648,19 @@ namespace FWO.Ui.Services
             DateTime? deadline = null;
             if(extParams != "")
             {
-                deadline = (approvalParams.Deadline > 0 ? DateTime.Now.AddDays(approvalParams.Deadline) : null);
+                deadline = approvalParams.Deadline > 0 ? DateTime.Now.AddDays(approvalParams.Deadline) : null;
             }
             else
             {
                 int? appDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.ApprovalDeadline;
-                deadline = (appDeadline != null && appDeadline > 0 ? DateTime.Now.AddDays((int)appDeadline) : null);
+                deadline = appDeadline != null && appDeadline > 0 ? DateTime.Now.AddDays((int)appDeadline) : null;
             }
 
-            RequestApproval approval = new RequestApproval()
+            RequestApproval approval = new ()
             {
                 TaskId = ActReqTask.Id,
-                StateId = (extParams != "" ? approvalParams.StateId : ActStateMatrix.LowestEndState),
-                ApproverGroup = (extParams != "" ? approvalParams.ApproverGroup : ""), // todo: get from owner ???,
+                StateId = extParams != "" ? approvalParams.StateId : ActStateMatrix.LowestEndState,
+                ApproverGroup = extParams != "" ? approvalParams.ApproverGroup : "", // todo: get from owner ???,
                 TenantId = ActTicket.TenantId, // ??
                 Deadline = deadline,
                 InitialApproval = ActReqTask.Approvals.Count == 0
@@ -728,7 +727,7 @@ namespace FWO.Ui.Services
 
         public async Task ConfAddCommentToApproval(string commentText)
         {
-            RequestComment comment = new RequestComment()
+            RequestComment comment = new ()
             {
                 Scope = RequestObjectScopes.Approval.ToString(),
                 CreationDate = DateTime.Now,
@@ -778,8 +777,8 @@ namespace FWO.Ui.Services
         public void SetImplTaskOpt(ObjAction action)
         {
             ResetImplTaskActions();
-            DisplayImplTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.implement);
-            EditImplTaskMode = (action == ObjAction.edit || action == ObjAction.add);
+            DisplayImplTaskMode = action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.implement;
+            EditImplTaskMode = action == ObjAction.edit || action == ObjAction.add;
             AddImplTaskMode = action == ObjAction.add;
             ImplementImplTaskMode = action == ObjAction.implement;
         }
@@ -840,7 +839,7 @@ namespace FWO.Ui.Services
         public async Task AssignImplTaskGroup(RequestStatefulObject statefulObject)
         {
             ActImplTask.AssignedGroup = statefulObject.AssignedGroup;
-            ActImplTask.RecentHandler = (ActImplTask.CurrentHandler != null ? ActImplTask.CurrentHandler : userConfig.User);
+            ActImplTask.RecentHandler = ActImplTask.CurrentHandler != null ? ActImplTask.CurrentHandler : userConfig.User;
             if(CheckAssignValues(ActImplTask))
             {
                 await UpdateActImplTaskState();
@@ -851,7 +850,7 @@ namespace FWO.Ui.Services
         public async Task AssignImplTaskBack()
         {
             ActImplTask.AssignedGroup = ActImplTask.RecentHandler?.Dn;
-            ActImplTask.RecentHandler = (ActImplTask.CurrentHandler != null ? ActImplTask.CurrentHandler : userConfig.User);
+            ActImplTask.RecentHandler = ActImplTask.CurrentHandler != null ? ActImplTask.CurrentHandler : userConfig.User;
             await UpdateActImplTaskState();
             DisplayAssignMode = false;
         }
@@ -870,7 +869,7 @@ namespace FWO.Ui.Services
 
         public async Task ConfAddCommentToImplTask(string commentText)
         {
-            RequestComment comment = new RequestComment()
+            RequestComment comment = new ()
             {
                 Scope = RequestObjectScopes.ImplementationTask.ToString(),
                 CreationDate = DateTime.Now,
@@ -1015,7 +1014,7 @@ namespace FWO.Ui.Services
 
         public async Task CreateAccessImplTasksFromPathAnalysis(RequestReqTask reqTask)
         {
-            foreach(var device in await (new PathAnalysis(apiConnection)).getAllDevices(reqTask.Elements))
+            foreach(var device in await new PathAnalysis(apiConnection).getAllDevices(reqTask.Elements))
             {
                 if(reqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == device.Id) == null)
                 {
@@ -1065,7 +1064,7 @@ namespace FWO.Ui.Services
         {
             if (ActReqTask.Approvals.Count > 0)
             {
-                List<int> approvalStates = new List<int>();
+                List<int> approvalStates = new ();
                 foreach (var approval in ActReqTask.Approvals)
                 {
                     approvalStates.Add(approval.StateId);
@@ -1086,7 +1085,7 @@ namespace FWO.Ui.Services
         {
             if (reqTask.ImplementationTasks.Count > 0)
             {
-                List<int> implTaskStates = new List<int>();
+                List<int> implTaskStates = new ();
                 foreach (var implTask in reqTask.ImplementationTasks)
                 {
                     implTaskStates.Add(implTask.StateId);
@@ -1104,7 +1103,6 @@ namespace FWO.Ui.Services
 
         public async Task UpdateActTicketStateFromImplTasks()
         {
-            List<int> taskStates = new List<int>();
             foreach (RequestReqTask reqTask in ActTicket.Tasks)
             {
                 await UpdateReqTaskStateFromImplTasks(reqTask);
@@ -1116,7 +1114,7 @@ namespace FWO.Ui.Services
         {
             if (ActTicket.Tasks.Count > 0)
             {
-                List<int> taskStates = new List<int>();
+                List<int> taskStates = new ();
                 foreach (RequestReqTask tsk in ActTicket.Tasks)
                 {
                     taskStates.Add(tsk.StateId);

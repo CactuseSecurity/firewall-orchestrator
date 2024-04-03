@@ -212,7 +212,14 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            @if(ReqHandler.EditImplTaskMode || ReqHandler.ImplementImplTaskMode)
+            {
+                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+            }
         </div>
     </Footer>
 </PopUp>

@@ -191,6 +191,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
         public string ReqAvailableTaskTypes { get; set; } = "";
 
+        [JsonProperty("reqOwnerBased"), JsonPropertyName("reqOwnerBased")]
+        public bool ReqOwnerBased { get; set; } = false;
+
         [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
         public bool ReqAllowObjectSearch { get; set; } = false;
 

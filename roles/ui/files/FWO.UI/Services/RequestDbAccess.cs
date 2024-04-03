@@ -8,9 +8,9 @@ namespace FWO.Ui.Services
     public class RequestDbAccess
     {
         private Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
-        private UserConfig UserConfig;
-        private ApiConnection ApiConnection;
-        private ActionHandler ActionHandler;
+        private readonly UserConfig UserConfig;
+        private readonly ApiConnection ApiConnection;
+        private readonly ActionHandler ActionHandler;
 
 
         public RequestDbAccess(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, ApiConnection apiConnection, ActionHandler actionHandler)
@@ -23,14 +23,14 @@ namespace FWO.Ui.Services
 
         public async Task<List<RequestTicket>> FetchTickets(StateMatrix stateMatrix, int viewOpt = 0)
         {
-            List<RequestTicket> tickets = new List<RequestTicket>();
+            List<RequestTicket> tickets = new ();
             try
             {
                 // todo: filter own approvals, plannings...
                 var Variables = new
                 {
-                    from_state = (viewOpt < 2 ? stateMatrix.LowestInputState : 0),
-                    to_state = (viewOpt == 0 ? stateMatrix.LowestEndState : 999)
+                    from_state = viewOpt < 2 ? stateMatrix.LowestInputState : 0,
+                    to_state = viewOpt == 0 ? stateMatrix.LowestEndState : 999
                 };
                 tickets = await ApiConnection.SendQueryAsync<List<RequestTicket>>(RequestQueries.getTickets, Variables);
                 foreach (var ticket in tickets)
@@ -47,7 +47,7 @@ namespace FWO.Ui.Services
 
         public async Task<RequestTicket> GetTicket(int id)
         {
-            RequestTicket ticket = new RequestTicket();
+            RequestTicket ticket = new ();
             try
             {
                 var Variables = new
@@ -79,6 +79,7 @@ namespace FWO.Ui.Services
                     requesterId = ticket.Requester?.DbId,
                     deadline = ticket.Deadline,
                     priority = ticket.Priority,
+                    ownerId = ticket.Owner?.Id,
                     requestTasks = new RequestTicketWriter(ticket)
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newTicket, Variables)).ReturnIds;
@@ -260,7 +261,7 @@ namespace FWO.Ui.Services
                 {
                     requestAction = element.RequestAction,
                     taskId = element.TaskId,
-                    ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
+                    ip = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
                     port = element.Port,
                     proto = element.ProtoId,
                     networkObjId = element.NetworkId,
@@ -297,7 +298,7 @@ namespace FWO.Ui.Services
                     id = element.Id,                
                     requestAction = element.RequestAction,
                     taskId = element.TaskId,
-                    ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
+                    ip = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
                     port = element.Port,
                     proto = element.ProtoId,
                     networkObjId = element.NetworkId,
@@ -536,7 +537,7 @@ namespace FWO.Ui.Services
                 {
                     implementationAction = element.ImplAction,
                     implTaskId = element.ImplTaskId,
-                    ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
+                    ip = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
                     port = element.Port,
                     proto = element.ProtoId,
                     networkObjId = element.NetworkId,
@@ -572,7 +573,7 @@ namespace FWO.Ui.Services
                     id = element.Id,                
                     implementationAction = element.ImplAction,
                     implTaskId = element.ImplTaskId,
-                    ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
+                    ip = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
                     port = element.Port,
                     proto = element.ProtoId,
                     networkObjId = element.NetworkId,

@@ -16,6 +16,9 @@ fragment ticketDetails on request_ticket {
   external_ticket_source
   ticket_deadline
   ticket_priority
+  owner: owner {
+    ...ownerDetails
+  }
   reqtasks: reqtasks {
     ...reqTaskDetails
   }

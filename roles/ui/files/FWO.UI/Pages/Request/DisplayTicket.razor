@@ -142,7 +142,14 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            @if(ReqHandler.EditTicketMode || CheckPromoteTicket())
+            {
+                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+            }
         </div>
     </Footer>
 </PopUp>

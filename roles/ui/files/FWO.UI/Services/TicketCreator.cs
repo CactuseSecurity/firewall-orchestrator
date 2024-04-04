@@ -26,7 +26,7 @@ namespace FWO.Ui.Services
 
         public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, string reason = "")
         {
-            await reqHandler.Init();
+            await reqHandler.Init(new(){ owner.Id });
             stateId = reqHandler.MasterStateMatrix.LowestEndState;
             reqHandler.SelectTicket(new RequestTicket()
                 {
@@ -76,7 +76,7 @@ namespace FWO.Ui.Services
 
         private async Task CreateRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
         {
-            await reqHandler.Init();
+            await reqHandler.Init(new());
             reqHandler.ActTicket = new RequestTicket()
             {
                 StateId = stateId,

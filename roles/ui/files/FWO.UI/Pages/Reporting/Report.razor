@@ -228,6 +228,7 @@
     {
         try
         {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Auditor });
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
             {

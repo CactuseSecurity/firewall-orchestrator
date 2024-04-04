@@ -131,7 +131,7 @@ else
     {
         try
         {
-            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
             if (apps.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);

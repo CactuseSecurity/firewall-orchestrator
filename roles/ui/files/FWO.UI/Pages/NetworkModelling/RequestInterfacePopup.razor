@@ -30,14 +30,21 @@
         }
     </Body>
     <Footer>
-        @if(SelectedOwner.Id > 0)
-        {
-            <button type="button" class="btn btn-sm btn-primary" @onclick="SendRequest">@(userConfig.GetText("request_interface"))</button>
-        }
-        else
-        {
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_interface"))</button>
-        }
+        <AuthorizeView Roles="@Roles.Modeller">
+            <Authorized>
+                @if(SelectedOwner.Id > 0)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="SendRequest">@(userConfig.GetText("request_interface"))</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_interface"))</button>
+                }
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_interface"))</button>
+            </NotAuthorized> 
+        </AuthorizeView>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
@@ -131,8 +138,8 @@
         {
             EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
             await emailHelper.Init();
-            string interfaceLink = $"http://localhost:5000/networkmodelling/{SelectedOwner.Id}"; // todo: correct url
-            string ticketLink = $"http://localhost:5000/request/tickets/{ticketId}";
+            string interfaceLink = $"{userConfig.UiHostName}/networkmodelling/{SelectedOwner.Id}";
+            string ticketLink = $"{userConfig.UiHostName}/request/tickets/{ticketId}";
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
                 $"<a target=\"_blank\" href=\"{interfaceLink}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>" +

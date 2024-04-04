@@ -35,7 +35,7 @@ namespace FWO.Ui.Services
 
         public WorkflowPhases Phase = WorkflowPhases.request;
         public List<Device> Devices = new ();
-        public List<FwoOwner> AllOwners = new ();
+        public List<FwoOwner> AllOwners { get; set; } = new ();
         public List<RequestPriority> PrioList = new ();
         public List<RequestImplTask> AllImplTasks = new ();
         public StateMatrix ActStateMatrix = new ();
@@ -92,7 +92,7 @@ namespace FWO.Ui.Services
         }
 
 
-        public async Task Init(int viewOpt = 0)
+        public async Task Init(List<int> ownerIds, int viewOpt = 0)
         {
             ActionHandler = new (apiConnection, this);
             await ActionHandler.Init();
@@ -101,7 +101,7 @@ namespace FWO.Ui.Services
             AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             await stateMatrixDict.Init(Phase, apiConnection);
             MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
-            TicketList = await dbAcc.FetchTickets(MasterStateMatrix, viewOpt);
+            TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, viewOpt);
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
         }
 
@@ -184,7 +184,7 @@ namespace FWO.Ui.Services
 
         public async Task<RequestTicket?> ResolveTicket(long ticketId)
         {
-            List<RequestTicket> AllTicketList = await dbAcc.FetchTickets(MasterStateMatrix, 2);
+            List<RequestTicket> AllTicketList = await dbAcc.FetchTickets(MasterStateMatrix, AllOwners.ConvertAll(x => x.Id), 2);
             return AllTicketList.FirstOrDefault(x => x.Id == ticketId);
         }
 

@@ -37,6 +37,7 @@ else
 
     private RequestHandler reqHandler = new RequestHandler();
     private RequestStateDict states = new RequestStateDict();
+    private List<int> OwnerIds = new();
     private bool InitComplete = false;
 
 
@@ -47,6 +48,10 @@ else
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Requester, Roles.Auditor });
             await states.Init(apiConnection);
 
+            if(userConfig.ReqOwnerBased)
+            {
+                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+            }
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
             await Reset();
             await HandleTicketId();
@@ -75,7 +80,7 @@ else
         try
         {
             reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await reqHandler.Init();
+            await reqHandler.Init(OwnerIds);
         }
         catch (Exception exception)
         {

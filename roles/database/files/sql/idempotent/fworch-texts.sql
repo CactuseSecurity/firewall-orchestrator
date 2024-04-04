@@ -1134,6 +1134,8 @@ INSERT INTO txt VALUES ('delete_app_server', 	'German',	'App Server l&ouml;schen
 INSERT INTO txt VALUES ('delete_app_server', 	'English',	'Delete App Server');
 INSERT INTO txt VALUES ('created_by',		    'German', 	'Erstellt von');
 INSERT INTO txt VALUES ('created_by',		    'English', 	'Created by');
+INSERT INTO txt VALUES ('requested_by',		    'German', 	'Beantragt von');
+INSERT INTO txt VALUES ('requested_by',		    'English', 	'Requested by');
 INSERT INTO txt VALUES ('log_change',		    'German', 	'&Auml;nderung loggen');
 INSERT INTO txt VALUES ('log_change',		    'English', 	'Log Change');
 INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie');
@@ -1504,6 +1506,8 @@ INSERT INTO txt VALUES ('sessionTimeout',       'German', 	'Sitzungs-Timeout (in
 INSERT INTO txt VALUES ('sessionTimeout',       'English', 	'Session timeout (in minutes)');
 INSERT INTO txt VALUES ('sessionTimeoutNoticePeriod', 'German','Benachrichtigung vor Sitzungs-Timeout (in Minuten)');
 INSERT INTO txt VALUES ('sessionTimeoutNoticePeriod', 'English','Warning before session timeout (in minutes)');
+INSERT INTO txt VALUES ('uiHostName',           'German', 	'Hostname der UI');
+INSERT INTO txt VALUES ('uiHostName',           'English', 	'UI Hostname');
 INSERT INTO txt VALUES ('maxMessages',          'German', 	'Max Anzahl Nachrichten');
 INSERT INTO txt VALUES ('maxMessages',          'English', 	'Max number of messages');
 INSERT INTO txt VALUES ('messageViewTime',      'German', 	'Nachrichten-Anzeigedauer (in Sekunden)');
@@ -1600,6 +1604,8 @@ INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
 INSERT INTO txt VALUES ('reqActivatePathAnalysis','German', 'Pfadanalyse aktivieren');
 INSERT INTO txt VALUES ('reqActivatePathAnalysis','English','Activate Path Analysis');
+INSERT INTO txt VALUES ('reqShowCompliance',    'German',   'Compliance-Modul anzeigen');
+INSERT INTO txt VALUES ('reqShowCompliance',    'English',  'Show Compliance Module');
 INSERT INTO txt VALUES ('numeric_prio', 		'German', 	'Numerische Priorit&auml;t');
 INSERT INTO txt VALUES ('numeric_prio', 		'English', 	'Numeric Priority');
 INSERT INTO txt VALUES ('ticket_deadline',      'German', 	'Ticket-Deadline (in Tagen)');
@@ -2594,7 +2600,7 @@ INSERT INTO txt VALUES ('E9010', 'German',  'IP-Adresse wurde schon verwendet.')
 INSERT INTO txt VALUES ('E9010', 'English', 'IP address is already used.');
 INSERT INTO txt VALUES ('E9011', 'German',  'Benachrichtigung an App-Verantwortliche konnte nicht gesendet werden.');
 INSERT INTO txt VALUES ('E9011', 'English', 'Email could not be sent to App responsibles.');
-INSERT INTO txt VALUES ('E9012', 'German',  'Die Schnittstelle sollte nicht in einer eigenen App beantragt werden.');
+INSERT INTO txt VALUES ('E9012', 'German',  'Die Schnittstelle sollte nicht in der eigenen App beantragt werden.');
 INSERT INTO txt VALUES ('E9012', 'English', 'Interface should not be requested in own App.');
 
 -- errors from Api
@@ -2628,7 +2634,7 @@ INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den F
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
 INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
 INSERT INTO txt VALUES ('T0012', 'English', 'users that have the right to recertify rules');
-INSERT INTO txt VALUES ('T0013', 'German',  'NNutzer mit Berechtigung zum Anlegen von Antr&auml;gen');
+INSERT INTO txt VALUES ('T0013', 'German',  'Nutzer mit Berechtigung zum Anlegen von Antr&auml;gen');
 INSERT INTO txt VALUES ('T0013', 'English', 'users that have the right to create requests');
 INSERT INTO txt VALUES ('T0014', 'German',  'Nutzer mit Berechtigung zum Genehmigen von Antr&auml;gen');
 INSERT INTO txt VALUES ('T0014', 'English', 'users that have the right to approve requests');
@@ -4038,6 +4044,8 @@ INSERT INTO txt VALUES ('H5423', 'English', 'Message view time (in seconds): def
 ');
 INSERT INTO txt VALUES ('H5424', 'German',  'Startzeit t&auml;glicher Check: legt die Zeit fest, wann der t&auml;gliche Check durchgef&uuml;hrt werden soll.');
 INSERT INTO txt VALUES ('H5424', 'English', 'Daily check start at: defines the time when the daily check should happen.');
+INSERT INTO txt VALUES ('H5425', 'German',  'Hostname der UI: URL der UI, wird z. B. f&uuml;r Links in Email-Benachrichtigungen ben&ouml;tigt.');
+INSERT INTO txt VALUES ('H5425', 'English', 'UI Hostname: URL of the UI, needed e.g. for links in email notifications.');
 INSERT INTO txt VALUES ('H5426', 'German',  'Autodiscover-Intervall (in Stunden): legt das Intervall fest, in dem die Autodiscovery durchgef&uuml;hrt werden soll.');
 INSERT INTO txt VALUES ('H5426', 'English', 'Auto-discovery sleep time (in hours): defines the interval in which the autodiscovery should be performed.');
 INSERT INTO txt VALUES ('H5427', 'German',  'Autodiscover-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Autodiscovery gerechnet werden.');
@@ -4337,6 +4345,8 @@ INSERT INTO txt VALUES ('H5567', 'German',  'Pfadanalyse aktivieren: Dem Planer 
 INSERT INTO txt VALUES ('H5567', 'English', 'Activate Path Analysis: The planner gets access to tools for automatic path analysis (check, creation of implementation tasks, cleanup).');
 INSERT INTO txt VALUES ('H5568', 'German',  'Eigent&uuml;merbasiert: Darstellung der Antr&auml;ge erfolgt nach Eigent&uuml;mern. diese k&ouml;nnen gegenseitig zugewiesen werden.');
 INSERT INTO txt VALUES ('H5568', 'English', 'Owner based: Display of tickets by ownwer. They can be assigned to each other.');
+INSERT INTO txt VALUES ('H5569', 'German',  'Compliance-Modul anzeigen: Das Compliance-Modul wird auch f&uuml;r Nutzer in den Workflow-Rollen (requester, approver, planner, implementer, reviewer) dargestellt.');
+INSERT INTO txt VALUES ('H5569', 'English', 'Show Compliance Module: The Compliance module is also displayed for users in the workflow roles (requester, approver, planner, implementer, reviewer).');
 INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Es wird kein Implementierungs-Auftrag erzeugt (nur sinnvoll, falls Implementierung und folgende Phasen nicht ben&ouml;tigt werden).');
 INSERT INTO txt VALUES ('H5571', 'English', 'Never: No implementation task is created (only reasonable, if implementation and following phases are not needed).');
 INSERT INTO txt VALUES ('H5572', 'German',  'Nur eines wenn Ger&auml;t vorhanden: Bei mindestens einem vorhandenen Ger&auml;t wird das erste der Liste eingetragen

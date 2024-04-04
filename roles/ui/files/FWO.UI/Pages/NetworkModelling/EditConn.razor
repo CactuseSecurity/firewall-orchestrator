@@ -261,7 +261,7 @@
             @if(!ConnHandler.AddMode)
             {
                 <br>
-                <label class="col-sm-12 small">@(userConfig.GetText("created_by")): @(ConnHandler.ActConn.Creator), @(userConfig.GetText("creation_date")): @(ConnHandler.ActConn.CreationDate)</label>
+                <label class="col-sm-12 small">@CreationInfo()</label>
             }
         </div>
         <div class="ml-13 btn-group">
@@ -474,5 +474,11 @@
             title = userConfig.GetText("interface");
         }
         return title;
+    }
+
+    private string CreationInfo()
+    {
+        return $"{(ConnHandler.ActConn.IsRequested ? userConfig.GetText("requested_by") : userConfig.GetText("created_by"))}: {ConnHandler.ActConn.Creator}, " +
+            $"{userConfig.GetText("creation_date")}: {ConnHandler.ActConn.CreationDate}";
     }
 }

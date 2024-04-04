@@ -16,3 +16,5 @@ insert into config (config_key, config_value, config_user) VALUES ('modReqEmailB
 insert into config (config_key, config_value, config_user) VALUES ('modReqTicketTitle', '', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('modReqTaskTitle', '', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('reqOwnerBased', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('reqShowCompliance', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('uiHostName', 'http://localhost:5000', 0) ON CONFLICT DO NOTHING;

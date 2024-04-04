@@ -22,6 +22,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("sessionTimeoutNoticePeriod"), JsonPropertyName("sessionTimeoutNoticePeriod")]
         public int SessionTimeoutNoticePeriod { get; set; } = 60;
 
+        [JsonProperty("uiHostName"), JsonPropertyName("uiHostName")]
+        public string UiHostName { get; set; } = "http://localhost:5000";
+
         //        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
         //        public int MaxMessages { get; set; } = 3;
 
@@ -208,6 +211,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqActivatePathAnalysis"), JsonPropertyName("reqActivatePathAnalysis")]
         public bool ReqActivatePathAnalysis { get; set; } = true;
+
+        [JsonProperty("reqShowCompliance"), JsonPropertyName("reqShowCompliance")]
+        public bool ReqShowCompliance { get; set; } = false;
 
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;

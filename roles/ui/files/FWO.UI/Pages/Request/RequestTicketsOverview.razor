@@ -33,6 +33,7 @@ else
 
     private RequestHandler reqHandler = new RequestHandler();
     private RequestStateDict states = new RequestStateDict();
+    private List<int> OwnerIds = new();
     private bool InitComplete = false;
 
 
@@ -43,6 +44,10 @@ else
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Auditor });
             await states.Init(apiConnection);
 
+            if(userConfig.ReqOwnerBased)
+            {
+                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+            }
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
             await Reset();
             InitComplete = true;
@@ -58,7 +63,7 @@ else
         try
         {
             reqHandler.ReadOnlyMode = true;
-            await reqHandler.Init(1);
+            await reqHandler.Init(OwnerIds, 1);
 
             // Todo: put filtering into graphql query
             if(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) && !(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)))

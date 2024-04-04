@@ -14,7 +14,7 @@ namespace FWO.Api.Data
             get
             {
                 // for compatibility: take hostname if not filled
-                return ((name != null && name != "") ? name : Host());
+                return (name != null && name != "") ? name : Host();
             }
             set
             {
@@ -27,7 +27,7 @@ namespace FWO.Api.Data
 
         public UiLdapConnection(LdapGetUpdateParameters ldapGetUpdateParameters) : base(ldapGetUpdateParameters)
         {
-            Name = (ldapGetUpdateParameters.Name != null ? ldapGetUpdateParameters.Name : "");
+            Name = ldapGetUpdateParameters.Name ?? "";
         }
 
         public UiLdapConnection(UiLdapConnection ldapConnection)

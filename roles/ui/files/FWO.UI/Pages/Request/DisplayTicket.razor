@@ -81,6 +81,20 @@
                         </div>
                     </div>
                 </div>
+                @if(userConfig.ReqOwnerBased)
+                {
+                    <div class="col-sm-5 row mt-2">
+                        @if (ReqHandler.EditTicketMode)
+                        {
+                            <SelectOwner @bind-SelectedOwner="ReqHandler.ActTicket.Owner" Apps="ReqHandler.AllOwners" WithConnectionStatus="false" />
+                        }
+                        else
+                        {
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
+                            <label class="col-sm-8 border bg-secondary">@ReqHandler.ActTicket.Owner?.Name</label>
+                        }
+                    </div>
+                }
                 <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">

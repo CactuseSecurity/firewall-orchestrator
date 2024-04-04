@@ -251,7 +251,7 @@ namespace FWO.Ui.Services
         }
 
         public static async Task<List<FwoOwner>> GetOwnApps(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig,
-            ApiConnection apiConnection, Action<Exception?, string, string, bool> DisplayMessageInUi)
+            ApiConnection apiConnection, Action<Exception?, string, string, bool> DisplayMessageInUi, bool withConn = false)
         {
             List<FwoOwner> apps = new();
             try
@@ -263,7 +263,14 @@ namespace FWO.Ui.Services
                 else
                 {
                     UpdateOwnerships(authenticationStateTask,userConfig); // qad: userConfig may not be properly filled
-                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
+                    if(withConn)
+                    {
+                        apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwnersWithConn, new { appIds = userConfig.User.Ownerships.ToArray() });
+                    }
+                    else
+                    {
+                        apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
+                    }
                 }
             }
             catch (Exception exception)

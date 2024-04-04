@@ -25,7 +25,7 @@
                     </a>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}, {Roles.Auditor}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {WorkflowRoles()}, {Roles.FwAdmin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="@firstPage">
                         <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
@@ -53,7 +53,7 @@
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.Auditor}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.ReporterViewAll}")">
+            <AuthorizeView Roles="@($"{ComplianceRoles()}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/compliance/zones/matrix">
                         <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
@@ -149,5 +149,16 @@
     private void OnChange(Config _, ConfigItem[] __)
     {
         Task.Run(async() => await InvokeAsync(StateHasChanged));
+    }
+
+    private string WorkflowRoles()
+    {
+        return $"{Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}";
+    }
+
+    private string ComplianceRoles()
+    {
+        string workflowRoles = userConfig.ReqShowCompliance ? ", " + WorkflowRoles() : "";
+        return $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.Auditor}, {Roles.ReporterViewAll}{workflowRoles}";
     }
 }

@@ -104,8 +104,8 @@
                     ModellingConnectionHandler ConnHandler = new (apiConnection, userConfig, SelectedOwner, 
                         new(), new(), true, false, DisplayMessageInUi, false);
                     ConnHandler.RequesterId = RequestingOwner.Id;
-                    await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName);
-                    await SendEmail(ticketId);
+                    long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
+                    await SendEmail(ticketId, connId);
                 }
                 await UpdateParent();
                 Close();
@@ -132,18 +132,18 @@
         return true;
     }
 
-    private async Task SendEmail(long ticketId)
+    private async Task SendEmail(long ticketId, long connId)
     {
         try
         {
             EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
             await emailHelper.Init();
-            string interfaceLink = $"{userConfig.UiHostName}/networkmodelling/{SelectedOwner.Id}";
-            string ticketLink = $"{userConfig.UiHostName}/request/tickets/{ticketId}";
+            string interfaceUrl = $"{userConfig.UiHostName}/networkmodelling/{SelectedOwner.ExtAppId}/{connId}";
+            string ticketUrl = $"{userConfig.UiHostName}/request/tickets/{ticketId}";
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
-                $"<a target=\"_blank\" href=\"{interfaceLink}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>" +
-                $"<a target=\"_blank\" href=\"{ticketLink}\">{userConfig.GetText("ticket")}: {ticketId.ToString()}</a>";
+                $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>" +
+                $"<a target=\"_blank\" href=\"{ticketUrl}\">{userConfig.GetText("ticket")}: {ticketId.ToString()}</a>";
             if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body))
             {
                 DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);

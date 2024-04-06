@@ -51,10 +51,14 @@ INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
 INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
 INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
 INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
+INSERT INTO txt VALUES ('SendEmail',	        'German', 	'Email verschicken');
+INSERT INTO txt VALUES ('SendEmail',		    'English', 	'Send email');
 INSERT INTO txt VALUES ('CreateConnection',	    'German', 	'Verbindung anlegen');
 INSERT INTO txt VALUES ('CreateConnection',		'English', 	'Create Connection');
-INSERT INTO txt VALUES ('UpdateConnection',	    'German', 	'Verbindung &auml;ndern');
-INSERT INTO txt VALUES ('UpdateConnection',		'English', 	'Update Connection');
+INSERT INTO txt VALUES ('UpdateConnectionOwner','German', 	'Verbindungseigent&uuml;mer &auml;ndern');
+INSERT INTO txt VALUES ('UpdateConnectionOwner','English', 	'Update Connection Owner');
+INSERT INTO txt VALUES ('UpdateConnectionRelease','German', 'Verbindung freigeben');
+INSERT INTO txt VALUES ('UpdateConnectionRelease','English','Release Connection');
 INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
 INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
 INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');
@@ -1182,6 +1186,10 @@ INSERT INTO txt VALUES ('as_source',            'German', 	'Als Quelle');
 INSERT INTO txt VALUES ('as_source',            'English', 	'As Source');
 INSERT INTO txt VALUES ('send_email',           'German', 	'Email senden');
 INSERT INTO txt VALUES ('send_email',           'English', 	'Send email');
+INSERT INTO txt VALUES ('from_ticket',          'German',   'Von Ticket');
+INSERT INTO txt VALUES ('from_ticket',          'English',  'From Ticket');
+INSERT INTO txt VALUES ('release',              'German',   'Freigeben');
+INSERT INTO txt VALUES ('release',              'English',  'Release');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2293,6 +2301,10 @@ INSERT INTO txt VALUES ('U9008', 'German',  'Sind sie sicher, dass sie folgenden
 INSERT INTO txt VALUES ('U9008', 'English', 'Are you sure you want to delete App Server: ');
 INSERT INTO txt VALUES ('U9011', 'German',  'Benachrichtigung an App-Verantwortliche gesendet.');
 INSERT INTO txt VALUES ('U9011', 'English', 'Email sent to App responsibles.');
+INSERT INTO txt VALUES ('U9012', 'German',  'Bitte durch eigenen Text ersetzen');
+INSERT INTO txt VALUES ('U9012', 'English', 'Please replace by your own text');
+INSERT INTO txt VALUES ('U9013', 'German',  'Antrag-Status wurde ge&auml;ndert:');
+INSERT INTO txt VALUES ('U9013', 'English', 'Ticket promoted');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
@@ -2678,9 +2690,10 @@ INSERT INTO txt VALUES ('C9005', 'German',  'W&auml;hlen Sie die App, in der die
 INSERT INTO txt VALUES ('C9005', 'English', 'Select app where the interface presumably should be created. This may be changed within the workflow if necessary.');
 INSERT INTO txt VALUES ('C9006', 'German',  'Diese Schnittstelle als Quelle anlegen.');
 INSERT INTO txt VALUES ('C9006', 'English', 'Create this interface as source.');
-INSERT INTO txt VALUES ('C9007', 'German',  'angefrage Schnittstelle - noch auf der Gegenseite zu modellieren!');
-INSERT INTO txt VALUES ('C9007', 'English', 'requested interface - to be modelled in the counterpart!');
-
+INSERT INTO txt VALUES ('C9007', 'German',  'Angefrage Schnittstelle - noch auf der Gegenseite zu modellieren!');
+INSERT INTO txt VALUES ('C9007', 'English', 'Requested interface - to be modelled in the counterpart!');
+INSERT INTO txt VALUES ('C9008', 'German',  'Angefrage Schnittstelle - bitte modellieren!');
+INSERT INTO txt VALUES ('C9008', 'English', 'Requested interface - please modell!');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.

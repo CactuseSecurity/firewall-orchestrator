@@ -261,8 +261,8 @@ namespace FWO.Ui.Services
         public void SetTicketOpt(ObjAction action)
         {
             ResetTicketActions();
-            DisplayTicketMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add);
-            EditTicketMode = (action == ObjAction.edit || action == ObjAction.add);
+            DisplayTicketMode = action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add;
+            EditTicketMode = action == ObjAction.edit || action == ObjAction.add;
             AddTicketMode = action == ObjAction.add;
         }
 

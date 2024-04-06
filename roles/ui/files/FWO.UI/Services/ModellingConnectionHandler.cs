@@ -71,6 +71,10 @@ namespace FWO.Ui.Services
         public bool DeleteSvcGrpMode = false;
         public bool DisplaySvcGrpMode = false;
 
+        public ModellingAppRole DummyAppRole = new();
+        private bool SrcFix = false;
+        private bool DstFix = false;
+
         private ModellingAppRole actAppRole = new();
         private ModellingNwGroup actNwGrpObj = new();
         private ModellingConnection actInterface = new();
@@ -104,6 +108,16 @@ namespace FWO.Ui.Services
                     RefreshSelectableNwObjects();
                     InterfaceName = await ExtractUsedInterface(ActConn);
                     AllApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), true, DisplayMessageInUi);
+                    DummyAppRole = await AppRoleHandler.GetDummyAppRole();
+                    if(!AddMode && !ReadOnly && ActConn.IsInterface)
+                    {
+                        // if(await CheckInterfaceInUse(ActConn))
+                        // {
+                            SrcFix = ActConn.SourceFilled();
+                            DstFix = ActConn.DestinationFilled();
+                        // }
+                    }
                     InitOngoing = false;
                 }
             }
@@ -185,30 +199,28 @@ namespace FWO.Ui.Services
         }
 
         //public async Task CreateNewRequestedInterface(System.Security.Claims.ClaimsPrincipal user)
-        public async Task CreateNewRequestedInterface(long ticketId, bool asSource, string name)
+        public async Task<long> CreateNewRequestedInterface(long ticketId, bool asSource, string name, string reason)
         {
             //apiConnection.SetProperRole(user, new List<string> { Roles.Modeller, Roles.Admin });
             ActConn.TicketId = ticketId;
-            string ticketIdString = "(Ticket: "+ ActConn.TicketId.ToString() + ")";
-            ActConn.Name = name + ticketIdString;
-            ActConn.Reason = ticketIdString; // link?
+            ActConn.Name = name + " (Ticket: "+ ActConn.TicketId.ToString() + ")";
+            ActConn.Reason = $"{userConfig.GetText("from_ticket")} {ticketId} ({userConfig.GetText("U9012")}): \r\n{reason}";
             ActConn.IsInterface = true;
             ActConn.IsRequested = true;
-            ModellingAppRoleHandler appRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), true, DisplayMessageInUi);
-            ModellingAppRole dummyAppRole = await appRoleHandler.GetDummyAppRole();
             if(asSource)
             {
-                ActConn.SourceAppRoles.Add(new() { Content = dummyAppRole });
+                ActConn.SourceAppRoles.Add(new() { Content = DummyAppRole });
             }
             else
             {
-                ActConn.DestinationAppRoles.Add(new() { Content = dummyAppRole });
+                ActConn.DestinationAppRoles.Add(new() { Content = DummyAppRole });
             }
             await AddConnectionToDb();
 
             ActConn.AppId = RequesterId;
             await AddToPreselectedList(ActConn);
             //apiConnection.SwitchBack();
+            return ActConn.Id;
         }
 
         public string DisplayInterface(ModellingConnection? inter)
@@ -722,8 +734,8 @@ namespace FWO.Ui.Services
         {
             if(ActConn.IsInterface)
             {
-                dstReadOnly = SrcFilledInWork();
-                srcReadOnly = DstFilledInWork();
+                dstReadOnly = SrcFix || SrcFilledInWork();
+                srcReadOnly = DstFix || DstFilledInWork();
                 svcReadOnly = false;
             }
             else if (ActConn.UsedInterfaceId != null)
@@ -751,20 +763,20 @@ namespace FWO.Ui.Services
             return dstReadOnly || (ActConn.IsInterface && SrcFilledInWork());
         }
 
-        public bool SrcFilledInWork()
+        public bool SrcFilledInWork(int dummyARCount = 0)
         {
             return ActConn.SourceNwGroups.Count - SrcNwGroupsToDelete.Count > 0 || 
-                ActConn.SourceAppRoles.Count - SrcAppRolesToDelete.Count > 0 ||
+                ActConn.SourceAppRoles.Count - dummyARCount - SrcAppRolesToDelete.Count > 0 ||
                 ActConn.SourceAppServers.Count - SrcAppServerToDelete.Count > 0 ||
                 SrcNwGroupsToAdd.Count > 0 ||
                 SrcAppServerToAdd.Count > 0 ||
                 SrcAppRolesToAdd.Count > 0;
         }
 
-        public bool DstFilledInWork()
+        public bool DstFilledInWork(int dummyARCount = 0)
         {
             return ActConn.DestinationNwGroups.Count - DstNwGroupsToDelete.Count > 0 || 
-                ActConn.DestinationAppRoles.Count- DstAppRolesToDelete.Count > 0 || 
+                ActConn.DestinationAppRoles.Count - dummyARCount - DstAppRolesToDelete.Count > 0 || 
                 ActConn.DestinationAppServers.Count - DstAppServerToDelete.Count > 0 ||
                 DstNwGroupsToAdd.Count > 0 ||
                 DstAppServerToAdd.Count > 0 ||
@@ -827,21 +839,30 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if(!ActConn.IsInterface && (!(ActConn.SrcFromInterface || SrcFilledInWork()) || 
-                !(ActConn.DstFromInterface || DstFilledInWork()) || !(ActConn.UsedInterfaceId != null || SvcFilledInWork())))
+            if(ActConn.IsInterface)
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9006"), true);
-                return false;
+                int srcDummyARCount = ActConn.SourceAppRoles.Where(x => x.Content.Id == DummyAppRole.Id).Count();
+                int dstDummyARCount = ActConn.DestinationAppRoles.Where(x => x.Content.Id == DummyAppRole.Id).Count();
+                if(!(SrcFilledInWork(srcDummyARCount) || DstFilledInWork(dstDummyARCount)) || !SvcFilledInWork())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9004"), true);
+                    return false;
+                }
+                if(!AddMode && (SrcFilledInWork(srcDummyARCount) != ActConnOrig.SourceFilled() || DstFilledInWork(dstDummyARCount) != ActConnOrig.DestinationFilled()))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9005"), true);
+                    return false;
+                }
             }
-            if(ActConn.IsInterface && !AddMode && (SrcFilledInWork() != ActConnOrig.SourceFilled() || DstFilledInWork() != ActConnOrig.DestinationFilled()))
+            else
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9005"), true);
-                return false;
-            }
-            if(ActConn.IsInterface && (!(SrcFilledInWork() || DstFilledInWork()) || !SvcFilledInWork()))
-            {
-                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9004"), true);
-                return false;
+                if(!(ActConn.SrcFromInterface || SrcFilledInWork()) || 
+                    !(ActConn.DstFromInterface || DstFilledInWork()) ||
+                    !(ActConn.UsedInterfaceId != null || SvcFilledInWork()))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9006"), true);
+                    return false;
+                }
             }
             return true;
         }
@@ -872,6 +893,15 @@ namespace FWO.Ui.Services
             {
                 ActConn.SourceNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
             }
+            if(ActConn.IsRequested && ActConn.SourceAppRoles.Count > 1)
+            {
+                ModellingAppRoleWrapper? linkedDummyAR = ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
+                if (linkedDummyAR != null)
+                {
+                    ActConn.SourceAppRoles.Remove(linkedDummyAR);
+                    SrcAppRolesToDelete.Add(linkedDummyAR.Content);
+                }
+            }
         }
 
         private void SyncDstChanges()
@@ -899,6 +929,15 @@ namespace FWO.Ui.Services
             foreach(var nwGroup in DstNwGroupsToAdd)
             {
                 ActConn.DestinationNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
+            }
+            if(ActConn.IsRequested && ActConn.DestinationAppRoles.Count > 1)
+            {
+                ModellingAppRoleWrapper? linkedDummyAR = ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
+                if (linkedDummyAR != null)
+                {
+                    ActConn.DestinationAppRoles.Remove(linkedDummyAR);
+                    DstAppRolesToDelete.Add(linkedDummyAR.Content);
+                }
             }
         }
 

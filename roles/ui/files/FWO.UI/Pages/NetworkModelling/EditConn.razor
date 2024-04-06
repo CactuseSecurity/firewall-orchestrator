@@ -3,6 +3,7 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
 @if (Display)
 {
@@ -34,7 +35,8 @@
                 }
                 else
                 {
-                    <input type="text" class="col-sm-9" @bind="ConnHandler.ActConn.Name" />
+                    <input type="text" class="col-sm-9" data-toggle="@(ConnHandler.ActConn.IsRequested ? "tooltip" : "")"
+                        title="@(ConnHandler.ActConn.IsRequested ? userConfig.PureLine("U9012") : "")" @bind="ConnHandler.ActConn.Name" />
                 }
             </div>
             <div class="form-group row mt-2 me-auto">
@@ -45,7 +47,8 @@
                 }
                 else
                 {
-                    <textarea rows="3" type="text" class="col-sm-9" @bind="ConnHandler.ActConn.Reason" />
+                    <textarea rows="3" type="text" class="col-sm-9" data-toggle="@(ConnHandler.ActConn.IsRequested ? "tooltip" : "")"
+                        title="@(ConnHandler.ActConn.IsRequested ? userConfig.PureLine("U9012") : "")" @bind="ConnHandler.ActConn.Reason" />
                 }
             </div>
             <br>
@@ -54,9 +57,9 @@
                     <h6>@(userConfig.GetText("source"))</h6>
                     @if(ConnHandler.ReadOnly || ConnHandler.srcReadOnly)
                     {
-                        @if(ConnHandler.ActConn.InterfaceIsRequested || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.SourceFilled()))
+                        @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.SrcFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.SourceFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested))
                         }
                         else
                         {
@@ -103,7 +106,7 @@
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles)"
+                            <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles.Where(x => x.Content.Id != ConnHandler.DummyAppRole.Id).ToList())"
                                     ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false"
                                     AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                 <Display>
@@ -130,7 +133,7 @@
                     {
                         @if(ConnHandler.ActConn.InterfaceIsRequested || ConnHandler.ActConn.IsRequested)
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested))
                         }
                         else
                         {
@@ -187,9 +190,9 @@
                     <h6>@(userConfig.GetText("destination"))</h6>
                     @if(ConnHandler.ReadOnly || ConnHandler.dstReadOnly)
                     {
-                        @if(ConnHandler.ActConn.InterfaceIsRequested || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.DestinationFilled()))
+                        @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.DstFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.DestinationFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested))
                         }
                         else
                         {
@@ -236,7 +239,7 @@
                                     </div>
                                 </Display>
                             </EditList>
-                            <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles)"
+                            <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles.Where(x => x.Content.Id != ConnHandler.DummyAppRole.Id).ToList())"
                                     ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false"
                                     AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                 <Display>
@@ -265,26 +268,32 @@
             }
         </div>
         <div class="ml-13 btn-group">
-            @if(PopupMode)
-            {}
-            else if(ConnHandler.ReadOnly)
+            @if(!PopupMode)
             {
-                <button type="button" class="btn btn-sm btn-primary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
-            }
-            else
-            {
-                @if(ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested)
+                if(ConnHandler.ReadOnly)
                 {
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                }
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-                @if(ConnHandler.ActConn.UsedInterfaceId != null)
-                {
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(ConnHandler.DisplayButton("remove_interface", Icons.Unuse, "interface"))</button>
+                    @if(ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    }
+                    @if(ConnHandler.ActConn.IsRequested)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Release">@(userConfig.GetText("release"))</button>
+                        <button type="button" class="btn btn-sm btn-dark" @onclick="GotoTicket">@(userConfig.GetText("ticket"))</button>
+                    }
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                    @if(ConnHandler.ActConn.UsedInterfaceId != null)
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(ConnHandler.DisplayButton("remove_interface", Icons.Unuse, "interface"))</button>
+                    }
                 }
             }
         </div>
@@ -299,6 +308,9 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     [Parameter]
     public bool Display { get; set; } = false;
@@ -411,17 +423,53 @@
         Container.Clear();
     }
 
-    private async Task Save()
+    private async Task<bool> Save()
     {
         workInProgress = true;
         if(await ConnHandler.Save())
         {
             Close();
+            return true;
         }
         else
         {
             workInProgress = false;
+            return false;
         }
+    }
+
+    private async Task Release()
+    {
+        ConnHandler.ActConn.IsRequested = false;
+        if(await Save())
+        {
+            if(ConnHandler.ActConn.TicketId != null)
+            {
+                try
+                {
+                    apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
+                    TicketCreator ticketCreator = new TicketCreator(apiConnection, userConfig);
+                    if(await ticketCreator.PromoteTicket(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId)))
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("release"), userConfig.GetText("U9013"), false);
+                    }
+                    apiConnection.SwitchBack();
+                }
+                catch(Exception exception)
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("release"), "", true);
+                }
+            }
+        }
+        else
+        {
+            ConnHandler.ActConn.IsRequested = true;
+        }
+    }
+
+    private void GotoTicket()
+    {
+        NavigationManager.NavigateTo($"/request/tickets/{ConnHandler.ActConn.TicketId}");
     }
 
     private void Cancel()

@@ -13,7 +13,7 @@ namespace FWO.Ui.Services
         private readonly ApiConnection apiConnection;
         private readonly MiddlewareClient middlewareClient;
         private readonly UserConfig userConfig;
-        private Action<Exception?, string, string, bool> displayMessageInUi;
+        private readonly Action<Exception?, string, string, bool> displayMessageInUi;
         private List<UserGroup> ownerGroups = new ();
         private List<UiUser> uiUsers = new ();
 

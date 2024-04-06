@@ -17,7 +17,7 @@ namespace FWO.Ui.Services
 
         public bool readOnly = false;
         public Shared.TabSet tabset = new();
-        public Shared.Tab actTab = new();
+        public Shared.Tab? actTab;
     
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -55,10 +55,14 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void InitActiveTab()
+        public void InitActiveTab(ModellingConnection? conn = null)
         {
             int tab = 0;
-            if(GetRegularConnections().Count == 0)
+            if(conn != null)
+            {
+                tab = GetTabFromConn(conn);
+            }
+            else if(GetRegularConnections().Count == 0)
             {
                 if (GetInterfaces().Count > 0)
                 {
@@ -72,13 +76,33 @@ namespace FWO.Ui.Services
             tabset.SetActiveTab(tab);
         }
 
-        public void RestoreTab()
+        public void RestoreTab(ModellingConnection? conn = null)
         {
-            Shared.Tab? tab = tabset.Tabs.FirstOrDefault(x => x.Position == actTab.Position);
-            if(tab != null)
+            if(conn != null)
             {
-                tabset.SetActiveTab(tab);
+                tabset.SetActiveTab(GetTabFromConn(conn));
             }
+            else if(tabset.Tabs.Count > 0 && actTab != null)
+            {
+                Shared.Tab? tab = tabset.Tabs.FirstOrDefault(x => x.Position == actTab.Position);
+                if(tab != null)
+                {
+                    tabset.SetActiveTab(tab);
+                }
+            }
+        }
+
+        private static int GetTabFromConn(ModellingConnection conn)
+        {
+            if(conn.IsInterface)
+            {
+                return 1;
+            }
+            if (conn.IsCommonService)
+            {
+                return 2;
+            }
+            return 0;
         }
 
         public List<ModellingConnection> GetInterfaces()
@@ -100,7 +124,7 @@ namespace FWO.Ui.Services
         {
             if((conn.InterfaceIsRequested && conn.SrcFromInterface) || (conn.IsRequested && conn.SourceFilled()))
             {
-                return new () { ModellingHandlerBase.DisplayReqInt(userConfig, conn.TicketId) };
+                return new () { DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested) };
             }
 
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList();
@@ -125,7 +149,7 @@ namespace FWO.Ui.Services
         {
             if((conn.InterfaceIsRequested && conn.DstFromInterface) || (conn.IsRequested && conn.DestinationFilled()))
             {
-                return new () { ModellingHandlerBase.DisplayReqInt(userConfig, conn.TicketId) };
+                return new () { DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested) };
             }
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList();
             foreach(var nwGroup in nwGroups)
@@ -149,7 +173,7 @@ namespace FWO.Ui.Services
         {
             if(conn.InterfaceIsRequested || conn.IsRequested)
             {
-                return new () { ModellingHandlerBase.DisplayReqInt(userConfig, conn.TicketId) };
+                return new () { DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested) };
             }
             List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));

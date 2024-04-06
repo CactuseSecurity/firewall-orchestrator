@@ -8,8 +8,8 @@ namespace FWO.Ui.Services
 {
     public class TicketCreator
     {
-        private RequestHandler reqHandler;
-        private UserConfig userConfig;
+        private readonly RequestHandler reqHandler;
+        private readonly UserConfig userConfig;
         private int stateId;
         private string ticketTitle = "";
         private string ticketReason = "";
@@ -50,6 +50,20 @@ namespace FWO.Ui.Services
             reqHandler.ActTicket.Tasks.Add(reqHandler.ActReqTask);
             reqHandler.AddTicketMode = true;
             return await reqHandler.SaveTicket(reqHandler.ActTicket);
+        }
+
+        public async Task<bool> PromoteTicket(FwoOwner owner, long ticketId)
+        {
+            await reqHandler.Init(new(){ owner.Id });
+            RequestTicket? ticket = await reqHandler.ResolveTicket(ticketId);
+            if(ticket != null && ticket.Owner == owner)
+            {
+                reqHandler.SetTicketEnv(ticket);
+                int newState = reqHandler.MasterStateMatrix.LowestEndState; // todo ?
+                await reqHandler.PromoteTicket(new(){ StateId = newState });
+                return true;
+            }
+            return false;
         }
 
         public async Task CreateDecertRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)

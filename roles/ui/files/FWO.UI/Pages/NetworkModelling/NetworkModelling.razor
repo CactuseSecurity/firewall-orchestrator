@@ -1,7 +1,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Display
 
-@page "/networkmodelling/{appId?}"
+@page "/networkmodelling/{appId?}/{connId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
@@ -86,8 +86,12 @@ else
     [Parameter]
     public string? AppId { get; set; }
 
+    [Parameter]
+    public string? ConnId { get; set; }
+
     private bool tabSelected = false;
     private bool restoreTab = false;
+    private ModellingConnection? lastConn;
     private ModellingAppHandler? appHandler;
     private List<FwoOwner> apps = new();
     private FwoOwner selectedApp = new();
@@ -116,13 +120,14 @@ else
             else if(restoreTab)
             {
                 restoreTab = false;
-                appHandler.RestoreTab();
+                appHandler.RestoreTab(lastConn);
             }
         }
     }
 
     private bool SetRestoreTab()
     {
+        lastConn = appHandler?.actConn;
         restoreTab = true;
         return true;
     }
@@ -188,10 +193,25 @@ else
             }
             appSelected = true;
             tabSelected = false;
+            await InitConn();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task InitConn()
+    {
+        if(ConnId != null && int.TryParse(ConnId, out int connectionId))
+        {
+            ModellingConnection? selectedConn = appHandler?.Connections.FirstOrDefault(c => c.Id == connectionId);
+            if (selectedConn != null)
+            {
+                tabSelected = true;
+                appHandler?.InitActiveTab(selectedConn);
+                await appHandler?.EditConn(selectedConn);
+            }
         }
     }
 

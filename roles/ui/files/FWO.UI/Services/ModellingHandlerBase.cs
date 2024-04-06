@@ -61,9 +61,9 @@ namespace FWO.Ui.Services
             return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
         }
 
-        public static string DisplayReqInt(UserConfig userConfig, long? ticketId)
+        public static string DisplayReqInt(UserConfig userConfig, long? ticketId, bool otherOwner)
         {
-            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9007")}\"";
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(otherOwner ? "C9007" : "C9008")}\"";
             string content = $"{userConfig.GetText("interface_requested")}: ({ticketId?.ToString()})";
             return $"<span class=\"text-danger\" {tooltip}><i>{content}</i></span>";
         }
@@ -226,6 +226,24 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
             return null;
+        }
+
+        protected async Task<bool> CheckInterfaceInUse(ModellingConnection conn)
+        {
+            try
+            {
+                List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = conn.Id });
+                if (foundConnections.Count == 0)
+                {
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
+                return true;
+            }
         }
 
         protected async Task<bool> CheckAppServerInUse(ModellingAppServer appServer)

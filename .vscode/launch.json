@@ -82,7 +82,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m24",
+                "-m5",
                 "-d1",
                 "-f",
                 "-s",
@@ -98,15 +98,17 @@
             ]
         },
         {
-            "name": "py-write-config",
+            "name": "py-customize-FWO-sample",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/scripts/customizing/sample-config-change.py",
+            "program": "${workspaceFolder}/scripts/customizing/customizeFwoSampleScript.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": []
+            "args": [
+                "-c${workspaceFolder}/scripts/customizing/sampleCustomSettings.json"
+            ]
         },
         {
             "name": "py-acquire-lock",
@@ -327,13 +329,13 @@
             "name": "c#-FWO Test",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build_test",
+            // "preLaunchTask": "build_test",
             "program": "/usr/bin/dotnet",
             "args": [
                 "test"
             ],
             "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "console": "integratedTerminal"
         },
         {

@@ -2,6 +2,8 @@
 using Novell.Directory.Ldap;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using FWO.GlobalConstants;
+using FWO.Encryption;
 using FWO.Api.Data;
 using FWO.Middleware.RequestParameters;
 using Microsoft.IdentityModel.Tokens;
@@ -62,6 +64,7 @@ namespace FWO.Middleware.Server
             {
                 if (!string.IsNullOrEmpty(SearchUser))
                 {
+                    // connection.Bind(SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
                     connection.Bind(SearchUser, SearchUserPwd);
                     if (!connection.Bound) throw new Exception("Binding failed for search user");
                 }
@@ -130,7 +133,7 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as search user
-                    connection.Bind(SearchUser, SearchUserPwd);
+                    connection.Bind(SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
 
                     LdapSearchConstraints cons = connection.SearchConstraints;
                     cons.ReferralFollowing = true;
@@ -368,7 +371,7 @@ namespace FWO.Middleware.Server
                     using (LdapConnection connection = Connect())
                     {     
                         // Authenticate as search user
-                        connection.Bind(SearchUser, SearchUserPwd);
+                        connection.Bind(SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
 
                         // Search for Ldap roles / groups in given directory          
                         int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?

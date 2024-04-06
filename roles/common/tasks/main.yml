@@ -186,8 +186,35 @@
         path: "{{ fworch_home }}/etc/secrets"
         state: directory
         owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-        mode: '0700'
+        group: "{{ postgres_group }}"
+        mode: '0750'
+
+    - name: generate main key
+      set_fact:
+        main_key: "{{ randomly_generated_pwd }}"  # 32 bytes
+        main_key_file: "{{ fworch_secrets_dir }}/main_key"
+      when: testkeys is not defined or testkeys|bool is false
+
+    - name: set static main key for test purposes only
+      set_fact:
+        main_key: "{{ api_hasura_admin_test_password }}..{{ api_hasura_admin_test_password }}.." # to have 32 bytes
+        main_key_file: "{{ fworch_secrets_dir }}/main_key"
+      when: testkeys is defined and testkeys|bool
+
+    - name: Check if main key file exists
+      stat:
+        path: "{{ main_key_file }}"
+      register: stat_result
+
+    - name: write main key to secrets directory
+      copy:
+        content: "{{ main_key }}\n"
+        dest: "{{ main_key_file }}"
+        mode: '0640'
+        owner: "{{ fworch_user }}"
+        group: "{{ postgres_group }}"
+      become: true
+      when: not stat_result.stat.exists
 
     - set_fact:
         wsgi_package_name: "{{ wsgi_package_name }}-py3"

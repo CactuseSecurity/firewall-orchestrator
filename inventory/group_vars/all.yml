@@ -1,5 +1,5 @@
 ### general settings
-product_version: "8.0.2"
+product_version: "8.0.3"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -31,6 +31,7 @@ force_install: false
 user_id: 60320
 fworch_user: "{{ product_name }}"
 fworch_group: "{{ fworch_user }}"
+postgres_group: "postgres"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
 fworch_conf_dir: "{{ fworch_home }}/etc"

@@ -1,17 +1,25 @@
 # library for FWORCH API calls
-from asyncio.log import logger
+# from asyncio.log import logger
 import re
 import traceback
-from sqlite3 import Timestamp
-from textwrap import indent
+# from sqlite3 import Timestamp
+# from textwrap import indent
 import requests.packages
 import requests
 import json
 import datetime
+import base64
+import gnupg
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+
+
 from fwo_log import getFwoLogger
 import fwo_globals
+import fwo_const
 from fwo_const import fwo_api_http_import_timeout
-from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed
+from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, SecretDecryptionFailed
 from fwo_base import writeAlertToLogFile
 
 
@@ -192,9 +200,83 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
     """
     api_call_result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
     if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
+        if not '://' in api_call_result['data']['management'][0]['hostname']:
+            # only decrypt if we have a real management and are not fetching the config from an URL
+            # decrypt secret read from API
+            try:
+                secret = api_call_result['data']['management'][0]['import_credential']['secret']
+                decryptedSecret = decrypt(secret, readMainKey())
+            except ():
+                raise SecretDecryptionFailed
+            api_call_result['data']['management'][0]['import_credential']['secret'] = decryptedSecret
         return api_call_result['data']['management'][0]
     else:
         raise Exception('did not succeed in getting management details from FWO API')
+
+
+def readMainKey(filePath=fwo_const.mainKeyFile):
+    with open(filePath, "r") as keyfile:
+        mainKey = keyfile.read().rstrip(' \n')
+    return mainKey
+
+
+# can be used for decrypting text encrypted with postgresql.pgp_sym_encrypt
+def decryptGpg(encryptedTextIn, key):
+    logger = getFwoLogger()
+    gpg = gnupg.GPG()
+
+    binData = base64.b64decode(encryptedTextIn)
+    decrypted_data = gpg.decrypt(binData, passphrase=key)
+
+    if decrypted_data.ok:
+        return decrypted_data.data.decode('utf-8')
+    else:
+        logger.info("error while decrypting: " + decrypted_data.status + ", assuming plaintext credentials")
+        return encryptedTextIn
+
+
+# can be used for decrypting text encrypted with C# (mw-server)
+def decrypt_aes_ciphertext(base64_encrypted_text, passphrase):
+    encrypted_data = base64.b64decode(base64_encrypted_text)
+    ivLength = 16 # IV length for AES is 16 bytes
+
+    # Extract IV from the encrypted data
+    iv = encrypted_data[:ivLength]  
+
+    # Initialize AES cipher with provided passphrase and IV
+    backend = default_backend()
+    cipher = Cipher(algorithms.AES(passphrase.encode()), modes.CBC(iv), backend=backend)
+    decryptor = cipher.decryptor()
+
+    # Decrypt the ciphertext
+    decrypted_data = decryptor.update(encrypted_data[ivLength:]) + decryptor.finalize()
+
+    # Remove padding
+    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+    try:
+        unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
+        return unpadded_data.decode('utf-8')  # Assuming plaintext is UTF-8 encoded
+    except ValueError as e:
+        raise Exception ('AES decryption failed:', e)
+
+
+# wrapper for trying the different decryption methods
+def decrypt(encrypted_data, passphrase):
+    logger = getFwoLogger()
+    try:
+        decrypted = decrypt_aes_ciphertext(encrypted_data, passphrase)
+        return decrypted
+    except:
+        logger.warning("Unspecified error while decrypting with MS: " + str(traceback.format_exc()))
+        # try:
+        #     # trying postgres decryption
+        #     decrypted = decryptGpg(encrypted_data, passphrase)
+        #     return decrypted
+        # except:
+        #     logger.warning("Unspecified error while decrypting with gpg: " + str(traceback.format_exc()))
+        #     logger("error while decrypting: " + encrypted_data + ", assuming plaintext credentials")
+            # we return the credentials as is (not able to derypt them and assume they are in plaintext)
+        return encrypted_data
 
 
 def log_import_attempt(fwo_api_base_url, jwt, mgm_id, successful=False):

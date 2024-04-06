@@ -1,6 +1,9 @@
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json; 
+using System.Reflection.Metadata.Ecma335;
+
 using FWO.Middleware.RequestParameters;
+using FWO.Encryption;
 
 namespace FWO.Api.Data
 {
@@ -77,12 +80,36 @@ namespace FWO.Api.Data
             SearchUser = ldapGetUpdateParameters.SearchUser;
             Tls = ldapGetUpdateParameters.Tls;
             TenantLevel = ldapGetUpdateParameters.TenantLevel;
-            SearchUserPwd = ldapGetUpdateParameters.SearchUserPwd;
+            if (ldapGetUpdateParameters.SearchUserPwd != null)
+            {
+                try 
+                {
+                    SearchUserPwd = AesEnc.Decrypt(ldapGetUpdateParameters.SearchUserPwd, AesEnc.GetMainKey());
+                }
+                catch
+                {
+                    // assuming we found an unencrypted password
+                    SearchUserPwd = ldapGetUpdateParameters.SearchUserPwd;
+                }
+            }
             UserSearchPath = ldapGetUpdateParameters.SearchpathForUsers;
             RoleSearchPath = ldapGetUpdateParameters.SearchpathForRoles;
             GroupSearchPath = ldapGetUpdateParameters.SearchpathForGroups;
             WriteUser = ldapGetUpdateParameters.WriteUser;
-            WriteUserPwd = ldapGetUpdateParameters.WriteUserPwd;
+
+            if (ldapGetUpdateParameters.WriteUserPwd != null)
+            {
+                try 
+                {
+                    WriteUserPwd = AesEnc.Decrypt(ldapGetUpdateParameters.WriteUserPwd, AesEnc.GetMainKey());
+                }
+                catch
+                {
+                    // assuming we found an unencrypted password
+                    WriteUserPwd = ldapGetUpdateParameters.WriteUserPwd;
+                }
+            }
+
             TenantId = ldapGetUpdateParameters.TenantId;
             GlobalTenantName = ldapGetUpdateParameters.GlobalTenantName;
             Active = ldapGetUpdateParameters.Active;

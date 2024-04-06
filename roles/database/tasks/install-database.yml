@@ -3,8 +3,8 @@
     path: "{{ fworch_home }}/etc/secrets"
     state: directory
     owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-    mode: "0700"
+    group: "{{ postgres_group }}"
+    mode: "0750"
   become: true
 
 - name: set dbadmin password from parameter

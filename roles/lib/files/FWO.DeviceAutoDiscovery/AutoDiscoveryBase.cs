@@ -1,7 +1,10 @@
-﻿using FWO.Api.Data;
+﻿using System.Text.Json;
+
+using FWO.GlobalConstants;
+using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;
-using System.Text.Json;
+using FWO.Encryption;
 
 namespace FWO.DeviceAutoDiscovery
 {
@@ -16,6 +19,23 @@ namespace FWO.DeviceAutoDiscovery
         public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)
         {
             superManagement = mgm;
+
+            string mainKey = AesEnc.GetMainKey();
+
+            string decryptedSecret = superManagement.ImportCredential.Secret;
+
+            // try to decrypt secret, keep it as is if failing
+            try
+            {
+                decryptedSecret = AesEnc.Decrypt(superManagement.ImportCredential.Secret, mainKey);
+            }
+            catch (Exception)
+            {
+                // Log.WriteWarning("AutoDiscovery", $"Found unencrypted credential secret: {superManagement.ImportCredential.Name}.");
+                Log.WriteWarning("AutoDiscovery", $"Could not decrypt secret {superManagement.ImportCredential.Secret} in credential named: {superManagement.ImportCredential.Name}.");
+            }
+
+            superManagement.ImportCredential.Secret = decryptedSecret;
             apiConnection = apiConn;
         }
 

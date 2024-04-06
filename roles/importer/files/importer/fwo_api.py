@@ -268,14 +268,6 @@ def decrypt(encrypted_data, passphrase):
         return decrypted
     except:
         logger.warning("Unspecified error while decrypting with MS: " + str(traceback.format_exc()))
-        # try:
-        #     # trying postgres decryption
-        #     decrypted = decryptGpg(encrypted_data, passphrase)
-        #     return decrypted
-        # except:
-        #     logger.warning("Unspecified error while decrypting with gpg: " + str(traceback.format_exc()))
-        #     logger("error while decrypting: " + encrypted_data + ", assuming plaintext credentials")
-            # we return the credentials as is (not able to derypt them and assume they are in plaintext)
         return encrypted_data
 
 

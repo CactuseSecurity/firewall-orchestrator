@@ -80,36 +80,12 @@ namespace FWO.Api.Data
             SearchUser = ldapGetUpdateParameters.SearchUser;
             Tls = ldapGetUpdateParameters.Tls;
             TenantLevel = ldapGetUpdateParameters.TenantLevel;
-            if (ldapGetUpdateParameters.SearchUserPwd != null)
-            {
-                try 
-                {
-                    SearchUserPwd = AesEnc.Decrypt(ldapGetUpdateParameters.SearchUserPwd, AesEnc.GetMainKey());
-                }
-                catch
-                {
-                    // assuming we found an unencrypted password
-                    SearchUserPwd = ldapGetUpdateParameters.SearchUserPwd;
-                }
-            }
+            SearchUserPwd = ldapGetUpdateParameters.SearchUserPwd;
             UserSearchPath = ldapGetUpdateParameters.SearchpathForUsers;
             RoleSearchPath = ldapGetUpdateParameters.SearchpathForRoles;
             GroupSearchPath = ldapGetUpdateParameters.SearchpathForGroups;
             WriteUser = ldapGetUpdateParameters.WriteUser;
-
-            if (ldapGetUpdateParameters.WriteUserPwd != null)
-            {
-                try 
-                {
-                    WriteUserPwd = AesEnc.Decrypt(ldapGetUpdateParameters.WriteUserPwd, AesEnc.GetMainKey());
-                }
-                catch
-                {
-                    // assuming we found an unencrypted password
-                    WriteUserPwd = ldapGetUpdateParameters.WriteUserPwd;
-                }
-            }
-
+            WriteUserPwd = ldapGetUpdateParameters.WriteUserPwd;
             TenantId = ldapGetUpdateParameters.TenantId;
             GlobalTenantName = ldapGetUpdateParameters.GlobalTenantName;
             Active = ldapGetUpdateParameters.Active;

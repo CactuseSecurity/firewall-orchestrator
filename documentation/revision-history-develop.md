@@ -183,9 +183,12 @@ bugfix release:
 # 8.0.2 - 11.03.2024 DEVELOP
 - first version of NSX import module
 
-# 8.0.3 - 04.04.2024 DEVELOP
-- encrypt all passwords in database
-  - missing: ldap_connection
-- import custom rule fields start
-  - missing: import from other vendors besides check point
-  - missing: add custom fields to reports
+# 8.0.3 - 06.04.2024 DEVELOP
+- add maintenance page during upgrade
+- sample customizing py script with sample data, closes  Installer customizable config (settings) #2275
+- remove log locking from importer due to stalling importer stops
+- credentials encryption, closes encrypt passwords and keys #1508
+- add custom (user-defined) fields to import
+  - cp only so far, other fw types missing
+  - user-defined fields are not part of reports yet
+t

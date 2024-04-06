@@ -42,36 +42,12 @@ namespace FWO.Api.Data
             SearchUser = ldapConnection.SearchUser;
             Tls = ldapConnection.Tls;
             TenantLevel = ldapConnection.TenantLevel;
-            if (ldapConnection.SearchUserPwd != null)
-            {
-                try 
-                {
-                    SearchUserPwd = AesEnc.Decrypt(ldapConnection.SearchUserPwd, AesEnc.GetMainKey());
-                }
-                catch
-                {
-                    // assuming we found an unencrypted password
-                    SearchUserPwd = ldapConnection.SearchUserPwd;
-                }
-            }
-
+            SearchUserPwd = ldapConnection.SearchUserPwd;
             UserSearchPath = ldapConnection.UserSearchPath;
             RoleSearchPath = ldapConnection.RoleSearchPath;
             GroupSearchPath = ldapConnection.GroupSearchPath;
             WriteUser = ldapConnection.WriteUser;
-
-            if (ldapConnection.WriteUserPwd != null)
-            {
-                try 
-                {
-                    WriteUserPwd = AesEnc.Decrypt(ldapConnection.WriteUserPwd, AesEnc.GetMainKey());
-                }
-                catch
-                {
-                    // assuming we found an unencrypted password
-                    WriteUserPwd = ldapConnection.WriteUserPwd;
-                }
-            }
+            WriteUserPwd = ldapConnection.WriteUserPwd;
             TenantId = ldapConnection.TenantId;
             GlobalTenantName = ldapConnection.GlobalTenantName;
             Active = ldapConnection.Active;

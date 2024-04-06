@@ -7,6 +7,14 @@
     mode: "0750"
   become: true
 
+# now that postgresq user group exists ...
+- name: set the correct permissions for main key file
+  file:
+    dest: "{{ main_key_file }}"
+    mode: '0640'
+    group: "{{ postgres_group }}"
+  become: true 
+
 - name: set dbadmin password from parameter
   set_fact:
     dbadmin_password: "{{ dbadmin_initial_password }}"

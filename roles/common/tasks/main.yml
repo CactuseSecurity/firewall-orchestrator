@@ -214,7 +214,7 @@
         dest: "{{ main_key_file }}"
         mode: '0640'
         owner: "{{ fworch_user }}"
-        group: "{{ postgres_group }}"
+        group: "{{ fworch_group }}"
       become: true
       when: not stat_result.stat.exists
 

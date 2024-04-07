@@ -7,9 +7,8 @@ After=network.target remote-fs.target nss-lookup.target postgresql.service docke
 After=network.target remote-fs.target nss-lookup.target docker.service
 {%- endif %}
 [Service]
-Restart=always
+Restart=on-failure
 WorkingDirectory={{ fworch_home }}
-# ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/docker start -a {{ api_container_name }}
 ExecStop=/usr/bin/docker stop -t 2 {{ api_container_name }}
 StandardOutput=journal

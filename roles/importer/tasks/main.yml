@@ -37,6 +37,7 @@
       - libexpect-perl
       - libcgi-pm-perl
       - python3-jsonpickle
+      - python3-gnupg
 
   - name: Install importer python modules
     package: name={{ item }} state=present

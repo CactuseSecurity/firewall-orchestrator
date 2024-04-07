@@ -55,13 +55,12 @@
     - "scripts/customizing/api/*.py"
 
 # Do general cleanup
-
-- name: delete ldif files
-  file:
-    path: "{{  middleware_ldif_dir }}"
-    state: absent
-  become: true
-  when: "'middlewareserver' in group_names"
+# - name: delete ldif files
+#   file:
+#     path: "{{  middleware_ldif_dir }}"
+#     state: absent
+#   become: true
+#   when: "'middlewareserver' in group_names"
 
 - name: restart UI to display new product version
   ansible.builtin.systemd:
@@ -113,3 +112,20 @@
   loop:
     - "{{ product_name }}-importer-legacy"
     - "{{ product_name }}-importer-api"
+
+- name: remove maint website dir
+  file:
+    path: "{{ fworch_home }}/maint-website"
+    state: absent
+  become: true
+
+- name: deactivate maintenance web site
+  command: "a2dissite {{ product_name }}-maintenance"
+  ignore_errors: true
+  become: true
+
+- name: restart apache without maintenance site
+  service:
+    name: "{{ webserver_package_name }}"
+    state: restarted
+  become: true

@@ -36,6 +36,19 @@ END;
 $$
 LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION are_equal (jsonb, jsonb)
+    RETURNS boolean
+    AS $$
+BEGIN
+    IF (($1 IS NULL AND $2 IS NULL) OR $1 = $2) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+$$
+LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION are_equal (varchar, varchar)
     RETURNS boolean
     AS $$

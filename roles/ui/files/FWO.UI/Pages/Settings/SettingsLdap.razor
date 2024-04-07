@@ -1,11 +1,14 @@
 ﻿@using BlazorTable
 @using System.Net
+@using RestSharp
+
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
-@using RestSharp
+@using FWO.Encryption
 
 
 @page "/settings/ldap"
@@ -381,7 +384,31 @@
                 DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
-            {    
+            {
+                string mainKey = AesEnc.GetMainKey();
+                string encryptedSecretSearchUser = actLdapConnection.SearchUserPwd;
+                string encryptedSecretWriteUser = actLdapConnection.WriteUserPwd;
+
+                // only encrypt secret if it was not already encrypted
+                try
+                {
+                    string decryptedSecretSearchUser = AesEnc.Decrypt(actLdapConnection.SearchUserPwd, mainKey);
+                }
+                catch (Exception)
+                {
+                    encryptedSecretSearchUser = AesEnc.Encrypt(actLdapConnection.SearchUserPwd, mainKey);
+                    actLdapConnection.SearchUserPwd = encryptedSecretSearchUser;
+                }
+                try
+                {
+                    string decryptedSecret = AesEnc.Decrypt(actLdapConnection.WriteUserPwd, mainKey);
+                }
+                catch (Exception)
+                {
+                    encryptedSecretWriteUser = AesEnc.Encrypt(actLdapConnection.WriteUserPwd, mainKey);
+                    actLdapConnection.WriteUserPwd = encryptedSecretWriteUser;
+                }
+
                 if (AddMode)
                 {
                     RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.AddLdap(actLdapConnection.ToApiParams());

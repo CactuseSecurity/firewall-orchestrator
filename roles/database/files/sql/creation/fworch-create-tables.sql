@@ -174,6 +174,7 @@ Create table "rule"
 	"rule_create" BIGINT NOT NULL,
 	"rule_last_seen" BIGINT NOT NULL,
 	"dev_id" Integer,
+	"rule_custom_fields" jsonb,
 	"access_rule" BOOLEAN Default TRUE,
 	"nat_rule" BOOLEAN Default FALSE,
 	"xlate_rule" BIGINT,
@@ -730,6 +731,7 @@ Create table "import_rule"
 	"parent_rule_uid" Text,
 	"rule_type" Varchar Default 'access',
 	"last_hit" Timestamp,
+	"rule_custom_fields" JSONB,
  primary key ("control_id","rule_id")
 );
 

@@ -26,6 +26,7 @@ database_idempotent_files:
   - fworch-grants.sql
   - fworch-import.sql
   - fworch-import-main.sql
+  - fworch-encryption.sql
   - fworch-obj-import.sql
   - fworch-obj-refs.sql
   - fworch-path-analysis.sql

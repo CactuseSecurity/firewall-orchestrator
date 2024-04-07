@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Client.Queries;
 using GraphQL;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 
 namespace FWO.Test

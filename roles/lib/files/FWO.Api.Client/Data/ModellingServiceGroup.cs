@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using FWO.GlobalConstants;
 
 namespace FWO.Api.Data
 {

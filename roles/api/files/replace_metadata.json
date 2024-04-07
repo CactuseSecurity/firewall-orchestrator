@@ -12559,6 +12559,7 @@
                       "rule_num",
                       "rule_to_zone",
                       "track_id",
+                      "rule_custom_fields",
                       "rule_num_numeric",
                       "parent_rule_type",
                       "rule_action",
@@ -12609,6 +12610,7 @@
                       "rule_num",
                       "rule_to_zone",
                       "track_id",
+                      "rule_custom_fields",
                       "rule_num_numeric",
                       "parent_rule_type",
                       "rule_action",
@@ -12659,6 +12661,7 @@
                       "rule_num",
                       "rule_to_zone",
                       "track_id",
+                      "rule_custom_fields",
                       "rule_num_numeric",
                       "parent_rule_type",
                       "rule_action",
@@ -12672,6 +12675,9 @@
                       "rule_svc_refs",
                       "rule_track",
                       "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -12706,6 +12712,7 @@
                       "rule_num",
                       "rule_to_zone",
                       "track_id",
+                      "rule_custom_fields",
                       "rule_num_numeric",
                       "parent_rule_type",
                       "rule_action",
@@ -12774,6 +12781,7 @@
                       "rule_num",
                       "rule_to_zone",
                       "track_id",
+                      "rule_custom_fields",
                       "rule_num_numeric",
                       "parent_rule_type",
                       "rule_action",
@@ -12842,6 +12850,7 @@
                       "rule_num",
                       "rule_to_zone",
                       "track_id",
+                      "rule_custom_fields",
                       "rule_num_numeric",
                       "parent_rule_type",
                       "rule_action",

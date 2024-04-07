@@ -147,7 +147,7 @@ $$ LANGUAGE plpgsql;
 
 -- finally do the encryption in the db tables
 SELECT * FROM encryptPasswords (getMainKey());
--- test using: SELECT * FROM custom_aes_cbc_decrypt_base64(custom_aes_cbc_encrypt_base64('superpwd', 'yVPJUhSSWzRSzEtFLkQvtqNDjzLZResp'), 'yVPJUhSSWzRSzEtFLkQvtqNDjzLZResp');
+-- test using: SELECT * FROM custom_aes_cbc_decrypt_base64(custom_aes_cbc_encrypt_base64('xxx', 'xxx'), 'xxx');
 
 -- function for adding local ldap data with encrypted pwds into ldap_connection
 CREATE OR REPLACE FUNCTION insertLocalLdapWithEncryptedPasswords(
@@ -180,4 +180,4 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
--- test using: SELECT * FROM insertLocalLdapWithEncryptedPasswords('127.0.0.3', 636, 'ou=operator,ou=user,dc=fworch,dc=internal','ou=role,dc=fworch,dc=internal','ou=group,dc=fworch,dc=internal',5,'inspector','WAhxGDPcRWBXshcyMHwRBqfVSikAwGUA','ldapwriter','IpifgLXOwguTZzbadQkNnZyleJcKbaCw',2);
+-- test using: SELECT * FROM insertLocalLdapWithEncryptedPasswords('127.0.0.3', 636, 'ou=operator,ou=user,dc=fworch,dc=internal','ou=role,dc=fworch,dc=internal','ou=group,dc=fworch,dc=internal',5,'inspector','xxx','ldapwriter','xxx',2);

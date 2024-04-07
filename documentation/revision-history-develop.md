@@ -183,12 +183,13 @@ bugfix release:
 # 8.0.2 - 11.03.2024 DEVELOP
 - first version of NSX import module
 
-# 8.0.3 - 06.04.2024 DEVELOP
+# 8.0.3 - 08.04.2024 DEVELOP
 - add maintenance page during upgrade
 - sample customizing py script with sample data, closes  Installer customizable config (settings) #2275
 - remove log locking from importer due to stalling importer stops
 - credentials encryption, closes encrypt passwords and keys #1508
+  - breaking change for developer debugging: add the following local file when using -e testkeys=true:
+    /etc/fworch/secrets/main_key with content "not4production..not4production.."
 - add custom (user-defined) fields to import
   - cp only so far, other fw types missing
   - user-defined fields are not part of reports yet
-t

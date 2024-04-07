@@ -85,17 +85,11 @@ namespace FWO.Middleware.Server
             {
                 if (!string.IsNullOrEmpty(SearchUser))
                 {
-                    // connection.Bind(SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
-                    // TryBindEncryptedPwd(connection, SearchUser, SearchUserPwd);
-                    // connection.Bind(SearchUser, SearchUserPwd);
                     if (!TryBind(connection, SearchUser, SearchUserPwd)) throw new Exception("Binding failed for search user");
-                    // if (!connection.Bound) throw new Exception("Binding failed for search user");
                 }
                 if (!string.IsNullOrEmpty(WriteUser))
                 {
                     if (!TryBind(connection, WriteUser, WriteUserPwd)) throw new Exception("Binding failed for write user");
-                    // connection.Bind(WriteUser, WriteUserPwd);
-                    // if (!connection.Bound) throw new Exception("Binding failed for write user");
                 }
             }
         }

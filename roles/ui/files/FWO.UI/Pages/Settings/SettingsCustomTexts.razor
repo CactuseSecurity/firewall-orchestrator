@@ -4,66 +4,75 @@
 @using FWO.Ui.Services
 
 @page "/settings/customtexts"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("customize_texts"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("customize_texts"))</h3>
+    <HelpLink Page="settings/customtexts"/>
+</div>
 @(userConfig.GetText("U5321"))
 <hr />
-<form class="form-inline">
+<div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5702"))">
     <label class="col-form-label col-sm-1">@(userConfig.GetText("language")):</label>
-    <div class="col-sm-2">
+    <div class="col-sm-4">
         <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
             <ElementTemplate Context="language">
                 @(userConfig.GetText(language.Name))
             </ElementTemplate>
         </Dropdown>
     </div>
-    <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await LoadDicts(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("select"))</button>
-</form>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await LoadDicts(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("select"))</button>
+    </div>
+</div>
 @if(dictsLoaded)
 {
-    <form class="form-inline">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5703"))">
         <label class="col-form-label col-sm-1">@(userConfig.GetText("search")):</label>
-        <div class="col-sm-2">
+        <div class="col-sm-4">
             <input type="text" class="form-control form-control-sm" @bind="searchString" />
         </div>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await Search(); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
-        <div class="form-check form-check-inline ml-2">
-            <input class="form-check-input ml-5" type="checkbox" @bind="ignoreHelpTexts">
+        <div class="col-sm-2">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await Search(); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+        </div>
+        <div class="col-sm-2">
+            <input class="form-check-input" type="checkbox" @bind="caseSensitive">
+            <label class="form-check-label">@(userConfig.GetText("case_sensitive"))</label>
+        </div>
+        <div class="col-sm-2">
+            <input class="form-check-input" type="checkbox" @bind="ignoreHelpTexts">
             <label class="form-check-label">@(userConfig.GetText("ignore_helptexts"))</label>
         </div>
-        @* <div class="col-sm-1">
-            <input type="checkbox" @bind="ignoreHelpTexts">
-        </div>
-        <label class="col-form-label col-sm-2">@(userConfig.GetText("ignore_helptexts"))</label> *@
-    </form>
+    </div>
 }
 @if(displayResults)
 {
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="TextEntry" Items="results" PageSize="0" ColumnReorder="true">
-        <Column TableItem="TextEntry" Title="@(userConfig.GetText("key"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" />
-        <Column TableItem="TextEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.Text)" Sortable="true" Filterable="true" />
-        <Column Context="res" TableItem="TextEntry" Title="@(userConfig.GetText("custom_text"))" Field="@(x => x.CustomText)" Sortable="true" Filterable="true" >
-            <Template>
-                <input type="string" @bind="res.CustomText">
-            </Template>
-        </Column>
-        <Column Context="res" TableItem="TextEntry" Title="@(userConfig.GetText("delete"))" Field="@(x => x.Delete)" Sortable="false" Filterable="false" >
-            <Template>
-                @if(actCustomDict.ContainsKey(res.Key))
-                {
-                    <input type="checkbox" @bind="res.Delete">
-                }
-            </Template>
-        </Column>
-    </Table>
+    <div class="m-2 vheight75" data-toggle="tooltip" title="@(userConfig.PureLine("H5704"))">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="TextEntry" Items="results" PageSize="0" ColumnReorder="true">
+            <Column TableItem="TextEntry" Title="@(userConfig.GetText("key"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" />
+            <Column TableItem="TextEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.Text)" Sortable="true" Filterable="true" />
+            <Column Context="res" TableItem="TextEntry" Title="@(userConfig.GetText("custom_text"))" Field="@(x => x.CustomText)" Sortable="true" Filterable="true" >
+                <Template>
+                    <input type="string" @bind="res.CustomText">
+                </Template>
+            </Column>
+            <Column Context="res" TableItem="TextEntry" Title="@(userConfig.GetText("delete"))" Field="@(x => x.Delete)" Sortable="false" Filterable="false" >
+                <Template>
+                    @if(actCustomDict.ContainsKey(res.Key))
+                    {
+                        <input type="checkbox" @bind="res.Delete">
+                    }
+                </Template>
+            </Column>
+        </Table>
+    </div>
 }
 <hr />
-<AuthorizeView Roles="@GlobalConst.kAdmin">
+<AuthorizeView Roles="@Roles.Admin">
     <Authorized>
         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault="true" @onclick="Save">@(userConfig.GetText("save"))</button>
     </Authorized>
@@ -93,6 +102,7 @@
     private List<TextEntry> results = new();
     private bool displayResults = false;
     private bool ignoreHelpTexts = true;
+    private bool caseSensitive = false;
 
     protected override void OnInitialized()
     {
@@ -123,7 +133,7 @@
         results = new();
         foreach(var entry in actDict)
         {
-            if (!(ignoreHelpTexts && entry.Key.StartsWith("H")) && entry.Value.Contains(searchString))
+            if (!(ignoreHelpTexts && entry.Key.StartsWith("H")) && (caseSensitive ? entry.Value.Contains(searchString) : entry.Value.ToLower().Contains(searchString.ToLower())))
             {
                 results.Add(new TextEntry(){ Key = entry.Key, Text = entry.Value, CustomText = actCustomDict.ContainsKey(entry.Key) ? actCustomDict[entry.Key] : ""});
             }
@@ -168,6 +178,7 @@
                 await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertCustomText, text);
             }
             await LoadDicts(selectedLanguage);
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {

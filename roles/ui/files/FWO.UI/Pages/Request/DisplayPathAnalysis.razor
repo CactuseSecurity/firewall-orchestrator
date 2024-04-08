@@ -1,13 +1,13 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("path_analysis") + ": " + ReqTask.Title)" Show="@Display" Large="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("path_analysis") + ": " + ReqTask.Title)" Show="@Display" Size=PopupSize.Large OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -17,8 +17,8 @@
             }
             else
             {
-                <div class="m-2">
-                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Device" Items="deviceList" PageSize="0" ColumnReorder="true">
+                <div class="m-2 vheight75">
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Device" Items="deviceList" PageSize="0" ColumnReorder="true">
                         <Column TableItem="Device" Title="@(userConfig.GetText("device"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
                     </Table>
                 </div>

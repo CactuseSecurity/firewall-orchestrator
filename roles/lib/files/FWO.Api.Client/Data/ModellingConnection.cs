@@ -11,6 +11,9 @@ namespace FWO.Api.Data
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
         public int AppId { get; set; }
 
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner App { get; set; } = new();
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; } = "";
 
@@ -22,6 +25,9 @@ namespace FWO.Api.Data
 
         [JsonProperty("used_interface_id"), JsonPropertyName("used_interface_id")]
         public long? UsedInterfaceId { get; set; }
+
+        [JsonProperty("common_service"), JsonPropertyName("common_service")]
+        public bool IsCommonService { get; set; } = false;
 
         [JsonProperty("creator"), JsonPropertyName("creator")]
         public string? Creator { get; set; }
@@ -55,11 +61,15 @@ namespace FWO.Api.Data
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
 
+        public int OrderNumber { get; set; } = 0;
+
+
         public ModellingConnection()
         {}
 
         public ModellingConnection(ModellingConnection conn)
         {
+           OrderNumber = conn.OrderNumber;
            Id = conn.Id;
            AppId = conn.AppId;
            Name = conn.Name;
@@ -78,11 +88,52 @@ namespace FWO.Api.Data
            DestinationNwGroups = new List<ModellingNwGroupWrapper>(conn.DestinationNwGroups);
         }
 
+        public int CompareTo(ModellingConnection secondConnection)
+        {
+            int interfaceCompare = Compare(IsInterface, secondConnection.IsInterface);
+            if (interfaceCompare != 0)
+            {
+                return interfaceCompare;
+            }
+            int comSvcCompare = Compare(IsCommonService, secondConnection.IsCommonService);
+            if (comSvcCompare != 0)
+            {
+                return comSvcCompare;
+            }
+            return Name?.CompareTo(secondConnection.Name) ?? -1;
+        }
+
+        private static int Compare(bool first, bool second)
+        {
+            if(first && !second)
+            {
+                return -1;
+            }
+            if(!first && second)
+            {
+                return 1;
+            }
+            return 0;
+        }
+
         public string DisplayWithOwner(FwoOwner owner)
         {
             return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";
         }
         
+        public string GetConnType()
+        {
+            if(IsInterface)
+            {
+                return "interface";
+            }
+            if(IsCommonService)
+            {
+                return "common_service";
+            }
+            return "connection";
+        }
+
         public bool SourceFilled()
         {
             return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0 || SourceNwGroups.Count > 0;
@@ -98,21 +149,21 @@ namespace FWO.Api.Data
             SourceNwGroups = new();
             foreach(var nwGroup in SourceAppRoles)
             {
-                if(nwGroup.Content.GroupType != (int)ModellingTypes.ObjectType.AppRole)
+                if(nwGroup.Content.GroupType != (int)ModellingTypes.ModObjectType.AppRole)
                 {
                     SourceNwGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup.Content.ToBase() });
                 }
             }
-            SourceAppRoles = SourceAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ObjectType.AppRole).ToList();
+            SourceAppRoles = SourceAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ModObjectType.AppRole).ToList();
             DestinationNwGroups = new();
             foreach(var nwGroup in DestinationAppRoles)
             {
-                if(nwGroup.Content.GroupType != (int)ModellingTypes.ObjectType.AppRole)
+                if(nwGroup.Content.GroupType != (int)ModellingTypes.ModObjectType.AppRole)
                 {
                     DestinationNwGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup.Content.ToBase() });
                 }
             }
-            DestinationAppRoles = DestinationAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ObjectType.AppRole).ToList();
+            DestinationAppRoles = DestinationAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ModObjectType.AppRole).ToList();
         }
 
         public bool Sanitize()
@@ -120,6 +171,7 @@ namespace FWO.Api.Data
             bool shortened = false;
             Name = Sanitizer.SanitizeOpt(Name, ref shortened);
             Reason = Sanitizer.SanitizeCommentOpt(Reason, ref shortened);
+            Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
             return shortened;
         }
     }

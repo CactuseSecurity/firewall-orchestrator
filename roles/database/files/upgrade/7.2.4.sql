@@ -7,4 +7,12 @@ Create table if not exists "customtxt"
     primary key ("id", "language")
 );
 
-Alter table "customtxt" add foreign key ("language") references "language" ("name") on update restrict on delete cascade;
+DO $$
+BEGIN
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'customtxt_language_fkey')
+  THEN
+        Alter table "customtxt" add foreign key ("language") references "language" ("name") on update restrict on delete cascade;
+  END IF;
+END $$;

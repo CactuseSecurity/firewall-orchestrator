@@ -1,4 +1,5 @@
 ﻿@using FWO.Api.Client
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Config.Api
 @using System.Text.Json
@@ -6,7 +7,7 @@
 @using FWO.Middleware.Client
 
 @page "/settings/stateactions"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -15,13 +16,17 @@
 
 @if(InitComplete)
 {
-    <h3>@(userConfig.GetText("state_actions"))</h3>
+    <div class="input-group">
+        <h3>@(userConfig.GetText("state_actions"))</h3>
+        <HelpLink Page="settings/stateactions"/>
+    </div>
     @(userConfig.GetText("U5317"))
     <hr />
-    <button type="button" class="btn btn-sm btn-success" @onclick="AddAction">@(userConfig.GetText("add_action"))</button>
+    <button type="button" class="btn btn-sm btn-success" data-toggle="tooltip" title="@(userConfig.PureLine("H5501"))" 
+        @onclick="AddAction">@(userConfig.GetText("add_action"))</button>
     <br><br>
-    <div class="m-2">
-        <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateAction" Items="actions" PageSize="0" ColumnReorder="true">
+    <div class="m-2 vheight75">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestStateAction" Items="actions" PageSize="0" ColumnReorder="true">
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
@@ -62,7 +67,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" XLarge="true" OnClose="() => EditActionMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" Size=PopupSize.XLarge OnClose="() => EditActionMode = false">
         <Body>
             @if (EditActionMode)
             {
@@ -74,31 +79,35 @@
                         </div>
                     </div>
                     <div class="col-sm-10">
-                        <div class="form-group row">
+                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5512"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class="col-sm-9 form-control form-control-sm" @bind="actAction.Name" />
+                            <input type="text" class="col-sm-9" @bind="actAction.Name" />
                         </div>
                     </div>
                 </div>
-                <div class="form-group row col-sm-12">
+                <div class="form-group row col-sm-12 mt-2">
                     <div class="col-sm-4">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
-                            <Dropdown ElementType="string" @bind-SelectedElement="actAction.ActionType" ElementToString="@(a => userConfig.GetText(a))" Elements="Enum.GetNames(typeof(StateActionTypes))" >
-                                <ElementTemplate Context="action">
-                                    @(userConfig.GetText(action))
-                                </ElementTemplate>
-                            </Dropdown>
+                            <div class="col-sm-8">
+                                <Dropdown ElementType="string" @bind-SelectedElement="actAction.ActionType" ElementToString="@(a => userConfig.GetText(a))" Elements="Enum.GetNames(typeof(StateActionTypes))" >
+                                    <ElementTemplate Context="action">
+                                        @(userConfig.GetText(action))
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
                         </div>
                     </div>
                     <div class="col-sm-4">
-                        <div class="form-group row">
+                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5513"))">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
-                            <Dropdown ElementType="string" @bind-SelectedElement="actAction.Event" ElementToString="@(e => userConfig.GetText(e))" Elements="Enum.GetNames(typeof(StateActionEvents))" >
-                                <ElementTemplate Context="eventt">
-                                    @(userConfig.GetText(eventt))
-                                </ElementTemplate>
-                            </Dropdown>
+                            <div class="col-sm-8">
+                                <Dropdown ElementType="string" @bind-SelectedElement="actAction.Event" ElementToString="@(e => userConfig.GetText(e))" Elements="Enum.GetNames(typeof(StateActionEvents))" >
+                                    <ElementTemplate Context="eventt">
+                                        @(userConfig.GetText(eventt))
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
                         </div>
                     </div>
                     @if(actAction.Event == StateActionEvents.OfferButton.ToString())
@@ -106,31 +115,35 @@
                         <div class="col-sm-4">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("button_text")):</label>
-                                <input type="text" class="col-sm-8 form-control form-control-sm" @bind="actAction.ButtonText" />
+                                <input type="text" class="col-sm-8" @bind="actAction.ButtonText" />
                             </div>
                         </div>
                     }
                 </div>
-                <div class="form-group row col-sm-12">
+                <div class="form-group row col-sm-12 mt-2">
                     <div class="col-sm-4">
-                        <div class="form-group row">
+                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5514"))">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
-                            <Dropdown ElementType="string" @bind-SelectedElement="selectedPhase" ElementToString="@(p => userConfig.GetText(p))" 
-                                    Elements="Enum.GetNames(typeof(WorkflowPhases))" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))" >
-                                <ElementTemplate Context="phase">
-                                    @(userConfig.GetText(phase))
-                                </ElementTemplate>
-                            </Dropdown>
+                            <div class="col-sm-8">
+                                <Dropdown ElementType="string" @bind-SelectedElement="selectedPhase" ElementToString="@(p => userConfig.GetText(p))" 
+                                        Elements="Enum.GetNames(typeof(WorkflowPhases))" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))" >
+                                    <ElementTemplate Context="phase">
+                                        @(userConfig.GetText(phase))
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
                         </div>
                     </div>
                     <div class="col-sm-4">
-                        <div class="form-group row">
+                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5515"))">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
-                            <Dropdown ElementType="string" @bind-SelectedElement="actAction.Scope" ElementToString="@(s => userConfig.GetText(s))" Elements="Enum.GetNames(typeof(RequestObjectScopes))" >
-                                <ElementTemplate Context="scope">
-                                    @(userConfig.GetText(scope))
-                                </ElementTemplate>
-                            </Dropdown>
+                            <div class="col-sm-8">
+                                <Dropdown ElementType="string" @bind-SelectedElement="actAction.Scope" ElementToString="@(s => userConfig.GetText(s))" Elements="Enum.GetNames(typeof(RequestObjectScopes))" >
+                                    <ElementTemplate Context="scope">
+                                        @(userConfig.GetText(scope))
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
                         </div>
                     </div>
                     @if(actAction.Scope == RequestObjectScopes.RequestTask.ToString() || actAction.Scope == RequestObjectScopes.ImplementationTask.ToString())
@@ -138,34 +151,38 @@
                         <div class="col-sm-4">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                                <Dropdown ElementType="TaskType?" @bind-SelectedElement="selectedTaskType" ElementToString="@(t => userConfig.GetText(t?.ToString() ?? "undefined"))" 
-                                        Elements="availableTaskTypes.Where(x => x != TaskType.master).Cast<TaskType?>()" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
-                                    <ElementTemplate Context="type">
-                                        @(userConfig.GetText(type?.ToString() ?? "undefined"))
-                                    </ElementTemplate>
-                                </Dropdown>
+                                <div class="col-sm-8">
+                                    <Dropdown ElementType="TaskType?" @bind-SelectedElement="selectedTaskType" ElementToString="@(t => userConfig.GetText(t?.ToString() ?? "undefined"))" 
+                                            Elements="availableTaskTypes.Where(x => x != TaskType.master).Cast<TaskType?>()" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                                        <ElementTemplate Context="type">
+                                            @(userConfig.GetText(type?.ToString() ?? "undefined"))
+                                        </ElementTemplate>
+                                    </Dropdown>
+                            </div>
                             </div>
                         </div>
                     }
                 </div>
-                <div class="form-group row col-sm-12">
+                <div class="form-group row col-sm-12 mt-2">
                     @switch (actAction.ActionType)
                     {
                         case nameof(StateActionTypes.AutoPromote):
                             <div class="col-sm-4">
-                                <div class="form-group row">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5522"))">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
-                                    <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedToState" Elements="statesPlus">
-                                        <ElementTemplate Context="state">
-                                            @state.Name
-                                        </ElementTemplate>
-                                    </Dropdown>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedToState" Elements="statesPlus">
+                                            <ElementTemplate Context="state">
+                                                @state.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
                                 </div>
                             </div>
                             break;
                         case nameof(StateActionTypes.AddApproval):
                             <div class="col-sm-4">
-                                <div class="form-group row">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state"))*:</label>
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
@@ -177,7 +194,7 @@
                                 </div>
                             </div>
                             <div class="col-sm-4">
-                                <div class="form-group row">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="UiUser" @bind-SelectedElement="selectedUserGroup" ElementToString="@(g => g.Name)" Elements="userAndGroupList" Nullable="true">
@@ -189,29 +206,31 @@
                                 </div>
                             </div>
                             <div class="col-sm-4">
-                                <div class="form-group row">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
-                                    <input type="number" class="col-sm-8 form-control form-control-sm" @bind="actApprovalParams.Deadline" />
+                                    <input type="number" class="col-sm-8" @bind="actApprovalParams.Deadline" />
                                 </div>
                             </div>
                             break;
                         case nameof(StateActionTypes.SetAlert):
                             <div class="col-sm-12">
-                                <div class="form-group row">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5524"))">
                                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("message_text")):</label>
-                                    <input type="text" class="col-sm-10 form-control form-control-sm" @bind="message" />
+                                    <input type="text" class="col-sm-10" @bind="message" />
                                 </div>
                             </div>
                             break;
                         case nameof(StateActionTypes.TrafficPathAnalysis):
-                            <div class="col-sm-12">
-                                <div class="form-group row">
-                                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("option")):</label>
-                                    <Dropdown ElementType="PathAnalysisOptions" @bind-SelectedElement="actPathAnalysisParams.Option" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(PathAnalysisOptions)).Cast<PathAnalysisOptions>()">
-                                        <ElementTemplate Context="opt">
-                                            @(userConfig.GetText(opt.ToString()))
-                                        </ElementTemplate>
-                                    </Dropdown>
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5526"))">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("option")):</label>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="PathAnalysisOptions" @bind-SelectedElement="actPathAnalysisParams.Option" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(PathAnalysisOptions)).Cast<PathAnalysisOptions>()">
+                                            <ElementTemplate Context="opt">
+                                                @(userConfig.GetText(opt.ToString()))
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
                                 </div>
                             </div>
                             break;
@@ -225,7 +244,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAction">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -290,7 +309,7 @@ else
             statesPlus = new List<RequestState>(states);
             statesPlus.Add(AutomaticState);
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
-            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, GlobalConst.kApprover);
+            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Roles.Approver);
         }
         catch (Exception exception)
         {

@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 
@@ -45,7 +46,7 @@ namespace FWO.Middleware.Server
             if (user != null)
                 subject = SetClaims(await uiUserHandler.HandleUiUserAtLogin(user));
             else
-                subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = GlobalConst.kAnonymous, Roles = new List<string> { GlobalConst.kAnonymous } });
+                subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = Roles.Anonymous, Roles = new List<string> { Roles.Anonymous } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
@@ -76,7 +77,7 @@ namespace FWO.Middleware.Server
         /// <returns>JWT for middleware-server role.</returns>
         public string CreateJWTMiddlewareServer()
         {
-            return CreateJWTInternal(GlobalConst.kMiddlewareServer);
+            return CreateJWTInternal(Roles.MiddlewareServer);
         }
 
         /// <summary>
@@ -86,7 +87,7 @@ namespace FWO.Middleware.Server
         /// <returns>JWT for reporter-viewall role.</returns>
         public string CreateJWTReporterViewall()
         {
-            return CreateJWTInternal(GlobalConst.kReporterViewAll);
+            return CreateJWTInternal(Roles.ReporterViewAll);
         }
 
         private string CreateJWTInternal(string role)
@@ -120,12 +121,15 @@ namespace FWO.Middleware.Server
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
                 
-            if (user.Tenant != null && user.Tenant.VisibleDevices != null && user.Tenant.VisibleManagements != null)
+            if (user.Tenant != null)
             { 
-                // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
                 claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
-                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));
-                claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleDevices)} }}"));
+                if(user.Tenant.VisibleGatewayIds != null && user.Tenant.VisibleManagementIds != null)
+                {
+                    // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
+                    claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagementIds)} }}"));
+                    claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleGatewayIds)} }}"));
+                }
             }
             claimsIdentity.AddClaim(new Claim("x-hasura-editable-owners", $"{{ {string.Join(",", user.Ownerships)} }}"));
 
@@ -150,20 +154,20 @@ namespace FWO.Middleware.Server
             string defaultRole = "";
             if (user.Roles.Count > 0)
             {
-                if (hasuraRolesList.Contains(GlobalConst.kAdmin))
-                    defaultRole = GlobalConst.kAdmin;
-                else if (hasuraRolesList.Contains(GlobalConst.kAuditor))
-                    defaultRole = GlobalConst.kAuditor;
-                else if (hasuraRolesList.Contains(GlobalConst.kFwAdmin))
-                    defaultRole = GlobalConst.kFwAdmin;
-                else if (hasuraRolesList.Contains(GlobalConst.kReporterViewAll))
-                    defaultRole = GlobalConst.kReporterViewAll;
-                else if (hasuraRolesList.Contains(GlobalConst.kReporter))
-                    defaultRole = GlobalConst.kReporter;
-                else if (hasuraRolesList.Contains(GlobalConst.kRecertifier))
-                    defaultRole = GlobalConst.kRecertifier;
-                else if (hasuraRolesList.Contains(GlobalConst.kModeller))
-                    defaultRole = GlobalConst.kModeller;
+                if (hasuraRolesList.Contains(Roles.Admin))
+                    defaultRole = Roles.Admin;
+                else if (hasuraRolesList.Contains(Roles.Auditor))
+                    defaultRole = Roles.Auditor;
+                else if (hasuraRolesList.Contains(Roles.FwAdmin))
+                    defaultRole = Roles.FwAdmin;
+                else if (hasuraRolesList.Contains(Roles.ReporterViewAll))
+                    defaultRole = Roles.ReporterViewAll;
+                else if (hasuraRolesList.Contains(Roles.Reporter))
+                    defaultRole = Roles.Reporter;
+                else if (hasuraRolesList.Contains(Roles.Recertifier))
+                    defaultRole = Roles.Recertifier;
+                else if (hasuraRolesList.Contains(Roles.Modeller))
+                    defaultRole = Roles.Modeller;
                 else
                     defaultRole = user.Roles[0]; // pick first role at random (todo: might need to be changed)
             }

@@ -1,4 +1,5 @@
 ﻿using FWO.Config.Api;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -7,10 +8,7 @@ using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.RequestParameters;
 using System.Security.Authentication;
-using Microsoft.AspNetCore.Authentication.OAuth;
 using Novell.Directory.Ldap;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authorization;
 using System.Data;
 
 namespace FWO.Middleware.Controllers
@@ -103,7 +101,7 @@ namespace FWO.Middleware.Controllers
                 try
                 {
                     await authManager.AuthorizeUserAsync(adminUser, validatePassword: true);
-                    if (!adminUser.Roles.Contains(GlobalConst.kAdmin))
+                    if (!adminUser.Roles.Contains(Roles.Admin))
                     {
                         throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
                     }
@@ -167,13 +165,15 @@ namespace FWO.Middleware.Controllers
             user.Email = ldap.GetEmail(ldapUser);
 
             // Get groups of user
-            user.Groups = ldap.GetGroups(ldapUser);
+            user.Groups = await GetGroups(ldapUser, ldap);
+            Log.WriteDebug("Get Groups", $"Found groups for user: {string.Join("; ", user.Groups)}");
 
             // Get roles of user
             user.Roles = await GetRoles(user);
 
             // Get tenant of user
             user.Tenant = await GetTenantAsync(ldapUser, ldap);
+            Log.WriteDebug("Get Tenants", $"Found tenant for user: {user.Tenant?.Name ?? ""}");
 
             // Remember the hosting ldap
             user.LdapConnection.Id = ldap.Id;
@@ -182,15 +182,43 @@ namespace FWO.Middleware.Controllers
             return await jwtWriter.CreateJWT(user, lifetime);
         }
 
+        public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
+        {
+            List<string> userGroups = ldap.GetGroups(ldapUser);
+            if (!ldap.IsInternal())
+            {
+                object groupsLock = new object();
+                List<Task> ldapRoleRequests = new List<Task>();
+
+                foreach (Ldap currentLdap in ldaps)
+                {
+                    if (currentLdap.IsInternal())
+                    {
+                        ldapRoleRequests.Add(Task.Run(() =>
+                        {
+                            // Get groups from current Ldap
+                            List<string> currentGroups = currentLdap.GetGroups(new List<string>() {ldapUser.Dn});
+                            lock (groupsLock)
+                            {
+                                currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();
+                                userGroups.AddRange(currentGroups);
+                            }
+                        }));
+                    }
+                }
+                await Task.WhenAll(ldapRoleRequests);
+            }
+            return userGroups;
+        }
+
         public async Task<(LdapEntry, Ldap)> GetLdapEntry(UiUser user, bool validatePassword)
         {
-            Log.WriteDebug("User Authentication", $"Trying to ldap entry for user: {user.Name + " " + user.Dn}...");
+            Log.WriteDebug("User Authentication", $"Trying to get ldap entry for user: {user.Name + " " + user.Dn}...");
 
             if (user.Dn == "" && user.Name == "")
             {
                 throw new Exception("A0001 Invalid credentials. Username / User DN must not be empty.");
             }
-
             else
             {
                 LdapEntry? ldapEntry = null;
@@ -212,7 +240,7 @@ namespace FWO.Middleware.Controllers
                             if (currentLdapEntry != null)
                             {
                                 // User was successfully authenticated via this LDAP
-                                if(user.Name == GlobalConst.kImporter)
+                                if(user.Name == Roles.Importer)
                                 {
                                     Log.WriteDebug("User Authentication", $"User {user.Name + " " + currentLdapEntry.Dn} found.");
                                 }
@@ -293,7 +321,7 @@ namespace FWO.Middleware.Controllers
             {
                 // Use anonymous role
                 Log.WriteWarning("Missing roles", $"No roles for user \"{user.Dn}\" could be found. Using anonymous role.");
-                userRoles.Add(GlobalConst.kAnonymous);
+                userRoles.Add(Roles.Anonymous);
             }
 
             return userRoles;
@@ -360,14 +388,7 @@ namespace FWO.Middleware.Controllers
                     }
                 }
             }
-
-            var tenIdObj = new { tenantId = tenant.Id };
-
-            Device[] deviceIds = await apiConnection.SendQueryAsync<Device[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
-            tenant.VisibleDevices = Array.ConvertAll(deviceIds, device => device.Id);
-
-            Management[] managementIds = await apiConnection.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
-            tenant.VisibleManagements = Array.ConvertAll(managementIds, management => management.Id);
+            await tenant.AddDevices(apiConnection);
 
             return tenant;
         }

@@ -1,18 +1,25 @@
 # library for FWORCH API calls
-from asyncio.log import logger
-from distutils.log import debug
+# from asyncio.log import logger
 import re
 import traceback
-from sqlite3 import Timestamp
-from textwrap import indent
+# from sqlite3 import Timestamp
+# from textwrap import indent
 import requests.packages
 import requests
 import json
 import datetime
+import base64
+import gnupg
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+
+
 from fwo_log import getFwoLogger
 import fwo_globals
+import fwo_const
 from fwo_const import fwo_api_http_import_timeout
-from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed
+from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, SecretDecryptionFailed
 from fwo_base import writeAlertToLogFile
 
 
@@ -63,7 +70,8 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
         if int(fwo_globals.debug_level) > 4:
             logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
         if show_progress:
-            print('.', end='', flush=True)
+            pass
+            # print('.', end='', flush=True)
         if r != None:
             return r.json()
         else:
@@ -192,9 +200,75 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
     """
     api_call_result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
     if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
+        if not '://' in api_call_result['data']['management'][0]['hostname']:
+            # only decrypt if we have a real management and are not fetching the config from an URL
+            # decrypt secret read from API
+            try:
+                secret = api_call_result['data']['management'][0]['import_credential']['secret']
+                decryptedSecret = decrypt(secret, readMainKey())
+            except ():
+                raise SecretDecryptionFailed
+            api_call_result['data']['management'][0]['import_credential']['secret'] = decryptedSecret
         return api_call_result['data']['management'][0]
     else:
         raise Exception('did not succeed in getting management details from FWO API')
+
+
+def readMainKey(filePath=fwo_const.mainKeyFile):
+    with open(filePath, "r") as keyfile:
+        mainKey = keyfile.read().rstrip(' \n')
+    return mainKey
+
+
+# can be used for decrypting text encrypted with postgresql.pgp_sym_encrypt
+def decryptGpg(encryptedTextIn, key):
+    logger = getFwoLogger()
+    gpg = gnupg.GPG()
+
+    binData = base64.b64decode(encryptedTextIn)
+    decrypted_data = gpg.decrypt(binData, passphrase=key)
+
+    if decrypted_data.ok:
+        return decrypted_data.data.decode('utf-8')
+    else:
+        logger.info("error while decrypting: " + decrypted_data.status + ", assuming plaintext credentials")
+        return encryptedTextIn
+
+
+# can be used for decrypting text encrypted with C# (mw-server)
+def decrypt_aes_ciphertext(base64_encrypted_text, passphrase):
+    encrypted_data = base64.b64decode(base64_encrypted_text)
+    ivLength = 16 # IV length for AES is 16 bytes
+
+    # Extract IV from the encrypted data
+    iv = encrypted_data[:ivLength]  
+
+    # Initialize AES cipher with provided passphrase and IV
+    backend = default_backend()
+    cipher = Cipher(algorithms.AES(passphrase.encode()), modes.CBC(iv), backend=backend)
+    decryptor = cipher.decryptor()
+
+    # Decrypt the ciphertext
+    decrypted_data = decryptor.update(encrypted_data[ivLength:]) + decryptor.finalize()
+
+    # Remove padding
+    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+    try:
+        unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
+        return unpadded_data.decode('utf-8')  # Assuming plaintext is UTF-8 encoded
+    except ValueError as e:
+        raise Exception ('AES decryption failed:', e)
+
+
+# wrapper for trying the different decryption methods
+def decrypt(encrypted_data, passphrase):
+    logger = getFwoLogger()
+    try:
+        decrypted = decrypt_aes_ciphertext(encrypted_data, passphrase)
+        return decrypted
+    except:
+        logger.warning("Unspecified error while decrypting with MS: " + str(traceback.format_exc()))
+        return encrypted_data
 
 
 def log_import_attempt(fwo_api_base_url, jwt, mgm_id, successful=False):
@@ -214,6 +288,20 @@ def lock_import(fwo_api_base_url, jwt, query_variables):
         return lock_result['data']['insert_import_control']['returning'][0]['control_id']
     else:
         return -1
+
+def count_rule_changes_per_import(fwo_api_base_url, jwt, import_id):
+    logger = getFwoLogger()
+    change_count_query = """
+        query count_rule_changes($importId: bigint!) {
+            changelog_rule_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+        }"""
+    try:
+        count_result = call(fwo_api_base_url, jwt, change_count_query, query_variables={'importId': import_id}, role='importer')
+        rule_changes_in_import = int(count_result['data']['changelog_rule_aggregate']['aggregate']['count'])
+    except:
+        logger.exception("failed to count changes for import id " + str(import_id))
+        rule_changes_in_import = 0
+    return rule_changes_in_import
 
 
 def count_changes_per_import(fwo_api_base_url, jwt, import_id):
@@ -242,11 +330,11 @@ def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, e
     logger = getFwoLogger()
     error_during_import_unlock = 0
     query_variables = {"stopTime": stop_time, "importId": current_import_id,
-                       "success": error_count == 0, "changesFound": change_count > 0}
+                       "success": error_count == 0, "changesFound": change_count > 0, "changeNumber": change_count}
 
     unlock_mutation = """
-        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!) {
-            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changesFound}) {
+        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!, $changeNumber: Int!) {
+            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changesFound, security_relevant_changes_counter: $changeNumber}) {
                 affected_rows
             }
         }"""
@@ -353,8 +441,9 @@ def update_hit_counter(fwo_api_base_url, jwt, mgm_id, query_variables):
             
             return 0
         else:
-            logger.debug("found no rules with hit information for mgm_id " + str(mgm_id))
-            return 1
+            if len(query_variables['config']['rules'])>0:
+                logger.debug("found rules without hit information for mgm_id " + str(mgm_id))
+                return 1
     else:
         logger.debug("no rules found for mgm_id " + str(mgm_id))
         return 1

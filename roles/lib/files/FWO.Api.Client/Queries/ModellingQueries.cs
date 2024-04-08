@@ -28,6 +28,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getInterfaces;
         public static readonly string getInterfaceById;
         public static readonly string getConnections;
+        public static readonly string getCommonServices;
         public static readonly string newConnection;
         public static readonly string updateConnection;
         public static readonly string deleteConnection;
@@ -77,6 +78,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getServiceGroupIdsForService;
 
         public static readonly string getHistory;
+        public static readonly string getHistoryForApp;
         public static readonly string addHistoryEntry;
 
 
@@ -109,6 +111,7 @@ namespace FWO.Api.Client.Queries
                 getInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaces.graphql");
                 getInterfaceById = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaceById.graphql");                
                 getConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnections.graphql");
+                getCommonServices = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getCommonServices.graphql");
                 newConnection = File.ReadAllText(QueryPath + "modelling/newConnection.graphql");
                 updateConnection = File.ReadAllText(QueryPath + "modelling/updateConnection.graphql");
                 deleteConnection = File.ReadAllText(QueryPath + "modelling/deleteConnection.graphql");
@@ -158,6 +161,7 @@ namespace FWO.Api.Client.Queries
                 getServiceGroupIdsForService = File.ReadAllText(QueryPath + "modelling/getServiceGroupIdsForService.graphql");
 
                 getHistory = File.ReadAllText(QueryPath + "modelling/getHistory.graphql");
+                getHistoryForApp = File.ReadAllText(QueryPath + "modelling/getHistoryForApp.graphql");
                 addHistoryEntry = File.ReadAllText(QueryPath + "modelling/addHistoryEntry.graphql");
             }
             catch (Exception exception)

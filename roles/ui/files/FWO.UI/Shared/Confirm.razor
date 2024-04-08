@@ -1,11 +1,12 @@
-﻿@using FWO.Config.Api
+﻿@using FWO.GlobalConstants
+@using FWO.Api.Data
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(Title)" Show="@Display" OnClose="Cancel">
+<PopUp Title="@(Title)" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
     <Body>
         @if (Display)
         {
@@ -14,7 +15,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("confirm"))</button>
                 </Authorized>

@@ -5,7 +5,7 @@
 @inject ApiConnection apiConnection
 
 
-<PopUp Title="@(userConfig.GetText("select_device"))" Show="@Display" OnClose="Cancel">
+<PopUp Title="@(userConfig.GetText("select_device"))" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
     <Body>
         <DeviceSelection @bind-DeviceFilter="DeviceFilter" @bind-CollapseAll="collapseDevices" ShowTitle="false"/>
     </Body>

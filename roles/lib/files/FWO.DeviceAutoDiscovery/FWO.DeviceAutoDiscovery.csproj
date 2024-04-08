@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\lib\files\FWO.Config.Api\FWO.Config.Api.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Encryption\FWO.Encryption.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Api.Client\FWO.Api.Client.csproj" />
   </ItemGroup>
 

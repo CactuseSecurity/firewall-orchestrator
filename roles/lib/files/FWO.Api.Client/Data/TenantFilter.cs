@@ -1,6 +1,4 @@
-using System.Text;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Components;
 using Newtonsoft.Json;
 
 namespace FWO.Api.Data
@@ -22,7 +20,7 @@ namespace FWO.Api.Data
             TenantId = tenantFilter.TenantId;
         }
 
-        public TenantFilter(Tenant tenant)
+        public TenantFilter(Tenant? tenant)
         {
             IsActive = tenant?.Id > 1;
             TenantId = tenant?.Id ?? 0;

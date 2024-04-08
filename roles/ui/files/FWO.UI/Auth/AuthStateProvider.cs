@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Ui.Services;
 using FWO.Middleware.Client;
@@ -54,7 +55,7 @@ namespace FWO.Ui.Auth
             if (jwtReader.Validate())
             {
                 // importer is not allowed to login
-                if (jwtReader.ContainsRole(GlobalConst.kImporter))
+                if (jwtReader.ContainsRole(Roles.Importer))
                 {
                     throw new AuthenticationException("login_importer_error");
                 }
@@ -82,6 +83,9 @@ namespace FWO.Ui.Auth
                 string userDn = user.FindFirstValue("x-hasura-uuid");
                 await userConfig.SetUserInformation(userDn, apiConnection);
                 userConfig.User.Jwt = jwtString;
+                userConfig.User.Tenant = await getTenantFromJwt(userConfig.User.Jwt, apiConnection);
+                userConfig.User.Roles = getAllowedRoles(userConfig.User.Jwt);
+                userConfig.User.Ownerships = getAssignedOwners(userConfig.User.Jwt);
                 circuitHandler.User = userConfig.User;
 
                 // Add jwt expiry timer
@@ -138,8 +142,7 @@ namespace FWO.Ui.Auth
         public async Task<Tenant> getTenantFromJwt(string jwtString, ApiConnection apiConnection)
         {
             JwtReader jwtReader = new JwtReader(jwtString);
-            Tenant tenant = new Tenant();
-            int tenantId;
+            Tenant tenant = new();
 
             if (jwtReader.Validate())
             {
@@ -154,9 +157,9 @@ namespace FWO.Ui.Auth
                 // Set user information
                 user = new ClaimsPrincipal(identity);
 
-                if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
+                if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out int tenantId))
                 {
-                    tenant = await Tenant.getTenantById(apiConnection, tenantId);
+                    tenant = await Tenant.getSingleTenant(apiConnection, tenantId) ?? new();
                 }
                 // else
                 // {

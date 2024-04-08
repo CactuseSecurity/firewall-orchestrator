@@ -1,7 +1,7 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -14,7 +14,7 @@
     <div class="col-sm-12">
         <div class="form-group row">
             <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("rule_uid"))*:</label>
-            <input type="text" class="col-sm-10 form-control form-control-sm" readonly="@(!EditMode)" @bind="rule.RuleUid" />
+            <input type="text" class="col-sm-10" readonly="@(!EditMode)" @bind="rule.RuleUid" />
             @if (EditMode)
             {
                 <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteRule(rule)">x</button>
@@ -33,7 +33,7 @@
         <hr />
         <div class="form-group row col-sm-12">
             <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("rule_uid"))*:</label>
-            <input @onsubmit:preventDefault @onsubmit:stopPropagation type="text" class="col-sm-11 form-control form-control-sm" @bind="newRuleUid"/>
+            <input @onsubmit:preventDefault @onsubmit:stopPropagation type="text" class="col-sm-11" @bind="newRuleUid"/>
         </div>
     </div>
 }

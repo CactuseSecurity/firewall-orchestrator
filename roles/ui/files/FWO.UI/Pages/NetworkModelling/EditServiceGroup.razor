@@ -6,41 +6,70 @@
 
 @if (Display)
 {
-    <PopUp Title="@(AddMode ? userConfig.GetText("add_service_group") : userConfig.GetText("edit_service_group"))" XLarge="true" Show="@Display" OnClose="Close">
+    <PopUp Title="@(SvcGroupHandler.ReadOnly ? "" : (AddMode ? userConfig.GetText("add_service_group") : userConfig.GetText("edit_service_group")))"
+            Size="@(SvcGroupHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
-                <div class="col-sm-6">
-                    <EditServiceGroupLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-SvcGroupHandler="SvcGroupHandler" AsAdmin="AsAdmin"/>
-                </div>
-                <div class="col-sm-6">
+                @if(!SvcGroupHandler.ReadOnly)
+                {
+                    <div class="col-sm-6">
+                        <EditServiceGroupLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-SvcGroupHandler="SvcGroupHandler" AsAdmin="AsAdmin"/>
+                    </div>
+                }
+                <div class="@(SvcGroupHandler.ReadOnly ? "col-sm-12" : "col-sm-6")">
                     <h3>@(userConfig.GetText("services_group"))</h3>
                     <div class="col-sm-11 border rounded m-2 p-2">
                         <div class="form-group row">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="SvcGroupHandler.ActServiceGroup.Name" />
+                            @if(SvcGroupHandler.ReadOnly)
+                            {
+                                <label class="col-sm-8">@SvcGroupHandler.ActServiceGroup.Name</label>
+                            }
+                            else
+                            {
+                                <input type="text" class="col-sm-8" @bind="SvcGroupHandler.ActServiceGroup.Name" />
+                            }
                         </div>
-                        <div class="form-group row">
+                        <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                            <input type="text" class=" col-sm-8 form-control form-control-sm" @bind="SvcGroupHandler.ActServiceGroup.Comment" />
+                            @if(SvcGroupHandler.ReadOnly)
+                            {
+                                <label class="col-sm-8">@SvcGroupHandler.ActServiceGroup.Comment</label>
+                            }
+                            else
+                            {
+                                <input type="text" class=" col-sm-8" @bind="SvcGroupHandler.ActServiceGroup.Comment" />
+                            }
                         </div>
                         <div class="col-sm-12">
+                            <br>
                             <h6>@(userConfig.GetText("services"))</h6>
-                            <div class="minheight-dropzone bg-secondary dropzone" dropzone="move"
-                                ondragover="event.preventDefault();"
-                                ondragstart="event.dataTransfer.setData('', event.target.id);"
-                                @ondrop="HandleSvcDrop">
-                                <EditList ElementType="ModellingService" Elements="Array.ConvertAll(SvcGroupHandler.ActServiceGroup.Services.ToArray(), wrapper => wrapper.Content)" ElementsToAdd="SvcGroupHandler.SvcToAdd" ElementsToDelete="SvcGroupHandler.SvcToDelete" StdLayout="false">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                            </div>                            
+                            @if(SvcGroupHandler.ReadOnly)
+                            {
+                                foreach(var svc in ModellingServiceWrapper.Resolve(SvcGroupHandler.ActServiceGroup.Services))
+                                {
+                                    <div class="mh-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)svc.DisplayWithIcon())</div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="minheight-dropzone bg-secondary dropzone" dropzone="move"
+                                    ondragover="event.preventDefault();"
+                                    ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                    @ondrop="HandleSvcDrop">
+                                    <EditList ElementType="ModellingService" Elements="Array.ConvertAll(SvcGroupHandler.ActServiceGroup.Services.ToArray(), wrapper => wrapper.Content)" ElementsToAdd="SvcGroupHandler.SvcToAdd" ElementsToDelete="SvcGroupHandler.SvcToDelete" StdLayout="false">
+                                        <Display>
+                                            <div class="row">
+                                                <div class="col-sm-12 ms-2 bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                            </div>
+                                        </Display>
+                                    </EditList>
+                                </div>  
+                            }                          
                         </div>
                         @if(!AddMode)
                         {
-                            <label class="col-sm-12 small">@(userConfig.GetText("created_by")): @(SvcGroupHandler.ActServiceGroup.Creator), @(userConfig.GetText("creation_date")): @(SvcGroupHandler.ActServiceGroup.CreationDate)</label>
+                            <label class="col-sm-12 mt-2 small">@(userConfig.GetText("created_by")): @(SvcGroupHandler.ActServiceGroup.Creator), @(userConfig.GetText("creation_date")): @(SvcGroupHandler.ActServiceGroup.CreationDate)</label>
                         }
                     </div>
                 </div>
@@ -48,22 +77,29 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                @if(SvcGroupHandler.IsOwner)
+                @if(SvcGroupHandler.ReadOnly)
                 {
-                    <AuthorizeView Roles="@(AsAdmin? GlobalConst.kAdmin : GlobalConst.kModeller)">
-                        <Authorized>
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await SvcGroupHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                }                    
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+                    @if(SvcGroupHandler.IsOwner)
+                    {
+                        <AuthorizeView Roles="@(AsAdmin? Roles.Admin : Roles.Modeller)">
+                            <Authorized>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await SvcGroupHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                            </NotAuthorized> 
+                        </AuthorizeView>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    }                    
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+                }
             </div>
         </Footer>
     </PopUp>
@@ -94,7 +130,7 @@
     public bool AsAdmin { get; set; } = false;
 
     private ModellingDnDContainer Container { get; set; } = new();
-    int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
+    int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth + 300;
     private bool workInProgress = false;
 
 

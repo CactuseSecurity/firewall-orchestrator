@@ -1,4 +1,5 @@
 ﻿using FWO.Config.Api;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;
@@ -36,10 +37,10 @@ namespace FWO.Middleware.Controllers
         /// </summary>
         /// <returns>List of tenants</returns>
         [HttpGet]
-        [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
         public async Task<List<TenantGetReturnParameters>> Get()
         {
-            Tenant[] tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.Api.Client.Queries.AuthQueries.getTenants));
+            Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(FWO.Api.Client.Queries.AuthQueries.getTenants);
             List<TenantGetReturnParameters> tenantList = new List<TenantGetReturnParameters>();
             foreach (Tenant tenant in tenants)
             {
@@ -61,7 +62,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="tenant">TenantAddParameters</param>
         /// <returns>Id of new tenant, 0 if no tenant could be created</returns>
         [HttpPost]
-        [Authorize(Roles = $"{GlobalConst.kAdmin}")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<int> Post([FromBody] TenantAddParameters tenant)
         {
             bool tenantAdded = false;
@@ -95,7 +96,6 @@ namespace FWO.Middleware.Controllers
                         project = tenant.Project,
                         comment = tenant.Comment,
                         viewAllDevices = tenant.ViewAllDevices,
-                        // superAdmin = tenant.Superadmin,
                         create = DateTime.Now
                     };
                     ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenant, Variables)).ReturnIds;
@@ -129,7 +129,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">TenantEditParameters</param>
         /// <returns>true if updated</returns>
         [HttpPut]
-        [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}")]
         public async Task<bool> Change([FromBody] TenantEditParameters parameters)
         {
             bool tenantUpdated = false;
@@ -169,7 +169,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="tenant">TenantDeleteParameters</param>
         /// <returns>true if tenant deleted</returns>
         [HttpDelete]
-        [Authorize(Roles = $"{GlobalConst.kAdmin}")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<bool> Delete([FromBody] TenantDeleteParameters tenant)
         {
             bool tenantDeleted = false;

@@ -7,48 +7,50 @@
 @inject UserConfig userConfig
 
 @page "/report/archive"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
-<ReportTabset></ReportTabset>
+<ReportTabset/>
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ReportFile" Items="archivedReports" PageSize="0">
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("actions"))">
-        <Template>
-            <div class="btn-group">
-                @if (!Exporting)
-                {
-                    <button type="button" class="btn btn-sm btn-info" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">@(userConfig.GetText("download"))</button>
-                    @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin))
+<div class="vheight75">
+    <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportFile" Items="archivedReports" PageSize="0">
+        <Column TableItem="ReportFile" Title="@(userConfig.GetText("actions"))">
+            <Template>
+                <div class="btn-group">
+                    @if (!Exporting)
                     {
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">@(userConfig.GetText("download"))</button>
+                        @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+                        {
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
+                        }
                     }
-                }
-                else
-                {                    
-                    <div class="spinner-border" role="status">
-                        <span class="sr-only">Exporting...</span>
-                    </div>
-                }
-            </div>
-        </Template>
-    </Column>
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("name"))" Field="@(reportFile => reportFile.Name)" Sortable="true" Filterable="true"/>
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("report_type"))" Field="@(reportFile => reportFile.Type)" Sortable="true">
-        <Template>
-            @(userConfig.GetText(((FWO.Report.Filter.ReportType)((int)(context.Type ?? 0))).ToString() ?? "none"))
-        </Template>
-    </Column>
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("template"))" Field="@(reportFile => reportFile.Template.Name)" Filterable="true"/>
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" Sortable="true" Filterable="true">
-        <Template>
-            @(context.GenerationDateStart.ToString("yyyy-MM-dd HH:mm:ssK"))
-        </Template>
-    </Column>
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.Owner.Name)" Sortable="true" Filterable="true"/>
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("description"))" Field="@(reportFile => reportFile.Description)" Sortable="true" Filterable="true"/>
-</Table>
+                    else
+                    {                    
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Exporting...</span>
+                        </div>
+                    }
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="ReportFile" Title="@(userConfig.GetText("name"))" Field="@(reportFile => reportFile.Name)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ReportFile" Title="@(userConfig.GetText("report_type"))" Field="@(reportFile => reportFile.Type)" Sortable="true">
+            <Template>
+                @(userConfig.GetText(((FWO.Report.Filter.ReportType)((int)(context.Type ?? 0))).ToString() ?? "none"))
+            </Template>
+        </Column>
+        <Column TableItem="ReportFile" Title="@(userConfig.GetText("template"))" Field="@(reportFile => reportFile.Template.Name)" Filterable="true"/>
+        <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.GenerationDateStart.ToString("yyyy-MM-dd HH:mm:ssK"))
+            </Template>
+        </Column>
+        <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.Owner.Name)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ReportFile" Title="@(userConfig.GetText("description"))" Field="@(reportFile => reportFile.Description)" Sortable="true" Filterable="true"/>
+    </Table>
+</div>
 
-<PopUp Show="ShowDeleteReportFileDialog" Title="@(userConfig.GetText("generated_report"))">
+<PopUp Show="ShowDeleteReportFileDialog" Title="@(userConfig.GetText("generated_report"))" Size=PopupSize.Small>
     <Body>
         <p>@(userConfig.GetText("U3002")) "@reportFileContext.Name" ?</p>
     </Body>

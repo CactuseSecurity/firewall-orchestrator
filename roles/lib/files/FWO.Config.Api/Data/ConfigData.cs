@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Mail;
 
@@ -72,6 +73,15 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("impChangeNotifyActive"), JsonPropertyName("impChangeNotifyActive")]
         public bool ImpChangeNotifyActive { get; set; } = false;
+
+        [JsonProperty("impChangeNotifyType"), JsonPropertyName("impChangeNotifyType")]
+        public int ImpChangeNotifyType { get; set; }
+
+        [JsonProperty("impChangeNotifySleepTime"), JsonPropertyName("impChangeNotifySleepTime")]
+        public int ImpChangeNotifySleepTime { get; set; } = 60;
+
+        [JsonProperty("impChangeNotifyStartAt"), JsonPropertyName("impChangeNotifyStartAt")]
+        public DateTime ImpChangeNotifyStartAt { get; set; } = new DateTime();
 
 
         [JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
@@ -210,6 +220,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
         public int OverviewDisplayLines { get; set; } = 3;
 
+        [JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
+        public bool ReducedProtocolSet { get; set; } = true;
+
         [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
         public string ImportAppDataPath { get; set; } = "";
 
@@ -230,6 +243,12 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
         public string ModNamingConvention { get; set; } = "";
+
+        [JsonProperty("modIconify"), JsonPropertyName("modIconify")]
+        public bool ModIconify { get; set; } = true;
+
+        [JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
+        public string ModCommonAreas { get; set; } = "";
 
 
         public ConfigData(bool editable = false)

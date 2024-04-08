@@ -1,7 +1,10 @@
 ﻿using FWO.Config.Api;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 
 
 namespace FWO.Ui.Services
@@ -31,7 +34,21 @@ namespace FWO.Ui.Services
             IsOwner = isOwner;
         }
         
-        protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text, int? applicationId)
+        public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
+        {
+            return DisplayButton(userConfig, text, icon, iconText, objIcon);
+        }
+
+        public static MarkupString DisplayButton(UserConfig userConfig, string text, string icon, string iconText = "", string objIcon = "")
+        {
+            string tooltip = userConfig.ModIconify ? $"data-toggle=\"tooltip\" title=\"{@userConfig.PureLine(text)}\"" : "";
+            string iconToDisplay = $"<span class=\"{icon}\" {@tooltip}/>";
+            string iconTextPart = iconText != "" ? " <span class=\"stdtext\">" + userConfig.GetText(iconText) + "</span>" : "";
+            string objIconToDisplay = objIcon != "" ? $" <span class=\"{objIcon}\"/>" : "";
+            return (MarkupString)(userConfig.ModIconify ? iconToDisplay + iconTextPart + objIconToDisplay : userConfig.GetText(text));
+        }
+
+        protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text, int? applicationId)
         {
             try
             {
@@ -52,7 +69,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public static async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ObjectType objectType, long objId, string text,
+        public static async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text,
             ApiConnection apiConnection, UserConfig userConfig, int? applicationId, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             try
@@ -112,10 +129,10 @@ namespace FWO.Ui.Services
             {
                 if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteService, new { id = actService.Id })).AffectedRows > 0)
                 {
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.Service, actService.Id,
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Service, actService.Id,
                         $"Deleted Service: {actService.Display()}", Application.Id);
                     availableServices.Remove(actService);
-                    availableSvcElems?.Remove(availableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ObjectType.Service && x.Value == actService.Id));
+                    availableSvcElems?.Remove(availableSvcElems.FirstOrDefault(x => x.Key == (int)ModellingTypes.ModObjectType.Service && x.Value == actService.Id));
                     return false;
                 }
             }
@@ -163,6 +180,26 @@ namespace FWO.Ui.Services
             return interfaceName;
         }
 
+        public async Task<ModellingConnection?> GetUsedInterface(ModellingConnection conn)
+        {
+            try
+            {
+                if(conn.UsedInterfaceId != null)
+                {
+                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
+                    if(interf.Count > 0)
+                    {
+                        return interf[0];
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+            return null;
+        }
+
         protected async Task<bool> CheckAppServerInUse(ModellingAppServer appServer)
         {
             try
@@ -182,6 +219,40 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
                 return true;
+            }
+        }
+
+        public static async Task<List<FwoOwner>> GetOwnApps(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig,
+            ApiConnection apiConnection, Action<Exception?, string, string, bool> DisplayMessageInUi)
+        {
+            List<FwoOwner> apps = new();
+            try
+            {
+                if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+                {
+                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                }
+                else
+                {
+                    UpdateOwnerships(authenticationStateTask,userConfig); // qad: userConfig may not be properly filled
+                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+            return apps;
+        }
+
+        private static void UpdateOwnerships(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig)
+        {
+            string? ownerString = authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners")?.Value;
+            if(ownerString != null)
+            {
+                string[] separatingStrings = { ",", "{", "}" };
+                string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
             }
         }
     }

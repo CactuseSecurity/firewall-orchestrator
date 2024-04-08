@@ -1,23 +1,24 @@
 ﻿@using FWO.Ui.Display
 @using FWO.Config.Api
+@using FWO.Report
 @using FWO.Report.Filter
 
 @inject UserConfig userConfig
 
-@foreach (Management management in Managements)
+@foreach (var management in Managements)
 {
     @if (management.Devices.Where(device => device.RuleChanges != null && device.RuleChanges.Count() > 0).Count() > 0)
     {
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
 
-            @foreach (Device device in management.Devices)
+            @foreach (var device in management.Devices)
             {
                 @if (device.RuleChanges != null && device.RuleChanges.Length > 0 && ruleChangeDisplayHtml != null && SelectedRuleChanges != null)
                 {
-                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
+                    <Collapse Title="@device.Name" Style="@("secondary")" class="vheight75" StartToggled="true">
                         <Table SelectedItems="SelectedRuleChanges"
                                RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); await SelectedRuleChangesChanged.InvokeAsync(SelectedRuleChanges); })"
-                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="false"
+                               style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="false"
                                PageSize="RulesPerPage" ColumnReorder="true">
 
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("change_time"))" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
@@ -131,7 +132,7 @@
     public int RulesPerPage { get; set; }
 
     [Parameter]
-    public Management[] Managements { get; set; } = new Management[]{};
+    public List<ManagementReport> Managements { get; set; } = new ();
 
     [Parameter]
     public ReportType SelectedReportType { get; set; }

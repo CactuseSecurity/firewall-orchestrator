@@ -27,11 +27,12 @@ def getLogger(debug_level_in=0):
         llevel = logging.INFO
 
     logger = logging.getLogger() # use root logger
-    logHandler = logging.StreamHandler(stream=stdout)
+    # logHandler = logging.StreamHandler(stream=stdout)
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
-    logHandler.setLevel(llevel)
-    handlers = [logHandler]
-    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=llevel)
+    # logHandler.setLevel(llevel)
+    # handlers = [logHandler]
+    # logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=llevel)
+    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
     logger.setLevel(llevel)
 
     #set log level for noisy requests/connectionpool module to WARNING: 
@@ -85,6 +86,19 @@ def extractSocketInfo(asset, services):
     return sockets
 
 
+def generatePublicIPv4NetworksAsInternetArea():
+    internetSubnets = ['0.0.0.0/5', '8.0.0.0/7', '11.0.0.0/8', '12.0.0.0/6', '16.0.0.0/4', '32.0.0.0/3', '64.0.0.0/2', 
+                       '128.0.0.0/3', '160.0.0.0/5', '168.0.0.0/6', '172.0.0.0/12', '172.32.0.0/11', '172.64.0.0/10', 
+                       '172.128.0.0/9', '173.0.0.0/8', '174.0.0.0/7', '176.0.0.0/4', '192.0.0.0/9', '192.128.0.0/11', 
+                       '192.160.0.0/13', '192.169.0.0/16', '192.170.0.0/15', '192.172.0.0/14', '192.176.0.0/12', 
+                       '192.192.0.0/10', '193.0.0.0/8', '194.0.0.0/7', '196.0.0.0/6', '200.0.0.0/5', '208.0.0.0/4', 
+                       '224.0.0.0/3']
+    internetDicts = []
+    for net in internetSubnets:
+        internetDicts.append({'ip': net, 'name': 'inet'})
+    return internetDicts
+
+
 if __name__ == "__main__": 
     parser = argparse.ArgumentParser(
         description='Read configuration from FW management via API calls')
@@ -118,44 +132,48 @@ if __name__ == "__main__":
 
     normSubnetData = { "subnets": {}, "zones": {}, "areas": {} }
     snId = 0
+
     for subnet in subnetAr:
-        naId = subnet['Subnetzname'][2:4]
-        subnetIp = subnet['Subnetzadresse']
-        netmask = subnet['Subnetzmaske']
-        cidr = str(ipaddress.ip_network(subnetIp + '/' + netmask))
-        
-        nameParts = subnet['Subnetzname'].split('.')
-        zoneName = nameParts[1]
-        if len(nameParts)>=3:
-            subnetName = nameParts[2]
-        else:
-            subnetName = ""
+        # ignore all "reserved" subnets whose name starts with "RES"
+        if not subnet['Subnetzname'].startswith('RES'):
+            naId = subnet['Subnetzname'][2:4]
+            subnetIp = subnet['Subnetzadresse']
+            netmask = subnet['Subnetzmaske']
+            cidr = str(ipaddress.ip_network(subnetIp + '/' + netmask))
+            
+            nameParts = subnet['Subnetzname'].split('.')
+            zoneName = nameParts[1]
+            if len(nameParts)>=3:
+                subnetName = nameParts[2]
+            else:
+                subnetName = ""
 
-        zoneNameParts = nameParts[0].split('_')
+            zoneNamePartsDots = nameParts[0].split('.')
 
-        zoneId = zoneNameParts[0][2:7]
-        areaName = zoneNameParts[1]
-        normSubnet = {
-            "na-id": naId,
-            "na-name": areaName,
-            "zone-id": zoneId,
-            "zone-name": zoneName,
-            "ip": cidr,
-            "name": subnetName
-        }
-        normSubnetData['subnets'].update({ snId: normSubnet})
-        snId += 1;
+            zoneNamePartsUnderscore = zoneNamePartsDots[0].split('_')
+            zoneId = zoneNamePartsUnderscore[0][2:7]
+            areaName = '_'.join(zoneNamePartsUnderscore[1:])
+            normSubnet = {
+                "na-id": naId,
+                "na-name": areaName,
+                "zone-id": zoneId,
+                "zone-name": zoneName,
+                "ip": cidr,
+                "name": subnetName
+            }
+            normSubnetData['subnets'].update({ snId: normSubnet})
+            snId += 1;
 
-        # filling areas
-        if not naId in normSubnetData['areas']:
-            normSubnetData['areas'].update({ naId: {"area-name": areaName, "area-id": naId, "subnets": [], "zones": [] }})
-        normSubnetData['areas'][naId]['subnets'].append({"ip": cidr, "name": subnetName })
-        normSubnetData['areas'][naId]['zones'].append({"zone-id": zoneId, "zone-name": zoneName })
+            # filling areas
+            if not naId in normSubnetData['areas']:
+                normSubnetData['areas'].update({ naId: {"area-name": areaName, "area-id": naId, "subnets": [], "zones": [] }})
+            normSubnetData['areas'][naId]['subnets'].append({"ip": cidr, "name": subnetName })
+            normSubnetData['areas'][naId]['zones'].append({"zone-id": zoneId, "zone-name": zoneName })
 
-        # filling zones
-        if not zoneId in normSubnetData['zones']:
-            normSubnetData['zones'].update({ zoneId: { "zone-name": zoneName, "subnets": [] }})
-        normSubnetData['zones'][zoneId]['subnets'].append({"ip": cidr, "name": subnetName })
+            # filling zones
+            if not zoneId in normSubnetData['zones']:
+                normSubnetData['zones'].update({ zoneId: { "zone-name": zoneName, "subnets": [] }})
+            normSubnetData['zones'][zoneId]['subnets'].append({"ip": cidr, "name": subnetName })
 
     # transform output
     transfSubnetData = { "areas": [] }
@@ -164,6 +182,14 @@ if __name__ == "__main__":
         areaName = area['area-name']
         transfarea = { "name": areaName, "id_string": areaIdString, "subnets": area['subnets'] }
         transfSubnetData['areas'].append(transfarea)
+
+    # add Internet as NA00_Internet
+    transfSubnetData['areas'].append( {
+        'name': 'Internet',
+        'id_string': 'NA00',
+        'subnets': generatePublicIPv4NetworksAsInternetArea() } )        
+    # open: what about ipv6 addresses?
+    # open: what about the companies own public ip addresses - should they be excluded here?
 
     path = os.path.dirname(__file__)
     fileOut = path + '/' + Path(os.path.basename(__file__)).stem + ".json"

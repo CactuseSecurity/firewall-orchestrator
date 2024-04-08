@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
@@ -67,7 +68,7 @@ namespace FWO.Ui.Display
             {
                 result.Append($"{objName ?? userNetworkObject.Object.Name}");
             }
-            if (userNetworkObject.Object.Type.Name != "group")
+            if (userNetworkObject.Object.Type.Name != ObjectType.Group)
             {
                 bool showIpinBrackets = !reportType.IsTechReport();
                 result.Append(NwObjDisplay.DisplayIp(
@@ -103,7 +104,7 @@ namespace FWO.Ui.Display
             {
                 foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
                 {
-                    if (nwObject.Object != null && nwObject.Object.Type.Name != "group")    // leave out group level altogether
+                    if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group)    // leave out group level altogether
                     {
                         collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
                     }
@@ -121,7 +122,7 @@ namespace FWO.Ui.Display
             {
                 foreach (GroupFlat<NetworkService> nwService in service.Content.ServiceGroupFlats)
                 {
-                    if (nwService.Object != null && nwService.Object.Type.Name != "group")
+                    if (nwService.Object != null && nwService.Object.Type.Name != ObjectType.Group)
                     {
                         collectedServices.Add(nwService.Object);
                     }

@@ -3,7 +3,7 @@
 @inject UserConfig userConfig
 @inject NetworkZoneService networkZoneService
 
-<Table TableClass="table table-bordered table-sm table-responsive overflow-auto sticky-header" TableItem="ComplianceNetworkZone" Items="NetworkZones.Where(zone => object.Equals(zone.Superzone, Superzone))">
+<Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ComplianceNetworkZone" Items="NetworkZones.Where(zone => object.Equals(zone.Superzone, Superzone))">
 	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("id"))" Field="@(networkZone => networkZone.Id)" Sortable="true" Filterable="true" />
 	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("name"))" Field="@(networkZone => networkZone.Name)" Sortable="true" Filterable="true" />
 	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("description"))" Field="@(networkZone => networkZone.Description)" Sortable="true" Filterable="true" />
@@ -34,7 +34,7 @@
 			</ExpandableList>
 		</Template>
 	</Column>
-	<AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")" Context="authContext">
+	<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")" Context="authContext">
 		<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("actions"))" Context="networkZone">
 			<Template>
 				<div class="btn-group">

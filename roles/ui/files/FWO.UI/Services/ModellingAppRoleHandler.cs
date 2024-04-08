@@ -1,4 +1,5 @@
 ﻿using FWO.Config.Api;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -17,33 +18,58 @@ namespace FWO.Ui.Services
         public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         public List<ModellingAppServer> AppServersInArea { get; set; } = new();
         public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = new();
-
         public List<ModellingAppServer> AppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> AppServerToDelete { get; set; } = new();
-        private readonly string origId = "";
         public ModellingNamingConvention NamingConvention = new();
+
+        private ModellingManagedIdString OrigId = new();
+        public bool ReadOnly = false;
 
 
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
-            List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
             : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
         {
-            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             AppRoles = appRoles;
-            foreach(var aR in AppRoles)
-            {
-                aR.SetFixedPartLength(NamingConvention.FixedPartLength);
-            }
             AvailableAppServers = availableAppServers;
             AvailableNwElems = availableNwElems;
             ActAppRole = appRole;
-            ActAppRole.SetFixedPartLength(NamingConvention.FixedPartLength);
-            if(!AddMode)
+            ReadOnly = readOnly;
+            ApplyNamingConvention(application.ExtAppId);
+        }
+
+        private void ApplyNamingConvention(string extAppId)
+        {
+            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+            foreach(var aR in AppRoles)
             {
-                ActAppRole.Area = new () { IdString = ReconstructAreaIdString(appRole) };
+                aR.ManagedIdString.NamingConvention = NamingConvention;
             }
-            origId = ActAppRole.IdString;
+            ActAppRole.ManagedIdString.NamingConvention = NamingConvention;
+            if(AddMode)
+            {
+                ActAppRole.ManagedIdString.SetAppPartFromExtId(extAppId);
+            }
+            else
+            {
+                ActAppRole.Area = new () { IdString = ModellingManagedIdString.ConvertAppRoleToArea(ActAppRole.IdString, NamingConvention) };
+            }
+        }
+
+        public async Task InitAppRole(ModellingNetworkArea? newArea)
+        {
+            ActAppRole.Area = newArea;
+            if(newArea != null)
+            {
+                if(newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
+                {
+                    ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
+                    ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);
+                }
+            }
+            OrigId = new(ActAppRole.ManagedIdString);
+            await SelectAppServersFromArea(newArea);
         }
 
         public void AppServerToAppRole(List<ModellingAppServer> appServers)
@@ -101,10 +127,11 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if((AddMode || ActAppRole.IdString != origId) && await IdStringAlreadyUsed(ActAppRole.IdString))
+            if((AddMode || ActAppRole.IdString != OrigId.Whole) && await IdStringAlreadyUsed(ActAppRole.IdString))
             {
                 // popup for correction?
-                DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E9003"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), ActAppRole.IdString.ToString() + ": " + userConfig.GetText("E9003"), true);
+                ActAppRole.ManagedIdString = new(OrigId);
                 return false;
             }
             return true;
@@ -126,55 +153,42 @@ namespace FWO.Ui.Services
             return false;
         }
 
-        public async Task<string> ProposeFreeAppRoleNumber(ModellingNetworkArea area)
+        public async Task<string> ProposeFreeAppRoleNumber(ModellingManagedIdString idFixString)
         {
-            int maxNumbers = 10^NamingConvention.FreePartLength - 1;
-            string idFix = GetFixedAppRolePart(area);
-            List<ModellingAppRole>? newestARs = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = idFix + "%" });
+            int proposedNumber = 1;
+            List<ModellingAppRole>? newestARs = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = idFixString.CombinedFixPart + "%" });
             if(newestARs != null && newestARs.Count > 0)
             {
-                newestARs[0].SetFixedPartLength(NamingConvention.FixedPartLength);
-                if(int.TryParse(newestARs[0].IdStringFreePart, out int aRNumber))
+                newestARs[0].ManagedIdString.NamingConvention = NamingConvention;
+                if(int.TryParse(newestARs[0].ManagedIdString.FreePart, out int newestARNumber))
                 {
-                    aRNumber++;
-                    while(aRNumber <= maxNumbers)
+                    proposedNumber = await SearchFrom(idFixString, newestARNumber + 1);
+                    if(proposedNumber == 0)
                     {
-                        if(!await IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
-                        {
-                            return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
-                        }
-                        aRNumber++;
+                        proposedNumber = await SearchFrom(idFixString, 1);
                     }
                 }
-                aRNumber = 1;
-                while(aRNumber <= maxNumbers)
+            }
+            return ProposedString(proposedNumber);
+        }
+
+        private async Task<int> SearchFrom(ModellingManagedIdString idFixString, int aRNumber)
+        {
+            double maxNumbers = Math.Pow(10, NamingConvention.FreePartLength) - 1;
+            while(aRNumber <= maxNumbers)
+            {
+                if(!await IdStringAlreadyUsed(idFixString.CombinedFixPart + idFixString.Separator + ProposedString(aRNumber)))
                 {
-                    if(!await IdStringAlreadyUsed(idFix + aRNumber.ToString($"D{NamingConvention.FreePartLength}")))
-                    {
-                        return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
-                    }
-                    aRNumber++;
+                    return aRNumber;
                 }
+                aRNumber++;
             }
-            return 1.ToString($"D{NamingConvention.FreePartLength}");
+            return 0;
         }
 
-        public string GetFixedAppRolePart(ModellingNetworkArea area)
+        private string ProposedString(int aRNumber)
         {
-            if(area.IdString.Length >= NamingConvention.FixedPartLength)
-            {
-                return area.IdString.Substring(0, NamingConvention.FixedPartLength).Remove(0, NamingConvention.NetworkAreaPattern.Length).Insert(0, NamingConvention.AppRolePattern);
-            }
-            return area.IdString;
-        }
-
-        public string ReconstructAreaIdString(ModellingAppRole appRole)
-        {
-            if(appRole.IdString.Length >= NamingConvention.FixedPartLength)
-            {
-                return appRole.IdString.Substring(0, NamingConvention.FixedPartLength).Remove(0, NamingConvention.AppRolePattern.Length).Insert(0, NamingConvention.NetworkAreaPattern);
-            }
-            return "";
+            return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
         }
 
         private async Task AddAppRoleToDb()
@@ -193,7 +207,7 @@ namespace FWO.Ui.Services
                 if (returnIds != null)
                 {
                     ActAppRole.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"New App Role: {ActAppRole.Display()}", Application.Id);
                     foreach(var appServer in ActAppRole.AppServers)
                     {
@@ -203,13 +217,13 @@ namespace FWO.Ui.Services
                             nwGroupId = ActAppRole.Id
                         };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                             $"Added App Server {appServer.Content.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                     }
                     ActAppRole.Creator = userConfig.User.Name;
                     ActAppRole.CreationDate = DateTime.Now;
                     AppRoles.Add(ActAppRole);
-                    AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ObjectType.AppRole, ActAppRole.Id));
+                    AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppRole, ActAppRole.Id));
                 }
             }
             catch (Exception exception)
@@ -231,7 +245,7 @@ namespace FWO.Ui.Services
                     comment = ActAppRole.Comment
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppRole, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                     $"Updated App Role: {ActAppRole.Display()}", Application.Id);
                 foreach(var appServer in AppServerToDelete)
                 {
@@ -241,7 +255,7 @@ namespace FWO.Ui.Services
                         nwGroupId = ActAppRole.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwObjectFromNwGroup, Vars);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"Removed App Server {appServer.Display()} from App Role: {ActAppRole.Display()}", Application.Id);
                 }
                 foreach(var appServer in AppServerToAdd)
@@ -252,7 +266,7 @@ namespace FWO.Ui.Services
                         nwGroupId = ActAppRole.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ObjectType.AppRole, ActAppRole.Id,
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"Added App Server {appServer.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                 }
             }

@@ -5,11 +5,12 @@
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Ui.Pages.Reporting.Reports
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Middleware.Client
 
 @page "/certification"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kRecertifier}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -34,10 +35,10 @@
         <input  type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
     </div>
 
-    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
         <Authorized>
             <div class="p-3">
-                <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+                <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
                 <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
                     @bind-SelectedElement="selectedOwner" Elements="ownerList">
                     <ElementTemplate Context="owner">
@@ -70,7 +71,7 @@
     <div class="btn-group sticky-marker-60">
         @if(!readonlyMode)
         {
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kRecertifier}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
                 <Authorized>
                     @if(rulesFound)
                     {
@@ -88,11 +89,11 @@
         }
     </div>
     <hr />
-    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managements" RulesPerPage="rulesPerPage" 
+    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managementsReport" RulesPerPage="rulesPerPage" 
         @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
 </div>
 
-<PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Large="true" OnClose="() => AddCommentMode = false">
+<PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Size=PopupSize.Large OnClose="() => AddCommentMode = false">
     <Body>
         @if (AddCommentMode)
         {
@@ -131,14 +132,14 @@
 
     private const int rulesPerPage = 0;
 
-    private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
-    private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
+    private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
+    private int sidebarRightWidth = GlobalConst.kSidebarRightWidth;
 
     private bool processing = false;
     private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
-    private Management[] managements = new Management[0];
+    private List<ManagementReport> managementsReport = new ();
     
     private bool readonlyMode = false;
     public FwoOwner? selectedOwner = null;
@@ -169,7 +170,7 @@
 
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kRecertifier, GlobalConst.kAdmin, GlobalConst.kAuditor });
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Recertifier, Roles.Admin, Roles.Auditor });
             rulesFound = false;
             ticketCreator = new TicketCreator(apiConnection, userConfig);
 
@@ -231,10 +232,10 @@
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        readonlyMode = !authenticationStateTask!.Result.User.IsInRole(GlobalConst.kRecertifier) || selectedOwner == null;
+        readonlyMode = !authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier) || selectedOwner == null;
         selectedRules.Clear();
 
-        Management[] managementsOrig = managements;
+        List<ManagementReport> managementsOrig = managementsReport;
         try
         {
             tokenSource = new CancellationTokenSource();
@@ -248,7 +249,7 @@
             }
 
             prepareReport();
-            managements = new Management[0]; // reset management data when switching between reports
+            managementsReport = new (); // reset management data when switching between reports
 
             try
             {
@@ -257,7 +258,7 @@
                     await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
                     managementsReportIntermediate =>
                     {
-                        managements = managementsReportIntermediate;
+                        managementsReport = managementsReportIntermediate.ManagementData;
                         return InvokeAsync(StateHasChanged);
                     }, token);
                 }
@@ -279,7 +280,7 @@
         catch (Exception exception)
         {
             processing = false;
-            managements = managementsOrig;
+            managementsReport = managementsOrig;
             StateHasChanged();
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
@@ -312,14 +313,14 @@
     private void postProcessReport()
     {
         rulesFound = false;
-        foreach (Management management in managements)
+        foreach (var management in managementsReport)
         {
-            foreach (Device device in management.Devices)
+            foreach (var device in management.Devices)
             {
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
-                    foreach (Rule rule in device.Rules!)
+                    foreach (var rule in device.Rules!)
                     {
                         rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
                     }
@@ -380,13 +381,13 @@
         // collect selected recerts + decerts
         Certifications = new List<Rule>();
 
-        foreach (Management management in managements)
+        foreach (var management in managementsReport)
         {
-            foreach (Device device in management.Devices)
+            foreach (var device in management.Devices)
             {
                 if(device.Rules != null)
                 {
-                    foreach (Rule rule in device.Rules)
+                    foreach (var rule in device.Rules)
                     {
                         if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
                         {

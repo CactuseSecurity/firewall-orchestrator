@@ -34,9 +34,9 @@
   file:
     path: "{{ fworch_secrets_dir }}"
     state: directory
-    mode: "0700"
+    mode: "0750"
     owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
+    group: "{{ postgres_group }}"
   become: true
 
 - name: set static hasura admin pwd for test purposes only
@@ -118,7 +118,7 @@
       hasura_env
   when: debug_level > '1'
 
-- name: start hasura container ansible 2.10 and higher
+- name: start hasura container
   docker_container:
     name: "{{ api_container_name }}"
     image: hasura/graphql-engine:{{ api_hasura_version }}
@@ -140,30 +140,6 @@
   become: true
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
-  when: ansible_version.full is version('2.10', '>=')
-
-- name: start hasura container pre ansible 2.10
-  docker_container:
-    name: "{{ api_container_name }}"
-    image: hasura/graphql-engine:{{ api_hasura_version }}
-    state: started
-    network_mode: host
-    networks_cli_compatible: true
-    log_driver: syslog
-    log_options:
-      syslog-address: "{{ syslog_proto }}://{{ syslog_host }}:{{ syslog_port }}"
-      syslog-facility: daemon
-      tag: "{{ api_container_name }}"
-    recreate: true
-    exposed_ports:
-      - "{{ api_port }}:{{ api_port }}"
-    env:
-      "{{ hasura_env }}"
-  register: docker_return
-  become: true
-  become_user: "{{ fworch_user }}"
-  environment: "{{ proxy_env }}"
-  when: ansible_version.full is version('2.10', '<')
 
 - name: show docker result
   debug:

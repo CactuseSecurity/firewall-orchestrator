@@ -1,26 +1,28 @@
 ﻿@using FWO.Config.Api
 @using FWO.Config.Api.Data
+@using FWO.GlobalConstants
+@using FWO.Api.Data
 
 @inherits LayoutComponentBase
 @layout MainLayout
 
 @inject UserConfig userConfig
 
-<Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
-    <div class="mr-2 ml-2 mt-4 mb-4">
-        <ul class="navbar-nav flex-column">
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")">
+<Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
+    <div class="me-2 ms-2 mt-4 mb-4">
+        <ul class="navbar-nav navbar-dark flex-column">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("alerts"))</h5>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/main">
-                        <span class="oi oi-bell"></span> @(userConfig.GetText("open_alerts"))
+                        <span class="@Icons.Alarm"></span> @(userConfig.GetText("open_alerts"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/alerts">
-                        <span class="oi oi-bell"></span> @(userConfig.GetText("all_alerts"))
+                        <span class="@Icons.Alarm"></span> @(userConfig.GetText("all_alerts"))
                     </NavLink>
                 </li>
                 <hr />
@@ -29,12 +31,12 @@
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/autodiscovery_logs">
-                        <span class="oi oi-magnifying-glass"></span> @(userConfig.GetText("autodiscovery"))
+                        <span class="@Icons.Search"></span> @(userConfig.GetText("autodiscovery"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/daily_check_logs">
-                        <span class="oi oi-check"></span> @(userConfig.GetText("daily_checks"))
+                        <span class="@Icons.Check"></span> @(userConfig.GetText("daily_checks"))
                     </NavLink>
                 </li>
                 <hr />
@@ -43,12 +45,12 @@
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/import_status">
-                        <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_status"))
+                        <span class="@Icons.Import"></span> @(userConfig.GetText("import_status"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/import_logs">
-                        <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_logs"))
+                        <span class="@Icons.Import"></span> @(userConfig.GetText("import_logs"))
                     </NavLink>
                 </li>
                 <hr />
@@ -58,13 +60,13 @@
             </li>
             <li class="nav-item px-2">
                 <NavLink class="nav-link" href="monitoring/ui_messages">
-                    <span class="oi oi-monitor"></span> @(userConfig.GetText("ui_messages"))
+                    <span class="@Icons.UiMessages"></span> @(userConfig.GetText("ui_messages"))
                 </NavLink>
             </li>
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/monitor_all">
-                        <span class="oi oi-monitor"></span> @(userConfig.GetText("all"))
+                        <span class="@Icons.Monitoring"></span> @(userConfig.GetText("all"))
                     </NavLink>
                 </li>
             </AuthorizeView>

@@ -3,9 +3,9 @@
 @inject UserConfig userConfig
 @inject IJSRuntime JSRuntime
 
-<PopUp Title="@(userConfig.GetText("export_report_download"))" Show="@Show" OnClose="() => Close()">
+<PopUp Title="@(userConfig.GetText("export_report_download"))" Show="@Show" Size=PopupSize.Small OnClose="() => Close()">
     <Body>
-        <div class="d-flex flex-column align ml-1 mr-1">
+        <div class="d-flex flex-column align ms-1 me-1">
             @if(Downloading)
             {
                 <div class="spinner-border" role="status">

@@ -151,5 +151,45 @@ bugfix release:
 - rename management & device tenat_id fields to unfiltered_tenant_id
 - fixing UI device selector crashes
 
-# 7.3.2 - 19.10.2023 DEVELOP
+# 7.3.2 - 09.12.2023 DEVELOP
 - Modelling first version
+
+# 7.3.3 - 08.01.2024 DEVELOP
+- Moving to vanilla bootstrap css v5.3.2
+- adding extended tenant to device mapping settings (depending on latest bootstrap version) - closes  #2280
+- fix for log locking for import process
+
+# 7.3.4 - 09.01.2024 DEVELOP
+- Scheduled import change notification
+
+# 7.3.5 - 15.01.2024 DEVELOP
+- importer log locking fix (only fixing import stopping so far)
+- import change notification:
+  - DB extensions import_control.security_relevant_changes_counter
+  - removing python import notification
+  - writing to change counter after import (inpreparation for notification enhancement)
+- importer demo tenant device mapping additions (upgrade)
+- installer: introducing venv for newer ansible versions and thereby removing version handling
+
+# 7.3.6 - 23.01.2024 DEVELOP
+- common service handling
+- fixes credentials when installing without demo data
+- fix error with pdf creation on debian testing
+
+# 8.0.1 - 20.02.2024 DEVELOP
+- iconify modelling
+- add missing config values
+
+# 8.0.2 - 11.03.2024 DEVELOP
+- first version of NSX import module
+
+# 8.0.3 - 08.04.2024 DEVELOP
+- add maintenance page during upgrade
+- sample customizing py script with sample data, closes  Installer customizable config (settings) #2275
+- remove log locking from importer due to stalling importer stops
+- credentials encryption, closes encrypt passwords and keys #1508
+  - breaking change for developer debugging: add the following local file when using -e testkeys=true:
+    /etc/fworch/secrets/main_key with content "not4production..not4production.."
+- add custom (user-defined) fields to import
+  - cp only so far, other fw types missing
+  - user-defined fields are not part of reports yet

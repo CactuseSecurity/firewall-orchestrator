@@ -12,6 +12,7 @@ namespace FWO.Api.Data
         public int? AppId { get; set; }
 
         public string TooltipText = "";
+        public long Number;
 
         public virtual string Display()
         {
@@ -25,7 +26,7 @@ namespace FWO.Api.Data
 
         public virtual string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-tag\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.ModObject}\"></span> " + DisplayHtml();
         }
 
         public virtual string DisplayWithIcon(bool displayGrey)

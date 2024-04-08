@@ -1,14 +1,16 @@
 ﻿@using FWO.Ui.Data
+@using FWO.GlobalConstants
+@using FWO.Api.Data
 
 @implements IDisposable
 
-<div class="w-100 card @Class">
-    <div class="btn-group w-100">
-        <button type="button" class="btn btn-sm btn-@Style" @onclick="ToggleCollapse"> <span class="oi oi-@(show ? "collapse-up" : "collapse-down")"></span> </button>
-        <button type="button" class="btn btn-sm btn-block btn-@Style disabled text-left" @ondblclick="ToggleCollapse">
+<div class="w-100 card @Class" style="border: transparent;">
+    <div class="btn-group btn-group-sm w-100">
+        <button type="button" class="btn btn-@Style" @onclick="ToggleCollapse"> <span class="@(show ? Icons.CollapseUp : Icons.CollapseDown)"></span> </button>
+        <button type="button" class="btn btn-sm btn-@Style disabled text-left" style="width: calc(100% - 50px) !important;" @onclick="ToggleCollapse">
             @if (UseHtmlTitle)
                 @TitleWithHtml
-             else
+            else
                 @Title
         </button>
     </div>

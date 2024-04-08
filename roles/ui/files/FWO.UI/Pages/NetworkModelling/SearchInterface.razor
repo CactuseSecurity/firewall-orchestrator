@@ -1,16 +1,16 @@
 ﻿@using FWO.Config.Api
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kModeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_interface"))" Large="true" Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_interface"))" Size=PopupSize.Small Show="@Display" OnClose="Close">
     <Body>
         @if (Display)
         {
             <div class="form-group row">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
                 <div class="col-sm-9">
                     <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="selectedInterface" ElementToString="@(i => DisplayInterface(i))" Elements="selectableInterfaces" Nullable="true">
                         <ElementTemplate Context="inter">
@@ -25,7 +25,7 @@
         <div class="btn-group">
             @if(selectedInterface != null)
             {
-                <AuthorizeView Roles="@GlobalConst.kModeller">
+                <AuthorizeView Roles="@Roles.Modeller">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-success" @onclick="SelectInterface">@(userConfig.GetText("select"))</button>
                     </Authorized>

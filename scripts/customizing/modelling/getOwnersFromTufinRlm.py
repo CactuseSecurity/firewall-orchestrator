@@ -13,6 +13,7 @@ import logging
 from sys import stdout
 import ipaddress
 import os
+import socket
 from pathlib import Path
 
 
@@ -77,6 +78,37 @@ def getNetworkBorders(ip):
         return str(ip), str(ip), 'host'
 
 
+def reverse_dns_lookup(ip_address):
+    """
+    Perform a reverse DNS lookup to find the domain name associated with an IP address.
+
+    Args:
+    ip_address (str): The IP address to perform the reverse DNS lookup on.
+
+    Returns:
+    str: The domain name associated with the IP address or an error message if the lookup fails.
+    """
+    try:
+        # Perform the reverse DNS lookup using the gethostbyaddr method of the socket module.
+        # This method returns a tuple containing the primary domain name, an alias list, and an IP address list.
+        hostname, _, _ = socket.gethostbyaddr(ip_address)
+
+        # Return the primary domain name.
+        return hostname
+    except socket.herror as e:
+        # Handle the exception if the host could not be found (herror).
+        # Return an error message with the exception details.
+        return f"ERROR: Reverse DNS lookup failed: {e}"
+    except socket.gaierror as e:
+        # Handle the exception if the address-related error occurs (gaierror).
+        # Return an error message with the exception details.
+        return f"ERROR: Address-related error during reverse DNS lookup: {e}"
+    except Exception as e:
+        # Handle any other exceptions that may occur.
+        # Return a generic error message with the exception details.
+        return f"ERROR: during reverse DNS lookup: {e}"
+
+
 def extractSocketInfo(asset, services):
     # ignoring services for the moment
     sockets =[]
@@ -84,7 +116,14 @@ def extractSocketInfo(asset, services):
     if 'assets' in asset and 'values' in asset['assets']:
         for ip in asset['assets']['values']:
             ip1, ip2, nwtype = getNetworkBorders(ip)
-            sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype })
+            if nwtype=='host':
+                hname = reverse_dns_lookup(ip1)
+                if hname=='' or hname.startswith('ERROR:'):
+                    hname = "NONAME"
+                sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype, "name": hname })
+            else:
+                sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype })
+
     if 'objects' in asset:
         for obj in asset['objects']:
             if 'values' in obj:
@@ -102,11 +141,12 @@ def getLogger(debug_level_in=0):
         llevel = logging.INFO
 
     logger = logging.getLogger() # use root logger
-    logHandler = logging.StreamHandler(stream=stdout)
+    # logHandler = logging.StreamHandler(stream=stdout)
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
-    logHandler.setLevel(llevel)
-    handlers = [logHandler]
-    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=llevel)
+    # logHandler.setLevel(llevel)
+    # handlers = [logHandler]
+    # logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=llevel)
+    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
     logger.setLevel(llevel)
 
     #set log level for noisy requests/connectionpool module to WARNING: 
@@ -123,11 +163,7 @@ def rlmLogin(user, password, api_url):
     payload = { "username": user, "password": password, "client_id": "securechange", "client_secret": "123", "grant_type": "password" }
 
     with requests.Session() as session:
-        if verify_certs is None:    # only for first Recert API call (getting info on cert verification)
-            session.verify = False
-        else: 
-            session.verify = verify_certs
-
+        session.verify = False
         try:
             response = session.post(api_url, payload)
         except requests.exceptions.RequestException:
@@ -138,7 +174,6 @@ def rlmLogin(user, password, api_url):
         else:
             raise ApiLoginFailed("RLM api: ERROR: did not receive an OAUTH token during login" + \
                             ", api_url: " + str(api_url) + \
-                            ", ssl_verification: " + str(verify_certs) + \
                             ", status code: " + str(response))
 
 
@@ -147,11 +182,12 @@ def rlmGetOwners(token, api_url):
     headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}
 
     with requests.Session() as session:
+        session.verify = False
         try:
             response = session.get(api_url, headers=headers)
 
         except requests.exceptions.RequestException:
-            raise ApiServiceUnavailable ("api: error during login to url: " + str(api_url) + " with user " + user) from None
+            raise ApiServiceUnavailable ("api: error while getting owners from url: " + str(api_url) + " with token " + token) from None
 
         if response.text is not None and response.status_code==200:
             # logger.info(str(response.text))
@@ -159,7 +195,6 @@ def rlmGetOwners(token, api_url):
         else:
             raise ApiFailure("api: ERROR: could not get owners" + \
                             ", api_url: " + str(api_url) + \
-                            ", ssl_verification: " + str(verify_certs) + \
                             ", status code: " + str(response))
 
 
@@ -195,7 +230,7 @@ if __name__ == "__main__":
     else:
         # get App List directly from RLM via API
         try:
-            oauthToken = rlmLogin(user, password, rlmApiUrl + api_url_path_rlm_login)
+            oauthToken = rlmLogin(rlmUsername, rlmPassword, rlmApiUrl + api_url_path_rlm_login)
             # logger.debug("token for RLM: " + oauthToken)
             ownerData = rlmGetOwners(oauthToken, rlmApiUrl + api_url_path_rlm_apps)
 

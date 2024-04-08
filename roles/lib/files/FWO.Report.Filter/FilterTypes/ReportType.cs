@@ -11,7 +11,9 @@ namespace FWO.Report.Filter
         Recertification = 7,
         ResolvedChanges = 8,
         ResolvedChangesTech = 9,
-        UnusedRules = 10
+        UnusedRules = 10,
+
+        Connections = 21
     }
 
     public static class ReportTypeGroups
@@ -65,6 +67,22 @@ namespace FWO.Report.Filter
             {
                 case ReportType.ResolvedRulesTech:
                 case ReportType.ResolvedChangesTech:
+                    return true;
+                default: 
+                    return false;
+            }
+        }
+
+        public static bool IsDeviceRelatedReport(this ReportType reportType)
+        {
+            return reportType.IsRuleReport() || reportType.IsChangeReport() || reportType == ReportType.Statistics;
+        }
+
+        public static bool IsModellingReport(this ReportType reportType)
+        {
+            switch(reportType)
+            {
+                case ReportType.Connections:
                     return true;
                 default: 
                     return false;

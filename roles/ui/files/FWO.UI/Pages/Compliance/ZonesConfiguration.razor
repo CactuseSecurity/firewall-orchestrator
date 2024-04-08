@@ -1,7 +1,7 @@
 ﻿@using NetTools;
 @using System.Diagnostics;
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
 
 @page "/compliance/zones/configuration"
 
@@ -21,7 +21,7 @@
 
 @if (networkZoneInEdit != null)
 {
-	<PopUp Title="@userConfig.GetText("edit_zone_title")" Show="editMode" XLarge="true" OnClose="() => editMode = false">
+	<PopUp Title="@userConfig.GetText("edit_zone_title")" Show="editMode" Size=PopupSize.XLarge OnClose="() => editMode = false">
 		<Body>
 			<form>
 				<div class="row mb-3">
@@ -64,13 +64,13 @@
 						<label>@userConfig.GetText("subzones")</label>
 						<div class="mb-2">
 							<Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@subzoneInputClass"
-								  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="subzoneToAdd">
+								  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="subzoneToAdd" AppendWidth="50">
 								<ElementTemplate>
 									@(context?.Name ?? "")
 								</ElementTemplate>
 								<Append>
 									<button @onclick="() => AddCommunicationZone(subzonesToAdd, ref subzoneToAdd, ref subzoneInputClass)"
-										type="button" class="btn btn-success">@userConfig.GetText("add")</button>
+										type="button" style="width: 50px" class="btn btn-success">@userConfig.GetText("add")</button>
 								</Append>
 							</Dropdown>
 						</div>
@@ -85,13 +85,13 @@
 						<label>@userConfig.GetText("allowed_comm_srcs")</label>
 						<div class="mb-2">
 							<Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@sourceZoneInputClass"
-								  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="sourceZoneToAdd">
+									  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="sourceZoneToAdd" AppendWidth="50">
 								<ElementTemplate>
 									@(context?.Name ?? "")
 								</ElementTemplate>
 								<Append>
 									<button @onclick="() => AddCommunicationZone(sourceZonesToAdd, ref sourceZoneToAdd, ref sourceZoneInputClass)"
-										type="button" class="btn btn-success">
+											type="button" class="btn btn-success" style="width: 50px">
 										@userConfig.GetText("add")
 									</button>
 								</Append>
@@ -108,13 +108,13 @@
 						<label>@userConfig.GetText("allowed_comm_dests")</label>
 						<div class="mb-2">
 							<Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@destinationZoneInputClass"
-								  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="destinationZoneToAdd">
+									  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="destinationZoneToAdd" AppendWidth="50">
 								<ElementTemplate>
 									@(context?.Name ?? "")
 								</ElementTemplate>
 								<Append>
 									<button @onclick="() => AddCommunicationZone(destinationZonesToAdd, ref destinationZoneToAdd, ref destinationZoneInputClass)"
-										type="button" class="btn btn-success">@userConfig.GetText("add")</button>
+										type="button" class="btn btn-success" style="width: 50px">@userConfig.GetText("add")</button>
 								</Append>
 							</Dropdown>
 						</div>
@@ -130,7 +130,7 @@
 		</Body>
 		<Footer>
 			<div class="btn-group">
-				<AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
+				<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
 					<Authorized>
 						<button type="button" class="btn btn-primary" @onclick="ExecuteNetworkZoneModifications">@(userConfig.GetText("ok"))</button>
 					</Authorized>
@@ -146,13 +146,13 @@
 
 @if (networkZoneInEdit != null)
 {
-	<PopUp Title="@userConfig.GetText("delete_zone_title")" Show="deleteMode" OnClose="() => deleteMode = false">
+	<PopUp Title="@userConfig.GetText("delete_zone_title")" Show="deleteMode" Size=PopupSize.Small OnClose="() => deleteMode = false">
 		<Body>
 			@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))
 		</Body>
 		<Footer>
 			<div class="btn-group">
-				<AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
+				<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
 					<Authorized>
 						<button type="button" class="btn btn-sm btn-danger" @onclick="ExecuteNetworkZoneDeletion">@(userConfig.GetText("delete"))</button>
 					</Authorized>

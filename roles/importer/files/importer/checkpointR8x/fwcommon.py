@@ -24,7 +24,7 @@ def has_config_changed (full_config, mgm_details, force=False):
     try: # top level dict start, sid contains the domain information, so only sending domain during login
         session_id = login_cp(mgm_details, domain)
     except:
-        raise FwLoginFailed     # maybe 2Temporary failure in name resolution"
+        raise FwLoginFailed     # maybe "temporary failure in name resolution"
 
     last_change_time = ''
     if 'import_controls' in mgm_details:

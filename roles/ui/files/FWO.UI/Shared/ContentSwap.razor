@@ -1,7 +1,10 @@
-﻿<div class="w-100 card">
+﻿@using FWO.GlobalConstants
+@using FWO.Api.Data
+
+<div class="w-100 card">
     <div class="btn-group w-100">
         <button type="button" class="btn btn-sm btn-block text-sm-left" @ondblclick="SwapContent">@(swapped ? Title2 : Title1)</button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="SwapContent"><span class="oi oi-loop-circular"></span></button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="SwapContent"><span class="@Icons.Swap"></span></button>
     </div>
     @if (swapped)
     {

@@ -22,6 +22,21 @@
           END IF; 
         END $do$
 
+  - name: add management mapping for tenant tenant1{{ sample_postfix }}
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN
+          IF NOT EXISTS (SELECT * FROM tenant_to_management LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant1{{ sample_postfix }}') THEN 
+            INSERT INTO tenant_to_management (tenant_id, management_id, shared)
+              SELECT 
+                tenant_id, 
+                (select mgm_id FROM management where management.mgm_name='{{ sample_fortigate_basename }}{{ sample_postfix }}'),
+                TRUE
+              FROM tenant WHERE tenant.tenant_name='tenant1{{ sample_postfix }}'; 
+          END IF; 
+        END $do$
+
   - name: insert tenant tenant2{{ sample_postfix }}
     postgresql_query:
       db: "{{ fworch_db_name }}"
@@ -45,6 +60,21 @@
           END IF; 
         END $do$
     when: sample_role_purpose is not match('test')
+
+  - name: add management mapping for tenant tenant2{{ sample_postfix }}
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN
+          IF NOT EXISTS (SELECT * FROM tenant_to_management LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant2{{ sample_postfix }}') THEN 
+            INSERT INTO tenant_to_management (tenant_id, management_id, shared)
+              SELECT
+                tenant_id, 
+                (select mgm_id FROM management where management.mgm_name='{{ sample_fortigate_basename }}{{ sample_postfix }}'),
+                FALSE
+              FROM tenant WHERE tenant.tenant_name='tenant2{{ sample_postfix }}'; 
+          END IF; 
+        END $do$
 
   - name: insert demo tenant network data 
     postgresql_query:

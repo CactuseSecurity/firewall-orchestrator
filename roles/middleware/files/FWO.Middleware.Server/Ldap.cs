@@ -2,6 +2,8 @@
 using Novell.Directory.Ldap;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using FWO.GlobalConstants;
+using FWO.Encryption;
 using FWO.Api.Data;
 using FWO.Middleware.RequestParameters;
 using Microsoft.IdentityModel.Tokens;
@@ -53,6 +55,27 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// try an ldap bind 
+        /// decrypting pwd before bind
+        /// false if bind fails
+        /// </summary>
+        private bool TryBind(LdapConnection connection, string user, string password)
+        {
+            string decryptedPassword = password; 
+            try 
+            {
+                decryptedPassword = AesEnc.Decrypt(password, AesEnc.GetMainKey());
+            }
+            catch
+            {
+                Log.WriteDebug("TryBind", $"Could not decrypt password");
+                // assuming we already have an unencrypted password, trying this
+            }
+            connection.Bind(user, decryptedPassword);
+            return connection.Bound;
+        }
+
+        /// <summary>
         /// Test a connection to the specified Ldap server.
         /// Throws exception if not successful
         /// </summary>
@@ -62,13 +85,11 @@ namespace FWO.Middleware.Server
             {
                 if (!string.IsNullOrEmpty(SearchUser))
                 {
-                    connection.Bind(SearchUser, SearchUserPwd);
-                    if (!connection.Bound) throw new Exception("Binding failed for search user");
+                    if (!TryBind(connection, SearchUser, SearchUserPwd)) throw new Exception("Binding failed for search user");
                 }
                 if (!string.IsNullOrEmpty(WriteUser))
                 {
-                    connection.Bind(WriteUser, WriteUserPwd);
-                    if (!connection.Bound) throw new Exception("Binding failed for write user");
+                    if (!TryBind(connection, WriteUser, WriteUserPwd)) throw new Exception("Binding failed for write user");
                 }
             }
         }
@@ -130,7 +151,9 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as search user
-                    connection.Bind(SearchUser, SearchUserPwd);
+                    // connection.Bind(SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
+                    // connection.Bind(SearchUser, SearchUserPwd);
+                    TryBind(connection, SearchUser, SearchUserPwd);
 
                     LdapSearchConstraints cons = connection.SearchConstraints;
                     cons.ReferralFollowing = true;
@@ -314,8 +337,9 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
-                    if (connection.Bound)
+                    // connection.Bind(WriteUser, WriteUserPwd);
+                    // if (connection.Bound)
+                    if (TryBind(connection, WriteUser, WriteUserPwd))
                     {
                         // authentication was successful: set new password
                         LdapAttribute attribute = new LdapAttribute("userPassword", newPassword);
@@ -368,7 +392,7 @@ namespace FWO.Middleware.Server
                     using (LdapConnection connection = Connect())
                     {     
                         // Authenticate as search user
-                        connection.Bind(SearchUser, SearchUserPwd);
+                        connection.Bind(SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
 
                         // Search for Ldap roles / groups in given directory          
                         int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
@@ -601,7 +625,8 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
+                    //connection.Bind(WriteUser, WriteUserPwd);
+                    TryBind(connection, WriteUser, WriteUserPwd);
 
                     string userName = (new FWO.Api.Data.DistName(userDn)).UserName;
                     LdapAttributeSet attributeSet = new LdapAttributeSet
@@ -650,7 +675,8 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
+                    TryBind(connection, WriteUser, WriteUserPwd);
+                    // connection.Bind(WriteUser, WriteUserPwd);
 
                     LdapAttribute attribute = new LdapAttribute("mail", email);
                     LdapModification[] mods = { new LdapModification(LdapModification.Replace, attribute) };
@@ -689,7 +715,8 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
+                    TryBind(connection, WriteUser, WriteUserPwd);
+                    // connection.Bind(WriteUser, WriteUserPwd);
 
                     try
                     {
@@ -726,7 +753,8 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
+                    // connection.Bind(WriteUser, WriteUserPwd);
+                    TryBind(connection, WriteUser, WriteUserPwd);
 
                     groupDn = $"cn={groupName},{GroupSearchPath}";
                     LdapAttributeSet attributeSet = new LdapAttributeSet();
@@ -776,7 +804,8 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
+                    // connection.Bind(WriteUser, WriteUserPwd);
+                    TryBind(connection, WriteUser, WriteUserPwd);
 
                     try
                     {
@@ -812,7 +841,8 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
+                    // connection.Bind(WriteUser, WriteUserPwd);
+                    TryBind(connection, WriteUser, WriteUserPwd);
 
                     try
                     {
@@ -886,7 +916,8 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
+                    // connection.Bind(WriteUser, WriteUserPwd);
+                    TryBind(connection, WriteUser, WriteUserPwd);
 
                     // Add a new value to the description attribute
                     LdapAttribute attribute = new LdapAttribute("uniquemember", userDn);
@@ -927,7 +958,8 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
+                    // connection.Bind(WriteUser, WriteUserPwd);
+                    TryBind(connection, WriteUser, WriteUserPwd);
 
                     tenantDn = $"ou={tenantName},{UserSearchPath}";
                     LdapAttributeSet attributeSet = new LdapAttributeSet();
@@ -969,7 +1001,8 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    connection.Bind(WriteUser, WriteUserPwd);
+                    // connection.Bind(WriteUser, WriteUserPwd);
+                    TryBind(connection, WriteUser, WriteUserPwd);
 
                     try
                     {

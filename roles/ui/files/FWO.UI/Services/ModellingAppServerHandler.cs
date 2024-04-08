@@ -1,5 +1,6 @@
 ﻿using NetTools;
 using FWO.Config.Api;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -33,17 +34,18 @@ namespace FWO.Ui.Services
                 }
                 if(CheckAppServer())
                 {
-                    apiConnection.SetRole(GlobalConst.kAdmin);
+                    bool saveOk = true;
+                    apiConnection.SetRole(Roles.Admin);
                     if(AddMode)
                     {
-                        await AddAppServerToDb();
+                        saveOk &= await AddAppServerToDb();
                     }
                     else
                     {
-                        await UpdateAppServerInDb();
+                        saveOk &= await UpdateAppServerInDb();
                     }
                     apiConnection.SwitchBack();
-                    return true;
+                    return saveOk;
                 }
             }
             catch (Exception exception)
@@ -79,11 +81,10 @@ namespace FWO.Ui.Services
 
         private static bool CheckIpAdress(string ip)
         {
-            IPAddressRange dummyOut;
-            return IPAddressRange.TryParse(ip, out dummyOut);
+            return IPAddressRange.TryParse(ip, out _);
         }
 
-        private async Task AddAppServerToDb()
+        private async Task<bool> AddAppServerToDb()
         {
             try
             {
@@ -91,25 +92,35 @@ namespace FWO.Ui.Services
                 {
                     name = ActAppServer.Name,
                     appId = Application.Id,
-                    ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),   // todo ?
+                    ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
+                    ipEnd = ActAppServer.IpEnd != "" ? IPAddressRange.Parse(ActAppServer.IpEnd).ToCidrString() : IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
                     importSource = GlobalConst.kManual  // todo
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActAppServer.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppServer, ActAppServer.Id,
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
                         $"New App Server: {ActAppServer.Display()}", Application.Id);
                     AvailableAppServers.Add(ActAppServer);
                 }
+                return true;
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("add_app_server"), "", true);
+                if(exception.Message.Contains("Uniqueness violation"))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("E9010"), "", true);
+                }
+                else
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("add_app_server"), "", true);
+                }
+                return false;
             }
         }
 
-        private async Task UpdateAppServerInDb()
+        private async Task<bool> UpdateAppServerInDb()
         {
             try
             {
@@ -122,12 +133,21 @@ namespace FWO.Ui.Services
                     importSource = GlobalConst.kManual  // todo
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppServer, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppServer, ActAppServer.Id,
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
                     $"Updated App Server: {ActAppServer.Display()}", Application.Id);
+                return true;
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
+                if(exception.Message.Contains("Uniqueness violation"))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("E9010"), "", true);
+                }
+                else
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
+                }
+                return false;
             }
         }
     }

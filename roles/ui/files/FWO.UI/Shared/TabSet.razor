@@ -1,15 +1,18 @@
 ﻿@implements IDisposable
 
 <!-- Display the tab headers -->
-<ul class="nav nav-tabs nav-fill sticky-marker">
+<ul class="nav nav-tabs  @(WholeWidth ? "nav-fill" : "") sticky-marker @(DarkMode ? "bg-transparent" : "")" style="@(DarkMode ? "--bs-nav-tabs-border-color: transparent;" : "")">
     @foreach (Tab tab in Tabs)
     {
         <li class="nav-item">
-            <a href="" @onclick="() => SetActiveTab(tab)" @onclick:preventDefault class="nav-link text-dark @tab.CssClass @(ActiveTab == tab ? "active" : "")">
+            <a href="" @onclick="() => SetActiveTab(tab)" @onclick:preventDefault class="nav-link @(DarkMode ? "text-white" : "text-dark")
+                @(ActiveTab == tab ? (DarkMode ? "bg-transparent active" : "active") : "")"
+               style="@(DarkMode ? (ActiveTab == tab ? "border-color: #0d6efd;  border-bottom-style: none;" : "border-color: #0d6efd; border-right-style:none; border-top-style:none; border-left-style: none;") : "")">
+
                 @tab.Title
                 @*@if (Closeable)
                     {
-                        <div class="ml-1 oi oi-x"></div>
+                        <div class="ms-1 @(Icons.Close)"></div>
                     }*@
             </a>
         </li>
@@ -29,7 +32,13 @@
     public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
+    public bool DarkMode { get; set; } = false;
+
+    [Parameter]
     public bool KeepPanelsAlive { get; set; }
+
+    [Parameter]
+    public bool WholeWidth { get; set; } = true;
 
     public List<Tab> Tabs = new List<Tab>();
 
@@ -39,11 +48,11 @@
 
     internal void AddTab(Tab tab, int pos = -1)
     {
-        if (ActiveTab == null)
+        Tabs.Insert(pos >= 0 && pos <= Tabs.Count ? pos : Tabs.Count, tab);
+        if (ActiveTab == null || Tabs.Count == 1)
         {
             SetActiveTab(tab);
         }
-        Tabs.Insert(pos >= 0 && pos <= Tabs.Count ? pos : Tabs.Count, tab);
         StateHasChanged();
     }
 

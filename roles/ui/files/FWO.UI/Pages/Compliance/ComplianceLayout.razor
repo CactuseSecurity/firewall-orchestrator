@@ -6,27 +6,27 @@
 
 @inject UserConfig userConfig
 
-<Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
-    <div class="mr-2 ml-2 mt-4 mb-4">
-        <ul class="navbar-nav flex-column">
+<Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
+    <div class="me-2 ms-2 mt-4 mb-4">
+        <ul class="navbar-nav navbar-dark flex-column">
             <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("network_zones"))">
                 <h5>@(userConfig.GetText("network_zones"))</h5>
             </li>
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/compliance/zones/configuration">
-                        <span class="oi oi-cog"></span> @(userConfig.GetText("configuration"))
+                        <span class="@Icons.Settings"></span> @(userConfig.GetText("configuration"))
                     </NavLink>
                 </li>
             </AuthorizeView>
             <li class="nav-item px-2">
                 <NavLink class="nav-link" href="/compliance/zones/matrix">
-                    <span class="oi oi-grid-four-up"></span> @(userConfig.GetText("matrix"))
+                    <span class="@Icons.Matrix"></span> @(userConfig.GetText("matrix"))
                 </NavLink>
             </li>
             <li class="nav-item px-2">
                 <NavLink class="nav-link" href="/compliance/zones/checks">
-                    <span class="oi oi-check"></span> @(userConfig.GetText("checks"))
+                    <span class="@Icons.Check"></span> @(userConfig.GetText("checks"))
                 </NavLink>
             </li>
         </ul>

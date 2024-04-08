@@ -1,11 +1,12 @@
 ﻿@using FWO.Config.Api
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("import_status_details") + ImportStatus.MgmName)" Show="@DetailsMode" Large="true" OnClose="async () => await CloseDetails()">
+<PopUp Title="@(userConfig.GetText("import_status_details") + ImportStatus.MgmName)" Show="@DetailsMode" Size=PopupSize.Large OnClose="async () => await CloseDetails()">
     <Body>
         @if (DetailsMode)
         {

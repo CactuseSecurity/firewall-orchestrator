@@ -12,5 +12,18 @@ Create table if not exists "report_schedule"
  primary key ("report_schedule_id")
 );
 
-Alter table if exists "report_schedule" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
-Alter table if exists "report_schedule" if not exists add foreign key ("report_schedule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+DO $$
+BEGIN
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'report_schedule_report_template_id_fkey')
+  THEN
+      Alter table if exists "report_schedule" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
+  END IF;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'report_schedule_report_schedule_owner_fkey')
+  THEN
+      Alter table if exists "report_schedule" if not exists add foreign key ("report_schedule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+  END IF;
+END $$;

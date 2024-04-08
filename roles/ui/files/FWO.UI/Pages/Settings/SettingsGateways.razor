@@ -1,28 +1,32 @@
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Middleware.Client
 
 @page "/settings/gateways"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("gateways"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("gateways"))</h3>
+    <HelpLink Page="settings/gateways"/>
+</div>
 @(userConfig.GetText("U5112"))
 <hr />
 
-<button type="button" class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_gateway"))</button>
+<button type="button" class="btn btn-sm btn-success m-1" @onclick="Add">@(userConfig.GetText("add_new_gateway"))</button>
 
-<div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
+<div class="m-2 vheight75" data-toggle="tooltip" title="@(userConfig.PureLine("H5141"))">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
         <Column TableItem="Device" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
-                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")" Context="ctx">
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="ctx">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                         </Authorized>
@@ -50,7 +54,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("edit_gateway"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_gateway"))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
@@ -59,19 +63,19 @@
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                     <label class="col-sm-8">@actDevice.Id</label>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5151"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control form-control-sm" @bind="actDevice.Name" />
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5152"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
                         <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("comment")) @bind="actDevice.Comment"></textarea>   
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5154"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("management"))*:</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="Management" ElementToString="@(m => m.Name)" SelectedElement="actDevice.Management" SelectedElementChanged="setMatchingDevTypes" Elements="managements">
@@ -81,7 +85,7 @@
                         </Dropdown>
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5153"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="DeviceType" ElementToString="@(d => d.NameVersion())" @bind-SelectedElement="actDevice.DeviceType" Elements="matchingDeviceTypes">
@@ -93,7 +97,7 @@
                 </div>
                 @if (actDevice.DeviceType.IsLegacyDevType())
                 {
-                    <div class="form-group row">
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_rulebase"))*:</label>
                         <div class="col-sm-8">
                             <input type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
@@ -104,12 +108,13 @@
                     actDevice.DeviceType.Manufacturer == "Fortinet" || 
                     actDevice.DeviceType.Manufacturer == "Cisco" ||
                     actDevice.DeviceType.Manufacturer == "Palo Alto" ||
-                    actDevice.DeviceType.Manufacturer == "Microsoft")
+                    actDevice.DeviceType.Manufacturer == "Microsoft" ||
+                    actDevice.DeviceType.Manufacturer == "VMWare")
                 {
                     @if (actDevice.DeviceType.Manufacturer == "Fortinet" && actDevice.Management.DeviceType.IsLegacyDevType())
                     {
                         actDevice.LocalRulebase = actDevice.Management.Name;
-                        <div class="form-group row">
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package"))*:</label>
                             <div class="col-sm-8">
                                 <input type="text" readonly class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
@@ -119,7 +124,7 @@
                     else if (actDevice.DeviceType.Id==25) // Fortinet FortiOS Gateway REST
                     {   // we can only have one policy, so setting fixed policy name (idential to importer module fortiOSmanagementREST)
                         actDevice.LocalRulebase = "access_rules";
-                        <div class="form-group row">
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package"))*:</label>
                             <div class="col-sm-8">
                                 <input type="text" readonly class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
@@ -128,13 +133,13 @@
                     }
                     else
                     {
-                        <div class="form-group row">
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package"))*:</label>
                             <div class="col-sm-8">
                                 <input type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
                             </div>
                         </div>
-                        <div class="form-group row">
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5156"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_package")):</label>
                             <div class="col-sm-8">
                                 <input type="text" class="form-control form-control-sm" @bind="actDevice.GlobalRulebase" />
@@ -144,18 +149,18 @@
                 }
                 @if (actDevice.DeviceType.Manufacturer == "Check Point")
                 {
-                    <div class="form-group row">
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5157"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("package")):</label>
                         <div class="col-sm-8">
                             <input type="text" class="form-control form-control-sm" @bind="actDevice.Package" />
                         </div>
                     </div>
                 }
-                <div class="form-check form-check-inline">
+                <div class="form-check form-check-inline mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5158"))">
                     <input class="form-check-input" id="deviceImportDisabled" type="checkbox" @bind="actDevice.ImportDisabled">
                     <label class="form-check-label" for="deviceImportDisabled"><small>@(userConfig.GetText("import_disabled"))</small></label>
                 </div>
-                <div class="form-check form-check-inline">
+                <div class="form-check form-check-inline mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5159"))">
                     <input class="form-check-input" id="deviceHideInUi" type="checkbox" @bind="actDevice.HideInUi">
                     <label class="form-check-label" for="deviceHideInUi"><small>@(userConfig.GetText("hide_in_ui"))</small></label>
                 </div>
@@ -164,7 +169,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -206,7 +211,7 @@
 
             JwtReader jwt = new JwtReader(userConfig.User.Jwt);
             jwt.Validate();
-            if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin))
+            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);

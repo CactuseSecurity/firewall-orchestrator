@@ -2,6 +2,7 @@ query getSelectedNwGroupObjects ($appId: Int!){
   modelling_selected_objects (where: { app_id: { _eq: $appId } }){
     nwgroup {
       id
+      id_string
       name
       group_type
     }

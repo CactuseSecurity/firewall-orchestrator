@@ -197,9 +197,9 @@
         main_key_file: "{{ fworch_secrets_dir }}/main_key"
       when: testkeys is not defined or testkeys|bool is false
 
-    - name: set static main key for test purposes only
+    - name: set static 32 char main key for test purposes only
       set_fact:
-        main_key: "{{ api_hasura_admin_test_password }}..{{ api_hasura_admin_test_password }}.." # to have 32 bytes
+        main_key: "{{ main_key_for_testing }}"
         main_key_file: "{{ fworch_secrets_dir }}/main_key"
       when: testkeys is defined and testkeys|bool
 

@@ -118,6 +118,7 @@ lib_tmp_dir: "{{ fworch_home }}/lib/tmp"
 
 ### password generation
 randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
+main_key_for_testing: "not4production..not4production.."
 
 ### logging
 syslog_proto: tcp

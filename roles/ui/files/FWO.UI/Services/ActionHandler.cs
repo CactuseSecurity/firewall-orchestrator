@@ -8,9 +8,9 @@ namespace FWO.Ui.Services
 {
     public class ActionHandler
     {
-        private List<RequestState> states = new List<RequestState>();
+        private List<RequestState> states = new ();
         private readonly ApiConnection apiConnection;
-        private RequestHandler requestHandler = new RequestHandler();
+        private readonly RequestHandler requestHandler = new ();
 
 
         public ActionHandler(ApiConnection apiConnection, RequestHandler requestHandler)
@@ -22,15 +22,195 @@ namespace FWO.Ui.Services
         public async Task Init()
         {
             states = new List<RequestState>();
-            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            states = await apiConnection.SendQueryAsync<List<RequestState>>(RequestQueries.getStates);
         }
 
-        private List<RequestStateAction> getRelevantActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, bool toState=true)
+        public List<RequestStateAction> GetOfferedActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, WorkflowPhases phase)
         {
-            List<RequestStateAction> stateActions = new List<RequestStateAction>();
+            List<RequestStateAction> offeredActions = new ();
+            List<RequestStateAction> stateActions = GetRelevantActions(statefulObject, scope);
+            foreach(var action in stateActions.Where(x => x.Event == StateActionEvents.OfferButton.ToString()))
+            {
+                if(action.Phase == "" || action.Phase == phase.ToString())
+                {
+                    offeredActions.Add(action);
+                }
+            }
+            return offeredActions;
+        }
+
+        public async Task DoStateChangeActions(RequestStatefulObject statefulObject, RequestObjectScopes scope)
+        {
+            if (statefulObject.StateChanged())
+            {
+                List<RequestStateAction> stateActions = GetRelevantActions(statefulObject, scope);
+                foreach(var action in stateActions.Where(x => x.Event == StateActionEvents.OnSet.ToString()))
+                {
+                    if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
+                    {
+                        await PerformAction(action, statefulObject, scope);
+                    }
+                }
+                List<RequestStateAction> fromStateActions = GetRelevantActions(statefulObject, scope, false);
+                foreach(var action in fromStateActions.Where(x => x.Event == StateActionEvents.OnLeave.ToString()))
+                {
+                    if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
+                    {
+                        await PerformAction(action, statefulObject, scope);
+                    }
+                }
+                statefulObject.ResetStateChanged();
+            }
+        }
+
+        public async Task DoOwnerChangeActions(RequestStatefulObject statefulObject, FwoOwner? owner, long ticketId)
+        {
+            List<RequestStateAction> ownerChangeActions = GetRelevantActions(statefulObject, RequestObjectScopes.None);
+            foreach (var action in ownerChangeActions.Where(x => x.Event == StateActionEvents.OwnerChange.ToString()))
+            {
+                await PerformAction(action, statefulObject, RequestObjectScopes.None, owner, ticketId);
+            }
+        }
+
+        public async Task PerformAction(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner = null, long? ticketId = null)
+        {
+            switch(action.ActionType)
+            {
+                case nameof(StateActionTypes.AutoPromote):
+                    int? toState = action.ExternalParams != "" ? Convert.ToInt32(action.ExternalParams) : null;
+                    if(toState == null || states.FirstOrDefault(x => x.Id == toState) != null)
+                    {
+                        await requestHandler.AutoPromote(statefulObject, scope, toState);
+                    }
+                    break;
+                case nameof(StateActionTypes.AddApproval):
+                    SetScope(statefulObject, scope);
+                    await requestHandler.AddApproval(action.ExternalParams);
+                    break;
+                case nameof(StateActionTypes.SetAlert):
+                    await SetAlert(action.ExternalParams);
+                    break;
+                case nameof(StateActionTypes.TrafficPathAnalysis):
+                    SetScope(statefulObject, scope);
+                    await requestHandler.HandlePathAnalysisAction(action.ExternalParams);
+                    break;
+                case nameof(StateActionTypes.ExternalCall):
+                    await CallExternal(action);
+                    break;
+                case nameof(StateActionTypes.SendEmail):
+                    await SendEmail(action, owner);
+                    break;
+                case nameof(StateActionTypes.CreateConnection):
+                    await CreateConnection(action, owner);
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionOwner):
+                    await UpdateConnectionOwner(owner, ticketId);
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionRelease):
+                    await UpdateConnectionRelease(action, owner);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public async Task CallExternal(RequestStateAction action)
+        {
+            // call external APIs with ExternalParams, e.g. for Compliance Check
+        }
+
+        public async Task SendEmail(RequestStateAction action, FwoOwner? owner)
+        {
+            Log.WriteDebug("SendEmail", "Perform Action");
+        }
+
+        public async Task CreateConnection(RequestStateAction action, FwoOwner? owner)
+        {
+            Log.WriteDebug("CreateConnection", "Perform Action");
+            // try
+            // {
+            //     ModellingConnection proposedInterface = new(){ IsInterface = true, IsRequested = true, TicketId = requestHandler.ActTicket.Id };
+            //     ModellingConnectionHandler ConnHandler = new (apiConnection, requestHandler.userConfig, requestHandler.ActReqTask.Owners.First().Owner, new(), proposedInterface, true, false, DefaultInit.DoNothing, false);
+            //     await ConnHandler.CreateNewRequestedInterface();
+            // }
+            // catch(Exception exc)
+            // {
+            //     Log.WriteError("Create Connection", $"Could not create connection externally from Workflow: ", exc);
+            // }
+        }
+
+        public async Task UpdateConnectionOwner(FwoOwner? owner, long? ticketId)
+        {
+            Log.WriteDebug("UpdateConnectionOwner", "Perform Action");
             try
             {
-                int searchedStateId = (toState ? statefulObject.StateId : statefulObject.ChangedFrom());
+                if(owner != null && ticketId != null) // todo: role check
+                {
+                    apiConnection.SetRole(Roles.Modeller);
+                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                    foreach(var conn in Connections)
+                    {
+                        if(conn.IsRequested)
+                        {
+                            var Variables = new
+                            {
+                                id = conn.Id,
+                                name = conn.Name,
+                                appId = owner.Id,
+                                reason = conn.Reason,
+                                isInterface = conn.IsInterface,
+                                usedInterfaceId = conn.UsedInterfaceId,
+                                isRequested = conn.IsRequested,
+                                commonSvc = conn.IsCommonService
+                            };
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);
+                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
+                                $"Updated {(conn.IsInterface? "Interface" : "Connection")}: {conn.Name}", apiConnection, requestHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                        }
+                    }
+                    apiConnection.SwitchBack();
+                }
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Update Connection Owner", $"Could not change owner: ", exc);
+            }
+        }
+
+        public async Task UpdateConnectionRelease(RequestStateAction action, FwoOwner? owner)
+        {
+            Log.WriteDebug("UpdateConnectionRelease", "Perform Action");
+        }
+
+        public async Task SetAlert(string? description)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    source = "workflow",
+                    userId = 0,
+                    title = "Workflow state alert",
+                    description = description,
+                    alertCode = (int)AlertCode.WorkflowAlert
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
+                Log.WriteAlert ($"source: \"workflow\"", 
+                    $"userId: \"0\", title: \"Workflow state alert\", description: \"{description}\", " +
+                    $"alertCode: \"{AlertCode.WorkflowAlert}\"");
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Write Alert", $"Could not write Alert for Workflow: ", exc);
+            }
+        }
+
+        private List<RequestStateAction> GetRelevantActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, bool toState=true)
+        {
+            List<RequestStateAction> stateActions = new ();
+            try
+            {
+                int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();
                 foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId:" + searchedStateId))
                 {
                     if(actionHlp.Action.Scope == scope.ToString() 
@@ -49,75 +229,7 @@ namespace FWO.Ui.Services
             return stateActions;
         }
 
-        public List<RequestStateAction> GetOfferedActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, WorkflowPhases phase)
-        {
-            List<RequestStateAction> offeredActions = new List<RequestStateAction>();
-            List<RequestStateAction> stateActions = getRelevantActions(statefulObject, scope);
-            foreach(var action in stateActions.Where(x => (x.Event == StateActionEvents.OfferButton.ToString())))
-            {
-                if(action.Phase == "" || action.Phase == phase.ToString())
-                {
-                    offeredActions.Add(action);
-                }
-            }
-            return offeredActions;
-        }
-
-        public async Task DoStateChangeActions(RequestStatefulObject statefulObject, RequestObjectScopes scope)
-        {
-            if (statefulObject.StateChanged())
-            {
-                List<RequestStateAction> stateActions = getRelevantActions(statefulObject, scope);
-                foreach(var action in stateActions.Where(x => (x.Event == StateActionEvents.OnSet.ToString())))
-                {
-                    if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
-                    {
-                        await performAction(action, statefulObject, scope);
-                    }
-                }
-                List<RequestStateAction> fromStateActions = getRelevantActions(statefulObject, scope, false);
-                foreach(var action in fromStateActions.Where(x => (x.Event == StateActionEvents.OnLeave.ToString())))
-                {
-                    if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
-                    {
-                        await performAction(action, statefulObject, scope);
-                    }
-                }
-                statefulObject.ResetStateChanged();
-            }
-        }
-
-        public async Task performAction(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope)
-        {
-            switch(action.ActionType)
-            {
-                case nameof(StateActionTypes.AutoPromote):
-                    int? toState = (action.ExternalParams != "" ? Convert.ToInt32(action.ExternalParams) : null);
-                    if(toState == null || states.FirstOrDefault(x => x.Id == toState) != null)
-                    {
-                        await requestHandler.AutoPromote(statefulObject, scope, toState);
-                    }
-                    break;
-                case nameof(StateActionTypes.AddApproval):
-                    setScope(statefulObject, scope);
-                    await requestHandler.AddApproval(action.ExternalParams);
-                    break;
-                case nameof(StateActionTypes.SetAlert):
-                    await setAlert(action.ExternalParams);
-                    break;
-                case nameof(StateActionTypes.TrafficPathAnalysis):
-                    setScope(statefulObject, scope);
-                    await requestHandler.HandlePathAnalysisAction(action.ExternalParams);
-                    break;
-                case nameof(StateActionTypes.ExternalCall):
-                    await callExternal(action);
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        private void setScope(RequestStatefulObject statefulObject, RequestObjectScopes scope)
+        private void SetScope(RequestStatefulObject statefulObject, RequestObjectScopes scope)
         {
             switch(scope)
             {
@@ -133,34 +245,6 @@ namespace FWO.Ui.Services
                     break;
                 default:
                     break;
-            }
-        }
-
-        public async Task callExternal(RequestStateAction action)
-        {
-            // call external APIs with ExternalParams, e.g. for Compliance Check
-        }
-
-        public async Task setAlert(string? description)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    source = "workflow",
-                    userId = 0,
-                    title = "Workflow state alert",
-                    description = description,
-                    alertCode = (int)AlertCode.WorkflowAlert
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
-                Log.WriteAlert ($"source: \"workflow\"", 
-                    $"userId: \"0\", title: \"Workflow state alert\", description: \"{description}\", " +
-                    $"alertCode: \"{AlertCode.WorkflowAlert.ToString()}\"");
-            }
-            catch(Exception exc)
-            {
-                Log.WriteError("Write Alert", $"Could not write Alert for Workflow: ", exc);
             }
         }
     }

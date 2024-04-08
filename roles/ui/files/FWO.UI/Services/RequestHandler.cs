@@ -241,6 +241,7 @@ namespace FWO.Ui.Services
         {
             ActTicket = ticket;
             ResetImplTaskList();
+            SetRelevantOwner();
             ActStateMatrix = MasterStateMatrix;
         }
 
@@ -254,6 +255,18 @@ namespace FWO.Ui.Services
                     implTask.TicketId = ActTicket.Id;
                     implTask.ReqTaskId = reqTask.Id;
                     AllImplTasks.Add(implTask);
+                }
+            }
+        }
+
+        public void SetRelevantOwner()
+        {
+            foreach(var reqTask in ActTicket.Tasks)
+            {
+                if(reqTask.TaskType == TaskType.new_interface.ToString() && reqTask.Owners.Count > 0)
+                {
+                    ActTicket.RelevantOwner = reqTask.Owners.First().Owner;
+                    break;
                 }
             }
         }
@@ -509,6 +522,15 @@ namespace FWO.Ui.Services
             if(ActReqTask.Id > 0)
             {
                 await dbAcc.UpdateReqTaskInDb(ActReqTask);
+            }
+            ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
+        }
+
+        public async Task ChangeOwner()
+        {
+            if(ActReqTask.Id > 0)
+            {
+                await dbAcc.UpdateOwnersInDb(ActReqTask);
             }
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
         }
@@ -863,7 +885,7 @@ namespace FWO.Ui.Services
 
         public async Task ChangeImplTask()
         {
-            await dbAcc.UpdateImplTaskInDb(ActImplTask);
+            await dbAcc.UpdateImplTaskInDb(ActImplTask, ActReqTask);
             ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.TaskNumber == ActImplTask.TaskNumber)] = ActImplTask;
         }
 
@@ -1077,7 +1099,7 @@ namespace FWO.Ui.Services
             foreach(var implTask in ActReqTask.ImplementationTasks)
             {
                 implTask.StateId = ActReqTask.StateId;
-                await dbAcc.UpdateImplTaskInDb(implTask);
+                await dbAcc.UpdateImplTaskInDb(implTask, ActReqTask);
             }
         }
 

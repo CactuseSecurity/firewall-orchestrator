@@ -33,7 +33,6 @@ namespace FWO.Ui.Services
                     StateId = stateId,
                     Title = userConfig.ModReqTicketTitle,
                     Requester = userConfig.User,
-                    Owner = owner,
                     Reason = reason
                 },
                 ObjAction.add);
@@ -56,7 +55,7 @@ namespace FWO.Ui.Services
         {
             await reqHandler.Init(new(){ owner.Id });
             RequestTicket? ticket = await reqHandler.ResolveTicket(ticketId);
-            if(ticket != null && ticket.Owner == owner)
+            if(ticket != null && ticket.RelevantOwner == owner)
             {
                 reqHandler.SetTicketEnv(ticket);
                 int newState = reqHandler.MasterStateMatrix.LowestEndState; // todo ?

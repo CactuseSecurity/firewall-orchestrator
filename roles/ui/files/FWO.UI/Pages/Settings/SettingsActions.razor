@@ -235,6 +235,14 @@
                             break;
                         case nameof(StateActionTypes.ExternalCall):
                             break;
+                        case nameof(StateActionTypes.SendEmail):
+                            break;
+                        case nameof(StateActionTypes.CreateConnection):
+                            break;
+                        case nameof(StateActionTypes.UpdateConnectionOwner):
+                            break;
+                        case nameof(StateActionTypes.UpdateConnectionRelease):
+                            break;
                         default:
                             break;
                     }
@@ -270,21 +278,21 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestStateAction> actions = new List<RequestStateAction>();
-    private List<RequestState> states = new List<RequestState>();
-    private List<RequestState> statesPlus = new List<RequestState>();
-    private List<UiUser> userAndGroupList = new List<UiUser>();
-    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
+    private List<RequestStateAction> actions = new ();
+    private List<RequestState> states = new ();
+    private List<RequestState> statesPlus = new ();
+    private List<UiUser> userAndGroupList = new ();
+    private List<TaskType> availableTaskTypes { get; set; } = new ();
 
-    private RequestStateAction actAction = new RequestStateAction();
-    private ApprovalParams actApprovalParams = new ApprovalParams();
+    private RequestStateAction actAction = new ();
+    private ApprovalParams actApprovalParams = new ();
     private int toState = -1;
     private string message = "";
-    private PathAnalysisActionParams actPathAnalysisParams = new PathAnalysisActionParams();
+    private PathAnalysisActionParams actPathAnalysisParams = new ();
     private string? selectedPhase;
     private TaskType? selectedTaskType;
-    private RequestState selectedState = new RequestState();
-    private static RequestState AutomaticState = new RequestState(){ Id = -1, Name = "automatic" };
+    private RequestState selectedState = new ();
+    private static RequestState AutomaticState = new (){ Id = -1, Name = "automatic" };
     private RequestState selectedToState = AutomaticState;
     private UiUser? selectedUserGroup;
 
@@ -354,6 +362,14 @@ else
                     break;
                 case nameof(StateActionTypes.ExternalCall):
                     break;
+                case nameof(StateActionTypes.SendEmail):
+                    break;
+                case nameof(StateActionTypes.CreateConnection):
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionOwner):
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionRelease):
+                    break;
                 default:
                     break;
             }
@@ -387,6 +403,14 @@ else
                     actAction.ExternalParams = JsonSerializer.Serialize(actPathAnalysisParams);
                     break;
                 case nameof(StateActionTypes.ExternalCall):
+                    break;
+                case nameof(StateActionTypes.SendEmail):
+                    break;
+                case nameof(StateActionTypes.CreateConnection):
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionOwner):
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionRelease):
                     break;
                 default:
                     break;

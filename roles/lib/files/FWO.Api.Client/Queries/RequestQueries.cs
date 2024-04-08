@@ -44,6 +44,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string addCommentToImplTask;
         public static readonly string addCommentToTicket;
         public static readonly string addCommentToApproval;
+        public static readonly string addOwnerToReqTask;
+        public static readonly string removeOwnerFromReqTask;
 
 
         static RequestQueries()
@@ -91,6 +93,8 @@ namespace FWO.Api.Client.Queries
                 addCommentToImplTask = File.ReadAllText(QueryPath + "request/addCommentToImplTask.graphql");
                 addCommentToTicket = File.ReadAllText(QueryPath + "request/addCommentToTicket.graphql");
                 addCommentToApproval = File.ReadAllText(QueryPath + "request/addCommentToApproval.graphql");
+                addOwnerToReqTask = File.ReadAllText(QueryPath + "request/addOwnerToReqTask.graphql");
+                removeOwnerFromReqTask = File.ReadAllText(QueryPath + "request/removeOwnerFromReqTask.graphql");
             }
             catch (Exception exception)
             {

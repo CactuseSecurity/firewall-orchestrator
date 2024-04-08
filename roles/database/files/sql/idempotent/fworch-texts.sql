@@ -876,6 +876,8 @@ INSERT INTO txt VALUES ('assign_to', 			'German',	'Weiterleiten an');
 INSERT INTO txt VALUES ('assign_to', 			'English',	'Assign to');
 INSERT INTO txt VALUES ('assign_group', 		'German',	'Gruppe zuweisen');
 INSERT INTO txt VALUES ('assign_group', 		'English',	'Assign group');
+INSERT INTO txt VALUES ('assign_owner',         'German',   'Eigent&uuml;mer zuweisen');
+INSERT INTO txt VALUES ('assign_owner',         'English',  'Assign Owner');
 INSERT INTO txt VALUES ('assigned', 			'German',	'Zugewiesen');
 INSERT INTO txt VALUES ('assigned', 			'English',	'Assigned');
 INSERT INTO txt VALUES ('back_to', 			    'German',	'Zur&uuml;ck zu');
@@ -2586,6 +2588,8 @@ INSERT INTO txt VALUES ('E8013', 'German',  'Regel-Uid ist auf diesem Ger&auml;t
 INSERT INTO txt VALUES ('E8013', 'English', 'Rule Uid does not exist on this device: ');
 INSERT INTO txt VALUES ('E8014', 'German',  'Die Verarbeitung dieses Auftragstyps ist nicht aktiviert. Bitte Administrator kontaktieren.');
 INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is not activated. Please contact administrator.');
+INSERT INTO txt VALUES ('E8015', 'German',  'Eigent&uuml;mer konnte nicht zugeordnet werden');
+INSERT INTO txt VALUES ('E8015', 'English', 'Owner could not be assigned');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');

@@ -1173,8 +1173,7 @@ create table request.ticket
 	external_ticket_id varchar,
 	external_ticket_source int,
 	ticket_deadline Timestamp,
-	ticket_priority int,
-	owner_id int
+	ticket_priority int
 );
 
 create table request.comment 

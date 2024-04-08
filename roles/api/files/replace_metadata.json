@@ -12219,6 +12219,52 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "approver",
@@ -12289,6 +12335,36 @@
                     ],
                     "filter": {}
                   }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -22275,12 +22351,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "owner",
-                  "using": {
-                    "foreign_key_constraint_on": "owner_id"
-                  }
-                },
-                {
                   "name": "state",
                   "using": {
                     "foreign_key_constraint_on": "state_id"
@@ -22351,7 +22421,6 @@
                       "title",
                       "current_handler",
                       "external_ticket_source",
-                      "owner_id",
                       "recent_handler",
                       "requester_id",
                       "state_id",
@@ -22378,7 +22447,6 @@
                       "title",
                       "current_handler",
                       "external_ticket_source",
-                      "owner_id",
                       "recent_handler",
                       "requester_id",
                       "state_id",
@@ -22404,7 +22472,6 @@
                       "title",
                       "current_handler",
                       "external_ticket_source",
-                      "owner_id",
                       "recent_handler",
                       "requester_id",
                       "state_id",
@@ -22430,7 +22497,6 @@
                       "title",
                       "current_handler",
                       "external_ticket_source",
-                      "owner_id",
                       "recent_handler",
                       "requester_id",
                       "state_id",
@@ -22456,7 +22522,6 @@
                       "title",
                       "current_handler",
                       "external_ticket_source",
-                      "owner_id",
                       "recent_handler",
                       "requester_id",
                       "state_id",
@@ -22482,7 +22547,6 @@
                       "title",
                       "current_handler",
                       "external_ticket_source",
-                      "owner_id",
                       "recent_handler",
                       "requester_id",
                       "state_id",
@@ -22508,7 +22572,6 @@
                       "title",
                       "current_handler",
                       "external_ticket_source",
-                      "owner_id",
                       "recent_handler",
                       "requester_id",
                       "state_id",
@@ -22534,7 +22597,6 @@
                       "title",
                       "current_handler",
                       "external_ticket_source",
-                      "owner_id",
                       "recent_handler",
                       "requester_id",
                       "state_id",
@@ -22557,7 +22619,6 @@
                       "assigned_group",
                       "current_handler",
                       "date_completed",
-                      "owner_id",
                       "recent_handler",
                       "state_id",
                       "ticket_deadline",
@@ -22574,7 +22635,6 @@
                       "assigned_group",
                       "current_handler",
                       "date_completed",
-                      "owner_id",
                       "recent_handler",
                       "state_id",
                       "ticket_deadline",
@@ -22591,7 +22651,6 @@
                       "assigned_group",
                       "current_handler",
                       "date_completed",
-                      "owner_id",
                       "recent_handler",
                       "state_id",
                       "ticket_deadline",
@@ -22608,7 +22667,6 @@
                       "assigned_group",
                       "current_handler",
                       "date_completed",
-                      "owner_id",
                       "recent_handler",
                       "state_id",
                       "ticket_deadline",
@@ -22630,7 +22688,6 @@
                       "title",
                       "current_handler",
                       "external_ticket_source",
-                      "owner_id",
                       "recent_handler",
                       "requester_id",
                       "state_id",

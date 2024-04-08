@@ -71,6 +71,28 @@
                             </div>
                         </div>
                     }
+                    else if(ReqHandler.ActImplTask.TaskType == TaskType.new_interface.ToString())
+                    {
+                        <div class="col-sm-6">
+                            <div class="form-group row">
+                                @if (ReqHandler.ImplementImplTaskMode)
+                                {
+                                    <div class="col-sm-11">
+                                        <SelectOwner @bind-SelectedOwner="actOwner" Apps="ReqHandler.AllOwners" WithConnectionStatus="false" />
+                                    </div>
+                                    <div class="col-sm-1">
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="AssignOwner">
+                                            @(ModellingHandlerBase.DisplayButton(userConfig, "assign_owner", Icons.Assign))</button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                    <label class="col-sm-8 border bg-secondary">@actOwner?.Name</label>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
                 @if(ReqHandler.ActImplTask.TaskType == TaskType.generic.ToString())
                 {
@@ -258,6 +280,9 @@
     private Device? actDevice;
     private RuleAction? actRuleAction;
     private Tracking? actTracking;
+    private FwoOwner? actOwner;
+    private FwoOwner? oldOwner;
+    private bool firstParamSet = false;
 
     private List<RequestStateAction> offeredActions = new ();
     private string allComments = "";
@@ -269,6 +294,7 @@
         {
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
+            firstParamSet = true;
         }
         catch (Exception exception)
         {
@@ -280,7 +306,7 @@
     {
         try
         {
-            if (ReqHandler.DisplayImplTaskMode)
+            if (ReqHandler.DisplayImplTaskMode && firstParamSet)
             {
                 InitElements();
                 await InitComments();
@@ -288,6 +314,9 @@
                 actDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.DeviceId);
                 actRuleAction = ruleActions.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.RuleAction);
                 actTracking = trackings.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.Tracking);
+                actOwner = ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
+                oldOwner = actOwner;
+                firstParamSet = false;
             }
         }
         catch (Exception exception)
@@ -311,12 +340,19 @@
 
     private async Task Close()
     {
+        firstParamSet = true;
         await ResetParent();
     }
 
     private async Task PerformAction(RequestStateAction action)
     {
-        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask);
+        await ReqHandler.ActionHandler.PerformAction(action, ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask);
+    }
+
+    private async Task AssignOwner()
+    {
+        SetChangedOwner();
+        await ReqHandler.ChangeOwner();
     }
 
     private void InitAddComment()
@@ -383,6 +419,7 @@
             {
                 ReqHandler.ActImplTask.ImplAction = RequestAction.delete.ToString();
             }
+            SetChangedOwner();
             UpdateElements();
             if (CheckImplTaskValues())
             {
@@ -400,6 +437,21 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_task"), "", true);
+        }
+    }
+
+    private void SetChangedOwner()
+    {
+        if(actOwner != oldOwner)
+        {
+            if(oldOwner != null)
+            {
+                ReqHandler.ActReqTask.RemovedOwners.Add(oldOwner);
+            }
+            if(actOwner != null)
+            {
+                ReqHandler.ActReqTask.NewOwners.Add(actOwner);
+            }
         }
     }
 

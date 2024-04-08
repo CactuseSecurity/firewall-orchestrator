@@ -44,9 +44,6 @@ namespace FWO.Api.Data
         [JsonProperty("ticket_priority"), JsonPropertyName("ticket_priority")]
         public int? Priority { get; set; }
 
-        [JsonProperty("owner"), JsonPropertyName("owner")]
-        public FwoOwner? Owner { get; set; }
-
 
         public RequestTicketBase()
         { }
@@ -65,7 +62,6 @@ namespace FWO.Api.Data
             ExternalTicketId = ticket.ExternalTicketId;
             ExternalTicketSource = ticket.ExternalTicketSource;
             Deadline = ticket.Deadline;
-            Owner = ticket.Owner;
         }
 
         public override bool Sanitize()

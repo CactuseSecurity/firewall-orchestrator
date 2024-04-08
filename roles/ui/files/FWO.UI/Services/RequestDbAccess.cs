@@ -57,10 +57,7 @@ namespace FWO.Ui.Services
             RequestTicket ticket = new ();
             try
             {
-                var Variables = new
-                {
-                    id = id,
-                };
+                var Variables = new { id };
                 ticket = await ApiConnection.SendQueryAsync<RequestTicket>(RequestQueries.getTicketById, Variables);
                 ticket.UpdateCidrsInTaskElements();
             }
@@ -86,7 +83,6 @@ namespace FWO.Ui.Services
                     requesterId = ticket.Requester?.DbId,
                     deadline = ticket.Deadline,
                     priority = ticket.Priority,
-                    ownerId = ticket.Owner?.Id,
                     requestTasks = new RequestTicketWriter(ticket)
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newTicket, Variables)).ReturnIds;
@@ -178,6 +174,10 @@ namespace FWO.Ui.Services
                         approval.TaskId = returnId;
                         await AddApprovalToDb(approval);
                     }
+                    foreach(var owner in reqtask.Owners)
+                    {
+                        await AssignOwnerInDb(returnId, owner.Owner.Id);
+                    }
                     await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask);
                 }
             }
@@ -215,23 +215,8 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    foreach(var elem in reqtask.RemovedElements)
-                    {
-                        await DeleteReqElementFromDb(elem.Id);
-                    }
-                    reqtask.RemovedElements = new List<RequestReqElement>();
-
-                    foreach(var element in reqtask.Elements)
-                    {
-                        if(element.Id == 0)
-                        {
-                            element.Id = await AddReqElementToDb(element);
-                        }
-                        else
-                        {
-                            await UpdateReqElementInDb(element);
-                        }
-                    }
+                    await UpdateReqElementsInDb(reqtask);
+                    await UpdateOwnersInDb(reqtask);
                     await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask);
                 }
             }
@@ -259,7 +244,35 @@ namespace FWO.Ui.Services
 
         // Request Elements
 
-        public async Task<int> AddReqElementToDb(RequestReqElement element)
+        private async Task UpdateReqElementsInDb(RequestReqTask reqtask)
+        {
+            try
+            {
+                foreach(var elem in reqtask.RemovedElements)
+                {
+                    await DeleteReqElementFromDb(elem.Id);
+                }
+                reqtask.RemovedElements = new ();
+
+                foreach(var element in reqtask.Elements)
+                {
+                    if(element.Id == 0)
+                    {
+                        element.Id = await AddReqElementToDb(element);
+                    }
+                    else
+                    {
+                        await UpdateReqElementInDb(element);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
+            }
+        }
+
+        private async Task<int> AddReqElementToDb(RequestReqElement element)
         {
             int returnId = 0;
             try
@@ -296,7 +309,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateReqElementInDb(RequestReqElement element)
+        private async Task UpdateReqElementInDb(RequestReqElement element)
         {
             try
             {
@@ -328,7 +341,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteReqElementFromDb(long elementId)
+        private async Task DeleteReqElementFromDb(long elementId)
         {
             try
             {
@@ -462,7 +475,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateImplTaskInDb(RequestImplTask impltask)
+        public async Task UpdateImplTaskInDb(RequestImplTask impltask, RequestReqTask reqtask)
         {
             try
             {
@@ -490,23 +503,8 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    foreach(var elem in impltask.RemovedElements)
-                    {
-                        await DeleteImplElementFromDb(elem.Id);
-                    }
-                    impltask.RemovedElements = new List<RequestImplElement>();
-
-                    foreach(var element in impltask.ImplElements)
-                    {
-                        if(element.Id == 0)
-                        {
-                            element.Id = await AddImplElementToDb(element);
-                        }
-                        else
-                        {
-                            await UpdateImplElementInDb(element);
-                        }
-                    }
+                    await UpdateImplElementsInDb(impltask);
+                    await UpdateOwnersInDb(reqtask);
                     await ActionHandler.DoStateChangeActions(impltask, RequestObjectScopes.ImplementationTask);
                 }
             }
@@ -535,7 +533,35 @@ namespace FWO.Ui.Services
 
         // implementation elements
 
-        public async Task<int> AddImplElementToDb(RequestImplElement element)
+        private async Task UpdateImplElementsInDb(RequestImplTask impltask)
+        {
+            try
+            {
+                foreach(var elem in impltask.RemovedElements)
+                {
+                    await DeleteImplElementFromDb(elem.Id);
+                }
+                impltask.RemovedElements = new ();
+
+                foreach(var element in impltask.ImplElements)
+                {
+                    if(element.Id == 0)
+                    {
+                        element.Id = await AddImplElementToDb(element);
+                    }
+                    else
+                    {
+                        await UpdateImplElementInDb(element);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
+            }
+        }
+
+        private async Task<int> AddImplElementToDb(RequestImplElement element)
         {
             int returnId = 0;
             try
@@ -571,7 +597,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateImplElementInDb(RequestImplElement element)
+        private async Task UpdateImplElementInDb(RequestImplElement element)
         {
             try
             {
@@ -602,7 +628,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteImplElementFromDb(long elementId)
+        private async Task DeleteImplElementFromDb(long elementId)
         {
             try
             {
@@ -655,11 +681,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                var Variables = new
-                {
-                    TicketId = ticketId,
-                    commentId = commentId
-                };
+                var Variables = new { ticketId, commentId };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addCommentToTicket, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
@@ -676,11 +698,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                var Variables = new
-                {
-                    taskId = taskId,
-                    commentId = commentId
-                };
+                var Variables = new { taskId, commentId };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addCommentToReqTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
@@ -697,11 +715,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                var Variables = new
-                {
-                    taskId = taskId,
-                    commentId = commentId
-                };
+                var Variables = new { taskId, commentId };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addCommentToImplTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
@@ -718,11 +732,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                var Variables = new
-                {
-                    approvalId = approvalId,
-                    commentId = commentId
-                };
+                var Variables = new { approvalId, commentId };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addCommentToApproval, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
@@ -732,6 +742,65 @@ namespace FWO.Ui.Services
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("add_comment"), "", true);
+            }
+        }
+
+
+        // Owners
+
+        public async Task UpdateOwnersInDb(RequestReqTask reqtask)
+        {
+            try
+            {
+                foreach(var owner in reqtask.RemovedOwners)
+                {
+                    await RemoveOwnerInDb(reqtask.Id, owner.Id);
+                }
+                reqtask.RemovedOwners = new ();
+
+                foreach(var owner in reqtask.NewOwners)
+                {
+                    await AssignOwnerInDb(reqtask.Id, owner.Id);
+                    await ActionHandler.DoOwnerChangeActions(reqtask, owner, reqtask.TicketId);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
+            }
+        }
+
+        private async Task AssignOwnerInDb(long reqTaskId, long ownerId)
+        {
+            try
+            {
+                var Variables = new { reqTaskId, ownerId };
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addOwnerToReqTask, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi(null, UserConfig.GetText("assign_owner"), UserConfig.GetText("E8015"), true);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("assign_owner"), "", true);
+            }
+        }
+
+        private async Task RemoveOwnerInDb(long reqTaskId, long ownerId)
+        {
+            try
+            {
+                var Variables = new { reqTaskId, ownerId };
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.removeOwnerFromReqTask, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi(null, UserConfig.GetText("assign_owner"), UserConfig.GetText("E8015"), true);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("assign_owner"), "", true);
             }
         }
 
@@ -831,11 +900,7 @@ namespace FWO.Ui.Services
             bool ruleFound = false;
             try
             {
-                var Variables = new
-                {
-                    deviceId = deviceId,
-                    ruleUid = ruleUid
-                };
+                var Variables = new { deviceId, ruleUid };
                 ruleFound = (await ApiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRuleByUid, Variables)).Count > 0;
             }
             catch (Exception exception)

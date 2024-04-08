@@ -27,7 +27,8 @@ namespace FWO.Api.Data
         public List<RequestCommentDataHelper> Comments { get; set; } = new ();
 
         public List<RequestReqElement> RemovedElements { get; set; } = new ();
-
+        public List<FwoOwner> NewOwners { get; set; } = new ();
+        public List<FwoOwner> RemovedOwners { get; set; } = new ();
 
         public RequestReqTask()
         { }
@@ -42,6 +43,8 @@ namespace FWO.Api.Data
             Owners = reqtask.Owners;
             Comments = reqtask.Comments;
             RemovedElements = reqtask.RemovedElements;
+            NewOwners = reqtask.NewOwners;
+            RemovedOwners = reqtask.RemovedOwners;
         }
 
         public string OwnerList()

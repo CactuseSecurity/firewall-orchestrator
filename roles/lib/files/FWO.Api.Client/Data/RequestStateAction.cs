@@ -10,7 +10,12 @@ namespace FWO.Api.Data
         AddApproval = 2,
         SetAlert = 5,
         TrafficPathAnalysis = 6,
-        ExternalCall = 10
+        ExternalCall = 10,
+        SendEmail = 15,
+        CreateConnection = 20,
+        UpdateConnectionOwner = 21,
+        UpdateConnectionRelease = 22
+        // CreateReport = 30
     }
 
     public enum StateActionEvents
@@ -19,7 +24,8 @@ namespace FWO.Api.Data
         OnSet = 1,
         OnLeave = 2,
         // WhileSet = 3,
-        OfferButton = 4
+        OfferButton = 4,
+        OwnerChange = 10
     }
 
     public class RequestStateAction

@@ -1,9 +1,5 @@
 # library for FWORCH API calls
 from asyncio.log import logger
-import re
-import traceback
-from sqlite3 import Timestamp
-from textwrap import indent
 import requests.packages
 import requests
 import json

@@ -380,7 +380,7 @@ namespace FWO.Middleware.Server
                     using (LdapConnection connection = Connect())
                     {     
                         // Authenticate as search user
-                        connection.Bind(SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
+                        TryBind(connection, SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
 
                         // Search for Ldap roles / groups in given directory          
                         int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
@@ -490,7 +490,7 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {     
                     // Authenticate as search user
-                    connection.Bind(SearchUser, SearchUserPwd);
+                    TryBind(connection, SearchUser, SearchUserPwd);
 
                     // Search for Ldap groups in given directory          
                     int searchScope = LdapConnection.ScopeSub;
@@ -523,7 +523,7 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {     
                     // Authenticate as search user
-                    connection.Bind(SearchUser, SearchUserPwd);
+                    TryBind(connection, SearchUser, SearchUserPwd);
 
                     // Search for Ldap groups in given directory          
                     int searchScope = LdapConnection.ScopeSub;
@@ -571,7 +571,7 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {     
                     // Authenticate as search user
-                    connection.Bind(SearchUser, SearchUserPwd);
+                    TryBind(connection, SearchUser, SearchUserPwd);
 
                     // Search for Ldap users in given directory          
                     int searchScope = LdapConnection.ScopeSub;
@@ -613,7 +613,6 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    //connection.Bind(WriteUser, WriteUserPwd);
                     TryBind(connection, WriteUser, WriteUserPwd);
 
                     string userName = (new FWO.Api.Data.DistName(userDn)).UserName;
@@ -664,8 +663,6 @@ namespace FWO.Middleware.Server
                 {
                     // Authenticate as write user
                     TryBind(connection, WriteUser, WriteUserPwd);
-                    // connection.Bind(WriteUser, WriteUserPwd);
-
                     LdapAttribute attribute = new LdapAttribute("mail", email);
                     LdapModification[] mods = { new LdapModification(LdapModification.Replace, attribute) };
 
@@ -704,7 +701,6 @@ namespace FWO.Middleware.Server
                 {
                     // Authenticate as write user
                     TryBind(connection, WriteUser, WriteUserPwd);
-                    // connection.Bind(WriteUser, WriteUserPwd);
 
                     try
                     {
@@ -741,7 +737,6 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    // connection.Bind(WriteUser, WriteUserPwd);
                     TryBind(connection, WriteUser, WriteUserPwd);
 
                     groupDn = $"cn={groupName},{GroupSearchPath}";
@@ -792,7 +787,6 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    // connection.Bind(WriteUser, WriteUserPwd);
                     TryBind(connection, WriteUser, WriteUserPwd);
 
                     try
@@ -829,7 +823,6 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    // connection.Bind(WriteUser, WriteUserPwd);
                     TryBind(connection, WriteUser, WriteUserPwd);
 
                     try
@@ -904,7 +897,6 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    // connection.Bind(WriteUser, WriteUserPwd);
                     TryBind(connection, WriteUser, WriteUserPwd);
 
                     // Add a new value to the description attribute
@@ -946,7 +938,6 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    // connection.Bind(WriteUser, WriteUserPwd);
                     TryBind(connection, WriteUser, WriteUserPwd);
 
                     tenantDn = $"ou={tenantName},{UserSearchPath}";
@@ -989,7 +980,6 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Authenticate as write user
-                    // connection.Bind(WriteUser, WriteUserPwd);
                     TryBind(connection, WriteUser, WriteUserPwd);
 
                     try

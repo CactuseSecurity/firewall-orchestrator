@@ -1,9 +1,11 @@
 @using FWO.Config.Api
 @using FWO.Ui.Display
+@using FWO.Middleware.Client
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
+@inject MiddlewareClient middlewareClient
 
 @if (Display)
 {
@@ -448,7 +450,7 @@
                 try
                 {
                     apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
-                    TicketCreator ticketCreator = new TicketCreator(apiConnection, userConfig);
+                    TicketCreator ticketCreator = new (apiConnection, userConfig, middlewareClient);
                     if(await ticketCreator.PromoteTicket(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId)))
                     {
                         DisplayMessageInUi(null, userConfig.GetText("release"), userConfig.GetText("U9013"), false);

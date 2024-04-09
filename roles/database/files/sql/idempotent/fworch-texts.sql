@@ -39,6 +39,10 @@ INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
 INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
 INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
 INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
+INSERT INTO txt VALUES ('OwnerChange',			'German', 	'Eigent&uuml;merwechsel');
+INSERT INTO txt VALUES ('OwnerChange',			'English', 	'Owner Change');
+INSERT INTO txt VALUES ('OnAssignment',			'German', 	'Bei Zuweisung');
+INSERT INTO txt VALUES ('OnAssignment',			'English', 	'On Assignment');
 INSERT INTO txt VALUES ('DoNothing',			'German', 	'Keine Aktion');
 INSERT INTO txt VALUES ('DoNothing',			'English', 	'Do Nothing');
 INSERT INTO txt VALUES ('AutoPromote',			'German', 	'Autom. Weiterleitung');
@@ -163,6 +167,24 @@ INSERT INTO txt VALUES ('CsvAsAttachment', 	    'German', 	'Csv als Anhang');
 INSERT INTO txt VALUES ('CsvAsAttachment', 	    'English', 	'Csv as Attachment');
 INSERT INTO txt VALUES ('JsonAsAttachment', 	'German', 	'Json als Anhang');
 INSERT INTO txt VALUES ('JsonAsAttachment', 	'English', 	'Json as Attachment');
+INSERT INTO txt VALUES ('CurrentHandler', 		'German',	'Aktueller Bearbeiter');
+INSERT INTO txt VALUES ('CurrentHandler', 	    'English',	'Current handler');
+INSERT INTO txt VALUES ('RecentHandler', 		'German',	'Vorheriger Bearbeiter');
+INSERT INTO txt VALUES ('RecentHandler', 	    'English',	'Recent handler');
+INSERT INTO txt VALUES ('AssignedGroup', 		'German',	'Zugewiesene Gruppe');
+INSERT INTO txt VALUES ('AssignedGroup', 	    'English',	'Assigned Group');
+INSERT INTO txt VALUES ('OwnerMainResponsible', 'German',	'Eigent&uuml;mer Hauptverantwortlicher');
+INSERT INTO txt VALUES ('OwnerMainResponsible', 'English',	'Owner Main Responsible');
+INSERT INTO txt VALUES ('AllOwnerResponsibles', 'German',	'Eigent&uuml;mer alle Verantwortlichen');
+INSERT INTO txt VALUES ('AllOwnerResponsibles', 'English',	'Owner all responsibles');
+INSERT INTO txt VALUES ('Requester', 		    'German',	'Antragsteller');
+INSERT INTO txt VALUES ('Requester', 	        'English',	'Requester');
+INSERT INTO txt VALUES ('Approver', 		    'German',	'Genehmiger');
+INSERT INTO txt VALUES ('Approver', 	        'English',	'Approver');
+INSERT INTO txt VALUES ('LastCommenter', 		'German',	'Letzter Kommentierender');
+INSERT INTO txt VALUES ('LastCommenter', 	    'English',	'Last commenter');
+INSERT INTO txt VALUES ('AllCommenters', 		'German',	'Alle Kommentierenden');
+INSERT INTO txt VALUES ('AllCommenters', 	    'English',	'All commenters');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -1856,6 +1878,10 @@ INSERT INTO txt VALUES ('use_in_src',           'German', 	'in Quelle');
 INSERT INTO txt VALUES ('use_in_src',           'English', 	'in Source');
 INSERT INTO txt VALUES ('use_in_dst',           'German', 	'in Ziel');
 INSERT INTO txt VALUES ('use_in_dst',           'English', 	'in Destination');
+INSERT INTO txt VALUES ('email_subject',       'German', 	'Email-Betreff');
+INSERT INTO txt VALUES ('email_subject',       'English', 	'Email subject');
+INSERT INTO txt VALUES ('email_body',           'German', 	'Email-Inhalt');
+INSERT INTO txt VALUES ('email_body',           'English', 	'Email body');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -4271,6 +4297,12 @@ INSERT INTO txt VALUES ('H5526', 'German',  'Pfadanalyse: Hier kann zwischen den
 ');
 INSERT INTO txt VALUES ('H5526', 'English', 'Path analysis: Here the options "Write to device list" or "Display found devices" can be selected.
     In the first case the list of devices in the request task is replaced by the devices found in the path analysis, in the second the result of the path analysis is only displayed in a separate window.
+');
+INSERT INTO txt VALUES ('H5527', 'German',  'Email verschicken: Es kann zwischen verschieden Optionen f&uuml;r den/die direkten Empf&auml;nger und Optional f&uuml;r die weiteren Empf&auml;nger im CC gew&auml;hlt werden.
+    Ausserdem m&uuml;ssen Betreff und Text der Email-Benachrichtigung hier festgelegt werden.
+');
+INSERT INTO txt VALUES ('H5527', 'English', 'Send Email: There are different options for the direct recipients and optionally for the recipients in Cc to be chosen.
+    Furtheron subject and body of the email message have to be defined here.
 ');
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nne beliebig viele neue Stati angelegt bzw. vorhandene Stati umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Stati sind weitgehend frei w&auml;hlbar. 
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.

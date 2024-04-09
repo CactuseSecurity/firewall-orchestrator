@@ -2,6 +2,7 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Middleware.Client
 
 @page "/request/approvals/{ticketId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Approver}, {Roles.Auditor}")]
@@ -9,6 +10,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
+@inject MiddlewareClient middlewareClient
 
 <h3>@(userConfig.GetText("approvals"))</h3>
 <hr />
@@ -36,9 +38,9 @@ else
     [Parameter]
     public string? TicketId { get; set; }
 
-    private RequestHandler reqHandler = new RequestHandler();
-    private RequestStateDict states = new RequestStateDict();
-    private List<int> OwnerIds = new();
+    private RequestHandler reqHandler = new ();
+    private RequestStateDict states = new ();
+    private List<int> OwnerIds = new ();
     private bool InitComplete = false;
 
 
@@ -53,7 +55,7 @@ else
             {
                 OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.approval){};
+            reqHandler = new (DisplayMessageInUi, userConfig, apiConnection, middlewareClient, WorkflowPhases.approval){};
             await Reset();
             await HandleTicketId();
             reqHandler.SetContinueEnv(ObjAction.approve);

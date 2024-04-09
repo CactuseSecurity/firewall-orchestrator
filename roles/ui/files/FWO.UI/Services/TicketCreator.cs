@@ -3,6 +3,7 @@ using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Logging;
+using FWO.Middleware.Client;
 
 namespace FWO.Ui.Services
 {
@@ -18,9 +19,9 @@ namespace FWO.Ui.Services
         private int priority;
 
 
-        public TicketCreator(ApiConnection apiConnection, UserConfig userConfig)
+        public TicketCreator(ApiConnection apiConnection, UserConfig userConfig, MiddlewareClient middlewareClient)
         {
-            reqHandler = new RequestHandler(LogMessage, userConfig, apiConnection, WorkflowPhases.request);
+            reqHandler = new (LogMessage, userConfig, apiConnection, middlewareClient, WorkflowPhases.request);
             this.userConfig = userConfig;
         }
 

@@ -2,12 +2,14 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Middleware.Client
 
 @page "/request/ticketsoverview"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 <h3>@(userConfig.GetText("all_readonly"))</h3>
 <hr />
@@ -31,9 +33,9 @@ else
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private RequestHandler reqHandler = new RequestHandler();
-    private RequestStateDict states = new RequestStateDict();
-    private List<int> OwnerIds = new();
+    private RequestHandler reqHandler = new ();
+    private RequestStateDict states = new ();
+    private List<int> OwnerIds = new ();
     private bool InitComplete = false;
 
 
@@ -48,7 +50,7 @@ else
             {
                 OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
+            reqHandler = new (DisplayMessageInUi, userConfig, apiConnection, middlewareClient, WorkflowPhases.request){};
             await Reset();
             InitComplete = true;
         }

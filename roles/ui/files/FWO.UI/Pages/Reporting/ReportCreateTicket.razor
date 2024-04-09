@@ -1,9 +1,11 @@
 ﻿@using FWO.Config.Api
+@using FWO.Middleware.Client
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Requester}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 
 <PopUp Title="@(userConfig.GetText("create_ticket"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
@@ -95,7 +97,7 @@
     private async Task CreateTicket()
     {
         apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin});
-        TicketCreator ticketCreator = new TicketCreator(apiConnection, userConfig);
+        TicketCreator ticketCreator = new (apiConnection, userConfig, middlewareClient);
         foreach(int devId in ruleUidsPerDevice.Keys)
         {
             await ticketCreator.CreateUnusedRuleDeleteTicket(devId, ruleUidsPerDevice[devId], commentText, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));

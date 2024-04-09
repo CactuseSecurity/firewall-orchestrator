@@ -171,7 +171,7 @@
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Recertifier, Roles.Admin, Roles.Auditor });
             rulesFound = false;
-            ticketCreator = new TicketCreator(apiConnection, userConfig);
+            ticketCreator = new (apiConnection, userConfig, middlewareClient);
 
             ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
             await CollectOwnerships();

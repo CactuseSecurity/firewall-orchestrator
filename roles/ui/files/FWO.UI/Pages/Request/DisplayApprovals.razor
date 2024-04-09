@@ -77,18 +77,18 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
 
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
+    public List<RequestApproval> Approvals { get; set; } = new ();
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
-    static List<string> validRoles = new List<string>(){Roles.Approver};
+    static List<string> validRoles = new (){Roles.Approver};
 
 
     private async Task Close()

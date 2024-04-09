@@ -6,10 +6,10 @@ namespace FWO.Api.Data
     public class RequestTicket : RequestTicketBase
     {
         [JsonProperty("reqtasks"), JsonPropertyName("reqtasks")]
-        public List<RequestReqTask> Tasks { get; set; } = new List<RequestReqTask>();
+        public List<RequestReqTask> Tasks { get; set; } = new ();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
+        public List<RequestCommentDataHelper> Comments { get; set; } = new ();
 
         public FwoOwner? RelevantOwner { get; set; }
 

@@ -2,6 +2,7 @@
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Middleware.Client;
 
 namespace FWO.Ui.Services
 {
@@ -73,6 +74,7 @@ namespace FWO.Ui.Services
         private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         public UserConfig userConfig;
         private readonly ApiConnection apiConnection;
+        public readonly MiddlewareClient MiddlewareClient;
         private readonly StateMatrixDict stateMatrixDict = new ();
         private RequestDbAccess dbAcc;
 
@@ -83,12 +85,13 @@ namespace FWO.Ui.Services
         {}
 
         public RequestHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, 
-            ApiConnection apiConnection, WorkflowPhases phase)
+            ApiConnection apiConnection, MiddlewareClient middlewareClient, WorkflowPhases phase)
         {
-            this.DisplayMessageInUi = displayMessageInUi;
+            DisplayMessageInUi = displayMessageInUi;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
-            this.Phase = phase;
+            Phase = phase;
+            MiddlewareClient = middlewareClient;
         }
 
 
@@ -625,7 +628,7 @@ namespace FWO.Ui.Services
 
         // approvals
 
-        public async Task SetApprovalEnv(RequestApproval? approval = null)
+        public async Task SetApprovalEnv(RequestApproval? approval = null, bool createIfMissing = true)
         {
             if(approval != null)
             {
@@ -633,11 +636,11 @@ namespace FWO.Ui.Services
             }
             else
             {
-                if(ActReqTask.Approvals.Count == 0)
+                if(ActReqTask.Approvals.Count == 0 && createIfMissing)
                 {
                     await AddApproval();
                 }
-                ActApproval = ActReqTask.Approvals.FirstOrDefault(x => x.StateId < ActStateMatrix.LowestEndState) ?? (ActApproval = ActReqTask.Approvals.Last());  // todo: select own approvals
+                ActApproval = ActReqTask.Approvals.FirstOrDefault(x => x.StateId < ActStateMatrix.LowestEndState) ?? (ActApproval = ActReqTask.Approvals.Last() ?? new());  // todo: select own approvals
             }
         }
 

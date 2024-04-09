@@ -25,7 +25,8 @@ namespace FWO.Api.Data
         OnLeave = 2,
         // WhileSet = 3,
         OfferButton = 4,
-        OwnerChange = 10
+        OwnerChange = 10,
+        OnAssignment = 15
     }
 
     public class RequestStateAction

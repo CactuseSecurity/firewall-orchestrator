@@ -127,6 +127,24 @@ namespace FWO.Ui.Services
             }
         }
 
+        public async Task PartialInit()
+        {
+            try
+            {
+                if(!InitOngoing)
+                {
+                    InitOngoing = true;
+                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), true, DisplayMessageInUi);
+                    DummyAppRole = await AppRoleHandler.GetDummyAppRole();
+                    InitOngoing = false;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
         public async Task RefreshPreselectedInterfaces()
         {
             try

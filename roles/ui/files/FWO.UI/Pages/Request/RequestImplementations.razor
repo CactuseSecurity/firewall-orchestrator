@@ -2,6 +2,7 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Middleware.Client
 
 @page "/request/implementations/{ticketId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Implementer}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -9,6 +10,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
+@inject MiddlewareClient middlewareClient
 
 <h3>@(userConfig.GetText("implementations"))</h3>
 <hr />
@@ -60,17 +62,17 @@ else
     [Parameter]
     public string? TicketId { get; set; }
 
-    private RequestHandler reqHandler = new RequestHandler();
-    private RequestStateDict states = new RequestStateDict();
+    private RequestHandler reqHandler = new ();
+    private RequestStateDict states = new ();
     private List<int> OwnerIds = new();
     private bool InitComplete = false;
 
     private bool DisplayTickets = true;
-    private List<RequestImplTask> allImplTasks = new List<RequestImplTask>();
-    private List<Device> deviceOptions = new List<Device>();
-    private Device optTicket = new Device();
-    private Device allDev = new Device();
-    private Device selectedDeviceOpt = new Device();
+    private List<RequestImplTask> allImplTasks = new ();
+    private List<Device> deviceOptions = new ();
+    private Device optTicket = new ();
+    private Device allDev = new ();
+    private Device selectedDeviceOpt = new ();
 
 
     protected override async Task OnInitializedAsync()
@@ -84,7 +86,7 @@ else
             {
                 OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.implementation){};
+            reqHandler = new (DisplayMessageInUi, userConfig, apiConnection, middlewareClient, WorkflowPhases.implementation){};
             await Reset();
             await HandleTicketId();
             reqHandler.SetContinueEnv(ObjAction.implement);

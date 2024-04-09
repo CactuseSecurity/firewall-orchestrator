@@ -11,6 +11,8 @@ namespace FWO.Ui.Services
         private List<RequestState> states = new ();
         private readonly ApiConnection apiConnection;
         private readonly RequestHandler requestHandler = new ();
+        private string? ScopedUserTo { get; set; } = "";
+        private string? ScopedUserCc { get; set; } = "";
 
 
         public ActionHandler(ApiConnection apiConnection, RequestHandler requestHandler)
@@ -84,21 +86,21 @@ namespace FWO.Ui.Services
                     }
                     break;
                 case nameof(StateActionTypes.AddApproval):
-                    SetScope(statefulObject, scope);
+                    await SetScope(statefulObject, scope);
                     await requestHandler.AddApproval(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.SetAlert):
                     await SetAlert(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.TrafficPathAnalysis):
-                    SetScope(statefulObject, scope);
+                    await SetScope(statefulObject, scope);
                     await requestHandler.HandlePathAnalysisAction(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.ExternalCall):
                     await CallExternal(action);
                     break;
                 case nameof(StateActionTypes.SendEmail):
-                    await SendEmail(action, owner);
+                    await SendEmail(action, statefulObject, scope, owner);
                     break;
                 case nameof(StateActionTypes.CreateConnection):
                     await CreateConnection(action, owner);
@@ -119,9 +121,21 @@ namespace FWO.Ui.Services
             // call external APIs with ExternalParams, e.g. for Compliance Check
         }
 
-        public async Task SendEmail(RequestStateAction action, FwoOwner? owner)
+        public async Task SendEmail(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner)
         {
             Log.WriteDebug("SendEmail", "Perform Action");
+            try
+            {
+                EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                await SetScope(statefulObject, scope, emailActionParams);
+                EmailHelper emailHelper = new(apiConnection, requestHandler.MiddlewareClient, requestHandler.userConfig, DefaultInit.DoNothing);
+                await emailHelper.Init(ScopedUserTo, ScopedUserCc);
+                await emailHelper.SendEmailFromAction(emailActionParams, statefulObject, owner);
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Send Email", $"Could not send email: ", exc);
+            }
         }
 
         public async Task CreateConnection(RequestStateAction action, FwoOwner? owner)
@@ -229,23 +243,54 @@ namespace FWO.Ui.Services
             return stateActions;
         }
 
-        private void SetScope(RequestStatefulObject statefulObject, RequestObjectScopes scope)
+        private async Task SetScope(RequestStatefulObject statefulObject, RequestObjectScopes scope, EmailActionParams? emailActionParams = null)
         {
             switch(scope)
             {
                 case RequestObjectScopes.Ticket:
+                    requestHandler.SetTicketEnv((RequestTicket)statefulObject);
+                    SetCommenter(emailActionParams, requestHandler.ActTicket.Comments);
+                    if(emailActionParams?.RecipientTo == EmailRecipientOption.Requester)
+                    {
+                        ScopedUserTo = requestHandler.ActTicket.Requester?.Dn;
+                    }
+                    if(emailActionParams?.RecipientCC == EmailRecipientOption.Requester)
+                    {
+                        ScopedUserCc = requestHandler.ActTicket.Requester?.Dn;
+                    }
                     break;
                 case RequestObjectScopes.RequestTask:
                     requestHandler.SetReqTaskEnv((RequestReqTask)statefulObject);
+                    SetCommenter(emailActionParams, requestHandler.ActReqTask.Comments);
                     break;
                 case RequestObjectScopes.ImplementationTask:
                     requestHandler.SetImplTaskEnv((RequestImplTask)statefulObject);
+                    SetCommenter(emailActionParams, requestHandler.ActImplTask.Comments);
                     break;
                 case RequestObjectScopes.Approval:
+                    if(requestHandler.SetReqTaskEnv(((RequestApproval)statefulObject).TaskId))
+                    {
+                        await requestHandler.SetApprovalEnv(null, false);
+                        SetCommenter(emailActionParams, requestHandler.ActApproval.Comments);
+                        if(emailActionParams?.RecipientTo == EmailRecipientOption.Approver)
+                        {
+                            ScopedUserTo = requestHandler.ActApproval.ApproverDn;
+                        }
+                        if(emailActionParams?.RecipientCC == EmailRecipientOption.Approver)
+                        {
+                            ScopedUserCc = requestHandler.ActApproval.ApproverDn;
+                        }
+                    }
                     break;
                 default:
                     break;
             }
+        }
+
+        private void SetCommenter(EmailActionParams? emailActionParams, List<RequestCommentDataHelper> comments)
+        {
+            ScopedUserTo = emailActionParams?.RecipientTo == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
+            ScopedUserCc = emailActionParams?.RecipientCC == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
         }
     }
 }

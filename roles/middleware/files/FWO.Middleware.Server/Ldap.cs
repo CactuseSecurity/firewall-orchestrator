@@ -150,9 +150,6 @@ namespace FWO.Middleware.Server
                 // Connecting to Ldap
                 using (LdapConnection connection = Connect())
                 {
-                    // Authenticate as search user
-                    // connection.Bind(SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
-                    // connection.Bind(SearchUser, SearchUserPwd);
                     TryBind(connection, SearchUser, SearchUserPwd);
 
                     LdapSearchConstraints cons = connection.SearchConstraints;
@@ -227,10 +224,7 @@ namespace FWO.Middleware.Server
                 Log.WriteDebug("User Validation", $"Trying to validate user with distinguished name: \"{dn}\" ...");
 
                 // Try to authenticate as user with given password
-                connection.Bind(dn, password);
-
-                // If authentication was successful (user is bound)
-                if (connection.Bound)
+                if (TryBind(connection, dn, password))
                 {
                     // Return ldap dn
                     Log.WriteDebug("User Validation", $"\"{dn}\" successfully authenticated in {Address}:{Port}.");
@@ -301,9 +295,7 @@ namespace FWO.Middleware.Server
                 using (LdapConnection connection = Connect())
                 {
                     // Try to authenticate as user with old password
-                    connection.Bind(userDn, oldPassword);
-
-                    if (connection.Bound)
+                    if (TryBind(connection, userDn, oldPassword))
                     {
                         // authentication was successful (user is bound): set new password
                         LdapAttribute attribute = new LdapAttribute("userPassword", newPassword);
@@ -336,9 +328,6 @@ namespace FWO.Middleware.Server
                 // Connecting to Ldap
                 using (LdapConnection connection = Connect())
                 {
-                    // Authenticate as write user
-                    // connection.Bind(WriteUser, WriteUserPwd);
-                    // if (connection.Bound)
                     if (TryBind(connection, WriteUser, WriteUserPwd))
                     {
                         // authentication was successful: set new password
@@ -455,7 +444,7 @@ namespace FWO.Middleware.Server
                     using (LdapConnection connection = Connect())
                     {     
                         // Authenticate as search user
-                        connection.Bind(SearchUser, SearchUserPwd);
+                        TryBind(connection, SearchUser, SearchUserPwd);
 
                         // Search for Ldap roles in given directory          
                         int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?

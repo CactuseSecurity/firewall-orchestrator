@@ -405,8 +405,11 @@
                 }
                 catch (Exception)
                 {
-                    encryptedSecretWriteUser = AesEnc.Encrypt(actLdapConnection.WriteUserPwd, mainKey);
-                    actLdapConnection.WriteUserPwd = encryptedSecretWriteUser;
+                    if (actLdapConnection.WriteUserPwd != null)
+                    {
+                        encryptedSecretWriteUser = AesEnc.Encrypt(actLdapConnection.WriteUserPwd, mainKey);
+                        actLdapConnection.WriteUserPwd = encryptedSecretWriteUser;
+                    }
                 }
 
                 if (AddMode)

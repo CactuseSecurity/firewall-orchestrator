@@ -189,9 +189,9 @@
     [Parameter]
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new (){Roles.Implementer, Roles.FwAdmin};
+    static List<string> validRoles = new (){ Roles.Implementer, Roles.FwAdmin };
     private bool DisplayInfo = false;
-    private List<KeyValuePair<string, bool>> deviceCheck = new List<KeyValuePair<string, bool>>();
+    private List<KeyValuePair<string, bool>> deviceCheck = new ();
 
 
     private async Task Reset()

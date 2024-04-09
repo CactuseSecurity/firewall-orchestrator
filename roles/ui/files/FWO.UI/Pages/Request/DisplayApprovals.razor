@@ -48,7 +48,7 @@
                     </Column>
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(context.getAllComments())
+                            @(context.GetAllComments())
                         </Template>
                     </Column>
                 </Table>

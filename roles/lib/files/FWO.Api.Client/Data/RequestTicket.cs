@@ -52,7 +52,7 @@ namespace FWO.Api.Data
             {
                 foreach(RequestReqElement elem in reqtask.Elements)
                 {
-                    elem.IpString = (elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString : null) ;
+                    elem.IpString = elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString : null ;
                 }
             }
         }

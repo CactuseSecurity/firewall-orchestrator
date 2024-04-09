@@ -49,7 +49,7 @@ namespace FWO.Api.Data
 
         public string OwnerList()
         {
-            List<string> ownerNames = new List<string>();
+            List<string> ownerNames = new ();
             foreach(var owner in Owners)
             {
                 ownerNames.Add(owner.Owner.Name);
@@ -70,9 +70,9 @@ namespace FWO.Api.Data
             return highestNumber;
         }
 
-        public List<NwObjectElement> getNwObjectElements(ElemFieldType field)
+        public List<NwObjectElement> GetNwObjectElements(ElemFieldType field)
         {
-            List<NwObjectElement> elements = new List<NwObjectElement>();
+            List<NwObjectElement> elements = new ();
             foreach(var reqElem in Elements)
             {
                 if (reqElem.Field == field.ToString())
@@ -89,9 +89,9 @@ namespace FWO.Api.Data
             return elements;
         }
 
-        public List<NwServiceElement> getServiceElements()
+        public List<NwServiceElement> GetServiceElements()
         {
-            List<NwServiceElement> elements = new List<NwServiceElement>();
+            List<NwServiceElement> elements = new ();
             foreach(var reqElem in Elements)
             {
                 if (reqElem.Field == ElemFieldType.service.ToString())
@@ -109,9 +109,9 @@ namespace FWO.Api.Data
             return elements;
         }
 
-        public List<NwRuleElement> getRuleElements()
+        public List<NwRuleElement> GetRuleElements()
         {
-            List<NwRuleElement> elements = new List<NwRuleElement>();
+            List<NwRuleElement> elements = new ();
             foreach(var reqElem in Elements)
             {
                 if (reqElem.Field == ElemFieldType.rule.ToString())
@@ -127,7 +127,7 @@ namespace FWO.Api.Data
             return elements;
         }
 
-        public string getAllComments()
+        public string GetAllComments()
         {
             string allComments = "";
             foreach(var comment in Comments)
@@ -139,7 +139,7 @@ namespace FWO.Api.Data
             return allComments;
         }
 
-        public int getRuleDeviceId()
+        public int GetRuleDeviceId()
         {
             foreach(var reqElem in Elements)
             {

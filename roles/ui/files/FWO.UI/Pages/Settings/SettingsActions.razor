@@ -257,10 +257,10 @@
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("cc")):</label>
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="EmailRecipientOption?" @bind-SelectedElement="actEmailActionParams.RecipientCC" 
-                                                ElementToString="@(o => userConfig.GetText(o.ToString()))" Nullable="true"
+                                                ElementToString="@(o => userConfig.GetText(o?.ToString() ?? " "))" Nullable="true"
                                                 Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption?>()">
                                             <ElementTemplate Context="opt">
-                                                @(userConfig.GetText(opt.ToString()))
+                                                @(userConfig.GetText(opt?.ToString() ?? " "))
                                             </ElementTemplate>
                                         </Dropdown>
                                     </div>

@@ -327,15 +327,15 @@
 
     private void InitElements()
     {
-        actSources = ReqHandler.ActImplTask.getNwObjectElements(ElemFieldType.source);
-        actDestinations = ReqHandler.ActImplTask.getNwObjectElements(ElemFieldType.destination);
-        actServices = ReqHandler.ActImplTask.getServiceElements();
-        actRules = ReqHandler.ActImplTask.getRuleElements();
+        actSources = ReqHandler.ActImplTask.GetNwObjectElements(ElemFieldType.source);
+        actDestinations = ReqHandler.ActImplTask.GetNwObjectElements(ElemFieldType.destination);
+        actServices = ReqHandler.ActImplTask.GetServiceElements();
+        actRules = ReqHandler.ActImplTask.GetRuleElements();
     }
 
     private async Task InitComments()
     {
-        allComments = ReqHandler.ActImplTask.getAllComments();
+        allComments = ReqHandler.ActImplTask.GetAllComments();
     }
 
     private async Task Close()

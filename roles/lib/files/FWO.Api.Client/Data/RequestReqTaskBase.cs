@@ -16,7 +16,7 @@ namespace FWO.Api.Data
     public class RequestReqTaskBase : RequestTaskBase
     {
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
-        public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
+        public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
 
         [JsonProperty("reason"), JsonPropertyName("reason")]
         public string? Reason { get; set; }
@@ -37,7 +37,7 @@ namespace FWO.Api.Data
             }
         }
 
-        private List<int> deviceList { get; set; } = new List<int>();
+        private List<int> deviceList { get; set; } = new ();
 
 
         public RequestReqTaskBase()

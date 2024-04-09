@@ -429,15 +429,15 @@
 
     private void InitElements()
     {
-        actSources = ReqHandler.ActReqTask.getNwObjectElements(ElemFieldType.source);
-        actDestinations = ReqHandler.ActReqTask.getNwObjectElements(ElemFieldType.destination);
-        actServices = ReqHandler.ActReqTask.getServiceElements();
-        actRules = ReqHandler.ActReqTask.getRuleElements();
+        actSources = ReqHandler.ActReqTask.GetNwObjectElements(ElemFieldType.source);
+        actDestinations = ReqHandler.ActReqTask.GetNwObjectElements(ElemFieldType.destination);
+        actServices = ReqHandler.ActReqTask.GetServiceElements();
+        actRules = ReqHandler.ActReqTask.GetRuleElements();
     }
 
     private async Task InitComments()
     {
-        allComments = ReqHandler.ActReqTask.getAllComments();
+        allComments = ReqHandler.ActReqTask.GetAllComments();
     }
 
     private async Task Close()
@@ -459,7 +459,7 @@
                 selectedDevices = selectedDevices.Append<Device>(dev);
             }
         }
-        actRuleDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.getRuleDeviceId());
+        actRuleDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.GetRuleDeviceId());
         actRuleAction = ruleActions.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.RuleAction);
         actTracking = trackings.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.Tracking);
         actOwner = ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;

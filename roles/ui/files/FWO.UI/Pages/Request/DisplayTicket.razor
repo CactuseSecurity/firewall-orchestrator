@@ -268,7 +268,7 @@
         }
         if(ReqHandler.ActTicket.Tasks.Count > 0)
         {
-            List<int> taskStates = new List<int>();
+            List<int> taskStates = new ();
             foreach (RequestReqTask reqTask in ReqHandler.ActTicket.Tasks)
             {
                 taskStates.Add(reqTask.StateId);

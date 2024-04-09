@@ -55,8 +55,7 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// try an ldap bind 
-        /// decrypting pwd before bind
+        /// try an ldap bind, decrypting pwd before bind; using pwd as is if it cannot be decrypted
         /// false if bind fails
         /// </summary>
         private bool TryBind(LdapConnection connection, string user, string password)

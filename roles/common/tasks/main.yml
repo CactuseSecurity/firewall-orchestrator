@@ -79,7 +79,7 @@
       - name: enable {{ product_name }} web site
         command: "a2ensite {{ product_name }}-ui"
 
-      - name: restart apache with maintenance site
+      - name: restart apache without maintenance site
         service:
           name: "{{ webserver_package_name }}"
           state: restarted  

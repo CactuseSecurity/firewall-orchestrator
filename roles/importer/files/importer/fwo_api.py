@@ -289,6 +289,7 @@ def lock_import(fwo_api_base_url, jwt, query_variables):
     else:
         return -1
 
+
 def count_rule_changes_per_import(fwo_api_base_url, jwt, import_id):
     logger = getFwoLogger()
     change_count_query = """

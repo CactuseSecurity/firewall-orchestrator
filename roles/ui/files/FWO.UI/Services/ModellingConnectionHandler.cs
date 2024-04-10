@@ -809,6 +809,27 @@ namespace FWO.Ui.Services
                 SvcGrpToAdd != null && SvcGrpToAdd.Count > 0;
         }
 
+        public async Task AddToPreselectedList(ModellingConnection? requestedInterface)
+        {
+            try
+            {
+                if(requestedInterface != null)
+                {
+                    var Variables = new
+                    {
+                        appId = requestedInterface.AppId,
+                        connectionId = requestedInterface.Id
+                    };
+                    await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedConnection, Variables);
+                    PreselectedInterfaces.Add(requestedInterface);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("add_interface"), "", true);
+            }
+        }
+
         public async Task<bool> Save()
         {
             try
@@ -1032,27 +1053,6 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task AddToPreselectedList(ModellingConnection? requestedInterface)
-        {
-            try
-            {
-                if(requestedInterface != null)
-                {
-                    var Variables = new
-                    {
-                        appId = requestedInterface.AppId,
-                        connectionId = requestedInterface.Id
-                    };
-                    await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedConnection, Variables);
-                    PreselectedInterfaces.Add(requestedInterface);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("add_interface"), "", true);
-            }
-        }
-
         private async Task UpdateConnectionInDb()
         {
             try
@@ -1066,6 +1066,7 @@ namespace FWO.Ui.Services
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
                     isRequested = ActConn.IsRequested,
+                    isPublished = ActConn.IsPublished,
                     commonSvc = ActConn.IsCommonService
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);

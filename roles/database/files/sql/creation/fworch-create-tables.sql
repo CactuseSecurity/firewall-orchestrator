@@ -1056,7 +1056,8 @@ create table owner_network
     ip_proto_id int,
 	nw_type int,
 	import_source Varchar default 'manual', 
-	is_deleted boolean default false
+	is_deleted boolean default false,
+	custom_type int
 );
 
 create table reqtask_owner
@@ -1331,6 +1332,7 @@ create table modelling.connection
 	is_requested boolean default false,
 	ticket_id bigint,
 	common_service boolean default false,
+	is_published boolean default false,
 	creator Varchar,
 	creation_date timestamp default now()
 );

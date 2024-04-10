@@ -6,6 +6,7 @@ fragment connectionDetails on modelling_connection {
   is_interface
   used_interface_id
   is_requested
+  is_published
   ticket_id
   common_service
   creator

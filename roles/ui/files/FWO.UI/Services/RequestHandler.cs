@@ -67,7 +67,9 @@ namespace FWO.Ui.Services
         public bool DisplaySaveTicketMode = false;
         public bool DisplayDeleteMode = false;
         public bool DisplayCleanupMode = false;
-        public bool DisplayCommentMode = false;
+        public bool DisplayReqTaskCommentMode = false;
+        public bool DisplayImplTaskCommentMode = false;
+        public bool DisplayApprovalCommentMode = false;
         public bool DisplayPathAnalysisMode = false;
         
 
@@ -436,7 +438,7 @@ namespace FWO.Ui.Services
             DisplayApproveMode = action == ObjAction.displayApprove;
             DisplayPromoteMode = action == ObjAction.displayPromote;
             DisplayDeleteMode = action == ObjAction.displayDelete;
-            DisplayCommentMode = action == ObjAction.displayComment;
+            DisplayReqTaskCommentMode = action == ObjAction.displayComment;
             DisplayPathAnalysisMode = action == ObjAction.displayPathAnalysis;
         }
 
@@ -453,7 +455,7 @@ namespace FWO.Ui.Services
             DisplayApproveMode = false;
             DisplayPromoteMode = false;
             DisplayDeleteMode = false;
-            DisplayCommentMode = false;
+            DisplayReqTaskCommentMode = false;
             DisplayPathAnalysisMode = false;
         }
 
@@ -565,7 +567,7 @@ namespace FWO.Ui.Services
                 await dbAcc.AssignCommentToReqTaskInDb(ActReqTask.Id, commentId);
             }
             ActReqTask.Comments.Add(new RequestCommentDataHelper(comment){});
-            DisplayCommentMode = false;
+            DisplayReqTaskCommentMode = false;
         }
 
         public async Task PromoteReqTask(RequestStatefulObject reqTask)
@@ -647,7 +649,7 @@ namespace FWO.Ui.Services
         public void SetApprovalPopUpOpt(ObjAction action)
         {
             DisplayAssignApprovalMode = action == ObjAction.displayAssign;
-            DisplayCommentMode = action == ObjAction.displayComment;
+            DisplayApprovalCommentMode = action == ObjAction.displayComment;
         }
 
         public async Task SelectApprovalPopUp (RequestApproval approval, ObjAction action)
@@ -659,7 +661,7 @@ namespace FWO.Ui.Services
         public void ResetApprovalActions()
         {
             DisplayAssignApprovalMode = false;
-            DisplayCommentMode = false;
+            DisplayApprovalCommentMode = false;
         }
 
         public async Task AddApproval(string extParams = "")
@@ -765,7 +767,7 @@ namespace FWO.Ui.Services
                 await dbAcc.AssignCommentToApprovalInDb(ActApproval.Id, commentId);
             }
             ActApproval.Comments.Add(new RequestCommentDataHelper(comment){});
-            DisplayCommentMode = false;
+            DisplayApprovalCommentMode = false;
         }
 
 
@@ -814,7 +816,7 @@ namespace FWO.Ui.Services
             DisplayDeleteMode = action == ObjAction.displayDelete;
             DisplayCleanupMode = action == ObjAction.displayCleanup;
             DisplayAssignMode = action == ObjAction.displayAssign;
-            DisplayCommentMode = action == ObjAction.displayComment;
+            DisplayImplTaskCommentMode = action == ObjAction.displayComment;
             DisplayApprovalMode = action == ObjAction.displayApprovals;
         }
 
@@ -829,7 +831,7 @@ namespace FWO.Ui.Services
             DisplayDeleteMode = false;
             DisplayCleanupMode = false;
             DisplayAssignMode = false;
-            DisplayCommentMode = false;
+            DisplayImplTaskCommentMode = false;
             DisplayApprovalMode = false;
         }
 
@@ -907,7 +909,7 @@ namespace FWO.Ui.Services
                 await dbAcc.AssignCommentToImplTaskInDb(ActImplTask.Id, commentId);
             }
             ActImplTask.Comments.Add(new RequestCommentDataHelper(comment){});
-            DisplayCommentMode = false;
+            DisplayImplTaskCommentMode = false;
         }
 
         public async Task PromoteImplTask(RequestStatefulObject implTask)

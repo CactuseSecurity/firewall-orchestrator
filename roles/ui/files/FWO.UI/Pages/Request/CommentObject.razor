@@ -56,19 +56,22 @@
     public Func<string, Task> Save { get; set; } = DefaultInit.DoNothing;
 
     private string commentText = "";
+    bool FirstTry = true;
 
 
     protected override void OnParametersSet()
     {
-        if(Display)
+        if(Display && FirstTry)
         {
             commentText = "";
+            FirstTry = false;
         }
     }
 
     private async Task Close()
     {
         await ResetParent();
+        FirstTry = true;
         Display = false;
     }
 }

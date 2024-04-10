@@ -29,6 +29,9 @@ namespace FWO.Api.Data
         [JsonProperty("is_requested"), JsonPropertyName("is_requested")]
         public bool IsRequested { get; set; } = false;
 
+        [JsonProperty("is_published"), JsonPropertyName("is_published")]
+        public bool IsPublished { get; set; } = false;
+
         [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
         public long? TicketId { get; set; }
 
@@ -84,6 +87,7 @@ namespace FWO.Api.Data
            IsInterface = conn.IsInterface;
            UsedInterfaceId = conn.UsedInterfaceId;
            IsRequested = conn.IsRequested;
+           IsPublished = conn.IsPublished;
            TicketId = conn.TicketId;
            Creator = conn.Creator;
            CreationDate = conn.CreationDate;

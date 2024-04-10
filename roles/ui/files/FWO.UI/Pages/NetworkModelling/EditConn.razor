@@ -286,9 +286,12 @@
                     {
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     }
+                    @if(!ConnHandler.ActConn.IsPublished)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Publish">@(userConfig.GetText("publish"))</button>
+                    }
                     @if(ConnHandler.ActConn.IsRequested)
                     {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="Release">@(userConfig.GetText("release"))</button>
                         <button type="button" class="btn btn-sm btn-dark" @onclick="GotoTicket">@(userConfig.GetText("ticket"))</button>
                     }
                     <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
@@ -440,12 +443,19 @@
         }
     }
 
-    private async Task Release()
+    private async Task Publish()
     {
+        bool origRequested = ConnHandler.ActConn.IsRequested;
+        string origCreator = ConnHandler.ActConn.Creator;
+        if(origRequested)
+        {
+            ConnHandler.ActConn.Creator = userConfig.User.Name;
+        }
         ConnHandler.ActConn.IsRequested = false;
+        ConnHandler.ActConn.IsPublished = true;
         if(await Save())
         {
-            if(ConnHandler.ActConn.TicketId != null)
+            if(origRequested && ConnHandler.ActConn.TicketId != null)
             {
                 try
                 {
@@ -453,19 +463,21 @@
                     TicketCreator ticketCreator = new (apiConnection, userConfig, middlewareClient);
                     if(await ticketCreator.PromoteTicket(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId)))
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("release"), userConfig.GetText("U9013"), false);
+                        DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);
                     }
                     apiConnection.SwitchBack();
                 }
                 catch(Exception exception)
                 {
-                    DisplayMessageInUi(exception, userConfig.GetText("release"), "", true);
+                    DisplayMessageInUi(exception, userConfig.GetText("publish"), "", true);
                 }
             }
         }
         else
         {
-            ConnHandler.ActConn.IsRequested = true;
+            ConnHandler.ActConn.IsRequested = origRequested;
+            ConnHandler.ActConn.Creator = origCreator;
+            ConnHandler.ActConn.IsPublished = false;
         }
     }
 

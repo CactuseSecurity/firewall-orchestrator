@@ -332,7 +332,7 @@
 
 <PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 <PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
-<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfAddComment"/>
+<CommentObject @bind-Display="ReqHandler.DisplayReqTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfAddComment"/>
 <DisplayPathAnalysis @bind-Display="ReqHandler.DisplayPathAnalysisMode" ResetParent="ResetPathAnalysis" ReqTask="ReqHandler.ActReqTask"/>
 
 @code

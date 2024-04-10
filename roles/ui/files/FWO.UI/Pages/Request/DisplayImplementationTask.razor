@@ -246,8 +246,9 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
-<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfAddComment"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActImplTask.Title"
+    Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
+<CommentObject @bind-Display="ReqHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfAddComment"/>
 <Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
     Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
 
@@ -341,6 +342,7 @@
     private async Task InitComments()
     {
         allComments = ReqHandler.ActImplTask.GetAllComments();
+        ReqHandler.DisplayImplTaskCommentMode = false;
     }
 
     private async Task Close()

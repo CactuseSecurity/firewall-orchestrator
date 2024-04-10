@@ -1214,8 +1214,8 @@ INSERT INTO txt VALUES ('send_email',           'German', 	'Email senden');
 INSERT INTO txt VALUES ('send_email',           'English', 	'Send email');
 INSERT INTO txt VALUES ('from_ticket',          'German',   'Von Ticket');
 INSERT INTO txt VALUES ('from_ticket',          'English',  'From Ticket');
-INSERT INTO txt VALUES ('release',              'German',   'Freigeben');
-INSERT INTO txt VALUES ('release',              'English',  'Release');
+INSERT INTO txt VALUES ('publish',              'German',   'Ver&ouml;ffentlichen');
+INSERT INTO txt VALUES ('publish',              'English',  'Publish');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

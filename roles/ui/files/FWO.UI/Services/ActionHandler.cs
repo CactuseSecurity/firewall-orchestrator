@@ -175,6 +175,7 @@ namespace FWO.Ui.Services
                                 isInterface = conn.IsInterface,
                                 usedInterfaceId = conn.UsedInterfaceId,
                                 isRequested = conn.IsRequested,
+                                isPublished = conn.IsPublished,
                                 commonSvc = conn.IsCommonService
                             };
                             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);

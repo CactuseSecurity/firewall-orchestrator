@@ -8,4 +8,9 @@ fragment appRoleDetails on modelling_nwgroup {
   is_deleted
   creator
   creation_date
+  nwobjects: nwobject_nwgroups{
+    owner_network{
+      ...appServerDetails
+    }
+  }
 }

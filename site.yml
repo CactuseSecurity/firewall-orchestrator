@@ -1,21 +1,14 @@
 ---
 # for installation options see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
 
-- hosts: importers
-  tasks:
-    - name: stop importer service before making any changes
-      systemd:
-        name: "{{ item }}"
-        state: stopped
-      become: true
-      when: "not installation_mode == 'new'"
-      ignore_errors: true
-      loop:
-        - "{{ product_name }}-importer-legacy"
-        - "{{ product_name }}-importer-api"
+- hosts: all
+  roles:
+    - { role: prepare }
   tags:
+    - backend
     - frontend
     - importer
+    - ui
 
 - hosts: all
   tasks:
@@ -119,27 +112,33 @@
 
 - hosts: all
   roles:
+    - { role: finalize, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - finalize
+    - backend
+    - frontend
+    - importer
+    - ui
+
+- hosts: all
+  roles:
     - { role: test, when: not installation_mode == 'uninstall' }
   tags:
     - test
     - quicktest
 
 - hosts: all
-  roles:
-    - { role: cleanup, when: "not installation_mode == 'uninstall'" }
-  tags:
-    - cleanup
-    - backend
-    - frontend
-    - importer
-    - ui
+  tasks:
+    # display status & pwds
+    - name: show listener status
+      import_tasks: scripts/show-fworch-listeners.yml
+      become: true
 
-- hosts: all
-  roles:
-    - { role: final-display, when: "not installation_mode == 'uninstall'" }
-  tags:
-    - cleanup
-    - backend
-    - frontend
-    - importer
-    - ui
+    - name: display secrets for this installation
+      debug:
+        msg:
+          - "Your initial UI admin password is '{{ admin_password }}'"
+          - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
+      when: |
+        admin_password is defined and 
+        api_hasura_admin_secret is defined

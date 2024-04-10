@@ -1,15 +1,18 @@
 ﻿@using BlazorTable
 @using System.Net
+@using RestSharp
+
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
-@using RestSharp
+@using FWO.Encryption
 
 
 @page "/settings/ldap"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -190,7 +193,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-dark" @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
@@ -381,7 +384,34 @@
                 DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
-            {    
+            {
+                string mainKey = AesEnc.GetMainKey();
+                string encryptedSecretSearchUser = actLdapConnection.SearchUserPwd;
+                string encryptedSecretWriteUser = actLdapConnection.WriteUserPwd;
+
+                // only encrypt secret if it was not already encrypted
+                try
+                {
+                    string decryptedSecretSearchUser = AesEnc.Decrypt(actLdapConnection.SearchUserPwd, mainKey);
+                }
+                catch (Exception)
+                {
+                    encryptedSecretSearchUser = AesEnc.Encrypt(actLdapConnection.SearchUserPwd, mainKey);
+                    actLdapConnection.SearchUserPwd = encryptedSecretSearchUser;
+                }
+                try
+                {
+                    string decryptedSecret = AesEnc.Decrypt(actLdapConnection.WriteUserPwd, mainKey);
+                }
+                catch (Exception)
+                {
+                    if (actLdapConnection.WriteUserPwd != null)
+                    {
+                        encryptedSecretWriteUser = AesEnc.Encrypt(actLdapConnection.WriteUserPwd, mainKey);
+                        actLdapConnection.WriteUserPwd = encryptedSecretWriteUser;
+                    }
+                }
+
                 if (AddMode)
                 {
                     RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.AddLdap(actLdapConnection.ToApiParams());

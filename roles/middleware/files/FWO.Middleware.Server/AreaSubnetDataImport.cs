@@ -1,5 +1,6 @@
 ﻿using FWO.Logging;
 using FWO.Api.Client;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text.Json;
@@ -185,15 +186,15 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if(await CheckAreaInUse(area))
-                {
-                    await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAreaDeletedState, new { id = area.Id , deleted = true});
-                    await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.removeSelectedNwGroupObjectFromAllApps, new { nwGroupId = area.Id }); 
-                }
-                else
-                {
-                    await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.deleteNwGroup, new { id = area.Id });
-                }
+                // if(await CheckAreaInUse(area))
+                // {
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAreaDeletedState, new { id = area.Id , deleted = true});
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.removeSelectedNwGroupObjectFromAllApps, new { nwGroupId = area.Id }); 
+                // }
+                // else
+                // {
+                //     await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.deleteNwGroup, new { id = area.Id });
+                // }
             }
             catch (Exception exc)
             {
@@ -203,25 +204,25 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task<bool> CheckAreaInUse(ModellingNetworkArea area)
-        {
-            try
-            {
-                // List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForNwGroup, new { id = area.Id });
-                // if (foundConnections.Count == 0)
-                //  {
-                //     // Todo: further checks: appServer in area ? in any selection list ??
-                //     if ()
-                //     {
-                //         return false;
-                //     }
-                // }
-                return true;
-            }
-            catch (Exception)
-            {
-                return true;
-            }
-        }
+        // private async Task<bool> CheckAreaInUse(ModellingNetworkArea area)
+        // {
+        //     try
+        //     {
+        //         // List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForNwGroup, new { id = area.Id });
+        //         // if (foundConnections.Count == 0)
+        //         //  {
+        //         //     // Todo: further checks: appServer in area ? in any selection list ??
+        //         //     if ()
+        //         //     {
+        //         //         return false;
+        //         //     }
+        //         // }
+        //         return true;
+        //     }
+        //     catch (Exception)
+        //     {
+        //         return true;
+        //     }
+        // }
     }
 }

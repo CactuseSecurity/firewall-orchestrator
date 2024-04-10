@@ -6,7 +6,7 @@
 @using FWO.Mail
 
 @page "/settings/email"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -69,7 +69,7 @@
 <hr>
 
 <div class="btn-group">
-    <AuthorizeView Roles="@GlobalConst.kAdmin">
+    <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-dark"  data-toggle="tooltip" title="@(userConfig.PureLine("H5492"))"
                 @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>

@@ -15,7 +15,7 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <AuthorizeView Roles="@GlobalConst.kAdmin">
+                    <AuthorizeView Roles="@Roles.Admin">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="async () => { await AddUser(selectedLdapUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
@@ -32,7 +32,7 @@
                     <div class="col-sm-8">
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedLdapGroup" Elements="LdapGroups" />
                     </div>
-                    <AuthorizeView Roles="@GlobalConst.kAdmin">
+                    <AuthorizeView Roles="@Roles.Admin">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="async () => { await AddGroup(selectedLdapGroup); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>

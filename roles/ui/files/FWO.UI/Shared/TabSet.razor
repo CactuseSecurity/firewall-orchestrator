@@ -12,7 +12,7 @@
                 @tab.Title
                 @*@if (Closeable)
                     {
-                        <div class="ms-1 oi oi-x"></div>
+                        <div class="ms-1 @(Icons.Close)"></div>
                     }*@
             </a>
         </li>
@@ -48,11 +48,11 @@
 
     internal void AddTab(Tab tab, int pos = -1)
     {
-        if (ActiveTab == null)
+        Tabs.Insert(pos >= 0 && pos <= Tabs.Count ? pos : Tabs.Count, tab);
+        if (ActiveTab == null || Tabs.Count == 1)
         {
             SetActiveTab(tab);
         }
-        Tabs.Insert(pos >= 0 && pos <= Tabs.Count ? pos : Tabs.Count, tab);
         StateHasChanged();
     }
 

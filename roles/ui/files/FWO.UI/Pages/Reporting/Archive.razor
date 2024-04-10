@@ -7,9 +7,9 @@
 @inject UserConfig userConfig
 
 @page "/report/archive"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
-<ReportTabset></ReportTabset>
+<ReportTabset/>
 
 <div class="vheight75">
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportFile" Items="archivedReports" PageSize="0">
@@ -19,7 +19,7 @@
                     @if (!Exporting)
                     {
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">@(userConfig.GetText("download"))</button>
-                        @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin))
+                        @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
                         {
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
                         }

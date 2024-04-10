@@ -1,7 +1,7 @@
 ﻿@using FWO.Config.Api
 @using FWO.Ui.Display
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -11,19 +11,19 @@
     <Body>
         @if (Display)
         {
-            <button type="button" class="btn btn-sm btn-success ms-5 mb-2" @onclick="CreateServiceGroup">@(userConfig.GetText("add_service_group"))</button>
+            <button type="button" class="btn btn-sm btn-success ms-5 mb-2" @onclick="CreateServiceGroup">@(ModellingHandlerBase.DisplayButton(userConfig, "add_service_group", Icons.Add))</button>
             <div class="vheight75">
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingServiceGroup" Items="PredefServiceGroups" PageSize="0" ColumnReorder="true">
                     <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(userConfig.GetText("edit"))</button>
-                                <AuthorizeView Roles="@GlobalConst.kAdmin" Context="ctx">
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                <AuthorizeView Roles="@Roles.Admin" Context="ctx">
                                     <Authorized>
-                                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(userConfig.GetText("delete"))</button>
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </Authorized>
                                     <NotAuthorized>
-                                        <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
+                                        <button type="button" disabled class="btn btn-sm btn-danger">@(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </NotAuthorized> 
                                 </AuthorizeView>
                             </div>
@@ -91,13 +91,13 @@
             AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getGlobalServices);
             foreach(var svcGrp in PredefServiceGroups)
             {
-                AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.ServiceGroup, svcGrp.Id));
+                AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, svcGrp.Id));
             }
             if(userConfig.AllowServiceInConn)
             {
                 foreach(var svc in AvailableServices)
                 {
-                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ObjectType.Service, svc.Id));
+                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, svc.Id));
                 }
             }
         }
@@ -164,10 +164,10 @@
     {
         try
         {
-            apiConnection.SetRole(GlobalConst.kAdmin);
+            apiConnection.SetRole(Roles.Admin);
             if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
             {
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ObjectType.ServiceGroup, ActServiceGroup.Id,
+                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.ServiceGroup, ActServiceGroup.Id,
                     $"Deleted Predefined Service Group: {ActServiceGroup.Display()}", apiConnection, userConfig, null, DisplayMessageInUi);
                 PredefServiceGroups.Remove(ActServiceGroup);
                 DeleteSvcGrpMode = false;

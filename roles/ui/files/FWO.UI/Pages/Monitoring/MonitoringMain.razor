@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using System.Text.Json
 @using System.Net
@@ -8,7 +9,7 @@
 
 @page "/monitoring"
 @page "/monitoring/main"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}, {GlobalConst.kModeller}, {GlobalConst.kRecertifier}, {GlobalConst.kRequester}, {GlobalConst.kApprover}, {GlobalConst.kPlanner}, {GlobalConst.kImplementer}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}, {GlobalConst.kFwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -18,7 +19,7 @@
 @(userConfig.GetText("U7001"))
 <hr />
 
-<AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kAuditor}")">
+<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
     <h5>@(userConfig.GetText("open_alerts"))</h5>
     @if(InitComplete)
     {
@@ -54,7 +55,7 @@
                                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
                                 }
                                 
-                                <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}")">
+                                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                     <Authorized Context="ctx">
                                         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
                                     </Authorized>
@@ -121,9 +122,9 @@
         {
             JwtReader jwt = new JwtReader(userConfig.User.Jwt);
             jwt.Validate();
-            if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin) || jwt.ContainsAllowedRole(GlobalConst.kAuditor))
+            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin) || jwt.ContainsAllowedRole(Roles.Auditor))
             {
-                if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin))
+                if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 {
                     managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
                 }
@@ -229,7 +230,7 @@
             jwt.Validate();
 
             List<Management> managements = new List<Management>();
-            if (jwt.ContainsAllowedRole(GlobalConst.kAdmin) || jwt.ContainsAllowedRole(GlobalConst.kFwAdmin))
+            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);

@@ -18,6 +18,7 @@
     <ProjectReference Include="..\FWO.Config.File\FWO.Config.File.csproj" />
     <ProjectReference Include="..\FWO.Middleware\FWO.Middleware.csproj" />
     <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\FWO.Encryption\FWO.Encryption.csproj" />
   </ItemGroup>
 
 </Project>

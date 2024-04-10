@@ -129,7 +129,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
                 config_changed_since_last_import, error_string, error_count, change_count = get_config_from_api(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
                     in_file=in_file, import_tmp_path=import_tmp_path, error_string=error_string, error_count=error_count, change_count=change_count, 
                     limit=limit, force=force)
-                if (debug_level>7):  # dump full native config read from fw API
+                if (debug_level>8):  # dump full native config read from fw API
                     logger.info(json.dumps(full_config_json, indent=2))
 
         time_get_config = int(time.time()) - start_time
@@ -183,7 +183,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
         else: # if no changes were found, we skip everything else without errors
             pass
 
-        if (debug_level>8): # dump normalized config for debugging purposes
+        if (debug_level>7): # dump normalized config for debugging purposes
             logger.info(json.dumps(config2import, indent=2))
 
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)

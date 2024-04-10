@@ -1,10 +1,11 @@
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
 @page "/request/reviews"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kReviewer}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reviewer}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -40,7 +41,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kAdmin, GlobalConst.kReviewer, GlobalConst.kAuditor });
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Reviewer, Roles.Auditor });
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.review){};
@@ -59,7 +60,7 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kReviewer) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin));
+            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
             await reqHandler.Init();
         }
         catch (Exception exception)

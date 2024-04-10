@@ -18,6 +18,7 @@ nat_postfix = '_NatNwObj'
 fwo_api_http_import_timeout = 14400 # 4 hours
 importer_user_name = 'importer'  # todo: move to config file?
 fwo_config_filename = base_dir + '/etc/fworch.json'
+mainKeyFile=base_dir + '/etc/secrets/main_key'
 importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
 import_tmp_path = base_dir + '/tmp/import'
 fwo_config_filename = base_dir + '/etc/fworch.json'

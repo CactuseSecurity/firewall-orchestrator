@@ -1,5 +1,6 @@
 ﻿@using BlazorTable
 @using FWO.Config.Api
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Report
 @using FWO.Ui.Display
@@ -42,7 +43,8 @@
             @if(NetworkObjectExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(ObjCategory.nobj)">
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject"
+                            Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
@@ -50,41 +52,57 @@
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkObject">
-                            <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type.Name />
+                            <Detail Title="@(userConfig.GetText("type"))" Data=@(context.Type != null && context.Type.Name != "" ? userConfig.GetText(context.Type.Name) : "") />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
                             <Detail Title="@(userConfig.GetText("ip"))" Data=@NwObjDisplay.DisplayIp(context.IP, context.IpEnd, context.Type.Name) />
                             <Detail Title="@(userConfig.GetText("zone"))" Data=@context.Zone?.Name />
-                            @if (context.Type.Name == "group" && context.ObjectGroups != null && context.ObjectGroupFlats != null)
+                            @if (context.Type.Name == ObjectType.Group && context.ObjectGroups != null && context.ObjectGroupFlats != null)
                             {
-                                <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
-                                    <Content1>
-                                        @foreach (Group<NetworkObject> member in context.ObjectGroups)
+                                if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
+                                {
+                                    foreach (Group<NetworkObject> member in context.ObjectGroups)
+                                    {
+                                        if(member.Object != null)
                                         {
-                                            if(member.Object != null)
-                                            {
-                                                @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
-                                                <br>
-                                            }
+                                            <div><span class=\"{Icons.NwObject}\"></span> @DisplayBase.DisplayIpWithName(member.Object)</div>
                                         }
-                                    </Content1>
-                                    <Content2>
-                                        @{ List<long> shownMemberIds = new List<long>(); }
-                                        @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
-                                        {
-                                            if(member.Object != null)
+                                    }
+                                }
+                                else
+                                {
+                                    <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
+                                        <Content1>
+                                            @foreach (Group<NetworkObject> member in context.ObjectGroups)
                                             {
-                                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
-                                                    continue;
-                                                shownMemberIds.Add(member.Object.Id);
+                                                if(member.Object != null)
+                                                {
+                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    <br>
+                                                }
+                                            }
+                                        </Content1>
+                                        <Content2>
+                                            @{ List<long> shownMemberIds = new List<long>(); }
+                                            @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
+                                            {
+                                                if(member.Object != null)
+                                                {
+                                                    if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
+                                                        continue;
+                                                    shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
-                                                <br>
+                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    <br>
+                                                }
                                             }
-                                        }
-                                    </Content2>
-                                </ContentSwap>
+                                        </Content2>
+                                    </ContentSwap>
+                                }
                             }
-                            <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
+                            @if(context.CreateTime.Time.Year > 1)
+                            {
+                                <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
+                            }
                             <Detail Title="@(userConfig.GetText("comment"))" Data=@context.Comment />
                         </DetailTemplate>
                     </Table>
@@ -93,7 +111,8 @@
             @if(NetworkServiceExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)">
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService"
+                            Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@ReportBase.GetIconClass(ObjCategory.nsrv, context.Type.Name)">&nbsp;</span>
@@ -101,47 +120,65 @@
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkService">
-                            <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type.Name />
+                            <Detail Title="@(userConfig.GetText("type"))" Data=@(context.Type != null && context.Type.Name != "" ? userConfig.GetText(context.Type.Name) : "") />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
-                            @if (context.Type.Name != "group")
+                            @if (context.Type.Name != ObjectType.Group)
                             {
-                                <Detail Title="@(userConfig.GetText("source_port"))" Data=@(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
-                                <Detail Title="@(userConfig.GetText("destination_port"))" Data=@(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
+                                <Detail Title="@(userConfig.GetText("source_port"))" Data=@(context.SourcePort == context.SourcePortEnd || context.SourcePortEnd.ToString() == "" ? 
+                                    context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
+                                <Detail Title="@(userConfig.GetText("destination_port"))" Data=@(context.DestinationPort == context.DestinationPortEnd || context.DestinationPortEnd.ToString() == "" ? 
+                                    context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
                                 <Detail Title="@(userConfig.GetText("protocol"))" Data=@context.Protocol?.Name />
                                 <Detail Title="@(userConfig.GetText("code"))" Data=@context.Code />
                                 <Detail Title="@(userConfig.GetText("timeout"))" Data=@context.Timeout.ToString() />
                             }
-                            @if (context.Type.Name == "group" && context.ServiceGroups != null && context.ServiceGroupFlats != null)
+                            @if (context.Type.Name == ObjectType.Group && context.ServiceGroups != null && context.ServiceGroupFlats != null)
                             {
-                                <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
-                                    <Content1>
-                                        @foreach (Group<NetworkService> member in context.ServiceGroups)
+                                if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
+                                {
+                                    foreach (Group<NetworkService> member in context.ServiceGroups)
+                                    {
+                                        if(member.Object != null)
                                         {
-                                            if(member.Object != null)
-                                            {
-                                                @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
-                                                <br>
-                                            }
+                                            <div><span class=\"{Icons.Service}\"></span> @DisplayBase.DisplayService(member.Object, false)</div>
                                         }
-                                    </Content1>
-                                    <Content2>
-                                        @{ List<long> shownMemberIds = new List<long>(); }
-                                        @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
-                                        {
-                                            if(member.Object != null)
+                                    }
+                                }
+                                else
+                                {
+                                    <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
+                                        <Content1>
+                                            @foreach (Group<NetworkService> member in context.ServiceGroups)
                                             {
-                                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
-                                                    continue;
-                                                shownMemberIds.Add(member.Object.Id);
+                                                if(member.Object != null)
+                                                {
+                                                    @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    <br>
+                                                }
+                                            }
+                                        </Content1>
+                                        <Content2>
+                                            @{ List<long> shownMemberIds = new List<long>(); }
+                                            @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
+                                            {
+                                                if(member.Object != null)
+                                                {
+                                                    if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
+                                                        continue;
+                                                    shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
-                                                <br>
+                                                    @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    <br>
+                                                }
                                             }
-                                        }
-                                    </Content2>
-                                </ContentSwap>
+                                        </Content2>
+                                    </ContentSwap>
+                                }
                             }
-                            <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
+                            @if(context.CreateTime.Time.Year > 1)
+                            {
+                                <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
+                            }
                             <Detail Title="@(userConfig.GetText("comment"))" Data=@context.Comment />
                         </DetailTemplate>
                     </Table>
@@ -150,7 +187,8 @@
             @if(NetworkUserExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.user)">
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive"
+                            TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@ReportBase.GetIconClass(ObjCategory.user, context.Type.Name)">&nbsp;</span>
@@ -158,10 +196,10 @@
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkUser">
-                            <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type?.Name />
+                            <Detail Title="@(userConfig.GetText("type"))" Data=@(context.Type != null && context.Type.Name != "" ? userConfig.GetText(context.Type.Name) : "") />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
                             <Detail Title="@(userConfig.GetText("real_name"))" Data=@($"{context.FirstName} {context.LastName}") />
-                            @if (context.Type != null && context.Type.Name == "group" && context.UserGroups != null && context.UserGroupFlats != null)
+                            @if (context.Type != null && context.Type.Name == ObjectType.Group && context.UserGroups != null && context.UserGroupFlats != null)
                             {
                                 <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
                                     <Content1>
@@ -180,7 +218,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                                if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 
@@ -210,7 +248,7 @@
     AnchorNavToRSB? anchorNavToRSB { get; set; }
 
     [Parameter]
-    public Func<RsbTab, ObjCategory, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
+    public Func<RsbTab, ObjCategory, Func<ReportData, Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
     public bool Recert { get; set; }
@@ -242,6 +280,13 @@
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
 
+    [Parameter]
+    public bool Reload { get; set; } = false;
+
+    // [Parameter]
+    // public Func<InputDataType, IEnumerable<ModellingAppServer>>? AppServerExtractor { get; set; }
+
+
     // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
     public InputDataType? Content { get; set; }
     public bool ContentIsDetailed => nobjDetailed && nsrvDetailed && userDetailed;
@@ -253,7 +298,17 @@
     {
         Content = InitialContent;
         if (StartContentDetailed)
+        {
             await FetchContent(ObjCategory.all);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Reload)
+        {
+            Content = InitialContent;
+        }
     }
 
     private string GetIDPrefix(ObjCategory objCategory, RsbTab? tab = null, bool toMgmtObj = false)
@@ -273,7 +328,7 @@
         }
         switch (Content)
         {
-            case Management m:
+            case ManagementReport m:
                 idPref += "m" + m.Id + "-";
                 break;
             case Rule r:
@@ -286,13 +341,13 @@
         switch (objCategory)
         {
             case ObjCategory.nobj:
-                idPref += "nwobj";
+                idPref += ObjCatString.NwObj;
                 break;
             case ObjCategory.nsrv:
-                idPref += "svc";
+                idPref += ObjCatString.Svc;
                 break;
             case ObjCategory.user:
-                idPref += "user";
+                idPref += ObjCatString.User;
                 break;
         }
 
@@ -303,36 +358,12 @@
         return GetIDPrefix(objCategory) + objId;
     }
 
-    @* private string GetIconClass(ObjCategory objCategory, string type)
-    {
-        switch (type)
-        {
-            case "group" when objCategory == ObjCategory.user:
-                return "oi oi-people";
-            case "group":
-                return "oi oi-list-rich";
-            case "host":
-                return "oi oi-laptop";
-            case "network":
-                return "oi oi-rss";
-            case "ip_range":
-                return "oi oi-resize-width";
-            default:
-                switch (objCategory)
-                {
-                    case ObjCategory.nobj:
-                        return "oi oi-laptop";
-                    case ObjCategory.nsrv:
-                        return "oi oi-wrench";
-                    case ObjCategory.user:
-                        return "oi oi-person";
-                }
-                return "";
-        }
-    } *@
-
     RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name)
     {
+        @* if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
+        {
+            return @<span class="@ReportBase.GetIconClass(objCategory, type)">@name</span>;
+        } *@
         RsbTab targetTab = Tab == RsbTab.all ? RsbTab.all : RsbTab.report;
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
 
@@ -355,18 +386,19 @@
             if (Tab == RsbTab.rule && objCategory != ObjCategory.all)
                 return;
 
-            if (objCategory == ObjCategory.all && !ContentIsDetailed || objCategory == ObjCategory.nobj && !nobjDetailed || objCategory == ObjCategory.nsrv && !nsrvDetailed || objCategory == ObjCategory.user && !userDetailed)
+            if (objCategory == ObjCategory.all && !ContentIsDetailed || objCategory == ObjCategory.nobj && !nobjDetailed ||
+                objCategory == ObjCategory.nsrv && !nsrvDetailed || objCategory == ObjCategory.user && !userDetailed)
             {
                 if(FetchObjects != null)
                 {
                     switch (Content)
                     {
-                        case Management m:
+                        case ManagementReport m:
                             await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
                                     int id = m.Id;
-                                    Management? m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
+                                    ManagementReport? m_updated = managementsUpdate.ManagementData.FirstOrDefault(mgmt => mgmt.Id == m.Id);
                                     if (m_updated != null)
                                     {
                                         switch (objCategory)
@@ -392,7 +424,7 @@
                             await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
-                                    Rule? r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
+                                    Rule? r_updated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
                                     if (r_updated != null)
                                     {
                                         r_updated.DeviceName = r.DeviceName;

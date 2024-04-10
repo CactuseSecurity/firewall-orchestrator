@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using FWO.GlobalConstants;
 
 namespace FWO.Api.Data
 {
@@ -25,6 +26,7 @@ namespace FWO.Api.Data
             return new ModellingNwGroup()
             {
                 Id = Id,
+                Number = Number,
                 GroupType = GroupType,
                 IdString = IdString,
                 Name = Name,
@@ -35,7 +37,22 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-list-rich\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
+        }
+
+        public NetworkObject ToNetworkObjectGroup()
+        {
+            Group<NetworkObject>[] objectGroups = ModellingAppRoleWrapper.ResolveAsNetworkObjectGroup(AppServers ?? new List<ModellingAppServerWrapper>());
+            return new()
+            {
+                Id = Id,
+                Number = Number,
+                Name = Name ?? "",
+                Comment = Comment ?? "",
+                Type = new NetworkObjectType(){ Name = ObjectType.Group },
+                ObjectGroups = objectGroups,
+                MemberNames = string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name))
+            };
         }
 
         public override bool Sanitize()
@@ -55,6 +72,11 @@ namespace FWO.Api.Data
         public static ModellingAppRole[] Resolve(List<ModellingAppRoleWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+
+        public static Group<NetworkObject>[] ResolveAsNetworkObjectGroup(List<ModellingAppServerWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkObject> {Id = wrapper.Content.Id, Object = ModellingAppServer.ToNetworkObject(wrapper.Content)});
         }
     }
 }

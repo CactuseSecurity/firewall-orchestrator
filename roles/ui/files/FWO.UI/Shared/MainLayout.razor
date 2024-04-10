@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using FWO.Config.Api
 @using FWO.Api.Client
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client.Queries
 @using FWO.Middleware.Client
@@ -38,7 +39,7 @@
     <div class="@cssClass">
         <div class="d-flex flex-row justify-content-between">
             <div>@dialogTitle - @dialogMessage</div>
-            <div class="oi oi-x" @onclick="@(() => { messageDialogShow = false; StateHasChanged();})"></div>
+            <div class="@Icons.Close" @onclick="@(() => { messageDialogShow = false; StateHasChanged();})"></div>
         </div>
     </div>
 }
@@ -48,7 +49,7 @@
         <p>@(reloginDialogText)</p>
         <div class="input-group">
             <div class="input-group-prepend">
-                <span class="input-group-text"><span class="oi oi-lock-locked"></span></span>               
+                <span class="input-group-text"><span class="@Icons.Locked"></span></span>               
             </div>
             <input type="password" class="form-control @reloginCssClass" @bind="password" placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
         </div>
@@ -196,7 +197,7 @@
     private void OnAlertUpdate(List<Alert> alerts)
     {
         user = authenticationStateTask!.Result.User;
-        showAlert = (user.IsInRole(GlobalConst.kAdmin) || user.IsInRole(GlobalConst.kFwAdmin) || user.IsInRole(GlobalConst.kAuditor)) && alerts.Count() > 0;
+        showAlert = (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor)) && alerts.Count() > 0;
         InvokeAsync(StateHasChanged);
     }
 

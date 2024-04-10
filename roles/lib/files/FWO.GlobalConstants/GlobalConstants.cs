@@ -1,7 +1,13 @@
-namespace FWO.Config.Api
+namespace FWO.GlobalConstants
 {
+    /// <summary>
+    /// Global string constants used e.g. as database keys etc.
+    /// </summary>
     public struct GlobalConst
     {
+        public const string kFwoBaseDir = "/usr/local/fworch";
+        public const string kMainKeyFile = kFwoBaseDir + "/etc/secrets/main_key";
+
         public const string kEnglish = "English";
 
         public const int kSidebarLeftWidth = 300;
@@ -23,20 +29,15 @@ namespace FWO.Config.Api
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
 
-        public const string kAnonymous = "anonymous";
-        public const string kAdmin = "admin";
-        public const string kAuditor = "auditor";
-        public const string kMiddlewareServer = "middleware-server";
-        public const string kImporter = "importer";
-        public const string kFwAdmin = "fw-admin";
-        public const string kRecertifier = "recertifier";
-        public const string kModeller = "modeller";
-        public const string kReporter = "reporter";
-        public const string kReporterViewAll = "reporter-viewall";
-        public const string kRequester = "requester";
-        public const string kApprover = "approver";
-        public const string kPlanner = "planner";
-        public const string kImplementer = "implementer";
-        public const string kReviewer = "reviewer";
+        public const string kLdapInternalPostfix = "dc=fworch,dc=internal";
+
+    }
+
+    public struct ObjectType
+    {
+        public const string Group = "group";
+        public const string Host = "host";
+        public const string Network = "network";
+        public const string IPRange = "ip_range";
     }
 }

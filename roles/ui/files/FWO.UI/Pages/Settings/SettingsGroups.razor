@@ -1,5 +1,6 @@
 ﻿@using BlazorTable
 @using System.Net
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Ui.Services
@@ -9,7 +10,7 @@
 @using RestSharp
 
 @page "/settings/groups"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -115,7 +116,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@GlobalConst.kAdmin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -176,8 +177,8 @@
             await GetRolesFromInternalLdap();
             SynchronizeGroupsToRoles();
 
-            availableRoles = roles.FindAll(x => (x.Name != GlobalConst.kAnonymous && x.Name != GlobalConst.kMiddlewareServer));
-            ownerGroupRoles = roles.FindAll(x => (x.Name == GlobalConst.kRecertifier || x.Name == GlobalConst.kModeller));
+            availableRoles = roles.FindAll(x => (x.Name != Roles.Anonymous && x.Name != Roles.MiddlewareServer));
+            ownerGroupRoles = roles.FindAll(x => (x.Name == Roles.Recertifier || x.Name == Roles.Modeller));
         }
         catch (System.Exception exception)
         {

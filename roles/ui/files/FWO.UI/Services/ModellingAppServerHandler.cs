@@ -1,5 +1,6 @@
 ﻿using NetTools;
 using FWO.Config.Api;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -34,7 +35,7 @@ namespace FWO.Ui.Services
                 if(CheckAppServer())
                 {
                     bool saveOk = true;
-                    apiConnection.SetRole(GlobalConst.kAdmin);
+                    apiConnection.SetRole(Roles.Admin);
                     if(AddMode)
                     {
                         saveOk &= await AddAppServerToDb();
@@ -91,14 +92,15 @@ namespace FWO.Ui.Services
                 {
                     name = ActAppServer.Name,
                     appId = Application.Id,
-                    ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),   // todo ?
+                    ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
+                    ipEnd = ActAppServer.IpEnd != "" ? IPAddressRange.Parse(ActAppServer.IpEnd).ToCidrString() : IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
                     importSource = GlobalConst.kManual  // todo
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActAppServer.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ObjectType.AppServer, ActAppServer.Id,
+                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
                         $"New App Server: {ActAppServer.Display()}", Application.Id);
                     AvailableAppServers.Add(ActAppServer);
                 }
@@ -131,7 +133,7 @@ namespace FWO.Ui.Services
                     importSource = GlobalConst.kManual  // todo
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppServer, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ObjectType.AppServer, ActAppServer.Id,
+                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
                     $"Updated App Server: {ActAppServer.Display()}", Application.Id);
                 return true;
             }

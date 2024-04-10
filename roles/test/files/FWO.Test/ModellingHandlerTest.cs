@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Ui.Services;
 
@@ -41,6 +42,15 @@ namespace FWO.Test
             new(){ Content = new(){ Name = "Testsubnet1", Ip = "10.0.0.0/24", IpEnd = "10.0.0.0/24" }},
             new(){ Content = new(){ Name = "Testsubnet2", Ip = "11.0.0.0/30", IpEnd = "11.0.0.0/30" }}
         }};
+
+        static readonly ModellingNamingConvention NamingConvention1 = new()
+        {
+            NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 4, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+        };
+        static readonly ModellingNamingConvention NamingConvention2 = new()
+        {
+            NetworkAreaRequired = true, UseAppPart = true, FixedPartLength = 4, FreePartLength = 3, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+        };
 
         ModellingAppRoleHandler? AppRoleHandler;
         ModellingAppHandler? AppHandler;
@@ -108,13 +118,13 @@ namespace FWO.Test
                 ServiceGroups = new(){ new(){ Content = new(){ Name = "SvcGroup1", IsGlobal = true}}},
                 Services = new(){ new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Name = "UDP"}} }}
             };
-            List<string> expectedSrc = new(){"<span class=\"\"><span class=\"oi oi-folder\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
-                                             "<span class=\"\"><span class=\"oi oi-list-rich\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span></span>",
-                                             "<span class=\"\"><span class=\"oi oi-laptop\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside1 (10.0.0.0)</span></span></span></span>",
-                                             "<span class=\"\"><span class=\"oi oi-laptop\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside2 (10.0.0.5)</span></span></span></span>"};
-            List<string> expectedDst = new(){"<span class=\"text-secondary\"><span class=\"oi oi-laptop\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside3 (11.0.0.1)</span></span></span></span>"};
-            List<string> expectedSvc = new(){"<span class=\"text-secondary\"><span class=\"oi oi-list-rich\"></span> <span><b>SvcGroup1</b></span></span>",
-                                             "<span class=\"text-secondary\"><span class=\"oi oi-wrench\"></span> <span>Svc1 (1111/UDP)</span></span>"};
+            List<string> expectedSrc = new(){$"<span class=\"\"><span class=\"{Icons.NwGroup}\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
+                                             $"<span class=\"\"><span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span></span>",
+                                             $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside1 (10.0.0.0)</span></span></span></span>",
+                                             $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside2 (10.0.0.5)</span></span></span></span>"};
+            List<string> expectedDst = new(){$"<span class=\"text-secondary\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside3 (11.0.0.1)</span></span></span></span>"};
+            List<string> expectedSvc = new(){$"<span class=\"text-secondary\"><span class=\"{Icons.ServiceGroup}\"></span> <span><b>SvcGroup1</b></span></span>",
+                                             $"<span class=\"text-secondary\"><span class=\"{Icons.Service}\"></span> <span>Svc1 (1111/UDP)</span></span>"};
             Assert.AreEqual(expectedSrc, AppHandler.GetSrcNames(conn));
             Assert.AreEqual(expectedDst, AppHandler.GetDstNames(conn));
             Assert.AreEqual(expectedSvc, AppHandler.GetSvcNames(conn));
@@ -138,13 +148,19 @@ namespace FWO.Test
         [Test]
         public async Task TestProposeFreeAppRoleNumber()
         {
-            Assert.AreEqual("00002", await AppRoleHandler.ProposeFreeAppRoleNumber(TestArea));
-        }
+            ModellingManagedIdString idFixString = new() { NamingConvention = NamingConvention1 };
+            idFixString.ConvertAreaToAppRoleFixedPart(TestArea.IdString);
+            idFixString.SetAppPartFromExtId("APP-1234");
+            Assert.AreEqual("00002", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
 
-        [Test]
-        public void TestReconstructAreaIdString()
-        {
-            Assert.AreEqual("NA50", AppRoleHandler.ReconstructAreaIdString(new(){ Id = 1, IdString = "AR5000001" }));
+            idFixString.NamingConvention = NamingConvention2;
+            idFixString.ConvertAreaToAppRoleFixedPart("NA91");
+            idFixString.SetAppPartFromExtId("APP-1234");
+            AppRoleHandler.NamingConvention = NamingConvention2;
+            Assert.AreEqual("003", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
+
+            idFixString.ConvertAreaToAppRoleFixedPart("NA99");
+            Assert.AreEqual("001", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
         }
     }
 }

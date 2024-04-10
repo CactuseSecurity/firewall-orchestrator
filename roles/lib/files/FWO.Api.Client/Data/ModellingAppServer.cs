@@ -8,6 +8,9 @@ namespace FWO.Api.Data
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string Ip { get; set; } = "";
 
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string IpEnd { get; set; } = "";
+
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string ImportSource { get; set; } = "";
 
@@ -16,7 +19,7 @@ namespace FWO.Api.Data
 
         public override string Display()
         {
-            return (IsDeleted ? "!" : "") + (InUse ? "" : "*") + DisplayBase.DisplayIpWithName(ToNetworkObject());
+            return (IsDeleted ? "!" : "") + (InUse ? "" : "*") + DisplayBase.DisplayIpWithName(ToNetworkObject(this));
         }
 
         public override string DisplayHtml()
@@ -27,26 +30,27 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-laptop\"></span> " + DisplayHtml();
-            // return $"<span class=\"oi {(ImportSource == "manual" ? "" : "oi-data-transfer-download")}\"></span> " + Display();
+            return $"<span class=\"{Icons.Host}\"></span> " + DisplayHtml();
         }
 
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
             Ip = Sanitizer.SanitizeCidrMand(Ip, ref shortened);
+            IpEnd = Sanitizer.SanitizeCidrMand(IpEnd, ref shortened);
             ImportSource = Sanitizer.SanitizeMand(ImportSource, ref shortened);
             return shortened;
         }
 
-        public NetworkObject ToNetworkObject()
+        public static NetworkObject ToNetworkObject(ModellingAppServer appServer)
         {
             return new NetworkObject()
             {
-                Id = Id,
-                Name = Name,
-                IP = Ip,
-                IpEnd = Ip
+                Id = appServer.Id,
+                Number = appServer.Number,
+                Name = appServer.Name,
+                IP = appServer.Ip,
+                IpEnd = appServer.IpEnd
             };
         }
 
@@ -56,10 +60,12 @@ namespace FWO.Api.Data
         public ModellingAppServer(ModellingAppServer appServer)
         {
             Id = appServer.Id;
+            Number = appServer.Number;
             AppId = appServer.AppId;
             Name = appServer.Name;
             IsDeleted = appServer.IsDeleted;
             Ip = appServer.Ip;
+            IpEnd = appServer.IpEnd;
             ImportSource = appServer.ImportSource;
             InUse = appServer.InUse;
         }
@@ -69,7 +75,7 @@ namespace FWO.Api.Data
             return obj switch
             {
                 ModellingAppServer apps => Id == apps.Id && AppId == apps.AppId && Name == apps.Name && IsDeleted == apps.IsDeleted
-                    && Ip == apps.Ip && ImportSource == apps.ImportSource && InUse == apps.InUse,
+                    && Ip == apps.Ip && IpEnd == apps.IpEnd && ImportSource == apps.ImportSource && InUse == apps.InUse,
                 _ => base.Equals(obj),
             };
         }

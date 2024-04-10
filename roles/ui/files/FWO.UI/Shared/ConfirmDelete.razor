@@ -1,6 +1,7 @@
-﻿@using FWO.Config.Api
+﻿@using FWO.GlobalConstants
+@using FWO.Api.Data
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}, {GlobalConst.kModeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject UserConfig userConfig
 
@@ -59,7 +60,7 @@
     public bool DeleteAllowed { get; set; } = true;
 
     [Parameter]
-    public string AllowedRoles { get; set; } = GlobalConst.kAdmin;
+    public string AllowedRoles { get; set; } = Roles.Admin;
 
     [Parameter]
     public bool Remove { get; set; } = false;

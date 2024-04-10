@@ -6,20 +6,24 @@
 
 @if (Display)
 {
-    <PopUp Title="@(AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role"))" Size=PopupSize.XLarge Show="@Display" OnClose="Close">
+    <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
+            Size="@(AppRoleHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
-                <div class="col-sm-6">
-                    <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-AppRoleHandler="AppRoleHandler"/>
-                </div>
-                <div class="col-sm-6">
+                @if(!AppRoleHandler.ReadOnly)
+                {
+                    <div class="col-sm-6">
+                        <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-AppRoleHandler="AppRoleHandler"/>
+                    </div>
+                }
+                <div class="@(AppRoleHandler.ReadOnly ? "col-sm-12" : "col-sm-6")">
                     <h3>@(userConfig.GetText("app_role"))</h3>
                     <div class="col-sm-11 border rounded m-2 p-2">
                         @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
                         {
                             <div class="form-group row">
                                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
-                                @if(AddMode)
+                                @if(AddMode && !AppRoleHandler.ReadOnly)
                                 {
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display())" 
@@ -38,10 +42,15 @@
                         }
                         <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
-                            @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
+                            @if(AppRoleHandler.ReadOnly)
                             {
-                                <input type="text" class="col-sm-2" readonly @bind="AppRoleHandler.ActAppRole.IdStringFixedPart" />
-                                <input type="text" class="col-sm-6" @bind="AppRoleHandler.ActAppRole.IdStringFreePart" />
+                                <label class="col-sm-8">@AppRoleHandler.ActAppRole.IdString</label>
+                            }
+                            else if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
+                            {
+                                <input type="text" class="col-sm-4" readonly @bind="AppRoleHandler.ActAppRole.ManagedIdString.CombinedFixPart" />
+                                <span class="col-sm-1">@AppRoleHandler.ActAppRole.ManagedIdString.Separator</span>
+                                <input type="text" class="col-sm-3" @bind="AppRoleHandler.ActAppRole.ManagedIdString.FreePart" />
                             }
                             else
                             {
@@ -50,31 +59,55 @@
                         </div>
                         <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class="col-sm-8" @bind="AppRoleHandler.ActAppRole.Name" />
+                            @if(AppRoleHandler.ReadOnly)
+                            {
+                                <label class="col-sm-8">@AppRoleHandler.ActAppRole.Name</label>
+                            }
+                            else
+                            {
+                                <input type="text" class="col-sm-8" @bind="AppRoleHandler.ActAppRole.Name" />
+                            }
                         </div>
                         <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                            <input type="text" class="col-sm-8" @bind="AppRoleHandler.ActAppRole.Comment" />
+                            @if(AppRoleHandler.ReadOnly)
+                            {
+                                <label class="col-sm-8">@AppRoleHandler.ActAppRole.Comment</label>
+                            }
+                            else
+                            {
+                                <input type="text" class="col-sm-8" @bind="AppRoleHandler.ActAppRole.Comment" />
+                            }
                         </div>
                         <br>
                         <div class="col-sm-12">
                             <h6>@(userConfig.GetText("app_server"))</h6>
-                            <div class="minheight-dropzone bg-secondary dropzone" 
-                                ondragover="event.preventDefault();"
-                                ondragstart="event.dataTransfer.setData('', event.target.id);"
-                                @ondrop="HandleServerDrop">
-                                <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="col-sm-12 ms-2 bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                            </div>
+                            @if(AppRoleHandler.ReadOnly)
+                            {
+                                foreach(var appserver in ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers))
+                                {
+                                    <div class="mh-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)appserver.DisplayWithIcon())</div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="minheight-dropzone bg-secondary dropzone" 
+                                    ondragover="event.preventDefault();"
+                                    ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                    @ondrop="HandleServerDrop">
+                                    <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false">
+                                        <Display>
+                                            <div class="row">
+                                                <div class="col-sm-12 ms-2 bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                            </div>
+                                        </Display>
+                                    </EditList>
+                                </div>
+                            }
                         </div>
                         @if(!AddMode)
                         {
-                            <label class="col-sm-12 small">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
+                            <label class="col-sm-12 small mt-2">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
                         }
                     </div>
                 </div>
@@ -82,15 +115,22 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                @if(AppRoleHandler.IsOwner)
+                @if(AppRoleHandler.ReadOnly)
                 {
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {if(await AppRoleHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    @if(AppRoleHandler.IsOwner)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {if(await AppRoleHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    }
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
                 }
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>
@@ -119,7 +159,7 @@
 
 
     private ModellingDnDContainer Container { get; set; } = new();
-    int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
+    int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth + 300;
 
     private List<ModellingNetworkArea> areas = new();
     private bool firstTry = true;
@@ -189,16 +229,7 @@
             if(!workInProgress)
             {
                 workInProgress = true;
-                AppRoleHandler.ActAppRole.Area = newArea;
-                if(newArea != null)
-                {
-                    if(newArea.IdString.Length >= AppRoleHandler.NamingConvention.FixedPartLength && AddMode)
-                    {
-                        AppRoleHandler.ActAppRole.IdStringFixedPart = AppRoleHandler.GetFixedAppRolePart(newArea);
-                        AppRoleHandler.ActAppRole.IdStringFreePart = await AppRoleHandler.ProposeFreeAppRoleNumber(newArea);
-                    }
-                }
-                await AppRoleHandler.SelectAppServersFromArea(newArea);
+                await AppRoleHandler.InitAppRole(newArea);
                 workInProgress = false;
             }
         }

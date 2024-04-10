@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using FWO.GlobalConstants;
 
 namespace FWO.Api.Data
 {
@@ -20,7 +21,21 @@ namespace FWO.Api.Data
 
         public override string DisplayWithIcon()
         {
-            return $"<span class=\"oi oi-list-rich\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.ServiceGroup}\"></span> " + DisplayHtml();
+        }
+
+        public NetworkService ToNetworkServiceGroup()
+        {
+            Group<NetworkService>[] serviceGroups = ModellingServiceGroupWrapper.ResolveAsNetworkServiceGroup(Services ?? new List<ModellingServiceWrapper>());
+            return new()
+            {
+                Id = Id,
+                Name = Name ?? "",
+                Comment = Comment ?? "",
+                Type = new NetworkServiceType(){ Name = ObjectType.Group },
+                ServiceGroups = serviceGroups,
+                MemberNames = string.Join("|", Array.ConvertAll(serviceGroups, o => o.Object?.Name))
+            };
         }
 
         public override bool Sanitize()
@@ -40,6 +55,11 @@ namespace FWO.Api.Data
         public static ModellingServiceGroup[] Resolve(List<ModellingServiceGroupWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+
+        public static Group<NetworkService>[] ResolveAsNetworkServiceGroup(List<ModellingServiceWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkService> {Id = wrapper.Content.Id, Object = ModellingService.ToNetworkService(wrapper.Content)});
         }
     }
 }

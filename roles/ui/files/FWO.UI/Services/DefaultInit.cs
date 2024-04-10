@@ -1,4 +1,5 @@
-﻿using FWO.Api.Data;
+﻿using FWO.GlobalConstants;
+using FWO.Api.Data;
 
 namespace FWO.Ui.Services
 {
@@ -14,5 +15,6 @@ namespace FWO.Ui.Services
 
 
         public static bool DoNothingSync() { return false; }
+        public static bool DoNothingSync(ModellingNwGroup _) { return false; }
     }
 }

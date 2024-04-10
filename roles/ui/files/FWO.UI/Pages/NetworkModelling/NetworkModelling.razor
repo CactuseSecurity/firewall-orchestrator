@@ -2,10 +2,11 @@
 @using FWO.Ui.Display
 
 @page "/networkmodelling/{appId?}"
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kModeller}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
 @if(!appHandler?.EditConnMode ?? true)
 {
@@ -34,7 +35,7 @@
         }
         <div class="col-sm-6">
             <div class="btn-group">
-                @* <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button> *@
+                <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button>
                 <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
                 @* <button type="button" class="btn btn-sm btn-dark ms-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
             </div>
@@ -48,9 +49,9 @@
             @if(appActive)
             {
                 <div class="btn-group ms-5">
-                    <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">@(userConfig.GetText("edit_app_server"))</button>
+                            <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">@(appHandler.DisplayButton("edit_app_server", Icons.Edit, "app_server"))</button>
                         </Authorized>
                     </AuthorizeView>
                 </div>
@@ -59,25 +60,25 @@
         </div>
         <div class="m-2 vheight75">
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
-                <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=0>
-                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">@(userConfig.GetText("add_interface"))</button>
+                <Tab Title="@(userConfig.GetText("connections"))" Position=0>
+                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">@(appHandler.DisplayButton("add_connection", Icons.Add))</button>
+                    <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive"/>
+                </Tab>
+                <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
+                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">@(appHandler.DisplayButton("add_interface", Icons.Add))</button>
                     <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler" AppActive="appActive"/>
                 </Tab>
                 @if(selectedApp.CommSvcPossible)
                 {
-                    <Tab Title="@(userConfig.GetText("common_services"))" Position=1>
-                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddCommonService">@(userConfig.GetText("add_common_service"))</button>
+                    <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
+                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service", Icons.Add))</button>
                         <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive"/>
                     </Tab>
                 }
-                <Tab Title="@(userConfig.GetText("regular_connections"))" Position=2>
-                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">@(userConfig.GetText("add_connection"))</button>
-                    <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive"/>
-                </Tab>
             </TabSet>
         </div>
         <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
-            Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="@GlobalConst.kModeller"/>
+            Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="@Roles.Modeller"/>
     }
 }
 else
@@ -112,7 +113,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kModeller, GlobalConst.kAdmin, GlobalConst.kAuditor });
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
         await InitAppList();
     }
 
@@ -122,13 +123,13 @@ else
         {
             if(!tabSelected)
             {
-                appHandler.InitActiveTab();
                 tabSelected = true;
+                appHandler.InitActiveTab();
             }
             else if(restoreTab)
             {
-                appHandler.RestoreTab();
                 restoreTab = false;
+                appHandler.RestoreTab();
             }
         }
     }
@@ -143,7 +144,7 @@ else
     {
         try
         {
-            await GetOwnApps();
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
             if (apps.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
@@ -167,37 +168,6 @@ else
         }
     }
 
-    private async Task GetOwnApps()
-    {
-        try
-        {
-            if(authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin) || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAuditor))
-            {
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwnersWithConn);
-            }
-            else
-            {
-                UpdateOwnerships(); // qad: userConfig may not be properly filled
-                apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-        }
-    }
-
-    private void UpdateOwnerships()
-    {
-        string ownerString = authenticationStateTask!.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners").Value;
-        if(ownerString != null)
-        {
-            string[] separatingStrings = { ",", "{", "}" };
-            string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
-        }
-    }
-
     private async Task HandleLink()
     {
         FwoOwner? existingApp = apps.FirstOrDefault(a => a.ExtAppId == AppId);
@@ -217,17 +187,17 @@ else
         {
             appSelected = false;
             selectedApp = newApp;
-            bool isOwner = authenticationStateTask!.Result.User.IsInRole(GlobalConst.kModeller) && userConfig.User.Ownerships.Contains(selectedApp.Id);
+            bool isOwner = authenticationStateTask!.Result.User.IsInRole(Roles.Modeller) && userConfig.User.Ownerships.Contains(selectedApp.Id);
             appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner);
             await appHandler.Init();
             appActive = selectedApp.Active;
             if(isOwner)
             {
-                apiConnection.SetRole(GlobalConst.kModeller);
+                apiConnection.SetRole(Roles.Modeller);
             }
             else
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { GlobalConst.kAdmin, GlobalConst.kAuditor});
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor});
             }
             appSelected = true;
             tabSelected = false;
@@ -252,14 +222,14 @@ else
         return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
     }
 
-    private async Task ShowHistory()
+    private void ShowHistory()
     {
         showHistory = true;
     }
 
     private async Task Report()
     {
-
+        NavigationManager.NavigateTo($"/report/generation/{selectedApp.Id}");
     }
 
     private async Task ExtRequest()

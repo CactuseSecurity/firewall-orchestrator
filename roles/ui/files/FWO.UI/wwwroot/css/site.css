@@ -10,6 +10,10 @@ body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+.stdtext {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
 a,
 .btn-link {
     color: #0366d6;
@@ -207,6 +211,11 @@ h5 {
     margin-right: 13px;
 }
 
+/* add left margin 13px */
+.ml-13 {
+    margin-left: 13px;
+}
+
 /* add margin 20px */
 .pad-10 {
     padding: 10px;
@@ -261,6 +270,7 @@ h5 {
     /* color: black; */
     color-scheme: dark;
     background-image: linear-gradient(#e4e8ec, #9b9797);
+    overflow: auto;
 }
 
 .sidebar-main {
@@ -274,8 +284,8 @@ h5 {
     height: 100%;
     width: 4px;
     background-color: black;
-    z-index: 20;
     border-style: double;
+    cursor: ew-resize;
 }
 
 .sidebar-min-max-button {

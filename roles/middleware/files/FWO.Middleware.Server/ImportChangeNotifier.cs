@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Logging;
@@ -124,19 +125,17 @@ namespace FWO.Middleware.Server
                 UserConfig userConfig = new(globalConfig);
 
                 changeReport = ReportBase.ConstructReport(new ReportTemplate("", await SetFilters()), userConfig);
-
-                Management[] managements = Array.Empty<Management>();
-
+                ReportData reportData = new();
                 await changeReport.Generate(int.MaxValue, apiConnection,
-                managementsReportIntermediate =>
-                {
-                    managements = managementsReportIntermediate;
-                    foreach (Management mgm in managements)
+                    rep =>
                     {
-                        mgm.Ignore = !deviceFilter.getSelectedManagements().Contains(mgm.Id);
-                    }
-                    return Task.CompletedTask;
-                }, token);
+                        reportData.ManagementData = rep.ManagementData;
+                        foreach (var mgm in reportData.ManagementData)
+                        {
+                            mgm.Ignore = !deviceFilter.getSelectedManagements().Contains(mgm.Id);
+                        }
+                        return Task.CompletedTask;
+                    }, token);
             }
             catch (Exception exception)
             {
@@ -228,7 +227,7 @@ namespace FWO.Middleware.Server
             {                
                 MemoryStream memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
                 string fileName = $"{Regex.Replace(globalConfig.ImpChangeNotifySubject, @"\s", "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
-                return new(memoryStream, 0, memoryStream.Length, null, fileName)
+                return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
                 {
                     Headers = new HeaderDictionary(),
                     ContentType = $"application/{fileFormat}"

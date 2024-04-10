@@ -103,7 +103,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                         if 'member' in rule_orig["source"]:
                             source_objects = rule_orig["source"]["member"]
                         else:
-                            source_objects = [rule_orig["service"]]
+                            source_objects = [rule_orig["source"]]
                         rule['rule_src_refs'], rule["rule_src"] = parse_obj_list(source_objects, import_id, config2import['network_objects'], rule["rule_uid"])
                     else:
                         logger.warning("found undefined source in rule: " + str(rule_orig))

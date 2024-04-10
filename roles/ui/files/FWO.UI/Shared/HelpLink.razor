@@ -1,8 +1,11 @@
-﻿@inject UserConfig userConfig
+﻿@using FWO.GlobalConstants
+@using FWO.Api.Data
+
+@inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
 
 <NavLink class="nav-link" target="_blank" rel="noopener noreferrer" href="@($"/help/{Page}?lang={userConfig.GetUserLanguage()}")">
-    <span class="oi oi-info ms-2"></span> @ChildContent
+    <span class="@(Icons.Help) ms-2"></span> @ChildContent
 </NavLink>
 
 @code

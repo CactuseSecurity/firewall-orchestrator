@@ -5,6 +5,15 @@
     importer_hostname: "{{ hostvars[inventory_hostname].ansible_hostname }}"
   when: importer_hostname == 'localhost'
 
+- name: default credential id = -1 (test)
+  set_fact:
+    credential_id: -1
+
+- name: pick the correct credential id
+  set_fact:
+    credential_id: 0
+  when: sample_role_purpose is not match('test')
+
 - block: # demo & test
 
     - name: insert sample fortiOS management
@@ -14,7 +23,7 @@
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_fortigate_name }}') THEN 
           insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-          VALUES (24,'{{ sample_fortigate_name }}',-1,'{{ demo_fos_uri }}',false,'{{ importer_hostname }}'); 
+          VALUES (24,'{{ sample_fortigate_name }}',{{ credential_id }},'{{ demo_fos_uri }}',true,'{{ importer_hostname }}'); 
           END IF; END $do$ 
 
     - name: insert sample fortiOS gateway
@@ -40,7 +49,7 @@
             IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
               insert into management 
                 (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-                VALUES (9,'{{ sample_checkpoint_name }}',-1,'{{ demo_cpr8x_uri }}',false,'{{ importer_hostname }}'); 
+                VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ demo_cpr8x_uri }}',true,'{{ importer_hostname }}'); 
             END IF;
           END $do$ 
 
@@ -66,7 +75,7 @@
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
           insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-          VALUES (9,'{{ sample_checkpoint_name }}',-1,'{{ sample_checkpoint_uri }}',false,'dummy importer hostname'); 
+          VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ sample_checkpoint_uri }}',false,'dummy importer hostname'); 
           END IF; END $do$ 
 
     - name: insert test check point R8x gateway {{ sample_checkpoint_name }}

@@ -1,10 +1,13 @@
-﻿<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@(PositionLeft ? "left: 0px;" : "right: 0px;")">
+﻿@using FWO.GlobalConstants
+@using FWO.Api.Data
+
+<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@(PositionLeft ? "left: 0px;" : "right: 0px;")">
     @if (!PositionLeft)
     {
         if (Collapsible)
         {
             <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
-                <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
+                <div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
             </div>
         }
 
@@ -23,7 +26,7 @@
         if (Collapsible)
         {
             <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
-                <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
+                <div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
             </div>
         }
     }
@@ -61,7 +64,7 @@
 
     private int WidthBeforeMinimize;
 
-    private string minMaxButtonSymbol = "collapse-right";
+    private string minMaxButtonSymbol = Icons.CollapseRight;
     private string overflowSidebar = "auto";
 
     private void ResizeStart(DragEventArgs dragArgs)
@@ -100,7 +103,7 @@
         {
             if (collapse)
             {
-                minMaxButtonSymbol = "collapse-left";
+                minMaxButtonSymbol = Icons.CollapseLeft;
 
                 WidthBeforeMinimize = Width;
                 Width = 0;
@@ -108,7 +111,7 @@
             }
             else
             {
-                minMaxButtonSymbol = "collapse-right";
+                minMaxButtonSymbol = Icons.CollapseRight;
 
                 Width = WidthBeforeMinimize;
                 WidthChanged.InvokeAsync(Width);

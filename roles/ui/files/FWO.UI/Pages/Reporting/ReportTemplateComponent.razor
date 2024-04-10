@@ -15,7 +15,7 @@
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">@(userConfig.GetText("load"))</button>
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                                @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(GlobalConst.kAdmin))
+                                @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">@(userConfig.GetText("edit"))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
@@ -79,7 +79,7 @@
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
                     <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.Count > 0 ? 
-                        ownerList.FirstOrDefault(o => o.Id == reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First())?.Name ?? 
+                        recertOwnerList.FirstOrDefault(o => o.Id == reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First())?.Name ?? 
                         reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First().ToString() : "")</label>
                 </div>
             }
@@ -90,27 +90,46 @@
                     <input id="saveTemplateUnused" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
                 </div>
             }
-            else if(reportTemplateInEdit.ReportParams.TenantFilter.IsActive)
-            {
-                <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
-                    <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.TenantFilter.TenantId)</label>
-                </div>
-            }
-            else
+            else if(reportTypeInEdit.IsDeviceRelatedReport())
             {
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("report_time")):</label>
                     <label class="col-sm-8">@(DisplayTime())</label>
                 </div>
             }
-            <div class="form-group row mt-2">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
-                <div class="form-group row col-sm-9">
-                    <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
-                    <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
+
+            @if(reportTemplateInEdit.ReportParams.TenantFilter.IsActive)
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                    <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.TenantFilter.TenantId)</label>
                 </div>
-            </div>
+            }
+
+            @if(reportTypeInEdit.IsDeviceRelatedReport())
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
+                    <div class="form-group row col-sm-9">
+                        <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
+                        <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
+                                @bind-SelectedElement="reportTemplateInEdit.ReportParams.ModellingFilter.SelectedOwner" Elements="modOwnerList">
+                            <ElementTemplate Context="owner">
+                                @(owner.Display(userConfig.GetText("common_service")))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            }
             <div class="form-group row mt-2">
                 <label for="saveTemplateFilterLineTextarea" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("filter")):</label>
                 <textarea id="saveTemplateFilterLineTextarea" class="col-sm-8" @bind="reportTemplateInEdit.Filter" />
@@ -127,7 +146,7 @@
 
 <ConfirmDelete @bind-Display="ShowDeleteTemplateDialog" PerformAction="DeleteTemplate" Title="@(userConfig.GetText("report_template"))" 
     DeleteMessage="@(userConfig.GetText("U1002") + " " + reportTemplateInEdit.Name + " ?")"
-    AllowedRoles="@($"{GlobalConst.kAdmin}, {GlobalConst.kFwAdmin}, {GlobalConst.kReporter}, {GlobalConst.kReporterViewAll}")"/>
+    AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}")"/>
 
 
 @code
@@ -144,7 +163,8 @@
     public List<ReportTemplate> reportTemplates { get; set; } = new List<ReportTemplate>();
     public ReportTemplate reportTemplateInEdit = new ReportTemplate();
     private ReportType reportTypeInEdit = ReportType.Rules;
-    private List<FwoOwner> ownerList = new List<FwoOwner>();
+    private List<FwoOwner> recertOwnerList = new List<FwoOwner>();
+    private List<FwoOwner> modOwnerList = new List<FwoOwner>();
 
     private string tmpTemplateCommentKey = "";
     private string tmpTemplateComment = "";
@@ -157,11 +177,24 @@
     private Collapse collapseControl = new Collapse();
     private DeviceFilter DeviceFilterOrig = new();
 
+    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+
 
     protected override async Task OnInitializedAsync()
     {
         await RefreshTemplates();
-        ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+        recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+        if(showModellingReports)
+        {
+            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+        }
     }
 
     public async Task RefreshTemplates()
@@ -169,6 +202,8 @@
         try
         {
             reportTemplates = (await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates, new { userId = userConfig.User.DbId })).ToList();
+            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
+                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport())).ToList();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)

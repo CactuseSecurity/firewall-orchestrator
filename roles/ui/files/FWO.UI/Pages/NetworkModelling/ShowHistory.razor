@@ -1,6 +1,6 @@
 ﻿@using FWO.Config.Api
 
-@attribute [Authorize(Roles = $"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -10,7 +10,7 @@
     <Body>
         @if (Display)
         {
-            <AuthorizeView Roles="@($"{GlobalConst.kAdmin}, {GlobalConst.kAuditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <Authorized>
                     <div class="form-group row">
                         <label class="col-form-label col-sm-2">@(userConfig.GetText("show_all")):</label>
@@ -34,7 +34,7 @@
                     </Column>
                     <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true">
                         <Template>
-                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ObjectType), context.ObjectType)))
+                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ModObjectType), context.ObjectType)))
                         </Template>
                     </Column>
                     <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />

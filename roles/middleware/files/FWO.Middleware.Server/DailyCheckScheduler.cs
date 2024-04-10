@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -30,21 +31,25 @@ namespace FWO.Middleware.Server
             return new DailyCheckScheduler(apiConnection, config);
         }
 
-        private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
+        private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeDailyCheckConfigChanges)
         {
             if(globalConfig.RecRefreshStartup)
             {
+                #pragma warning disable CS4014
                 RefreshRecert(); // no need to wait
+                #pragma warning restore CS4014
             }
         }
 
 		/// <summary>
 		/// set scheduling timer from fixed value
 		/// </summary>
-        protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
-            DailyCheckTimer.Interval = DailyCheckSleepTime;
             DailyCheckScheduleTimer.Stop();
+            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
+            DailyCheckTimer.Interval = DailyCheckSleepTime;
             StartScheduleTimer();
         }
 
@@ -137,7 +142,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentialsWithoutSecrets);
             bool sampleCredentialExisting = false;
             foreach (var credential in credentials)
             {

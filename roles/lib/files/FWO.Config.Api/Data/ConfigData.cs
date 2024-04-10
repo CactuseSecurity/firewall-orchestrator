@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Mail;
 
@@ -242,6 +243,12 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
         public string ModNamingConvention { get; set; } = "";
+
+        [JsonProperty("modIconify"), JsonPropertyName("modIconify")]
+        public bool ModIconify { get; set; } = true;
+
+        [JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
+        public string ModCommonAreas { get; set; } = "";
 
 
         public ConfigData(bool editable = false)

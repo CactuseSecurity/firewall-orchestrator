@@ -1,4 +1,6 @@
 ﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -24,15 +26,17 @@ namespace FWO.Middleware.Server
             return new ImportSubnetDataScheduler(apiConnection, globalConfig);
         }
     
-        private ImportSubnetDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
+        private ImportSubnetDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportSubnetDataConfigChanges)
         {}
 
 		/// <summary>
 		/// set scheduling timer from config values
 		/// </summary>
-        protected override void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
+            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
             if (globalConfig.ImportSubnetDataSleepTime > 0)
             {
                 ImportSubnetDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * GlobalConst.kHoursToMilliseconds;

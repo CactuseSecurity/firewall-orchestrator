@@ -1216,6 +1216,8 @@ INSERT INTO txt VALUES ('from_ticket',          'German',   'Von Ticket');
 INSERT INTO txt VALUES ('from_ticket',          'English',  'From Ticket');
 INSERT INTO txt VALUES ('publish',              'German',   'Ver&ouml;ffentlichen');
 INSERT INTO txt VALUES ('publish',              'English',  'Publish');
+INSERT INTO txt VALUES ('interface_description','German',   'Schnittstellenbeschreibung');
+INSERT INTO txt VALUES ('interface_description','English',  'Interface description');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

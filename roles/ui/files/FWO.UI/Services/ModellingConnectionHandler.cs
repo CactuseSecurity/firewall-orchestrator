@@ -197,7 +197,8 @@ namespace FWO.Ui.Services
                 AvailableSvcElems = new();
                 AvailableServiceGroups = (await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups)).Where(x => x.AppId != Application.Id).ToList();
                 AvailableServiceGroups.AddRange(await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id }));
-                AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id });
+                AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getGlobalServices);
+                AvailableServices.AddRange(await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id }));
                 foreach(var svcGrp in AvailableServiceGroups)
                 {
                     AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, svcGrp.Id));
@@ -908,6 +909,14 @@ namespace FWO.Ui.Services
 
         private void SyncSrcChanges()
         {
+            if(ActConn.IsRequested && SrcFilledInWork(1))
+            {
+                ModellingAppRoleWrapper? linkedDummyAR = ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
+                if (linkedDummyAR != null)
+                {
+                    SrcAppRolesToDelete.Add(linkedDummyAR.Content);
+                }
+            }
             foreach(var appServer in SrcAppServerToDelete)
             {
                 ActConn.SourceAppServers.Remove(ActConn.SourceAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new Exception("Did not find app server."));
@@ -932,19 +941,18 @@ namespace FWO.Ui.Services
             {
                 ActConn.SourceNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
             }
-            if(ActConn.IsRequested && ActConn.SourceAppRoles.Count > 1)
-            {
-                ModellingAppRoleWrapper? linkedDummyAR = ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
-                if (linkedDummyAR != null)
-                {
-                    ActConn.SourceAppRoles.Remove(linkedDummyAR);
-                    SrcAppRolesToDelete.Add(linkedDummyAR.Content);
-                }
-            }
         }
 
         private void SyncDstChanges()
         {
+            if(ActConn.IsRequested && DstFilledInWork(1))
+            {
+                ModellingAppRoleWrapper? linkedDummyAR = ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
+                if (linkedDummyAR != null)
+                {
+                    DstAppRolesToDelete.Add(linkedDummyAR.Content);
+                }
+            }
             foreach(var appServer in DstAppServerToDelete)
             {
                 ActConn.DestinationAppServers.Remove(ActConn.DestinationAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id)  ?? throw new Exception("Did not find app server."));
@@ -968,15 +976,6 @@ namespace FWO.Ui.Services
             foreach(var nwGroup in DstNwGroupsToAdd)
             {
                 ActConn.DestinationNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
-            }
-            if(ActConn.IsRequested && ActConn.DestinationAppRoles.Count > 1)
-            {
-                ModellingAppRoleWrapper? linkedDummyAR = ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
-                if (linkedDummyAR != null)
-                {
-                    ActConn.DestinationAppRoles.Remove(linkedDummyAR);
-                    DstAppRolesToDelete.Add(linkedDummyAR.Content);
-                }
             }
         }
 

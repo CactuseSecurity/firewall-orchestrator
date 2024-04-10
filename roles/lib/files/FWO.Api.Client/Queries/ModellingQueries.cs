@@ -25,7 +25,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getAppRolesForAppServer;
         public static readonly string getConnectionIdsForAppServer;
 
-        public static readonly string getInterfaces;
+        public static readonly string getPublishedInterfaces;
         public static readonly string getInterfaceById;
         public static readonly string getConnections;
         public static readonly string getConnectionsByTicketId;
@@ -111,7 +111,7 @@ namespace FWO.Api.Client.Queries
                 getAppRolesForAppServer = File.ReadAllText(QueryPath + "modelling/getAppRolesForAppServer.graphql");
                 getConnectionIdsForAppServer = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForAppServer.graphql");
 
-                getInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaces.graphql");
+                getPublishedInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getPublishedInterfaces.graphql");
                 getInterfaceById = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaceById.graphql");                
                 getConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnections.graphql");
                 getConnectionsByTicketId = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsByTicketId.graphql");

@@ -64,7 +64,7 @@ namespace FWO.Ui.Services
         public static string DisplayReqInt(UserConfig userConfig, long? ticketId, bool otherOwner)
         {
             string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(otherOwner ? "C9007" : "C9008")}\"";
-            string content = $"{userConfig.GetText("interface_requested")}: ({ticketId?.ToString()})";
+            string content = $"{userConfig.GetText("interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
             return $"<span class=\"text-danger\" {tooltip}><i>{content}</i></span>";
         }
 

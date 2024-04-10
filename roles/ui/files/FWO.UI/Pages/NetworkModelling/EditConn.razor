@@ -42,7 +42,7 @@
                 }
             </div>
             <div class="form-group row mt-2 me-auto">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("func_reason"))*:</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))*:</label>
                 @if(ConnHandler.ReadOnly)
                 {
                     <label class="col-sm-9">@ConnHandler.ActConn.Reason</label>
@@ -286,7 +286,7 @@
                     {
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     }
-                    @if(!ConnHandler.ActConn.IsPublished)
+                    @if(ConnHandler.ActConn.IsInterface && !ConnHandler.ActConn.IsPublished)
                     {
                         <button type="button" class="btn btn-sm btn-primary" @onclick="Publish">@(userConfig.GetText("publish"))</button>
                     }

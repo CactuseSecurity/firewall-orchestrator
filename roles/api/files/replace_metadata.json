@@ -1020,11 +1020,12 @@
                       "creator",
                       "id",
                       "is_interface",
+                      "is_published",
                       "is_requested",
                       "name",
                       "reason",
-                      "used_interface_id",
-                      "ticket_id"
+                      "ticket_id",
+                      "used_interface_id"
                     ]
                   },
                   "comment": ""
@@ -1041,6 +1042,7 @@
                       "creator",
                       "id",
                       "is_interface",
+                      "is_published",
                       "is_requested",
                       "name",
                       "reason",
@@ -1056,17 +1058,18 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "common_service",
-                      "is_interface",
-                      "is_requested",
-                      "creator",
-                      "name",
                       "app_id",
-                      "id",
-                      "used_interface_id",
-                      "reason",
+                      "common_service",
                       "creation_date",
-                      "ticket_id"
+                      "creator",
+                      "id",
+                      "is_interface",
+                      "is_published",
+                      "is_requested",
+                      "name",
+                      "reason",
+                      "ticket_id",
+                      "used_interface_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1085,6 +1088,7 @@
                       "creator",
                       "id",
                       "is_interface",
+                      "is_published",
                       "is_requested",
                       "name",
                       "reason",
@@ -9688,13 +9692,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "custom_type",
                       "id",
-                      "is_deleted",
                       "import_source",
-                      "name",
                       "ip",
                       "ip_end",
                       "ip_proto_id",
+                      "is_deleted",
+                      "name",
                       "nw_type",
                       "owner_id",
                       "port"
@@ -9714,6 +9719,7 @@
                       "name",
                       "ip",
                       "ip_end",
+                      "custom_type",
                       "ip_proto_id",
                       "nw_type",
                       "owner_id",
@@ -9727,13 +9733,14 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "custom_type",
                       "id",
-                      "is_deleted",
                       "import_source",
-                      "name",
                       "ip",
                       "ip_end",
                       "ip_proto_id",
+                      "is_deleted",
+                      "name",
                       "nw_type",
                       "owner_id",
                       "port"
@@ -9752,6 +9759,7 @@
                       "name",
                       "ip",
                       "ip_end",
+                      "custom_type",
                       "ip_proto_id",
                       "nw_type",
                       "owner_id",
@@ -9767,6 +9775,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "custom_type",
                       "import_source",
                       "ip",
                       "ip_end",

@@ -77,6 +77,7 @@
   register: demo_data_present
   become: true
   become_user: postgres
+  when: "'sampleserver' in group_names"
 
 - name: find cron jobs in case of missing demo data
   find:
@@ -85,6 +86,7 @@
   register: files_to_delete
   when: demo_data_present.query_result == []
   become: true
+  when: "'sampleserver' in group_names"
 
 - name: delete cron jobs in case of missing demo data
   file:
@@ -93,6 +95,7 @@
   with_items: "{{ files_to_delete.files }}"
   when: demo_data_present.query_result == []
   become: true
+  when: "'sampleserver' in group_names"
 
 - name: remove temp importer_password from install host
   file:

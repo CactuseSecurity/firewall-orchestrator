@@ -362,3 +362,17 @@ adding report template format fk and permissions
   - import log locking
   - integration tests with credentials when installing without demo data
   - pdf creation on debian testing plattform (trixie)
+
+# 8.1 - 10.04.2024 MAIN
+- iconify modelling
+- add missing config values
+- first version of NSX import module
+- add maintenance page during upgrade
+- sample customizing py script with sample data
+- remove log locking from importer due to stalling importer stops
+- credentials encryption in database
+  - breaking change for developer debugging: add the following local file when using -e testkeys=true:
+    /etc/fworch/secrets/main_key with content "not4production..not4production.."
+- add custom (user-defined) fields to import
+  - cp only so far, other fw types missing
+  - user-defined fields are not part of reports yet

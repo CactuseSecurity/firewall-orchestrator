@@ -15,7 +15,7 @@
       dest: "/var/www/html/index.html"
       mode: "0644"
 
-  - name: cioy maintenance web site image
+  - name: copy maintenance web site image
     copy:
       src: men-at-work.jpg
       dest: "/var/www/html/men-at-work.jpg"

@@ -72,16 +72,28 @@
       - debug:
           msg: "current number of upgradable packages: {{ upgradable_packages.stdout_lines|length-1 }}"
 
+      - name: disable apache2 maintenance web site
+        command: "a2dissite {{ product_name }}-maintenance"
+        ignore_errors: true
+
+      - name: enable {{ product_name }} web site
+        command: "a2ensite {{ product_name }}-ui"
+
+      - name: restart apache with maintenance site
+        service:
+          name: "{{ webserver_package_name }}"
+          state: restarted  
+
       - name: assert there are no upgradable packages. upgrades must be run interactively outside the FWORCH installer
         fail:
           msg:
             - There are upgradable OS packages available, please run OS upgrade before running FWORCH installer. 
             - Use "-e force_install=true" to overwrite this check and install anyway at your own risk.
-        when: |
-          (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian")
-          and upgradable_packages.stdout_lines|length > 1
+      when: |
+        not force_install|bool and not run_on_github|bool and
+        (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian") and
+        upgradable_packages.stdout_lines|length > 1
 
-      when: not force_install|bool and not run_on_github|bool
 
     # - name: fix grub-efi (for github actions)
     #   apt:

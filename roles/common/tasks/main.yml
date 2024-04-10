@@ -72,17 +72,20 @@
       - debug:
           msg: "current number of upgradable packages: {{ upgradable_packages.stdout_lines|length-1 }}"
 
-      - name: disable apache2 maintenance web site
-        command: "a2dissite {{ product_name }}-maintenance"
-        ignore_errors: true
+      - block:
+          - name: disable apache2 maintenance web site
+            command: "a2dissite {{ product_name }}-maintenance"
+            ignore_errors: true
 
-      - name: enable {{ product_name }} web site
-        command: "a2ensite {{ product_name }}-ui"
+          - name: enable {{ product_name }} web site
+            command: "a2ensite {{ product_name }}-ui"
+            ignore_errors: true
 
-      - name: restart apache without maintenance site
-        service:
-          name: "{{ webserver_package_name }}"
-          state: restarted  
+          - name: restart apache without maintenance site
+            service:
+              name: "{{ webserver_package_name }}"
+              state: restarted  
+        when: installation_mode == "upgrade"    
 
       - name: assert there are no upgradable packages. upgrades must be run interactively outside the FWORCH installer
         fail:

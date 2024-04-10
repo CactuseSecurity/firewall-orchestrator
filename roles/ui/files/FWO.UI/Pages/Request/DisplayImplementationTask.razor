@@ -81,7 +81,7 @@
                                         <SelectOwner @bind-SelectedOwner="actOwner" Apps="ReqHandler.AllOwners" WithConnectionStatus="false" />
                                     </div>
                                     <div class="col-sm-1">
-                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="AssignOwner">
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="RequestAssignOwner">
                                             @(ModellingHandlerBase.DisplayButton(userConfig, "assign_owner", Icons.Assign))</button>
                                     </div>
                                 }
@@ -248,6 +248,9 @@
 
 <PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
 <CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfAddComment"/>
+<Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
+    Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
+
 
 @code
 {
@@ -286,6 +289,8 @@
 
     private List<RequestStateAction> offeredActions = new ();
     private string allComments = "";
+    private string message = "";
+    private bool assignOwnerMode = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -349,10 +354,18 @@
         await ReqHandler.ActionHandler.PerformAction(action, ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask);
     }
 
+    private void RequestAssignOwner()
+    {
+        message = userConfig.GetText("U8004");
+        assignOwnerMode = true;
+    }
+
     private async Task AssignOwner()
     {
         SetChangedOwner();
         await ReqHandler.ChangeOwner();
+        actOwner = ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
+        assignOwnerMode = false;
     }
 
     private void InitAddComment()

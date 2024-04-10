@@ -1084,6 +1084,8 @@ INSERT INTO txt VALUES ('remove_connection', 	'German',	'Verbindung entfernen');
 INSERT INTO txt VALUES ('remove_connection', 	'English',	'Remove Connection');
 INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
+INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
+INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
 INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
 INSERT INTO txt VALUES ('func_reason', 	        'English',	'Functional Reason');
 INSERT INTO txt VALUES ('to_source', 	        'German',	'Zu Quelle');
@@ -1878,10 +1880,14 @@ INSERT INTO txt VALUES ('use_in_src',           'German', 	'in Quelle');
 INSERT INTO txt VALUES ('use_in_src',           'English', 	'in Source');
 INSERT INTO txt VALUES ('use_in_dst',           'German', 	'in Ziel');
 INSERT INTO txt VALUES ('use_in_dst',           'English', 	'in Destination');
-INSERT INTO txt VALUES ('email_subject',       'German', 	'Email-Betreff');
-INSERT INTO txt VALUES ('email_subject',       'English', 	'Email subject');
+INSERT INTO txt VALUES ('email_subject',        'German', 	'Email-Betreff');
+INSERT INTO txt VALUES ('email_subject',        'English', 	'Email subject');
 INSERT INTO txt VALUES ('email_body',           'German', 	'Email-Inhalt');
 INSERT INTO txt VALUES ('email_body',           'English', 	'Email body');
+INSERT INTO txt VALUES ('email_to',				'German', 	'An');
+INSERT INTO txt VALUES ('email_to',				'English', 	'To');
+INSERT INTO txt VALUES ('email_cc',				'German', 	'CC');
+INSERT INTO txt VALUES ('email_cc',				'English', 	'CC');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -2310,6 +2316,8 @@ INSERT INTO txt VALUES ('U8002', 'German',  'Neue Genehmigung zum Auftrag hinzug
 INSERT INTO txt VALUES ('U8002', 'English', 'New approval added to task.');
 INSERT INTO txt VALUES ('U8003', 'German',  'Sind sie sicher, dass sie abbrechen wollen? Bereits erzeugte Auftr&auml;ge gehen verloren.');
 INSERT INTO txt VALUES ('U8003', 'English', 'Are you sure you want to cancel? Already Created tasks will be lost.');
+INSERT INTO txt VALUES ('U8004', 'German',  'Sind sie sicher, dass sie einen neuen Eigent&uuml;mer zuweisen wollen? Zust&auml;ndigkeiten k&ouml;nnen sich &auml;ndern.');
+INSERT INTO txt VALUES ('U8004', 'English', 'Are you sure you want to change owner? Responsibilities can be changed.');
 
 INSERT INTO txt VALUES ('U9001', 'German',  'Sind sie sicher, dass sie folgende Verbindung l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U9001', 'English', 'Are you sure you want to delete connection: ');
@@ -2333,6 +2341,8 @@ INSERT INTO txt VALUES ('U9012', 'German',  'Bitte durch eigenen Text ersetzen')
 INSERT INTO txt VALUES ('U9012', 'English', 'Please replace by your own text');
 INSERT INTO txt VALUES ('U9013', 'German',  'Antrag-Status wurde ge&auml;ndert:');
 INSERT INTO txt VALUES ('U9013', 'English', 'Ticket promoted');
+INSERT INTO txt VALUES ('U9014', 'German',  'Sind sie sicher, dass sie folgende Schnittstelle l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9014', 'English', 'Are you sure you want to delete interface: ');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
@@ -2616,6 +2626,8 @@ INSERT INTO txt VALUES ('E8014', 'German',  'Die Verarbeitung dieses Auftragstyp
 INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is not activated. Please contact administrator.');
 INSERT INTO txt VALUES ('E8015', 'German',  'Eigent&uuml;mer konnte nicht zugeordnet werden');
 INSERT INTO txt VALUES ('E8015', 'English', 'Owner could not be assigned');
+INSERT INTO txt VALUES ('E8016', 'German',  'Eigent&uuml;mer konnte nicht entfernt werden');
+INSERT INTO txt VALUES ('E8016', 'English', 'Owner could not be removed');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
@@ -2644,6 +2656,8 @@ INSERT INTO txt VALUES ('E9011', 'German',  'Benachrichtigung an App-Verantwortl
 INSERT INTO txt VALUES ('E9011', 'English', 'Email could not be sent to App responsibles.');
 INSERT INTO txt VALUES ('E9012', 'German',  'Die Schnittstelle sollte nicht in der eigenen App beantragt werden.');
 INSERT INTO txt VALUES ('E9012', 'English', 'Interface should not be requested in own App.');
+INSERT INTO txt VALUES ('E9013', 'German',  'Schnittstelle kann nicht gel&ouml;scht werden, da sie in Benutzung ist: ');
+INSERT INTO txt VALUES ('E9013', 'English', 'Interface cannot be deleted because it is in use: ');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

@@ -65,7 +65,7 @@
             </TabSet>
         </div>
         <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
-            Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="@Roles.Modeller"/>
+            Title="@userConfig.GetText(appHandler.actConn.IsInterface ? "delete_interface" : "delete_connection")" DeleteMessage="@appHandler.Message" DeleteAllowed="appHandler.DeleteAllowed" AllowedRoles="@Roles.Modeller"/>
     }
 }
 else

@@ -223,11 +223,28 @@ namespace FWO.Ui.Services
             EditConnMode = true;
         }
 
-        public void RequestDeleteConnection(ModellingConnection conn)
+        public async Task RequestDeleteConnection(ModellingConnection conn)
         {
             actTab = tabset.ActiveTab;
             actConn = conn;
-            Message = userConfig.GetText("U9001") + actConn.Name + "?";
+            if(actConn.IsInterface)
+            {
+                if(await CheckInterfaceInUse(actConn))
+                {
+                    Message = userConfig.GetText("E9013") + actConn.Name;
+                    DeleteAllowed = false;
+                }
+                else
+                {
+                    Message = userConfig.GetText("U9014") + actConn.Name + "?";
+                    DeleteAllowed = true;
+                }
+            }
+            else
+            {
+                Message = userConfig.GetText("U9001") + actConn.Name + "?";
+                DeleteAllowed = true;
+            }
             DeleteConnMode = true;
         }
 

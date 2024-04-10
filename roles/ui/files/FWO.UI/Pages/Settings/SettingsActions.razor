@@ -240,7 +240,7 @@
                         case nameof(StateActionTypes.SendEmail):
                             <div class="col-sm-4">
                                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to"))*:</label>
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("email_to"))*:</label>
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actEmailActionParams.RecipientTo" 
                                                 ElementToString="@(o => userConfig.GetText(o.ToString()))"
@@ -254,7 +254,7 @@
                             </div>
                             <div class="col-sm-4">
                                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("cc")):</label>
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("email_cc")):</label>
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="EmailRecipientOption?" @bind-SelectedElement="actEmailActionParams.RecipientCC" 
                                                 ElementToString="@(o => userConfig.GetText(o?.ToString() ?? " "))" Nullable="true"

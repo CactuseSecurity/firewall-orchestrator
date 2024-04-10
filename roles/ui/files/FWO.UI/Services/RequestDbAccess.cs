@@ -755,12 +755,18 @@ namespace FWO.Ui.Services
                 foreach(var owner in reqtask.RemovedOwners)
                 {
                     await RemoveOwnerInDb(reqtask.Id, owner.Id);
+                    FwoOwnerDataHelper? oldOwner = reqtask.Owners.FirstOrDefault(x => x.Owner.Id == owner.Id);
+                    if(oldOwner != null)
+                    {
+                        reqtask.Owners.Remove(oldOwner);
+                    }
                 }
                 reqtask.RemovedOwners = new ();
 
                 foreach(var owner in reqtask.NewOwners)
                 {
                     await AssignOwnerInDb(reqtask.Id, owner.Id);
+                    reqtask.Owners.Add(new(){ Owner = owner });
                     await ActionHandler.DoOwnerChangeActions(reqtask, owner, reqtask.TicketId);
                 }
             }
@@ -792,10 +798,9 @@ namespace FWO.Ui.Services
             try
             {
                 var Variables = new { reqTaskId, ownerId };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.removeOwnerFromReqTask, Variables)).ReturnIds;
-                if (returnIds == null)
+                if ((await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.removeOwnerFromReqTask, Variables)).AffectedRows == 0)
                 {
-                    DisplayMessageInUi(null, UserConfig.GetText("assign_owner"), UserConfig.GetText("E8015"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("assign_owner"), UserConfig.GetText("E8016"), true);
                 }
             }
             catch (Exception exception)

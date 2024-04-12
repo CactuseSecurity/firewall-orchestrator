@@ -16,8 +16,18 @@
 <hr />
 @if(InitComplete)
 {
-    <DisplayTicketTable Phase="WorkflowPhases.review" States="states" ReqHandler="reqHandler" 
-        ResetParent="Reset" StartImplPhase="StartReviewTask"/>
+    <ImplOptSelection SelectOwner="SelectOwner" SelectDevice="SelectDevice" Owners="Owners" ReqHandler="reqHandler" />
+
+    @if(DisplayTickets)
+    {
+        <DisplayTicketTable Phase="WorkflowPhases.review" States="states" ReqHandler="reqHandler" 
+            ResetParent="Reset" StartImplPhase="StartReviewTask"/>
+    }
+    else
+    {
+        <DisplayImplTaskTable Phase="WorkflowPhases.review" States="states" ReqHandler="reqHandler" 
+            ResetParent="Select" AllImplTasks="reqHandler.AllVisibleImplTasks" ImplTaskView="true" StartImplPhase="StartReviewTask"/>
+    }
 }
 else
 {
@@ -39,8 +49,12 @@ else
 
     private RequestHandler reqHandler = new ();
     private RequestStateDict states = new ();
-    private List<int> OwnerIds = new ();
+    private List<FwoOwner> Owners = new();
     private bool InitComplete = false;
+
+    private bool DisplayTickets = true;
+    private Device selectedDeviceOpt = new ();
+    private FwoOwner selectedOwnerOpt = new ();
 
 
     protected override async Task OnInitializedAsync()
@@ -52,7 +66,7 @@ else
 
             if(userConfig.ReqOwnerBased)
             {
-                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+                Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
             }
             reqHandler = new (DisplayMessageInUi, userConfig, apiConnection, middlewareClient, WorkflowPhases.review){};
             await Reset();
@@ -79,12 +93,54 @@ else
         }
     }
 
+    private async Task Select()
+    {
+        if(userConfig.ReqOwnerBased)
+        {
+            await SelectOwner(selectedOwnerOpt);
+        }
+        else
+        {
+            await SelectDevice(selectedDeviceOpt);
+        }
+    }
+
+    private async Task SelectOwner(FwoOwner newOwnerOpt)
+    {
+        try
+        {
+            selectedOwnerOpt = newOwnerOpt;
+            DisplayTickets = reqHandler.SelectOwnerImplTasks(selectedOwnerOpt);
+            await Reset();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select_owner"), "", true);
+        }
+    }
+
+    private async Task SelectDevice(Device newDeviceOpt)
+    {
+        try
+        {
+            selectedDeviceOpt = newDeviceOpt;
+            DisplayTickets = reqHandler.SelectDeviceImplTasks(selectedDeviceOpt);
+            await Reset();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select_device"), "", true);
+        }
+    }
+
     private async Task Reset()
     {
         try
         {
             reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await reqHandler.Init(OwnerIds, false, true);
+            await reqHandler.Init(Owners.ConvertAll(x => x.Id), false, true);
             reqHandler.FilterForRequester();
         }
         catch (Exception exception)

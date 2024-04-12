@@ -38,7 +38,8 @@ namespace FWO.Ui.Services
         public List<Device> Devices = new ();
         public List<FwoOwner> AllOwners { get; set; } = new ();
         public List<RequestPriority> PrioList = new ();
-        public List<RequestImplTask> AllImplTasks = new ();
+        public List<RequestImplTask> AllTicketImplTasks = new ();
+        public List<RequestImplTask> AllVisibleImplTasks = new ();
         public StateMatrix ActStateMatrix = new ();
         public StateMatrix MasterStateMatrix = new ();
         public ActionHandler ActionHandler;
@@ -271,14 +272,14 @@ namespace FWO.Ui.Services
 
         public void ResetImplTaskList()
         {
-            AllImplTasks = new List<RequestImplTask>();
+            AllTicketImplTasks = new List<RequestImplTask>();
             foreach(var reqTask in ActTicket.Tasks)
             {
                 foreach(var implTask in reqTask.ImplementationTasks)
                 {
                     implTask.TicketId = ActTicket.Id;
                     implTask.ReqTaskId = reqTask.Id;
-                    AllImplTasks.Add(implTask);
+                    AllTicketImplTasks.Add(implTask);
                 }
             }
         }
@@ -882,6 +883,71 @@ namespace FWO.Ui.Services
                 ActImplTask.CurrentHandler = userConfig.User;
                 await UpdateActImplTaskState();
             }
+        }
+
+        public bool SelectOwnerImplTasks(FwoOwner selectedOwnerOpt)
+        {
+            try
+            {
+                AllVisibleImplTasks = new ();
+                if(selectedOwnerOpt.Id != -3)
+                {
+                    foreach(var ticket in TicketList)
+                    {
+                        foreach(var reqTask in ticket.Tasks)
+                        {
+                            foreach(var implTask in reqTask.ImplementationTasks)
+                            {
+                                if (selectedOwnerOpt.Id == -1 || (selectedOwnerOpt.Id == -2 && implTask.CurrentHandler?.DbId == userConfig.User.DbId)
+                                    || (selectedOwnerOpt.Id > 0 && reqTask.Owners.FirstOrDefault(o => o.Owner.Id == selectedOwnerOpt.Id) != null))
+                                {
+                                    implTask.TicketId = ticket.Id;
+                                    implTask.ReqTaskId = reqTask.Id;
+                                    AllVisibleImplTasks.Add(implTask);
+                                }
+                            }
+                        }
+                    }
+                }
+                return selectedOwnerOpt.Id == -3;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("select_owner"), "", true);
+            }
+            return true;
+        }
+
+        public bool SelectDeviceImplTasks(Device selectedDeviceOpt)
+        {
+            try
+            {
+                AllVisibleImplTasks = new ();
+                if(selectedDeviceOpt.Id != -1)
+                {
+                    foreach(var ticket in TicketList)
+                    {
+                        foreach(var reqTask in ticket.Tasks)
+                        {
+                            foreach(var implTask in reqTask.ImplementationTasks)
+                            {
+                                if (selectedDeviceOpt.Id == 0 || implTask.DeviceId == selectedDeviceOpt.Id)
+                                {
+                                    implTask.TicketId = ticket.Id;
+                                    implTask.ReqTaskId = reqTask.Id;
+                                    AllVisibleImplTasks.Add(implTask);
+                                }
+                            }
+                        }
+                    }
+                }
+                return selectedDeviceOpt.Id == -1;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("select_device"), "", true);
+            }
+            return true;
         }
 
         public async Task AssignImplTaskGroup(RequestStatefulObject statefulObject)

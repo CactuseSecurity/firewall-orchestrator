@@ -87,7 +87,7 @@
                     @(userConfig.GetText(implTask.TaskType))
                 </Template>
             </Column>
-            @if(DeviceView)
+            @if(ImplTaskView)
             {
                 <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket_id"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
                     <Template>
@@ -190,7 +190,7 @@
     public List<RequestImplTask>? AllImplTasks { get; set; } = new List<RequestImplTask>();
 
     [Parameter]
-    public bool DeviceView { get; set; } = false;
+    public bool ImplTaskView { get; set; } = false;
 
     [Parameter]
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;

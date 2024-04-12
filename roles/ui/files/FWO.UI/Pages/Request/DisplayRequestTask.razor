@@ -42,8 +42,8 @@
                     </div>
                     <div class="col-sm-3">
                         <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
-                            <div class="col-sm-8">
+                            <label class="col-sm-5 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
+                            <div class="col-sm-7">
                                 <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.CurrentHandler?.Name</label>
                             </div>
                         </div>
@@ -330,7 +330,7 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteReqTaskMode" ResetParent="Close" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 <PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 <CommentObject @bind-Display="ReqHandler.DisplayReqTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfAddComment"/>
 <DisplayPathAnalysis @bind-Display="ReqHandler.DisplayPathAnalysisMode" ResetParent="ResetPathAnalysis" ReqTask="ReqHandler.ActReqTask"/>

@@ -8,7 +8,7 @@
 
 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection"
         Items="Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
-    @if(userConfig.AllowManualOwnerAdmin && !Readonly)
+    @if(!Readonly)
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>

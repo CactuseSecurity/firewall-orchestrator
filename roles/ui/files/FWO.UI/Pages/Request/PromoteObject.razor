@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
     <Body>
         @if (Display)
         {
@@ -42,7 +42,7 @@
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -119,4 +119,11 @@
         Promote = false;
         await ResetParent();
     }
+
+    private void Cancel()
+    {
+        Display = false;
+        Promote = false;
+    }
+
 }

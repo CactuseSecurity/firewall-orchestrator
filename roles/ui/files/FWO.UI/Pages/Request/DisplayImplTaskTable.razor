@@ -89,11 +89,17 @@
             </Column>
             @if(DeviceView)
             {
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket_id"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
+                    <Template>
+                        @(implTask.TicketId != 0 ? implTask.TicketId : "")
+                    </Template>
+                </Column>
                 <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
                     <Template>
                         @(implTask.TicketId != 0 ? ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Title : "")
                     </Template>
                 </Column>
+
                 <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="false" >
                     <Template>
                         @(implTask.TicketId != 0 && implTask.ReqTaskId != 0 ?
@@ -157,10 +163,10 @@
 </PopUp>
 
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
-<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" RoleList="validRoles"/>
-<DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjectName="@(ReqHandler.ActImplTask.Title)"/>
+<AssignObject @bind-Display="ReqHandler.DisplayAssignImplTaskMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" RoleList="validRoles"/>
+<DeleteObject @bind-Display="ReqHandler.DisplayDeleteImplTaskMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjectName="@(ReqHandler.ActImplTask.Title)"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayCleanupMode" ResetParent="Reset" Delete="ReqHandler.ConfCleanupImplTasks" ObjectName="@(userConfig.GetText("all_impltasks"))"/>
-<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
+<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalImplMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 
 
 @code

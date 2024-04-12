@@ -58,14 +58,20 @@ namespace FWO.Ui.Services
         public bool EditImplTaskMode = false;
         public bool AddImplTaskMode = false;
         public bool ImplementImplTaskMode = false;
+        public bool ReviewImplTaskMode = false;
 
-        public bool DisplayAssignMode = false;
-        public bool DisplayApprovalMode = false;
+        public bool DisplayAssignReqTaskMode = false;
+        public bool DisplayAssignImplTaskMode = false;
+        public bool DisplayApprovalReqMode = false;
+        public bool DisplayApprovalImplMode = false;
         public bool DisplayApproveMode = false;
         public bool DisplayAssignApprovalMode = false;
-        public bool DisplayPromoteMode = false;
+        public bool DisplayPromoteTicketMode = false;
+        public bool DisplayPromoteReqTaskMode = false;
+        public bool DisplayPromoteImplTaskMode = false;
         public bool DisplaySaveTicketMode = false;
-        public bool DisplayDeleteMode = false;
+        public bool DisplayDeleteReqTaskMode = false;
+        public bool DisplayDeleteImplTaskMode = false;
         public bool DisplayCleanupMode = false;
         public bool DisplayReqTaskCommentMode = false;
         public bool DisplayImplTaskCommentMode = false;
@@ -81,6 +87,7 @@ namespace FWO.Ui.Services
         private RequestDbAccess dbAcc;
 
         private ObjAction contOption = ObjAction.display;
+        private bool InitOngoing = false;
 
 
         public RequestHandler()
@@ -97,17 +104,29 @@ namespace FWO.Ui.Services
         }
 
 
-        public async Task Init(List<int> ownerIds, int viewOpt = 0)
+        public async Task Init(List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
         {
-            ActionHandler = new (apiConnection, this);
-            await ActionHandler.Init();
-            dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
-            Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
-            AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-            await stateMatrixDict.Init(Phase, apiConnection);
-            MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
-            TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, viewOpt);
-            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+            try
+            {
+                if(!InitOngoing)
+                {
+                    InitOngoing = true;
+                    ActionHandler = new (apiConnection, this);
+                    await ActionHandler.Init();
+                    dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
+                    Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+                    AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+                    await stateMatrixDict.Init(Phase, apiConnection);
+                    MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
+                    TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, ignoreOwners);
+                    PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+                    InitOngoing = false;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+            }
         }
 
         public void FilterForRequester()
@@ -189,7 +208,7 @@ namespace FWO.Ui.Services
 
         public async Task<RequestTicket?> ResolveTicket(long ticketId)
         {
-            List<RequestTicket> AllTicketList = await dbAcc.FetchTickets(MasterStateMatrix, AllOwners.ConvertAll(x => x.Id), 2);
+            List<RequestTicket> AllTicketList = await dbAcc.FetchTickets(MasterStateMatrix, AllOwners.ConvertAll(x => x.Id), true, true);
             return AllTicketList.FirstOrDefault(x => x.Id == ticketId);
         }
 
@@ -286,7 +305,7 @@ namespace FWO.Ui.Services
 
         public void SetTicketPopUpOpt(ObjAction action)
         {
-            DisplayPromoteMode = action == ObjAction.displayPromote;
+            DisplayPromoteTicketMode = action == ObjAction.displayPromote;
             DisplaySaveTicketMode = action == ObjAction.displaySaveTicket;
         }
 
@@ -295,7 +314,7 @@ namespace FWO.Ui.Services
             DisplayTicketMode = false;
             EditTicketMode = false;
             AddTicketMode = false;
-            DisplayPromoteMode = false;
+            DisplayPromoteTicketMode = false;
             DisplaySaveTicketMode = false;
         }
 
@@ -433,11 +452,11 @@ namespace FWO.Ui.Services
 
         public void SetReqTaskPopUpOpt(ObjAction action)
         {
-            DisplayAssignMode = action == ObjAction.displayAssign;
-            DisplayApprovalMode = action == ObjAction.displayApprovals;
+            DisplayAssignReqTaskMode = action == ObjAction.displayAssign;
+            DisplayApprovalReqMode = action == ObjAction.displayApprovals;
             DisplayApproveMode = action == ObjAction.displayApprove;
-            DisplayPromoteMode = action == ObjAction.displayPromote;
-            DisplayDeleteMode = action == ObjAction.displayDelete;
+            DisplayPromoteReqTaskMode = action == ObjAction.displayPromote;
+            DisplayDeleteReqTaskMode = action == ObjAction.displayDelete;
             DisplayReqTaskCommentMode = action == ObjAction.displayComment;
             DisplayPathAnalysisMode = action == ObjAction.displayPathAnalysis;
         }
@@ -450,11 +469,11 @@ namespace FWO.Ui.Services
             PlanReqTaskMode = false;
             ApproveReqTaskMode = false;
 
-            DisplayAssignMode = false;
-            DisplayApprovalMode = false;
+            DisplayAssignReqTaskMode = false;
+            DisplayApprovalReqMode = false;
             DisplayApproveMode = false;
-            DisplayPromoteMode = false;
-            DisplayDeleteMode = false;
+            DisplayPromoteReqTaskMode = false;
+            DisplayDeleteReqTaskMode = false;
             DisplayReqTaskCommentMode = false;
             DisplayPathAnalysisMode = false;
         }
@@ -501,7 +520,7 @@ namespace FWO.Ui.Services
             {
                 await UpdateActReqTaskState();
             }
-            DisplayAssignMode = false;
+            DisplayAssignReqTaskMode = false;
         }
 
         public async Task AssignReqTaskBack()
@@ -509,7 +528,7 @@ namespace FWO.Ui.Services
             ActReqTask.AssignedGroup = ActReqTask.RecentHandler?.Dn;
             ActReqTask.RecentHandler = ActReqTask.CurrentHandler != null ? ActReqTask.CurrentHandler : userConfig.User;
             await UpdateActReqTaskState();
-            DisplayAssignMode = false;
+            DisplayAssignReqTaskMode = false;
         }
 
         public async Task AddReqTask()
@@ -549,7 +568,7 @@ namespace FWO.Ui.Services
 
             ActTicket.Tasks.RemoveAll(x => x.Id == ActReqTask.Id);
             // todo: adapt TaskNumbers of following tasks?
-            DisplayDeleteMode = false;
+            DisplayDeleteReqTaskMode = false;
         }
 
         public async Task ConfAddCommentToReqTask(string commentText)
@@ -592,7 +611,7 @@ namespace FWO.Ui.Services
                 }
                 
                 await UpdateActTicketStateFromReqTasks();
-                DisplayPromoteMode = false;
+                DisplayPromoteReqTaskMode = false;
             }
             catch (Exception exception)
             {
@@ -804,20 +823,21 @@ namespace FWO.Ui.Services
         public void SetImplTaskOpt(ObjAction action)
         {
             ResetImplTaskActions();
-            DisplayImplTaskMode = action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.implement;
+            DisplayImplTaskMode = action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.implement || action == ObjAction.review;
             EditImplTaskMode = action == ObjAction.edit || action == ObjAction.add;
             AddImplTaskMode = action == ObjAction.add;
             ImplementImplTaskMode = action == ObjAction.implement;
+            ReviewImplTaskMode = action == ObjAction.review;
         }
         
         public void SetImplTaskPopUpOpt(ObjAction action)
         {
-            DisplayPromoteMode = action == ObjAction.displayPromote;
-            DisplayDeleteMode = action == ObjAction.displayDelete;
+            DisplayPromoteImplTaskMode = action == ObjAction.displayPromote;
+            DisplayDeleteImplTaskMode = action == ObjAction.displayDelete;
             DisplayCleanupMode = action == ObjAction.displayCleanup;
-            DisplayAssignMode = action == ObjAction.displayAssign;
+            DisplayAssignImplTaskMode = action == ObjAction.displayAssign;
             DisplayImplTaskCommentMode = action == ObjAction.displayComment;
-            DisplayApprovalMode = action == ObjAction.displayApprovals;
+            DisplayApprovalImplMode = action == ObjAction.displayApprovals;
         }
 
         public void ResetImplTaskActions()
@@ -826,13 +846,14 @@ namespace FWO.Ui.Services
             EditImplTaskMode = false;
             AddImplTaskMode = false;
             ImplementImplTaskMode = false;
+            ReviewImplTaskMode = false;
 
-            DisplayPromoteMode = false;
-            DisplayDeleteMode = false;
+            DisplayPromoteImplTaskMode = false;
+            DisplayDeleteImplTaskMode = false;
             DisplayCleanupMode = false;
-            DisplayAssignMode = false;
+            DisplayAssignImplTaskMode = false;
             DisplayImplTaskCommentMode = false;
-            DisplayApprovalMode = false;
+            DisplayApprovalImplMode = false;
         }
 
         public async Task StartWorkOnImplTask(RequestImplTask implTask, ObjAction action)
@@ -871,7 +892,7 @@ namespace FWO.Ui.Services
             {
                 await UpdateActImplTaskState();
             }
-            DisplayAssignMode = false;
+            DisplayAssignImplTaskMode = false;
         }
 
         public async Task AssignImplTaskBack()
@@ -879,7 +900,7 @@ namespace FWO.Ui.Services
             ActImplTask.AssignedGroup = ActImplTask.RecentHandler?.Dn;
             ActImplTask.RecentHandler = ActImplTask.CurrentHandler != null ? ActImplTask.CurrentHandler : userConfig.User;
             await UpdateActImplTaskState();
-            DisplayAssignMode = false;
+            DisplayAssignImplTaskMode = false;
         }
 
         public async Task AddImplTask()
@@ -927,7 +948,7 @@ namespace FWO.Ui.Services
                 SyncReqTaskStopTime();
                 await UpdateReqTaskStateFromImplTasks(ActReqTask);
                 await UpdateActTicketStateFromReqTasks();
-                DisplayPromoteMode = false;
+                DisplayPromoteImplTaskMode = false;
             }
             catch (Exception exception)
             {
@@ -955,7 +976,7 @@ namespace FWO.Ui.Services
         {
             await dbAcc.DeleteImplTaskFromDb(ActImplTask);
             ActReqTask.ImplementationTasks.RemoveAt(ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id));
-            DisplayDeleteMode = false;
+            DisplayDeleteImplTaskMode = false;
         }
 
         public async Task ConfCleanupImplTasks()

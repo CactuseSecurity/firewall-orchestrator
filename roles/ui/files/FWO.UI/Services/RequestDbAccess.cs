@@ -21,16 +21,16 @@ namespace FWO.Ui.Services
             ActionHandler = actionHandler;
         }
 
-        public async Task<List<RequestTicket>> FetchTickets(StateMatrix stateMatrix, List<int> ownerIds, int viewOpt = 0)
+        public async Task<List<RequestTicket>> FetchTickets(StateMatrix stateMatrix, List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
         {
             List<RequestTicket> tickets = new ();
             try
             {
                 // todo: filter own approvals, plannings...
-                int fromState = viewOpt < 2 ? stateMatrix.LowestInputState : 0;
-                int toState = viewOpt == 0 ? stateMatrix.LowestEndState : 999;
+                int fromState = allStates ? 0 : stateMatrix.LowestInputState;
+                int toState = allStates ? 999 : stateMatrix.LowestEndState;
 
-                if(UserConfig.ReqOwnerBased)
+                if(UserConfig.ReqOwnerBased && ! ignoreOwners)
                 {
                     var Variables = new { ownerIds, fromState, toState };
                     tickets = await ApiConnection.SendQueryAsync<List<RequestTicket>>(RequestQueries.getTicketsByOwners, Variables);

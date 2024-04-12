@@ -65,7 +65,8 @@
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await DisplayOwner(context)">@(userConfig.GetText("details"))</button>                    @if(userConfig.AllowManualOwnerAdmin)
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await DisplayOwner(context)">@(userConfig.GetText("details"))</button>
+                    @if(userConfig.AllowManualOwnerAdmin)
                     {
                         <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditOwner(context)">@(userConfig.GetText("edit"))</button>
                         @if(!context.IsDefault)

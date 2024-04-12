@@ -25,8 +25,8 @@
                     </div>
                     <div class="col-sm-3">
                         <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("implementer")):</label>
-                            <div class="col-sm-8">
+                            <label class="col-sm-5 col-form-label col-form-label-sm">@(userConfig.GetText("implementer")):</label>
+                            <div class="col-sm-7">
                                 <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActImplTask.CurrentHandler?.Name</label>
                             </div>
                         </div>
@@ -80,10 +80,13 @@
                                     <div class="col-sm-11">
                                         <SelectOwner @bind-SelectedOwner="actOwner" Apps="ReqHandler.AllOwners" WithConnectionStatus="false" />
                                     </div>
-                                    <div class="col-sm-1">
-                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="RequestAssignOwner">
-                                            @(ModellingHandlerBase.DisplayButton(userConfig, "assign_owner", Icons.Assign))</button>
-                                    </div>
+                                    @if(actOwner != oldOwner)
+                                    {
+                                        <div class="col-sm-1">
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="RequestAssignOwner">
+                                                @(ModellingHandlerBase.DisplayButton(userConfig, "assign_owner", Icons.Assign))</button>
+                                        </div>
+                                    }
                                 }
                                 else
                                 {
@@ -186,7 +189,7 @@
                 <div class="form-group row mt-2">
                     <div class="col-sm-1">
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
-                        @if(ReqHandler.ImplementImplTaskMode)
+                        @if(ReqHandler.ImplementImplTaskMode || ReqHandler.ReviewImplTaskMode)
                         {
                             <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
                                 @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
@@ -196,7 +199,7 @@
                         <textarea rows="3" type="text" class="form-control form-control-sm" readonly="true">@allComments</textarea>
                     </div>
                 </div>
-                @if(ReqHandler.ImplementImplTaskMode)
+                @if(ReqHandler.ImplementImplTaskMode || ReqHandler.ReviewImplTaskMode)
                 {
                     <div class="col-sm-12 mt-2">
                         <div class="form-group row justify-content-center">
@@ -223,7 +226,7 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            else if (ReqHandler.ImplementImplTaskMode)
+            else if ((ReqHandler.ImplementImplTaskMode || ReqHandler.ReviewImplTaskMode) && !newOwnerAssigned)
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                     <Authorized>
@@ -234,7 +237,7 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            @if(ReqHandler.EditImplTaskMode || ReqHandler.ImplementImplTaskMode)
+            @if((ReqHandler.EditImplTaskMode || ReqHandler.ImplementImplTaskMode || ReqHandler.ReviewImplTaskMode) && !newOwnerAssigned)
             {
                 <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
             }
@@ -246,7 +249,7 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActImplTask.Title"
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteImplTaskMode" ResetParent="Close" ObjectName="@ReqHandler.ActImplTask.Title"
     Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
 <CommentObject @bind-Display="ReqHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfAddComment"/>
 <Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
@@ -286,6 +289,7 @@
     private Tracking? actTracking;
     private FwoOwner? actOwner;
     private FwoOwner? oldOwner;
+    private bool newOwnerAssigned = false;
     private bool firstParamSet = false;
 
     private List<RequestStateAction> offeredActions = new ();
@@ -314,6 +318,7 @@
         {
             if (ReqHandler.DisplayImplTaskMode && firstParamSet)
             {
+                firstParamSet = false;
                 InitElements();
                 await InitComments();
                 offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask, ReqHandler.Phase);
@@ -322,7 +327,7 @@
                 actTracking = trackings.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.Tracking);
                 actOwner = ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
                 oldOwner = actOwner;
-                firstParamSet = false;
+                newOwnerAssigned = false;
             }
         }
         catch (Exception exception)
@@ -347,8 +352,9 @@
 
     private async Task Close()
     {
-        firstParamSet = true;
         await ResetParent();
+        ReqHandler.DisplayPromoteImplTaskMode = false;
+        firstParamSet = true;
     }
 
     private async Task PerformAction(RequestStateAction action)
@@ -367,6 +373,7 @@
         SetChangedOwner();
         await ReqHandler.ChangeOwner();
         actOwner = ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
+        newOwnerAssigned = true;
         assignOwnerMode = false;
     }
 

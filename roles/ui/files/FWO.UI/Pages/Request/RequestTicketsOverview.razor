@@ -65,12 +65,19 @@ else
         try
         {
             reqHandler.ReadOnlyMode = true;
-            await reqHandler.Init(OwnerIds, 1);
-
-            // Todo: put filtering into graphql query
-            if(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) && !(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)))
+            if(userConfig.ReqOwnerBased)
             {
-                reqHandler.FilterForRequester();
+                await reqHandler.Init(OwnerIds, true, true);
+            }
+            else
+            {
+                await reqHandler.Init(OwnerIds, true);
+                
+                // Todo: put filtering into graphql query
+                if(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) && !(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)))
+                {
+                    reqHandler.FilterForRequester();
+                }
             }
         }
         catch (Exception exception)

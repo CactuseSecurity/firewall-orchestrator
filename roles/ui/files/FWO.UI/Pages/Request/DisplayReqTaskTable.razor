@@ -103,9 +103,9 @@
 }
 
 <DisplayRequestTask Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" StartImplPhase="StartImplPhase"/>
-<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActReqTask" Assign="ReqHandler.AssignReqTaskGroup" AssignBack="ReqHandler.AssignReqTaskBack" ObjectName="@ReqHandler.ActReqTask.Title" RoleList="validRoles"/>
-<DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteReqTask" ObjectName="@ReqHandler.ActReqTask.Title"/>
-<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
+<AssignObject @bind-Display="ReqHandler.DisplayAssignReqTaskMode" ResetParent="Reset" StatefulObject="ReqHandler.ActReqTask" Assign="ReqHandler.AssignReqTaskGroup" AssignBack="ReqHandler.AssignReqTaskBack" ObjectName="@ReqHandler.ActReqTask.Title" RoleList="validRoles"/>
+<DeleteObject @bind-Display="ReqHandler.DisplayDeleteReqTaskMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteReqTask" ObjectName="@ReqHandler.ActReqTask.Title"/>
+<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalReqMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 
 
 @code

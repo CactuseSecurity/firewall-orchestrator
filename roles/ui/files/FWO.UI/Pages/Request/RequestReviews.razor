@@ -84,13 +84,13 @@ else
         try
         {
             reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await reqHandler.Init(OwnerIds);
+            await reqHandler.Init(OwnerIds, false, true);
+            reqHandler.FilterForRequester();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
-
     }
     
     private async Task StartReviewTask(RequestImplTask implTask)

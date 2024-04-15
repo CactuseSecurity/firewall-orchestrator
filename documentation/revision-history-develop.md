@@ -183,5 +183,5 @@ bugfix release:
 # 8.0.2 - 11.03.2024 DEVELOP
 - first version of NSX import module
 
-# 8.0.3 - 26.03.2024 DEVELOP
-- interface proposal flag
+# 8.1.1 - 15.04.2024 DEVELOP
+- interface request workflow first version

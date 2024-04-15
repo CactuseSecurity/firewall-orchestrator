@@ -162,8 +162,9 @@
     </Footer>
 </PopUp>
 
-<DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
-<AssignObject @bind-Display="ReqHandler.DisplayAssignImplTaskMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" RoleList="validRoles"/>
+<DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States" />
+<AssignObject @bind-Display="ReqHandler.DisplayAssignImplTaskMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="Assign"
+    AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" RoleList="validRoles" Owner="@ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteImplTaskMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjectName="@(ReqHandler.ActImplTask.Title)"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayCleanupMode" ResetParent="Reset" Delete="ReqHandler.ConfCleanupImplTasks" ObjectName="@(userConfig.GetText("all_impltasks"))"/>
 <DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalImplMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
@@ -229,6 +230,16 @@
     private async Task AutocreateImplTasks()
     {
         await ReqHandler.CreateAccessImplTasksFromPathAnalysis(ReqHandler.ActReqTask);
+    }
+
+    private async Task Assign(RequestStatefulObject grp)
+    {
+        await ReqHandler.AssignImplTaskGroup(grp);
+        int? idx = AllImplTasks?.FindIndex(x => x.Id == ReqHandler.ActImplTask.Id);
+        if(idx != null && idx >= 0)
+        {
+            AllImplTasks[(int)idx] = ReqHandler.ActImplTask;
+        }
     }
 
     private async Task CheckImplTasks()

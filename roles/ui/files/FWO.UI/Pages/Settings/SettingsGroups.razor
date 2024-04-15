@@ -139,15 +139,15 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
-    private List<UserGroup> groups = new List<UserGroup>();
-    private List<UserGroup> sampleGroups = new List<UserGroup>();
-    private List<Role> roles = new List<Role>();
-    private List<Role> availableRoles = new List<Role>();
-    private List<Role> ownerGroupRoles = new List<Role>();
+    private List<UserGroup> groups = new ();
+    private List<UserGroup> sampleGroups = new ();
+    private List<Role> roles = new ();
+    private List<Role> availableRoles = new ();
+    private List<Role> ownerGroupRoles = new ();
     private Role? selectedRole;
     private bool showSampleRemoveButton = false;
 
-    private UserGroup actGroup = new UserGroup();
+    private UserGroup actGroup = new ();
     private string newGroupName = "";
 
     private bool AddGroupMode = false;

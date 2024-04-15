@@ -136,31 +136,31 @@
 
     private bool processing = false;
     private bool rulesFound = false;
-    private CancellationTokenSource tokenSource = new CancellationTokenSource();
+    private CancellationTokenSource tokenSource = new ();
 
     private List<ManagementReport> managementsReport = new ();
     
     private bool readonlyMode = false;
     public FwoOwner? selectedOwner = null;
-    private List<FwoOwner> ownerList = new List<FwoOwner>();
-    private List<FwoOwner> userOwnerships = new List<FwoOwner>();
-    private List<FwoOwner> groupOwnerships = new List<FwoOwner>();
-    private List<FwoOwner> collectedOwnerships = new List<FwoOwner>();
-    private Dictionary<int, int> recertInterval = new Dictionary<int, int>();
-    private DeviceFilter deviceFilter = new DeviceFilter();
-    private List<Rule> selectedRules = new List<Rule>();
+    private List<FwoOwner> ownerList = new ();
+    private List<FwoOwner> userOwnerships = new ();
+    private List<FwoOwner> groupOwnerships = new ();
+    private List<FwoOwner> collectedOwnerships = new ();
+    private Dictionary<int, int> recertInterval = new ();
+    private DeviceFilter deviceFilter = new ();
+    private List<Rule> selectedRules = new ();
     private bool collapseDevices = false;
 
     private ReportBase? currentReport;
-    private ReportTemplate reportParams = new ReportTemplate();
+    private ReportTemplate reportParams = new ();
 
     private Sidebar? deviceSelectionSidebar;
     private bool AddCommentMode = false;
     private string actComment = "";
     private int recertLookAheadDays = 0;
 
-    private List<Rule> Certifications = new List<Rule>();
-    private Dictionary<int, List<string>> deleteList = new Dictionary<int, List<string>>();
+    private List<Rule> Certifications = new ();
+    private Dictionary<int, List<string>> deleteList = new ();
 
     private TicketCreator ticketCreator;
 
@@ -196,7 +196,7 @@
         userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
 
         List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
-        List<string> ownerGrpDns = new List<string>();
+        List<string> ownerGrpDns = new ();
         foreach(var grp in ownerGroups)
         {
             if(grp.Users.FirstOrDefault(x => x.Dn == userConfig.User.Dn) != null)

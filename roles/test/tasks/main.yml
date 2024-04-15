@@ -82,3 +82,11 @@
     test_importer_handler_guard: stop
   changed_when: true
   notify: "test importer handler"
+
+- name: delete ldif files
+  file:
+    path: "{{  middleware_ldif_dir }}"
+    state: absent
+  become: true
+  when: "'middlewareserver' in group_names"
+

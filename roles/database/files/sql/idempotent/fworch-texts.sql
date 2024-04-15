@@ -322,12 +322,11 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firew
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
     <li>Modellierung von Soll-Kommunikationsprofilen z.B. nach Anwendung getrennt (Know Your Application)</li>
-    <li>Web-Oberfl&auml;che: Compliance Matrix Modul</li>
-    <li>Web-Oberfl&auml;che: Report f&uuml;r ungenutzte Regeln mit L&ouml;sch-Ticket-Integration</li>
-    <li>Reporting: Email-Benachrichtigung bei sicherheitsrelevanten &Auml;nderungen inklusive &Auml;nderungsreport</li>
-    <li>Importer Check Point: Grundlegender Inline-Layer-Support</li>
-    <li>Importer Modul f&uuml;r Stand-Alone FortiGate Import via REST API</li>
-    <li>Firewall-Regel-Rezertifizierungsmodul: beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
+    <li>UI: In der Weboberfl&auml;che des Modellierungsmoduls k&ouml;nnen die Bedienfl&ouml;chen wahlweise als Texte oder Icons angezeigt werden (konfigurierbar pro Nutzer)</li>
+    <li>Importer: Erste (PoC-)Version des VMware NSX Import-Moduls</li>
+    <li>API: Neues Customizing-Skript für Bulk-Konfiguration via API</li>
+    <li>Datenbanksicherheit: Alle Passw&ouml;rter in der Datenbank sind nun verschl&uuml;sselt. Breaking change (nur f&uuml;r Entwickler): Zum Debuggen muss die folgende Datei lokal auf dem vscode-System angelegt werden (bei Verwendung von "-e testkeys=true":
+      /etc/fworch/secrets/main_key - Inhalt: "not4production..not4production.."</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
         https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
 </ul>
@@ -335,12 +334,11 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
     <li>Modelling module for defining target communication profiles for segregated networks (e.g. per application: Know Your Application)</li>
-    <li>Web User Interface: Compliance Matrix Modul</li>
-    <li>Web User Interface: Report for unused rules directly integration delete rule workflow</li>
-    <li>Reporting: Notification on detecting security relevant changes of firewall rules including change report in emails</li>
-    <li>Importer Check Point: basic inline layer support</li>
-    <li>Importer: Module for stand-alone FortiGate import via REST API</li>
-    <li>Rule recertification module: remove unnecessary rules and meet current regulatory requirements.</li>
+    <li>UI: iconifying modelling UI buttons (can now use icons instead of text buttons - configurable per user)</li>
+    <li>Importer: first version of VMware NSX import module</li>
+    <li>API: adding customizing script for bulk configs via API</li>
+    <li>Database security: all credentials in the database are now encrypted - breaking change (for developer debugging only): add the following local file when using -e testkeys=true:
+      /etc/fworch/secrets/main_key with content "not4production..not4production.."</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
         https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
 </ul>

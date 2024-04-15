@@ -176,6 +176,11 @@ def parse_single_rule(src_rule, rulebase, layer_name, import_id, rule_num, paren
             else:
                 rule_name = None
 
+            # new in v8.0.3:
+            rule_custom_fields = None
+            if 'custom-fields' in src_rule:
+                rule_custom_fields = src_rule['custom-fields']
+
             if 'meta-info' in src_rule and 'last-modifier' in src_rule['meta-info']:
                 rule_last_change_admin = src_rule['meta-info']['last-modifier']
             else:
@@ -231,6 +236,7 @@ def parse_single_rule(src_rule, rulebase, layer_name, import_id, rule_num, paren
                 "rule_time":        sanitize(src_rule['time'][0]['name']),
                 "rule_name":        sanitize(rule_name),
                 "rule_uid":         sanitize(src_rule['uid']),
+                "rule_custom_fields": sanitize(rule_custom_fields),
                 "rule_implied":     False,
                 "rule_type":        sanitize(rule_type),
                 # "rule_head_text": sanitize(section_name),
@@ -243,6 +249,7 @@ def parse_single_rule(src_rule, rulebase, layer_name, import_id, rule_num, paren
             if comments is not None:
                 rule['rule_comment'] = sanitize(comments)
             rulebase.append(rule)
+
             return rule_num + 1
     return rule_num
 

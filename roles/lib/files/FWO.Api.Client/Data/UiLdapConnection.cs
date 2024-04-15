@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 using FWO.Middleware.RequestParameters;
+using FWO.Encryption;
 
 namespace FWO.Api.Data
 {

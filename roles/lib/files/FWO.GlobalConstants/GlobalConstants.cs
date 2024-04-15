@@ -1,4 +1,4 @@
-namespace FWO.Api.Data
+namespace FWO.GlobalConstants
 {
     /// <summary>
     /// Global string constants used e.g. as database keys etc.

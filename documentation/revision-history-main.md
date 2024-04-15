@@ -362,3 +362,11 @@ adding report template format fk and permissions
   - import log locking
   - integration tests with credentials when installing without demo data
   - pdf creation on debian testing plattform (trixie)
+
+# 8.1 - 10.04.2024 MAIN
+- UI: iconifying modelling UI buttons (can now use icons instead of text buttons - configurable per user)
+- Importer: first version of VMware NSX import module
+- API: adding customizing script for bulk configs via API
+- Database security: all credentials in the database are now encrypted - breaking change (for developer debugging only): add the following local file when using -e testkeys=true:
+  /etc/fworch/secrets/main_key with content "not4production..not4production.."
+- Importer fix: remove log locking from importer due to stalling importer stops

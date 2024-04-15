@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Logging;
@@ -226,7 +227,7 @@ namespace FWO.Middleware.Server
             {                
                 MemoryStream memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
                 string fileName = $"{Regex.Replace(globalConfig.ImpChangeNotifySubject, @"\s", "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
-                return new(memoryStream, 0, memoryStream.Length, null, fileName)
+                return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
                 {
                     Headers = new HeaderDictionary(),
                     ContentType = $"application/{fileFormat}"

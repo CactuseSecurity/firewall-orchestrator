@@ -19,7 +19,10 @@ namespace FWO.Middleware.Server
         private List<ModellingAppServer> existingAppServers = new();
 
         private Ldap internalLdap = new();
-        private string roleDn = "";
+        private string modellerRoleDn = "";
+        private string requesterRoleDn = "";
+        private string implementerRoleDn = "";
+        private string reviewerRoleDn = "";
         List<GroupGetReturnParameters> allGroups = new();
 
 
@@ -59,7 +62,10 @@ namespace FWO.Middleware.Server
         {
             List<Ldap> connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(Api.Client.Queries.AuthQueries.getLdapConnections);
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
-            roleDn = $"cn=modeller,{internalLdap.RoleSearchPath}";
+            modellerRoleDn = $"cn=modeller,{internalLdap.RoleSearchPath}";
+            requesterRoleDn = $"cn=requester,{internalLdap.RoleSearchPath}";
+            implementerRoleDn = $"cn=implementer,{internalLdap.RoleSearchPath}";
+            reviewerRoleDn = $"cn=reviewer,{internalLdap.RoleSearchPath}";
             allGroups = internalLdap.GetAllInternalGroups();
         }
 
@@ -243,7 +249,10 @@ namespace FWO.Middleware.Server
                         internalLdap.AddUserToEntry(modellerGrp, groupDn);
                     }
                 }
-                internalLdap.AddUserToEntry(groupDn, roleDn);
+                internalLdap.AddUserToEntry(groupDn, modellerRoleDn);
+                internalLdap.AddUserToEntry(groupDn, requesterRoleDn);
+                internalLdap.AddUserToEntry(groupDn, implementerRoleDn);
+                internalLdap.AddUserToEntry(groupDn, reviewerRoleDn);
             }
             return groupDn;
         }

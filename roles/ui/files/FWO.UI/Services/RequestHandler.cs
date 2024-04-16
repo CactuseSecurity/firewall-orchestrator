@@ -521,6 +521,7 @@ namespace FWO.Ui.Services
             if(CheckAssignValues(ActReqTask))
             {
                 await UpdateActReqTaskState();
+                await ActionHandler.DoOnAssignmentActions(statefulObject, ActReqTask.AssignedGroup);
             }
             DisplayAssignReqTaskMode = false;
         }
@@ -530,6 +531,7 @@ namespace FWO.Ui.Services
             ActReqTask.AssignedGroup = ActReqTask.RecentHandler?.Dn;
             ActReqTask.RecentHandler = ActReqTask.CurrentHandler ?? userConfig.User;
             await UpdateActReqTaskState();
+            await ActionHandler.DoOnAssignmentActions(ActReqTask, ActReqTask.AssignedGroup);
             DisplayAssignReqTaskMode = false;
         }
 
@@ -761,6 +763,7 @@ namespace FWO.Ui.Services
             if(CheckAssignValues(ActApproval))
             {
                 await UpdateActApproval();
+                await ActionHandler.DoOnAssignmentActions(statefulObject, ActApproval.AssignedGroup);
             }
             DisplayAssignApprovalMode = false;
         }
@@ -770,6 +773,7 @@ namespace FWO.Ui.Services
         //     ActApproval.AssignedGroup = ActApproval.RecentHandler?.Dn;
         //     ActApproval.RecentHandler = ActApproval.CurrentHandler;
         //     await UpdateActApproval();
+        //     await ActionHandler.DoOnAssignmentActions(ActApproval, ActApproval.AssignedGroup);
         //     DisplayAssignApprovalMode = false;
         // }
 
@@ -899,7 +903,8 @@ namespace FWO.Ui.Services
                         {
                             foreach(var implTask in reqTask.ImplementationTasks)
                             {
-                                if (selectedOwnerOpt.Id == -1 || (selectedOwnerOpt.Id == -2 && implTask.CurrentHandler?.DbId == userConfig.User.DbId)
+                                bool assignedToMe = implTask.CurrentHandler?.DbId == userConfig.User.DbId || implTask.AssignedGroup == userConfig.User.Dn;  // todo: resolve group membership?
+                                if (selectedOwnerOpt.Id == -1 || (selectedOwnerOpt.Id == -2 && assignedToMe)
                                     || (selectedOwnerOpt.Id > 0 && reqTask.Owners.FirstOrDefault(o => o.Owner.Id == selectedOwnerOpt.Id) != null))
                                 {
                                     implTask.TicketId = ticket.Id;
@@ -953,11 +958,11 @@ namespace FWO.Ui.Services
 
         public async Task AssignImplTaskGroup(RequestStatefulObject statefulObject)
         {
-            ActImplTask.AssignedGroup = statefulObject.AssignedGroup;
             ActImplTask.RecentHandler = ActImplTask.CurrentHandler ?? userConfig.User;
             if(CheckAssignValues(ActImplTask))
             {
                 await UpdateActImplTaskState();
+                await ActionHandler.DoOnAssignmentActions(statefulObject, ActImplTask.AssignedGroup);
             }
             DisplayAssignImplTaskMode = false;
         }
@@ -967,6 +972,7 @@ namespace FWO.Ui.Services
             ActImplTask.AssignedGroup = ActImplTask.RecentHandler?.Dn;
             ActImplTask.RecentHandler = ActImplTask.CurrentHandler ?? userConfig.User;
             await UpdateActImplTaskState();
+            await ActionHandler.DoOnAssignmentActions(ActImplTask, ActImplTask.AssignedGroup);
             DisplayAssignImplTaskMode = false;
         }
 

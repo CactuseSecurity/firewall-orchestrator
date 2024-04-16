@@ -291,13 +291,13 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
-            AppServerToAdd = new List<ModellingAppServer>();
-            AppServerToDelete = new List<ModellingAppServer>();
+            AppServerToAdd = new ();
+            AppServerToDelete = new ();
         }
 
         public async Task SelectAppServersFromArea(ModellingNetworkArea? area)
         {
-            AppServersInArea = new List<ModellingAppServer>(){};
+            AppServersInArea = new ();
             if(area != null)
             {
                 foreach(var server in AvailableAppServers.Where(x => !x.IsDeleted))

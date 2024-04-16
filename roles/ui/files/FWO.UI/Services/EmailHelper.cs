@@ -73,11 +73,16 @@ namespace FWO.Ui.Services
             return await SendEmail(CollectEmailAddressesFromOwner(owner), subject, body, requester);
         }
 
-        public async Task<bool> SendEmailFromAction(EmailActionParams emailActionParams, RequestStatefulObject statefulObject, FwoOwner? owner)
+        public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, RequestStatefulObject statefulObject, FwoOwner? owner)
         {
             List<string> tos = GetRecipients(emailActionParams.RecipientTo, statefulObject, owner, ScopedUserTo);
             List<string>? ccs = emailActionParams.RecipientCC != null ? GetRecipients((EmailRecipientOption)emailActionParams.RecipientCC, statefulObject, owner, ScopedUserCc) : null;
             return await SendEmail(tos, emailActionParams.Subject, emailActionParams.Body, ccs);
+        }
+
+        public async Task<bool> SendUserEmailFromAction(EmailActionParams emailActionParams, RequestStatefulObject statefulObject, string userGrpDn)
+        {
+            return await SendEmail(CollectEmailAddressesFromUserOrGroup(userGrpDn), emailActionParams.Subject, emailActionParams.Body);
         }
 
         private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null)
@@ -102,7 +107,7 @@ namespace FWO.Ui.Services
                     recipients.Add(GetEmailAddress(statefulObject.RecentHandler?.Dn));
                     break;
                 case EmailRecipientOption.AssignedGroup:
-                    recipients.AddRange(GetAddressesFromGroup(statefulObject.AssignedGroup));
+                    recipients.AddRange(CollectEmailAddressesFromUserOrGroup(statefulObject.AssignedGroup));
                     break;
                 case EmailRecipientOption.OwnerMainResponsible:
                     recipients.Add(GetEmailAddress(owner?.Dn));
@@ -125,6 +130,13 @@ namespace FWO.Ui.Services
         {
             List<string> tos = new() { GetEmailAddress(owner?.Dn) };
             tos.AddRange(GetAddressesFromGroup(owner?.GroupDn));
+            return tos;
+        }
+
+        private List<string> CollectEmailAddressesFromUserOrGroup(string? dn)
+        {
+            List<string> tos = new() { GetEmailAddress(dn) };
+            tos.AddRange(GetAddressesFromGroup(dn));
             return tos;
         }
 

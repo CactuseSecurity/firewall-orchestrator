@@ -1225,22 +1225,22 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
-            SrcAppServerToAdd = new List<ModellingAppServer>();
-            SrcAppServerToDelete = new List<ModellingAppServer>();
-            DstAppServerToAdd = new List<ModellingAppServer>();
-            DstAppServerToDelete = new List<ModellingAppServer>();
-            SrcAppRolesToAdd = new List<ModellingAppRole>();
-            SrcAppRolesToDelete = new List<ModellingAppRole>();
-            DstAppRolesToAdd = new List<ModellingAppRole>();
-            DstAppRolesToDelete = new List<ModellingAppRole>();
-            SrcNwGroupsToAdd = new List<ModellingNwGroup>();
-            SrcNwGroupsToDelete = new List<ModellingNwGroup>();
-            DstNwGroupsToAdd = new List<ModellingNwGroup>();
-            DstNwGroupsToDelete = new List<ModellingNwGroup>();
-            SvcToAdd = new List<ModellingService>();
-            SvcToDelete = new List<ModellingService>();
-            SvcGrpToAdd = new List<ModellingServiceGroup>();
-            SvcGrpToDelete = new List<ModellingServiceGroup>();
+            SrcAppServerToAdd = new ();
+            SrcAppServerToDelete = new ();
+            DstAppServerToAdd = new ();
+            DstAppServerToDelete = new ();
+            SrcAppRolesToAdd = new ();
+            SrcAppRolesToDelete = new ();
+            DstAppRolesToAdd = new ();
+            DstAppRolesToDelete = new ();
+            SrcNwGroupsToAdd = new ();
+            SrcNwGroupsToDelete = new ();
+            DstNwGroupsToAdd = new ();
+            DstNwGroupsToDelete = new ();
+            SvcToAdd = new ();
+            SvcToDelete = new ();
+            SvcGrpToAdd = new ();
+            SvcGrpToDelete = new ();
             SearchNWObjectMode = false;
             RemoveNwObjectMode = false;
             RemovePreselectedInterfaceMode = false;

@@ -27,7 +27,7 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    @if(userAndGroupList.Count > 0 && selectedUserGroup != null)
+                    @if(userAndGroupList.Count > 0 && selectedUserGroup != null && selectedUserGroup.Dn != origAssignedGroup)
                     {
                         <div class="col-sm-2">
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
@@ -47,19 +47,21 @@
                     && (origAssignedGroup == userConfig.User.Dn /* || userConfig.User.Groups.Contains((new DistName(origAssignedGroup)).Group)*/ )) 
                     // userConfig.User.Groups is currently not filled, because information may be available only in external Ldap
                 {
-                    <form class="form-group row">
+                    <form class="form-group row mt-2">
                         <label for="backAssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
                         <label id="backAssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
-                            <Authorized>
-                                <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>
-                                    @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
-                            </Authorized>
-                            <NotAuthorized>
-                                <button type="button" class="btn btn-sm btn-success" disabled>
-                                    @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
-                            </NotAuthorized> 
-                        </AuthorizeView>
+                        <div class="col-sm-2">
+                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
+                                <Authorized>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button type="button" class="btn btn-sm btn-success" disabled>
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
+                        </div>
                     </form>
                 }
             </form>

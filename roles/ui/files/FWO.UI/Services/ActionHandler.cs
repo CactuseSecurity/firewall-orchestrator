@@ -1,5 +1,4 @@
-﻿using FWO.GlobalConstants;
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
@@ -24,7 +23,6 @@ namespace FWO.Ui.Services
 
         public async Task Init()
         {
-            states = new List<RequestState>();
             states = await apiConnection.SendQueryAsync<List<RequestState>>(RequestQueries.getStates);
         }
 
@@ -75,7 +73,16 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task PerformAction(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner = null, long? ticketId = null)
+        public async Task DoOnAssignmentActions(RequestStatefulObject statefulObject, string? userGrpDn)
+        {
+            List<RequestStateAction> assignmentActions = GetRelevantActions(statefulObject, RequestObjectScopes.None);
+            foreach (var action in assignmentActions.Where(x => x.Event == StateActionEvents.OnAssignment.ToString()))
+            {
+                await PerformAction(action, statefulObject, RequestObjectScopes.None, null, null, userGrpDn);
+            }
+        }
+
+        public async Task PerformAction(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
         {
             switch(action.ActionType)
             {
@@ -101,7 +108,7 @@ namespace FWO.Ui.Services
                     await CallExternal(action);
                     break;
                 case nameof(StateActionTypes.SendEmail):
-                    await SendEmail(action, statefulObject, scope, owner);
+                    await SendEmail(action, statefulObject, scope, owner, userGrpDn);
                     break;
                 case nameof(StateActionTypes.CreateConnection):
                     await CreateConnection(action, owner);
@@ -122,7 +129,7 @@ namespace FWO.Ui.Services
             // call external APIs with ExternalParams, e.g. for Compliance Check
         }
 
-        public async Task SendEmail(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner)
+        public async Task SendEmail(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
         {
             Log.WriteDebug("SendEmail", "Perform Action");
             try
@@ -131,7 +138,14 @@ namespace FWO.Ui.Services
                 await SetScope(statefulObject, scope, emailActionParams);
                 EmailHelper emailHelper = new(apiConnection, requestHandler.MiddlewareClient, requestHandler.userConfig, DefaultInit.DoNothing);
                 await emailHelper.Init(ScopedUserTo, ScopedUserCc);
-                await emailHelper.SendEmailFromAction(emailActionParams, statefulObject, owner);
+                if(owner != null)
+                {
+                    await emailHelper.SendOwnerEmailFromAction(emailActionParams, statefulObject, owner);
+                }
+                else if(userGrpDn != null)
+                {
+                    await emailHelper.SendUserEmailFromAction(emailActionParams, statefulObject, userGrpDn);
+                }
             }
             catch(Exception exc)
             {

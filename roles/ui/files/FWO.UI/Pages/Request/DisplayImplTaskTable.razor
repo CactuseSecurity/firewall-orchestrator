@@ -97,23 +97,32 @@
                 </Column>
                 <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(implTask.TicketId != 0 ? ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Title : "")
+                        @(ResolveTicket(implTask)?.Title ?? "")
                     </Template>
                 </Column>
-
                 <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(implTask.TicketId != 0 && implTask.ReqTaskId != 0 ?
-                            ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId)?.Title : "")
+                        @(implTask.ReqTaskId != 0 ? ResolveTicket(implTask)?.Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId)?.Title : "")
                     </Template>
                 </Column>
             }
             <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("gateway"))" Field="@(x => x.DeviceId)" Sortable="true">
-                <Template>
-                    @(implTask.DeviceId != null && implTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
-                </Template>
-            </Column>
+            @if(userConfig.ReqOwnerBased)
+            {
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("owner"))" Field="@(x => x.ReqTaskId)" Sortable="true">
+                    <Template>
+                        @(implTask.ReqTaskId != 0 ? ResolveTicket(implTask)?.Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId)?.Owners?.First()?.Owner.Name : "")
+                    </Template>
+                </Column>
+            }
+            else
+            {
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("gateway"))" Field="@(x => x.DeviceId)" Sortable="true">
+                    <Template>
+                        @(implTask.DeviceId != null && implTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
+                    </Template>
+                </Column>
+            }
             <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                 <Template>
                     @(States.Name[implTask.StateId])
@@ -165,7 +174,7 @@
 
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States" />
 <AssignObject @bind-Display="ReqHandler.DisplayAssignImplTaskMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="Assign"
-    AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" RoleList="validRoles" Owner="@ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner"/>
+    AssignBack="AssignBack" ObjectName="@ReqHandler.ActImplTask.Title" RoleList="validRoles" Owner="@ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteImplTaskMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjectName="@(ReqHandler.ActImplTask.Title)"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayCleanupMode" ResetParent="Reset" Delete="ReqHandler.ConfCleanupImplTasks" ObjectName="@(userConfig.GetText("all_impltasks"))"/>
 <DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalImplMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
@@ -209,6 +218,19 @@
         StateHasChanged();
     }
 
+    private RequestTicket? ResolveTicket(RequestImplTask implTask)
+    {
+        if(implTask.TicketId != 0)
+        {
+            int idx = ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId);
+            if(idx >= 0)
+            {
+                return ReqHandler.TicketList[idx];
+            }
+        }
+        return null;
+    }
+
     private void ShowImplTask(RequestImplTask implTask)
     {
         ReqHandler.SelectImplTask(implTask, ObjAction.display);
@@ -236,6 +258,17 @@
     private async Task Assign(RequestStatefulObject grp)
     {
         await ReqHandler.AssignImplTaskGroup(grp);
+        UpdateImplTaskInList();
+    }
+
+    private async Task AssignBack()
+    {
+        await ReqHandler.AssignImplTaskBack();
+        UpdateImplTaskInList();
+    }
+
+    private void UpdateImplTaskInList()
+    {
         int? idx = AllImplTasks?.FindIndex(x => x.Id == ReqHandler.ActImplTask.Id);
         if(idx != null && idx >= 0)
         {

@@ -238,6 +238,10 @@ namespace FWO.Middleware.Server
 
         private List<string> CollectRecipients()
         {
+            if(globalConfig.UseDummyEmailAddress)
+            {
+                return new() { globalConfig.DummyEmailAddress };
+            }
             string[] separatingStrings = { ",", ";", "|" };
             return globalConfig.ImpChangeNotifyRecipients.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
         }

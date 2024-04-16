@@ -144,6 +144,10 @@ namespace FWO.Ui.Services
 
         private string GetEmailAddress(string? dn)
         {
+            if(userConfig.UseDummyEmailAddress)
+            {
+                return userConfig.DummyEmailAddress;
+            }
             UiUser? uiuser = uiUsers.FirstOrDefault(x => x.Dn == dn);
             if(uiuser != null && uiuser.Email != null && uiuser.Email != "")
             {

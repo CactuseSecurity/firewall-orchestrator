@@ -1314,6 +1314,10 @@ INSERT INTO txt VALUES ('email_auth_pwd',       'German', 	'Email-Nutzer Passwor
 INSERT INTO txt VALUES ('email_auth_pwd',       'English', 	'Email user password');
 INSERT INTO txt VALUES ('email_enc_method',     'German', 	'Email-Verschl&uuml;sselung');
 INSERT INTO txt VALUES ('email_enc_method',     'English', 	'Email encryption');
+INSERT INTO txt VALUES ('use_dummy_email_address','German', 'Dummy-Email-Addresse nutzen');
+INSERT INTO txt VALUES ('use_dummy_email_address','English','Use dummy email address');
+INSERT INTO txt VALUES ('dummy_email_address',  'German', 	'Dummy-Email-Addresse');
+INSERT INTO txt VALUES ('dummy_email_address',  'English', 	'Dummy email address');
 INSERT INTO txt VALUES ('state_definitions',	'German', 	'Statusdefinitionen');
 INSERT INTO txt VALUES ('state_definitions',	'English', 	'State Definitions');
 INSERT INTO txt VALUES ('state_matrix',	        'German', 	'Statusmatrix');
@@ -4254,6 +4258,10 @@ INSERT INTO txt VALUES ('H5491d','German',  'Verlangt der SMTP-Server eine Authe
 INSERT INTO txt VALUES ('H5491d','English', 'If the SMTP server requires authentication, enter Email User name and password in the two fields. Otherwise leave empty.');
 INSERT INTO txt VALUES ('H5491e','German',  'Schlie&szlig;lich kann auch eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.');
 INSERT INTO txt VALUES ('H5491e','English', 'Finally an individual sender address can be configured using the field "Email sender address".');
+INSERT INTO txt VALUES ('H5491f','German',  'Dummy-Email-Addresse nutzen: Zu Testzwecken werden alle ausgehenden emails (ausser der Test-Email) auf eine Emailaddresse umgeleitet.');
+INSERT INTO txt VALUES ('H5491f','English', 'Use dummy email address: For testing purpose all sent emails (except the test email) are redirected to a dummy email address.');
+INSERT INTO txt VALUES ('H5491g','German',  'Dummy-Email-Addresse: Addresse auf welche die Emails umgeleitet werden, wenn Umleitung aktiviert.');
+INSERT INTO txt VALUES ('H5491g','English', 'Dummy email address: Address where emails are directed, if redirection is activated.');
 INSERT INTO txt VALUES ('H5492','German',   'Verbindung testen: Es wird eine Test-email an die oben eingerichtete email-Adresse versandt.');
 INSERT INTO txt VALUES ('H5492','English',  'Test connection: A test email is sent to the above defined email address.');
 INSERT INTO txt VALUES ('H5495', 'German',  'Die folgenden Einstellungen wirken sich auf das Import-Modul (python) aus.');

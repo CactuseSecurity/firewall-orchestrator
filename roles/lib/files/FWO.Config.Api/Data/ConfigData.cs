@@ -177,6 +177,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("emailSenderAddress"), JsonPropertyName("emailSenderAddress")]
         public string EmailSenderAddress { get; set; } = "";
 
+        [JsonProperty("useDummyEmailAddress"), JsonPropertyName("useDummyEmailAddress")]
+        public bool UseDummyEmailAddress { get; set; } = false;
+
+        [JsonProperty("dummyEmailAddress"), JsonPropertyName("dummyEmailAddress")]
+        public string DummyEmailAddress { get; set; } = "";
+
         [JsonProperty("minCollapseAllDevices"), JsonPropertyName("minCollapseAllDevices"), UserConfigData]
         public int MinCollapseAllDevices { get; set; } = 15;
 

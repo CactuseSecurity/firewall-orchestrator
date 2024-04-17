@@ -55,7 +55,7 @@ else
 
     private bool DisplayTickets = true;
     private Device selectedDeviceOpt = new ();
-    private FwoOwner selectedOwnerOpt = new ();
+    private FwoOwner selectedOwnerOpt = new (){ Id = -1 };
 
 
     protected override async Task OnInitializedAsync()
@@ -73,7 +73,7 @@ else
             await Reset();
             await HandleTicketId();
             reqHandler.SetContinueEnv(ObjAction.review);
-    
+            await Select();
             InitComplete = true;
         }
         catch (Exception exception)

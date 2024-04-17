@@ -146,7 +146,15 @@ namespace FWO.Ui.Services
 
         public StateMatrix StateMatrix(string taskType)
         {
-            return stateMatrixDict.Matrices[taskType];
+            try
+            {
+                return stateMatrixDict.Matrices[taskType];
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("state_matrix"), "", true);
+                return new ();
+            }
         }
 
         public async Task AutoPromote(RequestStatefulObject statefulObject, RequestObjectScopes scope, int? toStateId)

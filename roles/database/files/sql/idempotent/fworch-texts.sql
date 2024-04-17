@@ -964,7 +964,7 @@ INSERT INTO txt VALUES ('path_analysis',		'German', 	'Pfadanalyse');
 INSERT INTO txt VALUES ('path_analysis',		'English', 	'Path analysis');
 INSERT INTO txt VALUES ('all_my_owners',		'German', 	'Alle meine Eigent&uuml;mer');
 INSERT INTO txt VALUES ('all_my_owners',		'English', 	'All my owners');
-INSERT INTO txt VALUES ('assigned_to_me',		'German', 	'Zu mir zugeordnet');
+INSERT INTO txt VALUES ('assigned_to_me',		'German', 	'Mir zugeordnet');
 INSERT INTO txt VALUES ('assigned_to_me',		'English', 	'Assigned to me');
 INSERT INTO txt VALUES ('select_owner',         'German',   'Eigent&uuml;mer ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_owner',         'English',  'Select Owner');

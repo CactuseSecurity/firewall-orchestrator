@@ -172,7 +172,7 @@ namespace FWO.Report
             return names;
         }
 
-        private void SetSvcNumbers(ref List<NetworkService> svcList)
+        private static void SetSvcNumbers(ref List<NetworkService> svcList)
         {
             long number = 1;
             foreach(var svc in svcList)
@@ -181,7 +181,7 @@ namespace FWO.Report
             }
         }
 
-        private void SetObjectNumbers(ref List<NetworkObject> objList)
+        private static void SetObjectNumbers(ref List<NetworkObject> objList)
         {
             long number = 1;
             foreach(var obj in objList)

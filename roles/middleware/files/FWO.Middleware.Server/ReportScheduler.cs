@@ -167,6 +167,7 @@ namespace FWO.Middleware.Server
                             }, token);
                         foreach(var ownerReport in report.ReportData.OwnerData)
                         {
+                            ownerReport.Name = reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Name;
                             ownerReport.RegularConnections = ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
                             ownerReport.Interfaces = ownerReport.Connections.Where(x => x.IsInterface).ToList();
                             ownerReport.CommonServices = ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();

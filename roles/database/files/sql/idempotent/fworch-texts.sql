@@ -694,8 +694,8 @@ INSERT INTO txt VALUES ('repeat_interval', 		'German',	'Wiederholungsintervall')
 INSERT INTO txt VALUES ('repeat_interval', 		'English',	'Repeat Interval');
 INSERT INTO txt VALUES ('template',			    'German', 	'Vorlage');
 INSERT INTO txt VALUES ('template',			    'English', 	'Template');
-INSERT INTO txt VALUES ('owner',				'German', 	'Eigent&uuml;mer');
-INSERT INTO txt VALUES ('owner',				'English', 	'Owner');
+INSERT INTO txt VALUES ('schedule_owner',		'German', 	'Eigent&uuml;mer');
+INSERT INTO txt VALUES ('schedule_owner',		'English', 	'Owner');
 INSERT INTO txt VALUES ('active', 			    'German',	'Aktiv');
 INSERT INTO txt VALUES ('active', 			    'English',	'Active');
 INSERT INTO txt VALUES ('count', 			    'German',	'Z&auml;hler');
@@ -1224,6 +1224,8 @@ INSERT INTO txt VALUES ('publish',              'German',   'Ver&ouml;ffentliche
 INSERT INTO txt VALUES ('publish',              'English',  'Publish');
 INSERT INTO txt VALUES ('interface_description','German',   'Schnittstellenbeschreibung');
 INSERT INTO txt VALUES ('interface_description','English',  'Interface description');
+INSERT INTO txt VALUES ('owner',				'German', 	'Eigent&uuml;mer');
+INSERT INTO txt VALUES ('owner',				'English', 	'Owner');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

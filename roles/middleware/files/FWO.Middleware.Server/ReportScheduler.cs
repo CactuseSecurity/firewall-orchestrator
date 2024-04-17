@@ -18,8 +18,8 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class ReportScheduler
     {
-        private readonly object scheduledReportsLock = new object();
-        private List<ReportSchedule> scheduledReports = new List<ReportSchedule>();
+        private readonly object scheduledReportsLock = new ();
+        private List<ReportSchedule> scheduledReports = new ();
         private readonly TimeSpan CheckScheduleInterval = TimeSpan.FromMinutes(1);
 
         private readonly string apiServerUri;
@@ -27,7 +27,7 @@ namespace FWO.Middleware.Server
         private readonly GraphQlApiSubscription<ReportSchedule[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
 
-        private readonly object ldapLock = new object();
+        private readonly object ldapLock = new ();
         private List<Ldap> connectedLdaps;
 
 		/// <summary>
@@ -76,7 +76,7 @@ namespace FWO.Middleware.Server
 
         private async void CheckSchedule(object? _, ElapsedEventArgs __)
         {
-            List<Task> reportGeneratorTasks = new List<Task>();
+            List<Task> reportGeneratorTasks = new ();
 
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
@@ -120,14 +120,14 @@ namespace FWO.Middleware.Server
 
         private Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded)
         {
-            CancellationToken token = new CancellationToken();
+            CancellationToken token = new ();
             return Task.Run(async () =>
             {
                 try
                 {
                     Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.Owner.Name}\" with id \"{reportSchedule.Owner.DbId}\" ...");
 
-                    ReportFile reportFile = new ReportFile
+                    ReportFile reportFile = new ()
                     { 
                         Name = $"{reportSchedule.Name}_{dateTimeNowRounded.ToShortDateString()}",
                         GenerationDateStart = DateTime.Now,
@@ -137,7 +137,7 @@ namespace FWO.Middleware.Server
                     };
 
                     // get uiuser roles + tenant
-                    AuthManager authManager = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
+                    AuthManager authManager = new (jwtWriter, connectedLdaps, apiConnection);
                     string jwt = await authManager.AuthorizeUserAsync(reportSchedule.Owner, validatePassword: false, lifetime: TimeSpan.FromDays(365));
                     ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
@@ -165,6 +165,12 @@ namespace FWO.Middleware.Server
                                 report.ReportData.OwnerData = rep.OwnerData;
                                 return Task.CompletedTask;
                             }, token);
+                        foreach(var ownerReport in report.ReportData.OwnerData)
+                        {
+                            ownerReport.RegularConnections = ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
+                            ownerReport.Interfaces = ownerReport.Connections.Where(x => x.IsInterface).ToList();
+                            ownerReport.CommonServices = ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();
+                        }
                     }
                     await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                     WriteReportFile(report, reportSchedule.OutputFormat, reportFile);

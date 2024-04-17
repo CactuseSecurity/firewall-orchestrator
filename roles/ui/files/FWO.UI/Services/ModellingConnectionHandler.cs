@@ -218,7 +218,6 @@ namespace FWO.Ui.Services
             }
         }
 
-        //public async Task CreateNewRequestedInterface(System.Security.Claims.ClaimsPrincipal user)
         public async Task<long> CreateNewRequestedInterface(long ticketId, bool asSource, string name, string reason)
         {
             //apiConnection.SetProperRole(user, new List<string> { Roles.Modeller, Roles.Admin });
@@ -235,7 +234,7 @@ namespace FWO.Ui.Services
             {
                 ActConn.DestinationAppRoles.Add(new() { Content = DummyAppRole });
             }
-            await AddConnectionToDb();
+            await AddConnectionToDb(true);
 
             ActConn.AppId = RequesterId;
             await AddToPreselectedList(ActConn);
@@ -1000,14 +999,17 @@ namespace FWO.Ui.Services
             }
         }
 
-        private async Task AddConnectionToDb()
+        private async Task AddConnectionToDb(bool propose = false)
         {
             try
             {
+                int? appId = propose ? null : Application.Id;
+                int? proposedAppId = propose ? Application.Id : null;
                 var Variables = new
                 {
                     name = ActConn.Name,
-                    appId = Application.Id,
+                    appId = appId,
+                    proposedAppId = proposedAppId,
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
@@ -1021,7 +1023,7 @@ namespace FWO.Ui.Services
                 {
                     ActConn.Id = returnIds[0].NewId;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"New {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
+                        $"New {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", appId);
                     if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                     {
                         await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers).ToList(), 
@@ -1061,7 +1063,8 @@ namespace FWO.Ui.Services
                 {
                     id = ActConn.Id,
                     name = ActConn.Name,
-                    appId = Application.Id,
+                    appId = ActConn.AppId,
+                    proposedAppId = ActConn.ProposedAppId,
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,

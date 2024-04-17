@@ -1327,6 +1327,7 @@ create table modelling.connection
 (
  	id SERIAL PRIMARY KEY,
 	app_id int,
+	proposed_app_id int,
 	name Varchar,
 	reason Text,
 	is_interface boolean default false,

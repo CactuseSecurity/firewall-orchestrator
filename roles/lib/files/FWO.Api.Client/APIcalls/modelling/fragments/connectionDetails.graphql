@@ -1,6 +1,7 @@
 fragment connectionDetails on modelling_connection {
   id
   app_id
+  proposed_app_id
   name
   reason
   is_interface

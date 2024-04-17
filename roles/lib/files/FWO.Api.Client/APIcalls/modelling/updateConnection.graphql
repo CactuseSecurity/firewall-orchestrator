@@ -2,6 +2,7 @@ mutation updateConnection(
   $id: Int!
   $name: String
   $appId: Int
+  $proposedAppId: Int
   $reason: String
   $isInterface: Boolean
   $usedInterfaceId: Int
@@ -14,6 +15,7 @@ mutation updateConnection(
     _set: {
       name: $name
       app_id: $appId
+      proposed_app_id: $proposedAppId
       reason: $reason
       is_interface: $isInterface
       used_interface_id: $usedInterfaceId

@@ -9,7 +9,10 @@ namespace FWO.Api.Data
         public int Id { get; set; }
 
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
-        public int AppId { get; set; }
+        public int? AppId { get; set; }
+
+        [JsonProperty("proposed_app_id"), JsonPropertyName("proposed_app_id")]
+        public int? ProposedAppId { get; set; }
 
         [JsonProperty("owner"), JsonPropertyName("owner")]
         public FwoOwner App { get; set; } = new();
@@ -82,6 +85,7 @@ namespace FWO.Api.Data
            OrderNumber = conn.OrderNumber;
            Id = conn.Id;
            AppId = conn.AppId;
+           ProposedAppId = conn.ProposedAppId;
            Name = conn.Name;
            Reason = conn.Reason;
            IsInterface = conn.IsInterface;

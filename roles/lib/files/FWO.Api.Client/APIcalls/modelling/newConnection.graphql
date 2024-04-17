@@ -1,6 +1,7 @@
 mutation newConnection(
   $name: String
   $appId: Int
+  $proposedAppId: Int
   $reason: String
   $isInterface: Boolean
   $usedInterfaceId: Int
@@ -12,6 +13,7 @@ mutation newConnection(
   insert_modelling_connection(objects: {
     name: $name
     app_id: $appId
+    proposed_app_id: $proposedAppId
     reason: $reason
     is_interface: $isInterface
     used_interface_id: $usedInterfaceId

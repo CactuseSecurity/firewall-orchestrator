@@ -446,12 +446,17 @@
     private async Task Publish()
     {
         bool origRequested = ConnHandler.ActConn.IsRequested;
-        string origCreator = ConnHandler.ActConn.Creator;
+        string? origCreator = ConnHandler.ActConn.Creator;
         if(origRequested)
         {
             ConnHandler.ActConn.Creator = userConfig.User.Name;
         }
         ConnHandler.ActConn.IsRequested = false;
+        if(ConnHandler.ActConn.AppId == null)
+        {
+            ConnHandler.ActConn.AppId = ConnHandler.ActConn.ProposedAppId;
+            ConnHandler.ActConn.ProposedAppId = null;
+        }
         ConnHandler.ActConn.IsPublished = true;
         if(await Save())
         {

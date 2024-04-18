@@ -25,11 +25,22 @@
   delay: 5 # Every 5 seconds
   when: "'middlewareserver' in group_names"
 
+- debug:
+    var: web_call_result
+  when: "'middlewareserver' in group_names"
+
 - name: show middleware webserver test results
   fail:
     msg: "url: {{ item.url }}, status: {{ item.status }}"
   loop: "{{ web_call_result.results | from_yaml | list }}"
-  when: 'middlewareserver' in group_names and item.status!=200
+  when: "'middlewareserver' in group_names and item.status!=200"
+
+##############################
+#TASK [test : show middleware webserver test results] ***************************
+#fatal: [localhost]: FAILED! => 
+#  msg: '''dict object'' has no attribute ''results''. ''dict object'' has no attribute ''results'''
+
+
   
 - name: test api web server availability
   uri:
@@ -52,7 +63,7 @@
   fail:
     msg: "url: {{ item.url }}, status: {{ item.status }}"
   loop: "{{ web_call_result.results | from_yaml | list }}"
-  when: 'apiserver' in group_names and item.status!=200
+  when: "'apiserver' in group_names and item.status!=200"
 
 - name: test ui web server availability
   uri:
@@ -75,4 +86,4 @@
   fail:
     msg: "url: {{ item.url }}, status: {{ item.status }}"
   loop: "{{ web_call_result.results | from_yaml | list }}"
-  when: 'frontends' in group_names and item.status!=200
+  when: "'frontends' in group_names and item.status!=200"

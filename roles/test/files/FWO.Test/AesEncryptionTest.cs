@@ -1,5 +1,6 @@
 ﻿using FWO.Encryption;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System.Text;
 using Assert = NUnit.Framework.Assert;
 
@@ -33,7 +34,7 @@ namespace FWO.Test
             string randomPlaintext = GenerateRandomString(15, 100);
             string encryptedString = AesEnc.Encrypt(randomPlaintext, tempKey);
             string decryptedString = AesEnc.Decrypt(encryptedString, tempKey);
-            Assert.AreEqual(randomPlaintext, decryptedString);
+            ClassicAssert.AreEqual(randomPlaintext, decryptedString);
         }
 
     }

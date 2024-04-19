@@ -193,3 +193,7 @@ bugfix release:
 - add custom (user-defined) fields to import
   - cp only so far, other fw types missing
   - user-defined fields are not part of reports yet
+
+# 8.1.2 - 22.04.2024 DEVELOP
+- encrypt emailPassword in config
+- fix demo managements (change import from deactivated to activated - does not affect test managements)

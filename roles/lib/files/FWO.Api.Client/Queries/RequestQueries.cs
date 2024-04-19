@@ -17,6 +17,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string newRequestTask;
         public static readonly string updateRequestTask;
         public static readonly string updateRequestTaskState;
+        public static readonly string updateRequestTaskAdditionalInfo;
         public static readonly string deleteRequestTask;
         public static readonly string newRequestElement;
         public static readonly string updateRequestElement;
@@ -66,6 +67,7 @@ namespace FWO.Api.Client.Queries
                 newRequestTask = File.ReadAllText(QueryPath + "request/newRequestTask.graphql");
                 updateRequestTask = File.ReadAllText(QueryPath + "request/updateRequestTask.graphql");
                 updateRequestTaskState = File.ReadAllText(QueryPath + "request/updateRequestTaskState.graphql");
+                updateRequestTaskAdditionalInfo = File.ReadAllText(QueryPath + "request/updateRequestTaskAdditionalInfo.graphql");
                 deleteRequestTask = File.ReadAllText(QueryPath + "request/deleteRequestTask.graphql");
                 newRequestElement = File.ReadAllText(QueryPath + "request/newRequestElement.graphql");
                 updateRequestElement = File.ReadAllText(QueryPath + "request/updateRequestElement.graphql");

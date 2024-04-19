@@ -111,7 +111,7 @@
             {
                 <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("owner"))" Field="@(x => x.ReqTaskId)" Sortable="true">
                     <Template>
-                        @(implTask.ReqTaskId != 0 ? ResolveTicket(implTask)?.Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId)?.Owners?.First()?.Owner.Name : "")
+                        @(GetOwnerName(implTask))
                     </Template>
                 </Column>
             }
@@ -229,6 +229,23 @@
             }
         }
         return null;
+    }
+
+    private string GetOwnerName(RequestImplTask implTask)
+    {
+        if(implTask.ReqTaskId != 0)
+        {
+            RequestTicket? ticket = ResolveTicket(implTask);
+            if(ticket != null && ticket.Tasks.Count > 0)
+            {
+                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId);
+                if(reqTask != null && reqTask.Owners != null && reqTask.Owners.Count > 0)
+                {
+                    return reqTask.Owners?.First()?.Owner.Name ?? "";
+                }
+            }
+        }
+        return "";
     }
 
     private void ShowImplTask(RequestImplTask implTask)

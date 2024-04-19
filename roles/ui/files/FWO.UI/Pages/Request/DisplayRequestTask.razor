@@ -1,6 +1,7 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Ui.Pages.NetworkModelling
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -254,21 +255,21 @@
                     </div>
                 }
 
-                @if(ReqHandler.EditReqTaskMode || ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
-                {
-                    <div class="col-sm-12 mt-2">
-                        <div class="form-group row justify-content-center">
-                            @foreach(var action in offeredActions)
-                            {
+                <div class="row justify-content-center mt-2">
+                    @foreach(var action in offeredActions)
+                    {
+                        @if(ReqHandler.EditReqTaskMode || ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode || RequestStateAction.IsReadonlyType(action.ActionType))
+                        {
+                            <div>
                                 <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                            }
-                        </div>
-                    </div>
-                }
+                            </div>
+                        }
+                    }
+                </div>
 
                 @if(Phase == WorkflowPhases.planning || ReqHandler.ActReqTask.ImplementationTasks.Count > 0)
                 {
-                    <h5>@(userConfig.GetText("implementation_tasks"))</h5>
+                    <h5 class="mt-2">@(userConfig.GetText("implementation_tasks"))</h5>
 
                     <DisplayImplTaskTable Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
                         AllImplTasks="ReqHandler.ActReqTask.ImplementationTasks" StartImplPhase="StartImplPhase"/>
@@ -334,6 +335,8 @@
 <PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 <CommentObject @bind-Display="ReqHandler.DisplayReqTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfAddComment"/>
 <DisplayPathAnalysis @bind-Display="ReqHandler.DisplayPathAnalysisMode" ResetParent="ResetPathAnalysis" ReqTask="ReqHandler.ActReqTask"/>
+<EditConnPopup @bind-Display="ReqHandler.ActionHandler.DisplayConnectionMode" ConnHandler="ReqHandler.ActionHandler.ConnHandler"/>
+
 
 @code
 {
@@ -448,7 +451,7 @@
 
     private async Task Reset()
     {
-        Log.WriteDebug("DisplayRequestTask", $"Reset");
+        Log.WriteDebug("DisplayRequestTask", "Reset");
         offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, ReqHandler.Phase);
         selectedDevices = new List<Device>();
         foreach(int devId in ReqHandler.ActReqTask.getDeviceList().ToArray())

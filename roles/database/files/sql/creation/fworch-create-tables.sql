@@ -1121,7 +1121,8 @@ create table request.reqtask
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	devices varchar
+	devices varchar,
+	additional_info varchar
 );
 
 create table request.reqelement 

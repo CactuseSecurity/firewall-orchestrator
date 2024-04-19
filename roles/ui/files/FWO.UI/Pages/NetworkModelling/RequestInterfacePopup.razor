@@ -107,6 +107,10 @@
                     ConnHandler.RequesterId = RequestingOwner.Id;
                     long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
                     await SendEmail(ticketId, connId);
+                    
+                    apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin});
+                    await ticketCreator.SetInterfaceId(ticketId, connId, SelectedOwner);
+                    apiConnection.SwitchBack();
                 }
                 await UpdateParent();
                 Close();

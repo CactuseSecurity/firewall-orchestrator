@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Api.Client;
@@ -20,9 +19,9 @@ namespace FWO.Ui.Services
         private int priority;
 
 
-        public TicketCreator(ApiConnection apiConnection, UserConfig userConfig, MiddlewareClient middlewareClient)
+        public TicketCreator(ApiConnection apiConnection, UserConfig userConfig, MiddlewareClient middlewareClient, WorkflowPhases phase = WorkflowPhases.request)
         {
-            reqHandler = new (LogMessage, userConfig, apiConnection, middlewareClient, WorkflowPhases.request);
+            reqHandler = new (LogMessage, userConfig, apiConnection, middlewareClient, phase);
             this.userConfig = userConfig;
         }
 
@@ -53,16 +52,40 @@ namespace FWO.Ui.Services
             return await reqHandler.SaveTicket(reqHandler.ActTicket);
         }
 
+        public async Task SetInterfaceId(long ticketId, long connId, FwoOwner owner)
+        {
+            await reqHandler.Init(new(){ owner.Id }, true);
+            RequestTicket? ticket = await reqHandler.ResolveTicket(ticketId);
+            if(ticket != null)
+            {
+                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                if(reqTask != null)
+                {
+                    await reqHandler.AddAdditionalInfoToReqTask(reqTask, connId);
+                }
+            }
+        }
+
         public async Task<bool> PromoteTicket(FwoOwner owner, long ticketId)
         {
             await reqHandler.Init(new(){ owner.Id });
             RequestTicket? ticket = await reqHandler.ResolveTicket(ticketId);
-            if(ticket != null && ticket.RelevantOwner == owner)
+            if(ticket != null)
             {
                 reqHandler.SetTicketEnv(ticket);
-                int newState = reqHandler.MasterStateMatrix.LowestEndState; // todo ?
-                await reqHandler.PromoteTicket(new(){ StateId = newState });
-                return true;
+                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                if(reqTask != null)
+                {
+                    reqHandler.SetReqTaskEnv(reqTask);
+                    RequestImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
+                    if(implTask != null)
+                    {
+                        await reqHandler.ContinueImplPhase(implTask);
+                        int newState = reqHandler.MasterStateMatrix.LowestEndState;
+                        await reqHandler.PromoteImplTask(new(){ StateId = newState });
+                        return true;
+                    }
+                }
             }
             return false;
         }

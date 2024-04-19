@@ -14,7 +14,8 @@ namespace FWO.Api.Data
         SendEmail = 15,
         CreateConnection = 20,
         UpdateConnectionOwner = 21,
-        UpdateConnectionRelease = 22
+        UpdateConnectionRelease = 22,
+        DisplayConnection = 23
         // CreateReport = 30
     }
 
@@ -61,6 +62,20 @@ namespace FWO.Api.Data
 
         public RequestStateAction()
         { }
+
+        public static bool IsReadonlyType(string actionTypeString)
+        {
+            if( Enum.TryParse<StateActionTypes>(actionTypeString, out StateActionTypes actionType))
+            {
+                return actionType switch
+                {
+                    StateActionTypes.TrafficPathAnalysis => true,
+                    StateActionTypes.DisplayConnection => true,
+                    _ => false,
+                };
+            }
+            return false;
+        }
     }
 
     public class RequestStateActionDataHelper

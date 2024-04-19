@@ -154,6 +154,7 @@ namespace FWO.Ui.Services
                     validFrom = reqtask.TargetBeginDate,
                     validTo = reqtask.TargetEndDate,
                     reason = reqtask.Reason,
+                    additionalInfo = reqtask.AdditionalInfo,
                     freeText = reqtask.FreeText
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newRequestTask, Variables)).ReturnIds;
@@ -206,6 +207,7 @@ namespace FWO.Ui.Services
                     validFrom = reqtask.TargetBeginDate,
                     validTo = reqtask.TargetEndDate,
                     reason = reqtask.Reason,
+                    additionalInfo = reqtask.AdditionalInfo,
                     freeText = reqtask.FreeText,
                     devices = reqtask.SelectedDevices
                 };
@@ -219,6 +221,27 @@ namespace FWO.Ui.Services
                     await UpdateReqElementsInDb(reqtask);
                     await UpdateOwnersInDb(reqtask);
                     await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
+            }
+        }
+
+        public async Task UpdateReqTaskAdditionalInfo(RequestReqTask reqtask)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    id = reqtask.Id,
+                    additionalInfo = reqtask.AdditionalInfo
+                };
+                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTaskAdditionalInfo, Variables)).UpdatedId;
+                if(udId != reqtask.Id)
+                {
+                    DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
             }
             catch (Exception exception)

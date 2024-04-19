@@ -11,7 +11,6 @@ namespace FWO.Api.Data
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public List<RequestCommentDataHelper> Comments { get; set; } = new ();
 
-        public FwoOwner? RelevantOwner { get; set; }
 
         public RequestTicket()
         {}
@@ -20,7 +19,6 @@ namespace FWO.Api.Data
         {
             Tasks = ticket.Tasks;
             Comments = ticket.Comments;
-            RelevantOwner = ticket.RelevantOwner;
         }
 
         public int HighestTaskNumber()

@@ -465,7 +465,7 @@
                 try
                 {
                     apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
-                    TicketCreator ticketCreator = new (apiConnection, userConfig, middlewareClient);
+                    TicketCreator ticketCreator = new (apiConnection, userConfig, middlewareClient, WorkflowPhases.implementation);
                     if(await ticketCreator.PromoteTicket(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId)))
                     {
                         DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);

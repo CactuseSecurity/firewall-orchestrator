@@ -21,6 +21,9 @@ namespace FWO.Api.Data
         [JsonProperty("reason"), JsonPropertyName("reason")]
         public string? Reason { get; set; }
 
+        [JsonProperty("additional_info"), JsonPropertyName("additional_info")]
+        public string? AdditionalInfo { get; set; }
+
         [JsonProperty("last_recert_date"), JsonPropertyName("last_recert_date")]
         public DateTime? LastRecertDate { get; set; }
 
@@ -47,6 +50,7 @@ namespace FWO.Api.Data
         {
             RequestAction = reqtask.RequestAction;
             Reason = reqtask.Reason;
+            AdditionalInfo = reqtask.AdditionalInfo;
             LastRecertDate = reqtask.LastRecertDate;
             SelectedDevices = reqtask.SelectedDevices;
         }
@@ -58,7 +62,7 @@ namespace FWO.Api.Data
 
         public void SetDeviceList(List<Device> devList)
         {
-            deviceList = new List<int>();
+            deviceList = new ();
             foreach(var dev in devList)
             {
                 deviceList.Add(dev.Id);

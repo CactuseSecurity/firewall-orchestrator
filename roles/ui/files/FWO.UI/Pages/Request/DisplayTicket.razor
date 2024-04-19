@@ -4,6 +4,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 @using FWO.Ui.Data
+@using FWO.Ui.Pages.NetworkModelling
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -88,18 +89,19 @@
                         <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Reason"/>   
                     </div>
                 </div>
-
-                @if(!ReqHandler.ReadOnlyMode)
-                {
-                    <div class="col-sm-12">
-                        <div class="form-group row justify-content-center">
-                            @foreach(var action in offeredActions)
+                <div class="col-sm-12 mt-2">
+                    <div class="form-group row justify-content-center">
+                        @foreach(var action in offeredActions)
+                        {
+                            @if(!ReqHandler.ReadOnlyMode || RequestStateAction.IsReadonlyType(action.ActionType))
                             {
-                                <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                                </div>
                             }
-                        </div>
+                        }
                     </div>
-                }
+                </div>
                 <br>
 
                 @if(Phase < WorkflowPhases.implementation)
@@ -207,10 +209,10 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if(firstParamSet)
+        if(firstParamSet && ReqHandler.DisplayTicketMode)
         {
-            await Reset();
             firstParamSet = false;
+            await Reset();
         }
     }
 
@@ -223,12 +225,9 @@
     {
         try
         {
-            Log.WriteDebug("DisplayTicket", $"Reset");
-            if (ReqHandler.DisplayTicketMode)
-            {
-                offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
-                selectedPriority = ReqHandler.PrioList.FirstOrDefault(p => p.NumPrio == ReqHandler.ActTicket.Priority);
-            }
+            Log.WriteDebug("DisplayTicket", "Reset");
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
+            selectedPriority = ReqHandler.PrioList.FirstOrDefault(p => p.NumPrio == ReqHandler.ActTicket.Priority);
             StateHasChanged();
         }
         catch (Exception exception)

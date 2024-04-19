@@ -3,6 +3,7 @@ alter table modelling.connection add column if not exists ticket_id bigint;
 alter table modelling.connection add column if not exists is_published boolean default false;
 alter table modelling.connection add column if not exists proposed_app_id int;
 alter table owner_network add column if not exists custom_type int;
+alter table request.reqtask add column if not exists additional_info varchar;
 
 
 insert into request.state (id,name) VALUES (205,'Rework') ON CONFLICT DO NOTHING;

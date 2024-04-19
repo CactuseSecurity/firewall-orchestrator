@@ -13,6 +13,8 @@ namespace FWO.Ui.Services
         private readonly RequestHandler requestHandler = new ();
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
+        public bool DisplayConnectionMode = false;
+        public ModellingConnectionHandler? ConnHandler { get; set; }
 
 
         public ActionHandler(ApiConnection apiConnection, RequestHandler requestHandler)
@@ -119,6 +121,9 @@ namespace FWO.Ui.Services
                 case nameof(StateActionTypes.UpdateConnectionRelease):
                     await UpdateConnectionRelease(action, owner);
                     break;
+                case nameof(StateActionTypes.DisplayConnection):
+                    await DisplayConnection(statefulObject, scope);
+                    break;
                 default:
                     break;
             }
@@ -210,6 +215,31 @@ namespace FWO.Ui.Services
         public async Task UpdateConnectionRelease(RequestStateAction action, FwoOwner? owner)
         {
             Log.WriteDebug("UpdateConnectionRelease", "Perform Action");
+        }
+
+        public async Task DisplayConnection(RequestStatefulObject statefulObject, RequestObjectScopes scope)
+        {
+            Log.WriteDebug("DisplayConnection", "Perform Action");
+            await SetScope(statefulObject, scope);
+            RequestReqTask? reqTask = requestHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+            if(reqTask != null)
+            {
+                requestHandler.SetReqTaskEnv(reqTask);
+            }
+            FwoOwner? owner = requestHandler.ActReqTask.Owners?.First()?.Owner;
+            if(owner != null)
+            {
+                apiConnection.SetRole(Roles.Modeller);
+                List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
+                ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == requestHandler.GetConnId());
+                if(conn != null)
+                {
+                    ConnHandler = new ModellingConnectionHandler(apiConnection, requestHandler.userConfig, owner ?? new(), Connections, conn, false, true, DefaultInit.DoNothing, false);
+                    await ConnHandler.Init();
+                    DisplayConnectionMode = true;
+                }
+                apiConnection.SwitchBack();
+            }
         }
 
         public async Task SetAlert(string? description)

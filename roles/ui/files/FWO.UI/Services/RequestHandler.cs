@@ -1,5 +1,4 @@
-﻿using FWO.GlobalConstants;
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -275,13 +274,12 @@ namespace FWO.Ui.Services
         {
             ActTicket = ticket;
             ResetImplTaskList();
-            SetRelevantOwner();
             ActStateMatrix = MasterStateMatrix;
         }
 
         public void ResetImplTaskList()
         {
-            AllTicketImplTasks = new List<RequestImplTask>();
+            AllTicketImplTasks = new ();
             foreach(var reqTask in ActTicket.Tasks)
             {
                 foreach(var implTask in reqTask.ImplementationTasks)
@@ -289,18 +287,6 @@ namespace FWO.Ui.Services
                     implTask.TicketId = ActTicket.Id;
                     implTask.ReqTaskId = reqTask.Id;
                     AllTicketImplTasks.Add(implTask);
-                }
-            }
-        }
-
-        public void SetRelevantOwner()
-        {
-            foreach(var reqTask in ActTicket.Tasks)
-            {
-                if(reqTask.TaskType == TaskType.new_interface.ToString() && reqTask.Owners.Count > 0)
-                {
-                    ActTicket.RelevantOwner = reqTask.Owners.First().Owner;
-                    break;
                 }
             }
         }
@@ -599,6 +585,33 @@ namespace FWO.Ui.Services
             }
             ActReqTask.Comments.Add(new RequestCommentDataHelper(comment){});
             DisplayReqTaskCommentMode = false;
+        }
+
+        public async Task AddAdditionalInfoToReqTask(RequestReqTask reqTask, long connId)
+        {
+            try
+            {
+                Dictionary<string, string> addInfo = new() { {"ConnId", connId.ToString()} };
+                reqTask.AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+                await dbAcc.UpdateReqTaskAdditionalInfo(reqTask);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("promote_task"), "", true);
+            }
+        }
+
+        public long GetConnId()
+        {
+            if(ActReqTask.AdditionalInfo != null && ActReqTask.AdditionalInfo != "")
+            {
+                Dictionary<string, string> addInfo = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(ActReqTask.AdditionalInfo);
+                if(addInfo != null && int.TryParse(addInfo["ConnId"], out int connectionId))
+                {
+                    return connectionId;
+                }
+            }
+            return 0;
         }
 
         public async Task PromoteReqTask(RequestStatefulObject reqTask)

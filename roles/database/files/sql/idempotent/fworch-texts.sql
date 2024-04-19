@@ -61,8 +61,10 @@ INSERT INTO txt VALUES ('CreateConnection',	    'German', 	'Verbindung anlegen')
 INSERT INTO txt VALUES ('CreateConnection',		'English', 	'Create Connection');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','German', 	'Verbindungseigent&uuml;mer &auml;ndern');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','English', 	'Update Connection Owner');
-INSERT INTO txt VALUES ('UpdateConnectionRelease','German', 'Verbindung freigeben');
-INSERT INTO txt VALUES ('UpdateConnectionRelease','English','Release Connection');
+INSERT INTO txt VALUES ('UpdateConnectionRelease','German', 'Verbindung ver&ouml;ffentlichen');
+INSERT INTO txt VALUES ('UpdateConnectionRelease','English','Publish Connection');
+INSERT INTO txt VALUES ('DisplayConnection',    'German',   'Verbindung darstellen');
+INSERT INTO txt VALUES ('DisplayConnection',    'English',  'Display Connection');
 INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
 INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
 INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');

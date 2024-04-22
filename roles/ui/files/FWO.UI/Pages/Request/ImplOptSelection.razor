@@ -37,6 +37,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     [Parameter]
     public Func<Device, Task> SelectDevice { get; set; } = DefaultInit.DoNothing;
 
@@ -75,22 +78,31 @@
 
     private void InitOwnerOptions()
     {
-        FwoOwner optTicket = new (){ Id = -3, Name = userConfig.GetText("tickets")};
-        FwoOwner assignedToMe = new (){ Id = -2, Name = userConfig.GetText("assigned_to_me")};
-        FwoOwner allMyOwners = new (){ Id = -1, Name = userConfig.GetText("all_my_owners")};
+        FwoOwner optTicket = new (){ Id = -3, Name = userConfig.GetText("tickets") };
+        FwoOwner assignedToMe = new (){ Id = -2, Name = userConfig.GetText("assigned_to_me") };
+        FwoOwner allMyOwners = new (){ Id = -1, Name = userConfig.GetText("all_my_owners") };
         ownerOptions = new (Owners);
-        ownerOptions.Add(optTicket);
         ownerOptions.Add(allMyOwners);
         ownerOptions.Add(assignedToMe);
         selectedOwnerOpt = allMyOwners;
+        if(!userConfig.ReqReducedView || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+        {
+            ownerOptions.Add(optTicket);
+            selectedOwnerOpt = optTicket;
+        }
     }
 
     private void InitDeviceOptions()
     {
-        Device optTicket = new (){ Id = -1, Name = userConfig.GetText("tickets")};
+        Device optTicket = new (){ Id = -1, Name = userConfig.GetText("tickets") };
+        Device allGateways = new (){ Id = 0, Name = userConfig.GetText("all_gateways") };
         deviceOptions = new (ReqHandler.Devices);
-        deviceOptions.Add(optTicket);
-        deviceOptions.Add(new (){ Id = 0, Name = userConfig.GetText("all_gateways") });
-        selectedDeviceOpt = optTicket;
+        deviceOptions.Add(allGateways);
+        selectedDeviceOpt = allGateways;
+        if(!userConfig.ReqReducedView || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+        {
+            deviceOptions.Add(optTicket);
+            selectedDeviceOpt = optTicket;
+        }
     }
 }

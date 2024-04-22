@@ -147,7 +147,7 @@
             }
             @if(ReqHandler.EditTicketMode || CheckPromoteTicket())
             {
-                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelEdit">@(userConfig.GetText("cancel"))</button>
             }
             else
             {
@@ -172,8 +172,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Close" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteTicketMode" ResetParent="Close" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
 
 
 @code
@@ -221,6 +221,12 @@
         await ResetParent();
     }
 
+    private async Task Cancel()
+    {
+        ReqHandler.DisplaySaveTicketMode = false;
+        ReqHandler.DisplayPromoteTicketMode = false;
+    }
+
     private async Task Reset()
     {
         try
@@ -236,7 +242,7 @@
         }
     }
 
-    private async Task Cancel()
+    private async Task CancelEdit()
     {
         if(ReqHandler.EditTicketMode && ReqHandler.ActTicket.Id == 0 && ReqHandler.ActTicket.Tasks.Count > 0)
         {

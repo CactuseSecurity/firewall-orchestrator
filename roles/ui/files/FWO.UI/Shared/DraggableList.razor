@@ -1,13 +1,13 @@
 ﻿@typeparam ElementType
 
-<div class="bg-secondary col-sm-12 border" style="overflow-y:auto; max-height: calc( @(MaxHeight) * 1vh);">
+<div class="bg-secondary col-sm-12 border" style="overflow-x:clip; overflow-y:auto; max-height: calc( @(MaxHeight) * 1vh);">
 	@for (int i = 0; i < AllElements.Count; i++)
 	{
 		int j = i;
-		<div class="draggable @(SelectedElements.Contains(AllElements[j]) ? "bg-primary" : "")" draggable="true"
+		<div class="draggable draggable-item @(SelectedElements.Contains(AllElements[j]) ? "draggable-selected" : "")" draggable="true"
 				@ondragstart="@((e) => { HandleDragStart(e, AllElements[j]); lastSelected = null; })"
 				@onclick="() => ToggleSelect(j)" tabindex="0" @onkeydown="(k) => KeyDown(k)" @onkeyup="(k) => KeyUp(k)">
-			@((MarkupString)Display(AllElements[j]))
+			<nobr>@((MarkupString)Display(AllElements[j]))</nobr>
 		</div>
 	}
 </div>

@@ -337,7 +337,7 @@
 
 
     private ModellingDnDContainer Container { get; set; } = new();
-    private int sidebarInitWidth = GlobalConst.kSidebarLeftWidth + 300;
+    private int sidebarInitWidth = GlobalConst.kSidebarLeftWidth + 400;
     private int sidebarLeftWidth;
     
     private List<ModellingService> services = new();
@@ -465,7 +465,7 @@
                 try
                 {
                     apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
-                    TicketCreator ticketCreator = new (apiConnection, userConfig, middlewareClient, WorkflowPhases.implementation);
+                    TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
                     if(await ticketCreator.PromoteTicket(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId)))
                     {
                         DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);

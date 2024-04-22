@@ -331,8 +331,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteReqTaskMode" ResetParent="Close" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteReqTaskMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 <CommentObject @bind-Display="ReqHandler.DisplayReqTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfAddComment"/>
 <DisplayPathAnalysis @bind-Display="ReqHandler.DisplayPathAnalysisMode" ResetParent="ResetPathAnalysis" ReqTask="ReqHandler.ActReqTask"/>
 <EditConnPopup @bind-Display="ReqHandler.ActionHandler.DisplayConnectionMode" ConnHandler="ReqHandler.ActionHandler.ConnHandler"/>
@@ -447,6 +447,12 @@
     {
         firstParamSet = true;
         await ResetParent();
+    }
+
+    private async Task Cancel()
+    {
+        ReqHandler.DisplayPromoteReqTaskMode = false;
+        ReqHandler.DisplayApproveMode = false;
     }
 
     private async Task Reset()

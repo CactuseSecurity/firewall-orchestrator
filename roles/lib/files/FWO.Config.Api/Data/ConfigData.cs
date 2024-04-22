@@ -204,6 +204,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqOwnerBased"), JsonPropertyName("reqOwnerBased")]
         public bool ReqOwnerBased { get; set; } = false;
 
+        [JsonProperty("reqReducedView"), JsonPropertyName("reqReducedView")]
+        public bool ReqReducedView { get; set; } = false;
+
         [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
         public bool ReqAllowObjectSearch { get; set; } = false;
 

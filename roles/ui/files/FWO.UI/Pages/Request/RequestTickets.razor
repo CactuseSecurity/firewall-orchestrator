@@ -55,7 +55,7 @@ else
             {
                 OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            reqHandler = new (DisplayMessageInUi, userConfig, apiConnection, middlewareClient, WorkflowPhases.request){};
+            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
             await Reset();
             await HandleTicketId();
             InitComplete = true;

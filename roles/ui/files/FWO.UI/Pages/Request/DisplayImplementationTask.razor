@@ -253,7 +253,7 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteImplTaskMode" ResetParent="Close" ObjectName="@ReqHandler.ActImplTask.Title"
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteImplTaskMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActImplTask.Title"
     Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
 <CommentObject @bind-Display="ReqHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfAddComment"/>
 <Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
@@ -360,6 +360,11 @@
         await ResetParent();
         ReqHandler.DisplayPromoteImplTaskMode = false;
         firstParamSet = true;
+    }
+
+    private async Task Cancel()
+    {
+        ReqHandler.DisplayPromoteImplTaskMode = false;
     }
 
     private async Task PerformAction(RequestStateAction action)

@@ -93,6 +93,7 @@ namespace FWO.Api.Data
            IsRequested = conn.IsRequested;
            IsPublished = conn.IsPublished;
            TicketId = conn.TicketId;
+           IsCommonService = conn.IsCommonService;
            Creator = conn.Creator;
            CreationDate = conn.CreationDate;
            Services = new List<ModellingServiceWrapper>(conn.Services);

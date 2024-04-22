@@ -70,11 +70,15 @@ else
             {
                 Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
             }
-            reqHandler = new (DisplayMessageInUi, userConfig, apiConnection, middlewareClient, WorkflowPhases.implementation){};
+            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.implementation){};
             await Reset();
             await HandleTicketId();
-            reqHandler.SetContinueEnv(ObjAction.implement);
             await Select();
+            reqHandler.SetContinueEnv(ObjAction.implement);
+            if(reqHandler.ActTicket.Tasks.Count >= 1 && reqHandler.ActTicket.Tasks.First().ImplementationTasks.Count >= 1)
+            {
+                await reqHandler.ContinueImplPhase(reqHandler.ActTicket.Tasks.First().ImplementationTasks.First());
+            }
             InitComplete = true;
         }
         catch (Exception exception)

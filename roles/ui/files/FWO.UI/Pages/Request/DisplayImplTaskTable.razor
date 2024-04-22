@@ -9,139 +9,142 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-@if (ReqHandler.PlanReqTaskMode)
+@if(ReqHandler.InitDone)
 {
-    <div class="btn-group">
-        <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">
-            @(ModellingHandlerBase.DisplayButton(userConfig, "create_implementation", Icons.Add))</button>
-        @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
-        {
-            <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">
-                @(userConfig.GetText("check_impltasks"))</button>
-            <button type="button" class="btn btn-warning m-2" @onclick:preventDefault @onclick="AutocreateImplTasks">
-                @(userConfig.GetText("auto_create_impltasks"))</button>
-            @if(ReqHandler.ActReqTask.ImplementationTasks.Count > 0)
+    @if (ReqHandler.PlanReqTaskMode)
+    {
+        <div class="btn-group">
+            <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">
+                @(ModellingHandlerBase.DisplayButton(userConfig, "create_implementation", Icons.Add))</button>
+            @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
             {
-                <button type="button" class="btn btn-danger m-2" @onclick:preventDefault @onclick="CleanupImplTasks">
-                    @(userConfig.GetText("cleanup_impltasks"))</button>
+                <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">
+                    @(userConfig.GetText("check_impltasks"))</button>
+                <button type="button" class="btn btn-warning m-2" @onclick:preventDefault @onclick="AutocreateImplTasks">
+                    @(userConfig.GetText("auto_create_impltasks"))</button>
+                @if(ReqHandler.ActReqTask.ImplementationTasks.Count > 0)
+                {
+                    <button type="button" class="btn btn-danger m-2" @onclick:preventDefault @onclick="CleanupImplTasks">
+                        @(userConfig.GetText("cleanup_impltasks"))</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-danger m-2" disabled>@(userConfig.GetText("cleanup_impltasks"))</button>
+                }
             }
-            else
-            {
-                <button type="button" class="btn btn-danger m-2" disabled>@(userConfig.GetText("cleanup_impltasks"))</button>
-            }
-        }
-    </div>
-}
-@if (AllImplTasks != null && AllImplTasks.Count > 0)
-{
-    <div class="m-2">
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-                <Template>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">
-                            @(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
-                        @if(!ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
-                        {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
-                                @(userConfig.GetText("approvals"))</button>
-                        }
-                        @if (!ReqHandler.ReadOnlyMode)
-                        {
-                            @if (ReqHandler.PlanReqTaskMode && implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
+        </div>
+    }
+    @if (AllImplTasks != null && AllImplTasks.Count > 0)
+    {
+        <div class="m-2">
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                    <Template>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">
+                                @(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
+                            @if(!ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
                             {
-                                <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">
-                                    @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">
-                                    @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
+                                    @(userConfig.GetText("approvals"))</button>
                             }
-                            else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.TicketList.FirstOrDefault(x => x.Id == implTask.TicketId)?.StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
+                            @if (!ReqHandler.ReadOnlyMode)
                             {
-                                @if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestStartedState)
+                                @if (ReqHandler.PlanReqTaskMode && implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
                                 {
-                                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
-                                        <Authorized Context="ctx">
-                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">
-                                                @(ModellingHandlerBase.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
-                                        </Authorized>
-                                        <NotAuthorized Context="ctx">
-                                            <button type="button" class="btn btn-sm btn-warning" disabled>
-                                                @(ModellingHandlerBase.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
-                                        </NotAuthorized>
-                                    </AuthorizeView>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 }
-                                else if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
+                                else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.TicketList.FirstOrDefault(x => x.Id == implTask.TicketId)?.StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
                                 {
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "continue_" + Phase.ToString(), Icons.Edit))</button>
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                    @if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestStartedState)
+                                    {
+                                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                                            <Authorized Context="ctx">
+                                                <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">
+                                                    @(ModellingHandlerBase.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
+                                            </Authorized>
+                                            <NotAuthorized Context="ctx">
+                                                <button type="button" class="btn btn-sm btn-warning" disabled>
+                                                    @(ModellingHandlerBase.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
+                                            </NotAuthorized>
+                                        </AuthorizeView>
+                                    }
+                                    else if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">
+                                            @(ModellingHandlerBase.DisplayButton(userConfig, "continue_" + Phase.ToString(), Icons.Edit))</button>
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">
+                                            @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                    }
                                 }
                             }
-                        }
-                    </div>
-                </Template>
-            </Column>
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
-                <Template>
-                    @(userConfig.GetText(implTask.TaskType))
-                </Template>
-            </Column>
-            @if(ImplTaskView)
-            {
-                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket_id"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
-                    <Template>
-                        @(implTask.TicketId != 0 ? implTask.TicketId : "")
+                        </div>
                     </Template>
                 </Column>
-                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(ResolveTicket(implTask)?.Title ?? "")
+                        @(userConfig.GetText(implTask.TaskType))
                     </Template>
                 </Column>
-                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="false" >
+                @if(ImplTaskView)
+                {
+                    <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket_id"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
+                        <Template>
+                            @(implTask.TicketId != 0 ? implTask.TicketId : "")
+                        </Template>
+                    </Column>
+                    <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
+                        <Template>
+                            @(ResolveTicket(implTask)?.Title ?? "")
+                        </Template>
+                    </Column>
+                    <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="false" >
+                        <Template>
+                            @(implTask.ReqTaskId != 0 ? ResolveTicket(implTask)?.Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId)?.Title : "")
+                        </Template>
+                    </Column>
+                }
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
+                @if(userConfig.ReqOwnerBased)
+                {
+                    <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("owner"))" Field="@(x => x.ReqTaskId)" Sortable="true">
+                        <Template>
+                            @(GetOwnerName(implTask))
+                        </Template>
+                    </Column>
+                }
+                else
+                {
+                    <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("gateway"))" Field="@(x => x.DeviceId)" Sortable="true">
+                        <Template>
+                            @(implTask.DeviceId != null && implTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
+                        </Template>
+                    </Column>
+                }
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(implTask.ReqTaskId != 0 ? ResolveTicket(implTask)?.Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId)?.Title : "")
+                        @(States.Name[implTask.StateId])
                     </Template>
                 </Column>
-            }
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
-            @if(userConfig.ReqOwnerBased)
-            {
-                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("owner"))" Field="@(x => x.ReqTaskId)" Sortable="true">
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler)" Sortable="true" Filterable="true" >
                     <Template>
-                        @(GetOwnerName(implTask))
+                        @(implTask.CurrentHandler?.Name)
                     </Template>
                 </Column>
-            }
-            else
-            {
-                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("gateway"))" Field="@(x => x.DeviceId)" Sortable="true">
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
                     <Template>
-                        @(implTask.DeviceId != null && implTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
+                        @(new DistName(implTask.AssignedGroup).UserName)
                     </Template>
                 </Column>
-            }
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
-                <Template>
-                    @(States.Name[implTask.StateId])
-                </Template>
-            </Column>
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler)" Sortable="true" Filterable="true" >
-                <Template>
-                    @(implTask.CurrentHandler?.Name)
-                </Template>
-            </Column>
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
-                <Template>
-                    @(new DistName(implTask.AssignedGroup).UserName)
-                </Template>
-            </Column>
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
-            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
-        </Table>
-    </div>
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
+            </Table>
+        </div>
+    }
 }
 
 <PopUp Title="@(userConfig.GetText("check_impltasks"))" Show="@DisplayInfo" Size=PopupSize.Large OnClose="() => DisplayInfo = false">

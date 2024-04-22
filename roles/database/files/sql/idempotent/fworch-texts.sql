@@ -1642,6 +1642,8 @@ INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auft
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
 INSERT INTO txt VALUES ('reqOwnerBased',        'German', 	'Eigent&uuml;merbasiert');
 INSERT INTO txt VALUES ('reqOwnerBased',        'English', 	'Owner based');
+INSERT INTO txt VALUES ('reqReducedView',       'German', 	'Eingeschr&auml;nkte Darstellung');
+INSERT INTO txt VALUES ('reqReducedView',       'English', 	'Reduced view');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'English', 	'Allow object search');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
@@ -4430,6 +4432,8 @@ INSERT INTO txt VALUES ('H5568', 'German',  'Eigent&uuml;merbasiert: Darstellung
 INSERT INTO txt VALUES ('H5568', 'English', 'Owner based: Display of tickets by ownwer. They can be assigned to each other.');
 INSERT INTO txt VALUES ('H5569', 'German',  'Compliance-Modul anzeigen: Das Compliance-Modul wird auch f&uuml;r Nutzer in den Workflow-Rollen (requester, approver, planner, implementer, reviewer) dargestellt.');
 INSERT INTO txt VALUES ('H5569', 'English', 'Show Compliance Module: The Compliance module is also displayed for users in the workflow roles (requester, approver, planner, implementer, reviewer).');
+INSERT INTO txt VALUES ('H5570', 'German',  'Eingeschr&auml;nkte Darstellung: Die Auswahlm&ouml;glichkeiten werden für den Nutzer auf ein Minimum reduziert (z.B. keine Ticketdarstellung in der Implementierungsphase).');
+INSERT INTO txt VALUES ('H5570', 'English', 'Reduced view: Selection possibilities for users are reuduced to minimum (e.g. no ticket display in Implementation Phase).');
 INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Es wird kein Implementierungs-Auftrag erzeugt (nur sinnvoll, falls Implementierung und folgende Phasen nicht ben&ouml;tigt werden).');
 INSERT INTO txt VALUES ('H5571', 'English', 'Never: No implementation task is created (only reasonable, if implementation and following phases are not needed).');
 INSERT INTO txt VALUES ('H5572', 'German',  'Nur eines wenn Ger&auml;t vorhanden: Bei mindestens einem vorhandenen Ger&auml;t wird das erste der Liste eingetragen

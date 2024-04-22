@@ -65,6 +65,13 @@
                 <input type="checkbox" @bind="configData!.ReqOwnerBased">
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5570"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqReducedView")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" @bind="configData!.ReqReducedView">
+            </div>
+        </div>
+
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5569"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqShowCompliance")):</label>
             <div class="col-sm-2">

@@ -69,7 +69,7 @@ else
             {
                 Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
             }
-            reqHandler = new (DisplayMessageInUi, userConfig, apiConnection, middlewareClient, WorkflowPhases.review){};
+            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.review){};
             await Reset();
             await HandleTicketId();
             reqHandler.SetContinueEnv(ObjAction.review);

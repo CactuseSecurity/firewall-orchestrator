@@ -219,26 +219,33 @@ namespace FWO.Ui.Services
 
         public async Task DisplayConnection(RequestStatefulObject statefulObject, RequestObjectScopes scope)
         {
-            Log.WriteDebug("DisplayConnection", "Perform Action");
-            await SetScope(statefulObject, scope);
-            RequestReqTask? reqTask = requestHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
-            if(reqTask != null)
+            try
             {
-                requestHandler.SetReqTaskEnv(reqTask);
-            }
-            FwoOwner? owner = requestHandler.ActReqTask.Owners?.First()?.Owner;
-            if(owner != null)
-            {
-                apiConnection.SetRole(Roles.Modeller);
-                List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
-                ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == requestHandler.GetConnId());
-                if(conn != null)
+                Log.WriteDebug("DisplayConnection", "Perform Action");
+                await SetScope(statefulObject, scope);
+                RequestReqTask? reqTask = requestHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                if(reqTask != null)
                 {
-                    ConnHandler = new ModellingConnectionHandler(apiConnection, requestHandler.userConfig, owner ?? new(), Connections, conn, false, true, DefaultInit.DoNothing, false);
-                    await ConnHandler.Init();
-                    DisplayConnectionMode = true;
+                    requestHandler.SetReqTaskEnv(reqTask);
                 }
-                apiConnection.SwitchBack();
+                FwoOwner? owner = requestHandler.ActReqTask.Owners?.First()?.Owner;
+                if(owner != null)
+                {
+                    apiConnection.SetProperRole(requestHandler.AuthUser, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
+                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
+                    ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == requestHandler.GetConnId());
+                    if(conn != null)
+                    {
+                        ConnHandler = new ModellingConnectionHandler(apiConnection, requestHandler.userConfig, owner ?? new(), Connections, conn, false, true, DefaultInit.DoNothing, false);
+                        await ConnHandler.Init();
+                        DisplayConnectionMode = true;
+                    }
+                    apiConnection.SwitchBack();
+                }
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Display Connection", $"Could not display: ", exc);
             }
         }
 

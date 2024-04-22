@@ -10,7 +10,7 @@ namespace FWO.Ui.Services
     {
         public ModellingConnectionHandler? connHandler;
         public List<ModellingConnection> Connections = new();
-        public ModellingConnection actConn = new();
+        public ModellingConnection ConnToDelete = new();
         public bool AddConnMode = false;
         public bool EditConnMode = false;
         public bool DeleteConnMode = false;
@@ -47,7 +47,7 @@ namespace FWO.Ui.Services
                     conn.ExtractNwGroups();
                     await ExtractUsedInterface(conn);
                 }
-                actConn = Connections.FirstOrDefault() ?? new ModellingConnection();
+                ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
             }
             catch (Exception exception)
             {
@@ -226,23 +226,23 @@ namespace FWO.Ui.Services
         public async Task RequestDeleteConnection(ModellingConnection conn)
         {
             actTab = tabset.ActiveTab;
-            actConn = conn;
-            if(actConn.IsInterface)
+            ConnToDelete = conn;
+            if(ConnToDelete.IsInterface)
             {
-                if(await CheckInterfaceInUse(actConn))
+                if(await CheckInterfaceInUse(ConnToDelete))
                 {
-                    Message = userConfig.GetText("E9013") + actConn.Name;
+                    Message = userConfig.GetText("E9013") + ConnToDelete.Name;
                     DeleteAllowed = false;
                 }
                 else
                 {
-                    Message = userConfig.GetText("U9014") + actConn.Name + "?";
+                    Message = userConfig.GetText("U9014") + ConnToDelete.Name + "?";
                     DeleteAllowed = true;
                 }
             }
             else
             {
-                Message = userConfig.GetText("U9001") + actConn.Name + "?";
+                Message = userConfig.GetText("U9001") + ConnToDelete.Name + "?";
                 DeleteAllowed = true;
             }
             DeleteConnMode = true;
@@ -252,11 +252,11 @@ namespace FWO.Ui.Services
         {
             try
             {
-                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteConnection, new { id = actConn.Id })).AffectedRows > 0)
+                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteConnection, new { id = ConnToDelete.Id })).AffectedRows > 0)
                 {
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Connection, actConn.Id,
-                        $"Deleted {(actConn.IsInterface? "Interface" : "Connection")}: {actConn.Name}", Application.Id);
-                    Connections.Remove(actConn);
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Connection, ConnToDelete.Id,
+                        $"Deleted {(ConnToDelete.IsInterface? "Interface" : "Connection")}: {ConnToDelete.Name}", Application.Id);
+                    Connections.Remove(ConnToDelete);
                     DeleteConnMode = false;
                     RestoreTab();
                 }

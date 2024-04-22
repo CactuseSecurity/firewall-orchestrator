@@ -79,9 +79,10 @@ namespace FWO.Ui.Services
         public bool DisplayApprovalCommentMode = false;
         public bool DisplayPathAnalysisMode = false;
         
-
+        public bool InitDone = false;
         private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         public UserConfig userConfig;
+        public System.Security.Claims.ClaimsPrincipal AuthUser;
         private readonly ApiConnection apiConnection;
         public readonly MiddlewareClient MiddlewareClient;
         private readonly StateMatrixDict stateMatrixDict = new ();
@@ -95,13 +96,14 @@ namespace FWO.Ui.Services
         {}
 
         public RequestHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, 
-            ApiConnection apiConnection, MiddlewareClient middlewareClient, WorkflowPhases phase)
+            System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient, WorkflowPhases phase)
         {
             DisplayMessageInUi = displayMessageInUi;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
             Phase = phase;
             MiddlewareClient = middlewareClient;
+            AuthUser = authUser;
         }
 
 
@@ -113,6 +115,7 @@ namespace FWO.Ui.Services
                 {
                     InitOngoing = true;
                     ActionHandler = new (apiConnection, this);
+                    apiConnection.SetProperRole(AuthUser, new List<string> { Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor });
                     await ActionHandler.Init();
                     dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
@@ -121,7 +124,9 @@ namespace FWO.Ui.Services
                     MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
                     TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, ignoreOwners);
                     PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+                    apiConnection.SwitchBack();
                     InitOngoing = false;
+                    InitDone = true;
                 }
             }
             catch (Exception exception)

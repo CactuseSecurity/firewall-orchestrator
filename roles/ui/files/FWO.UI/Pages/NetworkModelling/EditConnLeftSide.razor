@@ -7,18 +7,20 @@
 @inject UserConfig userConfig
 
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
-    <div class="form-group row pad-10 mt-3 me-auto justify-content-between">
-        <h3>@(userConfig.GetText("library"))</h3>
-        <h4>@ConnHandler.Application.Display()</h4>
-    </div>
-    <div class="col-sm-11 border rounded m-2 p-2">
+    <h3>
+        <div class="d-flex col-sm-12 pad-10 mt-3 me-auto justify-content-between">
+            <div >@(userConfig.GetText("library")) </div>
+            <div class="align-self-end"><small>@ConnHandler.Application.Display()</small></div>
+        </div>
+    </h3>
+    <div class="col-sm-12 me-auto border rounded p-2">
         <h5>@(userConfig.GetText("network_objects"))</h5>
         <div class="form-group row">
-            <div class="col-sm-9">
+            <div class="col-sm-10">
                 <DraggableList AllElements="ConnHandler.AvailableNwElems" @bind-SelectedElements="selectedNwElems" 
                     HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25"/>
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-2">
                 @if(!ConnHandler.SrcDropForbidden() && selectedNwElems.Count > 0)
                 {
                     <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
@@ -74,11 +76,11 @@
         {
             <h5>@(userConfig.GetText("services"))</h5>
             <div class="form-group row">
-                <div class="col-sm-9">
+                <div class="col-sm-10">
                     <DraggableList AllElements="ConnHandler.AvailableSvcElems" @bind-SelectedElements="selectedSvcElems" 
                         HandleDragStart="HandleSvcDragStart" Display="@DisplaySvcObject" MaxHeight="25"/>
                 </div>
-                <div class="col-sm-3">
+                <div class="col-sm-2">
                     @if(selectedSvcElems.Count > 0)
                     {
                         <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
@@ -140,11 +142,11 @@
             <br><br>
             <h5>@(userConfig.GetText("interfaces"))</h5>
             <div class="form-group row">
-                <div class="col-sm-9">
+                <div class="col-sm-10">
                     <DraggableList AllElements="ConnHandler.PreselectedInterfaces" @bind-SelectedElements="selectedInterfaces" 
-                        HandleDragStart="HandleConnDragStart" Display="@ConnHandler.DisplayInterface" MaxHeight="10" Multiselect="false"/>
+                        HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
                 </div>
-                <div class="col-sm-3">
+                <div class="col-sm-2">
                     @if(selectedInterfaces.Count > 0)
                     {
                         <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
@@ -230,6 +232,11 @@
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
 
     
+    private string DisplayInterfaceWithIcon(ModellingConnection interf)
+    {
+        return $"<span class=\"{Icons.Interface}\"></span> " + ConnHandler.DisplayInterface(interf);
+    }
+
     private bool InterfaceToConn(ModellingConnection interf)
     {
         ConnHandler.InterfaceToConn(interf);

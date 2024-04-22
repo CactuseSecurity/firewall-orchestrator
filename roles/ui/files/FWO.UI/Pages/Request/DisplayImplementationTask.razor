@@ -5,7 +5,7 @@
 @using FWO.Ui.Services
 @using FWO.Ui.Pages.NetworkModelling
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -253,19 +253,24 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteImplTaskMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActImplTask.Title"
-    Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
-<CommentObject @bind-Display="ReqHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfAddComment"/>
-<Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
-    Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
-<EditConnPopup @bind-Display="ReqHandler.ActionHandler.DisplayConnectionMode" ConnHandler="ReqHandler.ActionHandler.ConnHandler"/>
-
+@if(IncludePopups)
+{
+    <PromoteObject @bind-Promote="ReqHandler.DisplayPromoteImplTaskMode" CloseParent="Close" CancelParent="CancelPromote" ObjectName="@ReqHandler.ActImplTask.Title"
+        Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
+    <CommentObject @bind-Display="ReqHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfAddComment"/>
+    <Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
+        Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
+    <EditConnPopup @bind-Display="ReqHandler.ActionHandler.DisplayConnectionMode" ConnHandler="ReqHandler.ActionHandler.ConnHandler"/>
+}
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
 
@@ -280,6 +285,9 @@
 
     [Parameter]
     public RequestStateDict States { get; set; } = new ();
+
+    [Parameter]
+    public bool IncludePopups { get; set; } = true;
 
 
     private List<RuleAction> ruleActions = new ();
@@ -326,7 +334,10 @@
                 firstParamSet = false;
                 InitElements();
                 await InitComments();
-                offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask, ReqHandler.Phase);
+                if(IncludePopups)
+                {
+                    offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask, ReqHandler.Phase);
+                }
                 actDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.DeviceId);
                 actRuleAction = ruleActions.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.RuleAction);
                 actTracking = trackings.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.Tracking);
@@ -359,10 +370,11 @@
     {
         await ResetParent();
         ReqHandler.DisplayPromoteImplTaskMode = false;
+        ReqHandler.DisplayImplTaskMode = false;
         firstParamSet = true;
     }
 
-    private async Task Cancel()
+    private async Task CancelPromote()
     {
         ReqHandler.DisplayPromoteImplTaskMode = false;
     }

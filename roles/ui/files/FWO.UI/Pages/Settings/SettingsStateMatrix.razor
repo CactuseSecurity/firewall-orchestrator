@@ -239,25 +239,25 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestState> states = new List<RequestState>();
-    private List<int> stateIds = new List<int>();
-    private Dictionary<int,string> stateNames = new Dictionary<int,string>();
+    private List<RequestState> states = new ();
+    private List<int> stateIds = new ();
+    private Dictionary<int,string> stateNames = new ();
     private List<int> actToStateIds = new List<int>();
-    private List<RequestState> availableStates = new List<RequestState>();
-    private RequestStateDict statesDict = new RequestStateDict();
+    private List<RequestState> availableStates = new ();
+    private RequestStateDict statesDict = new ();
 
-    private GlobalStateMatrix actStateMatrix = new GlobalStateMatrix();
+    private GlobalStateMatrix actStateMatrix = new ();
 
     private int actStateId = 0;
     private int stateIdToAdd = 0;
-    private WorkflowPhases actPhase = new WorkflowPhases();
+    private WorkflowPhases actPhase = new ();
 
     private bool SelectStateMode = false;
     private bool SaveMatrixMode = false;
     private bool ResetMatrixMode = false;
     private bool EditTargetStatesMode = false;
     private TaskType actTaskType = TaskType.master;
-    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
+    private List<TaskType> availableTaskTypes { get; set; } = new ();
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
@@ -278,7 +278,7 @@ else
                 stateIds.Add(state.Id);
                 stateNames.Add(state.Id,state.Name);
             }
-            statesDict = new RequestStateDict();
+            statesDict = new ();
             await statesDict.Init(apiConnection);
         }
         catch (Exception exception)

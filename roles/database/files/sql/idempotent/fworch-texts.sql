@@ -326,7 +326,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Modellierung von Soll-Kommunikationsprofilen z.B. nach Anwendung getrennt (Know Your Application)</li>
     <li>UI: In der Weboberfl&auml;che des Modellierungsmoduls k&ouml;nnen die Bedienfl&ouml;chen wahlweise als Texte oder Icons angezeigt werden (konfigurierbar pro Nutzer)</li>
     <li>Importer: Erste (PoC-)Version des VMware NSX Import-Moduls</li>
-    <li>API: Neues Customizing-Skript für Bulk-Konfiguration via API</li>
+    <li>API: Neues Customizing-Skript f&uuml;r Bulk-Konfiguration via API</li>
     <li>Datenbanksicherheit: Alle Passw&ouml;rter in der Datenbank sind nun verschl&uuml;sselt. Breaking change (nur f&uuml;r Entwickler): Zum Debuggen muss die folgende Datei lokal auf dem vscode-System angelegt werden (bei Verwendung von "-e testkeys=true":
       /etc/fworch/secrets/main_key - Inhalt: "not4production..not4production.."</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
@@ -1222,6 +1222,10 @@ INSERT INTO txt VALUES ('send_email',           'German', 	'Email senden');
 INSERT INTO txt VALUES ('send_email',           'English', 	'Send email');
 INSERT INTO txt VALUES ('from_ticket',          'German',   'Von Ticket');
 INSERT INTO txt VALUES ('from_ticket',          'English',  'From Ticket');
+INSERT INTO txt VALUES ('display_ticket', 		'German',	'Antrag darstellen');
+INSERT INTO txt VALUES ('display_ticket', 	    'English',	'Display Ticket');
+INSERT INTO txt VALUES ('edit_ticket', 		    'German',	'Antrag bearbeiten');
+INSERT INTO txt VALUES ('edit_ticket', 	        'English',	'Edit Ticket');
 INSERT INTO txt VALUES ('publish',              'German',   'Ver&ouml;ffentlichen');
 INSERT INTO txt VALUES ('publish',              'English',  'Publish');
 INSERT INTO txt VALUES ('interface_description','German',   'Schnittstellenbeschreibung');
@@ -2676,6 +2680,8 @@ INSERT INTO txt VALUES ('E9012', 'German',  'Die Schnittstelle sollte nicht in d
 INSERT INTO txt VALUES ('E9012', 'English', 'Interface should not be requested in own App.');
 INSERT INTO txt VALUES ('E9013', 'German',  'Schnittstelle kann nicht gel&ouml;scht werden, da sie in Benutzung ist: ');
 INSERT INTO txt VALUES ('E9013', 'English', 'Interface cannot be deleted because it is in use: ');
+INSERT INTO txt VALUES ('E9014', 'German',  'Bitte zuerst die gemachten &Auml;nderungen speichern.');
+INSERT INTO txt VALUES ('E9014', 'English', 'Please save changes first.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -2756,6 +2762,12 @@ INSERT INTO txt VALUES ('C9007', 'German',  'Angefrage Schnittstelle - noch auf 
 INSERT INTO txt VALUES ('C9007', 'English', 'Requested interface - to be modelled in the counterpart!');
 INSERT INTO txt VALUES ('C9008', 'German',  'Angefrage Schnittstelle - bitte modellieren!');
 INSERT INTO txt VALUES ('C9008', 'English', 'Requested interface - please modell!');
+INSERT INTO txt VALUES ('C9009', 'German',  'Mit der Ver&ouml;ffentlichung wird die Schnittstelle f&uuml;r andere Modellierer sicht- und nutzbar.
+    Bei R&uuml;cknahme der Ver&ouml;ffentlichung &auml;ndert sich lediglich die Sichtbarkeit bei der Suche - f&uuml;r bereits vorhandene nutzende Verbindungen &auml;ndert sich nichts.
+');
+INSERT INTO txt VALUES ('C9009', 'English', 'By publishing the interface is visible and usable for other modellers.
+    When reverting the publication, only the visibility in searches is changed - already using connections remain unchanged.
+');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -4432,7 +4444,7 @@ INSERT INTO txt VALUES ('H5568', 'German',  'Eigent&uuml;merbasiert: Darstellung
 INSERT INTO txt VALUES ('H5568', 'English', 'Owner based: Display of tickets by ownwer. They can be assigned to each other.');
 INSERT INTO txt VALUES ('H5569', 'German',  'Compliance-Modul anzeigen: Das Compliance-Modul wird auch f&uuml;r Nutzer in den Workflow-Rollen (requester, approver, planner, implementer, reviewer) dargestellt.');
 INSERT INTO txt VALUES ('H5569', 'English', 'Show Compliance Module: The Compliance module is also displayed for users in the workflow roles (requester, approver, planner, implementer, reviewer).');
-INSERT INTO txt VALUES ('H5570', 'German',  'Eingeschr&auml;nkte Darstellung: Die Auswahlm&ouml;glichkeiten werden für den Nutzer auf ein Minimum reduziert (z.B. keine Ticketdarstellung in der Implementierungsphase).');
+INSERT INTO txt VALUES ('H5570', 'German',  'Eingeschr&auml;nkte Darstellung: Die Auswahlm&ouml;glichkeiten werden f&uuml;r den Nutzer auf ein Minimum reduziert (z.B. keine Ticketdarstellung in der Implementierungsphase).');
 INSERT INTO txt VALUES ('H5570', 'English', 'Reduced view: Selection possibilities for users are reuduced to minimum (e.g. no ticket display in Implementation Phase).');
 INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Es wird kein Implementierungs-Auftrag erzeugt (nur sinnvoll, falls Implementierung und folgende Phasen nicht ben&ouml;tigt werden).');
 INSERT INTO txt VALUES ('H5571', 'English', 'Never: No implementation task is created (only reasonable, if implementation and following phases are not needed).');

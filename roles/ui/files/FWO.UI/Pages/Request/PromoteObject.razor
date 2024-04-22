@@ -75,17 +75,17 @@
     public Func<RequestStatefulObject, Task> Save { get; set; } = _ => throw new Exception("Save function undefined");
 
     [Parameter]
-    public RequestStatefulObject StatefulObject { get; set; } = new RequestStatefulObject();
+    public RequestStatefulObject StatefulObject { get; set; } = new ();
 
     [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+    public StateMatrix StateMatrix { get; set; } = new ();
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
 
     private bool Display { get; set; } = false;
-    private List<int> possibleStates = new List<int>();
+    private List<int> possibleStates = new ();
     private string? optComm;
 
     protected override async Task OnParametersSetAsync()

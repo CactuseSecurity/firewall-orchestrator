@@ -43,7 +43,8 @@ namespace FWO.Api.Data
 
         public async Task Init(ApiConnection apiConnection)
         {
-            List<RequestState> states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            List<RequestState> states = await apiConnection.SendQueryAsync<List<RequestState>>(Client.Queries.RequestQueries.getStates);
+            Name = new ();
             foreach(var state in states)
             {
                 Name.Add(state.Id, state.Name);

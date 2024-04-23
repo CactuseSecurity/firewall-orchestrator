@@ -1228,6 +1228,8 @@ INSERT INTO txt VALUES ('edit_ticket', 		    'German',	'Antrag bearbeiten');
 INSERT INTO txt VALUES ('edit_ticket', 	        'English',	'Edit Ticket');
 INSERT INTO txt VALUES ('publish',              'German',   'Ver&ouml;ffentlichen');
 INSERT INTO txt VALUES ('publish',              'English',  'Publish');
+INSERT INTO txt VALUES ('published',            'German',   'Ver&ouml;ffentlicht');
+INSERT INTO txt VALUES ('published',            'English',  'Published');
 INSERT INTO txt VALUES ('interface_description','German',   'Schnittstellenbeschreibung');
 INSERT INTO txt VALUES ('interface_description','English',  'Interface description');
 INSERT INTO txt VALUES ('owner',				'German', 	'Eigent&uuml;mer');

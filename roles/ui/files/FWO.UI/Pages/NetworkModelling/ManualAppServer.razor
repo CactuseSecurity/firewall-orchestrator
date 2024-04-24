@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api
 @using FWO.Ui.Display
+@using System.Text.Json
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -40,6 +41,11 @@
                             @((MarkupString)context.DisplayHtml())
                         </Template>
                     </Column>
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("type"))" Field="@(x => x.CustomType)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(appServerTypes.FirstOrDefault(a => a.Id == context.CustomType)?.Name)
+                        </Template>
+                    </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
@@ -78,6 +84,7 @@
     public FwoOwner Application { get; set; } = new();
 
     private ModellingAppServerListHandler? appServerListHandler;
+    private List<AppServerType> appServerTypes = new();
     private bool workInProgress = false;
     private bool firstTry = true;
 
@@ -87,6 +94,7 @@
         try
         {
             appServerListHandler = new ModellingAppServerListHandler(apiConnection, userConfig, DisplayMessageInUi);
+            appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
         }
         catch (Exception exception)
         {

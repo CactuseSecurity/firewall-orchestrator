@@ -18,3 +18,4 @@ insert into config (config_key, config_value, config_user) VALUES ('modReqTaskTi
 insert into config (config_key, config_value, config_user) VALUES ('reqOwnerBased', 'False', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('reqShowCompliance', 'False', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('uiHostName', 'http://localhost:5000', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('ModAppServerTypes', '[]', 0) ON CONFLICT DO NOTHING;

@@ -1238,6 +1238,8 @@ INSERT INTO txt VALUES ('owner',				'German', 	'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('owner',				'English', 	'Owner');
 INSERT INTO txt VALUES ('app_server_types',     'German', 	'App-Server-Typen');
 INSERT INTO txt VALUES ('app_server_types',     'English', 	'App Server Types');
+INSERT INTO txt VALUES ('default_app_server_type','German', 'Standardtyp');
+INSERT INTO txt VALUES ('default_app_server_type','English','Default Type');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -4628,8 +4630,12 @@ INSERT INTO txt VALUES ('H5625', 'German',  'Titel des Schnittstellentickets: Ti
 INSERT INTO txt VALUES ('H5625', 'English', 'Title of interface request ticket: Title used for the new interface request ticket.');
 INSERT INTO txt VALUES ('H5626', 'German',  'Titel des Schnittstellenauftrags: Titel, mit dem ein neuer Auftrag im Ticket zur Beantragung einer Schnittstelle angelegt wird.');
 INSERT INTO txt VALUES ('H5626', 'English', 'Title of interface request ticket: Title used for the Task in the new interface request ticket.');
-INSERT INTO txt VALUES ('H5627', 'German',  'App-Server-Typen: Hier k&ouml;nnen beliebige App-Server-Typen mit Namen und Id definiert werden. Bitte jeweils neue Id vergeben. Vorsicht beim L&ouml;schen bereits verwendeter Typen!');
-INSERT INTO txt VALUES ('H5627', 'English', 'App Server Types: Here any App Server Types can be defined with name and Id. Please use different Ids. Be careful when deleting types already in use!');
+INSERT INTO txt VALUES ('H5627', 'German',  'App-Server-Typen: Hier k&ouml;nnen beliebige App-Server-Typen mit Namen und Id definiert werden. Bitte jeweils neue Id vergeben. Vorsicht beim L&ouml;schen bereits verwendeter Typen!
+    Der Standard-typ ist immer vorhanden und wird beim Datenimport verwendet. Hier kann nur der dargestellte Name gesetzt werden. Zur manuellen Zuweisung zu einem App-Server kann er nicht verwendet werden.
+');
+INSERT INTO txt VALUES ('H5627', 'English', 'App Server Types: Here any App Server Types can be defined with name and Id. Please use different Ids. Be careful when deleting types already in use!
+    The default type should always exist and is used during data import. Here only the displayed name can be chosen. It is not available for manual assignment to an App Server.
+');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

@@ -94,7 +94,10 @@
         try
         {
             appServerListHandler = new ModellingAppServerListHandler(apiConnection, userConfig, DisplayMessageInUi);
-            appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
+            if(userConfig.ModAppServerTypes != "")
+            {
+                appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
+            }
         }
         catch (Exception exception)
         {

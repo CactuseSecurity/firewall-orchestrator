@@ -32,7 +32,7 @@
                         }
                         else
                         {
-                            <Dropdown ElementType="AppServerType" ElementToString="@(a => a.Name)" SelectedElement="actAppServerType" SelectedElementChanged="SetAppServerType" Elements="appServerTypes">
+                            <Dropdown ElementType="AppServerType" ElementToString="@(a => a.Name)" SelectedElement="actAppServerType" SelectedElementChanged="SetAppServerType" Elements="appServerTypes.Where(x => x.Id != 0)">
                                 <ElementTemplate Context="appServerType">
                                     @appServerType.Name
                                 </ElementTemplate>

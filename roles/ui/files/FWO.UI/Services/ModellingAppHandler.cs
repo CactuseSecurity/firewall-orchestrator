@@ -15,14 +15,13 @@ namespace FWO.Ui.Services
         public bool EditConnMode = false;
         public bool DeleteConnMode = false;
 
-        public bool readOnly = false;
         public Shared.TabSet tabset = new();
         public Shared.Tab? actTab;
     
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
-            : base (apiConnection, userConfig, application, false, displayMessageInUi, isOwner)
+            : base (apiConnection, userConfig, application, false, displayMessageInUi, false, isOwner)
         {}
         
         public async Task Init(List<ModellingConnection>? connections = null)
@@ -182,35 +181,35 @@ namespace FWO.Ui.Services
 
         public async Task AddConnection()
         {
-            readOnly = false;
+            ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection() { AppId = Application.Id });
         }
 
         public async Task AddInterface()
         {
-            readOnly = false;
+            ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection(){ AppId = Application.Id, IsInterface = true });
         }
 
         public async Task AddCommonService()
         {
-            readOnly = false;
+            ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection(){ AppId = Application.Id, IsCommonService = true });
         }
 
         public async Task ShowDetails(ModellingConnection conn)
         {
-            readOnly = true;
+            ReadOnly = true;
             AddConnMode = false;
             await HandleConn(conn);
         }
 
         public async Task EditConn(ModellingConnection conn)
         {
-            readOnly = false;
+            ReadOnly = false;
             AddConnMode = false;
             await HandleConn(conn);
         }
@@ -218,7 +217,7 @@ namespace FWO.Ui.Services
         public async Task HandleConn(ModellingConnection conn)
         {
             actTab = tabset.ActiveTab;
-            connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, readOnly, DisplayMessageInUi, IsOwner);
+            connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, ReadOnly, DisplayMessageInUi, IsOwner);
             await connHandler.Init();
             EditConnMode = true;
         }

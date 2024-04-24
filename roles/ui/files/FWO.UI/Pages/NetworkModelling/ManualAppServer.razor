@@ -61,7 +61,7 @@
         <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
     </Footer>
 </PopUp>
-<EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" AppServerHandler="appServerListHandler.AppServerHandler" AddMode="appServerListHandler.AddAppServerMode"/>
+<EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" AppServerHandler="appServerListHandler.AppServerHandler"/>
 <ConfirmDelete @bind-Display="appServerListHandler.DeleteAppServerMode" PerformAction="async () => {await appServerListHandler.DeleteAppServer(); StateHasChanged();}"
     Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message"/>
 <Confirm @bind-Display="appServerListHandler.ReactivateAppServerMode" PerformAction="async () => {await appServerListHandler.ReactivateAppServer(); StateHasChanged();}"

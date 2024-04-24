@@ -17,6 +17,7 @@ namespace FWO.Ui.Services
         protected readonly UserConfig userConfig;
         protected Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+        public bool ReadOnly = false;
         public bool IsOwner { get; set; } = true;
         public string Message { get; set; } = "";
         public bool DeleteAllowed { get; set; } = true;
@@ -24,13 +25,14 @@ namespace FWO.Ui.Services
         private ModellingService actService = new();
 
         public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool readOnly = false, bool isOwner = true)
         {
             this.apiConnection = apiConnection;
             this.userConfig = userConfig;
             Application = application;
             AddMode = addMode;
             DisplayMessageInUi = displayMessageInUi;
+            ReadOnly = readOnly;
             IsOwner = isOwner;
         }
         

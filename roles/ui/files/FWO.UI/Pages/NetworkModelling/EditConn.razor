@@ -97,8 +97,16 @@
                             }
                             foreach(var src in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers))
                             {
-                                <div class="col-sm-10">
-                                    <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon(ConnHandler.ActConn.SrcFromInterface))</div>
+                                <div class="col-sm-12 me-auto">
+                                    <div class="row">
+                                        <div class="col-sm-10">
+                                            <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon(ConnHandler.ActConn.SrcFromInterface))</div>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => {ConnHandler.DisplayAppServer(src); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                                @(ConnHandler.DisplayButton("display_app_server", Icons.Display))</button>
+                                        </div>
+                                    </div>
                                 </div>
                             }
                         }
@@ -230,8 +238,16 @@
                             }
                             foreach(var dst in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers))
                             {
-                                <div class="col-sm-10">
-                                    <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon(ConnHandler.ActConn.DstFromInterface))</div>
+                                <div class="col-sm-12 me-auto">
+                                    <div class="row">
+                                        <div class="col-sm-10">
+                                            <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon(ConnHandler.ActConn.DstFromInterface))</div>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => {ConnHandler.DisplayAppServer(dst); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                                @(ConnHandler.DisplayButton("display_app_server", Icons.Display))</button>
+                                        </div>
+                                    </div>
                                 </div>
                             }
                         }
@@ -316,6 +332,7 @@
     <InProgress Display="workInProgress"/>
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="false"/>
     <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="false"/>
+    <EditAppServer @bind-Display="ConnHandler.DisplayAppServerMode" AppServerHandler="ConnHandler.AppServerHandler"/>
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
     <DisplayImplementationTask ReqHandler="reqHandler" States="states" IncludePopups="false"/>
 }

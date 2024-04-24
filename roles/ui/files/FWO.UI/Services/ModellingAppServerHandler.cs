@@ -58,7 +58,7 @@ namespace FWO.Ui.Services
         public void Reset()
         {
             ActAppServer = ActAppServerOrig;
-            if(!AddMode)
+            if(!AddMode && !ReadOnly)
             {
                 AvailableAppServers[AvailableAppServers.FindIndex(x => x.Id == ActAppServer.Id)] = ActAppServerOrig;
             }

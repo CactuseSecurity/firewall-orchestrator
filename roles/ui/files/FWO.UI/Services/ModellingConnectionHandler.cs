@@ -1,6 +1,5 @@
 ﻿using FWO.Config.Api;
 using FWO.Config.Api.Data;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -26,7 +25,6 @@ namespace FWO.Ui.Services
         public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
 
         public string InterfaceName = "";
-        public bool ReadOnly = false;
 
         public bool srcReadOnly { get; set; } = false;
         public bool dstReadOnly { get; set; } = false;
@@ -43,6 +41,8 @@ namespace FWO.Ui.Services
         public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = new();
         public List<ModellingAppServer> DstAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> DstAppServerToDelete { get; set; } = new();
+        public ModellingAppServerHandler AppServerHandler;
+        public bool DisplayAppServerMode = false;
 
         public ModellingAppRoleHandler? AppRoleHandler;
         public List<ModellingAppRole> SrcAppRolesToAdd { get; set; } = new();
@@ -87,11 +87,10 @@ namespace FWO.Ui.Services
         public ModellingConnectionHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingConnection> connections, ModellingConnection conn, bool addMode, bool readOnly, 
             Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, readOnly, isOwner)
         {
             Connections = connections;
             ActConn = conn;
-            ReadOnly = readOnly;
             ActConnOrig = new ModellingConnection(ActConn);
         }
 
@@ -365,6 +364,22 @@ namespace FWO.Ui.Services
             IntConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, app ?? new(), Connections, interf, false, true, DisplayMessageInUi, false);
             await IntConnHandler.Init();
             DisplaySelectedInterfaceMode = true;
+        }
+
+        public void DisplayAppServer(ModellingAppServer? appServer)
+        {
+            if(appServer != null)
+            {
+                try
+                {
+                    AppServerHandler = new (apiConnection, userConfig, Application, appServer, new(), false, DisplayMessageInUi){ ReadOnly = true };
+                    DisplayAppServerMode = true;
+                }
+                catch (Exception exception)
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("display_app_server"), "", true);
+                }
+            }
         }
 
         public void AppServerToSource(List<ModellingAppServer> srcAppServers)
@@ -1248,6 +1263,7 @@ namespace FWO.Ui.Services
             RemoveNwObjectMode = false;
             RemovePreselectedInterfaceMode = false;
             DisplaySelectedInterfaceMode = false;
+            DisplayAppServerMode = false;
             AddAppRoleMode = false;
             EditAppRoleMode = false;
             DeleteAppRoleMode = false;

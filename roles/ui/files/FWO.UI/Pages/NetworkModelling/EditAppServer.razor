@@ -6,46 +6,75 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-
-<PopUp Title="@(AddMode ? userConfig.GetText("add_app_server") : userConfig.GetText("edit_app_server"))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
-    <Body>
-        @if (Display)
-        {
-            <div class="form-group row">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Name" />
-            </div>
-            <div class="form-group row mt-2">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
-                <div class="col-sm-9">
-                    <Dropdown ElementType="AppServerType" ElementToString="@(a => a.Name)" SelectedElement="actAppServerType" SelectedElementChanged="SetAppServerType" Elements="appServerTypes">
-                        <ElementTemplate Context="appServerType">
-                            @appServerType.Name
-                        </ElementTemplate>
-                    </Dropdown>
+@if(AppServerHandler != null)
+{
+    <PopUp Title="@(AppServerHandler.ReadOnly ? userConfig.GetText("app_server") : (AppServerHandler.AddMode ? userConfig.GetText("add_app_server") : userConfig.GetText("edit_app_server")))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
+        <Body>
+            @if (Display)
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    @if(AppServerHandler.ReadOnly)
+                    {
+                        <label class="col-sm-9">@AppServerHandler.ActAppServer.Name</label>
+                    }
+                    else
+                    {
+                        <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Name" />
+                    }
                 </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
+                    <div class="col-sm-9">
+                        @if(AppServerHandler.ReadOnly)
+                        {
+                            <label>@actAppServerType.Name</label>
+                        }
+                        else
+                        {
+                            <Dropdown ElementType="AppServerType" ElementToString="@(a => a.Name)" SelectedElement="actAppServerType" SelectedElementChanged="SetAppServerType" Elements="appServerTypes">
+                                <ElementTemplate Context="appServerType">
+                                    @appServerType.Name
+                                </ElementTemplate>
+                            </Dropdown>
+                        }
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
+                    @if(AppServerHandler.ReadOnly)
+                    {
+                        <label class="col-sm-9">@AppServerHandler.ActAppServer.Ip</label>
+                    }
+                    else
+                    {
+                        <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Ip" />
+                    }
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                @if(AppServerHandler.ReadOnly)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
+                }
+                else
+                {
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await AppServerHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                        </NotAuthorized> 
+                    </AuthorizeView>
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                }
             </div>
-            <div class="form-group row mt-2">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
-                <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Ip" />
-            </div>
-
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
-                <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await AppServerHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+        </Footer>
+    </PopUp>
+}
 
 
 @code
@@ -61,9 +90,6 @@
 
     [Parameter]
     public ModellingAppServerHandler AppServerHandler { get; set; }
-
-    [Parameter]
-    public bool AddMode { get; set; } = false;
 
     private List<AppServerType> appServerTypes = new();
     private AppServerType actAppServerType = new();

@@ -1116,6 +1116,8 @@ INSERT INTO txt VALUES ('display_app_role',     'German',	'App Rolle darstellen'
 INSERT INTO txt VALUES ('display_app_role',     'English',	'Display App Role');
 INSERT INTO txt VALUES ('to_app_role', 	        'German',	'Zu App Rolle');
 INSERT INTO txt VALUES ('to_app_role', 	        'English',	'To App Role');
+INSERT INTO txt VALUES ('display_app_server',   'German',	'App Server darstellen');
+INSERT INTO txt VALUES ('display_app_server',   'English',	'Display App Server');
 INSERT INTO txt VALUES ('add_service', 	        'German',	'Dienst hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_service', 	        'English',	'Add Service');
 INSERT INTO txt VALUES ('edit_service', 	    'German',	'Dienst bearbeiten');
@@ -4626,8 +4628,8 @@ INSERT INTO txt VALUES ('H5625', 'German',  'Titel des Schnittstellentickets: Ti
 INSERT INTO txt VALUES ('H5625', 'English', 'Title of interface request ticket: Title used for the new interface request ticket.');
 INSERT INTO txt VALUES ('H5626', 'German',  'Titel des Schnittstellenauftrags: Titel, mit dem ein neuer Auftrag im Ticket zur Beantragung einer Schnittstelle angelegt wird.');
 INSERT INTO txt VALUES ('H5626', 'English', 'Title of interface request ticket: Title used for the Task in the new interface request ticket.');
-INSERT INTO txt VALUES ('H5627', 'German',  'App-Server-Typen: Hier k&ouml;nnen beliebige App-Server-Typen definiert werden.');
-INSERT INTO txt VALUES ('H5627', 'English', 'App Server Types: Here any App Server Types can be defined.');
+INSERT INTO txt VALUES ('H5627', 'German',  'App-Server-Typen: Hier k&ouml;nnen beliebige App-Server-Typen mit Namen und Id definiert werden. Bitte jeweils neue Id vergeben. Vorsicht beim L&ouml;schen bereits verwendeter Typen!');
+INSERT INTO txt VALUES ('H5627', 'English', 'App Server Types: Here any App Server Types can be defined with name and Id. Please use different Ids. Be careful when deleting types already in use!');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

@@ -66,7 +66,7 @@ namespace FWO.Ui.Services
 
         private bool CheckAppServer()
         {
-            if(ActAppServer.Ip == null || ActAppServer.Ip == "")
+            if(ActAppServer.Ip == null || ActAppServer.Ip == "" || ActAppServer.CustomType == null || ActAppServer.CustomType == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E5102"), true);
                 return false;

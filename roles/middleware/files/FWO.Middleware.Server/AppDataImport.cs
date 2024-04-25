@@ -341,9 +341,16 @@ namespace FWO.Middleware.Server
                 {
                     return await NewAppServer(incomingAppServer, appID, impSource);
                 }
-                else if(existingAppServer.IsDeleted)
+                else 
                 {
-                    return await ReactivateAppServer(existingAppServer);
+                    if(existingAppServer.IsDeleted)
+                    {
+                        return await ReactivateAppServer(existingAppServer);
+                    }
+                    if(existingAppServer.CustomType == null)
+                    {
+                        return await UpdateAppServerType(existingAppServer);
+                    }
                 }
                 return true;
             }
@@ -391,6 +398,25 @@ namespace FWO.Middleware.Server
             catch (Exception exc)
             {
                 Log.WriteError("Import App Server Data", $"App Server {appServer.Name} could not be reactivated.", exc);
+                return false;
+            }
+            return true;
+        }
+
+        private async Task<bool> UpdateAppServerType(ModellingAppServer appServer)
+        {
+            try
+            {
+                var Variables = new 
+                {
+                    id = appServer.Id,
+                    customType = 0
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAppServerType, Variables);
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Import App Server Data", $"Type of App Server {appServer.Name} could not be set.", exc);
                 return false;
             }
             return true;

@@ -337,8 +337,8 @@
         </div>
     </div>
     <InProgress Display="workInProgress"/>
-    <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="false"/>
-    <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="false"/>
+    <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
+    <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
     <EditAppServer @bind-Display="ConnHandler.DisplayAppServerMode" AppServerHandler="ConnHandler.AppServerHandler"/>
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
     <DisplayImplementationTask ReqHandler="reqHandler" States="states" IncludePopups="false"/>

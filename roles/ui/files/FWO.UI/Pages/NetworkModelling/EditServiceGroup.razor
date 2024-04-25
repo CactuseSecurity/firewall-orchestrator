@@ -6,7 +6,7 @@
 
 @if (Display)
 {
-    <PopUp Title="@(SvcGroupHandler.ReadOnly ? "" : (AddMode ? userConfig.GetText("add_service_group") : userConfig.GetText("edit_service_group")))"
+    <PopUp Title="@(SvcGroupHandler.ReadOnly ? "" : (SvcGroupHandler.AddMode ? userConfig.GetText("add_service_group") : userConfig.GetText("edit_service_group")))"
             Size="@(SvcGroupHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
@@ -67,7 +67,7 @@
                                 </div>  
                             }                          
                         </div>
-                        @if(!AddMode)
+                        @if(!SvcGroupHandler.AddMode)
                         {
                             <label class="col-sm-12 mt-2 small">@(userConfig.GetText("created_by")): @(SvcGroupHandler.ActServiceGroup.Creator), @(userConfig.GetText("creation_date")): @(SvcGroupHandler.ActServiceGroup.CreationDate)</label>
                         }
@@ -87,7 +87,7 @@
                     {
                         <AuthorizeView Roles="@(AsAdmin? Roles.Admin : Roles.Modeller)">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await SvcGroupHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -124,9 +124,6 @@
     public EventCallback<ModellingServiceGroupHandler> SvcGroupHandlerChanged { get; set; }
 
     [Parameter]
-    public bool AddMode { get; set; } = false;
-
-    [Parameter]
     public bool AsAdmin { get; set; } = false;
 
     private ModellingDnDContainer Container { get; set; } = new();
@@ -141,6 +138,19 @@
             SvcGroupHandler.ServicesToSvcGroup(Container.SvcElements);
         }
         Container.Clear();
+    }
+
+    private async Task Save()
+    {
+        workInProgress = true;
+        if(await SvcGroupHandler.Save())
+        {
+            Close();
+        }
+        else
+        {
+            workInProgress = false;
+        }
     }
 
     private void Close()

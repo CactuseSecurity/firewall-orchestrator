@@ -178,13 +178,13 @@
         }
     </div>
 </Sidebar>
-<EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="ConnHandler.AddAppRoleMode"/>
+<EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteAppRole)"
     Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
-<EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="ConnHandler.AddSvcGrpMode"/>
+<EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteServiceGroup)"
     Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
-<EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" AddMode="ConnHandler.AddServiceMode"/>
+<EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteService)"
     Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
 <SearchInterface @bind-Display="SearchInterfaceMode" @bind-PreselectedInterfaces="ConnHandler.PreselectedInterfaces" SelectAction="InterfaceToConn"

@@ -149,7 +149,8 @@ namespace FWO.Middleware.Server
             {
                 foreach(var incomingSubnet in incomingArea.Subnets)
                 {
-                    if(incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip && incomingSubnet.IpEnd == existingSubnet.Content.IpEnd)
+                    if(incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip && 
+                        (incomingSubnet.IpEnd == existingSubnet.Content.IpEnd) || (incomingSubnet.IpEnd == "" && existingSubnet.Content.Ip == existingSubnet.Content.IpEnd))
                     {
                         subnetsToAdd.Remove(incomingSubnet);
                         subnetsToDelete.Remove(existingSubnet);

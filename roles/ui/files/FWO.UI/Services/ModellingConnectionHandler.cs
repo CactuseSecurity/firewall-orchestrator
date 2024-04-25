@@ -108,7 +108,7 @@ namespace FWO.Ui.Services
                     RefreshSelectableNwObjects();
                     InterfaceName = await ExtractUsedInterface(ActConn);
                     AllApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
-                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), true, DisplayMessageInUi);
+                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), false, DisplayMessageInUi);
                     DummyAppRole = await AppRoleHandler.GetDummyAppRole();
                     if(!AddMode && !ReadOnly && ActConn.IsInterface)
                     {
@@ -134,7 +134,7 @@ namespace FWO.Ui.Services
                 if(!InitOngoing)
                 {
                     InitOngoing = true;
-                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), true, DisplayMessageInUi);
+                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), false, DisplayMessageInUi);
                     DummyAppRole = await AppRoleHandler.GetDummyAppRole();
                     InitOngoing = false;
                 }

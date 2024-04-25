@@ -76,7 +76,7 @@ Dez 10 10:45:56 fworch-comp fworch-import[342651]: -------- Import module: going
       Tasks: 19 (limit: 4637)
      Memory: 35.2M
      CGroup: /system.slice/fworch-middleware.service
-             └─396568 /usr/local/fworch/middleware/files/FWO.Middleware.Server/bin/Release/net6.0/FWO.Middleware.Server
+             └─396568 /usr/local/fworch/middleware/files/FWO.Middleware.Server/bin/Release/net8.0/FWO.Middleware.Server
 
 Dez 10 10:45:59 fworch-comp fworch.middleware-server[396568]: Info - Jwt generation (JwtWriter.cs in line 87): Generated JWT eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6Im1pZGRsZXdhcmU>
 Dez 10 10:45:59 fworch-comp fworch.middleware-server[396568]: Info - Found ldap connection to server (Program.cs in line 32): 127.0.0.1:636

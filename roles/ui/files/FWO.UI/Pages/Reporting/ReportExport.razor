@@ -133,7 +133,7 @@
 
     private bool csvAvailable()
     {
-        return (bool)ReportToExport?.ReportType.IsResolvedReport();
+        return ReportToExport?.ReportType.IsResolvedReport() ?? false;
     }
 
     private async Task Export()

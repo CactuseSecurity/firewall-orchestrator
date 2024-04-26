@@ -193,3 +193,6 @@ bugfix release:
 - add custom (user-defined) fields to import
   - cp only so far, other fw types missing
   - user-defined fields are not part of reports yet
+
+# 8.1.1 - 15.04.2024 DEVELOP
+- interface request workflow first version

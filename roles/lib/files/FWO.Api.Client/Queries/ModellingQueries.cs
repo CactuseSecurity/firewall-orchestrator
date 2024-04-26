@@ -21,13 +21,16 @@ namespace FWO.Api.Client.Queries
         public static readonly string newAppServer;
         public static readonly string updateAppServer;
         public static readonly string setAppServerDeletedState;
+        public static readonly string setAppServerType;
         public static readonly string deleteAppServer;
         public static readonly string getAppRolesForAppServer;
         public static readonly string getConnectionIdsForAppServer;
 
-        public static readonly string getInterfaces;
+        public static readonly string getPublishedInterfaces;
         public static readonly string getInterfaceById;
         public static readonly string getConnections;
+        public static readonly string getConnectionsByTicketId;
+        public static readonly string getInterfaceUsers;
         public static readonly string getCommonServices;
         public static readonly string newConnection;
         public static readonly string updateConnection;
@@ -55,6 +58,7 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getAppRoles;
         public static readonly string getNewestAppRoles;
+        public static readonly string getDummyAppRole;
         public static readonly string newAppRole;
         public static readonly string updateAppRole;
         public static readonly string deleteNwGroup;
@@ -104,13 +108,16 @@ namespace FWO.Api.Client.Queries
                 newAppServer = File.ReadAllText(QueryPath + "modelling/newAppServer.graphql");
                 updateAppServer = File.ReadAllText(QueryPath + "modelling/updateAppServer.graphql");
                 setAppServerDeletedState = File.ReadAllText(QueryPath + "modelling/setAppServerDeletedState.graphql");
+                setAppServerType = File.ReadAllText(QueryPath + "modelling/setAppServerType.graphql");
                 deleteAppServer = File.ReadAllText(QueryPath + "modelling/deleteAppServer.graphql");
                 getAppRolesForAppServer = File.ReadAllText(QueryPath + "modelling/getAppRolesForAppServer.graphql");
                 getConnectionIdsForAppServer = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForAppServer.graphql");
 
-                getInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaces.graphql");
+                getPublishedInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getPublishedInterfaces.graphql");
                 getInterfaceById = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaceById.graphql");                
                 getConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnections.graphql");
+                getConnectionsByTicketId = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsByTicketId.graphql");
+                getInterfaceUsers = File.ReadAllText(QueryPath + "modelling/getInterfaceUsers.graphql");
                 getCommonServices = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getCommonServices.graphql");
                 newConnection = File.ReadAllText(QueryPath + "modelling/newConnection.graphql");
                 updateConnection = File.ReadAllText(QueryPath + "modelling/updateConnection.graphql");
@@ -138,6 +145,7 @@ namespace FWO.Api.Client.Queries
 
                 getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppRoles.graphql");
                 getNewestAppRoles = File.ReadAllText(QueryPath + "modelling/getNewestAppRoles.graphql");
+                getDummyAppRole = appServerDetailsFragment + appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getDummyAppRole.graphql");
                 newAppRole = File.ReadAllText(QueryPath + "modelling/newAppRole.graphql");
                 updateAppRole = File.ReadAllText(QueryPath + "modelling/updateAppRole.graphql");
                 deleteNwGroup = File.ReadAllText(QueryPath + "modelling/deleteNwGroup.graphql");

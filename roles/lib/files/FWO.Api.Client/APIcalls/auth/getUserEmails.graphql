@@ -1,0 +1,8 @@
+query getUserEmails{
+  uiuser {
+    uiuser_id
+    uuid
+    uiuser_username
+    uiuser_email
+  }
+}

@@ -46,9 +46,9 @@
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public RequestReqTask ReqTask { get; set; } = new RequestReqTask();
+    public RequestReqTask ReqTask { get; set; } = new ();
 
-    private List<Device> deviceList = new List<Device>();
+    private List<Device> deviceList = new ();
 
 
     protected override async Task OnParametersSetAsync()

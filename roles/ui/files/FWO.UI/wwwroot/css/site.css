@@ -478,3 +478,13 @@ thead {
     margin-right:10px;
     margin-left:20px;
 }
+
+.draggable-item {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.draggable-selected {
+    color: black !important;
+    background-color: #a4d7f5;
+}

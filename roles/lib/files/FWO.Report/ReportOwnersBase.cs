@@ -1,5 +1,3 @@
-using FWO.GlobalConstants;
-using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text.Json;
@@ -29,7 +27,7 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            return GenerateHtmlFrame(title, filter, date, htmlReport, null, string.Join("; ", Array.ConvertAll(ReportData.OwnerData.ToArray(), o => o.Name)));
+            return GenerateHtmlFrameBase(title, filter, date, htmlReport, null, string.Join("; ", ReportData.OwnerData.ConvertAll(o => o.Name)));
         }
     }
 }

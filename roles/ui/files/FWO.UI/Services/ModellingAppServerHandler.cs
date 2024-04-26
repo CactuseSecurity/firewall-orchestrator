@@ -58,7 +58,7 @@ namespace FWO.Ui.Services
         public void Reset()
         {
             ActAppServer = ActAppServerOrig;
-            if(!AddMode)
+            if(!AddMode && !ReadOnly)
             {
                 AvailableAppServers[AvailableAppServers.FindIndex(x => x.Id == ActAppServer.Id)] = ActAppServerOrig;
             }
@@ -66,7 +66,7 @@ namespace FWO.Ui.Services
 
         private bool CheckAppServer()
         {
-            if(ActAppServer.Ip == null || ActAppServer.Ip == "")
+            if(ActAppServer.Ip == null || ActAppServer.Ip == "" || ActAppServer.CustomType == null || ActAppServer.CustomType == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E5102"), true);
                 return false;
@@ -94,7 +94,8 @@ namespace FWO.Ui.Services
                     appId = Application.Id,
                     ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
                     ipEnd = ActAppServer.IpEnd != "" ? IPAddressRange.Parse(ActAppServer.IpEnd).ToCidrString() : IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
-                    importSource = GlobalConst.kManual  // todo
+                    importSource = GlobalConst.kManual,  // todo
+                    customType = ActAppServer.CustomType
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -130,7 +131,8 @@ namespace FWO.Ui.Services
                     name = ActAppServer.Name,
                     appId = Application.Id,
                     ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),   // todo ?
-                    importSource = GlobalConst.kManual  // todo
+                    importSource = GlobalConst.kManual,  // todo
+                    customType = ActAppServer.CustomType
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppServer, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,

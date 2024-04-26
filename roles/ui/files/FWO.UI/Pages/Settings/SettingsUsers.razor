@@ -378,7 +378,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Groups = new List<string>();
+                user.Groups = new ();
                 foreach (var group in groups)
                 {
                     if (group.Users != null && group.Users.Exists(x => x.Dn == user.Dn))
@@ -400,7 +400,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Roles = new List<string>();
+                user.Roles = new ();
                 foreach (var role in roles)
                 {
                     if (role.Users != null && role.Users.Exists(x => x.Dn == user.Dn))

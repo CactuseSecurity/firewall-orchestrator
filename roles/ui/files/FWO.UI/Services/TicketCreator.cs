@@ -1,16 +1,16 @@
 ﻿using System.Text.Json;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Logging;
+using FWO.Middleware.Client;
 
 namespace FWO.Ui.Services
 {
     public class TicketCreator
     {
-        private RequestHandler reqHandler;
-        private UserConfig userConfig;
+        private readonly RequestHandler reqHandler;
+        private readonly UserConfig userConfig;
         private int stateId;
         private string ticketTitle = "";
         private string ticketReason = "";
@@ -19,10 +19,75 @@ namespace FWO.Ui.Services
         private int priority;
 
 
-        public TicketCreator(ApiConnection apiConnection, UserConfig userConfig)
+        public TicketCreator(ApiConnection apiConnection, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, MiddlewareClient middlewareClient, WorkflowPhases phase = WorkflowPhases.request)
         {
-            reqHandler = new RequestHandler(LogMessage, userConfig, apiConnection, WorkflowPhases.request);
+            reqHandler = new (LogMessage, userConfig, authUser, apiConnection, middlewareClient, phase);
             this.userConfig = userConfig;
+        }
+
+        public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, string reason = "")
+        {
+            await reqHandler.Init(new(){ owner.Id });
+            stateId = reqHandler.MasterStateMatrix.LowestEndState;
+            reqHandler.SelectTicket(new RequestTicket()
+                {
+                    StateId = stateId,
+                    Title = userConfig.ModReqTicketTitle,
+                    Requester = userConfig.User,
+                    Reason = reason
+                },
+                ObjAction.add);
+            reqHandler.SelectReqTask(new RequestReqTask()
+                {
+                    StateId = stateId,
+                    Title = userConfig.ModReqTaskTitle,
+                    TaskType = TaskType.new_interface.ToString(),
+                    Owners = new(){ new() { Owner = owner } },
+                    Reason = reason
+                },
+                ObjAction.add);
+            await reqHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = reqHandler.MasterStateMatrix.LowestEndState}));
+            reqHandler.ActTicket.Tasks.Add(reqHandler.ActReqTask);
+            reqHandler.AddTicketMode = true;
+            return await reqHandler.SaveTicket(reqHandler.ActTicket);
+        }
+
+        public async Task SetInterfaceId(long ticketId, long connId, FwoOwner owner)
+        {
+            await reqHandler.Init(new(){ owner.Id }, true);
+            RequestTicket? ticket = await reqHandler.ResolveTicket(ticketId);
+            if(ticket != null)
+            {
+                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                if(reqTask != null)
+                {
+                    await reqHandler.AddAdditionalInfoToReqTask(reqTask, connId);
+                }
+            }
+        }
+
+        public async Task<bool> PromoteTicket(FwoOwner owner, long ticketId)
+        {
+            await reqHandler.Init(new(){ owner.Id });
+            RequestTicket? ticket = await reqHandler.ResolveTicket(ticketId);
+            if(ticket != null)
+            {
+                reqHandler.SetTicketEnv(ticket);
+                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                if(reqTask != null)
+                {
+                    reqHandler.SetReqTaskEnv(reqTask);
+                    RequestImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
+                    if(implTask != null)
+                    {
+                        await reqHandler.ContinueImplPhase(implTask);
+                        int newState = reqHandler.MasterStateMatrix.LowestEndState;
+                        await reqHandler.PromoteImplTask(new(){ StateId = newState });
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         public async Task CreateDecertRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
@@ -49,7 +114,7 @@ namespace FWO.Ui.Services
 
         private async Task CreateRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
         {
-            await reqHandler.Init();
+            await reqHandler.Init(new());
             reqHandler.ActTicket = new RequestTicket()
             {
                 StateId = stateId,

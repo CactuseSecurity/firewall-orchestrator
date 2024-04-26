@@ -1009,20 +1009,33 @@
                   "role": "modeller",
                   "permission": {
                     "check": {
-                      "app_id": {
-                        "_in": "x-hasura-editable-owners"
-                      }
+                      "_or": [
+                        {
+                          "app_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        },
+                        {
+                          "app_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
                     },
                     "columns": [
-                      "common_service",
-                      "is_interface",
-                      "creator",
-                      "name",
                       "app_id",
+                      "common_service",
+                      "creation_date",
+                      "creator",
                       "id",
-                      "used_interface_id",
+                      "is_interface",
+                      "is_published",
+                      "is_requested",
+                      "name",
+                      "proposed_app_id",
                       "reason",
-                      "creation_date"
+                      "ticket_id",
+                      "used_interface_id"
                     ]
                   },
                   "comment": ""
@@ -1033,15 +1046,19 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "common_service",
-                      "is_interface",
-                      "creator",
-                      "name",
                       "app_id",
+                      "common_service",
+                      "creation_date",
+                      "creator",
                       "id",
-                      "used_interface_id",
+                      "is_interface",
+                      "is_published",
+                      "is_requested",
+                      "name",
+                      "proposed_app_id",
                       "reason",
-                      "creation_date"
+                      "ticket_id",
+                      "used_interface_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1052,15 +1069,19 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "common_service",
-                      "is_interface",
-                      "creator",
-                      "name",
                       "app_id",
+                      "common_service",
+                      "creation_date",
+                      "creator",
                       "id",
-                      "used_interface_id",
+                      "is_interface",
+                      "is_published",
+                      "is_requested",
+                      "name",
+                      "proposed_app_id",
                       "reason",
-                      "creation_date"
+                      "ticket_id",
+                      "used_interface_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1073,20 +1094,33 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "common_service",
-                      "is_interface",
-                      "creator",
-                      "name",
                       "app_id",
+                      "common_service",
+                      "creation_date",
+                      "creator",
                       "id",
-                      "used_interface_id",
+                      "is_interface",
+                      "is_published",
+                      "is_requested",
+                      "name",
+                      "proposed_app_id",
                       "reason",
-                      "creation_date"
+                      "ticket_id",
+                      "used_interface_id"
                     ],
                     "filter": {
-                      "app_id": {
-                        "_in": "x-hasura-editable-owners"
-                      }
+                      "_or": [
+                        {
+                          "app_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        },
+                        {
+                          "app_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
                     },
                     "check": {}
                   },
@@ -1098,9 +1132,18 @@
                   "role": "modeller",
                   "permission": {
                     "filter": {
-                      "app_id": {
-                        "_in": "x-hasura-editable-owners"
-                      }
+                      "_or": [
+                        {
+                          "app_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        },
+                        {
+                          "app_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
                     }
                   },
                   "comment": ""
@@ -6995,7 +7038,11 @@
                   "permission": {
                     "columns": [
                       "ldap_connection_id",
-                      "ldap_tenant_level"
+                      "ldap_name",
+                      "ldap_port",
+                      "ldap_server",
+                      "ldap_tenant_level",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -9676,13 +9723,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "custom_type",
                       "id",
-                      "is_deleted",
                       "import_source",
-                      "name",
                       "ip",
                       "ip_end",
                       "ip_proto_id",
+                      "is_deleted",
+                      "name",
                       "nw_type",
                       "owner_id",
                       "port"
@@ -9702,6 +9750,7 @@
                       "name",
                       "ip",
                       "ip_end",
+                      "custom_type",
                       "ip_proto_id",
                       "nw_type",
                       "owner_id",
@@ -9715,13 +9764,14 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "custom_type",
                       "id",
-                      "is_deleted",
                       "import_source",
-                      "name",
                       "ip",
                       "ip_end",
                       "ip_proto_id",
+                      "is_deleted",
+                      "name",
                       "nw_type",
                       "owner_id",
                       "port"
@@ -9740,6 +9790,7 @@
                       "name",
                       "ip",
                       "ip_end",
+                      "custom_type",
                       "ip_proto_id",
                       "nw_type",
                       "owner_id",
@@ -9755,6 +9806,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "custom_type",
                       "import_source",
                       "ip",
                       "ip_end",
@@ -12207,6 +12259,52 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "approver",
@@ -12277,6 +12375,36 @@
                     ],
                     "filter": {}
                   }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -17657,11 +17785,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {
@@ -21513,29 +21637,30 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "additional_info",
                       "assigned_group",
-                      "task_type",
-                      "title",
                       "current_handler",
                       "devices",
+                      "free_text",
+                      "id",
+                      "last_recert_date",
                       "nw_obj_grp_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
                       "rule_action",
                       "rule_tracking",
-                      "state_id",
-                      "svc_grp_id",
-                      "task_number",
-                      "user_grp_id",
-                      "free_text",
-                      "reason",
-                      "last_recert_date",
                       "start",
+                      "state_id",
                       "stop",
+                      "svc_grp_id",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "task_number",
+                      "task_type",
+                      "ticket_id",
+                      "title",
+                      "user_grp_id"
                     ]
                   }
                 }
@@ -21545,29 +21670,30 @@
                   "role": "approver",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "additional_info",
                       "assigned_group",
-                      "task_type",
-                      "title",
                       "current_handler",
                       "devices",
+                      "free_text",
+                      "id",
+                      "last_recert_date",
                       "nw_obj_grp_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
                       "rule_action",
                       "rule_tracking",
-                      "state_id",
-                      "svc_grp_id",
-                      "task_number",
-                      "user_grp_id",
-                      "free_text",
-                      "reason",
-                      "last_recert_date",
                       "start",
+                      "state_id",
                       "stop",
+                      "svc_grp_id",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "task_number",
+                      "task_type",
+                      "ticket_id",
+                      "title",
+                      "user_grp_id"
                     ],
                     "filter": {}
                   }
@@ -21576,29 +21702,30 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "additional_info",
                       "assigned_group",
-                      "devices",
-                      "task_type",
-                      "title",
                       "current_handler",
+                      "devices",
+                      "free_text",
+                      "id",
+                      "last_recert_date",
                       "nw_obj_grp_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
                       "rule_action",
                       "rule_tracking",
-                      "state_id",
-                      "svc_grp_id",
-                      "task_number",
-                      "user_grp_id",
-                      "free_text",
-                      "reason",
-                      "last_recert_date",
                       "start",
+                      "state_id",
                       "stop",
+                      "svc_grp_id",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "task_number",
+                      "task_type",
+                      "ticket_id",
+                      "title",
+                      "user_grp_id"
                     ],
                     "filter": {}
                   }
@@ -21607,29 +21734,30 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "additional_info",
                       "assigned_group",
-                      "task_type",
-                      "title",
                       "current_handler",
                       "devices",
+                      "free_text",
+                      "id",
+                      "last_recert_date",
                       "nw_obj_grp_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
                       "rule_action",
                       "rule_tracking",
-                      "state_id",
-                      "svc_grp_id",
-                      "task_number",
-                      "user_grp_id",
-                      "free_text",
-                      "reason",
-                      "last_recert_date",
                       "start",
+                      "state_id",
                       "stop",
+                      "svc_grp_id",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "task_number",
+                      "task_type",
+                      "ticket_id",
+                      "title",
+                      "user_grp_id"
                     ],
                     "filter": {}
                   }
@@ -21638,29 +21766,30 @@
                   "role": "implementer",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "additional_info",
                       "assigned_group",
-                      "task_type",
-                      "title",
                       "current_handler",
                       "devices",
+                      "free_text",
+                      "id",
+                      "last_recert_date",
                       "nw_obj_grp_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
                       "rule_action",
                       "rule_tracking",
-                      "state_id",
-                      "svc_grp_id",
-                      "task_number",
-                      "user_grp_id",
-                      "free_text",
-                      "reason",
-                      "last_recert_date",
                       "start",
+                      "state_id",
                       "stop",
+                      "svc_grp_id",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "task_number",
+                      "task_type",
+                      "ticket_id",
+                      "title",
+                      "user_grp_id"
                     ],
                     "filter": {}
                   }
@@ -21669,29 +21798,30 @@
                   "role": "planner",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "additional_info",
                       "assigned_group",
-                      "task_type",
-                      "title",
                       "current_handler",
                       "devices",
+                      "free_text",
+                      "id",
+                      "last_recert_date",
                       "nw_obj_grp_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
                       "rule_action",
                       "rule_tracking",
-                      "state_id",
-                      "svc_grp_id",
-                      "task_number",
-                      "user_grp_id",
-                      "free_text",
-                      "reason",
-                      "last_recert_date",
                       "start",
+                      "state_id",
                       "stop",
+                      "svc_grp_id",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "task_number",
+                      "task_type",
+                      "ticket_id",
+                      "title",
+                      "user_grp_id"
                     ],
                     "filter": {}
                   }
@@ -21700,29 +21830,30 @@
                   "role": "requester",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "additional_info",
                       "assigned_group",
-                      "task_type",
-                      "title",
                       "current_handler",
                       "devices",
+                      "free_text",
+                      "id",
+                      "last_recert_date",
                       "nw_obj_grp_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
                       "rule_action",
                       "rule_tracking",
-                      "state_id",
-                      "svc_grp_id",
-                      "task_number",
-                      "user_grp_id",
-                      "free_text",
-                      "reason",
-                      "last_recert_date",
                       "start",
+                      "state_id",
                       "stop",
+                      "svc_grp_id",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "task_number",
+                      "task_type",
+                      "ticket_id",
+                      "title",
+                      "user_grp_id"
                     ],
                     "filter": {}
                   }
@@ -21731,29 +21862,30 @@
                   "role": "reviewer",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "additional_info",
                       "assigned_group",
-                      "task_type",
-                      "title",
                       "current_handler",
                       "devices",
+                      "free_text",
+                      "id",
+                      "last_recert_date",
                       "nw_obj_grp_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
                       "rule_action",
                       "rule_tracking",
-                      "state_id",
-                      "svc_grp_id",
-                      "task_number",
-                      "user_grp_id",
-                      "free_text",
-                      "reason",
-                      "last_recert_date",
                       "start",
+                      "state_id",
                       "stop",
+                      "svc_grp_id",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "task_number",
+                      "task_type",
+                      "ticket_id",
+                      "title",
+                      "user_grp_id"
                     ],
                     "filter": {}
                   }
@@ -21764,6 +21896,7 @@
                   "role": "approver",
                   "permission": {
                     "columns": [
+                      "additional_info",
                       "assigned_group",
                       "current_handler",
                       "recent_handler",
@@ -21779,6 +21912,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "additional_info",
                       "assigned_group",
                       "current_handler",
                       "recent_handler",
@@ -21794,6 +21928,7 @@
                   "role": "implementer",
                   "permission": {
                     "columns": [
+                      "additional_info",
                       "assigned_group",
                       "current_handler",
                       "recent_handler",
@@ -21809,6 +21944,7 @@
                   "role": "planner",
                   "permission": {
                     "columns": [
+                      "additional_info",
                       "assigned_group",
                       "current_handler",
                       "recent_handler",
@@ -21824,29 +21960,30 @@
                   "role": "requester",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "additional_info",
                       "assigned_group",
-                      "task_type",
-                      "title",
                       "current_handler",
                       "devices",
+                      "free_text",
+                      "id",
+                      "last_recert_date",
                       "nw_obj_grp_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
                       "rule_action",
                       "rule_tracking",
-                      "state_id",
-                      "svc_grp_id",
-                      "task_number",
-                      "user_grp_id",
-                      "free_text",
-                      "reason",
-                      "last_recert_date",
                       "start",
+                      "state_id",
                       "stop",
+                      "svc_grp_id",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "task_number",
+                      "task_type",
+                      "ticket_id",
+                      "title",
+                      "user_grp_id"
                     ],
                     "filter": {},
                     "check": null
@@ -21856,6 +21993,7 @@
                   "role": "reviewer",
                   "permission": {
                     "columns": [
+                      "additional_info",
                       "assigned_group",
                       "current_handler",
                       "recent_handler",

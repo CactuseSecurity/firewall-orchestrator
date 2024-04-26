@@ -23,19 +23,17 @@ namespace FWO.Ui.Services
         public ModellingNamingConvention NamingConvention = new();
 
         private ModellingManagedIdString OrigId = new();
-        public bool ReadOnly = false;
 
 
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
             List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, readOnly, isOwner)
         {
             AppRoles = appRoles;
             AvailableAppServers = availableAppServers;
             AvailableNwElems = availableNwElems;
             ActAppRole = appRole;
-            ReadOnly = readOnly;
             ApplyNamingConvention(application.ExtAppId);
         }
 
@@ -83,6 +81,19 @@ namespace FWO.Ui.Services
             }
         }
 
+        public async Task<ModellingAppRole> GetDummyAppRole()
+        {
+            List<ModellingAppRole> dummyAppRole = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
+            if(dummyAppRole.Count > 0)
+            {
+                return dummyAppRole.First();
+            }
+            ActAppRole.Name = GlobalConst.kDummyAppRole;
+            ActAppRole.IdString = GlobalConst.kDummyAppRole;
+            await AddAppRoleToDb(null);
+            return ActAppRole;
+        }
+
         public async Task<bool> Save()
         {
             try
@@ -103,7 +114,7 @@ namespace FWO.Ui.Services
                     }
                     if(AddMode)
                     {
-                        await AddAppRoleToDb();
+                        await AddAppRoleToDb(Application.Id);
                     }
                     else
                     {
@@ -191,7 +202,7 @@ namespace FWO.Ui.Services
             return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
         }
 
-        private async Task AddAppRoleToDb()
+        private async Task AddAppRoleToDb(int? appId)
         {
             try
             {
@@ -199,7 +210,7 @@ namespace FWO.Ui.Services
                 {
                     name = ActAppRole.Name,
                     idString = ActAppRole.IdString,
-                    appId = Application.Id,
+                    appId = appId,
                     comment = ActAppRole.Comment,
                     creator = userConfig.User.Name
                 };
@@ -278,13 +289,13 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
-            AppServerToAdd = new List<ModellingAppServer>();
-            AppServerToDelete = new List<ModellingAppServer>();
+            AppServerToAdd = new ();
+            AppServerToDelete = new ();
         }
 
         public async Task SelectAppServersFromArea(ModellingNetworkArea? area)
         {
-            AppServersInArea = new List<ModellingAppServer>(){};
+            AppServersInArea = new ();
             if(area != null)
             {
                 foreach(var server in AvailableAppServers.Where(x => !x.IsDeleted))

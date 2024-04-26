@@ -13,9 +13,15 @@ namespace FWO.Report
 
         public List<NetworkObject> AllObjects = new();
         public List<NetworkService> AllServices = new();
+        private readonly long DummyARid = -1;
 
         public OwnerReport()
         {}
+
+        public OwnerReport(long dummyARid)
+        {
+            DummyARid = dummyARid;
+        }
 
         public OwnerReport(OwnerReport report)
         {
@@ -80,9 +86,9 @@ namespace FWO.Report
             return allObjects;
         }
 
-        private static void GetObjectsFromAR(List<ModellingAppRoleWrapper> appRoles, ref List<NetworkObject> objectList, bool resolved = false)
+        private void GetObjectsFromAR(List<ModellingAppRoleWrapper> appRoles, ref List<NetworkObject> objectList, bool resolved = false)
         {
-            foreach (var objGrp in appRoles)
+            foreach (var objGrp in appRoles.Where(a => a.Content.Id != DummyARid))
             {
                 objectList.Add(objGrp.Content.ToNetworkObjectGroup());
                 if(resolved)
@@ -172,7 +178,7 @@ namespace FWO.Report
             return names;
         }
 
-        private void SetSvcNumbers(ref List<NetworkService> svcList)
+        private static void SetSvcNumbers(ref List<NetworkService> svcList)
         {
             long number = 1;
             foreach(var svc in svcList)
@@ -181,7 +187,7 @@ namespace FWO.Report
             }
         }
 
-        private void SetObjectNumbers(ref List<NetworkObject> objList)
+        private static void SetObjectNumbers(ref List<NetworkObject> objList)
         {
             long number = 1;
             foreach(var obj in objList)

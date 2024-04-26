@@ -257,12 +257,6 @@ namespace FWO.Middleware.Server
             return globalConfig.ImpChangeNotifyRecipients.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
         }
 
-		private List<string> CollectRecipients()
-		{
-			string[] separatingStrings = { ",", ";", "|" };
-			return globalConfig.ImpChangeNotifyRecipients.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
-		}
-
 		private async Task SetImportsNotified()
 		{
 			try

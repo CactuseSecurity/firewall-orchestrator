@@ -3,32 +3,22 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Middleware.Client
 
-@page "/request/implementations"
+@page "/request/implementations/{ticketId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Implementer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
+@inject MiddlewareClient middlewareClient
 
 <h3>@(userConfig.GetText("implementations"))</h3>
 <hr />
 
 @if(InitComplete)
 {
-    <div class="form-group row">
-        <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("view")):</label>
-        <div class="col-sm-2">
-            <Dropdown ElementType="Device" @bind-SelectedElement="selectedDeviceOpt" ElementToString="@(d => d.Name)" Elements="deviceOptions" AppendWidth="100">
-                <ElementTemplate Context="device">
-                    @device.Name
-                </ElementTemplate>
-                <Append>
-                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="SelectDevice">@(userConfig.GetText("select"))</button>
-                </Append>
-            </Dropdown>
-        </div>
-        
-    </div>
+    <ImplOptSelection SelectOwner="SelectOwner" SelectDevice="SelectDevice" Owners="Owners" ReqHandler="reqHandler" />
 
     @if(DisplayTickets)
     {
@@ -37,9 +27,8 @@
     }
     else
     {
-        <DisplayImplTaskTable Phase="WorkflowPhases.implementation" States="states" 
-            ReqHandler="reqHandler" ResetParent="SelectDevice" AllImplTasks="allImplTasks" DeviceView="true"
-            StartImplPhase="StartImplementTask"/>
+        <DisplayImplTaskTable Phase="WorkflowPhases.implementation" States="states" ReqHandler="reqHandler" 
+            ResetParent="Select" AllImplTasks="reqHandler.AllVisibleImplTasks" ImplTaskView="true" StartImplPhase="StartImplementTask"/>
     }
 }
 else
@@ -57,16 +46,17 @@ else
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private RequestHandler reqHandler = new RequestHandler();
-    private RequestStateDict states = new RequestStateDict();
+    [Parameter]
+    public string? TicketId { get; set; }
+
+    private RequestHandler reqHandler = new ();
+    private RequestStateDict states = new ();
+    private List<FwoOwner> Owners = new();
     private bool InitComplete = false;
 
     private bool DisplayTickets = true;
-    private List<RequestImplTask> allImplTasks = new List<RequestImplTask>();
-    private List<Device> deviceOptions = new List<Device>();
-    private Device optTicket = new Device();
-    private Device allDev = new Device();
-    private Device selectedDeviceOpt = new Device();
+    private Device selectedDeviceOpt = new ();
+    private FwoOwner selectedOwnerOpt = new (){ Id = -1 };
 
 
     protected override async Task OnInitializedAsync()
@@ -76,15 +66,19 @@ else
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Implementer, Roles.FwAdmin, Roles.Auditor});
             await states.Init(apiConnection);
 
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.implementation){};
+            if(userConfig.ReqOwnerBased)
+            {
+                Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+            }
+            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.implementation){};
             await Reset();
+            await HandleTicketId();
+            await Select();
             reqHandler.SetContinueEnv(ObjAction.implement);
-            optTicket = new Device(){ Id = -1, Name = userConfig.GetText("tickets")};
-            allDev = new Device(){ Id = 0, Name = userConfig.GetText("all_gateways")};
-            deviceOptions = new List<Device>(reqHandler.Devices);
-            deviceOptions.Add(optTicket);
-            deviceOptions.Add(allDev);
-            selectedDeviceOpt = optTicket;
+            if(reqHandler.ActTicket.Tasks.Count >= 1 && reqHandler.ActTicket.Tasks.First().ImplementationTasks.Count >= 1)
+            {
+                await reqHandler.ContinueImplPhase(reqHandler.ActTicket.Tasks.First().ImplementationTasks.First());
+            }
             InitComplete = true;
         }
         catch (Exception exception)
@@ -93,30 +87,58 @@ else
         }
     }
 
-    private async Task SelectDevice()
+    private async Task HandleTicketId()
     {
-        allImplTasks = new List<RequestImplTask>();
-        if(selectedDeviceOpt.Id != -1)
+        if(long.TryParse(TicketId, out long ticketId))
         {
-            foreach(var ticket in reqHandler.TicketList)
+            string newPhase = await reqHandler.HandleExtTicketId(WorkflowPhases.implementation, ticketId);
+            if(newPhase != "")
             {
-                foreach(var reqTask in ticket.Tasks)
-                {
-                    foreach(var implTask in reqTask.ImplementationTasks)
-                    {
-                        if (selectedDeviceOpt.Id == 0 || implTask.DeviceId == selectedDeviceOpt.Id)
-                        {
-                            implTask.TicketId = ticket.Id;
-                            implTask.ReqTaskId = reqTask.Id;
-                            allImplTasks.Add(implTask);
-                        }
-                    }
-                }
+                NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
             }
         }
-        DisplayTickets = (selectedDeviceOpt.Id == -1);
-        await Reset();
-        StateHasChanged();
+    }
+
+    private async Task Select()
+    {
+        if(userConfig.ReqOwnerBased)
+        {
+            await SelectOwner(selectedOwnerOpt);
+        }
+        else
+        {
+            await SelectDevice(selectedDeviceOpt);
+        }
+    }
+
+    private async Task SelectOwner(FwoOwner newOwnerOpt)
+    {
+        try
+        {
+            selectedOwnerOpt = newOwnerOpt;
+            DisplayTickets = reqHandler.SelectOwnerImplTasks(selectedOwnerOpt);
+            await Reset();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select_owner"), "", true);
+        }
+    }
+
+    private async Task SelectDevice(Device newDeviceOpt)
+    {
+        try
+        {
+            selectedDeviceOpt = newDeviceOpt;
+            DisplayTickets = reqHandler.SelectDeviceImplTasks(selectedDeviceOpt);
+            await Reset();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select_device"), "", true);
+        }
     }
 
     private async Task Reset()
@@ -124,7 +146,7 @@ else
         try
         {
             reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Implementer) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await reqHandler.Init();
+            await reqHandler.Init(Owners.ConvertAll(x => x.Id));
         }
         catch (Exception exception)
         {

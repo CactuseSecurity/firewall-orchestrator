@@ -7,7 +7,7 @@
 
 @if(Display && InitComplete && ServiceHandler != null)
 {
-    <PopUp Title="@(AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Size=PopupSize.Large Show="@Display" OnClose="Cancel">
+    <PopUp Title="@(ServiceHandler.AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Size=PopupSize.Large Show="@Display" OnClose="Cancel">
         <Body>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
@@ -73,9 +73,6 @@
     public ModellingServiceHandler? ServiceHandler { get; set; }
 
     [Parameter]
-    public bool AddMode { get; set; } = false;
-
-    [Parameter]
     public bool AsAdmin { get; set; } = false;
 
 
@@ -100,7 +97,7 @@
     {
         try
         {
-            if(AddMode && ServiceHandler != null && (ServiceHandler.ActService.Protocol == null || ServiceHandler.ActService.Protocol.Id == 0) && ipProtos.Count > 0)
+            if(ServiceHandler != null && ServiceHandler.AddMode && (ServiceHandler.ActService.Protocol == null || ServiceHandler.ActService.Protocol.Id == 0) && ipProtos.Count > 0)
             {
                 ServiceHandler.ActService.Protocol = ipProtos.First();
             }

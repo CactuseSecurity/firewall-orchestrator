@@ -59,14 +59,18 @@
     internal void RemoveTab(Tab tab)
     {
         if (_isDisposed)
+        {
             return;
+        }
 
         var index = Tabs.IndexOf(tab);
-        if (tab == ActiveTab && index == Tabs.Count - 1)
+        if (ActiveTab != null && tab == ActiveTab && index == Tabs.Count - 1)
         {
             SetActiveTab(Tabs[index > 0 ? index - 1 : 0]);
             if (Tabs.Count == 1)
+            {
                 ActiveTab = null;
+            }
         }
         Tabs.Remove(tab);
         StateHasChanged();
@@ -74,7 +78,7 @@
 
     public void SetActiveTab(Tab tab)
     {
-        if (ActiveTab != tab)
+        if (ActiveTab == null || ActiveTab != tab)
         {
             ActiveTab = tab;
             StateHasChanged();
@@ -83,7 +87,7 @@
 
     public void SetActiveTab(int index)
     {
-        if (ActiveTab != Tabs[index])
+        if (Tabs.Count > 0 && (ActiveTab == null || ActiveTab != Tabs[index]))
         {
             ActiveTab = Tabs[index];
             StateHasChanged();

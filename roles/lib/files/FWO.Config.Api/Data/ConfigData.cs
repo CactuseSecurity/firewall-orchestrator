@@ -23,6 +23,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("sessionTimeoutNoticePeriod"), JsonPropertyName("sessionTimeoutNoticePeriod")]
         public int SessionTimeoutNoticePeriod { get; set; } = 60;
 
+        [JsonProperty("uiHostName"), JsonPropertyName("uiHostName")]
+        public string UiHostName { get; set; } = "http://localhost:5000";
+
         //        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
         //        public int MaxMessages { get; set; } = 3;
 
@@ -174,6 +177,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("emailSenderAddress"), JsonPropertyName("emailSenderAddress")]
         public string EmailSenderAddress { get; set; } = "";
 
+        [JsonProperty("useDummyEmailAddress"), JsonPropertyName("useDummyEmailAddress")]
+        public bool UseDummyEmailAddress { get; set; } = false;
+
+        [JsonProperty("dummyEmailAddress"), JsonPropertyName("dummyEmailAddress")]
+        public string DummyEmailAddress { get; set; } = "";
+
         [JsonProperty("minCollapseAllDevices"), JsonPropertyName("minCollapseAllDevices"), UserConfigData]
         public int MinCollapseAllDevices { get; set; } = 15;
 
@@ -192,6 +201,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
         public string ReqAvailableTaskTypes { get; set; } = "";
 
+        [JsonProperty("reqOwnerBased"), JsonPropertyName("reqOwnerBased")]
+        public bool ReqOwnerBased { get; set; } = false;
+
+        [JsonProperty("reqReducedView"), JsonPropertyName("reqReducedView")]
+        public bool ReqReducedView { get; set; } = false;
+
         [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
         public bool ReqAllowObjectSearch { get; set; } = false;
 
@@ -206,6 +221,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqActivatePathAnalysis"), JsonPropertyName("reqActivatePathAnalysis")]
         public bool ReqActivatePathAnalysis { get; set; } = true;
+
+        [JsonProperty("reqShowCompliance"), JsonPropertyName("reqShowCompliance")]
+        public bool ReqShowCompliance { get; set; } = false;
 
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
@@ -249,6 +267,24 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
         public string ModCommonAreas { get; set; } = "";
+
+        [JsonProperty("modAppServerTypes"), JsonPropertyName("modAppServerTypes")]
+        public string ModAppServerTypes { get; set; } = "";
+
+        [JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
+        public string ModReqInterfaceName { get; set; } = "";
+
+        [JsonProperty("modReqEmailSubject"), JsonPropertyName("modReqEmailSubject")]
+        public string ModReqEmailSubject { get; set; } = "";
+
+        [JsonProperty("modReqEmailBody"), JsonPropertyName("modReqEmailBody")]
+        public string ModReqEmailBody { get; set; } = "";
+
+        [JsonProperty("modReqTicketTitle"), JsonPropertyName("modReqTicketTitle")]
+        public string ModReqTicketTitle { get; set; } = "";
+
+        [JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
+        public string ModReqTaskTitle { get; set; } = "";
 
 
         public ConfigData(bool editable = false)

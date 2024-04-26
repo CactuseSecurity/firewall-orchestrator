@@ -45,7 +45,7 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public List<NwRuleElement> Rules { get; set; } = new List<NwRuleElement>();
+    public List<NwRuleElement> Rules { get; set; } = new ();
 
     [Parameter]
     public EventCallback<List<NwRuleElement>> RulesChanged { get; set; }

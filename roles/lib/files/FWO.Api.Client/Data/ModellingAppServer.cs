@@ -14,6 +14,9 @@ namespace FWO.Api.Data
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string ImportSource { get; set; } = "";
 
+        [JsonProperty("custom_type"), JsonPropertyName("custom_type")]
+        public int? CustomType { get; set; }
+
         public bool InUse { get; set; } = true;
 
 
@@ -68,6 +71,7 @@ namespace FWO.Api.Data
             IpEnd = appServer.IpEnd;
             ImportSource = appServer.ImportSource;
             InUse = appServer.InUse;
+            CustomType = appServer.CustomType;
         }
 
         public override bool Equals(object? obj)
@@ -75,7 +79,7 @@ namespace FWO.Api.Data
             return obj switch
             {
                 ModellingAppServer apps => Id == apps.Id && AppId == apps.AppId && Name == apps.Name && IsDeleted == apps.IsDeleted
-                    && Ip == apps.Ip && IpEnd == apps.IpEnd && ImportSource == apps.ImportSource && InUse == apps.InUse,
+                    && Ip == apps.Ip && IpEnd == apps.IpEnd && ImportSource == apps.ImportSource && InUse == apps.InUse && CustomType == apps.CustomType,
                 _ => base.Equals(obj),
             };
         }

@@ -12,7 +12,8 @@ namespace FWO.Api.Data
         rule_modify = 4,
         group_create = 5,
         group_modify = 6,
-        group_delete = 7
+        group_delete = 7,
+        new_interface = 11
     }
 
     public enum RequestAction

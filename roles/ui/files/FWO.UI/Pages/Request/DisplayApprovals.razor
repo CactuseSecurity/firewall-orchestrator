@@ -20,8 +20,10 @@
                             <div class="btn-group">
                                 @if((context.ApproverDn == null || context.ApproverDn == "") && !ReqHandler.AddTicketMode && !ReqHandler.ReadOnlyMode)
                                 {
-                                    <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">@(userConfig.GetText("add_comment"))</button>
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 }
                             </div>
                         </Template>
@@ -46,7 +48,7 @@
                     </Column>
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(context.getAllComments())
+                            @(context.GetAllComments())
                         </Template>
                     </Column>
                 </Table>
@@ -61,7 +63,7 @@
 </PopUp>
 
 <AssignObject @bind-Display="ReqHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="ReqHandler.ActApproval" Assign="ReqHandler.AssignApprovalGroup" ObjectName="" RoleList="validRoles"/>
-<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
+<CommentObject @bind-Display="ReqHandler.DisplayApprovalCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
 
 @code
 {
@@ -75,18 +77,18 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
 
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
+    public List<RequestApproval> Approvals { get; set; } = new ();
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
-    static List<string> validRoles = new List<string>(){Roles.Approver};
+    static List<string> validRoles = new (){Roles.Approver};
 
 
     private async Task Close()

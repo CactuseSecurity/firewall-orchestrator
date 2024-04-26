@@ -71,7 +71,9 @@ namespace FWO.Test
             {"interfaces","Interfaces"},
             {"own_common_services","Own Common Services"},
             {"global_common_services","Global Common Services"},
-            {"func_reason","Functional Reason"}
+            {"func_reason","Functional Reason"},
+            {"interface_description","Interface Description"},
+            {"published","Published"}
         };
 
         public override string GetText(string key)

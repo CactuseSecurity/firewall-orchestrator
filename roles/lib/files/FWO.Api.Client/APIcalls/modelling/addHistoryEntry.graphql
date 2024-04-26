@@ -1,5 +1,5 @@
 mutation addHistoryEntry(
-  $appId: Int!
+  $appId: Int
   $changeType: Int!
   $objectType: Int!
   $objectId: bigint!

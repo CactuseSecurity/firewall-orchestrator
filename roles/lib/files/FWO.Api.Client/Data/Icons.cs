@@ -54,6 +54,7 @@ namespace FWO.Api.Data
         public const string AppRole = "oi oi-list-rich";
         public const string NwGroup = "oi oi-folder";
         public const string Connection = "oi oi-transfer";
+        public const string Interface = "oi oi-target";
 
         // Modules
         public const string Reporting = "oi oi-spreadsheet";
@@ -85,6 +86,7 @@ namespace FWO.Api.Data
         public const string Matrix = "oi oi-grid-four-up";
         public const string Action = "oi oi-arrow-right";
         public const string Phase = "oi oi-loop-square";
+        public const string Assign = "oi oi-arrow-thick-right"; // "oi-arrow-circle-right" ?
         
         // Monitoring
         public const string Alarm = "oi oi-bell";

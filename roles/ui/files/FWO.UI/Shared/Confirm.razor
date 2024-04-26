@@ -1,7 +1,7 @@
 ﻿@using FWO.GlobalConstants
 @using FWO.Api.Data
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Implementer}")]
 
 @inject UserConfig userConfig
 
@@ -15,7 +15,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
+            <AuthorizeView Roles="@AllowedRoles">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("confirm"))</button>
                 </Authorized>
@@ -45,6 +45,9 @@
 
     [Parameter]
     public string Message { get; set; } = "";
+
+    [Parameter]
+    public string AllowedRoles { get; set; } = Roles.Admin;
 
     private void Cancel()
     {

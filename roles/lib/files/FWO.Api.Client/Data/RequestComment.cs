@@ -21,7 +21,7 @@ namespace FWO.Api.Data
     public class RequestCommentDataHelper
     {
         [JsonProperty("comment"), JsonPropertyName("comment")]
-        public RequestComment Comment { get; set; } = new RequestComment();
+        public RequestComment Comment { get; set; } = new ();
 
 
         public RequestCommentDataHelper()

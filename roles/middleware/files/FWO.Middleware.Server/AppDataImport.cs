@@ -19,7 +19,10 @@ namespace FWO.Middleware.Server
         private List<ModellingAppServer> existingAppServers = new();
 
         private Ldap internalLdap = new();
-        private string roleDn = "";
+        private string modellerRoleDn = "";
+        private string requesterRoleDn = "";
+        private string implementerRoleDn = "";
+        private string reviewerRoleDn = "";
         List<GroupGetReturnParameters> allGroups = new();
 
 
@@ -59,7 +62,10 @@ namespace FWO.Middleware.Server
         {
             List<Ldap> connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(Api.Client.Queries.AuthQueries.getLdapConnections);
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
-            roleDn = $"cn=modeller,{internalLdap.RoleSearchPath}";
+            modellerRoleDn = $"cn=modeller,{internalLdap.RoleSearchPath}";
+            requesterRoleDn = $"cn=requester,{internalLdap.RoleSearchPath}";
+            implementerRoleDn = $"cn=implementer,{internalLdap.RoleSearchPath}";
+            reviewerRoleDn = $"cn=reviewer,{internalLdap.RoleSearchPath}";
             allGroups = internalLdap.GetAllInternalGroups();
         }
 
@@ -243,7 +249,10 @@ namespace FWO.Middleware.Server
                         internalLdap.AddUserToEntry(modellerGrp, groupDn);
                     }
                 }
-                internalLdap.AddUserToEntry(groupDn, roleDn);
+                internalLdap.AddUserToEntry(groupDn, modellerRoleDn);
+                internalLdap.AddUserToEntry(groupDn, requesterRoleDn);
+                internalLdap.AddUserToEntry(groupDn, implementerRoleDn);
+                internalLdap.AddUserToEntry(groupDn, reviewerRoleDn);
             }
             return groupDn;
         }
@@ -332,9 +341,16 @@ namespace FWO.Middleware.Server
                 {
                     return await NewAppServer(incomingAppServer, appID, impSource);
                 }
-                else if(existingAppServer.IsDeleted)
+                else 
                 {
-                    return await ReactivateAppServer(existingAppServer);
+                    if(existingAppServer.IsDeleted)
+                    {
+                        return await ReactivateAppServer(existingAppServer);
+                    }
+                    if(existingAppServer.CustomType == null)
+                    {
+                        return await UpdateAppServerType(existingAppServer);
+                    }
                 }
                 return true;
             }
@@ -355,7 +371,8 @@ namespace FWO.Middleware.Server
                     appId = appID,
                     ip = IpAsCidr(incomingAppServer.Ip),
                     ipEnd = incomingAppServer.IpEnd != "" ? IpAsCidr(incomingAppServer.IpEnd) : IpAsCidr(incomingAppServer.Ip),
-                    importSource = impSource
+                    importSource = impSource,
+                    customType = 0
                 };
                 await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAppServer, Variables);
             }
@@ -381,6 +398,25 @@ namespace FWO.Middleware.Server
             catch (Exception exc)
             {
                 Log.WriteError("Import App Server Data", $"App Server {appServer.Name} could not be reactivated.", exc);
+                return false;
+            }
+            return true;
+        }
+
+        private async Task<bool> UpdateAppServerType(ModellingAppServer appServer)
+        {
+            try
+            {
+                var Variables = new 
+                {
+                    id = appServer.Id,
+                    customType = 0
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAppServerType, Variables);
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Import App Server Data", $"Type of App Server {appServer.Name} could not be set.", exc);
                 return false;
             }
             return true;

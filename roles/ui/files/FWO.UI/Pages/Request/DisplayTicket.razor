@@ -4,6 +4,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 @using FWO.Ui.Data
+@using FWO.Ui.Pages.NetworkModelling
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -88,18 +89,20 @@
                         <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Reason"/>   
                     </div>
                 </div>
-
-                @if(!ReqHandler.ReadOnlyMode)
-                {
-                    <div class="col-sm-12">
-                        <div class="form-group row justify-content-center">
-                            @foreach(var action in offeredActions)
+                <div class="col-sm-12 mt-2">
+                    <div class="form-group row justify-content-center">
+                        @foreach(var action in offeredActions)
+                        {
+                            @if(!ReqHandler.ReadOnlyMode || RequestStateAction.IsReadonlyType(action.ActionType))
                             {
-                                <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                                </div>
                             }
-                        </div>
+                        }
                     </div>
-                }
+                </div>
+                <br>
 
                 @if(Phase < WorkflowPhases.implementation)
                 {
@@ -113,7 +116,7 @@
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
                     <DisplayImplTaskTable Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
-                        AllImplTasks="ReqHandler.AllImplTasks" StartImplPhase="StartImplPhase"/>
+                        AllImplTasks="ReqHandler.AllTicketImplTasks" StartImplPhase="StartImplPhase"/>
                 }
             </form>
         }
@@ -142,7 +145,14 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            @if(ReqHandler.EditTicketMode || CheckPromoteTicket())
+            {
+                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelEdit">@(userConfig.GetText("cancel"))</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+            }
         </div>
     </Footer>
 </PopUp>
@@ -162,8 +172,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Close" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
 
 
 @code
@@ -175,10 +185,10 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
     
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
@@ -190,15 +200,20 @@
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
-    private List<int> possibleStates = new List<int>();
-    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+    private List<int> possibleStates = new ();
+    private List<RequestStateAction> offeredActions = new ();
     private bool ConfirmCancelMode = false;
     private RequestPriority? selectedPriority;
-
+    private bool firstParamSet = true;
+    
 
     protected override async Task OnParametersSetAsync()
     {
-        await Reset(); 
+        if(firstParamSet && ReqHandler.DisplayTicketMode)
+        {
+            firstParamSet = false;
+            await Reset();
+        }
     }
 
     private async Task Close()
@@ -206,15 +221,19 @@
         await ResetParent();
     }
 
+    private async Task Cancel()
+    {
+        ReqHandler.DisplaySaveTicketMode = false;
+        ReqHandler.DisplayPromoteTicketMode = false;
+    }
+
     private async Task Reset()
     {
         try
         {
-            if (ReqHandler.DisplayTicketMode)
-            {
-                offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
-                selectedPriority = ReqHandler.PrioList.FirstOrDefault(p => p.NumPrio == ReqHandler.ActTicket.Priority);
-            }
+            Log.WriteDebug("DisplayTicket", "Reset");
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
+            selectedPriority = ReqHandler.PrioList.FirstOrDefault(p => p.NumPrio == ReqHandler.ActTicket.Priority);
             StateHasChanged();
         }
         catch (Exception exception)
@@ -223,7 +242,7 @@
         }
     }
 
-    private async Task Cancel()
+    private async Task CancelEdit()
     {
         if(ReqHandler.EditTicketMode && ReqHandler.ActTicket.Id == 0 && ReqHandler.ActTicket.Tasks.Count > 0)
         {
@@ -243,7 +262,7 @@
 
     private async Task PerformAction(RequestStateAction action)
     {
-        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActTicket, RequestObjectScopes.Ticket);
+        await ReqHandler.ActionHandler.PerformAction(action, ReqHandler.ActTicket, RequestObjectScopes.Ticket);
         await ResetParent();
     }
 
@@ -255,7 +274,7 @@
         }
         if(ReqHandler.ActTicket.Tasks.Count > 0)
         {
-            List<int> taskStates = new List<int>();
+            List<int> taskStates = new ();
             foreach (RequestReqTask reqTask in ReqHandler.ActTicket.Tasks)
             {
                 taskStates.Add(reqTask.StateId);

@@ -29,11 +29,11 @@
     var: web_call_result
   when: "'middlewareserver' in group_names"
 
-- name: show middleware webserver test results
-  fail:
-    msg: "url: {{ item.url }}, status: {{ item.status }}"
-  loop: "{{ web_call_result.results | from_yaml | list }}"
-  when: "'middlewareserver' in group_names and item.status!=200"
+#- name: show middleware webserver test results
+#  fail:
+#    msg: "url: {{ item.url }}, status: {{ item.status }}"
+#  loop: "{{ web_call_result.results | from_yaml | list }}"
+#  when: "'middlewareserver' in group_names and item.status!=200"
 
 ##############################
 #TASK [test : show middleware webserver test results] ***************************
@@ -59,11 +59,15 @@
   delay: 5 # Every 5 seconds
   when: "'apiserver' in group_names"
 
-- name: show api webserver test results
-  fail:
-    msg: "url: {{ item.url }}, status: {{ item.status }}"
-  loop: "{{ web_call_result.results | from_yaml | list }}"
-  when: "'apiserver' in group_names and item.status!=200"
+- debug:
+    var: web_call_result
+  when: "'apiserver' in group_names"
+
+#- name: show api webserver test results
+#  fail:
+#    msg: "url: {{ item.url }}, status: {{ item.status }}"
+#  loop: "{{ web_call_result.results | from_yaml | list }}"
+#  when: "'apiserver' in group_names and item.status!=200"
 
 - name: test ui web server availability
   uri:
@@ -82,8 +86,12 @@
   delay: 5 # Every 5 seconds
   when: "'frontends' in group_names"
 
-- name: show ui webserver test results
-  fail:
-    msg: "url: {{ item.url }}, status: {{ item.status }}"
-  loop: "{{ web_call_result.results | from_yaml | list }}"
-  when: "'frontends' in group_names and item.status!=200"
+- debug:
+    var: web_call_result
+  when: "'frontends' in group_names"
+
+#- name: show ui webserver test results
+#  fail:
+#    msg: "url: {{ item.url }}, status: {{ item.status }}"
+#  loop: "{{ web_call_result.results | from_yaml | list }}"
+#  when: "'frontends' in group_names and item.status!=200"

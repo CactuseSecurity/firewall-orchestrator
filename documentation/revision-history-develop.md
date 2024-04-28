@@ -201,3 +201,4 @@ bugfix release:
 - encrypt emailPassword in config
 - fix demo managements (change import from deactivated to activated - does not affect test managements)
 - upgrade to dotnet 8.0
+- adding all imported modelling users to uiuser

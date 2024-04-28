@@ -17,7 +17,7 @@ namespace FWO.Ui.Services
 
         public Shared.TabSet tabset = new();
         public Shared.Tab? actTab;
-    
+
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
@@ -52,6 +52,11 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
+        }
+
+        public async Task ReInit()
+        {
+            await Init();
         }
 
         public void InitActiveTab(ModellingConnection? conn = null)
@@ -217,7 +222,8 @@ namespace FWO.Ui.Services
         public async Task HandleConn(ModellingConnection conn)
         {
             actTab = tabset.ActiveTab;
-            connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, ReadOnly, DisplayMessageInUi, IsOwner);
+            connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, 
+                ReadOnly, DisplayMessageInUi, ReInit, IsOwner);
             await connHandler.Init();
             EditConnMode = true;
         }

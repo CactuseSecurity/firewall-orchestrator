@@ -21,6 +21,18 @@ namespace FWO.Api.Data
         public ModellingNetworkArea? Area { get; set; } = new();
 
 
+        public ModellingAppRole()
+        {}
+
+        public ModellingAppRole(ModellingAppRole appRole) : base(appRole)
+        {
+            Comment = appRole.Comment;
+            Creator = appRole.Creator;
+            CreationDate = appRole.CreationDate;
+            AppServers = appRole.AppServers;
+            Area = appRole.Area;
+        }
+
         public ModellingNwGroup ToBase()
         {
             return new ModellingNwGroup()

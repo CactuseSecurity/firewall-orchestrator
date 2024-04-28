@@ -17,6 +17,16 @@ namespace FWO.Api.Data
         public ModellingManagedIdString ManagedIdString { get; set; } = new ();
 
 
+        public ModellingNwGroup()
+        {}
+
+        public ModellingNwGroup(ModellingNwGroup nwGroup) : base(nwGroup)
+        {
+            GroupType = nwGroup.GroupType;
+            IdString = nwGroup.IdString;
+            ManagedIdString = nwGroup.ManagedIdString;
+        }
+
         public override string Display()
         {
             return base.Display() + " (" + IdString + ")";

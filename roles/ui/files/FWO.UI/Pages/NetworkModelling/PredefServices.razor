@@ -125,7 +125,7 @@
         try
         {
             serviceGroup.IsGlobal = true;
-            SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, dummyApplication, PredefServiceGroups, serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi);
+            SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, dummyApplication, PredefServiceGroups, serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi, DefaultInit.DoNothing);
             EditSvcGrpMode = true;
         }
         catch (Exception exception)

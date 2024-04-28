@@ -123,7 +123,7 @@
                 {
                     @if(AppRoleHandler.IsOwner)
                     {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {if(await AppRoleHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     }
                     else
                     {
@@ -157,10 +157,15 @@
     [Parameter]
     public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
 
+    [Parameter]
+    public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
+
     private ModellingDnDContainer Container { get; set; } = new();
     int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth + 300;
 
     private List<ModellingNetworkArea> areas = new();
+    private ModellingAppRole unchangedAppRole = new();
     private bool firstTry = true;
     private bool workInProgress = false;
 
@@ -204,6 +209,7 @@
             {
                 AppRoleHandler.AppServersInArea = AppRoleHandler.AvailableAppServers.Where(x => !x.IsDeleted).ToList();
             }
+            unchangedAppRole = new(AppRoleHandler.ActAppRole);
         }
     }
 
@@ -214,6 +220,19 @@
             AppRoleHandler.AppServerToAppRole(Container.AppServerElements);
         }
         Container.Clear();
+    }
+
+    private async Task Save()
+    {
+        if(await AppRoleHandler.Save())
+        {
+            if(unchangedAppRole.Name != AppRoleHandler.ActAppRole.Name || unchangedAppRole.IdString != AppRoleHandler.ActAppRole.IdString)
+            {
+                await RefreshParent();
+            }
+            unchangedAppRole = new(AppRoleHandler.ActAppRole);
+            Close();
+        }
     }
 
     private void Close()

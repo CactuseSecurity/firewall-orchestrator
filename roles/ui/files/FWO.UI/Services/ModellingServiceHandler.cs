@@ -42,6 +42,7 @@ namespace FWO.Ui.Services
                     {
                         await UpdateServiceInDb();
                     }
+                    ActServiceOrig = new ModellingService(ActService);
                     return true;
                 }
             }
@@ -54,10 +55,10 @@ namespace FWO.Ui.Services
 
         public void Reset()
         {
-            ActService = ActServiceOrig;
+            ActService = new(ActServiceOrig);
             if(!AddMode)
             {
-                AvailableServices[AvailableServices.FindIndex(x => x.Id == ActService.Id)] = ActServiceOrig;
+                AvailableServices[AvailableServices.FindIndex(x => x.Id == ActService.Id)] = ActService;
             }
         }
 

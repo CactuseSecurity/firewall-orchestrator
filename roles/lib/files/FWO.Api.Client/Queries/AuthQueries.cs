@@ -28,7 +28,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getUserEmails;
         public static readonly string getUserByDn;
         public static readonly string getUserByDbId;
-        public static readonly string addUser;
+        public static readonly string upsertUiUser;
         public static readonly string updateUserEmail;
         public static readonly string updateUserLanguage;
         public static readonly string updateUserLastLogin;
@@ -67,7 +67,7 @@ namespace FWO.Api.Client.Queries
                 getUserEmails = File.ReadAllText(QueryPath + "auth/getUserEmails.graphql");
                 getUserByDn = File.ReadAllText(QueryPath + "auth/getUserByDn.graphql");
                 getUserByDbId = File.ReadAllText(QueryPath + "auth/getUserByDbId.graphql");
-                addUser = File.ReadAllText(QueryPath + "auth/addUser.graphql");
+                upsertUiUser = File.ReadAllText(QueryPath + "auth/upsertUiUser.graphql");
                 updateUserEmail = File.ReadAllText(QueryPath + "auth/updateUserEmail.graphql");
                 updateUserLanguage = File.ReadAllText(QueryPath + "auth/updateUserLanguage.graphql");
                 updateUserLastLogin = File.ReadAllText(QueryPath + "auth/updateUserLastLogin.graphql");

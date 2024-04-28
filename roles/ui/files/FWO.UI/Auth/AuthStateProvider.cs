@@ -159,7 +159,7 @@ namespace FWO.Ui.Auth
 
                 if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out int tenantId))
                 {
-                    tenant = await Tenant.getSingleTenant(apiConnection, tenantId) ?? new();
+                    tenant = await Tenant.GetSingleTenant(apiConnection, tenantId) ?? new();
                 }
                 // else
                 // {

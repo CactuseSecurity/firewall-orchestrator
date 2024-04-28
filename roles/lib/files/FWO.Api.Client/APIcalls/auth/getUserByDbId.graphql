@@ -6,6 +6,8 @@ query getUserByDbId($userId: Int!) {
     uiuser_language
     uiuser_password_must_be_changed
     uiuser_email
+    uiuser_first_name
+    uiuser_last_name
     uiuser_last_login
     uiuser_last_password_change
   }

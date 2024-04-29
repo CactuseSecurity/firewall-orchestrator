@@ -94,7 +94,7 @@ namespace FWO.Middleware.Server
 			if (!userSetInDb)
 			{
 				Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to internal database.");
-				await AddUiUserToDb(apiConn, user, true);
+				await UpsertUiUser(apiConn, user, true);
 			}
 			return user;
 		}
@@ -136,7 +136,7 @@ namespace FWO.Middleware.Server
 		/// add user to uiuser - either with or without current login time
 		/// </summary>
 		/// <returns>void</returns> 
-		public static async Task AddUiUserToDb(ApiConnection apiConn, UiUser user, bool loginHappened = false)
+		public static async Task UpsertUiUser(ApiConnection apiConn, UiUser user, bool loginHappened = false)
 		{
 			try
 			{

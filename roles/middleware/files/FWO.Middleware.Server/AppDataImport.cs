@@ -9,6 +9,7 @@ using FWO.Middleware.RequestParameters;
 using FWO.Api.Client.Queries;
 using Novell.Directory.Ldap;
 using System.Data;
+using Microsoft.IdentityModel.Tokens;
 
 namespace FWO.Middleware.Server
 {
@@ -262,57 +263,82 @@ namespace FWO.Middleware.Server
 			{
 				foreach (string memberDn in ldap.GetGroupMembers(userGroupDn))
 				{
-					await UpsertUiUser(apiConnection, memberDn);
+					await UiUserHandler.UpsertUiUser(apiConnection, await ConvertLdapToUiUser(apiConnection, memberDn), false);
 				}
 			}
 		}
 
-		private async Task UpsertUiUser(ApiConnection apiConnection, string modeller)
+		private async Task<UiUser> ConvertLdapToUiUser(ApiConnection apiConnection, string userDn)
 		{
-			// add the modelling user to local uiuser table for later ref to email address:
+			// add the modelling user to local uiuser table for later ref to email address
+			UiUser uiUser = new();
 
-			List<UiUser> uiUsers = [];
-			
-			// get user from ldap
+			// find the user in all connected ldaps
 			foreach (Ldap ldap in connectedLdaps)
 			{
-				LdapEntry ldapUser = ldap.GetUserDetailsFromLdap(modeller);
-				if (ldapUser != null)
+				if (!ldap.UserSearchPath.IsNullOrEmpty() && userDn.ToLower().Contains(ldap.UserSearchPath.ToLower()))
 				{
-					// add data from ldap entry to uiUser
-					UiUser uiUser = new()
+					LdapEntry ldapUser = ldap.GetUserDetailsFromLdap(userDn);
+					
+					if (ldapUser != null)
 					{
-						LdapConnection = new UiLdapConnection(),
-						Dn = ldapUser.Dn,
-						Name = ldap.GetName(ldapUser),
-						Firstname = ldap.GetFirstName(ldapUser),
-						Lastname = ldap.GetLastName(ldapUser),
-						Email = ldap.GetEmail(ldapUser)
-					};
-					uiUser.LdapConnection.Id = ldap.Id;
-
-					Tenant tenant = new()
-					{
-						Id = GlobalConst.kTenant0Id  // default: tenant0 (id=1)
-					};
-
-					if (ldap.TenantLevel>0)
-					{
-						// getting tenant via tenant level setting from distinguished name
-						string tenantName = ldap.GetTenantName(ldapUser);
-						var variables = new { tenant_name=tenantName };
-						Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, variables, "getTenantId");
-						if (tenants.Length == 1)
+						// add data from ldap entry to uiUser
+						uiUser = new()
 						{
-							tenant.Id = tenants[0].Id;
-						}						
+							LdapConnection = new UiLdapConnection(),
+							Dn = ldapUser.Dn,
+							Name = ldap.GetName(ldapUser),
+							Firstname = ldap.GetFirstName(ldapUser),
+							Lastname = ldap.GetLastName(ldapUser),
+							Email = ldap.GetEmail(ldapUser),
+							Tenant = await DeriveTenantFromLdap(ldap, ldapUser)							
+						};
+						uiUser.LdapConnection.Id = ldap.Id;
+						return uiUser;			
 					}
-
-					uiUser.Tenant = tenant;
-
-					await UiUserHandler.AddUiUserToDb(apiConnection, uiUser, false);
 				}
 			}
+			return uiUser;
+
+		}
+
+		private async Task<Tenant> DeriveTenantFromLdap(Ldap ldap, LdapEntry ldapUser)
+		{
+			// try to derive the the user's tenant from the ldap settings
+
+			Tenant tenant = new()
+			{
+				Id = GlobalConst.kTenant0Id  // default: tenant0 (id=1)
+			};
+
+			string tenantName = "";
+
+			// can we derive the users tenant purely from its ldap?
+			if (!ldap.GlobalTenantName.IsNullOrEmpty() || ldap.TenantLevel > 0)
+			{
+				if (ldap.TenantLevel > 0)
+				{
+					// getting tenant via tenant level setting from distinguished name
+					tenantName = ldap.GetTenantName(ldapUser);
+				}
+				else
+				{
+					if (!ldap.GlobalTenantName.IsNullOrEmpty())
+					{
+						tenantName = ldap.GlobalTenantName;
+					}
+				}
+
+				var variables = new { tenant_name = tenantName };
+				Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, variables, "getTenantId");
+				if (tenants.Length == 1)
+				{
+					tenant.Id = tenants[0].Id;
+				}
+			}
+
+			return tenant;
+
 		}
 
 		private string CreateUserGroup(ModellingImportAppData incomingApp)

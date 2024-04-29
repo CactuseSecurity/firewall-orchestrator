@@ -52,9 +52,9 @@ namespace FWO.Api.Data
             return $"<span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
-        public NetworkObject ToNetworkObjectGroup()
+        public override NetworkObject ToNetworkObjectGroup()
         {
-            Group<NetworkObject>[] objectGroups = ModellingAppRoleWrapper.ResolveAsNetworkObjectGroup(AppServers ?? new List<ModellingAppServerWrapper>());
+            Group<NetworkObject>[] objectGroups = ModellingAppRoleWrapper.ResolveAppServersAsNetworkObjectGroup(AppServers ?? new List<ModellingAppServerWrapper>());
             return new()
             {
                 Id = Id,
@@ -76,17 +76,17 @@ namespace FWO.Api.Data
         }
     }
     
-    public class ModellingAppRoleWrapper
+    public class ModellingAppRoleWrapper : ModellingNwGroupWrapper
     {
         [JsonProperty("nwgroup"), JsonPropertyName("nwgroup")]
-        public ModellingAppRole Content { get; set; } = new();
+        public new ModellingAppRole Content { get; set; } = new();
 
         public static ModellingAppRole[] Resolve(List<ModellingAppRoleWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
         }
 
-        public static Group<NetworkObject>[] ResolveAsNetworkObjectGroup(List<ModellingAppServerWrapper> wrappedList)
+        public static Group<NetworkObject>[] ResolveAppServersAsNetworkObjectGroup(List<ModellingAppServerWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkObject> {Id = wrapper.Content.Id, Object = ModellingAppServer.ToNetworkObject(wrapper.Content)});
         }

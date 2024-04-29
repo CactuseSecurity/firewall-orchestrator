@@ -1,8 +1,10 @@
-query getUserEmails{
-  uiuser {
+query getUserEmails ($uuid: String){
+  uiuser(where:{uuid:{_eq:$uuid}}) {
     uiuser_id
     uuid
     uiuser_username
     uiuser_email
+    uiuser_first_name
+    uiuser_last_name
   }
 }

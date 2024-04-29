@@ -228,7 +228,7 @@
             {
                 return;
             }
-            string tenantName = (new DistName(Dn)).getTenant(selectedLdap.TenantLevel);
+            string tenantName = (new DistName(Dn)).GetTenantNameViaLdapTenantLevel(selectedLdap.TenantLevel);
             Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, new { tenant_name = tenantName }, "getTenantId");
             if (tenants.Count() == 0)
             {

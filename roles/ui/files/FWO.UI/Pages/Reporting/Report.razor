@@ -299,7 +299,7 @@
         Tenant? tenantFromTemplate = null;
         if (template.ReportParams.TenantFilter.IsActive)
         {
-            tenantFromTemplate = await Tenant.getSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
+            tenantFromTemplate = await Tenant.GetSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
         }
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);

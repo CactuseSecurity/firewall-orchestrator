@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using FWO.Api.Client;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.File;
@@ -64,7 +65,7 @@ namespace FWO.Test
 
             // NetworkProtocol networkProtocol = new NetworkProtocol();
             // networkProtocol = (await apiConnection.SendQueryAsync<NetworkProtocol[]>(query, new { }))[0];
-            // Assert.AreEqual(networkProtocol.Name, "TCP", "wrong result of protocol API query");
+            // ClassicAssert.AreEqual(networkProtocol.Name, "TCP", "wrong result of protocol API query");
         }
     }
 }

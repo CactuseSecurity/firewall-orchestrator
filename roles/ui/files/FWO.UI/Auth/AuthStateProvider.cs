@@ -52,7 +52,7 @@ namespace FWO.Ui.Auth
             // Try to auth with jwt (validates it and creates user context on UI side).
             JwtReader jwtReader = new JwtReader(jwtString);
 
-            if (jwtReader.Validate())
+            if (await jwtReader.Validate())
             {
                 // importer is not allowed to login
                 if (jwtReader.ContainsRole(Roles.Importer))
@@ -84,8 +84,8 @@ namespace FWO.Ui.Auth
                 await userConfig.SetUserInformation(userDn, apiConnection);
                 userConfig.User.Jwt = jwtString;
                 userConfig.User.Tenant = await getTenantFromJwt(userConfig.User.Jwt, apiConnection);
-                userConfig.User.Roles = getAllowedRoles(userConfig.User.Jwt);
-                userConfig.User.Ownerships = getAssignedOwners(userConfig.User.Jwt);
+                userConfig.User.Roles = await getAllowedRoles(userConfig.User.Jwt);
+                userConfig.User.Ownerships = await getAssignedOwners(userConfig.User.Jwt);
                 circuitHandler.User = userConfig.User;
 
                 // Add jwt expiry timer
@@ -113,12 +113,12 @@ namespace FWO.Ui.Auth
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
         }
 
-        public int getTenantId(string jwtString)
+        public async Task<int> getTenantId(string jwtString)
         {
             JwtReader jwtReader = new JwtReader(jwtString);
             int tenantId = 0;
 
-            if (jwtReader.Validate())
+            if (await jwtReader.Validate())
             {
                 ClaimsIdentity identity = new ClaimsIdentity
                 (
@@ -144,7 +144,7 @@ namespace FWO.Ui.Auth
             JwtReader jwtReader = new JwtReader(jwtString);
             Tenant tenant = new();
 
-            if (jwtReader.Validate())
+            if (await jwtReader.Validate())
             {
                 ClaimsIdentity identity = new ClaimsIdentity
                 (
@@ -159,7 +159,7 @@ namespace FWO.Ui.Auth
 
                 if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out int tenantId))
                 {
-                    tenant = await Tenant.getSingleTenant(apiConnection, tenantId) ?? new();
+                    tenant = await Tenant.GetSingleTenant(apiConnection, tenantId) ?? new();
                 }
                 // else
                 // {
@@ -169,15 +169,15 @@ namespace FWO.Ui.Auth
             return tenant;
         }
 
-        public List<string> getAllowedRoles(string jwtString)
+        public async Task<List<string>> getAllowedRoles(string jwtString)
         {
-            return GetClaimList(jwtString, "x-hasura-allowed-roles");
+            return await GetClaimList(jwtString, "x-hasura-allowed-roles");
         }
 
-        public List<int> getAssignedOwners(string jwtString)
+        public async Task<List<int>> getAssignedOwners(string jwtString)
         {
             List<int> ownerIds = new();
-            List<string> ownerClaims = GetClaimList(jwtString, "x-hasura-editable-owners");
+            List<string> ownerClaims = await GetClaimList(jwtString, "x-hasura-editable-owners");
             if(ownerClaims.Count > 0)
             {
                 string[] separatingStrings = { ",", "{", "}" };
@@ -187,11 +187,11 @@ namespace FWO.Ui.Auth
             return ownerIds;
         }
 
-        private List<string> GetClaimList(string jwtString, string claimType)
+        private async Task<List<string>> GetClaimList(string jwtString, string claimType)
         {
             List<string> claimList = new List<string>();
             JwtReader jwtReader = new JwtReader(jwtString);
-            if (jwtReader.Validate())
+            if (await jwtReader.Validate())
             {
                 ClaimsIdentity identity = new ClaimsIdentity
                 (

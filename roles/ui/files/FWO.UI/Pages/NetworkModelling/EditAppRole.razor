@@ -26,10 +26,10 @@
                                 @if(AppRoleHandler.AddMode && !AppRoleHandler.ReadOnly)
                                 {
                                     <div class="col-sm-8">
-                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display())" 
+                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))" 
                                                 SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
                                             <ElementTemplate Context="area">
-                                                @((MarkupString)area.DisplayHtml())
+                                                @((MarkupString)(area.DisplayHtml() + DisplayObjectCount(area)))
                                             </ElementTemplate>
                                         </Dropdown>
                                     </div>
@@ -197,6 +197,10 @@
                 }
                 else
                 {
+                    foreach(var area in areas)
+                    {
+                        AppRoleHandler.CountMembers(area);
+                    }
                     ModellingNetworkArea? existArea = areas.FirstOrDefault(a => a.IdString == AppRoleHandler.ActAppRole.Area?.IdString);
                     if(existArea != null)
                     {
@@ -211,6 +215,11 @@
             }
             unchangedAppRole = new(AppRoleHandler.ActAppRole);
         }
+    }
+
+    private string DisplayObjectCount(ModellingNetworkArea area)
+    {
+        return $": {area.MemberCount.ToString()} {userConfig.GetText("objects")}";
     }
 
     private void HandleServerDrop()

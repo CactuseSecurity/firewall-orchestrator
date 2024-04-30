@@ -310,6 +310,18 @@ namespace FWO.Ui.Services
             }
         }
 
+        public void CountMembers(ModellingNetworkArea area)
+        {
+            area.MemberCount = 0;
+            foreach(var server in AvailableAppServers.Where(x => !x.IsDeleted))
+            {
+                if(IsInArea(server, area))
+                {
+                    area.MemberCount++;
+                }
+            }
+        }
+
         private static string StripOffNetmask(string ip)
         {
             Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");

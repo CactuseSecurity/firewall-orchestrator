@@ -39,7 +39,7 @@
                 {
                     <AuthorizeView Roles="@(AsAdmin? Roles.Admin : Roles.Modeller)">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await ServiceHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("save"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
@@ -75,9 +75,15 @@
     [Parameter]
     public bool AsAdmin { get; set; } = false;
 
+    [Parameter]
+    public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
 
     private List<NetworkProtocol> ipProtos = new ();
     private bool InitComplete = false;
+    private bool firstTry = true;
+    private ModellingService unchangedService = new();
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -95,16 +101,37 @@
 
     protected override void OnParametersSet()
     {
-        try
+        if(Display && firstTry && ServiceHandler != null)
         {
-            if(ServiceHandler != null && ServiceHandler.AddMode && (ServiceHandler.ActService.Protocol == null || ServiceHandler.ActService.Protocol.Id == 0) && ipProtos.Count > 0)
+            try
             {
-                ServiceHandler.ActService.Protocol = ipProtos.First();
+                firstTry = false;
+                unchangedService = new(ServiceHandler.ActService);
+                if(ServiceHandler.AddMode && (ServiceHandler.ActService.Protocol == null || ServiceHandler.ActService.Protocol.Id == 0) && ipProtos.Count > 0)
+                {
+                    ServiceHandler.ActService.Protocol = ipProtos.First();
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
         }
-        catch (Exception exception)
+    }
+
+    private async Task Save()
+    {
+        if(await ServiceHandler.Save())
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            if(unchangedService.Name != ServiceHandler.ActService.Name
+                || unchangedService.Port != ServiceHandler.ActService.Port
+                || unchangedService.PortEnd != ServiceHandler.ActService.PortEnd
+                || unchangedService.ProtoId != ServiceHandler.ActService.ProtoId)
+            {
+                await RefreshParent();
+            }
+            unchangedService = new(ServiceHandler.ActService);
+            Close();
         }
     }
 
@@ -116,6 +143,7 @@
 
     private void Close()
     {
+        firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

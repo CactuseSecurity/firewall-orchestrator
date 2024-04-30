@@ -129,7 +129,18 @@
     private ModellingDnDContainer Container { get; set; } = new();
     int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth + 300;
     private bool workInProgress = false;
+    private bool firstTry = true;
+    private ModellingServiceGroup unchangedServiceGroup = new();
 
+
+    protected override void OnParametersSet()
+    {
+        if(Display && firstTry)
+        {
+            firstTry = false;
+            unchangedServiceGroup = new(SvcGroupHandler.ActServiceGroup);
+        }
+    }
 
     private void HandleSvcDrop()
     {
@@ -145,6 +156,11 @@
         workInProgress = true;
         if(await SvcGroupHandler.Save())
         {
+            if(unchangedServiceGroup.Name != SvcGroupHandler.ActServiceGroup.Name)
+            {
+                await SvcGroupHandler.RefreshParent();
+            }
+            unchangedServiceGroup = new(SvcGroupHandler.ActServiceGroup);
             Close();
         }
         else
@@ -157,6 +173,7 @@
     {
         SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);
         workInProgress = false;
+        firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

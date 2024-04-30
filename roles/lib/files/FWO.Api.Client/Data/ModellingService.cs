@@ -21,17 +21,12 @@ namespace FWO.Api.Data
         public ModellingService()
         {}
 
-        public ModellingService(ModellingService service)
+        public ModellingService(ModellingService service) : base(service)
         {
-            Id = service.Id;
-            Number = service.Number;
-            AppId = service.AppId;
-            Name = service.Name;
             Port = service.Port;
             PortEnd = service.PortEnd;
             ProtoId = service.ProtoId;
             Protocol = service.Protocol;
-            IsGlobal = service.IsGlobal;
         }
 
         public override string Display()

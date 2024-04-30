@@ -236,7 +236,7 @@ namespace FWO.Ui.Services
                     ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == requestHandler.GetConnId());
                     if(conn != null)
                     {
-                        ConnHandler = new ModellingConnectionHandler(apiConnection, requestHandler.userConfig, owner ?? new(), Connections, conn, false, true, DefaultInit.DoNothing, false);
+                        ConnHandler = new ModellingConnectionHandler(apiConnection, requestHandler.userConfig, owner ?? new(), Connections, conn, false, true, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
                         await ConnHandler.Init();
                         DisplayConnectionMode = true;
                     }

@@ -1,0 +1,258 @@
+﻿@using System.Net
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Middleware.Client
+@using FWO.Middleware.RequestParameters
+@using RestSharp
+@using FWO.GlobalConstants
+@using FWO.Api.Data
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+
+<PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + Title)" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <form class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5351"))">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
+                    <div class="col-sm-3">
+                        <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
+                            <ElementTemplate Context="ldap">
+                                @ldap.Name
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
+                    <div class="col-sm-3">
+                        <input class="form-control-sm col-sm" type="text" @bind="searchPattern" />
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="button" class="btn btn-sm btn-success" @onclick="async() => await SearchInLdap()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+                    </div>
+                </form>
+                @if(UserSearchMode)
+                {
+                    <form class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5352"))">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
+                        <div class="col-sm-8">
+                            <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUiUser" Elements="uiUsers">
+                                <ElementTemplate Context="user">
+                                    @user.Dn
+                                </ElementTemplate>
+                            </Dropdown>
+                        </div>
+                        <div class="col-sm-2">
+                            <AuthorizeView Roles="@Roles.Admin">
+                                <Authorized>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddUser(selectedUiUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
+                        </div>
+                    </form>
+                }
+                @if(GroupSearchMode)
+                {
+                    <form class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5353"))">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
+                        <div class="col-sm-8">
+                            <Dropdown ElementType="string" @bind-SelectedElement="selectedInternalGroupDn" Elements="Array.ConvertAll(internalGroups.ToArray(), x => x.Dn).ToList()" />
+                        </div>
+                        <div class="col-sm-2">
+                            <AuthorizeView Roles="@Roles.Admin">
+                                <Authorized>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddGroup(selectedInternalGroupDn); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
+                        </div>
+                    </form>
+                }
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<SelectFromLdap @bind-Display="SearchInLdapMode" AddUser="AddLdapUser" AddGroup="AddLdapGroup" UserSelect="UserSearchMode" GroupSelect="GroupSearchMode" LdapName="@selectedLdap.Host()" LdapUsers="ldapUsers" LdapGroups="ldapGroups"/>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<UiUser, Task> AddUser { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public Func<string, Task> AddGroup { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool UserSearchMode { get; set; } = false;
+    
+    [Parameter]
+    public bool GroupSearchMode { get; set; } = false;
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public bool OwnerGroupsOnly { get; set; } = false;
+
+
+
+    private List<UserGroup> internalGroups = new();
+    private List<UiUser> uiUsers = new();
+    private List<UiLdapConnection> connectedLdaps = new();
+    private UiLdapConnection selectedLdap = new();
+    private List<UiUser> ldapUsers = new();
+    private string selectedInternalGroupDn = "";
+    private List<string> ldapGroups = new();
+    private UiUser selectedUiUser = new();
+    private bool SearchInLdapMode = false;
+    private string searchPattern = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
+            if(connectedLdaps.Count > 0)
+            {
+                selectedLdap = connectedLdaps.First();
+            }
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
+            uiUsers = uiUsers.FindAll(x => x.DbId != 0);
+            selectedUiUser = (uiUsers.Count == 0 ? new UiUser() : uiUsers.First());
+            internalGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, OwnerGroupsOnly);
+            selectedInternalGroupDn = (internalGroups.Count == 0 ? "" : internalGroups.First().Dn);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task SearchInLdap()
+    {
+        if(searchPattern.Length < selectedLdap.PatternLength)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("search_users"), userConfig.GetText("E5252") + selectedLdap.PatternLength, true);
+        }
+        else
+        {
+            try
+            {
+                if(UserSearchMode)
+                {
+                    ldapUsers.Clear();
+                    LdapUserGetParameters userGetParameters = new LdapUserGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
+                    RestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("fetch_users"), userConfig.GetText("E5208"), true);
+                    }
+                    else
+                    {
+                        foreach (var user in middlewareServerResponse.Data)
+                        {
+                            UiUser newUser = new UiUser() { Dn = user.UserDn, Name = (new DistName(user.UserDn)).UserName };
+                            ldapUsers.Add(newUser);
+                        }
+                    }
+                }
+                if(GroupSearchMode)
+                {
+                    GroupGetParameters groupGetParameters = new GroupGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
+                    RestResponse<List<string>> groupMiddlewareServerResponse = await middlewareClient.GetGroups(groupGetParameters);
+                    if (groupMiddlewareServerResponse.StatusCode != HttpStatusCode.OK || groupMiddlewareServerResponse.Data == null)
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+                    }
+                    else
+                    {
+                        ldapGroups = groupMiddlewareServerResponse.Data;
+                    }
+                }
+            }
+            catch (System.Exception)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_users"), "", true);
+            }
+
+            searchPattern = "";
+            SearchInLdapMode = true;
+        }
+    }
+
+    private async Task AddLdapUser(UiUser user)
+    {
+        await AddUser(user);
+        await addTenantIfNew(user.Dn, selectedLdap);
+        Close();
+    }
+
+    private async Task AddLdapGroup(string groupDn)
+    {
+        await AddGroup(groupDn);
+        await addTenantIfNew(groupDn, selectedLdap);
+        Close();
+    }
+
+    private async Task addTenantIfNew(string Dn, UiLdapConnection selectedLdap)
+    {
+        try
+        {
+            if (selectedLdap.TenantLevel == 0 || selectedLdap.IsInternal())
+            {
+                return;
+            }
+            string tenantName = (new DistName(Dn)).GetTenantNameViaLdapTenantLevel(selectedLdap.TenantLevel);
+            Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, new { tenant_name = tenantName }, "getTenantId");
+            if (tenants.Count() == 0)
+            {
+                // tenant unknown: create in db
+                var Variables = new 
+                { 
+                    name = tenantName,
+                    project = "",
+                    comment = "",
+                    viewAllDevices = false,
+                    create = DateTime.Now
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenant, Variables);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteAudit("AddTenant", $"Adding new Tenant locally failed: {exception.Message}");
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

@@ -1,0 +1,9 @@
+mutation removeNwGroupFromConnection(
+  $nwGroupId: bigint!
+  $connectionId: Int!
+  $connectionField: Int!
+  ) {
+  delete_modelling_nwgroup_connection(where: {nwgroup_id: {_eq: $nwGroupId}, connection_id: {_eq: $connectionId}, connection_field: {_eq: $connectionField}}) {
+    affected_rows
+  }
+}

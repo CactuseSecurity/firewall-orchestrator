@@ -1,5 +1,6 @@
 ﻿@using BlazorTable
 @using FWO.Config.Api
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using System.Text.Json;
@@ -8,14 +9,14 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" XLarge="true"  OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
             @if(somethingToDo)
             {
                 <h6>@(userConfig.GetText("managements"))</h6>
-                <Table class="table table-bordered table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
                     <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
                             @if(!context.Ignore)
@@ -24,31 +25,31 @@
                                 {
                                     @if(context.AwaitDevice)
                                     {
-                                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
-                                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                                        <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
+                                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                                     }
                                     else
                                     {
-                                        <AuthorizeView Roles="admin, fw-admin">
+                                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                             <Authorized Context="ctx">
-                                                <button class="btn btn-sm btn-warning" @onclick="() => ChangeManagementState(context, true)">@(userConfig.GetText("disable"))</button>
-                                                <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteManagement(context)">@(userConfig.GetText("delete"))</button>
+                                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => ChangeManagementState(context, true)">@(userConfig.GetText("disable"))</button>
+                                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteManagement(context)">@(userConfig.GetText("delete"))</button>
                                             </Authorized>
                                             <NotAuthorized Context="ctx">
-                                                <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
-                                                <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                                                <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
+                                                <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                                             </NotAuthorized> 
                                         </AuthorizeView>
                                     }
                                 }
                                 else
                                 {
-                                    <AuthorizeView Roles="admin, fw-admin">
+                                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                         <Authorized Context="ctx">
-                                            <button class="btn btn-sm btn-success" @onclick="() => ConfirmManagement(context)">@(userConfig.GetText("add"))</button>
+                                            <button type="button" class="btn btn-sm btn-success" @onclick="() => ConfirmManagement(context)">@(userConfig.GetText("add"))</button>
                                         </Authorized>
                                         <NotAuthorized Context="ctx">
-                                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                                            <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
                                         </NotAuthorized> 
                                     </AuthorizeView>
                                 }
@@ -66,21 +67,21 @@
                         <Template>
                             @if(context.Devices.Count() > 0)
                             {
-                                <Table class="table table-bordered table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
+                                <Table class="table table-bordered th-bg-secondary table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
                                     <Column TableItem="Device" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                                         <Template Context="Dev">
                                             @if(Dev.Relevant)
                                             {
                                                 @if(Dev.Delete)
                                                 {
-                                                    <AuthorizeView Roles="admin, fw-admin">
+                                                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                                         <Authorized Context="ctx">
-                                                            <button class="btn btn-sm btn-warning" @onclick="() => ChangeDeviceState(Dev, true)">@(userConfig.GetText("disable"))</button>
-                                                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteDevice(Dev)">@(userConfig.GetText("delete"))</button>
+                                                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => ChangeDeviceState(Dev, true)">@(userConfig.GetText("disable"))</button>
+                                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteDevice(Dev)">@(userConfig.GetText("delete"))</button>
                                                         </Authorized>
                                                         <NotAuthorized Context="ctx">
-                                                            <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
-                                                            <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                                                            <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
+                                                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                                                         </NotAuthorized> 
                                                     </AuthorizeView>
                                                 }
@@ -88,16 +89,16 @@
                                                 {
                                                     @if(Dev.AwaitMgmt)
                                                     {
-                                                        <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                                                        <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
                                                     }
                                                     else
                                                     {                    
-                                                        <AuthorizeView Roles="admin, fw-admin">
+                                                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                                             <Authorized Context="ctx">
-                                                                <button class="btn btn-sm btn-success" @onclick="() => ConfirmDevice(Dev)">@(userConfig.GetText("add"))</button>
+                                                                <button type="button" class="btn btn-sm btn-success" @onclick="() => ConfirmDevice(Dev)">@(userConfig.GetText("add"))</button>
                                                             </Authorized>
                                                             <NotAuthorized Context="ctx">
-                                                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                                                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
                                                             </NotAuthorized> 
                                                         </AuthorizeView>
                                                     }
@@ -127,27 +128,27 @@
         <div class="btn-group">
             @if(actAlertId != null)
             {
-                <AuthorizeView Roles="admin, fw-admin">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized Context="ctx">
-                        <button class="btn btn-sm btn-secondary" @onclick="async () => {await AcknowledgeAlert(actAlertId); await Close();}">@(userConfig.GetText("acknowledge"))</button>
+                        <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => {await AcknowledgeAlert(actAlertId); await Close();}">@(userConfig.GetText("acknowledge"))</button>
                     </Authorized>
                     <NotAuthorized Context="ctx">
-                        <button class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
+                        <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
             else if(somethingToDo)
             {
-                <AuthorizeView Roles="admin, fw-admin">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized Context="ctx">
-                        <button class="btn btn-sm btn-warning" @onclick="async () => {await doAllChanges(); await Close();}">@(userConfig.GetText("do_all_changes"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => {await doAllChanges(); await Close();}">@(userConfig.GetText("do_all_changes"))</button>
                     </Authorized>
                     <NotAuthorized Context="ctx">
-                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("do_all_changes"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("do_all_changes"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button class="btn btn-sm btn-secondary" @onclick="async () => await Close()">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => await Close()">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

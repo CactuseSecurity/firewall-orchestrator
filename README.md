@@ -11,7 +11,11 @@
 - Regularly re-certify firewall rules to clean up your rulebase
 - Use the built-in GraphQL API to integrate with your existing infrastructure (Directory Service, ITSM, IPAM, ...)
 
-<b>Demo:</b> if you want to see what it looks like in advance, visit <https://fwodemo.cactus.de> (user: test, password: drive2).
+<b>Reporting Demo:</b>
+![fwo-demo-reporting-vsmall](https://github.com/CactuseSecurity/firewall-orchestrator/assets/19877770/f9ffe37f-b059-44cf-b056-30a8f3e008a6)
+
+
+<b>Further Demo:</b> if you want to see what it looks like in advance, visit <https://fwodemo.cactus.de> (user: test, password: drive2).
 
 ## Installation instructions
 

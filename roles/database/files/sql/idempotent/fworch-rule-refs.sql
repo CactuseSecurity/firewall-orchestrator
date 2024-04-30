@@ -128,7 +128,7 @@ DECLARE
     v_error_str			VARCHAR;
 BEGIN 
 	RAISE DEBUG 'f_add_single_rule_from_element - 1 starting for %', v_element;
-	i_at_sign_pos := instr(v_element,'@');
+	SELECT INTO i_at_sign_pos POSITION('@' IN v_element);
 	IF i_at_sign_pos > 0 THEN -- User-Gruppen enthalten
 		v_usergroup_name := substr(v_element,0,i_at_sign_pos);
 		v_src_obj := substr(v_element,i_at_sign_pos+1);
@@ -237,7 +237,7 @@ DECLARE
 	r_debug RECORD;
 BEGIN
 
-	i_at_sign_pos := instr(v_element,'@');
+	SELECT INTO i_at_sign_pos POSITION('@' IN v_element);
 	IF i_at_sign_pos > 0 THEN -- User-Gruppen enthalten
 		v_usergroup_name := substr(v_element,0,i_at_sign_pos);
 		v_dst_obj := substr(v_element,i_at_sign_pos+1);

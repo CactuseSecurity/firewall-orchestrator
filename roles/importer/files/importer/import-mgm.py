@@ -16,10 +16,18 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--clear', action='store_true', default=False,
                         help='If set the import will delete all data for the given management instead of importing')
     parser.add_argument('-f', '--force', action='store_true', default=False,
-                        help='If set the import will be attempted without checking for changes before')
+                        help='If set the import will be attempted without checking for changes or if the importer module is the one defined')
     parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
-                        help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=save noramlized config file; 4=additionally save native config file; default=0. \n' +\
-                            'config files are saved to $FWORCH/tmp/import dir')
+                        help='Debug Level:  \
+                                    0=off, \
+                                    1=send debug to console, \
+                                    2=send debug to file, \
+                                    3=save noramlized config file, \
+                                    4=additionally save native config file, \
+                                    8=send native config (as read from firewall) to standard out, \
+                                    9=send normalized config to standard out, \
+                                    (default=0), \
+                                    config files are saved to $FWORCH/tmp/import dir')
     parser.add_argument('-v', "--verify_certificates", action='store_true', default = None, 
                         help = "verify certificates")
     parser.add_argument('-s', "--suppress_certificate_warnings", action='store_true', default = None, 
@@ -49,7 +57,7 @@ if __name__ == "__main__":
             mgm_id=args.mgm_id, in_file=args.in_file, normalized_in_file=args.normalized_in_file, debug_level_in=args.debug, ssl_verification=args.verify_certificates,
             force=args.force, limit=args.limit, clearManagementData=args.clear, suppress_cert_warnings_in=args.suppress_certificate_warnings)
     except SystemExit:
-        print ("import-mgm - error while importing mgm_id=" + str(args.mgm_id))
+        logger.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id)  + ": " + str(traceback.format_exc()))
         error_count = 1
     except:
         logger.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id) + ": " + str(traceback.format_exc()))

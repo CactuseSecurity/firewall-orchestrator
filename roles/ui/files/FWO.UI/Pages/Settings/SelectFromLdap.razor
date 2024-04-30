@@ -1,0 +1,102 @@
+﻿@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            @if(UserSelect)
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedLdapUser" Elements="LdapUsers">
+                            <ElementTemplate Context="user">
+                                @user.Dn
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="async () => { await AddUser(selectedLdapUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-success col-sm-2" disabled>@(userConfig.GetText("assign"))</button>
+                        </NotAuthorized> 
+                    </AuthorizeView>
+                </div>
+            }
+            @if(GroupSelect)
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="selectedLdapGroup" Elements="LdapGroups" />
+                    </div>
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="async () => { await AddGroup(selectedLdapGroup); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-success col-sm-2" disabled>@(userConfig.GetText("assign"))</button>
+                        </NotAuthorized> 
+                    </AuthorizeView>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<UiUser, Task> AddUser { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public Func<string, Task> AddGroup { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool UserSelect { get; set; } = false;
+
+    [Parameter]
+    public bool GroupSelect { get; set; } = false;
+
+    [Parameter]
+    public string LdapName { get; set; } = "";
+
+    [Parameter]
+    public List<UiUser> LdapUsers { get; set; } = new();
+
+    [Parameter]
+    public List<string> LdapGroups { get; set; } = new();
+
+
+    private UiUser selectedLdapUser = new();
+    private string selectedLdapGroup = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Display)
+        {
+            selectedLdapUser = (LdapUsers.Count == 0 ? new UiUser() : LdapUsers.First());
+            selectedLdapGroup = (LdapGroups.Count == 0 ? "" : LdapGroups.First());
+        }
+    }  
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

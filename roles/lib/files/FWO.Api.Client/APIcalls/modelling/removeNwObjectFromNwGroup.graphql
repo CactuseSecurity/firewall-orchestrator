@@ -1,0 +1,8 @@
+mutation removeNwObjectFromNwGroup(
+  $nwObjectId: bigint!
+  $nwGroupId: bigint!
+  ) {
+  delete_modelling_nwobject_nwgroup(where: {nwobject_id: {_eq: $nwObjectId}, nwgroup_id: {_eq: $nwGroupId}}) {
+    affected_rows
+  }
+}

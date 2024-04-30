@@ -14,7 +14,6 @@ mutation updateManagement(
   $cloudSubscriptionId: String
   $importerHostname: String
   $comment: String
-  $tenantId: Int
   $debugLevel: Int
   $superManager: Int
 ) {
@@ -35,7 +34,6 @@ mutation updateManagement(
       force_initial_import: $forceInitialImport
       hide_in_gui: $hideInUi
       mgm_comment: $comment
-      tenant_id: $tenantId
       debug_level: $debugLevel
       multi_device_manager_id: $superManager
     }

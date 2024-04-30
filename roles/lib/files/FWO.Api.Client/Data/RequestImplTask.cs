@@ -15,16 +15,16 @@ namespace FWO.Api.Data
         public int? DeviceId { get; set; }
 
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
-        public string ImplAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
+        public string ImplAction { get; set; } = RequestAction.create.ToString();
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
-        public List<RequestImplElement> ImplElements { get; set; } = new List<RequestImplElement>();
+        public List<RequestImplElement> ImplElements { get; set; } = new ();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
+        public List<RequestCommentDataHelper> Comments { get; set; } = new ();
 
 
-        public List<RequestImplElement> RemovedElements { get; set; } = new List<RequestImplElement>();
+        public List<RequestImplElement> RemovedElements { get; set; } = new ();
         public long TicketId { get; set; }
 
 
@@ -69,7 +69,7 @@ namespace FWO.Api.Data
             TicketId = reqtask.TicketId;
             if (reqtask.Elements != null && reqtask.Elements.Count > 0)
             {
-                if(reqtask.TaskType == FWO.Api.Data.TaskType.rule_delete.ToString())
+                if(reqtask.TaskType == Data.TaskType.rule_delete.ToString())
                 {
                     DeviceId = reqtask.Elements[0].DeviceId;
                 }
@@ -95,9 +95,9 @@ namespace FWO.Api.Data
             return shortened;
         }
 
-        public List<NwObjectElement> getNwObjectElements(ElemFieldType field)
+        public List<NwObjectElement> GetNwObjectElements(ElemFieldType field)
         {
-            List<NwObjectElement> elements = new List<NwObjectElement>();
+            List<NwObjectElement> elements = new ();
             foreach(var implElem in ImplElements)
             {
                 if (implElem.Field == field.ToString())
@@ -114,9 +114,9 @@ namespace FWO.Api.Data
             return elements;
         }
 
-        public List<NwServiceElement> getServiceElements()
+        public List<NwServiceElement> GetServiceElements()
         {
-            List<NwServiceElement> elements = new List<NwServiceElement>();
+            List<NwServiceElement> elements = new ();
             foreach(var implElem in ImplElements)
             {
                 if (implElem.Field == ElemFieldType.service.ToString())
@@ -134,9 +134,9 @@ namespace FWO.Api.Data
             return elements;
         }
 
-        public List<NwRuleElement> getRuleElements()
+        public List<NwRuleElement> GetRuleElements()
         {
-            List<NwRuleElement> elements = new List<NwRuleElement>();
+            List<NwRuleElement> elements = new ();
             foreach(var implElem in ImplElements)
             {
                 if (implElem.Field == ElemFieldType.rule.ToString())
@@ -152,7 +152,7 @@ namespace FWO.Api.Data
             return elements;
         }
 
-        public string getAllComments()
+        public string GetAllComments()
         {
             string allComments = "";
             foreach(var comment in Comments)

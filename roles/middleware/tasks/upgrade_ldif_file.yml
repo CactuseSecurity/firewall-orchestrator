@@ -11,6 +11,7 @@
   set_fact:
     ldif_list: "{{ big_ldif_file.split('dn: ') }}"
 
-- name: 
+- name: calling upgrade_modify_routine
   include_tasks: upgrade_modify_routine.yml
   loop: "{{ ldif_list[1:] }}"
+  # ignoring first lines before first dn (TODO: make this more robust for files that start with dn: line)

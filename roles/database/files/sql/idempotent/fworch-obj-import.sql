@@ -87,7 +87,9 @@ $$ LANGUAGE plpgsql;
 -- DROP FUNCTION import_nwobj_single(BIGINT, integer, BIGINT, boolean);
 
 CREATE OR REPLACE FUNCTION import_nwobj_single(BIGINT, integer, BIGINT, boolean)
-  RETURNS void AS
+	RETURNS void
+	LANGUAGE 'plpgsql' VOLATILE
+	AS
 $BODY$
 DECLARE
     i_control_id	ALIAS FOR $1;
@@ -112,6 +114,7 @@ DECLARE
 	i_change_type INTEGER;
 	i_new_obj_id  BIGINT;	-- id des neu eingefügten object
 	v_comment	VARCHAR;
+	ip_range    RECORD;
 BEGIN
     b_insert := FALSE;
     b_change := FALSE;
@@ -153,6 +156,14 @@ BEGIN
 		WHERE (obj_uid=to_import.obj_uid AND mgm_id=i_mgm_id AND (zone_id=zoneID OR (zone_id IS NULL AND zoneID IS NULL)) AND active);
 	END IF;
 	RAISE DEBUG 'processing import_nwobj_single 5';
+
+	-- make sure we are only dealing with ranges - starting from FWORCH v7.3
+	IF NOT is_single_ip(to_import.obj_ip) OR to_import.obj_ip_end IS NULL THEN
+		to_import.obj_ip_end := get_last_ip_of_cidr(to_import.obj_ip); -- order is important here: end before start!
+		to_import.obj_ip := get_first_ip_of_cidr(to_import.obj_ip);
+	END IF;
+	-- assuming that if obj_ip_end is set, we already have a range
+
 	IF FOUND THEN  -- object schon vorhanden
 		IF (NOT ( 
 			are_equal(existing_obj.obj_uid, to_import.obj_uid) AND
@@ -226,6 +237,42 @@ BEGIN
 	END IF;
     RETURN;
 END;
+$BODY$;
+
+CREATE OR REPLACE FUNCTION get_first_ip_of_cidr (ip CIDR)
+	RETURNS CIDR
+	LANGUAGE 'plpgsql' IMMUTABLE COST 1
+	AS
 $BODY$
-  LANGUAGE 'plpgsql' VOLATILE
-  COST 100;
+	BEGIN
+		IF is_single_ip(ip) THEN
+			RETURN ip;
+		ELSE
+			RETURN host(abbrev(ip)::cidr);
+		END IF;
+	END;
+$BODY$;
+
+CREATE OR REPLACE FUNCTION get_last_ip_of_cidr (ip CIDR)
+	RETURNS CIDR
+	LANGUAGE 'plpgsql' IMMUTABLE COST 1
+	AS
+$BODY$
+	BEGIN
+		IF is_single_ip(ip) THEN
+			RETURN ip;
+		ELSE
+			RETURN inet(host(broadcast(ip)));
+		END IF;
+	END;
+$BODY$;
+
+CREATE OR REPLACE FUNCTION is_single_ip (ip CIDR)
+	RETURNS BOOLEAN
+	LANGUAGE 'plpgsql' IMMUTABLE COST 1
+	AS
+$BODY$
+	BEGIN
+		RETURN masklen(ip)=32 AND family(ip)=4 OR masklen(ip)=128 AND family(ip)=6;
+	END;
+$BODY$;

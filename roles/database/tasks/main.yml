@@ -27,6 +27,7 @@
         - postgresql
         - python3-psycopg2
         - libpq-dev
+        - postgresql-client
       when: ansible_os_family == "Debian"
 
     - name: initdb as extra step for redhat
@@ -41,11 +42,6 @@
 
     - name: set fact pg_version
       set_fact: pg_version={{ pg_version_result.stdout | float }}
-
-    - name: activate as_single_query if ansible_version is sufficient
-      set_fact:
-        postgresql_query_as_single_query: true
-      when: ansible_version.full is version('2.10', '>=')
 
     - name: pg_version to int when possible
       set_fact: pg_version={{ pg_version | int }}
@@ -143,10 +139,12 @@
         state: restarted
 
     - name: copy database files to backend target
-      copy: src="{{ item }}" dest="{{ database_install_dir }}" owner="{{ fworch_user }}" group="{{ fworch_user }}"
-      loop:
-        - csv
-        - sql        
+      synchronize: 
+        src: "./"
+        dest: "{{ database_install_dir }}"
+        rsync_opts:
+          - "--chown={{ fworch_user }}:{{ fworch_group }}"   
+      tags: [ 'test' ]
 
     - name: create tablespace directory 
       file:
@@ -167,6 +165,23 @@
   become: true
   become_user: postgres
 
+- name: make sure {{ fworch_home }}/etc/secrets exists
+  file:
+    path: "{{ fworch_home }}/etc/secrets"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ postgres_group }}"
+    mode: "0750"
+  become: true
+
+# now that postgresq user group exists ...
+- name: set the correct permissions for main key file
+  file:
+    dest: "{{ main_key_file }}"
+    mode: '0640'
+    group: "{{ postgres_group }}"
+  become: true 
+
 - name: create new database
   import_tasks: install-database.yml
   when: installation_mode == "new"
@@ -175,13 +190,13 @@
   import_tasks: upgrade-database.yml
   when: installation_mode == "upgrade"
 
-- name: (re)define functions and views
-  include_tasks: recreate-functions-and-views-ansible-pre2.10.yml
-  when: ansible_version.full is version('2.10', '<')
-
-- name: (re)define functions and views
-  include_tasks: recreate-functions-and-views-ansible-2.10.yml
-  when: ansible_version.full is version('2.10', '>=')
+- name: (re)defines functions and views (idempotent)
+  community.postgresql.postgresql_script:
+    db: "{{ fworch_db_name }}"
+    path: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
+  become: true
+  become_user: postgres
+  loop: "{{ database_idempotent_files }}"
 
 - name: install pg test packages
   package:

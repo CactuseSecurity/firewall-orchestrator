@@ -1,6 +1,6 @@
 /*
 Created			29.04.2005
-Last modified	13.12.2020
+Last modified	14.07.2023
 Project			Firewall Orchestrator
 Contact			https://cactus.de/fworch
 Database		PostgreSQL 9-13
@@ -40,7 +40,6 @@ Create table "device" -- contains an entry for each firewall gateway
 	"package_name" Varchar,
 	"package_uid" Varchar,
 	"dev_typ_id" Integer NOT NULL,
-	"tenant_id" Integer,
 	"dev_active" Boolean NOT NULL Default true,
 	"dev_comment" Text,
 	"dev_create" Timestamp NOT NULL Default now(),
@@ -58,7 +57,6 @@ Create table "management" -- contains an entry for each firewall management syst
 	"dev_typ_id" Integer NOT NULL,
 	"mgm_name" Varchar NOT NULL,
 	"mgm_comment" Text,
-	"tenant_id" Integer,
  	"cloud_tenant_id" VARCHAR,
 	"cloud_subscription_id" VARCHAR,	
 	"mgm_create" Timestamp NOT NULL Default now(),
@@ -176,6 +174,7 @@ Create table "rule"
 	"rule_create" BIGINT NOT NULL,
 	"rule_last_seen" BIGINT NOT NULL,
 	"dev_id" Integer,
+	"rule_custom_fields" jsonb,
 	"access_rule" BOOLEAN Default TRUE,
 	"nat_rule" BOOLEAN Default FALSE,
 	"xlate_rule" BIGINT,
@@ -196,7 +195,7 @@ Create table "rule_metadata"
 	"rule_last_certified" Timestamp,
 	"rule_last_certifier" Integer,
 	"rule_last_certifier_dn" VARCHAR,
-	"rule_owner" Integer,
+	"rule_owner" Integer, -- points to a uiuser (not an owner)
 	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
 	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
 	"last_change_admin" Integer,
@@ -438,6 +437,14 @@ Create table "txt"
  primary key ("id", "language")
 );
 
+Create table "customtxt"
+(
+	"id" Varchar NOT NULL,
+	"language" Varchar NOT NULL,
+	"txt" Varchar NOT NULL,
+ 	primary key ("id", "language")
+);
+
 Create table "error"
 (
 	"error_id" Varchar NOT NULL UNIQUE,
@@ -451,7 +458,7 @@ Create table "error"
 Create table "tenant"
 (
 	"tenant_id" SERIAL,
-	"tenant_name" Varchar NOT NULL,
+	"tenant_name" Varchar NOT NULL UNIQUE,
 	"tenant_projekt" Varchar,
 	"tenant_comment" Text,
 	"tenant_report" Boolean Default true,
@@ -461,10 +468,19 @@ Create table "tenant"
  primary key ("tenant_id")
 );
 
+Create table tenant_to_management
+(
+	tenant_id Integer NOT NULL,
+	management_id Integer NOT NULL,
+  	shared BOOLEAN NOT NULL DEFAULT TRUE,
+  	primary key ("tenant_id", "management_id")
+);
+
 Create table "tenant_to_device"
 (
 	"tenant_id" Integer NOT NULL,
 	"device_id" Integer NOT NULL,
+	shared Boolean NOT NULL DEFAULT TRUE,
  primary key ("tenant_id", "device_id")
 );
 
@@ -474,8 +490,8 @@ Create table "tenant_network"
 	"tenant_id" Integer NOT NULL,
 	"tenant_net_name" Varchar,
 	"tenant_net_comment" Text,
-	"tenant_net_ip" Cidr,
-	"tenant_net_ip_end" Cidr,
+	"tenant_net_ip" Cidr NOT NULL,
+	"tenant_net_ip_end" Cidr NOT NULL,
 	"tenant_net_create" Timestamp NOT NULL Default now(),
  primary key ("tenant_net_id")
 );
@@ -580,6 +596,8 @@ Create table "import_control"
 	"successful_import" Boolean NOT NULL Default FALSE,
 	"changes_found" Boolean NOT NULL Default FALSE,
 	"import_errors" Varchar,
+	"notification_done" Boolean NOT NULL Default FALSE,
+	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
  primary key ("control_id")
 );
 
@@ -713,6 +731,7 @@ Create table "import_rule"
 	"parent_rule_uid" Text,
 	"rule_type" Varchar Default 'access',
 	"last_hit" Timestamp,
+	"rule_custom_fields" JSONB,
  primary key ("control_id","rule_id")
 );
 
@@ -1021,16 +1040,26 @@ create table owner
     recert_interval int,
     app_id_external varchar UNIQUE,
     last_recert_check Timestamp,
-    recert_check_params Varchar
+    recert_check_params Varchar,
+	criticality Varchar,
+	active boolean default true,
+	import_source Varchar,
+	common_service_possible boolean default false
 );
 
 create table owner_network
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     owner_id int,
+	name Varchar,
     ip cidr NOT NULL,
+    ip_end cidr NOT NULL,
     port int,
-    ip_proto_id int
+    ip_proto_id int,
+	nw_type int,
+	import_source Varchar default 'manual', 
+	is_deleted boolean default false,
+	custom_type int
 );
 
 create table reqtask_owner
@@ -1092,7 +1121,8 @@ create table request.reqtask
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	devices varchar
+	devices varchar,
+	additional_info varchar
 );
 
 create table request.reqelement 
@@ -1248,4 +1278,157 @@ create table request.impltask
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp
+);
+
+
+--- Compliance ---
+create schema compliance;
+
+create table compliance.network_zone
+(
+    id BIGSERIAL PRIMARY KEY,
+	name VARCHAR NOT NULL,
+	description VARCHAR NOT NULL,
+	super_network_zone_id bigint,
+	owner_id bigint
+);
+
+create table compliance.network_zone_communication
+(
+    from_network_zone_id bigint NOT NULL,
+	to_network_zone_id bigint NOT NULL
+);
+
+create table compliance.ip_range
+(
+    network_zone_id bigint NOT NULL,
+	ip_range_start inet NOT NULL,
+	ip_range_end inet NOT NULL,
+	PRIMARY KEY(network_zone_id, ip_range_start, ip_range_end)
+);
+
+
+--- Network modelling ---
+create schema modelling;
+
+create table modelling.nwgroup
+(
+ 	id BIGSERIAL PRIMARY KEY,
+	app_id int,
+	id_string Varchar,
+	name Varchar,
+	comment Varchar,
+	group_type int,
+	is_deleted boolean default false,
+	creator Varchar,
+	creation_date timestamp default now()
+);
+
+create table modelling.connection
+(
+ 	id SERIAL PRIMARY KEY,
+	app_id int,
+	proposed_app_id int,
+	name Varchar,
+	reason Text,
+	is_interface boolean default false,
+	used_interface_id int,
+	is_requested boolean default false,
+	ticket_id bigint,
+	common_service boolean default false,
+	is_published boolean default false,
+	creator Varchar,
+	creation_date timestamp default now()
+);
+
+create table modelling.selected_objects
+(
+	app_id int,
+	nwgroup_id bigint,
+	primary key (app_id, nwgroup_id)
+);
+
+create table modelling.selected_connections
+(
+	app_id int,
+	connection_id int,
+	primary key (app_id, connection_id)
+);
+
+create table modelling.nwobject_nwgroup
+(
+    nwobject_id bigint,
+    nwgroup_id bigint,
+	primary key (nwobject_id, nwgroup_id)
+);
+
+create table modelling.nwgroup_connection
+(
+    nwgroup_id bigint,
+    connection_id int,
+	connection_field int, -- enum src=1, dest=2, ...
+	primary key (nwgroup_id, connection_id, connection_field)
+);
+
+create table modelling.nwobject_connection -- (used only if settings flag is set)
+(
+    nwobject_id bigint,
+    connection_id int,
+	connection_field int, -- enum src=1, dest=2, ...
+	primary key (nwobject_id, connection_id, connection_field)
+);
+
+create table modelling.service
+(
+ 	id SERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar,
+	is_global boolean default false,
+	port int,
+	port_end int,
+	proto_id int
+);
+
+create table modelling.service_group
+(
+	id SERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar,
+	is_global boolean default false,
+	comment Varchar,
+	creator Varchar,
+	creation_date timestamp default now()
+);
+
+create table modelling.service_service_group
+(
+	service_id int,
+    service_group_id int,
+	primary key (service_id, service_group_id)
+);
+
+create table modelling.service_group_connection
+(
+    service_group_id int,
+	connection_id int,
+	primary key (service_group_id, connection_id)
+);
+
+create table modelling.service_connection -- (used only if settings flag is set)
+(
+    service_id int,
+    connection_id int,
+	primary key (service_id, connection_id)
+);
+
+create table modelling.change_history
+(
+	id BIGSERIAL PRIMARY KEY,
+	app_id int,
+	change_type int,
+	object_type int,
+    object_id bigint,
+	change_text Varchar,
+	changer Varchar,
+	change_time Timestamp default now()
 );

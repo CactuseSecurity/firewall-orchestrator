@@ -66,6 +66,7 @@ CREATE TRIGGER gw_route_add BEFORE INSERT ON gw_route FOR EACH ROW EXECUTE PROCE
 
 CREATE OR REPLACE FUNCTION import_config_from_json ()
     RETURNS TRIGGER
+    LANGUAGE plpgsql
     AS $BODY$
 DECLARE
     i_mgm_id INTEGER;
@@ -123,10 +124,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$BODY$
-LANGUAGE plpgsql
-VOLATILE
-COST 100;
+$BODY$;
 ALTER FUNCTION public.import_config_from_json () OWNER TO fworch;
 
 DROP TRIGGER IF EXISTS import_config_insert ON import_config CASCADE;

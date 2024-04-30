@@ -13,6 +13,13 @@
     - sample_tenants
     - sample_operators
     - sample_groups
+  become: true
+
+# only add roles and groups when not testing to avoid resudue from tests
+- name: add tree
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  loop:
     - roles_for_sample_operators
     - groups_for_sample_operators
   become: true
+  when: sample_role_purpose is not match('test')

@@ -1,0 +1,5 @@
+mutation deleteConnection($id: Int!) {
+  delete_modelling_connection(where: {id: {_eq: $id}}) {
+    affected_rows
+  }
+}

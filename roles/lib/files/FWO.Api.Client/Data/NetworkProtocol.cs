@@ -10,5 +10,15 @@ namespace FWO.Api.Data
 
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
+
+
+        public NetworkProtocol()
+        {}
+
+        public NetworkProtocol(IpProtocol i)
+        {
+            Id = i.Id;
+            Name = i.Name;
+        }
     }
 }

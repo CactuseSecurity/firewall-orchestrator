@@ -1,0 +1,23 @@
+﻿@page "/help/modelling/connections"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpModellingSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("connections")</h3>
+    @(Html.Raw(userConfig.GetText("H9021")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H9022")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H9023")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H9024")))</li>
+    </ul>
+</div>

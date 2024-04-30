@@ -1,5 +1,6 @@
 using RestSharp;
 using System.Text.Json;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
@@ -7,6 +8,7 @@ using FWO.Logging;
 using RestSharp.Serializers.NewtonsoftJson;
 using System.Text.Encodings.Web;
 using System.Text;
+using RestSharp.Serializers;
 
 namespace FWO.Rest.Client
 {
@@ -18,22 +20,22 @@ namespace FWO.Rest.Client
         {
             RestClientOptions restClientOptions = new RestClientOptions();
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            // restClientOptions.Encoding = Encoding.Latin1;
             restClientOptions.BaseUrl = new Uri("https://" + manager.Hostname + ":" + manager.Port + "/web_api/");
-            restClient = new RestClient(restClientOptions);
-            // restClient.AddDefaultHeader("Content-Type", "application/json");
-
-            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
-            restClient.UseDefaultSerializers();
-            restClient.UseSerializer(() => serializer);
+            restClient = new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
         }
+
+        private void ConfigureRestClientSerialization(SerializerConfig config)
+        {
+            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
+            config.UseSerializer(() => serializer);
+        } 
 
         public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string? user, string? pwd, string? domain)
         {
             if (user == null || user == "")
             {
                 Log.WriteWarning("Autodiscovery", $"GetDomains got empty user string, aborting");
-                return new RestResponse<CpSessionAuthInfo>();
+                return new RestResponse<CpSessionAuthInfo>(new RestRequest());
             }
             if (pwd == null)
                 pwd = "";

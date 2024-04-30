@@ -1,0 +1,5 @@
+query getConnectionsByTicketId ($ticketId: bigint){
+  modelling_connection (where: { ticket_id: { _eq: $ticketId } } order_by: { is_interface: desc, common_service: desc, name: asc }){
+    ...connectionDetails
+  }
+}

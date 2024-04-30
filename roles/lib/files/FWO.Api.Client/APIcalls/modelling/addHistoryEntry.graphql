@@ -1,0 +1,23 @@
+mutation addHistoryEntry(
+  $appId: Int
+  $changeType: Int!
+  $objectType: Int!
+  $objectId: bigint!
+  $changeText: String
+  $changer: String!
+) {
+  insert_modelling_change_history(
+    objects: {
+      app_id: $appId
+      change_type: $changeType
+      object_type: $objectType
+      object_id: $objectId
+      change_text: $changeText
+      changer: $changer
+    }
+  ) {
+    returning {
+       newId: id
+    }
+  }
+}

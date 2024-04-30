@@ -1,0 +1,96 @@
+﻿@typeparam ElementType
+
+<div class="bg-secondary col-sm-12 border" style="overflow-x:clip; overflow-y:auto; max-height: calc( @(MaxHeight) * 1vh);">
+	@for (int i = 0; i < AllElements.Count; i++)
+	{
+		int j = i;
+		<div class="draggable draggable-item @(SelectedElements.Contains(AllElements[j]) ? "draggable-selected" : "")" draggable="true"
+				@ondragstart="@((e) => { HandleDragStart(e, AllElements[j]); lastSelected = null; })"
+				@onclick="() => ToggleSelect(j)" tabindex="0" @onkeydown="(k) => KeyDown(k)" @onkeyup="(k) => KeyUp(k)">
+			<nobr>@((MarkupString)Display(AllElements[j]))</nobr>
+		</div>
+	}
+</div>
+
+@code
+{
+	[Parameter]
+	public List<ElementType> AllElements { get; set; } = new List<ElementType>();
+
+	[Parameter]
+	public List<ElementType> SelectedElements { get; set; } = new List<ElementType>();
+
+    [Parameter]
+    public EventCallback<List<ElementType>> SelectedElementsChanged { get; set; }
+
+    [Parameter]
+    public Func<DragEventArgs, ElementType, bool> HandleDragStart { get; set; } = DoNothingSync;
+
+	[Parameter]
+	public Func<ElementType, string> Display { get; set; } = DoNothingSync;
+
+	[Parameter]
+	public int MaxHeight { get; set; } = 50;
+
+	[Parameter]
+	public bool Multiselect { get; set; } = true;
+
+	private int? lastSelected;
+	private bool shiftPressed = false;
+
+
+    private void KeyDown(KeyboardEventArgs ev)
+    {
+		if(ev.ShiftKey)
+		{
+        	shiftPressed = true;
+		}
+    }
+
+	private void KeyUp(KeyboardEventArgs ev)
+    {
+		if(ev.ShiftKey)
+		{
+        	shiftPressed = false;
+		}
+    }
+
+	private void ToggleSelect(int index)
+	{
+		if (SelectedElements.Contains(AllElements[index]))
+		{
+			SelectedElements.Remove(AllElements[index]);
+			lastSelected = null;
+		}
+		else
+		{
+			if(!Multiselect)
+			{
+				SelectedElements = new();
+				SelectedElements.Add(AllElements[index]);
+			}
+			else if(lastSelected == null)
+			{
+				lastSelected = index;
+				SelectedElements.Add(AllElements[index]);
+			}
+			else if(shiftPressed && index > lastSelected)
+			{
+				for(int idx = (int)lastSelected + 1; idx <= index; ++idx)
+				{
+					SelectedElements.Add(AllElements[idx]);
+				}
+				lastSelected = null;
+			}
+			else
+			{
+				SelectedElements.Add(AllElements[index]);
+				lastSelected = index;
+			}
+		}
+		SelectedElementsChanged.InvokeAsync(SelectedElements);
+	}
+
+	private static bool DoNothingSync(DragEventArgs e, ElementType elem) { return false; }
+	private static string DoNothingSync(ElementType e) { return ""; }
+}

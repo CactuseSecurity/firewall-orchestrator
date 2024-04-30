@@ -3,12 +3,14 @@
 @using System.Net
 @using FWO.Api.Client.Queries
 
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @page "/network_analysis"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")]
 
 <h3>@(userConfig.GetText("network_analysis"))</h3>
 
@@ -37,9 +39,11 @@
         }
     </div>
 </form>
-<button type="button" class="btn btn-primary" @onclick="@(async () => { gwsInPath = await analyzePath(routingSourceString,routingDestinationString); })">@(userConfig.GetText("search_route"))</button>
-<button type="button" disabled class="btn btn-primary" @onclick="@(async () => { })">@(userConfig.GetText("search_access"))</button>
-<button type="button" class="btn btn-secondary" @onclick="@(() => { routingSourceString = ""; routingDestinationString = ""; serviceString = ""; })">@(userConfig.GetText("clear_input"))</button>
+<div class="btn-group mt-2">
+    <button type="button" class="btn btn-primary" @onclick="@(async () => { gwsInPath = await analyzePath(routingSourceString,routingDestinationString); })">@(userConfig.GetText("search_route"))</button>
+    <button type="button" disabled class="btn btn-primary" @onclick="@(async () => { })">@(userConfig.GetText("search_access"))</button>
+    <button type="button" class="btn btn-secondary" @onclick="@(() => { routingSourceString = ""; routingDestinationString = ""; serviceString = ""; })">@(userConfig.GetText("clear_input"))</button>
+</div>
 
 @code
 {

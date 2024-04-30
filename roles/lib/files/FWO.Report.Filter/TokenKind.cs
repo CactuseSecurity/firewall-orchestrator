@@ -22,6 +22,7 @@
         RecertDisplay,
         FullText,
         LastHit,
+        Unused,
         BL, // (
         BR, // )
         And,

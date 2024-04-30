@@ -1,23 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="IPAddressRange" Version="5.0.0" />
-    <PackageReference Include="GraphQL.Client" Version="6.0.0" />
-    <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="5.1.0" />
-    <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="5.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="6.0.10" />
+    <PackageReference Include="IPAddressRange" Version="6.0.0" />
+    <PackageReference Include="GraphQL.Client" Version="6.0.3" />
+    <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="6.0.3" />
+    <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="6.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="8.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FWO.Config.File\FWO.Config.File.csproj" />
     <ProjectReference Include="..\FWO.Middleware\FWO.Middleware.csproj" />
     <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\FWO.Encryption\FWO.Encryption.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,49 @@
+﻿@using FWO.Ui.Display
+@using FWO.Config.Api
+@using FWO.Report
+@using FWO.Report.Filter
+
+@inject UserConfig userConfig
+
+@if (Managements.Count > 0)
+{
+    <h5>@(userConfig.GetText("glob_no_obj"))</h5>
+    <div class="d-flex">
+        <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="ManagementReport" Items="new List<ManagementReport> {GlobalStats}">
+            <Column TableItem="ManagementReport" Title="@(userConfig.GetText("network_objects"))" Field="@(m => m.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+            <Column TableItem="ManagementReport" Title="@(userConfig.GetText("service_objects"))" Field="@(m => m.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+            <Column TableItem="ManagementReport" Title="@(userConfig.GetText("user_objects"))" Field="@(m => m.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+            <Column TableItem="ManagementReport" Title="@(userConfig.GetText("rules"))" Field="@(m => m.RuleStatistics.ObjectAggregate.ObjectCount)" />
+        </Table>
+    </div>
+}
+@foreach (var managementReport in Managements.Where(mgt => !mgt.Ignore))
+{
+    <Collapse Title="@managementReport.Name" Style="@("primary")" StartToggled="false">
+        <h6>@(userConfig.GetText("total_no_obj_mgt"))</h6>
+        <div class="d-flex">
+            <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="ManagementReport" Items="new List<ManagementReport> {managementReport}" PageSize="0">
+                <Column TableItem="ManagementReport" Title="@(userConfig.GetText("network_objects"))" Field="@(m => m.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                <Column TableItem="ManagementReport" Title="@(userConfig.GetText("service_objects"))" Field="@(m => m.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                <Column TableItem="ManagementReport" Title="@(userConfig.GetText("user_objects"))" Field="@(m => m.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                <Column TableItem="ManagementReport" Title="@(userConfig.GetText("rules"))" Field="@(m => m.RuleStatistics.ObjectAggregate.ObjectCount)" />
+            </Table>
+        </div>
+        <h6>@(userConfig.GetText("no_rules_gtw"))</h6>
+        <div class="d-flex">
+            <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="DeviceReport" Items="managementReport.Devices" PageSize="0">
+                <Column TableItem="DeviceReport" Title="@(userConfig.GetText("gateway"))" Field="@(d => d.Name)" />
+                <Column TableItem="DeviceReport" Title="@(userConfig.GetText("no_of_rules"))" Field="@(d => d.RuleStatistics.ObjectAggregate.ObjectCount)" />
+            </Table>
+        </div>
+    </Collapse>
+}
+
+@code
+{
+    [Parameter]
+    public List<ManagementReport> Managements { get; set; } = new ();
+
+    [Parameter]
+    public ManagementReport GlobalStats { get; set; } = new ();
+}

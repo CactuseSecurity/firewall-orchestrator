@@ -5,33 +5,42 @@ using RestSharp.Serializers.SystemTextJson;
 using System.Text.Json;
 using RestSharp.Serializers.NewtonsoftJson;
 using Newtonsoft.Json;
+using RestSharp.Serializers;
+using System.Runtime.CompilerServices;
+using System.Data;
 
 namespace FWO.Middleware.Client
 {
-    public class MiddlewareClient
+    public class MiddlewareClient : IDisposable
     {
-        readonly RestClient restClient;
+        private bool disposed = false;
+        private RestClient restClient;
+        readonly string middlewareServerUri;
 
         public MiddlewareClient(string middlewareServerUri)
+        {
+            this.middlewareServerUri = middlewareServerUri;
+            restClient = CreateRestClient(authenticator: null);
+        }
+
+        private RestClient CreateRestClient(IAuthenticator? authenticator)
         {
             RestClientOptions restClientOptions = new RestClientOptions();
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
             restClientOptions.BaseUrl = new Uri(middlewareServerUri + "api/");
-            restClient = new RestClient(restClientOptions);
+            restClientOptions.Authenticator = authenticator;
+            return new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
+        }
 
-            //JsonSerializerOptions options = new JsonSerializerOptions();
-            //options.PropertyNameCaseInsensitive = true;
-            //SystemTextJsonSerializer serializer = new SystemTextJsonSerializer(options);
-            // TODO: UPDATE RESTSHARP SERIALIZER LIBRARY (CURRENT VERSION IS OUT OF DATE)
-
+        private void ConfigureRestClientSerialization(SerializerConfig config)
+        {
             JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
-            restClient.UseDefaultSerializers();
-            restClient.UseSerializer(() => serializer); 
+            config.UseSerializer(() => serializer);
         }
 
         public void SetAuthenticationToken(string jwt)
         {
-            restClient.Authenticator = new JwtAuthenticator(jwt);
+            restClient = CreateRestClient(new JwtAuthenticator(jwt));
         }
 
         public async Task<RestResponse<string>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
@@ -233,6 +242,27 @@ namespace FWO.Middleware.Client
             RestRequest request = new RestRequest("Tenant", Method.Delete);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed) return;
+            if (disposing)
+            {
+                restClient.Dispose();
+                disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~ MiddlewareClient()
+        {
+            Dispose(false);
         }
     }
 }

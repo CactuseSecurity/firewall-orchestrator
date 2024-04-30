@@ -1,100 +1,93 @@
 # this playbook sets up some sample devices with configs to play around with
 
-- name: read ssh_priv_key into var
-  slurp:
-    src: "{{ sample_config_user_home }}/.ssh/id_rsa.{{ sample_config_user }}"
-  register: sample_ssh_priv_key_dict
-  become: true
-
-- name: decode key
-  set_fact:
-    sample_ssh_priv_key: "{{ sample_ssh_priv_key_dict['content'] | b64decode }}"
-
 - name: change importer hostname when it is localhost
   set_fact:
     importer_hostname: "{{ hostvars[inventory_hostname].ansible_hostname }}"
   when: importer_hostname == 'localhost'
 
-- block:
+- name: default credential id = -1 (test)
+  set_fact:
+    credential_id: -1
 
-    - name: insert demo import credentials
+- name: set do_not_import
+  set_fact:
+    do_not_import: false
+
+- name: set do_not_import to false for all tests to prevent lock due to simultaneous import attempts
+  set_fact:
+    do_not_import: true
+  when: sample_role_purpose is match('test')
+
+- name: pick the correct credential id
+  set_fact:
+    credential_id: 0
+  when: sample_role_purpose is not match('test')
+
+- block: # demo & test
+
+    - name: insert sample fortiOS management
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
-          DO $do$ BEGIN
-          IF NOT EXISTS (SELECT * FROM import_credential WHERE credential_name='credential01_demo') THEN 
-          insert into import_credential
-          (id,credential_name,username,secret,is_key_pair)
-          VALUES (0,'credential01_demo','{{ sample_config_user }}','{{ sample_ssh_priv_key }}',true);
-          END IF; END $do$ 
-
-    - name: insert test fortinet management
-      postgresql_query:
-        db: "{{ fworch_db_name }}"
-        query: >
-          DO $do$ BEGIN
+          DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_fortigate_name }}') THEN 
-          insert into management 
-          (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,config_path,importer_hostname)
-          VALUES (4,'{{ sample_fortigate_name }}',0,'{{ importer_hostname }}',false,'sample-configs/fortinet_demo/','{{ importer_hostname }}');
+          insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
+          VALUES (24,'{{ sample_fortigate_name }}',{{ credential_id }},'{{ demo_fos_uri }}',{{ do_not_import }},'{{ importer_hostname }}'); 
           END IF; END $do$ 
 
-    - name: insert test fortinet gateway
+    - name: insert sample fortiOS gateway
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}') THEN 
-          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id) 
-          VALUES ((select mgm_id from management where mgm_name='{{ sample_fortigate_name }}'),'{{ sample_fortigate_name }}','{{ sample_fortigate_name }}',10);
-          END IF; END $do$ 
-
-    - name: insert test check point R7x management
-      postgresql_query:
-        db: "{{ fworch_db_name }}"
-        query: >
-          DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='checkpoint_demo') THEN 
-          insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,config_path,importer_hostname) 
-          VALUES (7,'checkpoint_demo',0,'{{ importer_hostname }}',false, 'sample-configs/checkpoint_demo/','{{ importer_hostname }}'); 
-          END IF; END $do$ 
-      when: sample_role_purpose is not match('test')
-
-    - name: insert test CPR7x gateway
-      postgresql_query:
-        db: "{{ fworch_db_name }}"
-        query: >
-          DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='checkpoint_demo') THEN
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}') THEN
           insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id)
-          VALUES ((select mgm_id from management where mgm_name='checkpoint_demo'),'checkpoint_demo','IsoAAAA',7); 
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_fortigate_name }}'),'{{ sample_fortigate_name }}','access_rules',25); 
           END IF; END $do$ 
-      when: sample_role_purpose is not match('test')
 
-    - name: insert dummy test import credentials
+  become: true
+  become_user: postgres
+
+
+- block: # demo only
+    - name: insert demo check point R81 management {{ sample_checkpoint_name }}
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
-          DO $do$ BEGIN
-          IF NOT EXISTS (SELECT * FROM import_credential WHERE credential_name='{{ test_credential_name }}') THEN 
-          insert into import_credential
-          (id,credential_name,username,secret,is_key_pair)
-          VALUES (-1,'{{ test_credential_name }}','{{ sample_config_user }}','{{ sample_ssh_priv_key }}',true);
-          END IF; END $do$ 
-      when: sample_role_purpose is match('test')
+          DO $do$ BEGIN 
+            IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
+              insert into management 
+                (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
+                VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ demo_cpr8x_uri }}',{{ do_not_import }},'{{ importer_hostname }}'); 
+            END IF;
+          END $do$ 
 
-    - name: insert test check point R8x management
+    - name: insert demo check point R81 gateway {{ sample_checkpoint_name }}
+      postgresql_query:
+        db: "{{ fworch_db_name }}"
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ demo_cpr8x_name }}') THEN
+          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id,package_name)
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ demo_cpr8x_name }}','AnonAAAB_Security_neu',9,'AnonAAAA_New'); 
+          END IF; END $do$ 
+
+  become: true
+  become_user: postgres
+  when: sample_role_purpose is not match('test')
+
+- block: # testing only
+    - name: insert test check point R8x management {{ sample_checkpoint_name }}
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
           insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-          VALUES (9,'{{ sample_checkpoint_name }}',-1,'{{ importer_hostname }}',false,'{{ importer_hostname }}'); 
+          VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ sample_checkpoint_uri }}',{{ do_not_import }},'dummy importer hostname'); 
           END IF; END $do$ 
-      when: sample_role_purpose is match('test')
 
-    - name: insert test check point R8x gateway
+    - name: insert test check point R8x gateway {{ sample_checkpoint_name }}
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
@@ -103,7 +96,7 @@
           insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id,package_name)
           VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ sample_checkpoint_name }}','FirstLayer shared with inline layer',9,'TestPolicyWithLayers'); 
           END IF; END $do$ 
-      when: sample_role_purpose is match('test')
 
   become: true
   become_user: postgres
+  when: sample_role_purpose is match('test')

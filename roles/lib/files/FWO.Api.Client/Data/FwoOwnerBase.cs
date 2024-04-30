@@ -3,6 +3,12 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
+    public enum RuleOwnershipMode
+    {
+        mixed, 
+        exclusive
+    }
+
     public class FwoOwnerBase
     {
         [JsonProperty("name"), JsonPropertyName("name")]
@@ -39,6 +45,11 @@ namespace FWO.Api.Data
             TenantId = owner.TenantId;
             RecertInterval = owner.RecertInterval;
             ExtAppId = owner.ExtAppId;
+        }
+
+        public virtual string Display()
+        {
+            return Name + " (" + ExtAppId + ")";
         }
 
         public virtual bool Sanitize()

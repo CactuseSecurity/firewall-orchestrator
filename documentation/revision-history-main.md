@@ -372,9 +372,12 @@ adding report template format fk and permissions
 - Importer fix: remove log locking from importer due to stalling importer stops
 
 # 8.2 - 30.04.2024 MAIN
-- new workflow: interface request
+- new workflow for modelling: interface request
   - adding all imported modelling users to local db (uiuser) - to enable email notification
-- upgrade to dotnet 8.0
+- new features for modelling
+  - display NAs in Report LSB and Export
+  - count and display members of areas in selection list  
+- upgrade to dotnet 8.0 (middleware and UI server)
 - encrypt emailPassword in config
 - fixes:
   - demo managements (change import from deactivated to activated - does not affect test managements)

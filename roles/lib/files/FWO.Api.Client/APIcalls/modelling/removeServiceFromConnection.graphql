@@ -1,0 +1,8 @@
+mutation removeServiceFromConnection(
+  $serviceId: Int!
+  $connectionId: Int!
+  ) {
+  delete_modelling_service_connection(where: {service_id: {_eq: $serviceId}, connection_id: {_eq: $connectionId}}) {
+    affected_rows
+  }
+}

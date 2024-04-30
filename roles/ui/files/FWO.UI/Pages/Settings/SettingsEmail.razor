@@ -4,36 +4,40 @@
 @using FWO.Config.Api.Data
 @using System
 @using FWO.Mail
+@using FWO.Encryption
 
 @page "/settings/email"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("email_settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("email_settings"))</h3>
+    <HelpLink Page="settings/email"/>
+</div>
 @(userConfig.GetText("U5319"))
-<hr />
+<hr>
 
 <EditForm Model="@emailForm" OnValidSubmit="@Save">
     <DataAnnotationsValidator />
     <ValidationSummary />
-    <div class="form-group row">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5491a"))">
         <label for="emailAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
         <div class="col-sm-8">
             <input id="emailAddress" type="text" class="form-control form-control-sm" @bind="actEmailConnection.ServerAddress" />
         </div>
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491b"))">
         <label for="emailPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
         <div class="col-sm-2">
             <input id="emailPort" type="number" class="form-control form-control-sm" @bind="actEmailConnection.Port" />
         </div>
     </div>
 
-    <div class="form-group row">
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491c"))">
         <label for="emailEncryption" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_enc_method"))*:</label>
         <p>
         <InputRadioGroup @bind-Value="actEmailConnection.Encryption">
@@ -44,40 +48,55 @@
         </InputRadioGroup>
         </p>
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491d"))">
         <label for="emailAuthUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_auth_user")):</label>
         <div class="col-sm-8">
             <input id="emailAuthUser" type="text" class="form-control form-control-sm" @bind="actEmailConnection.User" />
         </div>
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491d"))">
         <label for="emailAuthUserPwd" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_auth_pwd")):</label>
         <div class="col-sm-8">
             <input id="emailAuthUserPwd" type="password" class="form-control form-control-sm" @bind="actEmailConnection.Password" />
         </div>
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491e"))">
         <label for="emailSenderAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_sender")):</label>
         <div class="col-sm-8">
             <input id="emailSenderAddress" type="email" class="form-control form-control-sm" @bind="actEmailConnection.SenderEmailAddress" />
         </div>
     </div>
+    <hr>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491f"))">
+        <label for="useDummyEmailAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("use_dummy_email_address")):</label>
+        <div class="col-sm-1">
+            <input id="useDummyEmailAddress" type="checkbox" @bind="editableConfig.UseDummyEmailAddress" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491g"))">
+        <label for="dummyEmailAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("dummy_email_address")):</label>
+        <div class="col-sm-8">
+            <input id="dummyEmailAddress" type="email" class="form-control form-control-sm" @bind="editableConfig.DummyEmailAddress" />
+        </div>
+    </div>
 </EditForm>
-
-
+<hr>
 
 <div class="btn-group">
-<AuthorizeView Roles="admin">
-    <Authorized>
-        <button class="btn btn-sm btn-dark" @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
-        <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
-    </Authorized>
-    <NotAuthorized>
-        <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("test_connection"))</button>
-        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-    </NotAuthorized> 
-</AuthorizeView>
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-dark"  data-toggle="tooltip" title="@(userConfig.PureLine("H5492"))"
+                @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-dark" data-toggle="tooltip" title="@(userConfig.PureLine("H5492"))"
+                disabled>@(userConfig.GetText("test_connection"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized> 
+    </AuthorizeView>
 </div>
+
 @code
 {
     [CascadingParameter]
@@ -85,7 +104,7 @@
 
     private EmailForm emailForm = new EmailForm() {  };
     private ConfigData? editableConfig;
-    private EmailConnection actEmailConnection = new EmailConnection();
+    private EmailConnection actEmailConnection = new ();
 
     protected override async Task OnInitializedAsync()
     {
@@ -129,6 +148,20 @@
                 }
                 if (actEmailConnection.Password != null)
                 {
+                    string mainKey = AesEnc.GetMainKey();
+                    string encryptedSecret = actEmailConnection.Password;
+
+                    // only encrypt secret if it was not already encrypted
+                    try
+                    {
+                        string decryptedSecret = AesEnc.Decrypt(actEmailConnection.Password, mainKey);
+                    }
+                    catch (Exception)
+                    {
+                        encryptedSecret = AesEnc.Encrypt(actEmailConnection.Password, mainKey);
+                        actEmailConnection.Password = encryptedSecret;
+                    }
+
                     editableConfig.EmailPassword = actEmailConnection.Password;
                 }
                 else
@@ -177,7 +210,14 @@
     {
         try
         {
-            MailKitMailer mailer = new MailKitMailer(actEmailConnection);
+            // decrypt password if set
+            string encryptedPassword = "";
+            if (actEmailConnection.Password != null)
+            {
+                encryptedPassword = actEmailConnection.Password;
+                actEmailConnection.Password = AesEnc.Decrypt(actEmailConnection.Password, AesEnc.GetMainKey());
+            }
+            MailKitMailer mailer = new(actEmailConnection);
             if (userConfig.User.Email == null || userConfig.User.Email  == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("E8101"), true);
@@ -194,6 +234,11 @@
                 {
                     DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), "could not send message", true);
                 }
+            }
+            // if password was set, re-assign the enrypted password
+            if (actEmailConnection.Password != null)
+            {
+                actEmailConnection.Password = encryptedPassword;
             }
         }
         catch (System.Exception exception)

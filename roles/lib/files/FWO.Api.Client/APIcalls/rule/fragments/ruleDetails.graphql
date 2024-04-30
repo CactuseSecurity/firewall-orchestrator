@@ -1,6 +1,7 @@
 fragment ruleDetails on rule {
   rule_id
   rule_uid
+  dev_id
   rule_action
   section_header: rule_head_text
   rule_comment

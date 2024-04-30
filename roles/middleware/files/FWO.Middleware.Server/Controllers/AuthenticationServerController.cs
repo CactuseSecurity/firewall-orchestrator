@@ -43,7 +43,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">Ldap connection parameters</param>
         /// <returns></returns>
         [HttpGet("TestConnection")]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public ActionResult<string> TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {
             try
@@ -64,7 +64,7 @@ namespace FWO.Middleware.Controllers
         /// </summary>
         /// <returns>List of all connected Ldaps</returns>
         [HttpGet]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<List<LdapGetUpdateParameters>> Get()
         {
             UiLdapConnection[] ldapConnections = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(AuthQueries.getAllLdapConnections));
@@ -102,7 +102,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="ldapData">LdapAddParameters</param>
         /// <returns>Id of new ldap, 0 if no ldap could be added</returns>
         [HttpPost]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<int> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
         {
             // Add ldap to DB and to middleware ldap list
@@ -146,7 +146,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="ldapData">LdapGetUpdateParameters</param>
         /// <returns>Id of updated ldap</returns>
         [HttpPut]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<int> Update([FromBody] LdapGetUpdateParameters ldapData)
         {
             // Update ldap in DB and in middleware ldap list
@@ -171,7 +171,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="ldapData">LdapDeleteParameters</param>
         /// <returns>Id of deleted ldap connection</returns>
         [HttpDelete]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<int> Delete([FromBody] LdapDeleteParameters ldapData)
         {
             // Delete ldap in DB and in middleware ldap list

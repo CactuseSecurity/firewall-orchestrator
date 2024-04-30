@@ -1,0 +1,13 @@
+mutation addSelectedConnection(
+  $appId: Int!
+  $connectionId: Int!
+  ) {
+  insert_modelling_selected_connections(objects: {
+    app_id: $appId
+    connection_id: $connectionId
+  }) {
+    returning {
+      newId: connection_id
+    }
+  }
+}

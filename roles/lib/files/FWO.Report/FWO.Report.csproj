@@ -1,18 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.86" />
+    <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.88" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FWO.Config.Api\FWO.Config.Api.csproj" />
     <ProjectReference Include="..\FWO.Report.Filter\FWO.Report.Filter.csproj" />
+    <ProjectReference Include="..\FWO.GlobalConstants\FWO.GlobalConstants.csproj" />
     <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
   </ItemGroup>
 

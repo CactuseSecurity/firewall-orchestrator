@@ -16,10 +16,28 @@ Create table IF NOT EXISTS "report_schedule_format"
 	"report_schedule_id" BIGSERIAL,
  	primary key ("report_schedule_format_name","report_schedule_id")
 );
-Alter table "report_schedule_format" add foreign key ("report_schedule_format_name") references "report_format" ("report_format_name") on update restrict on delete cascade;
+
+DO $$
+BEGIN
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'report_schedule_format_report_schedule_format_name_fkey')
+  THEN
+	Alter table "report_schedule_format" add foreign key ("report_schedule_format_name") references "report_format" ("report_format_name") on update restrict on delete cascade;
+  END IF;
+END $$;
+
 
 Alter table "report_template" ADD COLUMN IF NOT EXISTS "report_template_owner" Integer;
-Alter table "report_template" add foreign key ("report_template_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+DO $$
+BEGIN
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'report_template_report_template_owner_fkey')
+  THEN
+	Alter table "report_template" add foreign key ("report_template_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+  END IF;
+END $$;
 
 Alter table "report_schedule" ADD COLUMN IF NOT EXISTS "report_schedule_active" Boolean Default TRUE;
 
@@ -30,5 +48,13 @@ Alter table "report" ADD COLUMN IF NOT EXISTS "report_csv" text;
 Alter table "report" ADD COLUMN IF NOT EXISTS "report_html" text;
 Alter table "report" ALTER COLUMN "report_filetype" DROP NOT NULL;
 Alter table "report" ADD COLUMN IF NOT EXISTS "tenant_wide_visible" Integer;
-Alter table "report" add foreign key ("tenant_wide_visible") references "tenant" ("tenant_id") on update restrict on delete cascade;
+DO $$
+BEGIN
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'report_tenant_wide_visible_fkey')
+  THEN
+	Alter table "report" add foreign key ("tenant_wide_visible") references "tenant" ("tenant_id") on update restrict on delete cascade;
+  END IF;
+END $$;
 

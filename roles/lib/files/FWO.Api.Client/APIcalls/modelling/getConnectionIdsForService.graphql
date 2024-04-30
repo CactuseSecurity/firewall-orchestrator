@@ -1,0 +1,5 @@
+query getConnectionIdsForService ($serviceId: Int!){
+  modelling_service_connection (where: { service_id: { _eq: $serviceId } }){
+    connection_id
+  }
+}

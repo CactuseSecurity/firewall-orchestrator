@@ -1,0 +1,56 @@
+﻿@inject UserConfig userConfig
+
+@typeparam ElementType
+
+@if (Elements.Count() == 0)
+{
+	@if(ShowTextIfEmpty)
+	{
+		@(userConfig.GetText("None"))
+	}
+}
+else if (Elements.Count() <= AlwaysShowElements)
+{
+	@foreach(var elem in Elements)
+	{
+		@(ElementTemplate(elem))<br>
+	}
+}
+else
+{
+	@foreach(var elem in Elements.Take(AlwaysShowElements - 1))
+	{
+		@(ElementTemplate(elem))<br>
+	}
+	<div>
+		<details>
+			<summary class="mb-1 text-truncate">
+				@(ElementTemplate(Elements.Skip(AlwaysShowElements - 1).First())) @* (+@(Elements.Count() - 1)) *@ ...
+			</summary>
+			<ul>
+				@foreach (ElementType element in Elements.Skip(AlwaysShowElements - (AlwaysShowElements > 1 ? 0 : 1)))
+				{
+					<li>@(ElementTemplate(element))</li>
+				}
+			</ul>
+		</details>
+	</div>
+}
+
+@code 
+{
+	[Parameter]
+	public IEnumerable<ElementType> Elements { get; set; } = Enumerable.Empty<ElementType>();
+
+	[Parameter]
+	public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder =>
+	{
+		@element
+	};
+
+	[Parameter]
+	public bool ShowTextIfEmpty { get; set; } = true;
+
+	[Parameter]
+	public int AlwaysShowElements { get; set; } = 1;
+}

@@ -1,0 +1,7 @@
+{
+    "username": "abc",
+    "password": "def",
+    "ldapPath": "CN={USERID},OU=Benutzer,DC=CACTUS,DC=DE",
+    "subnetData": "/usr/local/fworch/scripts/customizing/modelling/NwObjDataOrigExample.csv",
+    "apiBaseUri": "/usr/local/fworch/scripts/customizing/modelling/sampleOwnerDataOrig.json"
+}

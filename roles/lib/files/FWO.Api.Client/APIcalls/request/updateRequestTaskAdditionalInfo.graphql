@@ -1,0 +1,12 @@
+mutation updateRequestTaskAdditionalInfo(
+  $id: bigint!
+  $additionalInfo: String
+  ) {
+  update_request_reqtask_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+    additional_info: $additionalInfo
+  }) {
+    UpdatedId: id
+  }
+}

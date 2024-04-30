@@ -10,6 +10,7 @@ mutation newRequestTask(
   $validFrom: timestamp
   $validTo: timestamp
   $reason: String
+  $additionalInfo: String
   $freeText: String
   ) {
   insert_request_reqtask(objects: {
@@ -24,6 +25,7 @@ mutation newRequestTask(
     target_begin_date: $validFrom
 	  target_end_date: $validTo
     reason: $reason
+    additional_info: $additionalInfo
     free_text: $freeText
   }) {
     returning {

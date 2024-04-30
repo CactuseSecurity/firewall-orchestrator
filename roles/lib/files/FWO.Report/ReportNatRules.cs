@@ -1,4 +1,4 @@
-﻿using FWO.Api.Data;
+﻿using FWO.GlobalConstants;
 using System.Text;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
@@ -14,15 +14,15 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new StringBuilder();
-            NatRuleDisplay ruleDisplay = new NatRuleDisplay(userConfig);
+            StringBuilder report = new ();
+            NatRuleDisplayHtml ruleDisplay = new (userConfig);
 
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"<h3>{management.Name}</h3>");
+                report.AppendLine($"<h3>{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");
 
-                foreach (Device device in management.Devices)
+                foreach (var device in managementReport.Devices)
                 {
                     if (device.Rules != null && device.Rules.Length > 0)
                     {
@@ -46,22 +46,22 @@ namespace FWO.Report
                         report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                         report.AppendLine("</tr>");
 
-                        foreach (Rule rule in device.Rules)
+                        foreach (var rule in device.Rules)
                         {
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
                                 report.AppendLine("<tr>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, location: "")}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, OutputLocation.export)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
                                 report.AppendLine("</tr>");
@@ -81,7 +81,7 @@ namespace FWO.Report
                 // show all objects used in this management's rules
 
                 int objNumber = 1;
-                if (management.ReportObjects != null)
+                if (managementReport.ReportObjects != null)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
                     report.AppendLine("<hr>");
@@ -95,17 +95,14 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
-                    foreach (NetworkObject nwobj in management.ReportObjects)
+                    foreach (var nwobj in managementReport.ReportObjects)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td><a name=nwobj{nwobj.Id}>{nwobj.Name}</a></td>");
-                        report.AppendLine($"<td>{nwobj.Type.Name}</td>");
-                        report.AppendLine($"<td>{nwobj.IP}{(nwobj.IpEnd != null && nwobj.IpEnd != "" && nwobj.IpEnd != nwobj.IP ? $"-{nwobj.IpEnd}" : "")}</td>");
-                        if (nwobj.MemberNames != null && nwobj.MemberNames.Contains("|"))
-                            report.AppendLine($"<td>{string.Join("<br>", nwobj.MemberNames.Split('|'))}</td>");
-                        else
-                            report.AppendLine($"<td>{nwobj.MemberNames}</td>");
+                        report.AppendLine($"<td><a name={ObjCatString.NwObj}{nwobj.Id}>{nwobj.Name}</a></td>");
+                        report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
+                        report.AppendLine($"<td>{NwObjDisplay.DisplayIp(nwobj.IP, nwobj.IpEnd, nwobj.Type.Name)}</td>");
+                        report.AppendLine(nwobj.MemberNamesAsHtml());
                         report.AppendLine($"<td>{nwobj.Uid}</td>");
                         report.AppendLine($"<td>{nwobj.Comment}</td>");
                         report.AppendLine("</tr>");
@@ -113,7 +110,7 @@ namespace FWO.Report
                     report.AppendLine("</table>");
                 }
 
-                if (management.ReportServices != null)
+                if (managementReport.ReportServices != null)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
                     report.AppendLine("<hr>");
@@ -129,21 +126,18 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
-                    foreach (NetworkService svcobj in management.ReportServices)
+                    foreach (var svcobj in managementReport.ReportServices)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td>{svcobj.Name}</td>");
-                        report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
-                        report.AppendLine($"<td>{((svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
+                        report.AppendLine($"<td><a name={ObjCatString.Svc}{svcobj.Id}>{svcobj.Name}</a></td>");
+                        report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
+                        report.AppendLine($"<td>{((svcobj.Type.Name!=ObjectType.Group && svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
                         if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
                             report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
                         else
                             report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
-                        if (svcobj.MemberNames != null && svcobj.MemberNames.Contains("|"))
-                            report.AppendLine($"<td>{string.Join("<br>", svcobj.MemberNames.Split('|'))}</td>");
-                        else 
-                            report.AppendLine($"<td>{svcobj.MemberNames}</td>");
+                        report.AppendLine(svcobj.MemberNamesAsHtml());
                         report.AppendLine($"<td>{svcobj.Uid}</td>");
                         report.AppendLine($"<td>{svcobj.Comment}</td>");
                         report.AppendLine("</tr>");
@@ -151,7 +145,7 @@ namespace FWO.Report
                     report.AppendLine("</table>");
                 }
 
-                if (management.ReportUsers != null)
+                if (managementReport.ReportUsers != null)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
                     report.AppendLine("<hr>");
@@ -165,16 +159,13 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
-                    foreach (NetworkUser userobj in management.ReportUsers)
+                    foreach (var userobj in managementReport.ReportUsers)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td>{userobj.Name}</td>");
-                        report.AppendLine($"<td><a name=user{userobj.Id}>{userobj.Name}</a></td>");
-                        if (userobj.MemberNames != null && userobj.MemberNames.Contains("|"))
-                            report.AppendLine($"<td>{string.Join("<br>", userobj.MemberNames.Split('|'))}</td>");
-                        else
-                            report.AppendLine($"<td>{userobj.MemberNames}</td>");
+                        report.AppendLine($"<td><a name={ObjCatString.User}{userobj.Id}>{userobj.Name}</a></td>");
+                        report.AppendLine($"<td>{(userobj.Type.Name != "" ? userConfig.GetText(userobj.Type.Name) : "")}</td>");
+                        report.AppendLine(userobj.MemberNamesAsHtml());
                         report.AppendLine($"<td>{userobj.Uid}</td>");
                         report.AppendLine($"<td>{userobj.Comment}</td>");
                         report.AppendLine("</tr>");
@@ -185,7 +176,7 @@ namespace FWO.Report
                 report.AppendLine("</table>");
             }
 
-            return GenerateHtmlFrame(title: userConfig.GetText("natrules_report"), Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
     }
 }

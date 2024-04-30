@@ -1,14 +1,14 @@
 # Installation instructions server
 
 - use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
-- recommended platforms are Ubuntu Server 20.04 LTS and Debian 11. See [system requirements](https://fwo.cactus.de/wp-content/uploads/2021/07/fwo-system-requirements-v5.pdf) for supported platforms
+- recommended platforms are Ubuntu Server 22.04 LTS and Debian 12. See [system requirements](https://fwo.cactus.de/wp-content/uploads/2021/07/fwo-system-requirements-v5.pdf) for supported platforms
 - we will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
 1) prepare your target system (make sure your user has full sudo permissions)
 
 ```console
 su -
-apt-get install git ansible sudo
+apt-get install git sudo ansible
 ```
 if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
 
@@ -22,18 +22,27 @@ Also make sure your packages are up to date before FWORCH installation using e.g
 
 possibly followed by a reboot.
 
+2) Getting Firewall Orchestrator
 
-2) get Firewall Orchestrator with the following command (as normal user)
+with the following command (as normal user)
+
 ```console
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
 
-3) Operating specific ansible adjustments
-  - Ubuntu 18.04, Debian 10: install latest ansible before firewall orchestrator installation:
+3) Ansible installation
 
-        cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
+Make sure you have ansible version 2.13 or above installed on your system (check with "ansible --version"). 
+If this is not the case, install a newer ansible. One possible way is to run the following script:
 
-4) install (on localhost)
+        cd firewall-orchestrator
+        source scripts/install-ansible-from-venv.sh
+
+Note that if your server is behind a proxy, you will have to set the proxy for pip as follows (to allow for ansible venv download):
+
+         pip config set global.proxy http://YOUR-PROXY-NAME:YOUR-PROXY-PORT
+
+4) Firewall Orchestrator installation
 
 ```console
 cd firewall-orchestrator; ansible-playbook site.yml -K
@@ -58,3 +67,8 @@ install-srv                 : ok=302  changed=171  unreachable=0    failed=0    
 Simply navigate to <https://localhost/> and login with user 'admin' and the UI admin password.
 
 The api hasura admin secret can be used to access the API at <https://localhost:9443/>.
+
+
+If using the python venv method, you may now exit venv with:
+
+        deactivate

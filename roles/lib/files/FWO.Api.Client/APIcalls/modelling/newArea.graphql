@@ -1,0 +1,16 @@
+mutation newArea(
+  $name: String
+  $idString: String
+  $creator: String
+  ) {
+  insert_modelling_nwgroup(objects: {
+    name: $name
+    id_string: $idString
+    creator: $creator
+    group_type: 23
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

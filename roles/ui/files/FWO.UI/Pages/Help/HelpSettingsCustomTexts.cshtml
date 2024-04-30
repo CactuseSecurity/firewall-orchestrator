@@ -1,0 +1,22 @@
+﻿@page "/help/settings/customtexts"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("customize_texts"))</h3>
+    @(Html.Raw(userConfig.GetText("H5701")))
+    <ul>
+        <li>@(userConfig.GetText("H5702"))</li>
+        <li>@(userConfig.GetText("H5703"))</li>
+        <li>@(userConfig.GetText("H5704"))</li>
+    </ul>
+</div>

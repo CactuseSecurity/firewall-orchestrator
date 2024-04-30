@@ -1,13 +1,13 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("add_comment") + ": " + ObjectName)" Show="@Display" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("add_comment") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -21,15 +21,15 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => {await Save(commentText); await Close();}">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => {await Save(commentText); await Close();}">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -56,19 +56,22 @@
     public Func<string, Task> Save { get; set; } = DefaultInit.DoNothing;
 
     private string commentText = "";
+    bool FirstTry = true;
 
 
     protected override void OnParametersSet()
     {
-        if(Display)
+        if(Display && FirstTry)
         {
             commentText = "";
+            FirstTry = false;
         }
     }
 
     private async Task Close()
     {
         await ResetParent();
+        FirstTry = true;
         Display = false;
     }
 }

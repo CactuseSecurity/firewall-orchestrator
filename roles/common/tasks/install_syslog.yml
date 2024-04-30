@@ -91,7 +91,7 @@
           compress
           maxage 7
           rotate 99
-          size=+4096k
+          maxsize 4096k
           missingok
           copytruncate
           sharedscripts
@@ -107,7 +107,7 @@
           compress
           maxage 7
           rotate 99
-          size=+4096k
+          maxsize 4096k
           missingok
           copytruncate
           sharedscripts
@@ -123,7 +123,7 @@
           compress
           maxage 7
           rotate 99
-          size=+4096k
+          maxsize 4096k
           missingok
           copytruncate
           sharedscripts
@@ -138,7 +138,21 @@
       {{ fworch_log_dir }}/database.log 
       {{ fworch_log_dir }}/ldap.log 
       {{ fworch_log_dir }}/api.log 
-      {{ fworch_log_dir }}/importer-api.log 
+      {{ fworch_log_dir }}/importer-api.log {
+          compress
+          maxage 7
+          rotate 99
+          maxsize 4096k
+          missingok
+          copytruncate
+          sharedscripts
+              prerotate
+                {{ fworch_home }}/scripts/acquire_lock.py {{ fworch_api_importer_lockfile }} >/dev/null 2>&1
+              endscript
+              postrotate
+                {{ fworch_home }}/scripts/release_lock.py {{ fworch_api_importer_lockfile }} >/dev/null 2>&1
+              endscript
+      }
       {{ fworch_log_dir }}/audit.log 
       {{ fworch_log_dir }}/alert.log 
       {{ fworch_log_dir }}/webhook.log 
@@ -146,7 +160,7 @@
           compress
           maxage 7
           rotate 99
-          size=+4096k
+          maxsize 4096k
           missingok
           copytruncate
       }

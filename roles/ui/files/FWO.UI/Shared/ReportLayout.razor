@@ -1,5 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @layout MainLayout
+@using FWO.GlobalConstants
+@using FWO.Api.Data
 
 <!--<Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" @bind-Width="sidebarLeftWidth">
     @SidebarLeftContent--> @* maybe not needed *@
@@ -22,6 +24,6 @@
     private RenderFragment? SidebarLeftContent { get; set; } @* maybe not needed *@
     private RenderFragment? SidebarRightContent { get; set; }
 
-    private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
-    private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
+    private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
+    private int sidebarRightWidth = GlobalConst.kSidebarRightWidth;
 }

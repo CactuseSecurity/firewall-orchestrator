@@ -1,5 +1,6 @@
 @using BlazorTable
 @using System.Net
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Middleware.Client
@@ -9,81 +10,103 @@
 @using RestSharp
 
 @page "/settings/users"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
 
-<h3>@(userConfig.GetText("users"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("users"))</h3>
+    <HelpLink Page="settings/users"/>
+</div>
 @(userConfig.GetText("U5213"))
 <hr />
 
-<div class="form-group row">
-    <button class="btn btn-success m-2" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
-    <AuthorizeView Roles="admin">
+<div class="btn-group m-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5261"))">
+    <button type="button" class="btn btn-sm btn-success" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
+    <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <button class="btn btn-info m-2" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
+            <button type="button" class="btn btn-sm btn-info" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
         </Authorized>
         <NotAuthorized>
-            <button class="btn btn-info m-2" disabled>@(userConfig.GetText("synchronize"))</button>
+            <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("synchronize"))</button>
         </NotAuthorized> 
     </AuthorizeView>
     @if (showSampleRemoveButton)
     {
-        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
     }
 </div>
 
-<div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
         <Column TableItem="UiUser" Title="@(userConfig.GetText("actions"))" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
+                <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5271"))">
+                    <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     @if(context.isInternal())
                     {
-                        <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
                     }
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                     @if(context.isInternal())
                     {
-                        <button class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">@(userConfig.GetText("reset_password"))</button>
+                        <button type="button" class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">@(userConfig.GetText("reset_password"))</button>
                     }
                 </div>
             </Template>
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true">
+            <Template>
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5279"))">
+                    @context.LdapConnection.Name
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true">
             <Template>
-                @(context.Tenant != null ? (context.Tenant.Id == 1 && context.LdapConnection.GlobalTenantName != null && context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5273"))">
+                    @(context.Tenant != null ? (context.Tenant.Id == GlobalConst.kTenant0Id && context.LdapConnection.GlobalTenantName != null && 
+                        context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
+                </div>
             </Template>       
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("email"))" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("language"))" Field="@(x => x.Language)" Sortable="true" Filterable="true" >
             <Template>
-                @((context.Language != null && context.Language != "") ? userConfig.GetText(context.Language) : "" )
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5275"))">
+                    @((context.Language != null && context.Language != "") ? userConfig.GetText(context.Language) : "" )
+                </div>
             </Template>
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("last_login"))" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("last_pw_change"))" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("last_pw_change"))" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" >
+            <Template>
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5277"))">
+                    @context.LastPasswordChange
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
             <Template>
-                @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5278"))">
+                    @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+                </div>
             </Template>
         </Column>
     </Table>
 </div>
 
-<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
             <form>
-                <div class="form-group row">
-                    <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5272"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -92,11 +115,11 @@
                     }
                     else
                     {
-                        <label class="m-2">@actUser.Name</label>
+                        <label class="col-sm-8">@actUser.Name</label>
                     }
                 </div>
-                <div class="form-group row">
-                    <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("into_ldap"))*:</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5280"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("into_ldap"))*:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -109,11 +132,11 @@
                     }
                     else
                     {
-                        <label class="m-2">@actUser.LdapConnection.Name</label>
+                        <label class="col-sm-8">@actUser.LdapConnection.Name</label>
                     }
                 </div>
-                <div class="form-group row">
-                    <label for="userTenant" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5273"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -126,30 +149,42 @@
                     }
                     else
                     {
-                        <label class="m-2">@(actUser.Tenant != null ? actUser.Tenant.Name : "")</label>
+                        <label class="col-sm-8">@(actUser.Tenant != null ? actUser.Tenant.Name : "")</label>
                     }
                 </div>
-                <div class="form-group row">
-                    <label for="userDn" class="col-sm-2 col-form-label col-form-label-sm">Dn:</label>
-                    <label class="m-2">@actUser.Dn</label>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">Dn:</label>
+                    <label class="col-sm-8">@actUser.Dn</label>
                 </div>
                 @if (AddMode)
                 {
-                    <div class="form-group row">
-                        <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
+                    <div class="form-group row mt-2">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
                         <div class="col-sm-8">
-                            <input id="userPassword" type="password" class="form-control form-control-sm" @bind="actUser.Password" />
+                            <input type="password" class="form-control form-control-sm" @bind="actUser.Password" />
                         </div>
                     </div>
                 }
-                <div class="form-group row">
-                    <label for="userEmail" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5281"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("firstname")):</label>
                     <div class="col-sm-8">
-                        <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Firstname" />
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="userGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5282"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("lastname")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Lastname" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5274"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Email" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -162,11 +197,11 @@
                     }
                     else
                     {
-                        <label class="m-2">@(actUser.Groups.Count > 0 ? actUser.Groups.First() : "")</label>
+                        <label class="col-sm-8">@(actUser.Groups.Count > 0 ? actUser.GroupList() : "")</label>
                     }
                 </div>
-                <div class="form-group row">
-                    <label for="userRole" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("roles"))*:</label>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("roles"))*:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -179,7 +214,7 @@
                     }
                     else
                     {
-                        <label class="m-2">@((actUser.Roles.Count > 0) ? actUser.Roles.First() : "")</label>
+                        <label class="col-sm-8">@((actUser.Roles.Count > 0) ? actUser.RoleList() : "")</label>
                     }
                 </div>
             </form>
@@ -187,29 +222,29 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Large="true" OnClose="() => ResetPasswordMode = false">
+<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Size=PopupSize.Large OnClose="() => ResetPasswordMode = false">
     <Body>
         @if (ResetPasswordMode)
         {
             <form onsubmit="return false">
                 <div class="form-group row">
                     <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                    <label class="m-2">@actUser.Name</label>
+                    <label class="col-sm-8">@actUser.Name</label>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
                     <div class="col-sm-8">
                         <input id="userPassword" type="password" class="form-control form-control-sm" @bind="actUser.Password" />
@@ -220,15 +255,15 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="() => ResetPassword()">@(userConfig.GetText("set"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ResetPassword()">@(userConfig.GetText("set"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("set"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("set"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -346,7 +381,7 @@
         await GetRolesFromInternalLdap();
         SynchronizeUsersToRoles();
 
-        availableRoles = roles.Where(x => (x.Name != "anonymous" && x.Name != "middleware-server")).OrderBy(x => x.Name).ToList();
+        availableRoles = roles.Where(x => (x.Name != Roles.Anonymous && x.Name != Roles.MiddlewareServer)).OrderBy(x => x.Name).ToList();
     }
 
     private void SynchronizeUsersToGroups()
@@ -355,7 +390,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Groups = new List<string>();
+                user.Groups = new ();
                 foreach (var group in groups)
                 {
                     if (group.Users != null && group.Users.Exists(x => x.Dn == user.Dn))
@@ -377,7 +412,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Roles = new List<string>();
+                user.Roles = new ();
                 foreach (var role in roles)
                 {
                     if (role.Users != null && role.Users.Exists(x => x.Dn == user.Dn))
@@ -421,6 +456,16 @@
                         relatedUiUser.Email = ldapUser.Email;
                         await updateUserInDb(relatedUiUser);
                     }
+                    if (relatedUiUser.Firstname != ldapUser.Firstname)
+                    {
+                        relatedUiUser.Firstname = ldapUser.Firstname;
+                        await updateUserInDb(relatedUiUser);
+                    }
+                    if (relatedUiUser.Lastname != ldapUser.Lastname)
+                    {
+                        relatedUiUser.Lastname = ldapUser.Lastname;
+                        await updateUserInDb(relatedUiUser);
+                    }
                 }
                 else
                 {
@@ -460,10 +505,12 @@
                         Dn = user.UserDn, 
                         Name = distname.UserName, 
                         Email = user.Email, 
+                        Firstname = user.Firstname, 
+                        Lastname = user.Lastname, 
                         PasswordMustBeChanged = false,
                         LdapConnection = internalLdap
                     };
-                    string tenantName = distname.getTenant(internalLdap.TenantLevel);
+                    string tenantName = distname.GetTenantNameViaLdapTenantLevel(internalLdap.TenantLevel);
                     if (tenantName != "")
                     {
                         newUser.Tenant = new Tenant(){ Name = tenantName };
@@ -513,9 +560,11 @@
             var Variables = new
             {
                 id = user.DbId,
-                email = user.Email
+                email = user.Email,
+                uiuser_first_name = user.Firstname,
+                uiuser_last_name = user.Lastname
             };
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserEmail, Variables);
+            await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserEmail, Variables);
         }
         catch (Exception exception)
         {
@@ -538,11 +587,13 @@
                 uuid = user.Dn,
                 uiuser_username = user.Name,
                 email = user.Email,
+                uiuser_first_name = user.Firstname,
+                uiuser_last_name = user.Lastname,
                 tenant = (user.Tenant != null ? user.Tenant.Id : (int?)null),
                 passwordMustBeChanged = user.PasswordMustBeChanged,
                 ldapConnectionId = user.LdapConnection.Id
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addUser, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
             if(returnIds != null)
             {
                 user.DbId = returnIds[0].NewId;
@@ -611,6 +662,9 @@
             AddMode = true;
             newUser = new UiUser(user);
             newUser.Password = "";
+            newUser.Firstname = user.Firstname;
+            newUser.Lastname = user.Lastname;
+            newUser.Email = user.Email;
             selectedLdap = (newUser.LdapConnection != null ? newUser.LdapConnection : writableLdaps.FirstOrDefault());
             SetAvailableTenants(selectedLdap);
             selectedTenant = newUser.Tenant;
@@ -633,7 +687,7 @@
         {
             actUser.LdapConnection = new UiLdapConnection();
         }
-        if (actUser.Tenant != null && actUser.Tenant.Id == 1 && actUser.LdapConnection.GlobalTenantName != null && actUser.LdapConnection.GlobalTenantName != "")
+        if (actUser.Tenant != null && actUser.Tenant.Id == GlobalConst.kTenant0Id && actUser.LdapConnection.GlobalTenantName != null && actUser.LdapConnection.GlobalTenantName != "")
         {
             actUser.Tenant.Name = actUser.LdapConnection.GlobalTenantName;
         }
@@ -648,7 +702,7 @@
             user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
             // todo: further dn specification maybe in ldapconnection?
             user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
-                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == 1 && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
+                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == GlobalConst.kTenant0Id && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
         }
         user.Groups = new List<string>();
         if(selectedGroup != null)
@@ -660,7 +714,7 @@
         if(selectedRole != null)
         {
             user.Roles.Add(selectedRole.Name);
-            if (selectedRole.Name == "auditor")
+            if (selectedRole.Name == Roles.Auditor)
             {
                 user.PasswordMustBeChanged = false;
             }
@@ -685,6 +739,8 @@
                     UserAddParameters parameters = new UserAddParameters
                     {
                         Email = actUser.Email, 
+                        Firstname = actUser.Firstname, 
+                        Lastname = actUser.Lastname, 
                         LdapId = actUser.LdapConnection.Id, 
                         Password = actUser.Password, 
                         UserDn = actUser.Dn,
@@ -709,7 +765,7 @@
             }
             else
             {
-                // Update existing user in ldap --> currently only email
+                // Update existing user in ldap --> currently only email; TODO: add first and last name
                 UserEditParameters parameters = new UserEditParameters {Email = actUser.Email, LdapId = actUser.LdapConnection.Id, UserId = actUser.DbId };
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)

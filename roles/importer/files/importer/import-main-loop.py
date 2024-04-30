@@ -8,10 +8,11 @@ import argparse
 import sys
 import time
 import json
+import threading
 import requests, warnings
 import fwo_api# common  # from current working dir
 from common import import_management
-from fwo_log import getFwoLogger
+from fwo_log import getFwoLogger, LogLock
 import fwo_globals, fwo_config
 from fwo_const import base_dir, importer_base_dir
 from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
@@ -21,12 +22,37 @@ from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFail
 class GracefulKiller:
     kill_now = False
 
+
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
+
     def exit_gracefully(self, *args):
         self.kill_now = True
+
+
+class LogLockerTask(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        self._stop_event = threading.Event()
+        # signal.signal(signal.SIGINT, self.exit_gracefully)
+        # signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+
+    def run(self):
+        while not self._stop_event.is_set():
+            threading.Thread(target = LogLock.handle_log_lock)
+            time.sleep(1)
+
+
+    def exit_gracefully(self, *args):
+        self.kill_now = True
+
+
+    def stop(self):
+        self._stop_event.set()
+        # self.kill_now = True
 
 
 if __name__ == '__main__':
@@ -44,6 +70,9 @@ if __name__ == '__main__':
                     help='If set all imports will be run without checking for changes before')
 
     args = parser.parse_args()
+
+    # logLockerTask = LogLockerTask()     # create logLocker
+    # logLockerTask.start()           # start Log locking
 
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 
@@ -144,7 +173,7 @@ if __name__ == '__main__':
                             except:
                                 logger.error("import-main-loop - error while getting FW management details for mgm_id=" + str(id) + " - skipping: " + str(traceback.format_exc()))
                                 skipping = True
-                            if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW
+                            if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
                                 logger.debug("import-main-loop: starting import of mgm_id=" + id)
                                 try:
                                     import_result = import_management(mgm_id=id, debug_level_in=debug_level, 
@@ -162,4 +191,7 @@ if __name__ == '__main__':
             time.sleep(1)
             counter += 1
 
+    # got break signal stopping background process for handling log locking
+    # logLockerTask.stop()
+    # logLockerTask.join()
     logger.info("importer-main-loop exited gracefully.")

@@ -48,8 +48,6 @@ def api_call(url, params = {}, headers = {}, json_payload = {}, auth_token = '',
             logger.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
                 json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
 
-        if show_progress:
-            print('.', end='', flush=True)
     return response.headers, body_json
 
 def login(user, password, api_host, api_port):

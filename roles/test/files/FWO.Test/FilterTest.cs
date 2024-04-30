@@ -2,13 +2,16 @@
 using FWO.Report.Filter.Ast;
 using FWO.Report.Filter.Exceptions;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 namespace FWO.Test
 {
     [TestFixture]
+    [Parallelizable]
     public class FilterTest
     {
         [SetUp]
@@ -18,6 +21,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void EmptySearch()
         {
             ReportTemplate t = new ReportTemplate();
@@ -27,6 +31,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void WhitespaceSearch()
         {
             ReportTemplate t = new ReportTemplate();
@@ -36,6 +41,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void TextOnlySearch()
         {
             ReportTemplate t = new ReportTemplate();
@@ -46,6 +52,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void AndOr()
         {
             ReportTemplate t = new ReportTemplate();
@@ -55,6 +62,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void TripleOr()
         {
             ReportTemplate t = new ReportTemplate();
@@ -64,6 +72,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void NotEquals()
         {
             ReportTemplate t = new ReportTemplate();
@@ -73,6 +82,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void ExactEquals()
         {
             ReportTemplate t = new ReportTemplate();
@@ -82,6 +92,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void ExactEquals2()
         {
             ReportTemplate t = new ReportTemplate();
@@ -91,6 +102,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void ExactEquals3()
         {
             try
@@ -103,11 +115,12 @@ namespace FWO.Test
             }
             catch (SyntaxException exception)
             {
-                Assert.AreEqual("No token but one was expected", exception.Message);
+                ClassicAssert.AreEqual("No token but one was expected", exception.Message);
             }
         }
 
         [Test]
+        [Parallelizable]
         public void Disabled()
         {
             ReportTemplate t = new ReportTemplate();
@@ -116,8 +129,8 @@ namespace FWO.Test
             var res = Compiler.Compile(t);
         }
 
-
         [Test]
+        [Parallelizable]
         public void Brackets()
         {
             ReportTemplate t = new ReportTemplate();
@@ -125,5 +138,6 @@ namespace FWO.Test
             t.ReportParams.ReportType = (int) ReportType.Rules;
             var res = Compiler.Compile(t);
         }
+
     }
 }

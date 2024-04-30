@@ -15,6 +15,7 @@ import fwo_globals
 import jsonpickle
 from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, ConfigFileNotFound, FwLoginFailed, ImportRecursionLimitReached
 from fwo_base import split_config
+import re
 
 
 #  import_management: import a single management (if no import for it is running)
@@ -71,7 +72,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
         logger.error("import_management - error while getting fw management details for mgm=" + str(mgm_id) )
         raise
     
-    if mgm_details['importDisabled']:
+    if mgm_details['importDisabled'] and not force:
         logger.info("import_management - import disabled for mgm " + str(mgm_id))
     else:
         Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
@@ -103,6 +104,14 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
         if clearManagementData:
             logger.info('this import run will reset the configuration of this management to "empty"')
         else:
+            # if the management name given is an URI, we will not connect to an API but simply read
+            # the native config from the URI
+            mgmNameMatchingUri = \
+                re.match('http://.+', mgm_details['hostname']) or \
+                re.match('https://.+', mgm_details['hostname']) or \
+                re.match('file://.+', mgm_details['hostname'])
+            if in_file is None and mgmNameMatchingUri:
+                in_file = mgm_details['hostname']
             if in_file is not None:    # read native config from file
                 full_config_json, error_count, change_count = \
                     read_fw_json_config_file(filename=in_file, error_string=error_string, error_count=error_count, \
@@ -118,8 +127,10 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
                 # also contains the conversion from native to config2import (parsing)
                 ### geting config from firewall manager ######################
                 config_changed_since_last_import, error_string, error_count, change_count = get_config_from_api(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
-                in_file=in_file, import_tmp_path=import_tmp_path, error_string=error_string, error_count=error_count, change_count=change_count, 
-                limit=limit, force=force)
+                    in_file=in_file, import_tmp_path=import_tmp_path, error_string=error_string, error_count=error_count, change_count=change_count, 
+                    limit=limit, force=force)
+                if (debug_level>8):  # dump full native config read from fw API
+                    logger.info(json.dumps(full_config_json, indent=2))
 
         time_get_config = int(time.time()) - start_time
         logger.debug("import_management - getting config total duration " + str(time_get_config) + "s")
@@ -147,7 +158,9 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
             # todo: if no objects found at all: at least throw a warning
 
             try: # get change count from db
-                change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
+                # change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
+                # temporarily only count rule changes until change report also includes other changes
+                change_count = fwo_api.count_rule_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
             except:
                 logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
                 raise
@@ -170,7 +183,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
         else: # if no changes were found, we skip everything else without errors
             pass
 
-        if (debug_level>8):
+        if (debug_level>7): # dump normalized config for debugging purposes
             logger.info(json.dumps(config2import, indent=2))
 
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
@@ -261,7 +274,8 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
     logger = getFwoLogger()
     fwo_config = readConfig(fwo_config_filename)
 
-    fwo_api.log_import_attempt(fwo_config['fwo_api_base_url'], jwt, mgm_details['id'], successful=not error_count)
+    success = (error_count==0)
+    log_result = fwo_api.log_import_attempt(fwo_config['fwo_api_base_url'], jwt, mgm_details['id'], successful=success)
 
     try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
         if fwo_api.delete_json_config_in_import_table(fwo_config['fwo_api_base_url'], jwt, {"importId": current_import_id})<0:
@@ -330,6 +344,8 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
                 r.raise_for_status()
                 config = json.loads(r.content)
             else:   # reading from local file
+                if 'file://' in filename:   # remove file uri identifier
+                    filename = filename[7:]
                 with open(filename, 'r') as json_file:
                     config = json.load(json_file)
     except requests.exceptions.RequestException:

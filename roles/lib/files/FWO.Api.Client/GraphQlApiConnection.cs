@@ -2,7 +2,6 @@
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
@@ -12,6 +11,7 @@ using System.Linq;
 using System.Net.WebSockets;
 using System.Net.Security;
 using Newtonsoft.Json.Linq;
+using FWO.Logging;
 
 namespace FWO.Api.Client
 {
@@ -23,6 +23,7 @@ namespace FWO.Api.Client
         private GraphQLHttpClient graphQlClient;
 
         private string? jwt;
+        private string prevRole = "";
 
         private void Initialize(string ApiServerUri)
         {
@@ -70,6 +71,39 @@ namespace FWO.Api.Client
         {
             graphQlClient.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
             graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
+        }
+
+        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        {
+            try
+            {
+                prevRole = graphQlClient.HttpClient.DefaultRequestHeaders.GetValues("x-hasura-role")?.First() ?? "";
+            }
+            catch(Exception){}
+
+            // first look if user is already in one of the target roles 
+            foreach(string role in targetRoleList)
+            {
+                if (user.IsInRole(role))
+                {
+                    SetRole(role);
+                    return;
+                }
+            }
+            // now look if user has a target role as allowed role
+            foreach(string role in targetRoleList)
+            {
+                if(user.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == role) != null)
+                {
+                    SetRole(role);
+                    return;
+                }
+            }
+        }
+
+        public override void SwitchBack()
+        {
+            SetRole(prevRole);
         }
 
         /// <summary>
@@ -141,17 +175,25 @@ namespace FWO.Api.Client
             }
         }
 
-        public override ApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, ApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
+        public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
         {
             try
             {
                 GraphQLRequest request = new GraphQLRequest(subscription, variables, operationName);
-                return new ApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                return new GraphQlApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
             }
             catch (Exception exception)
             {
                 Log.WriteError("API Connection", "Error while creating subscription to GraphQL API.", exception);
                 throw;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                graphQlClient.Dispose();
             }
         }
     }

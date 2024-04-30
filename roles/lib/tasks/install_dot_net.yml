@@ -6,8 +6,8 @@
     - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"    
       when: ansible_facts['distribution']|lower == 'ubuntu'
 
-    - set_fact: distribution_version="11"    
-      when: ansible_facts['distribution_release']|lower == 'bookworm'
+    - set_fact: distribution_version="{{ debian_testing_version }}"    
+      when: ansible_facts['distribution_release']|lower == debian_testing_release_name
 
     # for all distros except ubuntu >=22.04 we need to include a package source
     - block:
@@ -38,9 +38,9 @@
     #     path: /etc/apt/preferences
     #     create: true
     #     block: |
-    #       Package: *net*
+    #       Package: dotnet-* aspnetcore-* netstandard-*
     #       Pin: origin packages.microsoft.com
-    #       Pin-Priority: 1001
+    #       Pin-Priority: 999
     #   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
 
     # - name: make sure to use the ubuntu version of dotnet sdk on ubuntu >=22

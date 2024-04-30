@@ -1,6 +1,7 @@
-query getDevicesByManagement {
+query getDevicesByManagement($devIds:[Int!]) {
   management(
     where: {
+      devices:{dev_id:{_in:$devIds}}
       hide_in_gui: { _eq: false }
       stm_dev_typ: {
         dev_typ_is_multi_mgmt: { _eq: false }
@@ -13,6 +14,7 @@ query getDevicesByManagement {
     name: mgm_name
     devices(
       where: {
+        dev_id:{_in:$devIds}
         hide_in_gui: { _eq: false }
         stm_dev_typ: { is_pure_routing_device: { _eq: false } }
       }

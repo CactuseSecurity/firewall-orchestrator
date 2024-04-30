@@ -12,22 +12,23 @@ namespace FWO.Api.Data
         public long TicketId { get; set; }
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
-        public List<RequestReqElement> Elements { get; set; } = new List<RequestReqElement>();
+        public List<RequestReqElement> Elements { get; set; } = new ();
 
         [JsonProperty("implementation_tasks"), JsonPropertyName("implementation_tasks")]
-        public List<RequestImplTask> ImplementationTasks { get; set; } = new List<RequestImplTask>();
+        public List<RequestImplTask> ImplementationTasks { get; set; } = new ();
 
         [JsonProperty("request_approvals"), JsonPropertyName("request_approvals")]
-        public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
+        public List<RequestApproval> Approvals { get; set; } = new ();
 
         [JsonProperty("owners"), JsonPropertyName("owners")]
-        public List<FwoOwnerDataHelper> Owners { get; set; } = new List<FwoOwnerDataHelper>();
+        public List<FwoOwnerDataHelper> Owners { get; set; } = new ();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
+        public List<RequestCommentDataHelper> Comments { get; set; } = new ();
 
-        public List<RequestReqElement> RemovedElements { get; set; } = new List<RequestReqElement>();
-
+        public List<RequestReqElement> RemovedElements { get; set; } = new ();
+        public List<FwoOwner> NewOwners { get; set; } = new ();
+        public List<FwoOwner> RemovedOwners { get; set; } = new ();
 
         public RequestReqTask()
         { }
@@ -42,11 +43,13 @@ namespace FWO.Api.Data
             Owners = reqtask.Owners;
             Comments = reqtask.Comments;
             RemovedElements = reqtask.RemovedElements;
+            NewOwners = reqtask.NewOwners;
+            RemovedOwners = reqtask.RemovedOwners;
         }
 
         public string OwnerList()
         {
-            List<string> ownerNames = new List<string>();
+            List<string> ownerNames = new ();
             foreach(var owner in Owners)
             {
                 ownerNames.Add(owner.Owner.Name);
@@ -67,9 +70,9 @@ namespace FWO.Api.Data
             return highestNumber;
         }
 
-        public List<NwObjectElement> getNwObjectElements(ElemFieldType field)
+        public List<NwObjectElement> GetNwObjectElements(ElemFieldType field)
         {
-            List<NwObjectElement> elements = new List<NwObjectElement>();
+            List<NwObjectElement> elements = new ();
             foreach(var reqElem in Elements)
             {
                 if (reqElem.Field == field.ToString())
@@ -86,9 +89,9 @@ namespace FWO.Api.Data
             return elements;
         }
 
-        public List<NwServiceElement> getServiceElements()
+        public List<NwServiceElement> GetServiceElements()
         {
-            List<NwServiceElement> elements = new List<NwServiceElement>();
+            List<NwServiceElement> elements = new ();
             foreach(var reqElem in Elements)
             {
                 if (reqElem.Field == ElemFieldType.service.ToString())
@@ -106,9 +109,9 @@ namespace FWO.Api.Data
             return elements;
         }
 
-        public List<NwRuleElement> getRuleElements()
+        public List<NwRuleElement> GetRuleElements()
         {
-            List<NwRuleElement> elements = new List<NwRuleElement>();
+            List<NwRuleElement> elements = new ();
             foreach(var reqElem in Elements)
             {
                 if (reqElem.Field == ElemFieldType.rule.ToString())
@@ -124,7 +127,7 @@ namespace FWO.Api.Data
             return elements;
         }
 
-        public string getAllComments()
+        public string GetAllComments()
         {
             string allComments = "";
             foreach(var comment in Comments)
@@ -136,7 +139,7 @@ namespace FWO.Api.Data
             return allComments;
         }
 
-        public int getRuleDeviceId()
+        public int GetRuleDeviceId()
         {
             foreach(var reqElem in Elements)
             {

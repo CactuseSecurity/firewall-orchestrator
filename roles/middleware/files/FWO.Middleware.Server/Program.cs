@@ -8,11 +8,18 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 
+// Implicitly call static constructor so background lock process is started
+// (static constructor is only called after class is used in any way)
+Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
+
 object changesLock = new object(); // LOCK
 
 ReportScheduler reportScheduler;
 AutoDiscoverScheduler autoDiscoverScheduler;
 DailyCheckScheduler dailyCheckScheduler;
+ImportAppDataScheduler importAppDataScheduler;
+ImportSubnetDataScheduler importSubnetDataScheduler;
+ImportChangeNotifyScheduler importChangeNotifyScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
@@ -42,8 +49,8 @@ while (true)
 }
 
 Action<Exception> handleSubscriptionException = (Exception exception) => Log.WriteError("Subscription", "Subscription lead to exception.", exception);
-ApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
-ApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
+GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
+GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
 Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
 // Create and start report scheduler
@@ -63,6 +70,25 @@ Task.Factory.StartNew(async() =>
 {
     dailyCheckScheduler = await DailyCheckScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
+
+// Create and start import app data scheduler
+Task.Factory.StartNew(async() =>
+{
+    importAppDataScheduler = await ImportAppDataScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start import subnet data scheduler
+Task.Factory.StartNew(async() =>
+{
+    importSubnetDataScheduler = await ImportSubnetDataScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start import change notify scheduler
+Task.Factory.StartNew(async() =>
+{
+    importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
 
 // Add services to the container.
 builder.Services.AddControllers()

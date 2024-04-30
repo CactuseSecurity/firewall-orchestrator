@@ -7,14 +7,14 @@ name: Build
 
 on:
   push:
-    branches: [ main,develop ]
+    branches: [ main, develop ]
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
 
   pull_request:
-    types: [ ready_for_review review_requested ]
-    branches: [ main,develop ]
+    types: [ ready_for_review, review_requested ]
+    branches: [ main, develop ]
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
@@ -36,12 +36,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes --skip-tags test site.yml -K
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes site.yml -K
+#      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes --skip-tags test site.yml -K
 
-  test_ubuntu_22:
-    name: test build on  ubuntu_22
-    runs-on: ubuntu-22.04
-    steps:
-    - uses: actions/checkout@v3
-    - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes --skip-tags test site.yml -K
+  # test_ubuntu_22:
+  #   name: test build on  ubuntu_22
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - name: do test install in case of merged pull request
+  #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes site.yml -K
+      # run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes --skip-tags test site.yml -K

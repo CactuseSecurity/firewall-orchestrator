@@ -128,10 +128,8 @@ BEGIN
 END;
 $BODY$
 LANGUAGE plpgsql
-VOLATILE
-COST 100;
+VOLATILE;
 ALTER FUNCTION public.import_config_from_json () OWNER TO fworch;
-
 
 DROP TRIGGER IF EXISTS import_config_insert ON import_config CASCADE;
 
@@ -139,8 +137,6 @@ CREATE TRIGGER import_config_insert
     BEFORE INSERT ON import_config
     FOR EACH ROW
     EXECUTE PROCEDURE import_config_from_json ();
-
-
 
 -------------------------
 -- recert refresh trigger
@@ -190,8 +186,7 @@ execute procedure refresh_view_rule_with_owner();
 -- END;
 -- $BODY$
 -- LANGUAGE plpgsql
--- VOLATILE
--- COST 100;
+-- VOLATILE;
 -- ALTER FUNCTION public.owner_change_triggered () OWNER TO fworch;
 
 
@@ -214,8 +209,7 @@ execute procedure refresh_view_rule_with_owner();
 -- END;
 -- $BODY$
 -- LANGUAGE plpgsql
--- VOLATILE
--- COST 100;
+-- VOLATILE;
 -- ALTER FUNCTION public.owner_network_change_triggered () OWNER TO fworch;
 
 -- DROP TRIGGER IF EXISTS owner_network_change ON owner_network CASCADE;

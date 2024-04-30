@@ -12,6 +12,7 @@ query getAllObjectDetails (
       hide_in_gui: { _eq: false }
       mgm_id: { _in: $management_id }
       stm_dev_typ:{
+        dev_typ_is_multi_mgmt: { _eq: false }
         is_pure_routing_device:{_eq:false}
       }
     }

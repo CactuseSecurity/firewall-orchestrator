@@ -1692,6 +1692,10 @@ INSERT INTO txt VALUES ('group_action',         'German', 	'Gruppenaktion');
 INSERT INTO txt VALUES ('group_action',         'English', 	'Group Action');
 INSERT INTO txt VALUES ('email',                'German', 	'Email');
 INSERT INTO txt VALUES ('email',                'English', 	'Email');
+INSERT INTO txt VALUES ('firstname',            'German', 	'Vorname');
+INSERT INTO txt VALUES ('firstname',            'English', 	'First name');
+INSERT INTO txt VALUES ('lastname',             'German', 	'Nachname');
+INSERT INTO txt VALUES ('lastname',             'English', 	'Last name');
 INSERT INTO txt VALUES ('last_login',           'German', 	'Letzte Anmeldung');
 INSERT INTO txt VALUES ('last_login',           'English', 	'Last Login');
 INSERT INTO txt VALUES ('last_pw_change',       'German', 	'Letzte Passwort&auml;nderung');
@@ -4019,6 +4023,10 @@ INSERT INTO txt VALUES ('H5279', 'German',  'Von LDAP: Ldap, in dem der Nutzer a
 INSERT INTO txt VALUES ('H5279', 'English', 'From LDAP: Ldap, where the user is registered. This can be the internal as well as an external Ldap as defined in the <a href="/help/settings/ldap">Ldap Settings</a>.');
 INSERT INTO txt VALUES ('H5280', 'German',  'In LDAP: Ldap, in dem der Nutzer angelegt werden soll. Angeboten werden sowohl das interne, als auch alle in den <a href="/help/settings/ldap">Ldap-Einstellungen</a> definierten externen Ldaps, in denen Schreibrechte bestehen.');
 INSERT INTO txt VALUES ('H5280', 'English', 'Into LDAP: Ldap, where the user should be registered. Offered are the internal as well as all external Ldaps as defined in the <a href="/help/settings/ldap">Ldap Settings</a>, where write permissions are given.');
+INSERT INTO txt VALUES ('H5281', 'German',  'Vorname: Vorname des Benutzers.');
+INSERT INTO txt VALUES ('H5281', 'English', 'First name: The user''s given name.');
+INSERT INTO txt VALUES ('H5282', 'German',  'Nachname: Nachname des Benutzers.');
+INSERT INTO txt VALUES ('H5282', 'English', 'Surname: The user''s surname.');
 INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren. Dabei besteht die M&ouml;glichkeit, sie gleich einer Rolle zuzuordnen.
     Weitere Rollenzuordnungen k&ouml;nnen dann unter <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
 ');

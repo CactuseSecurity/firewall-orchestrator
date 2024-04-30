@@ -376,7 +376,7 @@
     {
         try
         {
-            var Variables = new { tenantId = 1, deviceId = deviceId };
+            var Variables = new { tenantId = GlobalConst.kTenant0Id, deviceId = deviceId };
             await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addDeviceToTenant, Variables);
         }
         catch (System.Exception exception)

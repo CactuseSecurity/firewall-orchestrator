@@ -6,6 +6,7 @@ using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Logging;
 using FWO.Mail;
+using FWO.Encryption;
 using FWO.Middleware.RequestParameters;
 using FWO.Report;
 using FWO.Report.Filter;
@@ -43,10 +44,20 @@ namespace FWO.Middleware.Server
             try
             {
                 await InitEnv();
-                EmailConnection emailConnection = new (globalConfig.EmailServerAddress, globalConfig.EmailPort,
-                    globalConfig.EmailTls, globalConfig.EmailUser, globalConfig.EmailPassword, globalConfig.EmailSenderAddress);
-                MailKitMailer mailer = new (emailConnection);
-                JwtWriter jwtWriter = new (ConfigFile.JwtPrivateKey);
+                string decryptedSecret = "";
+                try
+                {
+                    string mainKey = AesEnc.GetMainKey();
+                    decryptedSecret = AesEnc.Decrypt(globalConfig.EmailPassword, mainKey);
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError("CheckRecertifications", $"Could not decrypt mailserver password.", exception);				
+                }
+                EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
+                    globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
+                MailKitMailer mailer = new(emailConnection);
+                JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                 ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
 
                 foreach(var owner in owners)

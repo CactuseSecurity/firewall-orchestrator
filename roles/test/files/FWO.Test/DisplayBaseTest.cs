@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using FWO.GlobalConstants;
 using FWO.Api.Data;
 
@@ -32,38 +33,38 @@ namespace FWO.Test
         [Test]
         public void TestGetNetmask()
         {
-            Assert.AreEqual("", DisplayBase.GetNetmask(ip1));
-            Assert.AreEqual("32", DisplayBase.GetNetmask(ip2));
-            Assert.AreEqual("24", DisplayBase.GetNetmask(ip5));
-            Assert.AreEqual("", DisplayBase.GetNetmask(ip11));
-            Assert.AreEqual("111", DisplayBase.GetNetmask(ip13));
+            ClassicAssert.AreEqual("", DisplayBase.GetNetmask(ip1));
+            ClassicAssert.AreEqual("32", DisplayBase.GetNetmask(ip2));
+            ClassicAssert.AreEqual("24", DisplayBase.GetNetmask(ip5));
+            ClassicAssert.AreEqual("", DisplayBase.GetNetmask(ip11));
+            ClassicAssert.AreEqual("111", DisplayBase.GetNetmask(ip13));
         }
 
         [Test]
         public void TestAutoDetectType()
         {
-            Assert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip1, ip1));
-            Assert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip1, ip2));
-            Assert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip2, ip3));
-            Assert.AreEqual(ObjectType.IPRange, DisplayBase.AutoDetectType(ip2, ip4));
-            Assert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip5, ip5));
-            // Assert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip6, ip7)); // should detect this?
-            Assert.AreEqual(ObjectType.IPRange, DisplayBase.AutoDetectType(ip6, ip7));
+            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip1, ip1));
+            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip1, ip2));
+            ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip2, ip3));
+            ClassicAssert.AreEqual(ObjectType.IPRange, DisplayBase.AutoDetectType(ip2, ip4));
+            ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip5, ip5));
+            // ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip6, ip7)); // should detect this?
+            ClassicAssert.AreEqual(ObjectType.IPRange, DisplayBase.AutoDetectType(ip6, ip7));
 
-            Assert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip11, ip11));
-            Assert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip11, ip12));
-            Assert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip13, ip13));
+            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip11, ip11));
+            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip11, ip12));
+            ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip13, ip13));
         }
 
         [Test]
         public void TestDisplayService()
         {
-            Assert.AreEqual("Serv1 (1000/TCP)", DisplayBase.DisplayService(serv1, false).ToString());
-            Assert.AreEqual("Serv2 (1000-2000/UDP)", DisplayBase.DisplayService(serv2, false).ToString());
-            Assert.AreEqual("Serv3 (ESP)", DisplayBase.DisplayService(serv3, false).ToString());
-            Assert.AreEqual("NewName (1000/TCP)", DisplayBase.DisplayService(serv1, false, "NewName").ToString());
-            Assert.AreEqual("1000-2000/UDP", DisplayBase.DisplayService(serv2, true).ToString());
-            Assert.AreEqual("ESP", DisplayBase.DisplayService(serv3, true).ToString());
+            ClassicAssert.AreEqual("Serv1 (1000/TCP)", DisplayBase.DisplayService(serv1, false).ToString());
+            ClassicAssert.AreEqual("Serv2 (1000-2000/UDP)", DisplayBase.DisplayService(serv2, false).ToString());
+            ClassicAssert.AreEqual("Serv3 (ESP)", DisplayBase.DisplayService(serv3, false).ToString());
+            ClassicAssert.AreEqual("NewName (1000/TCP)", DisplayBase.DisplayService(serv1, false, "NewName").ToString());
+            ClassicAssert.AreEqual("1000-2000/UDP", DisplayBase.DisplayService(serv2, true).ToString());
+            ClassicAssert.AreEqual("ESP", DisplayBase.DisplayService(serv3, true).ToString());
         }
     }
 }

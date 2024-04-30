@@ -2,6 +2,7 @@
 using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -109,10 +110,10 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         public void CorrectConfigFile()
         {
             CreateAndReadConfigFile(0, correctConfigFile);
-            Assert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
-            Assert.AreEqual("http://127.0.0.1:8880/", ConfigFile.MiddlewareServerUri);
-            Assert.AreEqual("https://127.0.0.1:9443/api/v1/graphqlo/", ConfigFile.ApiServerUri);
-            Assert.AreEqual("500", ConfigFile.ProductVersion);
+            ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
+            ClassicAssert.AreEqual("http://127.0.0.1:8880/", ConfigFile.MiddlewareServerUri);
+            ClassicAssert.AreEqual("https://127.0.0.1:9443/api/v1/graphqlo/", ConfigFile.ApiServerUri);
+            ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
         }
 
         [Test]
@@ -125,24 +126,24 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         public void MissingValueConfigFile()
         {
             CreateAndReadConfigFile(2, missingValueConfigFile);
-            Assert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
+            ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
             Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.MiddlewareServerUri; });
             Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.ApiServerUri; });
-            Assert.AreEqual("500", ConfigFile.ProductVersion);
+            ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
         }
 
         [Test]
         public void CorrectPublicKey()
         {
             CreateAndReadConfigFile(3, correctConfigFile, "", correctPublicKey);
-            Assert.AreEqual(KeyImporter.ExtractKeyFromPem(correctPublicKey, isPrivateKey: false)!.KeyId, ConfigFile.JwtPublicKey.KeyId);
+            ClassicAssert.AreEqual(KeyImporter.ExtractKeyFromPem(correctPublicKey, isPrivateKey: false)!.KeyId, ConfigFile.JwtPublicKey.KeyId);
         }
 
         [Test]
         public void CorrectPrivateKey()
         {
             CreateAndReadConfigFile(4, correctConfigFile, correctPrivateKey, "");
-            Assert.AreEqual(KeyImporter.ExtractKeyFromPem(correctPrivateKey, isPrivateKey: true)!.KeyId, ConfigFile.JwtPrivateKey.KeyId);
+            ClassicAssert.AreEqual(KeyImporter.ExtractKeyFromPem(correctPrivateKey, isPrivateKey: true)!.KeyId, ConfigFile.JwtPrivateKey.KeyId);
         }
 
         [Test]

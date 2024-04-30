@@ -4,6 +4,7 @@
 @using FWO.Config.Api.Data
 @using System
 @using FWO.Mail
+@using FWO.Encryption
 
 @page "/settings/email"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -147,6 +148,20 @@
                 }
                 if (actEmailConnection.Password != null)
                 {
+                    string mainKey = AesEnc.GetMainKey();
+                    string encryptedSecret = actEmailConnection.Password;
+
+                    // only encrypt secret if it was not already encrypted
+                    try
+                    {
+                        string decryptedSecret = AesEnc.Decrypt(actEmailConnection.Password, mainKey);
+                    }
+                    catch (Exception)
+                    {
+                        encryptedSecret = AesEnc.Encrypt(actEmailConnection.Password, mainKey);
+                        actEmailConnection.Password = encryptedSecret;
+                    }
+
                     editableConfig.EmailPassword = actEmailConnection.Password;
                 }
                 else
@@ -195,7 +210,14 @@
     {
         try
         {
-            MailKitMailer mailer = new (actEmailConnection);
+            // decrypt password if set
+            string encryptedPassword = "";
+            if (actEmailConnection.Password != null)
+            {
+                encryptedPassword = actEmailConnection.Password;
+                actEmailConnection.Password = AesEnc.Decrypt(actEmailConnection.Password, AesEnc.GetMainKey());
+            }
+            MailKitMailer mailer = new(actEmailConnection);
             if (userConfig.User.Email == null || userConfig.User.Email  == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("E8101"), true);
@@ -212,6 +234,11 @@
                 {
                     DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), "could not send message", true);
                 }
+            }
+            // if password was set, re-assign the enrypted password
+            if (actEmailConnection.Password != null)
+            {
+                actEmailConnection.Password = encryptedPassword;
             }
         }
         catch (System.Exception exception)

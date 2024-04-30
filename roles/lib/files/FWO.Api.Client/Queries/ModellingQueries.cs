@@ -73,6 +73,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteService;
 
         public static readonly string getServiceGroupsForApp;
+        public static readonly string getServiceGroupById;
         public static readonly string getGlobalServiceGroups;
         public static readonly string newServiceGroup;
         public static readonly string updateServiceGroup;
@@ -160,6 +161,7 @@ namespace FWO.Api.Client.Queries
                 deleteService = File.ReadAllText(QueryPath + "modelling/deleteService.graphql");
 
                 getServiceGroupsForApp = serviceDetailsFragment + serviceGroupDetailsFragment + File.ReadAllText(QueryPath + "modelling/getServiceGroupsForApp.graphql");
+                getServiceGroupById = serviceDetailsFragment + serviceGroupDetailsFragment + File.ReadAllText(QueryPath + "modelling/getServiceGroupById.graphql");
                 getGlobalServiceGroups = serviceDetailsFragment + serviceGroupDetailsFragment + File.ReadAllText(QueryPath + "modelling/getGlobalServiceGroups.graphql");
                 newServiceGroup = File.ReadAllText(QueryPath + "modelling/newServiceGroup.graphql");
                 updateServiceGroup = File.ReadAllText(QueryPath + "modelling/updateServiceGroup.graphql");

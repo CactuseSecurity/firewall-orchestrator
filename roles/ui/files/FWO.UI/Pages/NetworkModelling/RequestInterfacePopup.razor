@@ -71,7 +71,7 @@
     public FwoOwner RequestingOwner { get; set; } = new ();
 
     [Parameter]
-    public Func<Task> UpdateParent { get; set; } = DefaultInit.DoNothing;
+    public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
 
     private FwoOwner SelectedOwner { get; set; } = new ();
     private bool AsSource { get; set; } = false;
@@ -102,7 +102,7 @@
                 if(ticketId > 0)
                 {
                     ModellingConnectionHandler ConnHandler = new (apiConnection, userConfig, SelectedOwner, 
-                        new(), new(), true, false, DisplayMessageInUi, false);
+                        new(), new(), true, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
                     await ConnHandler.PartialInit();
                     ConnHandler.RequesterId = RequestingOwner.Id;
                     long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
@@ -112,7 +112,7 @@
                     await ticketCreator.SetInterfaceId(ticketId, connId, SelectedOwner);
                     apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller });
                 }
-                await UpdateParent();
+                await RefreshParent();
                 Close();
             }
         }

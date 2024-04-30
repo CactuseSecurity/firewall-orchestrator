@@ -1,5 +1,4 @@
-﻿using FWO.GlobalConstants;
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
 
 namespace FWO.Report
 {
@@ -80,21 +79,40 @@ namespace FWO.Report
                 List<NetworkObject> objList = new();
                 GetObjectsFromAR(conn.SourceAppRoles, ref objList, resolved);
                 GetObjectsFromAR(conn.DestinationAppRoles, ref objList, resolved);
+                GetObjectsFromNwGroups(conn.SourceNwGroups, ref objList, resolved);
+                GetObjectsFromNwGroups(conn.DestinationNwGroups, ref objList, resolved);
                 allObjects = allObjects.Union(objList).ToList();
             }
             allObjects = allObjects.Union(Array.ConvertAll(GetAllAppServers().ToArray(), x => ModellingAppServer.ToNetworkObject(x)).ToList()).ToList();
             return allObjects;
         }
 
-        private void GetObjectsFromAR(List<ModellingAppRoleWrapper> appRoles, ref List<NetworkObject> objectList, bool resolved = false)
+        private static void GetObjectsFromNwGroups(List<ModellingNwGroupWrapper> nwGroups, ref List<NetworkObject> objectList, bool resolved = false)
         {
-            foreach (var objGrp in appRoles.Where(a => a.Content.Id != DummyARid))
+            foreach (var nwGrpWrapper in nwGroups)
             {
-                objectList.Add(objGrp.Content.ToNetworkObjectGroup());
+                objectList.Add(nwGrpWrapper.Content.ToNetworkObjectGroup());
                 if(resolved)
                 {
-                    NetworkObject objectGroup = objGrp.Content.ToNetworkObjectGroup();
-                    foreach(var obj in objectGroup.ObjectGroups)
+                    foreach(var obj in nwGrpWrapper.Content.ToNetworkObjectGroup().ObjectGroups)
+                    {
+                        if(obj.Object != null)
+                        {
+                            objectList.Add(obj.Object);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void GetObjectsFromAR(List<ModellingAppRoleWrapper> appRoles, ref List<NetworkObject> objectList, bool resolved = false)
+        {
+            foreach (var aRWrapper in appRoles.Where(a => a.Content.Id != DummyARid))
+            {
+                objectList.Add(aRWrapper.Content.ToNetworkObjectGroup());
+                if(resolved)
+                {
+                    foreach(var obj in aRWrapper.Content.ToNetworkObjectGroup().ObjectGroups)
                     {
                         if(obj.Object != null)
                         {

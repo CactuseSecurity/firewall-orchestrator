@@ -11,6 +11,16 @@ namespace FWO.Api.Data
         [JsonProperty("is_deleted"), JsonPropertyName("is_deleted")]
         public bool IsDeleted { get; set; }
 
+
+        public ModellingNwObject()
+        {}
+
+        public ModellingNwObject(ModellingNwObject nwObject) : base(nwObject)
+        {
+            Id = nwObject.Id;
+            IsDeleted = nwObject.IsDeleted;
+        }
+
         public override string Display()
         {
             return (IsDeleted ? "!" : "") + Name;

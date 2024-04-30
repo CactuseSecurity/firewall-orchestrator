@@ -49,12 +49,11 @@
                 {
                     if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
                     {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => 
-                            {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value));
-                            ConnHandlerChanged.InvokeAsync(ConnHandler);}">@(ConnHandler.DisplayButton("edit", Icons.Edit))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => 
+                            {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
+                            @(ConnHandler.DisplayButton("edit", Icons.Edit))</button>
                         <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
-                            {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value));
-                            selectedNwElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                            {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
                             @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
                     }
                 }
@@ -63,9 +62,8 @@
                     ModellingNwGroup? nwGroup = ResolveNwGroupObject(selectedNwElems[0].Value);
                     if(nwGroup != null && !nwGroup.IsDeleted && ConnHandler.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == nwGroup.Id) == null)
                     {
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
-                            {ConnHandler.RequestRemoveNwGrpObject(nwGroup);
-                            selectedNwElems = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                            {ConnHandler.RequestRemoveNwGrpObject(nwGroup); await ResetNw();}">
                             @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
                     }
                 }
@@ -103,20 +101,17 @@
                     {
                         if(ResolveSvcGrp(selectedSvcElems[0].Value)?.IsGlobal ?? true)
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="() =>
-                                {ConnHandler.DisplayServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value));
-                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
+                                {ConnHandler.DisplayServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value)); await ResetSvc();}">
                                 @(ConnHandler.DisplayButton("display_service_group", Icons.Display))</button>
                         }
                         else
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
-                                {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value));
-                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
+                                {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value)); await ResetSvc();}">
                                 @(ConnHandler.DisplayButton("edit_service_group", Icons.Edit))</button>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
-                                {await ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedSvcElems[0].Value));
-                                selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                {await ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedSvcElems[0].Value)); await ResetSvc();}">
                                 @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
                         }
                     }
@@ -124,13 +119,11 @@
                     {
                         if(!(ResolveSvc(selectedSvcElems[0].Value)?.IsGlobal ?? true))
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
-                                {ConnHandler.EditService(ResolveSvc(selectedSvcElems[0].Value));
-                                ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
+                                {ConnHandler.EditService(ResolveSvc(selectedSvcElems[0].Value)); await ResetSvc();}">
                                 @(ConnHandler.DisplayButton("edit_service", Icons.Edit))</button>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
-                                {await ConnHandler.RequestDeleteService(ResolveSvc(selectedSvcElems[0].Value));
-                                selectedSvcElems = new(); await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                {await ConnHandler.RequestDeleteService(ResolveSvc(selectedSvcElems[0].Value)); await ResetSvc();}">
                                 @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
                         }
                     }
@@ -149,8 +142,7 @@
                 <div class="col-sm-2">
                     @if(selectedInterfaces.Count > 0)
                     {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
-                            {ConnHandler.InterfaceToConn(selectedInterfaces[0]); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {InterfaceToConn(selectedInterfaces[0]);}">
                             @(ConnHandler.DisplayButton("use", Icons.Use))</button>
                     }
                 </div>
@@ -160,31 +152,28 @@
                     @(ConnHandler.DisplayButton("search", Icons.Search))</button>
                 @if(selectedInterfaces.Count == 1)
                 {
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => 
-                        {ConnHandler.RequestRemovePreselectedInterface(selectedInterfaces[0]);
-                        selectedInterfaces = new(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                        {ConnHandler.RequestRemovePreselectedInterface(selectedInterfaces[0]); await ResetInt();}">
                         @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
-                        {await ConnHandler.DisplaySelectedInterface(selectedInterfaces[0]);
-                        await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                        {await ConnHandler.DisplaySelectedInterface(selectedInterfaces[0]); await ResetInt();}">
                         @(ConnHandler.DisplayButton("display_interface", Icons.Display))</button>
                 }
                 <button type="button" class="btn btn-sm btn-dark" @onclick="async () =>
-                    {await RequestNewInterface();
-                    await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                    {await RequestNewInterface(); await ResetInt();}">
                     @(ConnHandler.DisplayButton("request_interface", Icons.Workflow))</button>
             </div>
             <br>
         }
     </div>
 </Sidebar>
-<EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
+<EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" RefreshParent="async () => await WrapAsync(ConnHandler.ReInit)"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteAppRole)"
     Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
 <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteServiceGroup)"
     Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
-<EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler"/>
+<EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" RefreshParent="async () => await WrapAsync(ConnHandler.ReInit)"/>
 <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteService)"
     Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
 <SearchInterface @bind-Display="SearchInterfaceMode" @bind-PreselectedInterfaces="ConnHandler.PreselectedInterfaces" SelectAction="InterfaceToConn"
@@ -196,7 +185,7 @@
 <ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
     Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
 <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
-<RequestInterfacePopup @bind-Display="SelectAppMode" Apps="ConnHandler.AllApps" RequestingOwner="ConnHandler.Application" UpdateParent="async () => await WrapAsync(ConnHandler.RefreshPreselectedInterfaces)"/>
+<RequestInterfacePopup @bind-Display="SelectAppMode" Apps="ConnHandler.AllApps" RequestingOwner="ConnHandler.Application" RefreshParent="async () => await WrapAsync(ConnHandler.RefreshPreselectedInterfaces)"/>
 
 
 @code
@@ -524,6 +513,24 @@
     private async Task DataInconsistent()
     {
 
+    }
+
+    private async Task ResetNw()
+    {
+        selectedNwElems = new();
+        await ConnHandlerChanged.InvokeAsync(ConnHandler);
+    }
+
+    private async Task ResetSvc()
+    {
+        selectedSvcElems = new();
+        await ConnHandlerChanged.InvokeAsync(ConnHandler);
+    }
+
+    private async Task ResetInt()
+    {
+        selectedInterfaces = new();
+        await ConnHandlerChanged.InvokeAsync(ConnHandler);
     }
 
     private async Task WrapAsync(Func<Task> calledFunc)

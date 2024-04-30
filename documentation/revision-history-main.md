@@ -370,3 +370,11 @@ adding report template format fk and permissions
 - Database security: all credentials in the database are now encrypted - breaking change (for developer debugging only): add the following local file when using -e testkeys=true:
   /etc/fworch/secrets/main_key with content "not4production..not4production.."
 - Importer fix: remove log locking from importer due to stalling importer stops
+
+# 8.2 - 30.04.2024 MAIN
+- new workflow: interface request
+  - adding all imported modelling users to local db (uiuser) - to enable email notification
+- upgrade to dotnet 8.0
+- encrypt emailPassword in config
+- fixes:
+  - demo managements (change import from deactivated to activated - does not affect test managements)

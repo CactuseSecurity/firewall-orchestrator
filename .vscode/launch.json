@@ -101,7 +101,7 @@
             "name": "py-customize-FWO-sample",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/scripts/customizing/customizeFwoSampleScript.py",
+            "program": "${workspaceFolder}/scripts/customizing/customizing.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"

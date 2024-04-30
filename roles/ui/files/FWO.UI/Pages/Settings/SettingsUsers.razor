@@ -1,5 +1,6 @@
 @using BlazorTable
 @using System.Net
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Middleware.Client
@@ -9,81 +10,103 @@
 @using RestSharp
 
 @page "/settings/users"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
 
-<h3>@(userConfig.GetText("users"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("users"))</h3>
+    <HelpLink Page="settings/users"/>
+</div>
 @(userConfig.GetText("U5213"))
 <hr />
 
-<div class="form-group row">
-    <button class="btn btn-success m-2" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
-    <AuthorizeView Roles="admin">
+<div class="btn-group m-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5261"))">
+    <button type="button" class="btn btn-sm btn-success" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
+    <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <button class="btn btn-info m-2" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
+            <button type="button" class="btn btn-sm btn-info" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
         </Authorized>
         <NotAuthorized>
-            <button class="btn btn-info m-2" disabled>@(userConfig.GetText("synchronize"))</button>
+            <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("synchronize"))</button>
         </NotAuthorized> 
     </AuthorizeView>
     @if (showSampleRemoveButton)
     {
-        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
     }
 </div>
 
-<div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
         <Column TableItem="UiUser" Title="@(userConfig.GetText("actions"))" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
+                <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5271"))">
+                    <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     @if(context.isInternal())
                     {
-                        <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
                     }
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                     @if(context.isInternal())
                     {
-                        <button class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">@(userConfig.GetText("reset_password"))</button>
+                        <button type="button" class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">@(userConfig.GetText("reset_password"))</button>
                     }
                 </div>
             </Template>
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true">
+            <Template>
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5279"))">
+                    @context.LdapConnection.Name
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true">
             <Template>
-                @(context.Tenant != null ? (context.Tenant.Id == 1 && context.LdapConnection.GlobalTenantName != null && context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5273"))">
+                    @(context.Tenant != null ? (context.Tenant.Id == GlobalConst.kTenant0Id && context.LdapConnection.GlobalTenantName != null && 
+                        context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
+                </div>
             </Template>       
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("email"))" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("language"))" Field="@(x => x.Language)" Sortable="true" Filterable="true" >
             <Template>
-                @((context.Language != null && context.Language != "") ? userConfig.GetText(context.Language) : "" )
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5275"))">
+                    @((context.Language != null && context.Language != "") ? userConfig.GetText(context.Language) : "" )
+                </div>
             </Template>
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("last_login"))" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("last_pw_change"))" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("last_pw_change"))" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" >
+            <Template>
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5277"))">
+                    @context.LastPasswordChange
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
             <Template>
-                @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+                <div data-toggle="tooltip" title="@(userConfig.PureLine("H5278"))">
+                    @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+                </div>
             </Template>
         </Column>
     </Table>
 </div>
 
-<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
             <form>
-                <div class="form-group row">
-                    <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5272"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -92,100 +115,106 @@
                     }
                     else
                     {
-                        <label class="m-2">@actUser.Name</label>
+                        <label class="col-sm-8">@actUser.Name</label>
                     }
                 </div>
-                <div class="form-group row">
-                    <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("into_ldap"))*:</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5280"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("into_ldap"))*:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="ldapUser" class="form-control-sm col-sm" @bind="selectedLdapId" @oninput="(EventArgs) => {selectedLdapId = Convert.ToInt32(EventArgs.Value?.ToString()); SetAvailableTenants();}">
-                                @foreach (UiLdapConnection ldap in writableLdaps)
-                                {
-                                    <option value="@ldap.Id">@(ldap.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" SelectedElement="selectedLdap" Elements="writableLdaps" SelectedElementChanged="SetAvailableTenants">
+                                <ElementTemplate Context="ldap">
+                                    @ldap.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
                     {
-                        <label class="m-2">@actUser.LdapConnection.Name</label>
+                        <label class="col-sm-8">@actUser.LdapConnection.Name</label>
                     }
                 </div>
-                <div class="form-group row">
-                    <label for="userTenant" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5273"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="userTenant" class="form-control-sm col-sm" @bind="selectedTenantId">
-                                @foreach (Tenant tenant in availableTenants)
-                                {
-                                    <option value="@tenant.Id">@(tenant.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="availableTenants">
+                                <ElementTemplate Context="tenant">
+                                    @tenant.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
                     {
-                        <label class="m-2">@(actUser.Tenant != null ? actUser.Tenant.Name : "")</label>
+                        <label class="col-sm-8">@(actUser.Tenant != null ? actUser.Tenant.Name : "")</label>
                     }
                 </div>
-                <div class="form-group row">
-                    <label for="userDn" class="col-sm-2 col-form-label col-form-label-sm">Dn:</label>
-                    <label class="m-2">@actUser.Dn</label>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">Dn:</label>
+                    <label class="col-sm-8">@actUser.Dn</label>
                 </div>
                 @if (AddMode)
                 {
-                    <div class="form-group row">
-                        <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
+                    <div class="form-group row mt-2">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
                         <div class="col-sm-8">
-                            <input id="userPassword" type="password" class="form-control form-control-sm" @bind="actUser.Password" />
+                            <input type="password" class="form-control form-control-sm" @bind="actUser.Password" />
                         </div>
                     </div>
                 }
-                <div class="form-group row">
-                    <label for="userEmail" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5281"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("firstname")):</label>
                     <div class="col-sm-8">
-                        <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Firstname" />
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="userGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5282"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("lastname")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Lastname" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5274"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Email" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="userGroup" class="form-control-sm col-sm" @bind="selectedGroupName">
-                                <option value="null">@(userConfig.GetText("none"))</option>
-                                @foreach (UserGroup group in groups)
-                                {
-                                    <option value="@group.Name">@(group.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="UserGroup" ElementToString="@(g => g.Name)" @bind-SelectedElement="selectedGroup" Elements="groups.OrderBy(x => x.Name).ToList()" Nullable="true">
+                                <ElementTemplate Context="group">
+                                    @group.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
                     {
-                        <label class="m-2">@(actUser.Groups.Count > 0 ? actUser.Groups.First() : "")</label>
+                        <label class="col-sm-8">@(actUser.Groups.Count > 0 ? actUser.GroupList() : "")</label>
                     }
                 </div>
-                <div class="form-group row">
-                    <label for="userRole" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("roles")):</label>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("roles"))*:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="userRole" class="form-control-sm col-sm" @bind="selectedRoleName">
-                                <option value="null">@(userConfig.GetText("none"))</option>
-                                @foreach (Role role in availableRoles)
-                                {
-                                    <option value="@role.Name">@(role.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="availableRoles" Nullable="true">
+                                <ElementTemplate Context="role">
+                                    @role.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
                     {
-                        <label class="m-2">@((actUser.Roles.Count > 0) ? actUser.Roles.First() : "")</label>
+                        <label class="col-sm-8">@((actUser.Roles.Count > 0) ? actUser.RoleList() : "")</label>
                     }
                 </div>
             </form>
@@ -193,51 +222,29 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_user"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete()">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Large="true" OnClose="() => ResetPasswordMode = false">
+<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Size=PopupSize.Large OnClose="() => ResetPasswordMode = false">
     <Body>
         @if (ResetPasswordMode)
         {
             <form onsubmit="return false">
                 <div class="form-group row">
                     <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                    <label class="m-2">@actUser.Name</label>
+                    <label class="col-sm-8">@actUser.Name</label>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
                     <div class="col-sm-8">
                         <input id="userPassword" type="password" class="form-control form-control-sm" @bind="actUser.Password" />
@@ -248,59 +255,28 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="() => ResetPassword()">@(userConfig.GetText("set"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ResetPassword()">@(userConfig.GetText("set"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("set"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("set"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@SampleRemoveMode" OnClose="() => SampleRemoveMode = false">
-    <Body>
-        @if (SampleRemoveMode)
-        {
-            <p>@(sampleRemoveMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            @if (SampleRemoveAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("remove"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_user")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
+<InProgress Display="workInProgress"/>
 
-<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
-    <Body>
-        @if (workInProgress)
-        {
-            <div class="row">
-                <div class="spinner-border mx-auto align-self-center" role="status"></div>
-            </div>
-        }
-    </Body>
-</PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiLdapConnection> writableLdaps = new List<UiLdapConnection>();
@@ -318,17 +294,17 @@
     private bool EditMode = false;
     private bool DeleteMode = false;
     private bool SampleRemoveMode = false;
-    private bool SampleRemoveAllowed = false;
+    private bool sampleRemoveAllowed = false;
     private bool AddMode = false;
     private bool showSampleRemoveButton = false;
     private bool ResetPasswordMode = false;
 
     private UiUser newUser = new UiUser();
     private UiUser actUser = new UiUser();
-    private int? selectedLdapId {get; set;} = 0;
-    private int? selectedTenantId = 0;
-    private string? selectedRoleName = "";
-    private string? selectedGroupName = "";
+    private UiLdapConnection? selectedLdap;
+    private Tenant? selectedTenant;
+    private Role? selectedRole;
+    private UserGroup? selectedGroup;
 
     private string deleteMessage = "";
     private string sampleRemoveMessage = "";
@@ -355,7 +331,7 @@
             RestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_users_local"), userConfig.GetText("E5209"), true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_users_local"), userConfig.GetText("E5209"), true);
             }
             else
             {
@@ -370,20 +346,29 @@
                         user.Tenant.Name = tenants.FirstOrDefault(x => x.Id == user.Tenant.Id)?.Name ?? throw new ArgumentNullException(nameof(user.Tenant.Id));
                     }
                     uiUsers.Add(user);
-                    if (user.Name.EndsWith("_demo"))
-                    {
-                        sampleUsers.Add(user);
-                    }
                 }
+                AnalyseSampleUsers();
             }
-            showSampleRemoveButton = (sampleUsers.Count > 0);
             return true;
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             return false;
         }
+    }
+
+    private void AnalyseSampleUsers()
+    {
+        sampleUsers = new List<UiUser>();
+        foreach (var user in uiUsers)
+        {
+            if (user.Name.EndsWith("_demo"))
+            {
+                sampleUsers.Add(user);
+            }
+        }
+        showSampleRemoveButton = (sampleUsers.Count > 0);
     }
 
     private async Task SynchronizeGroupsAndRoles()
@@ -396,7 +381,7 @@
         await GetRolesFromInternalLdap();
         SynchronizeUsersToRoles();
 
-        availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
+        availableRoles = roles.Where(x => (x.Name != Roles.Anonymous && x.Name != Roles.MiddlewareServer)).OrderBy(x => x.Name).ToList();
     }
 
     private void SynchronizeUsersToGroups()
@@ -405,7 +390,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Groups = new List<string>();
+                user.Groups = new ();
                 foreach (var group in groups)
                 {
                     if (group.Users != null && group.Users.Exists(x => x.Dn == user.Dn))
@@ -417,7 +402,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("sync_users"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -427,7 +412,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Roles = new List<string>();
+                user.Roles = new ();
                 foreach (var role in roles)
                 {
                     if (role.Users != null && role.Users.Exists(x => x.Dn == user.Dn))
@@ -439,7 +424,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("sync_users"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -471,6 +456,16 @@
                         relatedUiUser.Email = ldapUser.Email;
                         await updateUserInDb(relatedUiUser);
                     }
+                    if (relatedUiUser.Firstname != ldapUser.Firstname)
+                    {
+                        relatedUiUser.Firstname = ldapUser.Firstname;
+                        await updateUserInDb(relatedUiUser);
+                    }
+                    if (relatedUiUser.Lastname != ldapUser.Lastname)
+                    {
+                        relatedUiUser.Lastname = ldapUser.Lastname;
+                        await updateUserInDb(relatedUiUser);
+                    }
                 }
                 else
                 {
@@ -483,7 +478,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("sync_users"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -498,7 +493,7 @@
             RestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
+                DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
             }
             else
             {
@@ -510,10 +505,12 @@
                         Dn = user.UserDn, 
                         Name = distname.UserName, 
                         Email = user.Email, 
+                        Firstname = user.Firstname, 
+                        Lastname = user.Lastname, 
                         PasswordMustBeChanged = false,
                         LdapConnection = internalLdap
                     };
-                    string tenantName = distname.getTenant(internalLdap.TenantLevel);
+                    string tenantName = distname.GetTenantNameViaLdapTenantLevel(internalLdap.TenantLevel);
                     if (tenantName != "")
                     {
                         newUser.Tenant = new Tenant(){ Name = tenantName };
@@ -524,7 +521,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_users_ldap"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_ldap"), "", true);
         }
     }
 
@@ -532,11 +529,11 @@
     {
         try
         {
-            groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!);
+            groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi);
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_groups"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), "", true);
         }
     }
 
@@ -547,12 +544,12 @@
             roles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
             if (roles.Count == 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_roles"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
         }
     }
 
@@ -563,13 +560,15 @@
             var Variables = new
             {
                 id = user.DbId,
-                email = user.Email
+                email = user.Email,
+                uiuser_first_name = user.Firstname,
+                uiuser_last_name = user.Lastname
             };
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserEmail, Variables);
+            await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserEmail, Variables);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("update_user_local"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("update_user_local"), "", false);
         }
     }
 
@@ -588,11 +587,13 @@
                 uuid = user.Dn,
                 uiuser_username = user.Name,
                 email = user.Email,
+                uiuser_first_name = user.Firstname,
+                uiuser_last_name = user.Lastname,
                 tenant = (user.Tenant != null ? user.Tenant.Id : (int?)null),
                 passwordMustBeChanged = user.PasswordMustBeChanged,
                 ldapConnectionId = user.LdapConnection.Id
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addUser, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
             if(returnIds != null)
             {
                 user.DbId = returnIds[0].NewId;
@@ -600,15 +601,15 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_user_local"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_local"), "", false);
         }
     }
 
-    private void SetAvailableTenants()
+    private void SetAvailableTenants(UiLdapConnection? newLdap)
     {
         try
         {
-            UiLdapConnection? selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == selectedLdapId);
+            selectedLdap = newLdap;
             availableTenants = new List<Tenant>();
             if(selectedLdap != null)
             {
@@ -622,10 +623,14 @@
                     availableTenants = tenants;
                 }
             }
+            if(selectedTenant != null && !availableTenants.Contains(selectedTenant) && availableTenants.Count > 0)
+            {
+                selectedTenant = availableTenants.First();
+            }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("get_tenant_data"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), "", false);
         }
     }
 
@@ -635,18 +640,18 @@
         {
             AddMode = true;
             newUser = new UiUser(){ Email = "" };
-            selectedLdapId = writableLdaps.FirstOrDefault()?.Id;
-            SetAvailableTenants();
-            selectedTenantId = availableTenants.FirstOrDefault()?.Id;
-            selectedGroupName = null;
+            selectedLdap = writableLdaps.FirstOrDefault();
+            SetAvailableTenants(selectedLdap);
+            selectedTenant = availableTenants.FirstOrDefault();
+            selectedGroup = null;
             newUser.Groups = new List<string>();
-            selectedRoleName = null;
+            selectedRole = null;
             newUser.Roles = new List<string>();
             Edit(newUser);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_user"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user"), "", false);
         }
     }
 
@@ -657,18 +662,21 @@
             AddMode = true;
             newUser = new UiUser(user);
             newUser.Password = "";
-            selectedLdapId = (newUser.LdapConnection != null ? newUser.LdapConnection.Id : writableLdaps.FirstOrDefault()?.Id);
-            SetAvailableTenants();
-            selectedTenantId = newUser.Tenant?.Id;
-            selectedGroupName = (newUser.Groups != null ? newUser.Groups.FirstOrDefault() : null);
+            newUser.Firstname = user.Firstname;
+            newUser.Lastname = user.Lastname;
+            newUser.Email = user.Email;
+            selectedLdap = (newUser.LdapConnection != null ? newUser.LdapConnection : writableLdaps.FirstOrDefault());
+            SetAvailableTenants(selectedLdap);
+            selectedTenant = newUser.Tenant;
+            selectedGroup = (newUser.Groups != null ? groups.FirstOrDefault(x => x.Name == newUser.Groups.FirstOrDefault()) : null);
             newUser.Groups = new List<string>();
-            selectedRoleName = newUser.Roles.FirstOrDefault();
+            selectedRole = (newUser.Roles != null ? roles.FirstOrDefault(x => x.Name == newUser.Roles.FirstOrDefault()) : null);
             newUser.Roles = new List<string>();
             Edit(newUser);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_user"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user"), "", false);
         }
     }
 
@@ -679,7 +687,7 @@
         {
             actUser.LdapConnection = new UiLdapConnection();
         }
-        if (actUser.Tenant != null && actUser.Tenant.Id == 1 && actUser.LdapConnection.GlobalTenantName != null && actUser.LdapConnection.GlobalTenantName != "")
+        if (actUser.Tenant != null && actUser.Tenant.Id == GlobalConst.kTenant0Id && actUser.LdapConnection.GlobalTenantName != null && actUser.LdapConnection.GlobalTenantName != "")
         {
             actUser.Tenant.Name = actUser.LdapConnection.GlobalTenantName;
         }
@@ -688,24 +696,25 @@
 
     private void SynchronizeUserData(UiUser user)
     {
-        UiLdapConnection selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == selectedLdapId) ?? throw new Exception($"Ldap not found. Id: {selectedLdapId}");
-        user.LdapConnection = selectedLdap;
-        Tenant selectedTenant = tenants.FirstOrDefault(x => x.Id == selectedTenantId) ?? throw new Exception($"Tenant not found. Id: {selectedTenantId}");
-        user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
-        // todo: further dn specification maybe in ldapconnection?
-        user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
-            (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant.Id == 1 && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant.Name) : "") + "," + selectedLdap.UserSearchPath;
-        user.Groups = new List<string>();
-        if(selectedGroupName != null)
+        if(selectedLdap != null)
         {
-            user.Groups.Add(selectedGroupName);
+            user.LdapConnection = selectedLdap;
+            user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
+            // todo: further dn specification maybe in ldapconnection?
+            user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
+                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == GlobalConst.kTenant0Id && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
+        }
+        user.Groups = new List<string>();
+        if(selectedGroup != null)
+        {
+            user.Groups.Add(selectedGroup.Name);
         }
         user.PasswordMustBeChanged = true;
         user.Roles = new List<string>();
-        if(selectedRoleName != null)
+        if(selectedRole != null)
         {
-            user.Roles.Add(selectedRoleName);
-            if (selectedRoleName == "auditor")
+            user.Roles.Add(selectedRole.Name);
+            if (selectedRole.Name == Roles.Auditor)
             {
                 user.PasswordMustBeChanged = false;
             }
@@ -718,7 +727,7 @@
         {
             if (actUser.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("U0001"), true);
             }
             if (AddMode)
             {
@@ -730,6 +739,8 @@
                     UserAddParameters parameters = new UserAddParameters
                     {
                         Email = actUser.Email, 
+                        Firstname = actUser.Firstname, 
+                        Lastname = actUser.Lastname, 
                         LdapId = actUser.LdapConnection.Id, 
                         Password = actUser.Password, 
                         UserDn = actUser.Dn,
@@ -739,7 +750,7 @@
                     RestResponse<int> middlewareServerResponse = await middlewareClient.AddUser(parameters);
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
                     }
                     else
                     {
@@ -754,12 +765,12 @@
             }
             else
             {
-                // Update existing user in ldap --> currently only email
+                // Update existing user in ldap --> currently only email; TODO: add first and last name
                 UserEditParameters parameters = new UserEditParameters {Email = actUser.Email, LdapId = actUser.LdapConnection.Id, UserId = actUser.DbId };
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
                 }
                 else
                 {
@@ -767,34 +778,35 @@
                     EditMode = false;
                 }
             }
+            AnalyseSampleUsers();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_user"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_user"), "", true);
         }
     }
 
     private bool CheckValues()
     {
         string errorMsg;
-        if (actUser.Name == null || actUser.Name == "" || actUser.Password == null || actUser.Password == "")
+        if (actUser.Name == null || actUser.Name == "" || actUser.Password == null || actUser.Password == "" || actUser.Roles.Count == 0)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
             return false;
         }
         if (!PasswordPolicy.CheckPolicy(actUser.Password, globalConfig, userConfig, out errorMsg))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_user"), errorMsg, true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
             return false;
         }
         if (actUser.LdapConnection.TenantLevel > 0 && (actUser.Tenant == null || !tenants.Exists(x => x.Name == actUser.Tenant.Name)))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
             return false;
         }
         if (uiUsers.Exists(x => x.Dn == actUser.Dn))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
             return false;
         }
         return true;
@@ -813,14 +825,14 @@
                     RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
                     if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
                     }
                 }
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("assign_user_to_group"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("assign_user_to_group"), "", true);
         }
     }
 
@@ -837,14 +849,14 @@
                     RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
                     if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
                     }
                 }
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
         }
     }
 
@@ -855,7 +867,7 @@
             actUser = user;
             if (actUser.Dn == userConfig.User.Dn)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5215"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5215"), true);
             }
             else
             {
@@ -869,7 +881,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_user"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
         }
     }
 
@@ -886,7 +898,7 @@
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
             }
             else
             {
@@ -896,8 +908,9 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_user"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
         }
+        StateHasChanged();
     }
 
     private async Task CleanUpUser(UiUser user)
@@ -913,7 +926,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_user_local"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user_local"), "", false);
         }
     }
 
@@ -921,7 +934,7 @@
     {
         if(!(new DistName(user.Dn)).IsInternal())
         {
-            DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5217"), true);
+            DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5217"), true);
         }
         else
         {
@@ -938,11 +951,11 @@
             string errorMsg = "";
             if (actUser.Password == null || actUser.Password == "")
             {
-                DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
+                DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
             }
             else if (!PasswordPolicy.CheckPolicy(actUser.Password, globalConfig, userConfig, out errorMsg))
             {
-                DisplayMessageInUi!(null, userConfig.GetText("reset_password"), errorMsg, true);
+                DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
             }
             else
             {
@@ -955,7 +968,7 @@
                 RestResponse<string> middlewareServerResponse = await middlewareClient.SetPassword(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);
                 }
                 else
                 {
@@ -965,7 +978,7 @@
                     }
                     if(errorMsg != "")
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("reset_password"), errorMsg, true);
+                        DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
                     }
                 }
                 ResetPasswordMode = false;
@@ -973,7 +986,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("reset_password"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("reset_password"), "", true);
         }
     }
 
@@ -982,12 +995,12 @@
         if (sampleUsers.Exists(user => user.DbId == userConfig.User.DbId))
         {
             sampleRemoveMessage = userConfig.GetText("E5220");
-            SampleRemoveAllowed = false;
+            sampleRemoveAllowed = false;
         }
         else
         {
             sampleRemoveMessage = userConfig.GetText("U5203");
-            SampleRemoveAllowed = true;
+            sampleRemoveAllowed = true;
         }
         SampleRemoveMode = true;
     }
@@ -1005,7 +1018,7 @@
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromAllEntries(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);
                     showSampleRemoveButton = true;
                 }
                 else
@@ -1016,10 +1029,11 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
+                DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
             }
         }
-        workInProgress = false; 
+        workInProgress = false;
+        StateHasChanged();
     }
 
     private void Cancel()

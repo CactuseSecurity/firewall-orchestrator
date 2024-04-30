@@ -1,44 +1,16 @@
 # this playbook sets up some sample devices with configs to play around with
 
-- name: create import sample user and copy configs
-  include_tasks: setup-sample-import.yml
-  when: "installation_mode=='new' or sample_role_purpose is match('test')"
+- name: create demo credentials
+  include_tasks: create-demo-credentials.yml
+  when: add_demo_data|bool and (installation_mode=='new' or sample_role_purpose is match('test'))
 
-- name: install package postgresql-client for adding sample devices to db
-  package:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - postgresql-client
-    - cron
-  become: yes
-
-- name: add localhost hostkey to known_hosts
-  known_hosts:
-    name: localhost
-    key: "{{ lookup('pipe', 'ssh-keyscan localhost') }}"
-  become: yes
-  become_user: "{{ fworch_user }}"
+- name: create test credentials
+  include_tasks: create-test-credentials.yml
+  when: installation_mode=='new' or sample_role_purpose is match('test')
 
 - name: create sample devices in database
   include_tasks: create-devices.yml
   when: installation_mode=='new' or sample_role_purpose is match('test')
-
-- name: scan and add ssh keys to known_hosts automatically to avoid ssh connections issues for sample imports
-  known_hosts:
-    name: "{{ item }}"
-    key: "{{ lookup('pipe', 'ssh-keyscan -H ' + item) }}"
-  become: yes
-  become_user: "{{ fworch_user }}"
-  loop:
-    - "127.0.0.1"
-    - "localhost"
-    - "{{ sample_hostname }}"
-    - "{{ importer_hostname }}"
-
-- name: establish cron job to simulate changes to configs (only demo and new installation)
-  include_tasks: setup-config-changes.yml
-  when: installation_mode=='new' and sample_role_purpose is not match('test')
 
 - name: add second ldap database
   include_tasks: add_second_ldap_db.yml

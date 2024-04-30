@@ -3,7 +3,7 @@
 @implements IDisposable
 @code {
     [Parameter]
-    public TabSet? TabSet { get; set; }
+    public FWO.Ui.Shared.TabSet TabSet { get; set; } = default!;
 
     protected override void OnInitialized()
     {
@@ -21,7 +21,7 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 
-    private async void OnLocationChanged(object sender, LocationChangedEventArgs e)
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         await ScrollToFragment(GetIdFromURI());
     }

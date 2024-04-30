@@ -1,5 +1,5 @@
 ### general settings
-product_version: "6.1.2"
+product_version: "8.1.2"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -31,6 +31,7 @@ force_install: false
 user_id: 60320
 fworch_user: "{{ product_name }}"
 fworch_group: "{{ fworch_user }}"
+postgres_group: "postgres"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
 fworch_conf_dir: "{{ fworch_home }}/etc"
@@ -40,6 +41,7 @@ fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 # setting default proxy (may be overwritten via --extra-vars)
 http_proxy: "{{ lookup('env','http_proxy') }}"
 https_proxy: "{{ lookup('env','https_proxy') }}"
+no_proxy: "{{ lookup('env','no_proxy') }}"
 proxy_exceptions: "{{ lookup('env','no_proxy') }}"
 proxy_env:
         http_proxy: "{{ http_proxy }}"
@@ -53,6 +55,10 @@ http_proxy_import_parameter: ""
 # use the following syntax for authenticated proxy access:
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
+# OS 
+debian_testing_version: "12"
+  # should actually be 13 but microsoft does not yet provide https://packages.microsoft.com/config/debian/13
+debian_testing_release_name: trixie
 arch: x86_64
 redhat_major_version: "8"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
@@ -98,11 +104,12 @@ middleware_internal_port: 8880
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 ui_admin_testonly_password: "fworch.1"
+importer_password_file: "{{ fworch_secrets_dir }}/importer_pwd"
 importer_password_file_on_installer: etc/importer.pwd
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
-dotnet_version: "6.0"
+dotnet_version: "8.0"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
 debug_level: "1"
@@ -123,11 +130,17 @@ fworch_log_dir: "/var/log/{{ product_name }}"
 fworch_log_lock_dir: "/var/{{ product_name }}/lock"
 fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"
 fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"
+fworch_api_importer_lockfile: "{{ fworch_log_lock_dir }}/importer_api_log.lock"
 
 ### apache: both package and dir name (needed both on ui and api hosts):
 webserver_package_name: apache2
 http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 wsgi_package_name: libapache2-mod-wsgi
+
+############# wkhtmltopdf #########################
+
+wkhtmltopdf_version: "0.12.6.1-3"
+
 
 ################# testing #########################
 fworchtest_user: "{{ product_name }}test"

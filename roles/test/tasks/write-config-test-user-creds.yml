@@ -10,4 +10,4 @@
     content: "{{ config_json | to_nice_json }}" 
     dest: "{{ fworch_secrets_dir }}/TestUserCreds.json"
   when: installation_mode != "uninstall"
-  become: yes
+  become: true

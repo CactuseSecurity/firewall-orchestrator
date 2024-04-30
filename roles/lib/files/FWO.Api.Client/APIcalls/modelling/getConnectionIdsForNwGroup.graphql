@@ -1,0 +1,5 @@
+query getConnectionIdsForNwGroup ($id: bigint!){
+  modelling_nwgroup_connection (where: { nwgroup_id: { _eq: $id } }){
+    connection_id
+  }
+}

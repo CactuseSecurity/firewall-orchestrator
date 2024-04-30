@@ -12,7 +12,7 @@ namespace FWO.Api.Data
         public long TaskId { get; set; }
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
+        public List<RequestCommentDataHelper> Comments { get; set; } = new ();
 
 
         public RequestApproval()
@@ -25,7 +25,7 @@ namespace FWO.Api.Data
             Comments = approval.Comments;
         }
 
-        public string getAllComments()
+        public string GetAllComments()
         {
             string allComments = "";
             foreach(var comment in Comments)

@@ -1,4 +1,5 @@
 ﻿@using BlazorTable
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
@@ -6,41 +7,43 @@
 @using FWO.Middleware.Client
 
 @page "/settings/managements"
-@attribute [Authorize(Roles = "admin, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("managements"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("managements"))</h3>
+    <HelpLink Page="settings/managements"/>
+</div>
 @(userConfig.GetText("U5111"))
 <hr />
 
-<div class="form-group row">
-    <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_management"))</button>
+<div class="btn-group m-1">
+    <button type="button" class="btn btn-sm btn-success" @onclick="Add">@(userConfig.GetText("add_new_management"))</button>
     @if (showCleanupButton)
     {
-        <AuthorizeView Roles="admin, auditor">
+        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
             <Authorized>
-                <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
             </Authorized>
         </AuthorizeView>
     }
 </div>
 
-<div class="d-flex flex-column m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
+<div class="d-flex flex-column m-2 vheight75" data-toggle="tooltip" title="@(userConfig.PureLine("H5101"))">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
         <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
-                    @* <AuthorizeView Roles="admin, auditor, fw-admin" Context="ctx"> *@
-                    <AuthorizeView Roles="admin, auditor" Context="ctx">
+                    <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="ctx">
                         <Authorized>
-                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                             @if (context.DeviceType.CanBeSupermanager() || context.DeviceType.CanBeAutodiscovered(context))
                             {
-                                <button class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
                             }
                         </Authorized>
                     </AuthorizeView>
@@ -95,55 +98,51 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("edit_management"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_management"))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
             <form>
                 <div class="form-group row">
-                    <label for="managementId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                     <label class="col-sm-8">@actManagement.Id</label>
                 </div>
-                <div class="form-group row">
-                    <label for="managementName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5111"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
-                        <input id="managementName" type="text" class="form-control form-control-sm" @bind="actManagement.Name" />
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.Name" />
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="managementComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5112"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
                         <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("comment")) @bind="actManagement.Comment"></textarea>   
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="managementDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5113"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
                     <div class="col-sm-8">
-                        <select id="managementDevType" class="form-control form-control-sm" @bind="actManagement.DeviceType">
-                            @foreach (DeviceType devType in deviceTypes)
-                            {
-                                @if (devType.IsManagement) 
-                                {
-                                    <option value="@devType">@(devType.NameVersion())</option>
-                                }
-                            }
-                        </select>
+                        <Dropdown ElementType="DeviceType" ElementToString="@(d => d.NameVersion())" @bind-SelectedElement="actManagement.DeviceType" Elements="deviceTypes.Where(d => d.IsManagement)">
+                            <ElementTemplate Context="devType">
+                                @devType.NameVersion()
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                 </div>
                 @if (!actManagement.DeviceType.IsDummyRouter())
                 {
                     @if (actManagement.DeviceType.Name == "Azure")
                     {
-                        <div class="form-group row">
-                            <label for="managementSubscriptionId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_sub_id")):</label>
+                        <div class="form-group row mt-2">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_sub_id")):</label>
                             <div class="col-sm-8">
-                                <input id="managementSubscriptionId" type="text" class="form-control form-control-sm" @bind="actManagement.CloudSubscriptionId" />
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.CloudSubscriptionId" />
                             </div>
                         </div>
-                        <div class="form-group row">
-                            <label for="managementCloudTenantId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_tenant_id")):</label>
+                        <div class="form-group row mt-2">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_tenant_id")):</label>
                             <div class="col-sm-8">
-                                <input id="managementCloudTenantId" type="text" class="form-control form-control-sm" @bind="actManagement.CloudTenantId" />
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.CloudTenantId" />
                             </div>
                         </div>
                         // not really used just hard-coded for displaying in table:
@@ -152,79 +151,76 @@
                     }
                     else
                     {
-                        <div class="form-group row">
-                            <label for="managementHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5114"))">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
                             <div class="col-sm-8">
-                                <input id="managementHostname" type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
                             </div>
                         </div>
-                        <div class="form-group row">
-                            <label for="managementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5115"))">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
                             <div class="col-sm-2">
-                                <input id="managementPort" type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
                             </div>
                         </div>
                     }
-                    <div class="form-group row">
-                        <label for="managementCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5116"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
                         <div class="col-sm-8">
-                            <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredential.Id">
-                                @foreach (ImportCredential cred in credentials)
-                                {
-                                    <option value="@cred.Id">@(cred.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
+                                <ElementTemplate Context="cred">
+                                    @cred.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                 }
                 @if (actManagement.DeviceType.CanHaveDomain())
                 {
-                    <div class="form-group row">
-                        <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("config_path"):</label>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5119"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("config_path"):</label>
                         <div class="col-sm-8">
-                            <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                            <input type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <label for="managementDomainUid" class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("domain_uid"):</label>
+                    <div class="form-group row mt-2">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("domain_uid"):</label>
                         <div class="col-sm-8">
-                            <input id="managementDomainUid" type="text" class="form-control form-control-sm" @bind="actManagement.DomainUid" />
+                            <input type="text" class="form-control form-control-sm" @bind="actManagement.DomainUid" />
                         </div>
                     </div>
                 }
                 @if (actManagement.DeviceType.CanHaveSupermanager())
                 {
-                    <div class="form-group row">
-                        <label for="managementSuperManager" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("super_manager"))*:</label>
+                    <div class="form-group row mt-2">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("super_manager"))*:</label>
                         <div class="col-sm-8">
-                            <select id="managementSuperManager" class="form-control form-control-sm" @bind="actManagement.SuperManagerId">
-                                <option value="null">@(userConfig.GetText("no_super_manager"))</option>
-                                @foreach (Management superManager in managements.Where(x => x.DeviceType.Id == actManagement.DeviceType.GetSupermanagerId()))
-                                {
-                                    <option value="@superManager.Id">@(superManager.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Management" ElementToString="@(m => m.Name)" @bind-SelectedElement="selectedSuperManagement" Elements="managements.Where(x => x.DeviceType.Id == actManagement.DeviceType.GetSupermanagerId())">
+                                <ElementTemplate Context="superManager">
+                                    @superManager.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                 }
-                <div class="form-group row">
-                    <label for="managementImporterHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5120"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
                     <div class="col-sm-8">
-                        <input id="managementImporterHostname" type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="managementDebugLevel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5121"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
                     <div class="col-sm-8">
-                        <input id="managementDebugLevel" type="text" class="form-control form-control-sm" @bind="actManagement.DebugLevel" />
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.DebugLevel" />
                     </div>
                 </div>
 
-                <div class="form-check form-check-inline">
+                <div class="form-check form-check-inline mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5122"))">
                     <input class="form-check-input" id="managementImportDisabled" type="checkbox" @bind="actManagement.ImportDisabled">
                     <label class="form-check-label" for="managementImportDisabled"><small>@(userConfig.GetText("import_disabled"))</small></label>
                 </div>
-                <div class="form-check form-check-inline">
+                <div class="form-check form-check-inline mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5123"))">
                     <input class="form-check-input" id="managementHideInUi" type="checkbox" @bind="actManagement.HideInUi">
                     <label class="form-check-label" for="managementHideInUi"><small>@(userConfig.GetText("hide_in_ui"))</small></label>
                 </div>
@@ -233,80 +229,29 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, fw-admin">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_management"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@CleanupMode" OnClose="() => CleanupMode = false">
-    <Body>
-        @if (CleanupMode)
-        {
-            <p>@(cleanupMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_management")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
 <AutoDiscovery @ref="autoDiscovery" Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
+<InProgress Display="workInProgress"/>
 
-<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
-    <Body>
-        @if (workInProgress)
-        {
-            <div class="row">
-                <div class="spinner-border mx-auto align-self-center" role="status"></div>
-            </div>
-        }
-    </Body>
-</PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<ActionItem> actActions = new List<ActionItem>();
     private List<Management> managements = new List<Management>();
@@ -328,7 +273,7 @@
 
     private Management newManagement = new Management();
     private Management actManagement = new Management();
-    private Management actSuperManagement = new Management();
+    private Management? selectedSuperManagement;
 
     private AutoDiscovery? autoDiscovery;
 
@@ -347,36 +292,42 @@
             JwtReader jwt = new JwtReader(userConfig.User.Jwt);
             jwt.Validate();
 
-            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
 
-            foreach (var management in managements)
-            {
-                if (management.Name.EndsWith("_demo"))
-                {
-                    sampleManagements.Add(management);
-                }
-            }
-            showCleanupButton = (sampleManagements.Count > 0);
+            AnalyseSampleManagements();
 
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
 
-            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
             else
                 credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentialsWithoutSecrets);
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_managements"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
         }
     }
 
+    private void AnalyseSampleManagements()
+    {
+        sampleManagements = new List<Management>();
+        foreach (var management in managements)
+        {
+            if (management.Name.EndsWith("_demo"))
+            {
+                sampleManagements.Add(management);
+            }
+        }
+        showCleanupButton = (sampleManagements.Count > 0);
+    }
     private void Edit(Management management)
     {
         actManagement = new Management(management);
+        selectedSuperManagement = actManagement.SuperManagerId != null ? managements.FirstOrDefault(m => m.Id == actManagement.SuperManagerId) : null;
         EditMode = true;
     }
 
@@ -386,7 +337,7 @@
         // Checks if delete possible. Todo: further checks?
         if (actManagement.Devices != null && actManagement.Devices.Length > 0)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
+            DisplayMessageInUi(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
         }
         else
         {
@@ -395,25 +346,27 @@
         }
     }
 
-    private async Task Delete(Management management)
+    private async Task Delete()
     {
         try
         {
             DeleteMode = false;
             workInProgress = true;
-            var Variables = new { id = management.Id };
+            StateHasChanged();
+            var Variables = new { id = actManagement.Id };
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
-            if (delId == management.Id)
+            if (delId == actManagement.Id)
             {
-                managements.Remove(management);
+                managements.Remove(actManagement);
             }
             workInProgress = false;
         }
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
+        StateHasChanged();
     }
 
     private void RequestRemoveSampleData()
@@ -427,16 +380,22 @@
     {
         foreach (var management in sampleManagements)
         {
-            await Delete(management);
+            actManagement = management;
+            await Delete();
         }
         CleanupMode = false;
         showCleanupButton = false;
+        StateHasChanged();
     }
 
     private void Add()
     {
         AddMode = true;
-        newManagement = new Management() { DeviceType = new DeviceType { Id = deviceTypes.First().Id } };
+        newManagement = new Management()
+        {
+            DeviceType = deviceTypes.Count > 0 ? deviceTypes.First() : new DeviceType(), 
+            ImportCredential = credentials.Count > 0 ? credentials.First() : new ImportCredential()
+        };
         Edit(newManagement);
     }
 
@@ -452,9 +411,10 @@
     {
         try
         {
+            actManagement.SuperManagerId = selectedSuperManagement?.Id;
             if (actManagement.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
@@ -516,53 +476,44 @@
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }
-                // update actManagement
-                DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == actManagement.DeviceType.Id) ?? throw new Exception("Unknown Device type");
-                actManagement.DeviceType.Name = devtype.Name;
-                actManagement.DeviceType.Version = devtype.Version;
-
-                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredential.Id) ?? throw new Exception("Unknown credentials");
-                actManagement.ImportCredential = cred;
-
-                // actManagement.ImportCredential.Name = cred.Name;
-                // actManagement.ImportCredential.Secret = cred.Secret;
-                // actManagement.ImportCredential.PublicKey = cred.PublicKey;
-                // actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
+                AnalyseSampleManagements();
             }
             StateHasChanged();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
         }
     }
 
     private bool CheckValues(Management mgm, string checkCause)
     {
-        if
-            (
-                mgm.Name == null || mgm.Name == "" || 
-                (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Hostname == null || mgm.Hostname == ""))
-            )
+        if(mgm.Name == null || mgm.Name == "" || 
+                (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Hostname == null || mgm.Hostname == "")))
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if(mgm.DeviceType.IsLegacyDevType() && mgm.Name.Contains(" "))
+        {
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5109"), true);
             return false;
         }
         if (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Port < 1 || mgm.Port > 65535))
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5103"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5103"), true);
             return false;
         }
         else if (mgm.DebugLevel != null && (mgm.DebugLevel < 0 || mgm.DebugLevel > 9))
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5104"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5104"), true);
             return false;
         }
         if (!mgm.ImportDisabled && managements.FirstOrDefault(existingManagement => existingManagement.Hostname == mgm.Hostname && existingManagement.Port == mgm.Port 
             && existingManagement.ConfigPath == mgm.ConfigPath && (existingManagement.SuperManagerId == null || existingManagement.SuperManagerId == mgm.SuperManagerId)
             && existingManagement.Id != mgm.Id && !existingManagement.ImportDisabled) != null)
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5105"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5105"), true);
             return false;
         }
         return true;
@@ -579,8 +530,6 @@
 
     private async Task AutoDiscover(Management superManagement)
     {
-        actSuperManagement = superManagement;
-
         try
         {
             workInProgress = true;
@@ -595,7 +544,7 @@
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
             await AddAutoDiscoverLogEntry(1, userConfig.GetText("manual_autodiscovery"), userConfig.GetText("ran_into_exception") + exception.Message, superManagement.Id);
         }
     }

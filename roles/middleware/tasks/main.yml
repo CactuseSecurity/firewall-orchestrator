@@ -34,11 +34,12 @@
       group: "{{ fworch_group }}"
 
   - name: copy middleware module files to middlewareserver
-    copy:
+    synchronize:
       src: "{{ middleware_path_rel }}"
       dest: "{{ middleware_server_base_dir }}"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
+      rsync_opts:
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
+    tags: [ 'test' ]
 
   - name: install python3-openssl for openssl key generation and unprivileged user
     package:
@@ -48,7 +49,7 @@
       - python3-cryptography
       - python3-openssl
 
-  become: yes
+  become: true
 
 - name: create auth secrets (jwt key, ldap)
   include_tasks: create_auth_secrets.yml
@@ -67,16 +68,16 @@
       - libssl-dev
       - python3-setuptools
       - python3-pyldap
-  become: yes
+  become: true
 
 - name: make sure {{ fworch_secrets_dir }} exists
   file:
     path: "{{ fworch_secrets_dir }}"
     state: directory
     owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-    mode: "0700"
-  become: yes
+    group: "{{ postgres_group }}"
+    mode: "0750"
+  become: true
 
 - name: set UI admin password for testing
   set_fact:
@@ -95,7 +96,7 @@
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
   when: installation_mode == 'new'
 
 - name: Set admin password in ldap
@@ -119,7 +120,7 @@
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
   when: installation_mode == 'new'
 
 # the local copy of the import pwd will be used by the importer role to copy it to the importer host(s)
@@ -127,9 +128,9 @@
   fetch:
     src: "{{ importer_password_file }}"
     dest: "{{ importer_password_file_on_installer }}"
-    flat: yes
+    flat: true
     mode: '0600'
-  become: yes
+  become: true
 
 - name: Set importer password in ldap
   ldap_passwd:
@@ -176,25 +177,21 @@
       THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin)
       values ('tenant0', true, true);
       END IF; END $do$
-  become: yes
+  become: true
   become_user: postgres
   when: installation_mode == "new"
 
-- name: add connection for internal ldap
+- name: add connection for internal ldap with encrypted passwords
   postgresql_query:
     db: "{{ fworch_db_name }}"
     query: >
-      DO $do$ BEGIN IF NOT EXISTS
-      (SELECT * FROM ldap_connection WHERE ldap_server = '{{ openldap_server }}')
-      THEN INSERT INTO ldap_connection
-      (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_searchpath_for_groups,
-      ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd, ldap_type)
-      VALUES ('{{ openldap_server }}', {{ openldap_port }},
+      DO $do$ BEGIN 
+      PERFORM insertLocalLdapWithEncryptedPasswords ('{{ openldap_server }}', {{ openldap_port }},
       '{{ openldap_std_user_dn }}', '{{ openldap_std_role_dn }}', '{{ openldap_std_group_dn }}',
       5, '{{ openldap_readonly_user_dn }}', '{{ ldap_inspector_pw }}',
       '{{ openldap_writer_dn }}', '{{ ldap_writer_pw }}', 2);
-      END IF; END $do$
-  become: yes
+      END $do$
+  become: true
   become_user: postgres
   when: installation_mode == "new"
 
@@ -207,7 +204,7 @@
           select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name='tenant0'; 
         END IF; 
       END $do$
-  become: yes
+  become: true
   become_user: postgres
   when: installation_mode=="new"
 

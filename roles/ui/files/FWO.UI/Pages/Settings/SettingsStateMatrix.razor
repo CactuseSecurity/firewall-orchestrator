@@ -5,7 +5,7 @@
 @using System.Text.Json
 
 @page "/settings/statematrix"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -13,41 +13,48 @@
 
 @if(InitComplete)
 {
-    <h3>@(userConfig.GetText("state_matrix"))</h3>
+    <div class="input-group">
+        <h3>@(userConfig.GetText("state_matrix"))</h3>
+        <HelpLink Page="settings/statematrix"/>
+    </div>
+
     @(userConfig.GetText("U5316"))
     <hr />
-    <div class="form-group row">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5541"))">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
-        <div class="col-sm-2">
-            <select class="form-control form-control-sm" @bind="actTaskType">
-                @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
-                {
-                    <option value="@type">@(userConfig.GetText(Enum.GetName(typeof(TaskType), type)))</option>
-                }
-            </select>
+        <div class="col-sm-3">
+            <Dropdown ElementType="TaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >
+                <ElementTemplate Context="type">
+                    @(userConfig.GetText(type.ToString()))
+                </ElementTemplate>
+            </Dropdown>
         </div>
-        <button class="btn btn-sm btn-primary" @onclick="InitMatrix">@(userConfig.GetText("select"))</button>
+        <div class="col-sm-3">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="InitMatrix">@(userConfig.GetText("select"))</button>
+        </div>
     </div>
 
     @foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
     {
         <hr />
-        <div class="form-group row">
-            <input id="phase" type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
-            <label for="phase" class="col-form-label col-sm-2"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5542"))">
+            <div class="col-sm-1">
+                <input type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
+            </div>
+            <label class="col-form-label col-sm-3"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
         </div>
         @if(actStateMatrix.GlobalMatrix[phase].Active)
         {
             <h5>@(userConfig.GetText("allowed_transitions"))</h5>
-            <button class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(userConfig.GetText("add_state"))</button>
+            <button type="button" class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(userConfig.GetText("add_state"))</button>
 
-            <div class="m-2">
-                <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="actStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
+            <div class="m-2 vheight75" data-toggle="tooltip" title="@(userConfig.PureLine("H5543"))">
+                <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="actStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
                     <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("action"))" Field="(x => x.Key)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                <button class="btn btn-sm btn-warning" @onclick="() => EditTargetStates(phase, context.Key)">@(userConfig.GetText("edit"))</button>
-                                <button class="btn btn-sm btn-danger" @onclick="() => RemoveStateFromPhase(phase, context.Key)">@(userConfig.GetText("remove"))</button>
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTargetStates(phase, context.Key)">@(userConfig.GetText("edit"))</button>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveStateFromPhase(phase, context.Key)">@(userConfig.GetText("remove"))</button>
                             </div>
                         </Template>
                     </Column>
@@ -68,56 +75,53 @@
                     </Column>
                 </Table>
             </div>
-            <h5>@(userConfig.GetText("special_states"))</h5>
-            <div class="form-group row">
-                <label for="lowestInputState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
-                <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="actStateMatrix.GlobalMatrix[phase].LowestInputState">
-                        @foreach (var state in states)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+            <h5 data-toggle="tooltip" title="@(userConfig.PureLine("H5545"))">@(userConfig.GetText("special_states"))</h5>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5551"))">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
+                <div class="col-sm-3">
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestInputState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
-                <label for="lowestStartedState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
-                <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="actStateMatrix.GlobalMatrix[phase].LowestStartedState">
-                        @foreach (var state in states)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5552"))">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
+                <div class="col-sm-3">
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestStartedState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
-            <div class="form-group row">
-                <label for="lowestEndState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
-                <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="actStateMatrix.GlobalMatrix[phase].LowestEndState">
-                        @foreach (var state in states)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5553"))">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
+                <div class="col-sm-3">
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestEndState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
         }
     }
     <hr />
-    <AuthorizeView Roles="admin">
+    <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <button class="btn btn-sm btn-primary" @onclick="InitSaveMatrix" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
-            <button class="btn btn-sm btn-danger" @onclick="InitResetMatrix" @onclick:preventDefault>@(userConfig.GetText("reset_to_default"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveMatrix" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="InitResetMatrix" @onclick:preventDefault>@(userConfig.GetText("reset_to_default"))</button>
         </Authorized>
         <NotAuthorized>
-            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-            <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("reset_to_default"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("reset_to_default"))</button>
         </NotAuthorized> 
     </AuthorizeView>
     <br><br>
 
-    <PopUp Title="@(userConfig.GetText("save_settings"))" Show="@SaveMatrixMode" OnClose="() => SaveMatrixMode = false">
+    <PopUp Title="@(userConfig.GetText("save_settings"))" Show="@SaveMatrixMode" Size=PopupSize.Small OnClose="() => SaveMatrixMode = false">
         <Body>
             @if (SaveMatrixMode)
             {
@@ -126,20 +130,20 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin">
+                <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="SaveMatrix">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="SaveMatrix">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="CancelSaveMatrix">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSaveMatrix">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("reset_to_default"))" Show="@ResetMatrixMode" OnClose="() => ResetMatrixMode = false">
+    <PopUp Title="@(userConfig.GetText("reset_to_default"))" Show="@ResetMatrixMode" Size=PopupSize.Small OnClose="() => ResetMatrixMode = false">
         <Body>
             @if (ResetMatrixMode)
             {
@@ -148,79 +152,77 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin">
+                <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="ResetMatrix">@(userConfig.GetText("reset_to_default"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="ResetMatrix">@(userConfig.GetText("reset_to_default"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("reset_to_default"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("reset_to_default"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="CancelSaveMatrix">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSaveMatrix">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("edit_state") + ": " + statesDict.Name[actStateId])" Show="@EditTargetStatesMode" OnClose="() => EditTargetStatesMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_state") + ": " + statesDict.Name[actStateId])" Show="@EditTargetStatesMode" Size=PopupSize.Small OnClose="() => EditTargetStatesMode = false">
         <Body>
             @if (EditTargetStatesMode)
             {
-                @(userConfig.GetText("allowed_transitions"))
-                <br><br>
-                <button class="btn btn-sm btn-success" @onclick="AddStateToTargetStates">@(userConfig.GetText("add_state"))</button>
+                <H6 data-toggle="tooltip" title="@(userConfig.PureLine("H5543"))"><b>@(userConfig.GetText("allowed_transitions"))</b></H6>
+                <button type="button" class="btn btn-sm btn-success" @onclick="AddStateToTargetStates">@(userConfig.GetText("add_state"))</button>
                 <br><br>
                 @foreach(var stateId in actToStateIds)
                 {
-                    <div class="form-group row">
-                        <label for="stateName" class="col-sm-6 col-form-label col-form-label-sm">@statesDict.Name[stateId]</label>
-                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(userConfig.GetText("remove"))</button>
+                    <div class="form-group row mt-2">
+                        <label class="col-sm-6 col-form-label col-form-label-sm">@statesDict.Name[stateId]</label>
+                        <div class="col-sm-6">
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(userConfig.GetText("remove"))</button>
+                        </div>
                     </div>
                 }
                 <hr />
-                @(userConfig.GetText("derived_state"))
-                <br><br>
-                <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm" @bind="actStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]">
-                        @foreach (var state in states)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+                <H6 data-toggle="tooltip" title="@(userConfig.PureLine("H5544"))"><b>@(userConfig.GetText("derived_state"))</b></H6>
+                <div class="col-sm-9">
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             }
         </Body>
         <Footer>
             <div class="btn-group">
-                <button class="btn btn-sm btn-primary" @onclick="ApplyEditTargetStates">@(userConfig.GetText("ok"))</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="ApplyEditTargetStates">@(userConfig.GetText("ok"))</button>
             </div>
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("select_state"))" Show="@SelectStateMode" OnClose="() => SelectStateMode = false">
+    <PopUp Title="@(userConfig.GetText("select_state"))" Show="@SelectStateMode" Size=PopupSize.Small OnClose="() => SelectStateMode = false">
         <Body>
             @if (SelectStateMode)
             {
-                <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm" @bind="stateIdToAdd">
-                        @foreach (var state in availableStates)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+                <div class="col-sm-9">
+                    <Dropdown ElementType="int" @bind-SelectedElement="stateIdToAdd" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             }
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin">
+                <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="ApplySelection">@(userConfig.GetText("select"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="ApplySelection">@(userConfig.GetText("select"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("select"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("select"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>
@@ -235,30 +237,34 @@ else
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestState> states = new List<RequestState>();
+    private List<RequestState> states = new ();
+    private List<int> stateIds = new ();
+    private Dictionary<int,string> stateNames = new ();
     private List<int> actToStateIds = new List<int>();
-    private List<RequestState> availableStates = new List<RequestState>();
-    private RequestStateDict statesDict = new RequestStateDict();
+    private List<RequestState> availableStates = new ();
+    private RequestStateDict statesDict = new ();
 
-    private GlobalStateMatrix actStateMatrix = new GlobalStateMatrix();
+    private GlobalStateMatrix actStateMatrix = new ();
 
     private int actStateId = 0;
     private int stateIdToAdd = 0;
-    private WorkflowPhases actPhase = new WorkflowPhases();
+    private WorkflowPhases actPhase = new ();
 
     private bool SelectStateMode = false;
     private bool SaveMatrixMode = false;
     private bool ResetMatrixMode = false;
     private bool EditTargetStatesMode = false;
     private TaskType actTaskType = TaskType.master;
+    private List<TaskType> availableTaskTypes { get; set; } = new ();
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
         await RefreshStates();
         await InitMatrix();
+        availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
         InitComplete = true;
     }
 
@@ -267,12 +273,17 @@ else
         try
         {
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
-            statesDict = new RequestStateDict();
+            foreach(var state in states)
+            {
+                stateIds.Add(state.Id);
+                stateNames.Add(state.Id,state.Name);
+            }
+            statesDict = new ();
             await statesDict.Init(apiConnection);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -284,7 +295,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -306,7 +317,7 @@ else
         {
             availableStates.Add(state);
         }
-        stateIdToAdd = (availableStates.Count > 0 ? availableStates[0].Id : 0);
+        stateIdToAdd = (availableStates.Count > 0 ? availableStates.First().Id : 0);
         SelectStateMode = true;
     }
 
@@ -339,7 +350,7 @@ else
         {
             availableStates.Add(state);
         }
-        stateIdToAdd = (availableStates.Count > 0 ? availableStates[0].Id : 0);
+        stateIdToAdd = (availableStates.Count > 0 ? availableStates.First().Id : 0);
         SelectStateMode = true;
     }
 
@@ -385,6 +396,7 @@ else
                 TaskType.group_create => "reqGrpCreStateMatrix",
                 TaskType.group_modify => "reqGrpModStateMatrix",
                 TaskType.group_delete => "reqGrpDelStateMatrix",
+                TaskType.new_interface => "reqNewIntStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + actTaskType.ToString()),
             };
 
@@ -395,11 +407,11 @@ else
                 User = 0 
             };
             await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, item);
-            DisplayMessageInUi!(null, userConfig.GetText("save_settings"), userConfig.GetText("U5301"), false);             
+            DisplayMessageInUi(null, userConfig.GetText("save_settings"), userConfig.GetText("U5301"), false);             
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_settings"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_settings"), "", true);
         }
     }
         
@@ -424,7 +436,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("reset_to_default"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("reset_to_default"), "", true);
         }
     }
 }

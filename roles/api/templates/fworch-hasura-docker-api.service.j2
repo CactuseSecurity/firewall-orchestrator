@@ -1,18 +1,19 @@
 [Unit]
 Description={{ product_name }} API
+Requires=docker.service
 {% if 'databaseserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target postgresql.service
+After=network.target remote-fs.target nss-lookup.target postgresql.service docker.service
 {% else -%}
-After=network.target remote-fs.target nss-lookup.target
+After=network.target remote-fs.target nss-lookup.target docker.service
 {%- endif %}
 [Service]
+Restart=on-failure
 WorkingDirectory={{ fworch_home }}
-ExecStartPre=/bin/sleep 10
-ExecStart=/usr/bin/docker start {{ api_container_name }}
-StandardOutput=syslog
-StandardError=syslog
+ExecStart=/usr/bin/docker start -a {{ api_container_name }}
+ExecStop=/usr/bin/docker stop -t 2 {{ api_container_name }}
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier={{ product_name }}-api
 User={{ fworch_user }}
-Environment=
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

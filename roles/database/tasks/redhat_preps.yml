@@ -9,7 +9,7 @@
   yum:
     name: /tmp/pgdg-redhat-repo-latest.noarch.rpm
     state: present
-  become: yes
+  become: true
 
 - name: remove postgresql repo file
   file:
@@ -19,4 +19,4 @@
 - name: install glibc-langpack-en for postgresql to handle utf-8
   package:
     name: glibc-langpack-en
-  become: yes
+  become: true

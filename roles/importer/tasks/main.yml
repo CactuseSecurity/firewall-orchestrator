@@ -37,6 +37,7 @@
       - libexpect-perl
       - libcgi-pm-perl
       - python3-jsonpickle
+      - python3-gnupg
 
   - name: Install importer python modules
     package: name={{ item }} state=present
@@ -44,12 +45,13 @@
       - python3-netaddr
 
   - name: copy importer files
-    copy:
+    synchronize:
       src: "importer"
       dest: "{{ fworch_home }}"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: "0755"
+      rsync_opts:
+        - "--chmod=0755"
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
+    tags: [ 'test' ]
 
   - name: set x-flag for importer executables (top level only)
     file:
@@ -82,19 +84,19 @@
     template:
       src: "{{ product_name }}-importer-legacy.service.j2"
       dest: "/lib/systemd/system/{{ product_name }}-importer-legacy.service"
-      backup: yes
+      backup: true
       mode: "0644"
       owner: "root"
-    become: yes
+    become: true
 
   - name: copy api-importer systemd service script
     template:
       src: "{{ product_name }}-importer-api.service.j2"
       dest: "/lib/systemd/system/{{ product_name }}-importer-api.service"
-      backup: yes
+      backup: true
       mode: "0644"
       owner: "root"
-    become: yes
+    become: true
 
   - name: include fetch importer pwd script
     import_tasks: fetch-importer-pwd.yml
@@ -110,4 +112,4 @@
     notify: "importer handler"
     when: installation_mode == "upgrade"
 
-  become: yes
+  become: true

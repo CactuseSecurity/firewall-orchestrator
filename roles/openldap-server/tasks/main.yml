@@ -5,7 +5,8 @@
     state: directory
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
+  tags: [ 'test', 'unittest' ]
 
 - block:
 ### OS basics
@@ -54,6 +55,7 @@
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
     when: not is_manger_pw_present_flag.stat.exists
+    tags: [ 'test' ]
 
   - name: Generate the root password hash for the config
     command: "slappasswd -T {{ ldap_manager_pwd_file }}"
@@ -99,7 +101,7 @@
     template:
       src: config.ldif.j2
       dest: "{{ openldap_server_app_path }}/slapd.d/config.ldif"
-      force: no
+      force: false
       mode: 0640
 
   - name: Configure LDAP protocol, URI and port
@@ -115,14 +117,14 @@
     file:
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: directory
-      recurse: yes
+      recurse: true
       owner: openldap
 
 ### systemctl
   - name: Create dir to enable TLS for slapd service
     file:
       path: /etc/systemd/system/slapd.service.d
-      recurse: yes
+      recurse: true
 
   - name: Enable TLS for slapd service
     template:
@@ -133,10 +135,10 @@
     systemd:
       name: slapd
       state: restarted
-      enabled: yes
-      daemon_reload: yes
+      enabled: true
+      daemon_reload: true
 
-  become: yes
+  become: true
   when: installation_mode == "new"
 
 - name: include upgrade script

@@ -1,5 +1,6 @@
 ﻿@using BlazorTable
 @using System.Net
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Ui.Services
@@ -9,25 +10,37 @@
 @using RestSharp
 
 @page "/settings/roles"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("roles"))</h3>
-@(userConfig.GetText("U5215"))
+<div class="input-group">
+    <h3>@(userConfig.GetText("roles"))</h3>
+    <HelpLink Page="settings/roles"/>
+</div>
+<H6 data-toggle="tooltip" title="@(userConfig.PureLine("H5332") + "\r\n" + userConfig.PureLine("H5361") + "\r\n"+ userConfig.PureLine("H5362") +
+    "\r\n" + userConfig.PureLine("H5363") + "\r\n" + userConfig.PureLine("H5364"))">@(userConfig.GetText("U5215"))</H6>
 <hr />
 
-<div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Role" Items="roles" PageSize="0" ColumnReorder="true">
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Role" Items="roles" PageSize="0" ColumnReorder="true">
         <Column TableItem="Role" Title="@(userConfig.GetText("actions"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
-                <div class="btn-group">
-                    @if (context.Name != "middleware-server" && context.Name != "anonymous")
+                <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5341") + "\r\n" + userConfig.PureLine("H5351") +
+                        "\r\n" + userConfig.PureLine("H5352") + "\r\n" + userConfig.PureLine("H5353"))">
+                    @if (context.Name != Roles.MiddlewareServer && context.Name != Roles.Anonymous)
                     {
-                        <button class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("assign_user_group"))</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromRole(context)">@(userConfig.GetText("remove_user_group"))</button>
+                        <button type="button" class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("assign_user_group"))</button>
+                        @if(context.Users.Count > 0)
+                        {
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveFromRole(context)">@(userConfig.GetText("remove_user_group"))</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove_user_group"))</button>
+                        }
                     }
                     else
                     {
@@ -50,191 +63,20 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("assign_user_group_to_role") + ": " + actRole.Name)" Show="@AddMode" Large="true" OnClose="() => AddMode = false">
-    <Body>
-        @if (AddMode)
-        {
-            <form>
-                <form class="form-group row">
-                    <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
-                    <div class="col-sm-3">
-                        <select id="ldapUser" class="form-control-sm col-sm" @bind="selectedLdapId">
-                            @foreach (UiLdapConnection ldap in connectedLdaps)
-                            {
-                                <option value="@ldap.Id">@(ldap.Name)</option>
-                            }
-                        </select>
-                    </div>
-                    <label for="searchpattern" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
-                    <div class="col-sm-3">
-                        <input id="searchpattern" class="form-control-sm col-sm" type="text" @bind="searchPattern" />
-                    </div>
-                    <div class="col-sm-2">
-                        <button class="btn btn-sm btn-success" @onclick="async() => await SearchUser(selectedLdapId)" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
-                    </div>
-                </form>
-                <form class="form-group row">
-                    <label for="roleUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
-                    <div class="col-sm-8">
-                        <select id="roleUser" class="form-control-sm col-sm" @bind="selectedUiUser">
-                            @foreach (UiUser user in uiUsers)
-                            {
-                                <option value="@user.Dn">@(user.Dn)</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-sm-2">
-                        <AuthorizeView Roles="admin">
-                            <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                            </Authorized>
-                            <NotAuthorized>
-                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                            </NotAuthorized> 
-                        </AuthorizeView>
-                    </div>
-                </form>
-                <form class="form-group row">
-                    <label for="roleInternalGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("internal_group")):</label>
-                    <div class="col-sm-8">
-                        <select id="roleInternalGroup" class="form-control-sm col-sm" @bind="selectedGroup">
-                            @foreach (string group in internalGroupList)
-                            {
-                                <option value="@group">@(group)</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-sm-2">
-                        <AuthorizeView Roles="admin">
-                            <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap(selectedGroup)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                            </Authorized>
-                            <NotAuthorized>
-                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                            </NotAuthorized> 
-                        </AuthorizeView>
-                    </div>
-                </form>
-            </form>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<SearchUser @bind-Display="AddMode" AddUser="AddUserFromLdap" AddGroup="AddGroupFromLdap" UserSearchMode="true" GroupSearchMode="true" Title="@(actRole.Name)"/>
+<RemoveUser @bind-Display="RemoveUserMode" Remove="RemoveUser" Users="actRole.Users" Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Label="@(userConfig.GetText("user_group"))"/>
 
-<PopUp Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <form>
-                <div class="form-group row">
-                    <label for="roleUserdel" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user_group")):</label>
-                    <div class="col-sm-9">
-                        <select id="roleUserdel" class="form-control form-control-sm" @bind="selectedUserToDelete">
-                            @foreach (UiUser user in actRole.Users)
-                            {
-                                <option value="@user.Dn">@(user.Dn)</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-            </form>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserToDelete)" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchMode" Large="true" OnClose="() => SearchMode = false">
-    <Body>
-        @if (SearchMode)
-        {
-            <form>
-                <div class="form-group row">
-                    <label for="roleUsersearch" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
-                    <div class="col-sm-8">
-                        <select id="roleUsersearch" class="form-control form-control-sm" @bind="selectedLdapUser">
-                            @foreach (UiUser user in ldapUsers)
-                            {
-                                <option value="@user.Dn">@(user.Dn)</option>
-                            }
-                        </select>
-                    </div>
-                    <AuthorizeView Roles="admin">
-                        <Authorized>
-                            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedLdapUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
-                </div>
-                <div class="form-group row">
-                    <label for="roleGroupsearch" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
-                    <div class="col-sm-8">
-                        <select id="roleGroupsearch" class="form-control form-control-sm" @bind="selectedGroup">
-                            @foreach (string group in searchedGroupList)
-                            {
-                                <option value="@group">@(group)</option>
-                            }
-                        </select>
-                    </div>
-                    <AuthorizeView Roles="admin">
-                        <Authorized>
-                            <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap(selectedGroup)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
-                </div>
-            </form>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick="CancelSearch">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<Role> roles = new List<Role>();
-    private List<UiUser> uiUsers = new List<UiUser>();
-    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
-    private List<UiUser> ldapUsers = new List<UiUser>();
-    private List<string> searchedGroupList = new List<string>();
-    private List<string> internalGroupList = new List<string>();
-    private UiLdapConnection selectedLdap = new UiLdapConnection();
-    private string selectedUiUser = "";
-    private string selectedLdapUser = "";
-    private string selectedUserToDelete = "";
-    private string selectedGroup = "";
-    private int selectedLdapId;
-    private string searchPattern = "";
-
+    private List<Role> roles = new();
     private Role actRole = new Role();
 
     private bool AddMode = false;
-    private bool DeleteMode = false;
+    private bool RemoveUserMode = false;
     private bool SearchMode = false;
 
     protected override async Task OnInitializedAsync()
@@ -245,131 +87,46 @@
             roles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
             if (roles.Count == 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
-
-            // get users
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
-            uiUsers = uiUsers.FindAll(x => x.DbId != 0);
-
-            // get ldap connections
-            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
-
-            // get groups from internal LDAP
-            internalGroupList = await GroupAccess.GetGroupDnsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!);
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
     private void AddToRole(Role role)
     {
-        AddMode = true;
         actRole = role;
-        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.First().Dn);
-        selectedLdapId = (connectedLdaps.Count == 0 ? 0 : connectedLdaps.First().Id);
-        selectedGroup = (internalGroupList.Count == 0 ? "" : internalGroupList.First());
+        AddMode = true;
     }
 
     private void RemoveFromRole(Role role)
     {
-        DeleteMode = true;
         actRole = role;
-        selectedUserToDelete = (actRole.Users.Count == 0 ? "" : actRole.Users.First().Dn);
+        RemoveUserMode = true;
     }
 
-    private async Task SearchUser(int ldapId)
+    private async Task AddUserFromLdap(UiUser ldapUser)
     {
-        UiLdapConnection? actLdap = connectedLdaps.FirstOrDefault(x => x.Id == ldapId);
-        if (actLdap != null)
-            selectedLdap = actLdap;
-
-        if(searchPattern.Length < selectedLdap.PatternLength)
-        {
-            DisplayMessageInUi!(null, userConfig.GetText("search_users"), userConfig.GetText("E5252") + selectedLdap.PatternLength, true);
-        }
-        else
-        {
-            // get users and groups from Ldap
-            try
-            {
-                ldapUsers.Clear();
-                searchedGroupList.Clear();
-                LdapUserGetParameters userGetParameters = new LdapUserGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
-                RestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
-                {
-                    DisplayMessageInUi!(null, userConfig.GetText("fetch_users"), userConfig.GetText("E5208"), true);
-                }
-                else
-                {
-                    foreach (var user in middlewareServerResponse.Data)
-                    {
-                        UiUser newUser = new UiUser() { Dn = user.UserDn, Name = (new DistName(user.UserDn)).UserName };
-                        ldapUsers.Add(newUser);
-                    }
-                }
-
-                if(selectedLdap.HasGroupHandling())
-                {
-                    GroupGetParameters groupGetParameters = new GroupGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
-                    RestResponse<List<string>> groupMiddlewareServerResponse = await middlewareClient.GetGroups(groupGetParameters);
-                    if (groupMiddlewareServerResponse.StatusCode != HttpStatusCode.OK || groupMiddlewareServerResponse.Data == null)
-                    {
-                        DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-                    }
-                    else
-                    {
-                        searchedGroupList = groupMiddlewareServerResponse.Data;
-                    }
-                }
-            }
-            catch (System.Exception)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_users"), "", true);
-            }
-
-            selectedLdapUser = (ldapUsers.Count == 0 ? "" : ldapUsers.First().Dn);
-            selectedGroup = (searchedGroupList.Count == 0 ? "" : searchedGroupList.First());
-            SearchMode = true;
-            AddMode = false;
-        }
-    }
-
-    private async Task AddUserFromUiUsers(string userDn)
-    {
-        UiUser? selectedUser = uiUsers.Find(x => x.Dn == userDn);
-        if (selectedUser != null)
-            await AddUserToRole(selectedUser);
-    }
-
-    private async Task AddUserFromLdap(string userDn)
-    {
-        UiUser? selectedUser = ldapUsers.Find(x => x.Dn == userDn);
-        if (selectedUser != null)
-        {
-            await AddUserToRole(selectedUser);
-            await addTenantIfNew(selectedUser.Dn, selectedLdap);
-        }
+        await AddUserToRole(ldapUser);
     }
 
     private async Task AddGroupFromLdap(string groupDn)
     {
         await AddUserToRole(new UiUser(){ Dn = groupDn , Name = (new DistName(groupDn)).Group});
-        await addTenantIfNew(groupDn, selectedLdap);
     }
 
     private async Task AddUserToRole(UiUser user)
     {
         if (user == null)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5240"), true);
+            DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5240"), true);
         }
         else if (actRole.Users.Exists(x => x.Dn == user.Dn))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5254"), true);
+            DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5254"), true);
         }
         else
         {
@@ -380,7 +137,7 @@
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(roleAddUserParameters);
                 if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
                 }
                 else
                 {
@@ -393,89 +150,52 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
             }
         }
     }
 
-    private async Task addTenantIfNew(string Dn, UiLdapConnection selectedLdap)
+    private async Task RemoveUser(UiUser selectedUserToRemove)
     {
-        try
+        if (selectedUserToRemove.Dn != "")
         {
-            if (selectedLdap.TenantLevel == 0 || selectedLdap.IsInternal())
+            if (actRole.Name == Roles.Admin && actRole.Users.Count < 2)
             {
-                return;
-            }
-            string tenantName = (new DistName(Dn)).getTenant(selectedLdap.TenantLevel);
-            Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, new { tenant_name = tenantName }, "getTenantId");
-            if (tenants.Count() == 0)
-            {
-                // tenant unknown: create in db
-                var Variables = new 
-                { 
-                    name = tenantName,
-                    project = "",
-                    comment = "",
-                    viewAllDevices = false,
-                    create = DateTime.Now
-                };
-                await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenant, Variables);
-            }
-        }
-        catch (Exception exception)
-        {
-            Log.WriteAudit("AddTenant", $"Adding new Tenant locally failed: {exception.Message}");
-        }
-    }
-
-    private async Task DeleteUser(string userDn)
-    {
-        var itemToRemove = actRole.Users.Find(x => x.Dn == userDn);
-        if (itemToRemove != null)
-        {
-            if (actRole.Name == "admin" && actRole.Users.Count < 2)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("remove_user_group_from_role"), userConfig.GetText("E5256"), true);
+                DisplayMessageInUi(null, userConfig.GetText("remove_user_group_from_role"), userConfig.GetText("E5256"), true);
             }
             else
             {
                 // delete user in LDAP
                 try
                 {
-                    RoleAddDeleteUserParameters removeUserFromRoleParameters = new RoleAddDeleteUserParameters { UserDn = userDn, Role = actRole.Dn };
+                    RoleAddDeleteUserParameters removeUserFromRoleParameters = new RoleAddDeleteUserParameters { UserDn = selectedUserToRemove.Dn, Role = actRole.Dn };
                     RestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromRole(removeUserFromRoleParameters);
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("remove_user_group_from_role"), userConfig.GetText("E5257"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("remove_user_group_from_role"), userConfig.GetText("E5257"), true);
                     }
                     else
                     {
-                        actRole.Users.Remove(itemToRemove);
+                        actRole.Users.Remove(selectedUserToRemove);
                         roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
-                        DeleteMode = false;
+                        RemoveUserMode = false;
                     }
                 }
                 catch (System.Exception exception)
                 {
-                    DisplayMessageInUi!(exception, userConfig.GetText("remove_user_group_from_role"), "", true);
+                    DisplayMessageInUi(exception, userConfig.GetText("remove_user_group_from_role"), "", true);
                 }
             }
         }
         else
         {
-            DisplayMessageInUi!(null, userConfig.GetText("remove_user_group_from_role"), userConfig.GetText("E5258"), true);
+            DisplayMessageInUi(null, userConfig.GetText("remove_user_group_from_role"), userConfig.GetText("E5258"), true);
         }
     }
 
     private void Cancel()
     {
         AddMode = false;
-        DeleteMode = false;
-    }
-
-    private void CancelSearch()
-    {
-        SearchMode = false;
-        AddMode = true;
+        RemoveUserMode = false;
     }
 }

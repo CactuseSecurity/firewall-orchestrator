@@ -32,5 +32,9 @@ namespace FWO.Api.Data
                 fileFormats.Add(new FileFormat { Name = name });
             }
         }
+        public static void Remove(this List<FileFormat> fileFormats, string name)
+        {
+            fileFormats.RemoveAll(fileFormat => fileFormat.Name == name);
+        }
     }
 }

@@ -407,6 +407,7 @@ BEGIN
 		-- IF non_security_relevant_change(r_existing, r_to_import) THEN
 		IF ( NOT (		--	from here: non-security-relevant changes
 			are_equal(r_existing.rule_name,r_to_import.rule_name) AND 
+			are_equal(r_existing.rule_custom_fields,r_to_import.rule_custom_fields) AND 
 			are_equal(r_existing.rule_head_text, r_to_import.rule_head_text) AND
 			are_equal(r_existing.rule_comment, r_to_import.rule_comment) ))
 		THEN
@@ -459,14 +460,14 @@ BEGIN
 					(mgm_id,rule_name,rule_num,rule_ruleid,rule_uid,rule_disabled,rule_src_neg,rule_dst_neg,rule_svc_neg,
 					action_id,track_id,rule_src,rule_dst,rule_svc,rule_src_refs,rule_dst_refs,rule_svc_refs,rule_action,rule_track,rule_installon,rule_time,
 					rule_from_zone,rule_to_zone,rule_comment,rule_implied,rule_head_text,last_change_admin,
-					rule_create,rule_last_seen, dev_id, parent_rule_id, parent_rule_type, access_rule, nat_rule)
+					rule_create,rule_last_seen, dev_id, parent_rule_id, parent_rule_type, access_rule, nat_rule, rule_custom_fields)
 				VALUES (i_mgm_id,r_to_import.rule_name,i_rule_num,r_to_import.rule_ruleid,r_to_import.rule_uid,
 					r_to_import.rule_disabled,r_to_import.rule_src_neg,r_to_import.rule_dst_neg,r_to_import.rule_svc_neg,
 					i_action_id,i_track_id,r_to_import.rule_src,r_to_import.rule_dst,r_to_import.rule_svc,
 					r_to_import.rule_src_refs,r_to_import.rule_dst_refs,r_to_import.rule_svc_refs,
 					lower(r_to_import.rule_action),r_to_import.rule_track,r_to_import.rule_installon,r_to_import.rule_time,
 					i_fromzone,i_tozone, r_to_import.rule_comment,r_to_import.rule_implied,r_to_import.rule_head_text,i_admin_id,
-					i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type, b_access_rule, b_nat_rule)
+					i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type, b_access_rule, b_nat_rule, r_to_import.rule_custom_fields)
 				RETURNING rule_id INTO i_new_rule_id;
 			EXCEPTION WHEN OTHERS THEN
 				RAISE EXCEPTION 'rule_change_change exception while inserting rule: 

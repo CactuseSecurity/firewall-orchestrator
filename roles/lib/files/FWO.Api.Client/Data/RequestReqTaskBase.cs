@@ -16,10 +16,13 @@ namespace FWO.Api.Data
     public class RequestReqTaskBase : RequestTaskBase
     {
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
-        public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
+        public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
 
         [JsonProperty("reason"), JsonPropertyName("reason")]
         public string? Reason { get; set; }
+
+        [JsonProperty("additional_info"), JsonPropertyName("additional_info")]
+        public string? AdditionalInfo { get; set; }
 
         [JsonProperty("last_recert_date"), JsonPropertyName("last_recert_date")]
         public DateTime? LastRecertDate { get; set; }
@@ -37,7 +40,7 @@ namespace FWO.Api.Data
             }
         }
 
-        private List<int> deviceList { get; set; } = new List<int>();
+        private List<int> deviceList { get; set; } = new ();
 
 
         public RequestReqTaskBase()
@@ -47,6 +50,7 @@ namespace FWO.Api.Data
         {
             RequestAction = reqtask.RequestAction;
             Reason = reqtask.Reason;
+            AdditionalInfo = reqtask.AdditionalInfo;
             LastRecertDate = reqtask.LastRecertDate;
             SelectedDevices = reqtask.SelectedDevices;
         }
@@ -56,14 +60,9 @@ namespace FWO.Api.Data
             return deviceList;
         }
 
-        public void SetDeviceList(int[] devArray)
-        {
-            deviceList = devArray.ToList();
-        }
-
         public void SetDeviceList(List<Device> devList)
         {
-            deviceList = new List<int>();
+            deviceList = new ();
             foreach(var dev in devList)
             {
                 deviceList.Add(dev.Id);

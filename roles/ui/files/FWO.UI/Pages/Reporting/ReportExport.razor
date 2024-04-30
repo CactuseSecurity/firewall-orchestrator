@@ -8,10 +8,10 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<button class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else { 
-                                                      DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
+<button type="button" class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else { 
+                                                      DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
 
-<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" OnClose="() => ShowExportDialog = false">
+<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" Size=PopupSize.Small OnClose="() => ShowExportDialog = false">
     <Body>
         <div>
             <div class="input-group input-group-sm mb-2">
@@ -32,19 +32,19 @@
                             @if (ExportPdf)
                             {
                                 <div>
-                                    Paper Kind:
-                                    <Dropdown @bind-Value="SelectedPaperKind" Elements="Enum.GetValues<PaperKind>().Cast<PaperKind>()"></Dropdown>
+                                    @(userConfig.GetText("page_format")):
+                                    <Dropdown @bind-SelectedElement="SelectedPaperKind" Elements="Enum.GetValues<PaperKind>().Cast<PaperKind>()"></Dropdown>
                                     @if (SelectedPaperKind == PaperKind.Custom)
                                     {
                                         <div class="input-group input-group-sm mb-2 mt-2">
                                           <div class="input-group-prepend">
-                                            <span class="input-group-text">Width (mm)</span>
+                                            <span class="input-group-text">@(userConfig.GetText("width"))</span>
                                           </div>
                                           <input  @bind="PaperSizeWidth" min="1" max="1000000" type="number" class="form-control">
                                         </div>
                                         <div class="input-group input-group-sm mb-1">
                                           <div class="input-group-prepend">
-                                            <span class="input-group-text">Height (mm)</span>
+                                            <span class="input-group-text">@(userConfig.GetText("height"))</span>
                                           </div>
                                           <input @bind="PaperSizeHeight" min="1" max="1000000" type="number" class="form-control">
                                         </div>
@@ -59,13 +59,14 @@
                             </label>
                         </div>
                         <div class="form-check">
-                            @if (ReportToExport.ReportType!=ReportType.ResolvedRules && ReportToExport.ReportType!=ReportType.ResolvedRulesTech)
+                            @if (csvAvailable())
                             {
-                                <input disabled class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                                <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
                             }
                             else 
                             {
-                                <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                                ExportCsv = false;
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportCsv">
                             }
                             <label class="form-check-label" for="reportExportCsv">
                                 CSV
@@ -82,7 +83,7 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="reportExportArchive" @bind="ExportArchive">
                             <label class="form-check-label" for="reportExportArchive">
-                                @(userConfig.GetText("archive")) (includes JSON)
+                                @(userConfig.GetText("archive")) @(userConfig.GetText("includes_json"))
                             </label>
                         </div>
                     </li>
@@ -92,8 +93,8 @@
     </Body>
     <Footer>
         @if (!Exporting) {
-            <button class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; Exporting = false; }">@(userConfig.GetText("export"))</button>
-            <button class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; Exporting = false; }">@(userConfig.GetText("export"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">@(userConfig.GetText("cancel"))</button>
         }
         else {
             <div class="spinner-border" role="status">
@@ -104,12 +105,12 @@
 </PopUp>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("export_report_download"))" ReportFile="reportExportFile"
-Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
+    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public ReportBase? ReportToExport { get; set; }
@@ -127,15 +128,19 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
 
     private bool Exporting = false;
 
-    private bool PaperKindChanged = false;
     private int PaperSizeWidth = 0;
     private int PaperSizeHeight = 0;
+
+    private bool csvAvailable()
+    {
+        return ReportToExport?.ReportType.IsResolvedReport() ?? false;
+    }
 
     private async Task Export()
     {
         if (reportExportFile.Sanitize())
         {
-            DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("U0001"), true);
+            DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("U0001"), true);
         }
         if (ReportToExport != null)
         {
@@ -144,7 +149,9 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
                 try
                 {
                     if (!ReportToExport.GotObjectsInReport)
+                    {
                         await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
+                    }
 
                     if (ExportHtml)
                     {
@@ -157,7 +164,7 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
                         {
                             reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf(SelectedPaperKind, PaperSizeWidth, PaperSizeHeight));                    
                         }
-                        catch (KeyNotFoundException e)
+                        catch (KeyNotFoundException)
                         {
                             throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
                         }
@@ -195,13 +202,13 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
                 }
                 catch (Exception exception)
                 {
-                    DisplayMessageInUi!(exception, userConfig.GetText("export_report"), "", true);
+                    DisplayMessageInUi(exception, userConfig.GetText("export_report"), "", true);
                 }
             });
         }
         else
         {
-            DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
+            DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
         }
     }
 }

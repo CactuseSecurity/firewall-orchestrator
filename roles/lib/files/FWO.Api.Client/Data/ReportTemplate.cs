@@ -24,7 +24,7 @@ namespace FWO.Api.Data
         public string Filter { get; set; } = "";
         
         [JsonProperty("report_parameters"), JsonPropertyName("report_parameters")]
-        public ReportParams ReportParams { get; set; } = new ReportParams();
+        public ReportParams ReportParams { get; set; } = new();
 
         public bool Detailed = false;
 
@@ -32,13 +32,10 @@ namespace FWO.Api.Data
         public ReportTemplate()
         {}
 
-        public ReportTemplate(string filter = "", DeviceFilter deviceFilter = null, int? reportType = 0, TimeFilter timeFilter = null, RecertFilter recertFilter = null)
+        public ReportTemplate(string filter, ReportParams reportParams)
         {
             Filter = filter;
-            ReportParams.DeviceFilter = deviceFilter;
-            ReportParams.ReportType = reportType;
-            ReportParams.TimeFilter = timeFilter;
-            ReportParams.RecertFilter = recertFilter;
+            ReportParams = reportParams;
             Detailed = false;
         }
 
@@ -54,15 +51,33 @@ namespace FWO.Api.Data
     public class ReportParams
     {
         [JsonProperty("report_type"), JsonPropertyName("report_type")]
-        public int? ReportType { get; set; } = 0;
+        public int ReportType { get; set; } = 0;
         
         [JsonProperty("device_filter"), JsonPropertyName("device_filter")]
-        public DeviceFilter DeviceFilter { get; set; } = new DeviceFilter();
+        public DeviceFilter DeviceFilter { get; set; } = new();
 
         [JsonProperty("time_filter"), JsonPropertyName("time_filter")]
-        public TimeFilter TimeFilter { get; set; } = new TimeFilter();
+        public TimeFilter TimeFilter { get; set; } = new();
+
+        [JsonProperty("tenant_filter"), JsonPropertyName("tenant_filter")]
+        public TenantFilter TenantFilter { get; set; } = new();
 
         [JsonProperty("recert_filter"), JsonPropertyName("recert_filter")]
-        public RecertFilter RecertFilter { get; set; } = new RecertFilter();
+        public RecertFilter RecertFilter { get; set; } = new();
+
+        [JsonProperty("unused_filter"), JsonPropertyName("unused_filter")]
+        public UnusedFilter UnusedFilter { get; set; } = new();
+
+        [JsonProperty("modelling_filter"), JsonPropertyName("modelling_filter")]
+        public ModellingFilter ModellingFilter { get; set; } = new();
+
+        public ReportParams()
+        {}
+        
+        public ReportParams(int reportType, DeviceFilter deviceFilter)
+        {
+            ReportType = reportType;
+            DeviceFilter = deviceFilter;
+        }
     }
 }

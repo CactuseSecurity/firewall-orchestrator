@@ -22,16 +22,16 @@
 </div>
 <hr />
 
-<button class="btn btn-sm btn-danger">
+<button type="button" class="btn btn-sm btn-danger">
     <NavLink class="nav-link text-white" href="/logout">
-        <span class="oi oi-account-logout"></span> @(userConfig.GetText("logout"))
+        <span class="@Icons.Logout"></span> @(userConfig.GetText("logout"))
     </NavLink>
 </button>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     UiUser? user;
 

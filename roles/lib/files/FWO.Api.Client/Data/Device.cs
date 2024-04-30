@@ -35,15 +35,6 @@ namespace FWO.Api.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
-        [JsonProperty("rules"), JsonPropertyName("rules")]
-        public Rule[]? Rules { get; set; }
-
-        [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
-        public RuleChange[]? RuleChanges { get; set; }
-
-        [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
-        public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
-
         public bool Selected { get; set; } = false;
         public bool Relevant { get; set; }
         public bool AwaitMgmt { get; set; }
@@ -71,22 +62,6 @@ namespace FWO.Api.Data
             ActionId = device.ActionId;
         }
 
-        public void AssignRuleNumbers()
-        {
-            if (Rules != null)
-            {
-                int ruleNumber = 1;
-
-                foreach (Rule rule in Rules)
-                {
-                    if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
-                    {
-                        rule.DisplayOrderNumber = ruleNumber++;
-                    }
-                }
-            }
-        }
-
         public bool Sanitize()
         {
             bool shortened = false;
@@ -96,52 +71,6 @@ namespace FWO.Api.Data
             Package = Sanitizer.SanitizeOpt(Package, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             return shortened;
-        }
-        
-        public bool ContainsRules()
-        {
-            return (Rules != null && Rules.Count()>0);
-        }
-    }
-
-
-    public static class DeviceUtility
-    {
-        // adding rules fetched in slices
-        public static bool Merge(this Device[] devices, Device[] devicesToMerge)
-        {
-            bool newObjects = false;
-
-            for (int i = 0; i < devices.Length && i < devicesToMerge.Length; i++)
-            {
-                if (devices[i].Id == devicesToMerge[i].Id)
-                {
-                    try
-                    {
-                        if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules?.Length > 0)
-                        {
-                            devices[i].Rules = devices[i].Rules?.Concat(devicesToMerge[i].Rules!).ToArray();
-                            newObjects = true;
-                        }
-                        if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges != null && devicesToMerge[i].RuleChanges?.Length > 0)
-                        {
-                            devices[i].RuleChanges = devices[i].RuleChanges!.Concat(devicesToMerge[i].RuleChanges!).ToArray();
-                            newObjects = true;
-                        }
-                        if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
-                            devices[i].RuleStatistics.ObjectAggregate.ObjectCount += devicesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // correct ??
-                    }
-                    catch (NullReferenceException)
-                    {
-                        throw new ArgumentNullException("Rules is null");
-                    }
-                }
-                else
-                {
-                    throw new NotSupportedException("Devices have to be in the same order in oder to merge.");
-                }
-            }
-            return newObjects;
         }
     }
 }

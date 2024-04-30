@@ -2,7 +2,7 @@
 @using FWO.Config.Api
 
 @page "/settings/statedefinitions"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -10,20 +10,23 @@
 
 @if(InitComplete)
 {
-    <h3>@(userConfig.GetText("available_states"))</h3>
+    <div class="input-group">
+        <h3>@(userConfig.GetText("available_states"))</h3>
+        <HelpLink Page="settings/statedefinitions"/>
+    </div>
     @(userConfig.GetText("U5313"))
     <hr />
-    <button class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>
+    <button type="button" class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>
     <br><br>
-    <div class="m-2">
-        <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestState" Items="states" PageSize="0" ColumnReorder="true">
+    <div class="m-2 vheight75">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestState" Items="states" PageSize="0" ColumnReorder="true">
             <Column TableItem="RequestState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button class="btn btn-sm btn-warning" @onclick="() => EditState(context)">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditState(context)">@(userConfig.GetText("edit"))</button>
                         @if(!usedStateIds.Exists(x => x == context.Id))
                         {
-                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteState(context)">@(userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteState(context)">@(userConfig.GetText("delete"))</button>
                         }
                     </div>
                 </Template>
@@ -38,13 +41,13 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" OnClose="() => EditStateMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.Large OnClose="() => EditStateMode = false">
         <Body>
             @if (EditStateMode)
             {
                 <div class="form-group row">
                     <div class="col-sm-3">
-                        @if (AddStateMode)
+                        @if(AddStateMode)
                         {
                             <input type="number" class="form-control form-control-sm" @bind="actState.Id" />
                         }
@@ -58,14 +61,14 @@
                     </div>
                 </div>
                 <br><br>
-                <button class="btn btn-sm btn-success" @onclick="SelectAction">@(userConfig.GetText("add_action"))</button>
+                <button type="button" class="btn btn-sm btn-success" @onclick="SelectAction">@(userConfig.GetText("add_action"))</button>
                 <br><br>
-                <div class="m-2">
-                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
+                <div class="m-2 vheight75">
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
                         <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("actions"))" Field="(x => x.Action.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
-                                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">@(userConfig.GetText("remove"))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">@(userConfig.GetText("remove"))</button>
                                 </div>
                             </Template>
                         </Column>
@@ -77,66 +80,52 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin">
+                <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="SaveState">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveState">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("delete_state"))" Show="@DeleteStateMode" OnClose="() => DeleteStateMode = false">
-        <Body>
-            @if (DeleteStateMode)
-            {
-                <p>@(userConfig.GetText("U5501") + actState.Name + "?")</p>
-            }
-        </Body>
-        <Footer>
-            <div class="btn-group">
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="DeleteState">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-            </div>
-        </Footer>
-    </PopUp>
+    <ConfirmDelete @bind-Display="DeleteStateMode" PerformAction="DeleteState" Title="@userConfig.GetText("delete_state")" DeleteMessage="@(userConfig.GetText("U5501") + actState.Name + "?")"/>
 
-    <PopUp Title="@(userConfig.GetText("select_action"))" Show="@SelectActionMode" OnClose="() => SelectActionMode = false">
+    <PopUp Title="@(userConfig.GetText("select_action"))" Show="@SelectActionMode" Size=PopupSize.Small OnClose="() => SelectActionMode = false">
         <Body>
             @if (SelectActionMode)
             {
                 <div class="col-sm-8">
-                    <select class="form-control form-control-sm" @bind="actionIdToAdd">
-                        @foreach (var action in actions)
-                        {
-                            <option value="@action.Id">@(action.Name)</option>
-                        }
-                    </select>
+                    <Dropdown ElementType="RequestStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="actions">
+                        <ElementTemplate Context="action">
+                            @action.Name
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             }
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin">
+                <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="AddActionToState">@(userConfig.GetText("add"))</button>
+                        @if(selectedAction != null)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="AddActionToState">@(userConfig.GetText("add"))</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                        }
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>
@@ -151,15 +140,15 @@ else
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestState> states = new List<RequestState>();
-    private List<int> usedStateIds = new List<int>();
-    private RequestStateDict statesDict = new RequestStateDict();
-    private RequestState actState = new RequestState();
+    private List<RequestState> states = new ();
+    private List<int> usedStateIds = new ();
+    private RequestStateDict statesDict = new ();
+    private RequestState actState = new ();
 
-    private List<RequestStateAction> actions = new List<RequestStateAction>();
-    private int actionIdToAdd;
+    private List<RequestStateAction> actions = new ();
+    private RequestStateAction? selectedAction;
 
     private bool EditStateMode = false;
     private bool AddStateMode = false;
@@ -177,7 +166,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -263,6 +252,10 @@ else
             if(AddStateMode)
             {
                 states.Add(actState);
+                foreach(var action in actState.Actions)
+                {
+                    await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+                }
             }
             else
             {
@@ -273,7 +266,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
     }
 
@@ -300,12 +293,14 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_state"), "", true);
         }
+        StateHasChanged();
     }
 
     private void SelectAction()
     {
+        selectedAction = actions.Count > 0 ? actions.First() : null;
         SelectActionMode = true;
     }
 
@@ -318,13 +313,16 @@ else
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = actionIdToAdd });
-            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = actions.FirstOrDefault(x => x.Id == actionIdToAdd) });
+            if(!AddStateMode)
+            {
+                await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0});
+            }
+            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = selectedAction ?? throw new Exception("no action selected") });
             SelectActionMode = false;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
     }
 
@@ -332,12 +330,15 @@ else
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+            if(!AddStateMode)
+            {
+                await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+            }
             actState.Actions.Remove(action);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
     }
 }

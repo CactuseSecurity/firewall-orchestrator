@@ -3,50 +3,54 @@
 @using FWO.Api.Client
 
 @page "/settings/language"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, auditor, fw-admin, requester, approver, planner, implementer, reviewer")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<h3>@(userConfig.GetText("language_settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("language_settings"))</h3>
+    <HelpLink Page="settings/language"/>
+</div>
 @(userConfig.GetText("U5412"))
 <hr />
 
-<form class="form-inline">
-    <label for="languageSelect" class="col-form-label mr-2">@(userConfig.GetText("language"))</label>
-    <select id="languageSelect" class="form-control form-control-sm mr-2" @bind="selectedLanguage">
-        @foreach (Language language in globalConfig.uiLanguages)
-        {
-            <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
-        }
-    </select>
-</form>
+<div class="form-group row">
+    <label class="col-form-label col-sm-2">@(userConfig.GetText("language"))</label>
+    <div class="col-sm-4">
+        <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
+            <ElementTemplate Context="language">
+                @(userConfig.GetText(language.Name))
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+</div>
 <hr />
-<button class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
+<button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
-    string? selectedLanguage;
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+    Language selectedLanguage = new Language();
 
     protected override void OnInitialized()
     {
-        selectedLanguage = userConfig.User.Language;
+        selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == userConfig.User.Language) ?? new Language();
         StateHasChanged();
     }
 
-    private async Task ChangeLanguage(string language)
+    private async Task ChangeLanguage(Language language)
     {
         try
         {
-            Log.WriteDebug("Change language", $"new language: {language}");
-            await userConfig.ChangeLanguage(language, apiConnection);
+            Log.WriteDebug("Change language", $"new language: {language.Name}");
+            await userConfig.ChangeLanguage(language.Name, apiConnection);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("change_language"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_language"), "", true);
         }
     }
 }

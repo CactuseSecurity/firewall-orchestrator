@@ -1,42 +1,55 @@
 ﻿@using FWO.Config.Api
-
+@using FWO.Middleware.Client
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @page "/monitoring/autodiscovery_logs"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
 
 <h3>@(userConfig.GetText("autodiscovery_logs"))</h3>
 @(userConfig.GetText("U7401"))
 <hr />
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("found_by"))" Field="@(x => x.UserId)" Sortable="true">
-        <Template>
-            @(uiUsers.FirstOrDefault(x => x.DbId == context.UserId)?.Name)
-        </Template>
-    </Column>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" Sortable="true" Filterable="true"/>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
-        <Template>
-            @(managements.FirstOrDefault(x => x.Id == context.ManagementId)?.Name)
-        </Template>
-    </Column>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
-    <Pager ShowPageNumber="true" ShowTotalCount="true" />
-</Table>
+@if(InitComplete)
+{
+    <div class="vheight75">
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("found_by"))" Field="@(x => x.UserId)" Sortable="true">
+                <Template>
+                    @(uiUsers.FirstOrDefault(x => x.DbId == context.UserId)?.Name)
+                </Template>
+            </Column>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
+                <Template>
+                    @(managements.FirstOrDefault(x => x.Id == context.ManagementId)?.Name)
+                </Template>
+            </Column>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<LogEntry> logEntrys = new List<LogEntry>();
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<Management> managements = new List<Management>();
+    private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -44,12 +57,20 @@
         {
             logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getAutodiscoveryLogEntrys);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
 
+            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
+            jwt.Validate();
+            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            else
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+
+            // managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            InitComplete = true;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
         }
     }
 }

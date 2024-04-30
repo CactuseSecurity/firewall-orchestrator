@@ -3,7 +3,7 @@
   package:
     name: "rsyslog"
     state: present
-  become: yes
+  become: true
 
 - name: create log dir for {{ product_name }} on ubuntu - owner syslog
   file:
@@ -12,7 +12,7 @@
     owner: syslog
     group: syslog
     mode: "0775"
-  become: yes
+  become: true
   when: ansible_facts['distribution'] == "Ubuntu"
     
 - name: create log dir for {{ product_name }} on debian - owner root
@@ -22,7 +22,7 @@
     owner: root
     group: root
     mode: "0775"
-  become: yes
+  become: true
   when: ansible_facts['distribution'] == "Debian"
 
 - name: change rsyslog config to receive logs
@@ -31,7 +31,7 @@
     block: |
       module(load="im{{ syslog_proto }}")
       input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
-  become: yes
+  become: true
 
 - name: create log dir for {{ product_name }} on redhat - owner root
   file:
@@ -41,7 +41,7 @@
     group: root
     mode: "0775"
   when: ansible_facts['distribution'] == "RedHat"
-  become: yes
+  become: true
 
 # - name: create db log file for {{ product_name }} - owner postgres
 #   file:
@@ -50,12 +50,12 @@
 #     owner: postgres
 #     group: adm
 #     mode: "0640"
-#   become: yes
+#   become: true
 
 - name: edit rsyslog to include fworch file logging
   blockinfile:
     path: "/etc/rsyslog.d/30-{{ product_name }}.conf"
-    create: yes
+    create: true
     block: |
       # syslog for {{ product_name }}; Log {{ product_name }} log messages to file
 
@@ -80,18 +80,18 @@
       if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="{{ fworch_log_dir }}/audit.log" template="fworch")
       if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="{{ fworch_log_dir }}/alert.log" template="fworch")
       if $programname == '{{ product_name }}-webhook' then action(type="omfile" file="{{ fworch_log_dir }}/webhook.log" template="fworch")
-  become: yes
+  become: true
 
 - name: edit logrotate
   blockinfile:
     path: "/etc/logrotate.d/{{ product_name }}"
-    create: yes
+    create: true
     block: |
       {{ fworch_log_dir }}/middleware.log {
           compress
           maxage 7
           rotate 99
-          size=+4096k
+          maxsize 4096k
           missingok
           copytruncate
           sharedscripts
@@ -107,7 +107,7 @@
           compress
           maxage 7
           rotate 99
-          size=+4096k
+          maxsize 4096k
           missingok
           copytruncate
           sharedscripts
@@ -123,7 +123,7 @@
           compress
           maxage 7
           rotate 99
-          size=+4096k
+          maxsize 4096k
           missingok
           copytruncate
           sharedscripts
@@ -138,7 +138,21 @@
       {{ fworch_log_dir }}/database.log 
       {{ fworch_log_dir }}/ldap.log 
       {{ fworch_log_dir }}/api.log 
-      {{ fworch_log_dir }}/importer-api.log 
+      {{ fworch_log_dir }}/importer-api.log {
+          compress
+          maxage 7
+          rotate 99
+          maxsize 4096k
+          missingok
+          copytruncate
+          sharedscripts
+              prerotate
+                {{ fworch_home }}/scripts/acquire_lock.py {{ fworch_api_importer_lockfile }} >/dev/null 2>&1
+              endscript
+              postrotate
+                {{ fworch_home }}/scripts/release_lock.py {{ fworch_api_importer_lockfile }} >/dev/null 2>&1
+              endscript
+      }
       {{ fworch_log_dir }}/audit.log 
       {{ fworch_log_dir }}/alert.log 
       {{ fworch_log_dir }}/webhook.log 
@@ -146,15 +160,15 @@
           compress
           maxage 7
           rotate 99
-          size=+4096k
+          maxsize 4096k
           missingok
           copytruncate
       }
 
-  become: yes
+  become: true
 
 - name: reload rsyslog service
   service:
     name: "rsyslog"
     state: restarted
-  become: yes
+  become: true

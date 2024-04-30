@@ -12,18 +12,22 @@ namespace FWO.Api.Data
         public long TaskId { get; set; }
 
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
-        public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
+        public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
 
-        public Cidr Cidr { get; set; }
+        [JsonProperty("device_id"), JsonPropertyName("device_id")]
+        public int? DeviceId { get; set; }
+
+        public Cidr Cidr { get; set; } = new Cidr();
 
         public RequestReqElement()
-        { }
+        {}
 
         public RequestReqElement(RequestReqElement element) : base (element)
         {
             Id = element.Id;
             TaskId = element.TaskId;
             RequestAction = element.RequestAction;
+            DeviceId = element.DeviceId;
             Cidr = new Cidr(element.Cidr != null ? element.Cidr.CidrString : "");
         }
     }

@@ -1,6 +1,7 @@
 fragment ruleOverview on rule {
   rule_id
   rule_uid
+  dev_id
   rule_action
   section_header: rule_head_text
   rule_comment
@@ -30,7 +31,7 @@ fragment ruleOverview on rule {
   access_rule
   nat_rule
   xlate_rule
-  rule_froms(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+  rule_froms(where: {object: {obj_create: {_lte: $relevantImportId}, obj_last_seen: {_gte: $relevantImportId}}}) {
     usr {
       ...userOverview
     }
@@ -42,7 +43,7 @@ fragment ruleOverview on rule {
     zone_name
     zone_id
   }
-  rule_tos(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+  rule_tos(where: {object: {obj_create: {_lte: $relevantImportId}, obj_last_seen: {_gte: $relevantImportId}}}) {
     usr {
       ...userOverview
     }
@@ -50,7 +51,7 @@ fragment ruleOverview on rule {
       ...networkObjectOverview
     }
   }
-  rule_services(where: {service:{svc_create:{_lte:$relevantImportId}, svc_last_seen:{_gte:$relevantImportId}}}) {
+  rule_services(where: {service: {svc_create: {_lte: $relevantImportId}, svc_last_seen: {_gte: $relevantImportId}}}) {
     service {
       ...networkServiceOverview
     }

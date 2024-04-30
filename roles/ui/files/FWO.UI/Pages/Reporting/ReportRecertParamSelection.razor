@@ -1,0 +1,99 @@
+﻿@using FWO.Config.Api
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<div class="p-3">
+    <h5 class="text-left">@(userConfig.GetText("recert_parameter"))</h5>
+    <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
+    <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="RecertFilter.RecertificationDisplayPeriod" />
+    <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true" SelectedElement="selectedOwner" 
+            SelectedElementChanged="SelectedOwnerChanged" Elements="ownerList">
+        <ElementTemplate Context="owner">
+            @owner.Name
+        </ElementTemplate>
+    </Dropdown>
+    <br>
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
+            @bind="RecertFilter.RecertShowAnyMatch"
+            @oninput="@(async () =>
+            { 
+                RecertFilter.RecertShowAnyMatch = !RecertFilter.RecertShowAnyMatch;
+                if (!RecertFilter.RecertShowAnyMatch) 
+                {
+                    if (FilterInput.Length > 0)
+                    {
+                        FilterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
+                    }
+                    else
+                    {
+                        FilterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
+                    }
+                }
+                else 
+                {
+                    FilterInput =  FilterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+                    FilterInput =  FilterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+                }
+                await FilterInputChanged.InvokeAsync(FilterInput);
+            })" />
+        <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
+    </div>
+</div>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public string FilterInput { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> FilterInputChanged { get; set; }
+
+    [Parameter]
+    public RecertFilter RecertFilter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<RecertFilter> RecertFilterChanged { get; set; }
+
+    private List<FwoOwner> ownerList = new List<FwoOwner>();
+    private FwoOwner? selectedOwner = null;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            RecertFilter.RecertificationDisplayPeriod = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if(RecertFilter.RecertOwnerList.Count > 0)
+        {
+            selectedOwner = ownerList.FirstOrDefault(o => o.Id == RecertFilter.RecertOwnerList.First());
+        }
+    }
+
+    private void SelectedOwnerChanged(FwoOwner newOwner)
+    {
+        selectedOwner = newOwner;
+        RecertFilter.RecertOwnerList = new();
+        if(newOwner != null)
+        {
+            RecertFilter.RecertOwnerList.Add(newOwner.Id);
+        }
+    }
+}

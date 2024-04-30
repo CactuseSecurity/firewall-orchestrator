@@ -4,8 +4,11 @@ mutation newOwner(
   $groupDn: String!
   $tenantId: Int
   $recertInterval: Int
-  $nextRecertDate: timestamp
   $appIdExternal: String!
+  $recertCheckParams: String
+  $criticality: String
+  $importSource: String
+  $commSvcPossible: Boolean
   ) {
   insert_owner(objects: {
     name: $name
@@ -13,8 +16,11 @@ mutation newOwner(
     group_dn: $groupDn
     tenant_id: $tenantId
     recert_interval: $recertInterval
-    next_recert_date: $nextRecertDate
     app_id_external: $appIdExternal
+    recert_check_params: $recertCheckParams
+    criticality: $criticality
+    import_source: $importSource
+    common_service_possible: $commSvcPossible
   }) {
     returning {
       newId: id

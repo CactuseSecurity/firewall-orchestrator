@@ -1,22 +1,26 @@
 ﻿@inherits LayoutComponentBase
 @using FWO.Config.Api
 @using FWO.Api.Client
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client.Queries
 @using FWO.Middleware.Client
 @using FWO.Ui.Auth
 @using FWO.Ui.Services
 @using System.Timers
+@using System.Security.Claims;
+@using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
 
 @inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider authenticationProvider
 @inject ProtectedSessionStorage sessionStorage
-@inject CircuitHandlerService circuitHandler
+@inject CircuitHandler circuitHandler
 
 <div style="z-index:15; top:0px;" class="position-sticky">
     <NavigationMenu @bind-ShowAlert="showAlert"/>
@@ -35,32 +39,48 @@
     <div class="@cssClass">
         <div class="d-flex flex-row justify-content-between">
             <div>@dialogTitle - @dialogMessage</div>
-            <div class="oi oi-x" @onclick="@(() => { messageDialogShow = false; StateHasChanged();})"></div>
+            <div class="@Icons.Close" @onclick="@(() => { messageDialogShow = false; StateHasChanged();})"></div>
         </div>
-        @if (showReloginInput)
-        {
-            <div class="input-group">
-              <input class="form-control form-control-sm @reloginCssClass" @bind="password" type="password" placeholder="Password" @onkeypress="@(() => reloginCssClass = "")">
-              <div class="input-group-append">
-                <button class="btn btn-sm btn-primary" @onclick="Relogin">Re-login</button>
-              </div>
-            </div>
-            @if (!string.IsNullOrEmpty(reloginErrorMessage))
-            {
-                <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>                
-            }
-        }
     </div>
 }
 
+<PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.Small>
+    <Body>
+        <p>@(reloginDialogText)</p>
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text"><span class="@Icons.Locked"></span></span>               
+            </div>
+            <input type="password" class="form-control @reloginCssClass" @bind="password" placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
+        </div>
+        @if (!string.IsNullOrEmpty(reloginErrorMessage))
+        {
+            <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (reloginAbortable)
+            {
+                <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">@(userConfig.GetText("cancel"))</button>
+            }
+            else
+            {
+                <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>                
+            }
+            <button type="button" class="btn btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
 @code
 {
-    Action<Exception?, string, string, bool>? DisplayMessageInUiFunction;
+    Action<Exception?, string, string, bool> DisplayMessageInUiFunction = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private ApiSubscription<List<Alert>>? alertSubscription;
+    private GraphQlApiSubscription<List<Alert>>? alertSubscription;
     private bool showAlert = false;
     private bool messageDialogShow = false;
     private string dialogTitle = "";
@@ -70,8 +90,12 @@
 
     private string reloginErrorMessage = "";
     private string reloginCssClass = "";
-    private bool showReloginInput;
+    private string reloginDialogTitle = "";
+    private string reloginDialogText = "";
+    private bool showReloginDialog;
+    private bool reloginAbortable;
     private string? password;
+    private ClaimsPrincipal? user;
 
     public enum MessageType
     {
@@ -83,7 +107,7 @@
 
     protected override void OnInitialized()
     {
-        var user = authenticationStateTask!.Result.User;
+        user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
         JwtEventService.OnPermissionChanged += OnPermissionsChanged;
@@ -93,12 +117,20 @@
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
     }
 
+    private async Task KeyHandler(KeyboardEventArgs ev)
+    {
+        if (ev.Code == "Enter")
+        {
+            await Relogin();
+        }
+        reloginCssClass = "";
+    }
+
     private void OnPermissionsChanged(object? sender, string userDn)
     {
         if (userDn == userConfig.User.Dn)
         {
-            showReloginInput = true;
-            ShowMessage(userConfig.GetText("permissions_title"), userConfig.GetText("permissions_text"), MessageType.Info, showtime: -1);
+            ShowReloginDialog(userConfig.GetText("permissions_title"), userConfig.GetText("permissions_text"), reloginAbortable: true);
         }
     }
 
@@ -106,8 +138,7 @@
     {
         if (userDn == userConfig.User.Dn)
         {
-            showReloginInput = true;
-            ShowMessage(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), MessageType.Info, showtime: -1);
+            ShowReloginDialog(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), reloginAbortable: true);
         }
     }
 
@@ -115,27 +146,35 @@
     {
         if (userDn == userConfig.User.Dn)
         {
-            showReloginInput = true;
-            ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime: -1);
+            ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
+    }
+
+    private void ShowReloginDialog(string title, string text, bool reloginAbortable)
+    {
+        reloginErrorMessage = "";
+        password = "";
+        this.reloginAbortable = reloginAbortable;
+        reloginDialogTitle = title;
+        reloginDialogText = text;
+        showReloginDialog = true;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task Relogin()
     {
         string errorMessage = userConfig.GetText("relogin_error");
-
         if (password == null)
         {
             password = "";
         }
         try
         {
-            RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Login(userConfig.User.Name,
-            password, apiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
+            RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Authenticate(userConfig.User.Name,
+            password, apiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK) 
             { 
-                showReloginInput = false;
-                messageDialogShow = false;
+                showReloginDialog = false;
                 reloginErrorMessage = "";
                 password = "";
                 return;
@@ -143,12 +182,12 @@
             else
             {
                 // There was an error trying to authenticate the user. Probably invalid credentials
-                errorMessage = (authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content);            
+                errorMessage = (authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content);
             }
         }
         catch (Exception ex)
-        { 
-            Log.WriteError("Re-login", "Re-login unsuccessful.", ex);
+        {
+            Log.WriteError("Re-login", "Re-login unsuccessful.", ex, userConfig.User.Name);
         }
 
         reloginErrorMessage = errorMessage;
@@ -157,7 +196,8 @@
 
     private void OnAlertUpdate(List<Alert> alerts)
     {
-        showAlert = alerts.Count() > 0;
+        user = authenticationStateTask!.Result.User;
+        showAlert = (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor)) && alerts.Count() > 0;
         InvokeAsync(StateHasChanged);
     }
 
@@ -180,7 +220,7 @@
                     cssClass = "footer alert alert-success fly-in-animation";
                     break;
                 case MessageType.Warning:
-                    cssClass = "footer alert alert-warning fly-in-animation";
+                    cssClass = "footer alert alert-warning-override  fly-in-animation";
                     break;
                 case MessageType.Error:
                     Task.Run(async () => await setAlert(title, message));
@@ -244,9 +284,9 @@
             {
                 Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
                 // TODO: Improve error handling for jwt expiry / api unreachable, so that no action leads to unhandled exception
-                if (!showReloginInput)
+                if (!showReloginDialog)
                 {
-                    showReloginInput = true;
+                    showReloginDialog = true;
                     ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime: -1);
                 }
                 return;
@@ -258,21 +298,20 @@
                 cause = userConfig.GetText("api_access");
                 description = userConfig.GetText("E0004");
             }
-            else if (ErrorFlag)
-            {
-                // the exception message is shown to the user
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
-                severity = 2;
-                cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
-                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}: {exception.Message} . " + userConfig.GetText("E0002");
-            }
             else
             {
-                // only title and message (if given) or unspecific error message is shown to the user
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
+                string role = "";
+                try
+                {
+                    JwtReader jwtReader = new JwtReader(userConfig.User.Jwt);
+                    jwtReader.Validate();
+                    role = jwtReader.GetRole();
+                }
+                catch(Exception){}
+                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
                 severity = 2;
                 cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
-                description = $"{(message != "" ? message : userConfig.GetText("E0001"))} . " + userConfig.GetText("E0002");
+                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
             }
         }
         ShowMessage(cause, description, messageType);
@@ -312,14 +351,14 @@
     {
         try
         {
-            Log.WriteAlert ($"source: \"{GlobalConfig.kUi}\"",
+            Log.WriteAlert ($"source: \"{GlobalConst.kUi}\"",
                 $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
             
             List<Alert> openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
             
             var Variables = new
             {
-                source = GlobalConfig.kUi,
+                source = GlobalConst.kUi,
                 userId = userConfig.User.DbId,
                 title = title,
                 description = message,

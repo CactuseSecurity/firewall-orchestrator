@@ -17,8 +17,6 @@ namespace FWO.Api.Data
         [JsonProperty("rule_num_numeric"), JsonPropertyName("rule_num_numeric")]
         public double OrderNumber { get; set; }
 
-        public int DisplayOrderNumber { get; set; }
-
         [JsonProperty("rule_name"), JsonPropertyName("rule_name")]
         public string? Name { get; set; } = "";
 
@@ -76,9 +74,6 @@ namespace FWO.Api.Data
         [JsonProperty("translate"), JsonPropertyName("translate")]
         public NatData NatData {get; set;} = new NatData();
 
-        public bool Certified { get; set; }
-        public string DeviceName { get; set; } = "";
-
         [JsonProperty("owner_name"), JsonPropertyName("owner_name")]
         public string OwnerName {get; set;} = "";
 
@@ -88,6 +83,16 @@ namespace FWO.Api.Data
         [JsonProperty("matches"), JsonPropertyName("matches")]
         public string IpMatch {get; set;} = "";
 
+        [JsonProperty("dev_id"), JsonPropertyName("dev_id")]
+        public int DeviceId { get; set; }
+
+        [JsonProperty("rule_custom_fields"), JsonPropertyName("rule_custom_fields")]
+        public string CustomFields { get; set; } = "";
+
+
+        public int DisplayOrderNumber { get; set; }
+        public bool Certified { get; set; }
+        public string DeviceName { get; set; } = "";
     }
 
 }

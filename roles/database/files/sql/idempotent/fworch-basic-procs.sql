@@ -36,6 +36,19 @@ END;
 $$
 LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION are_equal (jsonb, jsonb)
+    RETURNS boolean
+    AS $$
+BEGIN
+    IF (($1 IS NULL AND $2 IS NULL) OR $1 = $2) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+$$
+LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION are_equal (varchar, varchar)
     RETURNS boolean
     AS $$
@@ -252,35 +265,6 @@ $$
 LANGUAGE plpgsql;
 
 ----------------------------------------------------
--- FUNCTION:  get_dev_typ_id
--- Zweck:     liefert die dev_typ_id zu einem device-name zurueck
--- Parameter: device-name VARCHAR
--- RETURNS:   INTEGER dev_typ_id des uebergebenen devices
---
-CREATE OR REPLACE FUNCTION get_dev_typ_id (varchar)
-    RETURNS integer
-    AS $$
-DECLARE
-    devicename ALIAS FOR $1;
-    dev RECORD;
-BEGIN
-    SELECT
-        INTO dev dev_typ_id
-    FROM
-        device
-    WHERE
-        dev_name = devicename;
-    IF NOT FOUND THEN
-        -- TODO: Fehlerbehandlung
-        PERFORM
-            error_handling ('ERR_DEV_NOT_FOUND', devicename);
-    END IF;
-    RETURN dev.dev_typ_id;
-END;
-$$
-LANGUAGE plpgsql;
-
-----------------------------------------------------
 -- FUNCTION:  error_handling (einmal mit und einmal ohne variablen Anteil)
 -- Zweck:     gibt Fehlermeldung aus
 -- Parameter: error-string (id), [wert einer variablen]
@@ -418,155 +402,100 @@ END;
 $$
 LANGUAGE plpgsql;
 
----------------------------------------------------------------------------------------
--- instr functions that mimic Oracle's counterpart
--- Syntax: instr(string1, string2, [n], [m]) where [] denotes optional parameters.
+CREATE OR REPLACE FUNCTION get_last_change_admin_of_rulebase_change (BIGINT, INTEGER) RETURNS INTEGER AS
+$BODY$
+DECLARE
+    i_import_id			ALIAS FOR $1;
+    i_dev_id			ALIAS FOR $2;
+    r_rule				RECORD;
+    i_admin_counter		INTEGER;
+BEGIN 
+
+	SELECT INTO i_admin_counter COUNT(distinct import_admin) FROM changelog_rule
+		WHERE control_id=i_import_id AND dev_id=i_dev_id AND NOT import_admin IS NULL GROUP BY import_admin;
+	IF (i_admin_counter=1) THEN
+		SELECT INTO r_rule import_admin FROM changelog_rule
+			WHERE control_id=i_import_id AND dev_id=i_dev_id AND NOT import_admin IS NULL GROUP BY import_admin;
+--		RAISE NOTICE 'Found last_change_admin %', r_rule.import_admin;
+		IF FOUND THEN
+			RETURN r_rule.import_admin;
+		ELSE
+			RETURN NULL;
+		END IF;
+	ELSE
+		RETURN NULL;
+	END IF;
+END; 
+$BODY$
+  LANGUAGE 'plpgsql' VOLATILE;
+
+----------------------------------------------------
+-- FUNCTION:    get_last_change_admin_of_obj_delete(import_id, mgm_id)
+-- Zweck:       liefert den change_admin fuer einen Import zurueck (fuer svc- nwobj u. usr_deletes
+--              benoetigt fuer obj / svc / usr _deletes
+--              Annahme: ein Admin hat alle Changes an einem Management zu einem Zeitpunkt gemacht
+--						 wenn nicht, dann wird NULL zurueckgeliefert
+-- Parameter1:  import id
+-- RETURNS:     id des change_admins
 --
--- Searches string1 beginning at the nth character for the mth occurrence
--- of string2.  If n is negative, search backwards.  If m is not passed,
--- assume 1 (search starts at first character).
+
+-- DROP FUNCTION get_last_change_admin_of_obj_delete (BIGINT);
+CREATE OR REPLACE FUNCTION get_last_change_admin_of_obj_delete (BIGINT) RETURNS INTEGER AS
+$BODY$
+DECLARE
+    i_import_id			ALIAS FOR $1;
+    r_obj				RECORD;
+    i_admin_counter		INTEGER;
+    i_admin_id			INTEGER;
+BEGIN 
+	i_admin_counter := 0;
+	FOR r_obj IN
+		SELECT import_admin FROM changelog_object WHERE control_id=i_import_id AND NOT import_admin IS NULL
+		UNION
+		SELECT import_admin FROM changelog_service WHERE control_id=i_import_id AND NOT import_admin IS NULL
+		UNION		
+		SELECT import_admin FROM changelog_user WHERE control_id=i_import_id AND NOT import_admin IS NULL
+	LOOP
+		i_admin_counter := i_admin_counter + 1;
+		i_admin_id := r_obj.import_admin;
+	END LOOP;
+	IF (i_admin_counter=1) THEN
+		RETURN i_admin_id;
+	ELSE
+		RETURN NULL;
+	END IF;
+END; 
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE;
+
+----------------------------------------------------
+-- FUNCTION:	get_previous_import_id(devid, zeitpunkt)
+-- Zweck:		liefert zu einem Device + Zeitpunkt die Import ID des vorherigen Imports
+-- Parameter1:	Device_id (INTEGER)
+-- Parameter2:	Time (timestamp)
+-- RETURNS:		ID des vorherigen Imports
 --
-CREATE OR REPLACE FUNCTION instr (varchar, varchar)
-    RETURNS integer
-    AS $$
+CREATE OR REPLACE FUNCTION get_previous_import_id(INTEGER,TIMESTAMP) RETURNS BIGINT AS $$
 DECLARE
-    pos integer;
+	i_device_id ALIAS FOR $1;
+	t_report_time_in ALIAS FOR $2;
+	t_report_time TIMESTAMP;
+	i_mgm_id INTEGER;
+	i_prev_import_id BIGINT;
 BEGIN
-    pos := instr ($1, $2, 1);
-    RETURN pos;
+	IF t_report_time_in IS NULL THEN
+		t_report_time := now();
+	ELSE
+		t_report_time := t_report_time_in;
+	END IF;
+	SELECT INTO i_mgm_id mgm_id FROM device WHERE dev_id=i_device_id;
+	SELECT INTO i_prev_import_id max(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND
+		start_time<=t_report_time AND NOT stop_time IS NULL AND successful_import;
+	IF NOT FOUND THEN
+		RETURN NULL;
+	ELSE
+--		RAISE NOTICE 'found get_previous_import_id: %', i_prev_import_id;
+	    RETURN i_prev_import_id;
+	END IF;
 END;
-$$
-LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION instr (varchar, varchar, integer)
-    RETURNS integer
-    AS $$
-DECLARE
-    string ALIAS FOR $1;
-    string_to_search ALIAS FOR $2;
-    beg_index ALIAS FOR $3;
-    pos integer NOT NULL DEFAULT 0;
-    temp_str varchar;
-    beg integer;
-    length integer;
-    ss_length integer;
-BEGIN
-    IF beg_index > 0 THEN
-        temp_str := substring(string FROM beg_index);
-        pos := position(string_to_search IN temp_str);
-        IF pos = 0 THEN
-            RETURN 0;
-        ELSE
-            RETURN pos + beg_index - 1;
-        END IF;
-    ELSE
-        ss_length := char_length(string_to_search);
-        length := char_length(string);
-        beg := length + beg_index - ss_length + 2;
-        WHILE beg > 0 LOOP
-            temp_str := substring(string FROM beg FOR ss_length);
-            pos := position(string_to_search IN temp_str);
-            IF pos > 0 THEN
-                RETURN beg;
-            END IF;
-            beg := beg - 1;
-        END LOOP;
-        RETURN 0;
-    END IF;
-END;
-$$
-LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION instr (varchar, varchar, integer, integer)
-    RETURNS integer
-    AS $$
-DECLARE
-    string ALIAS FOR $1;
-    string_to_search ALIAS FOR $2;
-    beg_index ALIAS FOR $3;
-    occur_index ALIAS FOR $4;
-    pos integer NOT NULL DEFAULT 0;
-    occur_number integer NOT NULL DEFAULT 0;
-    temp_str varchar;
-    beg integer;
-    i integer;
-    length integer;
-    ss_length integer;
-BEGIN
-    IF beg_index > 0 THEN
-        beg := beg_index;
-        temp_str := substring(string FROM beg_index);
-        FOR i IN 1..occur_index LOOP
-            pos := position(string_to_search IN temp_str);
-            IF i = 1 THEN
-                beg := beg + pos - 1;
-            ELSE
-                beg := beg + pos;
-            END IF;
-            temp_str := substring(string FROM beg + 1);
-        END LOOP;
-        IF pos = 0 THEN
-            RETURN 0;
-        ELSE
-            RETURN beg;
-        END IF;
-    ELSE
-        ss_length := char_length(string_to_search);
-        length := char_length(string);
-        beg := length + beg_index - ss_length + 2;
-        WHILE beg > 0 LOOP
-            temp_str := substring(string FROM beg FOR ss_length);
-            pos := position(string_to_search IN temp_str);
-            IF pos > 0 THEN
-                occur_number := occur_number + 1;
-                IF occur_number = occur_index THEN
-                    RETURN beg;
-                END IF;
-            END IF;
-            beg := beg - 1;
-        END LOOP;
-        RETURN 0;
-    END IF;
-END;
-$$
-LANGUAGE plpgsql;
-
-
--- CREATE OR REPLACE FUNCTION add_data_issue(varchar,int,timestamp,BIGINT,varchar,varchar,varchar,bigint,int,int,varchar,varchar,varchar) RETURNS VOID AS $$
--- DECLARE
---     v_source ALIAS FOR $1;
---     i_severity ALIAS FOR $2;
---     t_timestamp ALIAS FOR $3;
--- 	i_current_import_id ALIAS FOR $4;
--- 	v_obj_name ALIAS FOR $5;
--- 	v_obj_uid ALIAS FOR $6;
--- 	v_rule_uid ALIAS FOR $7;
---     i_rule_id  ALIAS FOR $8;
---     i_mgm_id ALIAS FOR $9;
---     i_dev_id   ALIAS FOR $10;
--- 	v_obj_type ALIAS FOR $11;
--- 	v_suspected_cause ALIAS FOR $12;
--- 	v_description ALIAS FOR $13;
---     v_log_string VARCHAR;
--- BEGIN
--- 	INSERT INTO log_data_issue (
---         source, severity, issue_timestamp, import_id, object_name, object_uid, rule_uid, 
---         rule_id, issue_mgm_id, issue_dev_id, object_type, suspected_cause, description ) 
--- 	VALUES ( 
---         v_source, i_severity, t_timestamp, i_current_import_id, v_obj_name, v_obj_uid, v_rule_uid,
---         i_rule_id, i_mgm_id, i_dev_id, v_obj_type, v_suspected_cause, v_description);
--- 	RETURN;
---     v_log_string := 'src=' || v_source || ', sev=' || v_severity;
---     IF t_timestamp IS NOT NULL  THEN
---         v_log_string := v_log_string || ', time=' || t_timestamp; 
---     END IF;
---     IF i_current_import_id IS NOT NULL  THEN
---         v_log_string := v_log_string || ', import_id=' || CAST(i_current_import_id AS VARCHAR); 
---     END IF;
---     IF v_obj_name IS NOT NULL  THEN
---         v_log_string := v_log_string || ', object_name=' || v_obj_name; 
---     END IF;
---     -- todo: add more issue information
---     RAISE INFO '%', v_log_string; -- send the log to syslog as well
--- END;
--- $$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;

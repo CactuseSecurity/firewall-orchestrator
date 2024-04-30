@@ -6,5 +6,5 @@
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
-# when: installation_mode == 'new'
+  become: true
+  

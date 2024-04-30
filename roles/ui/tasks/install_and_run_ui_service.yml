@@ -4,11 +4,11 @@
       template:
         src: fworch-blazor-ui.service.j2
         dest: "/lib/systemd/system/{{ ui_service_name }}.service"
-        backup: yes
+        backup: true
         mode: "0644"
         owner: "root"
 
-  become: yes
+  become: true
   environment: "{{ proxy_env }}"
 
 # note:   command: "dotnet publish --no-self-contained -c {{ dotnet_mode }} -o {{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }} -p:PublishSingleFile=true -r linux-x64"
@@ -18,19 +18,25 @@
   command: "dotnet publish --no-self-contained -c {{ dotnet_mode }} -o {{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}"
   args:
     chdir: "{{ ui_start_dir }}"
-  become: yes
+  become: true
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
+  register: publish_result
+
+- name: fail if publish returned an error
+  fail:
+    msg: "could not publish ui server successfully: {{ publish_result }}"
+  when: publish_result.rc != 0
 
 - name: make blazor ui run at host startup
   systemd:
     name: "{{ ui_service_name }}"
-    enabled: yes
-  become: yes
+    enabled: true
+  become: true
 
 - name: start blazor ui
   systemd:
     name: "{{ ui_service_name }}"
     state: restarted
-    daemon_reload: yes
-  become: yes
+    daemon_reload: true
+  become: true

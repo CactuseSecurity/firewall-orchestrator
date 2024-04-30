@@ -3,6 +3,12 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
+    public enum RuleOwnershipMode
+    {
+        mixed, 
+        exclusive
+    }
+
     public class FwoOwnerBase
     {
         [JsonProperty("name"), JsonPropertyName("name")]
@@ -23,9 +29,6 @@ namespace FWO.Api.Data
         [JsonProperty("recert_interval"), JsonPropertyName("recert_interval")]
         public int? RecertInterval { get; set; }
 
-        [JsonProperty("next_recert_date"), JsonPropertyName("next_recert_date")]
-        public DateTime? NextRecertDate { get; set; }
-
         [JsonProperty("app_id_external"), JsonPropertyName("app_id_external")]
         public string ExtAppId { get; set; } = "";
 
@@ -41,8 +44,12 @@ namespace FWO.Api.Data
             IsDefault = owner.IsDefault;
             TenantId = owner.TenantId;
             RecertInterval = owner.RecertInterval;
-            NextRecertDate = owner.NextRecertDate;
             ExtAppId = owner.ExtAppId;
+        }
+
+        public virtual string Display()
+        {
+            return Name + " (" + ExtAppId + ")";
         }
 
         public virtual bool Sanitize()

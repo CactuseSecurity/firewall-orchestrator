@@ -19,13 +19,13 @@
     dest: "{{ fworch_home }}/backup_api"
   delegate_to: "{{ inventory_hostname }}"
   when: api_dir_check.stat.exists and installation_mode == "upgrade"
-  become: yes
+  become: true
 
 - name: remove api home
   file:
     path: "{{ api_home }}"
     state: absent
-  become: yes
+  become: true
 
 - name: create api home
   file:
@@ -34,7 +34,7 @@
     mode: "0755"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
 
 - name: create api bin
   file:
@@ -43,7 +43,7 @@
     mode: "0755"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
 
 - name: install apache2
   import_tasks: api-apache-install-and-setup.yml
@@ -51,26 +51,9 @@
 - name: hasura install 
   import_tasks: hasura-install.yml
 
-- name: settings grants for hasura schema old ansible
-  include_tasks: grants-ansible-pre2.10.yml
-  when: ansible_version.full is version('2.10', '<')
-
-- name: settings grants for hasura schema new ansible
-  include_tasks: grants-ansible-2.10.yml
-  when: ansible_version.full is version('2.10', '>=')
-
 - name: include upgrade script
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"
-
-- name: copy fworch config export and import scripts
-  copy:
-    src: scripts
-    dest: "{{ fworch_home }}"
-    mode: "0755"
-    owner: "{{ fworch_user}}"
-    group: "{{ fworch_user}}"
-  become: yes
 
 - name: copy fwo_api.py for scripting from importer
   copy:
@@ -79,7 +62,7 @@
     mode: "0644"
     owner: "{{ fworch_user}}"
     group: "{{ fworch_user}}"
-  become: yes
+  become: true
 
 - name: api create documentation
   import_tasks: api-create-docu.yml
@@ -91,4 +74,13 @@
   changed_when: true
   notify: "api handler"
   when: installation_mode == "upgrade"
-  become: yes
+  become: true
+
+- name: set grants for hasura schemas (after hasura install)
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: "GRANT USAGE ON SCHEMA {{ item }} TO dbbackupusers; Grant select on ALL TABLES in SCHEMA {{ item }} to group dbbackupusers; ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }} GRANT SELECT ON TABLES TO group dbbackupusers;"
+  become: true
+  become_user: postgres
+  loop:
+    - hdb_catalog

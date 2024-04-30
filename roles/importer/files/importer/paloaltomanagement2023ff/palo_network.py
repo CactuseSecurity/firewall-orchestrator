@@ -5,16 +5,46 @@ import ipaddress
 
 
 def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
+    logger = getFwoLogger()
     nw_objects = []
+    nw_tagged_groups = {}
     for obj_orig in full_config["/Objects/Addresses"]:
         nw_objects.append(parse_object(obj_orig, import_id, config2import, nw_objects))
+        if 'tag' in obj_orig and 'member' in obj_orig['tag']:
+            logger.info("found simple network object with tags: " + obj_orig['@name'])
+            for t in obj_orig['tag']['member']:
+                collect_tag_information(nw_tagged_groups, "#"+t, obj_orig['@name'])
+
+    for tag in nw_tagged_groups:
+        logger.info("handling nw_tagged_group: " + tag + " with members: " + list_delimiter.join(nw_tagged_groups[tag]))
+        obj = {}
+        obj["obj_name"] = tag
+        obj["obj_uid"] = tag
+        obj["obj_comment"] = 'dynamic group defined by tagging'
+        obj['control_id'] = import_id
+        obj['obj_typ'] = 'group'
+        members = nw_tagged_groups[tag] # parse_dynamic_object_group(obj_grp_orig, nw_tagged_groups)
+        obj['obj_members'] = list_delimiter.join(members)
+        obj['obj_member_refs'] = list_delimiter.join(members)
+        nw_objects.append(obj)
 
     for obj_grp_orig in full_config["/Objects/AddressGroups"]:
+        logger.info("found network group: " + obj_grp_orig['@name'])
         obj_grp = extract_base_object_infos(obj_grp_orig, import_id, config2import, nw_objects)
         obj_grp["obj_typ"] = "group"
-        obj_grp["obj_member_refs"], obj_grp["obj_member_names"] = parse_obj_group(obj_grp_orig, import_id, nw_objects, config2import)
+        if 'static' in obj_grp_orig and 'filter' in obj_grp_orig['static']:
+            obj_grp["obj_member_refs"], obj_grp["obj_member_names"] = parse_static_obj_group(obj_grp_orig, import_id, nw_objects, config2import)
+        if 'dynamic' in obj_grp_orig and 'filter' in obj_grp_orig['dynamic']:
+            members = parse_dynamic_object_group(obj_grp_orig, nw_tagged_groups)
+            obj_grp["obj_member_refs"] = list_delimiter.join(members)
+            obj_grp["obj_member_names"] = list_delimiter.join(members)
         nw_objects.append(obj_grp)
-
+        if 'tag' in obj_grp_orig and 'member' in obj_grp_orig['tag']:
+            logger.info("found network group with tags: " + obj_grp_orig['@name'])
+            for t in obj_grp_orig['tag']['member']:
+                logger.info("    found tag " + t)
+                collect_tag_information(nw_tagged_groups, "#"+t, obj_grp_orig['@name'])
+    
     config2import['network_objects'] = nw_objects
 
 
@@ -44,11 +74,25 @@ def extract_base_object_infos(obj_orig, import_id, config2import, nw_objects):
     return obj
 
 
-def parse_obj_group(orig_grp, import_id, nw_objects, config2import, id = None):
+def parse_dynamic_object_group(orig_grp, nw_tagged_groups):
+    if "dynamic" in orig_grp:
+        if 'filter' in orig_grp['dynamic']:
+            if ' ' not in orig_grp['dynamic']['filter']:
+                # just a single tag
+                # add all nw objects with the tag to this group
+                tag = "#" + orig_grp['dynamic']['filter'][1:-1]
+                if tag in nw_tagged_groups:
+                    return nw_tagged_groups[tag]
+            else:
+                # later: deal with more complex tagging (and/or)
+                return []
+    return []
+
+
+def parse_static_obj_group(orig_grp, import_id, nw_objects, config2import, id = None):
     refs = []
     names = []
-    if "dynamic" in orig_grp:
-        pass
+
     if "static" in orig_grp and "member" in orig_grp["static"]:
         for m in orig_grp['static']['member']:
             names.append(m)
@@ -63,14 +107,6 @@ def parse_obj_list(nw_obj_list, import_id, obj_list, id, type='network'):
         names.append(obj_name)
         refs.append(lookup_obj_uid(obj_name, obj_list, import_id, type=type))
     return list_delimiter.join(refs), list_delimiter.join(names)
-
-
-# def add_network_object(config2import, ip=None):
-#     if "-" in str(ip):
-#         type = 'ip_range'
-#     else:
-#         type = 'host'
-#     return {'ip': ip, 'name': ip, 'id': ip, 'type': type}
 
 
 def lookup_obj_uid(obj_name, obj_list, import_id, type='network'):
@@ -130,3 +166,10 @@ def add_ip_obj(ip_list, obj_list, import_id):
         refs.append(ip_obj['obj_uid'])
         names.append(ip_obj['obj_name'])
     return list_delimiter.join(refs), list_delimiter.join(names)
+
+
+def collect_tag_information(tagged_groups, tag, obj_name):
+    if tag in tagged_groups.keys():
+        tagged_groups[tag].append(obj_name)
+    else:
+        tagged_groups.update({tag: [obj_name]})

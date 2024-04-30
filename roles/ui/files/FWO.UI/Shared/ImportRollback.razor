@@ -1,11 +1,12 @@
 ﻿@using FWO.Config.Api
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("rollback_import") + ": " + ManagementId)" Show="@RollbackMode" OnClose="() => RollbackMode = false">
+<PopUp Title="@(userConfig.GetText("rollback_import") + ": " + ManagementId)" Show="@RollbackMode" Size=PopupSize.Small OnClose="() => RollbackMode = false">
     <Body>
         @if (RollbackMode)
         {
@@ -21,34 +22,25 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, importer" Context="xxx">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}")" Context="xxx">
                 <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="async () => {await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode);}">@(userConfig.GetText("rollback"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode);}">@(userConfig.GetText("rollback"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
+<InProgress Display="workInProgress"/>
 
-<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
-    <Body>
-        @if (workInProgress)
-        {
-            <div class="row">
-                <div class="spinner-border mx-auto align-self-center" role="status"></div>
-            </div>
-        }
-    </Body>
-</PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public int ManagementId { get; set; }
@@ -85,18 +77,18 @@
             {
                 Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {ManagementId}");
                 workInProgress = false;
-                DisplayMessageInUi!(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
+                DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
             }
             else
             {
                 workInProgress = false;
-                DisplayMessageInUi!(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5106"), false);
+                DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5106"), false);
             }
         }
         catch (System.Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("rollback_import"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
         }
     }
 }

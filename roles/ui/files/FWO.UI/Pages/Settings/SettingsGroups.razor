@@ -1,5 +1,6 @@
 ﻿@using BlazorTable
 @using System.Net
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Ui.Services
@@ -9,39 +10,49 @@
 @using RestSharp
 
 @page "/settings/groups"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("groups"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("groups"))</h3>
+    <HelpLink Page="settings/groups"/>
+</div>
 @(userConfig.GetText("U5214"))
 <hr />
 
-<div class="form-group row">
-    <button class="btn btn-success m-2" @onclick="NewGroup">@(userConfig.GetText("add_new_group"))</button>
+<div class="btn-group m-1">
+    <button type="button" class="btn btn-sm btn-success" @onclick="NewGroup">@(userConfig.GetText("add_new_group"))</button>
     @if (showSampleRemoveButton)
     {
-        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData" data-toggle="tooltip" title="@(userConfig.PureLine("H5302"))">@(userConfig.GetText("remove_sample_data"))</button>
     }
 </div>
 
-<div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="UserGroup" Items="groups" PageSize="0" ColumnReorder="true">
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="UserGroup" Items="groups" PageSize="0" ColumnReorder="true">
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("group_action"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-warning" @onclick="() => EditGroup(context)">@(userConfig.GetText("edit_group"))</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteGroup(context)">@(userConfig.GetText("delete_group"))</button>
+                <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5311"))">
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditGroup(context)">@(userConfig.GetText("edit_group"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteGroup(context)">@(userConfig.GetText("delete_group"))</button>
                 </div>
             </Template>
         </Column>
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("user_action"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => AddUserToGroup(context)">@(userConfig.GetText("assign_user"))</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveUserFromGroup(context)">@(userConfig.GetText("remove_user"))</button>
+                <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5312"))">
+                    <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUserToGroup(context)">@(userConfig.GetText("assign_user"))</button>
+                    @if(context.Users.Count > 0)
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveUserFromGroup(context)">@(userConfig.GetText("remove_user"))</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove_user"))</button>
+                    }
                 </div>
             </Template>
         </Column>
@@ -59,20 +70,20 @@
     </Table>
 </div>
 
-<PopUp Title="@((AddGroupMode ? userConfig.GetText("add_new_group") : userConfig.GetText("edit_group")))" Show="@EditGroupMode" OnClose="() => EditGroupMode = false">
+<PopUp Title="@((AddGroupMode ? userConfig.GetText("add_new_group") : userConfig.GetText("edit_group")))" Show="@EditGroupMode" Size=PopupSize.Small OnClose="() => EditGroupMode = false">
     <Body>
         @if (EditGroupMode)
         {
             <form onsubmit="return false">
-                <div class="form-group row">
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5313"))">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-10">
                         <input type="text" class="form-control form-control-sm" @bind="newGroupName" />
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5315"))">
                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner_group")):</label>
-                    <div class="col-sm-8">
+                    <div class="col-sm-2">
                         @if (AddGroupMode)
                         {
                             <input type="checkbox" @bind="actGroup.OwnerGroup">
@@ -83,22 +94,16 @@
                         }
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("roles")):</label>
                     <div class="col-sm-10">
-                        @if (actGroup.OwnerGroup)
+                        @if (AddGroupMode)
                         {
-                            <label class="m-2">recertifier</label>
-                        }                  
-                        else if (AddGroupMode)
-                        {
-                            <select class="form-control-sm col-sm" @bind="selectedRoleName">
-                                <option value="null">@(userConfig.GetText("none"))</option>
-                                @foreach (Role role in availableRoles)
-                                {
-                                    <option value="@role.Name">@(role.Name)</option>
-                                }
-                            </select>                    
+                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="@(actGroup.OwnerGroup ? ownerGroupRoles : availableRoles)" Nullable="true">
+                                <ElementTemplate Context="role">
+                                    @role.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         }
                         else
                         {
@@ -111,164 +116,39 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_group"))" Show="@DeleteGroupMode" OnClose="() => DeleteGroupMode = false">
-    <Body>
-        @if (DeleteGroupMode)
-        {
-            <p>@(deleteGroupMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            @if (DeleteGroupAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteGroup()">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<SearchUser @bind-Display="AddUserMode" AddUser="AddUserFromUiUsers" UserSearchMode="true" GroupSearchMode="false" Title="@(actGroup.Name)"/>
+<RemoveUser @bind-Display="RemoveUserMode" Remove="RemoveUserFromGroup" Users="actGroup.Users" Title="@(userConfig.GetText("remove_user_from_group") + ": " + actGroup.Name)" Label="@(userConfig.GetText("user"))"/>
+<ConfirmDelete @bind-Display="DeleteGroupMode" PerformAction="DeleteGroup" Title="@userConfig.GetText("delete_group")" DeleteMessage="@deleteGroupMessage" DeleteAllowed="DeleteGroupAllowed"/>
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
+<InProgress Display="workInProgress"/>
 
-<PopUp Title="@(userConfig.GetText("assign_user_to_group") + ": " + actGroup.Name)" Show="@AddUserMode" Large="true" OnClose="() => AddUserMode = false">
-    <Body>
-        @if (AddUserMode)
-        {
-            <form>
-                <form class="form-inline">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
-                    <div class="col-sm-8">
-                        <select class="form-control form-control-sm" @bind="selectedUiUser">
-                            @foreach (UiUser user in uiUsers)
-                            {
-                                <option value="@user.Dn">@(user.Dn)</option>
-                            }
-                        </select>
-                    </div>
-                </form>
-            </form>
-        }
-    </Body>
-    <Footer>
-        <AuthorizeView Roles="admin">
-            <Authorized>
-                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-            </Authorized>
-            <NotAuthorized>
-                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-            </NotAuthorized> 
-        </AuthorizeView>
-        <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("remove_user_from_group") + ": " + actGroup.Name)" Show="@RemoveUserMode" OnClose="() => RemoveUserMode = false">
-    <Body>
-        @if (RemoveUserMode)
-        {
-            <form>
-                <div class="form-group row">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
-                    <div class="col-sm-8">
-                        <select class="form-control form-control-sm" @bind="selectedUserToDelete">
-                            @foreach (UiUser user in actGroup.Users)
-                            {
-                                <option value="@user.Dn">@(user.Dn)</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-            </form>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="async () => await RemoveUserFromGroup(selectedUserToDelete)" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@SampleRemoveMode" OnClose="() => SampleRemoveMode = false">
-    <Body>
-        @if (SampleRemoveMode)
-        {
-            <p>@(sampleRemoveMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            @if (SampleRemoveAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("remove"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
-    <Body>
-        @if (workInProgress)
-        {
-            <div class="row">
-                <div class="spinner-border mx-auto align-self-center" role="status"></div>
-            </div>
-        }
-    </Body>
-</PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
-    private List<UserGroup> groups = new List<UserGroup>();
-    private List<UserGroup> sampleGroups = new List<UserGroup>();
-    private List<UiUser> uiUsers = new List<UiUser>();
-    private List<Role> roles = new List<Role>();
-    private List<Role> availableRoles = new List<Role>();
-
-    private string selectedUiUser = "";
-    private string selectedUserToDelete = "";
-    private string? selectedRoleName;
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+    private List<UserGroup> groups = new ();
+    private List<UserGroup> sampleGroups = new ();
+    private List<Role> roles = new ();
+    private List<Role> availableRoles = new ();
+    private List<Role> ownerGroupRoles = new ();
+    private Role? selectedRole;
     private bool showSampleRemoveButton = false;
 
-    private UserGroup actGroup = new UserGroup();
+    private UserGroup actGroup = new ();
     private string newGroupName = "";
 
     private bool AddGroupMode = false;
@@ -278,7 +158,7 @@
     private bool RemoveUserMode = false;
     private bool SampleRemoveMode = false;
 
-    private bool SampleRemoveAllowed = false;
+    private bool sampleRemoveAllowed = false;
     private bool DeleteGroupAllowed = false;
 
     private string sampleRemoveMessage = "";
@@ -290,21 +170,19 @@
     {
         try
         { 
-            groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!);
+            groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi);
             CollectSampleGroups();
-
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
-            uiUsers = uiUsers.FindAll(x => x.DbId != 0);
 
             // get roles from internal ldap
             await GetRolesFromInternalLdap();
             SynchronizeGroupsToRoles();
 
-            availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
+            availableRoles = roles.FindAll(x => (x.Name != Roles.Anonymous && x.Name != Roles.MiddlewareServer));
+            ownerGroupRoles = roles.FindAll(x => (x.Name == Roles.Recertifier || x.Name == Roles.Modeller));
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -328,12 +206,12 @@
             roles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
             if (roles.Count == 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_roles"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
         }
     }
     private void SynchronizeGroupsToRoles()
@@ -353,7 +231,7 @@
 
     private void NewGroup()
     {
-        selectedRoleName = null;
+        selectedRole = null;
         EditGroup(new UserGroup());
         AddGroupMode = true;
     }
@@ -367,27 +245,22 @@
 
     private async Task Save()
     {
-        EditGroupMode = false;
         try
         {
             bool shortened = false;
             newGroupName = Sanitizer.SanitizeMand(newGroupName, ref shortened);
             if(shortened)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_group"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_group"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
             {
                 if (AddGroupMode)
                 {
                     actGroup.Roles = new List<string>();
-                    if(actGroup.OwnerGroup)
+                    if(selectedRole != null)
                     {
-                        actGroup.Roles.Add("recertifier");
-                    }
-                    else if(selectedRoleName != null)
-                    {
-                        actGroup.Roles.Add(selectedRoleName);
+                        actGroup.Roles.Add(selectedRole.Name);
                     }
 
                     // insert new group to ldap
@@ -396,7 +269,7 @@
                     
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null || middlewareServerResponse.Data == "")
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
                     }
                     else
                     {
@@ -416,7 +289,7 @@
 
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null || middlewareServerResponse.Data == "")
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
                     }
                     else
                     {
@@ -427,11 +300,12 @@
                         EditGroupMode = false;
                     }
                 }
+                CollectSampleGroups();
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_group"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_group"), "", true);
         }
     }
 
@@ -439,12 +313,12 @@
     {
         if (newGroupName == null || newGroupName == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_group"), userConfig.GetText("E5234"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_group"), userConfig.GetText("E5234"), true);
             return false;
         }
         else if(groups.Exists(x => x.Name == newGroupName))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_group"), userConfig.GetText("E5235"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_group"), userConfig.GetText("E5235"), true);
             return false;
         }
         return true;
@@ -463,14 +337,14 @@
                     RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(addGroupToRoleParameters);
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5246"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5246"), true);
                     }
                 }
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
         }
     }
 
@@ -499,7 +373,7 @@
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteGroup(groupDeleteParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
             }
             else
             {
@@ -509,89 +383,86 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_group"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_group"), "", true);
         }
+        StateHasChanged();
     }
 
     private void AddUserToGroup(UserGroup group)
     {
         AddUserMode = true;
         actGroup = group;
-        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.First().Dn);
     }
 
     private void RemoveUserFromGroup(UserGroup group)
     {
         RemoveUserMode = true;
         actGroup = group;
-        selectedUserToDelete = (actGroup.Users.Count == 0 ? "" : actGroup.Users.First().Dn);
     }
 
-    private async Task AddUserFromUiUsers(string userDn)
+    private async Task AddUserFromUiUsers(UiUser selectedUser)
     {
-        UiUser? user = uiUsers.FirstOrDefault(x => x.Dn == userDn);
-        if (user == null)
+        if (selectedUser.Dn == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5240"), true);
+            DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5240"), true);
         }
-        else if (actGroup.Users.Contains(user))
+        else if (actGroup.Users.Contains(selectedUser))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5241"), true);
+            DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5241"), true);
         }
         else
         {
             // assign user to group in LDAP
             try
             {
-                GroupAddDeleteUserParameters groupAddParameters = new GroupAddDeleteUserParameters { UserDn = userDn, GroupDn = actGroup.Dn };
+                GroupAddDeleteUserParameters groupAddParameters = new GroupAddDeleteUserParameters { UserDn = selectedUser.Dn, GroupDn = actGroup.Dn };
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(groupAddParameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
                 }
                 else
                 {
-                    actGroup.Users.Add(user);
+                    actGroup.Users.Add(selectedUser);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     AddUserMode = false;
                 }
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("assign_user_to_group"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("assign_user_to_group"), "", true);
             }
         }
     }
 
-    private async Task RemoveUserFromGroup(string userDn)
+    private async Task RemoveUserFromGroup(UiUser selectedUserToDelete)
     {
-        var itemToRemove = actGroup.Users.Find(x => x.Dn == userDn);
-        if (itemToRemove != null)
+        if (selectedUserToDelete.Dn != "")
         {
             // remove user from group in LDAP
             try
             {
-                GroupAddDeleteUserParameters removeUserFromGroupParameters = new GroupAddDeleteUserParameters { GroupDn = actGroup.Dn, UserDn = userDn };
+                GroupAddDeleteUserParameters removeUserFromGroupParameters = new GroupAddDeleteUserParameters { GroupDn = actGroup.Dn, UserDn = selectedUserToDelete.Dn };
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromGroup(removeUserFromGroupParameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5243"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5243"), true);
                 }
                 else
                 {
-                    actGroup.Users.Remove(itemToRemove);
+                    actGroup.Users.Remove(selectedUserToDelete);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     RemoveUserMode = false;
                 }
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("remove_user_from_group"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("remove_user_from_group"), "", true);
             }
         }
         else
         {
-            DisplayMessageInUi!(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5244"), true);
+            DisplayMessageInUi(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5244"), true);
         }
     }
 
@@ -600,12 +471,12 @@
         if (sampleGroups.Exists(group => (group.Users.Exists(user => !user.Name.EndsWith("_demo")))))
         {
             sampleRemoveMessage = userConfig.GetText("E5245");
-            SampleRemoveAllowed = false;
+            sampleRemoveAllowed = false;
         }
         else
         {
             sampleRemoveMessage = userConfig.GetText("U5205");
-            SampleRemoveAllowed = true;
+            sampleRemoveAllowed = true;
         }
         SampleRemoveMode = true;
     }
@@ -621,6 +492,7 @@
             await DeleteGroup();
         }
         workInProgress = false;
+        StateHasChanged();
     }
 
     private void Cancel()

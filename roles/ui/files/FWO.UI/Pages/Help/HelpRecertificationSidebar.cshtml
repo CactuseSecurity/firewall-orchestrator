@@ -1,0 +1,27 @@
+﻿@using FWO.Config.Api
+@using FWO.Api.Data
+
+@inject UserConfig userConfig
+
+<nav class="sidebar fixed sidebar-help shadow">
+    <div class="sidebar-help d-flex flex-row" style="left:0px;">
+        <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
+            <ul class="sidebar-help me-auto">
+                <p></p>
+                <h5>@(userConfig.GetText("recertification"))</h5>
+                <a class="nav-link" href="/help/recertification/recert_require/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Requirement"></span> @(userConfig.GetText("requirements"))
+                </a>
+                <a class="nav-link" href="/help/recertification/workflow/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
+                </a>
+                <a class="nav-link" href="/help/recertification/recert_logic/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("recert_logic"))
+                </a>
+                <a class="nav-link" href="/help/recertification/owner_import/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.UserGroup"></span> @(userConfig.GetText("owner_import"))
+                </a>
+            </ul>
+        </div>
+    </div>
+</nav>

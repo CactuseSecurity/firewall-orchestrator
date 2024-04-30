@@ -18,7 +18,7 @@ openldap_server_location: portland
 openldap_server_organization: IT
 openldap_server_email_address: "{{ product_name }}@cactus.de"
 
-openldap_server_enable_ssl: yes
+openldap_server_enable_ssl: true
 
 #The path to the pw dir
 fworch_secrets_dir: /tmp

@@ -1,5 +1,6 @@
 ﻿@using BlazorTable
 @using FWO.Config.Api
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using System.Text.Json;
@@ -8,14 +9,14 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" XLarge="true"  OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
             @if(somethingToDo)
             {
                 <h6>@(userConfig.GetText("managements"))</h6>
-                <Table class="table table-bordered table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
                     <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
                             @if(!context.Ignore)
@@ -24,31 +25,31 @@
                                 {
                                     @if(context.AwaitDevice)
                                     {
-                                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
-                                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                                        <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
+                                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                                     }
                                     else
                                     {
-                                        <AuthorizeView Roles="admin, fw-admin">
+                                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                             <Authorized Context="ctx">
-                                                <button class="btn btn-sm btn-warning" @onclick="() => ChangeManagementState(context, true)">@(userConfig.GetText("disable"))</button>
-                                                <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteManagement(context)">@(userConfig.GetText("delete"))</button>
+                                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => ChangeManagementState(context, true)">@(userConfig.GetText("disable"))</button>
+                                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteManagement(context)">@(userConfig.GetText("delete"))</button>
                                             </Authorized>
                                             <NotAuthorized Context="ctx">
-                                                <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
-                                                <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                                                <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
+                                                <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                                             </NotAuthorized> 
                                         </AuthorizeView>
                                     }
                                 }
                                 else
                                 {
-                                    <AuthorizeView Roles="admin, fw-admin">
+                                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                         <Authorized Context="ctx">
-                                            <button class="btn btn-sm btn-success" @onclick="() => ConfirmManagement(context)">@(userConfig.GetText("add"))</button>
+                                            <button type="button" class="btn btn-sm btn-success" @onclick="() => ConfirmManagement(context)">@(userConfig.GetText("add"))</button>
                                         </Authorized>
                                         <NotAuthorized Context="ctx">
-                                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                                            <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
                                         </NotAuthorized> 
                                     </AuthorizeView>
                                 }
@@ -66,21 +67,21 @@
                         <Template>
                             @if(context.Devices.Count() > 0)
                             {
-                                <Table class="table table-bordered table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
+                                <Table class="table table-bordered th-bg-secondary table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
                                     <Column TableItem="Device" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                                         <Template Context="Dev">
                                             @if(Dev.Relevant)
                                             {
                                                 @if(Dev.Delete)
                                                 {
-                                                    <AuthorizeView Roles="admin, fw-admin">
+                                                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                                         <Authorized Context="ctx">
-                                                            <button class="btn btn-sm btn-warning" @onclick="() => ChangeDeviceState(Dev, true)">@(userConfig.GetText("disable"))</button>
-                                                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteDevice(Dev)">@(userConfig.GetText("delete"))</button>
+                                                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => ChangeDeviceState(Dev, true)">@(userConfig.GetText("disable"))</button>
+                                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteDevice(Dev)">@(userConfig.GetText("delete"))</button>
                                                         </Authorized>
                                                         <NotAuthorized Context="ctx">
-                                                            <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
-                                                            <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                                                            <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("disable"))</button>
+                                                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                                                         </NotAuthorized> 
                                                     </AuthorizeView>
                                                 }
@@ -88,16 +89,16 @@
                                                 {
                                                     @if(Dev.AwaitMgmt)
                                                     {
-                                                        <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                                                        <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
                                                     }
                                                     else
                                                     {                    
-                                                        <AuthorizeView Roles="admin, fw-admin">
+                                                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                                             <Authorized Context="ctx">
-                                                                <button class="btn btn-sm btn-success" @onclick="() => ConfirmDevice(Dev)">@(userConfig.GetText("add"))</button>
+                                                                <button type="button" class="btn btn-sm btn-success" @onclick="() => ConfirmDevice(Dev)">@(userConfig.GetText("add"))</button>
                                                             </Authorized>
                                                             <NotAuthorized Context="ctx">
-                                                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                                                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
                                                             </NotAuthorized> 
                                                         </AuthorizeView>
                                                     }
@@ -127,79 +128,39 @@
         <div class="btn-group">
             @if(actAlertId != null)
             {
-                <AuthorizeView Roles="admin, fw-admin">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized Context="ctx">
-                        <button class="btn btn-sm btn-secondary" @onclick="async () => {await AcknowledgeAlert(actAlertId); await Close();}">@(userConfig.GetText("acknowledge"))</button>
+                        <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => {await AcknowledgeAlert(actAlertId); await Close();}">@(userConfig.GetText("acknowledge"))</button>
                     </Authorized>
                     <NotAuthorized Context="ctx">
-                        <button class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
+                        <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
             else if(somethingToDo)
             {
-                <AuthorizeView Roles="admin, fw-admin">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized Context="ctx">
-                        <button class="btn btn-sm btn-warning" @onclick="async () => {await doAllChanges(); await Close();}">@(userConfig.GetText("do_all_changes"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => {await doAllChanges(); await Close();}">@(userConfig.GetText("do_all_changes"))</button>
                     </Authorized>
                     <NotAuthorized Context="ctx">
-                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("do_all_changes"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("do_all_changes"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button class="btn btn-sm btn-secondary" @onclick="async () => await Close()">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => await Close()">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_management"))" Show="@DeleteManagementMode" OnClose="() => DeleteManagementMode = false">
-    <Body>
-        @if (DeleteManagementMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteManagement(actManagement)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete @bind-Display="DeleteManagementMode" PerformAction="DeleteManagement" Title="@userConfig.GetText("delete_management")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="DeleteDeviceMode" PerformAction="DeleteDevice" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@deleteMessage"/>
 
-<PopUp Title="@(userConfig.GetText("delete_gateway"))" Show="@DeleteDeviceMode" OnClose="() => DeleteDeviceMode = false">
-    <Body>
-        @if (DeleteDeviceMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteDevice(actDevice)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public List<ActionItem> Actions { get; set; } = new List<ActionItem>();
@@ -235,7 +196,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
         }
     }
 
@@ -286,7 +247,7 @@
                 switch(code)
                 {
                     case ActionCode.AddManagement:
-                        Management newMgmt = JsonSerializer.Deserialize<Management>((action.JsonData ?? throw new Exception($"Missing Management Data!")).ToString()) ?? throw new Exception($"Management Data not converted!");
+                        Management newMgmt = JsonSerializer.Deserialize<Management>((action.JsonData ?? throw new Exception($"Missing Management Data!")).ToString() ?? throw new Exception($"Could not convert Management Data to string!")) ?? throw new Exception($"Management Data not converted!");
                         if(checkManagementCreateToBeDone(newMgmt))
                         {
                             newMgmt.ActionId = action.Number;
@@ -305,7 +266,7 @@
                         else
                         {
                             // already reactivated
-                            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
                         }
                         break;
                     case ActionCode.DeleteManagement:
@@ -328,11 +289,11 @@
                         else
                         {
                             // already deleted
-                            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
                         }
                         break;
                     case ActionCode.AddGatewayToNewManagement:
-                        Device newGateway = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString()) ?? throw new Exception($"Gateway Data not converted!");
+                        Device newGateway = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString() ?? throw new Exception($"Could not convert Gateway Data to string!")) ?? throw new Exception($"Gateway Data not converted!");
                         newGateway.Delete = false;
                         newGateway.Relevant = true;
                         newGateway.ActionId = action.Number;
@@ -363,7 +324,7 @@
                         }
                         break;
                     case ActionCode.AddGatewayToExistingManagement:
-                        Device newGatewayToEx = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString()) ?? throw new Exception($"Gateway Data not converted!");
+                        Device newGatewayToEx = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString() ?? throw new Exception($"Could not convert Gateway Data to string!")) ?? throw new Exception($"Gateway Data not converted!");
                         if (checkGatewayCreateToBeDone(newGatewayToEx))
                         {
                             appendToRightManagement(newGatewayToEx, action);
@@ -378,7 +339,7 @@
                         else
                         {
                             // already reactivated
-                            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
                         }
                         break;
                     case ActionCode.DeleteGateway:
@@ -414,7 +375,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("analyze_actions"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("analyze_actions"), "", true);
         }
     }
 
@@ -463,7 +424,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("analyze_actions"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("analyze_actions"), "", true);
         }
         return mgmtId;
     }
@@ -474,7 +435,7 @@
             && exMgmt.SuperManagerId == management.SuperManagerId) != null)
         {
             // already created
-            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
             return false;
         }
         return true;
@@ -487,7 +448,7 @@
             && existingDevice.LocalRulebase == device.LocalRulebase) != null)
         {
             // already created
-            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
             return false;
         }
         return true;
@@ -508,7 +469,7 @@
         else
         {
             // already deleted
-            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
         }
     }
 
@@ -523,7 +484,7 @@
             {
                 if (!exMgmt.ImportDisabled)
                 {
-                    DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E5106"), true);
+                    DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E5106"), true);
                     return;
                 }
                 await ChangeManagementState(exMgmt, false);
@@ -570,7 +531,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
         }
     }
 
@@ -610,7 +571,7 @@
             {
                 if(!exDev.ImportDisabled)
                 {
-                    DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E5107"), true);
+                    DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E5107"), true);
                     return;
                 }
                 else
@@ -637,7 +598,7 @@
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
                 }
                 else
                 {
@@ -660,7 +621,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_gateway"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_gateway"), "", true);
         }
     }
 
@@ -678,35 +639,36 @@
         DeleteDeviceMode = true;
     }
 
-    private async Task DeleteManagement(Management disappearedManagement)
+    private async Task DeleteManagement()
     {
         try
         {
-            if (disappearedManagement.Devices != null && disappearedManagement.Devices.Length > 0)
+            if (actManagement.Devices != null && actManagement.Devices.Length > 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
             }
             else
             {
-                var Variables = new { id = disappearedManagement.Id };
+                var Variables = new { id = actManagement.Id };
                 int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
-                if (delId == disappearedManagement.Id)
+                if (delId == actManagement.Id)
                 {
-                    existingManagements.Remove(disappearedManagement);
-                    managementsToDisplay.Remove(disappearedManagement);
+                    existingManagements.Remove(actManagement);
+                    managementsToDisplay.Remove(actManagement);
                     if(managementsToDisplay.Count == 0)
                     {
                         somethingToDo = false;
                     }
-                    await AcknowledgeAction(disappearedManagement.ActionId);
+                    await AcknowledgeAction(actManagement.ActionId);
                     DeleteManagementMode = false;
                 }
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
+        StateHasChanged();
     }
 
     private async Task ChangeManagementState(Management management, bool disable)
@@ -730,29 +692,30 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("change_management_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_management_state"), "", true);
         }
     }
 
-    private async Task DeleteDevice(Device disappearedDevice)
+    private async Task DeleteDevice()
     {
         try
         {
-            var Variables = new { id = disappearedDevice.Id };
+            var Variables = new { id = actDevice.Id };
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
-            if (delId == disappearedDevice.Id)
+            if (delId == actDevice.Id)
             {
                 // remove device from existing management
-                removeDevFromExMgmt(disappearedDevice, false);
-                existingDevices.Remove(disappearedDevice);
-                await AcknowledgeAction(disappearedDevice.ActionId);
+                removeDevFromExMgmt(actDevice, false);
+                existingDevices.Remove(actDevice);
+                await AcknowledgeAction(actDevice.ActionId);
                 DeleteDeviceMode = false;
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_gateway"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_gateway"), "", true);
         }
+        StateHasChanged();
     }
 
     private async Task ChangeDeviceState(Device device, bool disable)
@@ -766,14 +729,18 @@
                 if(disable)
                 {
                     removeDevFromExMgmt(device, true);
-                    existingDevices.FirstOrDefault(x => x.Id == device.Id).ImportDisabled = true;
+                    Device? dev = existingDevices.FirstOrDefault(x => x.Id == device.Id);
+                    if(dev != null)
+                    {
+                        dev.ImportDisabled = true;
+                    }
                 }
                 await AcknowledgeAction(device.ActionId);
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("change_management_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_management_state"), "", true);
         }
     }
 
@@ -843,7 +810,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("acknowledge_action"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("acknowledge_action"), "", true);
         }
     }
 
@@ -864,7 +831,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("acknowledge_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("acknowledge_alert"), "", true);
         }
     }
 
@@ -877,7 +844,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_device_to_tenant0"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant0"), "", false);
         }
     }
 
@@ -918,7 +885,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("do_all_changes"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("do_all_changes"), "", false);
         }
     }
 }

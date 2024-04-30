@@ -1,6 +1,9 @@
 [Open Iconic v1.1.1](http://useiconic.com/open)
 ===========
 
+All links in this document are dead. The open iconic project is deprecated.
+TODO: find substitute for open iconic.
+
 ### Open Iconic is the open source sibling of [Iconic](http://useiconic.com). It is a hyper-legible collection of 223 icons with a tiny footprint&mdash;ready to use with Bootstrap and Foundation. [View the collection](http://useiconic.com/open#icons)
 
 

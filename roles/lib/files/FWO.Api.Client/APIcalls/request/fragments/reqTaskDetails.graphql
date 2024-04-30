@@ -14,6 +14,7 @@ fragment reqTaskDetails on request_reqtask {
   nw_obj_grp_id
   user_grp_id
   reason
+  additional_info
   free_text
   last_recert_date
   current_handler: uiuser {
@@ -42,6 +43,8 @@ fragment reqTaskDetails on request_reqtask {
     field
     user_id
     original_nat_id
+    device_id
+    rule_uid
   }
   implementation_tasks: impltasks {
     ...implTaskDetails

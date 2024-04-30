@@ -1,28 +1,30 @@
-﻿@using FWO.Api.Data
+﻿@using FWO.GlobalConstants
+@using FWO.Api.Data
+@using FWO.Report
 
 @typeparam InputDataType
 
-@if (Data != null && FetchObjects != null && NameExtractor != null&& NetworkObjectExtractor != null && NetworkServiceExtractor != null && NetworkUserExtractor != null)
+@if (Data != null && NameExtractor != null)
 {
     @foreach (InputDataType obj in Data)
     {
-        <ObjectGroup FetchObjects="FetchObjects" Recert="Recert" Tab="Tab" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed" InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor"
-                     NetworkObjectExtractor="NetworkObjectExtractor"
-                     NetworkServiceExtractor="NetworkServiceExtractor"
-                     NetworkUserExtractor="NetworkUserExtractor" />
+        <ObjectGroup FetchObjects="FetchObjects" Recert="Recert" Tab="Tab" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed"
+            InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor" NetworkObjectExtractor="NetworkObjectExtractor"
+            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor" Reload="Reload"/>
+        <div class="mb-1"></div>
     }
 }
 
 @code
 {
     [Parameter]
-    public Func<byte, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
+    public Func<RsbTab, ObjCategory, Func<ReportData, Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
     public bool Recert { get; set; }
 
     [Parameter]
-    public byte Tab { get; set; }
+    public RsbTab Tab { get; set; }
 
     [Parameter]
     public int PageSize { get; set; }
@@ -47,4 +49,7 @@
 
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
+    
+    [Parameter]
+    public bool Reload { get; set; } = false;
 }

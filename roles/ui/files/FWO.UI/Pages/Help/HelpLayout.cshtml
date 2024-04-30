@@ -1,67 +1,64 @@
 ﻿@using FWO.Config.Api
+@using FWO.Api.Data
+
 @inject UserConfig userConfig
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title></title>
+    <title>Online Help FWORCH</title>
+    <link rel="stylesheet" href="/css/bootstrap/bootstrap.min.css">
     <link href="/css/site.css" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" href="~/css/bootstrap/bootstrap.min.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-sm navbar-dark bg-dark shadow w-100 sticky-top">
+    <nav class="navbar bg-gray navbar-help navbar-expand-sm shadow w-100 sticky-top">  
         <a class="navbar-brand" href="/help/?lang=@($"{userConfig.GetUserLanguage()}")">
             <img src="/images/FWO_logo_navbar.png">&nbsp;@userConfig.GetText("fworch_long")
         </a>
 
         <div class="navbar-collapse ">
-            <ul class="navbar-nav mr-auto">
+            <ul class="navbar-nav me-auto">
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/reporting/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-spreadsheet"></span> @userConfig.GetText("reporting")
-                    </a>
-                </li>
-                <li class="nav-item px-2">
-                    <a class="nav-link" href="/help/scheduling/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-calendar"></span> @userConfig.GetText("scheduling")
-                    </a>
-                </li>
-                <li class="nav-item px-2">
-                    <a class="nav-link" href="/help/archive/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-box"></span> @userConfig.GetText("archive")
+                        <span class="@Icons.Reporting"></span> @userConfig.GetText("reporting")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/workflow/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-comment-square"></span> @userConfig.GetText("workflow")
+                        <span class="@Icons.Workflow"></span> @userConfig.GetText("workflow")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/recertification/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-badge"></span> @userConfig.GetText("recertification")
+                        <span class="@Icons.Recertification"></span> @userConfig.GetText("recertification")
+                    </a>
+                </li>
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">
+                        <span class="@Icons.Modelling"></span> @userConfig.GetText("modelling")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/monitoring/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-monitor"></span> @userConfig.GetText("monitoring")
+                        <span class="@Icons.Monitoring"></span> @userConfig.GetText("monitoring")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/settings/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-cog"></span> @userConfig.GetText("settings")
+                        <span class="@Icons.Settings"></span> @userConfig.GetText("settings")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/API/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-eye"></span> @userConfig.GetText("api")
+                        <span class="@Icons.Api"></span> @userConfig.GetText("api")
                     </a>
                 </li>                
             </ul>
         </div>
     </nav>
     @RenderSection("sidebar", false)
-    <div style="margin-left: 275px">
+    <div style="margin-left: 350px; margin-top: 100px; margin-right: 100px">
         @RenderBody()
     </div>
 </body>

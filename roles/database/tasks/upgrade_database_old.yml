@@ -1,8 +1,0 @@
-
-- name: install upgrades normally
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
-  loop: "{{ upgrade_files | sort }}"
-  become: yes
-  become_user: postgres

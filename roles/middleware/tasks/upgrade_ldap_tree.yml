@@ -21,11 +21,11 @@
   template:
     src: "../templates/upgrade/{{ item }}.ldif.j2"
     dest: "{{ middleware_ldif_dir }}/{{ item }}.ldif"
-    force: yes
+    force: true
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   loop: "{{ upgrade_files }}"
-  become: yes
+  become: true
 
 - name: 
   include_tasks: upgrade_ldif_file.yml

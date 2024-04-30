@@ -1,0 +1,12 @@
+mutation setOwnerLastCheck(
+  $id: Int!
+  $lastRecertCheck: timestamp
+  ) {
+  update_owner_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      last_recert_check: $lastRecertCheck
+  }) {
+    UpdatedId: id
+  }
+}

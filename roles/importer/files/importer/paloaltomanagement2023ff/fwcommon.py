@@ -27,7 +27,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         apiuser = mgm_details["import_credential"]['user']
         apihost = mgm_details["hostname"]
 
-        vsys_objects   = ["/Network/Zones", "/Objects/Addresses", "/Objects/Services", "/Objects/AddressGroups", "/Objects/ServiceGroups"]
+        vsys_objects   = ["/Network/Zones", "/Objects/Addresses", "/Objects/Services", "/Objects/AddressGroups", "/Objects/ServiceGroups", "/Objects/Tags"]
         predef_objects = ["/Objects/Applications"]
         rulebase_names = ["/Policies/SecurityRules", "/Policies/NATRules"]
 

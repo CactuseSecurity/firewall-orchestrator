@@ -34,15 +34,14 @@
         group: "{{ fworch_group }}"
 
     - name: copy ui files to frontend target
-      copy:
-        src: "{{ item }}"
+      synchronize:
+        src: "FWO.UI"
         dest: "{{ ui_dir }}"
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-      loop:
-        - FWO.UI
+        rsync_opts:
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
+      tags: [ 'test' ]
 
-  become: yes
+  become: true
 
 - include_tasks: ui_apache_install_and_setup.yml
 

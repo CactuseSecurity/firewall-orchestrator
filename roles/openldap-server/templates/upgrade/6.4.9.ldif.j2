@@ -1,0 +1,13 @@
+dn: cn=recertifier,ou=role,{{ openldap_path }}
+changetype: modify
+delete: uniquemember
+uniquemember: uid=ownergroup_F{{ sample_postfix }},ou=group,{{ openldap_path }}
+-
+delete: uniquemember
+uniquemember: uid=ownergroup_D{{ sample_postfix }},ou=group,{{ openldap_path }}
+-
+add: uniquemember
+uniquemember: cn=ownergroup_F{{ sample_postfix }},ou=group,{{ openldap_path }}
+-
+add: uniquemember
+uniquemember: cn=ownergroup_D{{ sample_postfix }},ou=group,{{ openldap_path }}

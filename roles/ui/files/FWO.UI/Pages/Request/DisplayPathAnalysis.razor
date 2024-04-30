@@ -1,13 +1,13 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("path_analysis") + ": " + ReqTask.Title)" Show="@Display" Large="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("path_analysis") + ": " + ReqTask.Title)" Show="@Display" Size=PopupSize.Large OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -17,8 +17,8 @@
             }
             else
             {
-                <div class="m-2">
-                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Device" Items="deviceList" PageSize="0" ColumnReorder="true">
+                <div class="m-2 vheight75">
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Device" Items="deviceList" PageSize="0" ColumnReorder="true">
                         <Column TableItem="Device" Title="@(userConfig.GetText("device"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
                     </Table>
                 </div>
@@ -26,7 +26,7 @@
         }
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
     </Footer>
 </PopUp>
 
@@ -34,7 +34,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [Parameter]
     public bool Display { get; set; } = false;
@@ -43,13 +43,12 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public RequestReqTask ReqTask { get; set; } = new RequestReqTask();
+    public RequestReqTask ReqTask { get; set; } = new ();
 
-
-    private List<Device> deviceList = new List<Device>();
+    private List<Device> deviceList = new ();
 
 
     protected override async Task OnParametersSetAsync()
@@ -63,7 +62,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
 

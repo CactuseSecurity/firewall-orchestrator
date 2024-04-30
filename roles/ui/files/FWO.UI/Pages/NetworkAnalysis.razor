@@ -3,52 +3,52 @@
 @using System.Net
 @using FWO.Api.Client.Queries
 
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @page "/network_analysis"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")]
 
 <h3>@(userConfig.GetText("network_analysis"))</h3>
 
-<Body>
-    <form>
-        <div class="form-group row">
-            <label for="routingSource" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
-            <input id="routingSource" type="text" class="col-sm-9" @bind="routingSourceString">
-        </div>
-        <div class="form-group row">
-            <label for="routingDestination" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
-            <input id="routingDestination" type="text" class="col-sm-9" @bind="routingDestinationString">
-        </div>
-        <div class="form-group row">
-            <label for="service" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
-            <input readonly id="service" type="text" class="col-sm-9" @bind="serviceString">
-        </div>
-        <div class="form-group row">
-            <label for="gwsFound" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gws_found")):</label>
-            @if (gwsInPath == "")
-            {
-                <textarea readonly id="gwsFound" class="col-sm-9">@(userConfig.GetText("no_gws_found"))</textarea>
-            }
-            else
-            {
-                <textarea readonly id="gwsFound" class="col-sm-9" @bind="gwsInPath" />
-            }
-        </div>
-    </form>
-</Body>
-<Footer>
+<form>
+    <div class="form-group row">
+        <label for="routingSource" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
+        <input id="routingSource" type="text" class="col-sm-9" @bind="routingSourceString">
+    </div>
+    <div class="form-group row">
+        <label for="routingDestination" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
+        <input id="routingDestination" type="text" class="col-sm-9" @bind="routingDestinationString">
+    </div>
+    <div class="form-group row">
+        <label for="service" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
+        <input readonly id="service" type="text" class="col-sm-9" @bind="serviceString">
+    </div>
+    <div class="form-group row">
+        <label for="gwsFound" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gws_found")):</label>
+        @if (gwsInPath == "")
+        {
+            <textarea readonly id="gwsFound" class="col-sm-9">@(userConfig.GetText("no_gws_found"))</textarea>
+        }
+        else
+        {
+            <textarea readonly id="gwsFound" class="col-sm-9" @bind="gwsInPath" />
+        }
+    </div>
+</form>
+<div class="btn-group mt-2">
     <button type="button" class="btn btn-primary" @onclick="@(async () => { gwsInPath = await analyzePath(routingSourceString,routingDestinationString); })">@(userConfig.GetText("search_route"))</button>
     <button type="button" disabled class="btn btn-primary" @onclick="@(async () => { })">@(userConfig.GetText("search_access"))</button>
     <button type="button" class="btn btn-secondary" @onclick="@(() => { routingSourceString = ""; routingDestinationString = ""; serviceString = ""; })">@(userConfig.GetText("clear_input"))</button>
-</Footer>
+</div>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
@@ -67,7 +67,7 @@
         // }
         // catch (Exception exception)
         // {
-        //    DisplayMessageInUi!(exception, userConfig.GetText("archive_fetch"), "", true);
+        //    DisplayMessageInUi(exception, userConfig.GetText("archive_fetch"), "", true);
         // }
     }
 
@@ -89,7 +89,7 @@
         }
         catch(Exception e)
         {
-            DisplayMessageInUi!(e, userConfig.GetText("wrong_ip_address"), "", true);
+            DisplayMessageInUi(e, userConfig.GetText("wrong_ip_address"), "", true);
             return false;
         }
         return true;

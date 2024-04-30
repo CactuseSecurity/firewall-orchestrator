@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using NetTools;
 
 namespace FWO.Api.Data
 {
@@ -15,7 +16,21 @@ namespace FWO.Api.Data
             get { return Cidr.CidrString; }
             set { Cidr = new Cidr(value); }
         }
-        public Cidr Cidr { get; set; }
+        public Cidr Cidr { get; set; } = new Cidr();
+
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string IpEndString
+        {
+            get { return CidrEnd.CidrString; } // ?? Cidr.CidrString; }
+            set { CidrEnd = new Cidr(value ?? Cidr.CidrString); }   // if End value is not set, asume host and set start ip as end ip
+        }
+        public Cidr CidrEnd { get; set; } = new Cidr();
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonProperty("comment"), JsonPropertyName("comment")]
+        public string? Comment { get; set; }
 
         public long TaskId { get; set; }
 
@@ -30,7 +45,17 @@ namespace FWO.Api.Data
             TaskId = taskId;
         }
 
-        public RequestReqElement ToReqElement(AccessField field)
+        public NwObjectElement(IPAddressRange ipAddressRange, long taskId)
+        {
+            Cidr = new Cidr(ipAddressRange.Begin.ToString());
+            if(ipAddressRange.End != null && ipAddressRange.End != ipAddressRange.Begin)
+            {
+                CidrEnd = new Cidr(ipAddressRange.End.ToString());
+            }
+            TaskId = taskId;
+        }
+
+        public RequestReqElement ToReqElement(ElemFieldType field)
         {
             RequestReqElement element = new RequestReqElement()
             {
@@ -43,7 +68,7 @@ namespace FWO.Api.Data
             return element;
         }
 
-        public RequestImplElement ToImplElement(AccessField field)
+        public RequestImplElement ToImplElement(ElemFieldType field)
         {
             RequestImplElement element = new RequestImplElement()
             {

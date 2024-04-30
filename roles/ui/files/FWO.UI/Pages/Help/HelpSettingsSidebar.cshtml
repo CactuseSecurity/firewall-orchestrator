@@ -1,72 +1,96 @@
 ﻿@using FWO.Config.Api
+@using FWO.Api.Data
+
 @inject UserConfig userConfig
 
-<nav class="sidebar fixed sidebar-dark bg-dark shadow">
-    <div class="sidebar-main d-flex flex-row" style="left:0px;">
-        <div class="sidebar-dark bg-dark" style="width:250px; overflow-x:scroll;">
-            <ul class="sidebar-nav mr-auto">
+<nav class="sidebar fixed sidebar-help shadow">
+    <div class="sidebar-help d-flex flex-row" style="left:0px;">
+        <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
+            <ul class="sidebar-help me-auto">
                 <p></p>
                 <h5>@(userConfig.GetText("devices"))</h5>
                 <a class="nav-link" href="/help/settings/credentials/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-key"></span> @(userConfig.GetText("import_credential"))
+                    <span class="@Icons.Credential"></span> @(userConfig.GetText("import_credential"))
                 </a>
                 <a class="nav-link" href="/help/settings/managements/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-inbox"></span> @(userConfig.GetText("managements"))
+                    <span class="@Icons.Management"></span> @(userConfig.GetText("managements"))
                 </a>
                 <a class="nav-link" href="/help/settings/gateways/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-shield"></span> @(userConfig.GetText("gateways"))
+                    <span class="@Icons.Gateway"></span> @(userConfig.GetText("gateways"))
                 </a>
+                <p></p>
                 <h5>@(userConfig.GetText("authorization"))</h5>
                 <a class="nav-link" href="/help/settings/ldap/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-key"></span> @(userConfig.GetText("ldap_conns"))
+                    <span class="@Icons.Ldap"></span> @(userConfig.GetText("ldap_conns"))
                 </a>
                 <a class="nav-link" href="/help/settings/tenants/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-command"></span> @(userConfig.GetText("tenants"))
+                    <span class="@Icons.Tenant"></span> @(userConfig.GetText("tenants"))
                 </a>
                 <a class="nav-link" href="/help/settings/users/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-person"></span> @(userConfig.GetText("users"))
+                    <span class="@Icons.User"></span> @(userConfig.GetText("users"))
                 </a>
                 <a class="nav-link" href="/help/settings/groups/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-people"></span> @(userConfig.GetText("groups"))
+                    <span class="@Icons.UserGroup"></span> @(userConfig.GetText("groups"))
                 </a>
                 <a class="nav-link" href="/help/settings/roles/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-tags"></span> @(userConfig.GetText("roles"))
-                </a>
-                <h5>@(userConfig.GetText("defaults"))</h5>
-                <a class="nav-link" href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
-                </a>
-                <a class="nav-link" href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-document"></span> @(userConfig.GetText("password_policy"))
-                </a>
-                <h5>@(userConfig.GetText("workflow"))</h5>
-                <a class="nav-link" href="/help/settings/stateactions/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-arrow-right"></span> @(userConfig.GetText("state_actions"))
-                </a>
-                <a class="nav-link" href="/help/settings/statedefinitions/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-tag"></span> @(userConfig.GetText("state_definitions"))
-                </a>
-                <a class="nav-link" href="/help/settings/statematrix/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-loop-square"></span> @(userConfig.GetText("state_matrix"))
-                </a>
-                <a class="nav-link" href="/help/settings/workflowcustomizing/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-cog"></span> @(userConfig.GetText("customizing"))
+                    <span class="@Icons.Role"></span> @(userConfig.GetText("roles"))
                 </a>
                 <a class="nav-link" href="/help/settings/owners/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-flag"></span> @(userConfig.GetText("owners"))
+                    <span class="@Icons.Owner"></span> @(userConfig.GetText("owners"))
                 </a>
+                <p></p>
+                <h5>@(userConfig.GetText("defaults"))</h5>
+                <a class="nav-link" href="/help/settings/email/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Email"></span> @(userConfig.GetText("email_settings"))
+                </a>
+                <a class="nav-link" href="/help/settings/importer/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Import"></span> @(userConfig.GetText("importer_settings"))
+                </a>
+                <a class="nav-link" href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("standards"))
+                </a>
+                <a class="nav-link" href="/help/settings/recertificationgeneral/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
+                </a>
+                <a class="nav-link" href="/help/settings/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
+                </a>
+                <a class="nav-link" href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Policy"></span> @(userConfig.GetText("password_policy"))
+                </a>
+                <a class="nav-link" href="/help/settings/customtexts/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Text"></span> @(userConfig.GetText("customize_texts"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("workflow"))</h5>
+                <a class="nav-link" href="/help/settings/stateactions/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Action"></span> @(userConfig.GetText("state_actions"))
+                </a>
+                <a class="nav-link" href="/help/settings/statedefinitions/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.State"></span> @(userConfig.GetText("state_definitions"))
+                </a>
+                <a class="nav-link" href="/help/settings/statematrix/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Matrix"></span> @(userConfig.GetText("state_matrix"))
+                </a>
+                <a class="nav-link" href="/help/settings/workflowcustomizing/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("customizing"))
+                </a>
+                <p></p>
                 <h5>@(userConfig.GetText("personal"))</h5>
                 <a class="nav-link" href="/help/settings/password/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-account-login"></span> @(userConfig.GetText("password"))
+                    <span class="@Icons.Login"></span> @(userConfig.GetText("password"))
                 </a>
                 <a class="nav-link" href="/help/settings/language/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-comment-square"></span> @(userConfig.GetText("language"))
+                    <span class="@Icons.Language"></span> @(userConfig.GetText("language"))
                 </a>
                 <a class="nav-link" href="/help/settings/report/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-list"></span> @(userConfig.GetText("reporting"))
+                    <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
                 </a>
-                <a class="nav-link" href="/help/settings/recertification/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
+                <a class="nav-link" href="/help/settings/recertificationpersonal/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
+                </a>
+                <a class="nav-link" href="/help/settings/modellingpersonal/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
                 </a>
             </ul>
         </div>

@@ -1,64 +1,138 @@
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Middleware.Client
 
-@page "/request/reviews"
-@attribute [Authorize(Roles = "admin, reviewer, auditor")]
+@page "/request/reviews/{ticketId?}"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reviewer}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
+@inject MiddlewareClient middlewareClient
 
 <h3>@(userConfig.GetText("reviews"))</h3>
 <hr />
 @if(InitComplete)
 {
-    <DisplayTicketTable Phase="WorkflowPhases.review" States="states" ReqHandler="reqHandler" 
-        ResetParent="Reset" StartImplPhase="StartReviewTask"/>
-}
+    <ImplOptSelection SelectOwner="SelectOwner" SelectDevice="SelectDevice" Owners="Owners" ReqHandler="reqHandler" />
 
+    @if(DisplayTickets)
+    {
+        <DisplayTicketTable Phase="WorkflowPhases.review" States="states" ReqHandler="reqHandler" 
+            ResetParent="Reset" StartImplPhase="StartReviewTask"/>
+    }
+    else
+    {
+        <DisplayImplTaskTable Phase="WorkflowPhases.review" States="states" ReqHandler="reqHandler" 
+            ResetParent="Select" AllImplTasks="reqHandler.AllVisibleImplTasks" ImplTaskView="true" StartImplPhase="StartReviewTask"/>
+    }
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private RequestHandler reqHandler;
-    private RequestStateDict states = new RequestStateDict();
+    [Parameter]
+    public string? TicketId { get; set; }
+
+    private RequestHandler reqHandler = new ();
+    private RequestStateDict states = new ();
+    private List<FwoOwner> Owners = new();
     private bool InitComplete = false;
+
+    private bool DisplayTickets = true;
+    private Device selectedDeviceOpt = new ();
+    private FwoOwner selectedOwnerOpt = new (){ Id = -1 };
 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            if(authenticationStateTask!.Result.User.IsInRole("admin"))
-            {
-                apiConnection.SetRole("admin");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("reviewer"))
-            {
-                apiConnection.SetRole("reviewer");
-            }
-            else
-            {
-                apiConnection.SetRole("auditor");
-            }
-
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Reviewer, Roles.Auditor });
             await states.Init(apiConnection);
 
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.review){};
+            if(userConfig.ReqOwnerBased)
+            {
+                Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+            }
+            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.review){};
             await Reset();
+            await HandleTicketId();
             reqHandler.SetContinueEnv(ObjAction.review);
-    
+            await Select();
             InitComplete = true;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private async Task HandleTicketId()
+    {
+        if(long.TryParse(TicketId, out long ticketId))
+        {
+            string newPhase = await reqHandler.HandleExtTicketId(WorkflowPhases.review, ticketId);
+            if(newPhase != "")
+            {
+                NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
+            }
+        }
+    }
+
+    private async Task Select()
+    {
+        if(userConfig.ReqOwnerBased)
+        {
+            await SelectOwner(selectedOwnerOpt);
+        }
+        else
+        {
+            await SelectDevice(selectedDeviceOpt);
+        }
+    }
+
+    private async Task SelectOwner(FwoOwner newOwnerOpt)
+    {
+        try
+        {
+            selectedOwnerOpt = newOwnerOpt;
+            DisplayTickets = reqHandler.SelectOwnerImplTasks(selectedOwnerOpt);
+            await Reset();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select_owner"), "", true);
+        }
+    }
+
+    private async Task SelectDevice(Device newDeviceOpt)
+    {
+        try
+        {
+            selectedDeviceOpt = newDeviceOpt;
+            DisplayTickets = reqHandler.SelectDeviceImplTasks(selectedDeviceOpt);
+            await Reset();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select_device"), "", true);
         }
     }
 
@@ -66,14 +140,14 @@
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("reviewer") || authenticationStateTask!.Result.User.IsInRole("admin"));
-            await reqHandler.Init();
+            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            await reqHandler.Init(Owners.ConvertAll(x => x.Id), false, true);
+            reqHandler.FilterForRequester();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
-
     }
     
     private async Task StartReviewTask(RequestImplTask implTask)
@@ -84,7 +158,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("start_work"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("start_work"), "", true);
         }
     }
 }

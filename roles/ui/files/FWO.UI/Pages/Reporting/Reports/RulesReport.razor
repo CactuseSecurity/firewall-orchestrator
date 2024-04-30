@@ -1,10 +1,11 @@
 ﻿@using FWO.Ui.Display
 @using FWO.Config.Api
+@using FWO.Report
 @using FWO.Report.Filter
 
 @inject UserConfig userConfig
 
-@foreach (Management management in Managements)
+@foreach (var management in Managements)
 {
     @if (management.Devices.Where(device => device.Rules != null && device.Rules.Count() > 0).Count() > 0)
     {
@@ -12,33 +13,66 @@
 
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
 
-            @foreach (Device device in management.Devices)
+            @foreach (var device in management.Devices)
             {
                 @if (device.Rules != null && device.Rules.Length > 0 && ruleDisplay != null)
                 {
-                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
+                    <Collapse Title="@device.Name" Style="@("secondary")" class="vheight75" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
-                               RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
-                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
-                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
-                               @ref="reportTable">
+                            RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
+                            style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
+                            PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
+                            @ref="reportTable">
 
                             @if (EmptyColumns[0] == false)
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayNumber(rule, device.Rules))
+                                        @((MarkupString)ruleDisplay.DisplayNumber(rule))
                                     </Template>
                                 </Column>
                             }
-
-                            @if(Recertification || SelectedReportType==ReportType.Recertification)
+                            @if(SelectedReportType == ReportType.UnusedRules)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="false" />
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("owner"))" Field="@(rule => rule.OwnerName)" Sortable="true" Filterable="false" />
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(rule => rule.IpMatch)" Sortable="true" Filterable="false" />
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.LastCertifierName)" Sortable="true" Filterable="true" />
-                                @if(Recertification && !ReadonlyMode) 
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(rule => rule.Metadata.LastHit)" Sortable="false" Filterable="false">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayLastHit(rule))
+                                    </Template>
+                                </Column>
+                            }
+                            @if(SelectedReportType == ReportType.Recertification)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayNextRecert(rule))
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("owner"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayOwner(rule))
+                                    </Template>
+                                </Column>
+
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayRecertIpMatches(rule))
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(rule => rule.Metadata.LastHit)" Sortable="false" Filterable="false">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayLastHit(rule))
+                                    </Template>
+                                </Column>
+                                @if(Recertification && RecertificationHistory)
+                                {
+                                    // TODO: implement 2nd recert report containing latest recerts
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayLastRecertifier(rule))
+                                        </Template>
+                                    </Column>
+                                }
+                                @if(Recertification && !ReadonlyMode)
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
                                         <Template>
@@ -63,6 +97,10 @@
                                         </Template>
                                     </Column>
                                 }
+                            }
+                            @if(Recertification && RecertificationHistory)
+                            {
+                                // TODO: implement 2nd recert report containing latest recerts
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("recert_comment"))" Field="@(rule => rule.Metadata.Comment)" Sortable="true" Filterable="false" />
                             }
 
@@ -82,7 +120,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplaySource(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
+                                        @((MarkupString)ruleDisplay.DisplaySource(rule, getActLocation(), SelectedReportType))
                                     </Template>
                                 </Column>
                             }
@@ -98,7 +136,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayDestination(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
+                                        @((MarkupString)ruleDisplay.DisplayDestination(rule, getActLocation(), SelectedReportType))
                                     </Template>
                                 </Column>
                             }
@@ -106,33 +144,33 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayService(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
+                                        @((MarkupString)ruleDisplay.DisplayServices(rule, getActLocation(), SelectedReportType))
                                     </Template>
                                 </Column>
                             }
-                            @if(NatRules)
+                            @if(SelectedReportType == ReportType.NatRules)
                             {
                                     <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                                @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, location: Recertification ? "certification" : "report"))
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, getActLocation()))
                                         </Template>
                                     </Column>
                                     <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, location: Recertification ? "certification" : "report"))
+                                            @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, getActLocation()))
                                         </Template>
                                     </Column>
                                     <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, location: Recertification ? "certification" : "report"))
+                                            @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, getActLocation()))
                                         </Template>
                                     </Column>
                             }
-                            @if (EmptyColumns[7] == false && !NatRules)
+                            @if (EmptyColumns[7] == false && SelectedReportType != ReportType.NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="false" Hideable="true" />
                             }
-                            @if (EmptyColumns[8] == false && !NatRules)
+                            @if (EmptyColumns[8] == false && SelectedReportType != ReportType.NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="false" Hideable="true" />
                             }
@@ -140,7 +178,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayEnabled(rule))
+                                        @((MarkupString)ruleDisplay.DisplayEnabled(rule, getActLocation()))
                                     </Template>
                                 </Column>
                             }
@@ -164,6 +202,11 @@
                                     // TODO: not able to get this syntactically working, but implicit info is there: ToBeRemoved == NOT DecertificationDate IS NULL *@
                                 <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
                                 <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
+                                <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
+                                @foreach(var recert in context.Metadata?.RecertHistory)
+                                {
+                                    <Detail Title="@(recert.RecertDate.ToString())" Data="@(getHistoryString(recert))" />
+                                }
                             </DetailTemplate>
 
                             <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
@@ -171,9 +214,8 @@
                                     <td class="bg-light" colspan="@(reportTable?.Columns.Count + 1)">
                                         <div class="font-weight-bold">@(context.SectionHeader)</div>
                                     </td>
-                                </tr>         
+                                </tr>
                             </CustomRow>
-
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
                         </Table>
                     </Collapse>
@@ -187,15 +229,12 @@
 {
     [Parameter]
     public bool Recertification { get; set; }
-
+    
     [Parameter]
     public bool ReadonlyMode { get; set; } = false;
 
     [Parameter]
     public ReportType SelectedReportType { get; set; }
-
-    [Parameter]
-    public bool NatRules { get; set; }
 
     [Parameter]
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
@@ -213,17 +252,18 @@
     public int Width { get; set; }
 
     [Parameter]
-    public Management[] Managements { get; set; } = new Management[]{};
+    public List<ManagementReport> Managements { get; set; } = new ();
 
+    private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;
     private const int ColumnsCount = 12;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
-    private NatRuleDisplay? ruleDisplay;
+    private NatRuleDisplayHtml? ruleDisplay;
     
     protected override void OnInitialized()
     {
-        ruleDisplay = new NatRuleDisplay(userConfig);
+        ruleDisplay = new NatRuleDisplayHtml(userConfig);
     }
 
     private string getTableRowClasses(Rule rule)
@@ -238,5 +278,17 @@
             classes += rule.Metadata.Style;
         }
         return classes;
+    }
+
+    private OutputLocation getActLocation()
+    {
+        return Recertification ? OutputLocation.certification : OutputLocation.report;
+    }
+
+    private string getHistoryString(Recertification recert)
+    {
+        string username = new DistName(recert.UserDn).UserName;
+        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
+            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
     }
 }

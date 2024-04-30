@@ -1,0 +1,13 @@
+mutation addSelectedNwGroupObject(
+  $appId: Int!
+  $nwGroupId: bigint!
+  ) {
+  insert_modelling_selected_objects(objects: {
+    app_id: $appId
+    nwgroup_id: $nwGroupId
+  }) {
+    returning {
+      newId: nwgroup_id
+    }
+  }
+}

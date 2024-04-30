@@ -3,6 +3,7 @@
     public enum TokenKind
     {
         Value,
+        Owner,
         Disabled,
         SourceNegated,
         DestinationNegated,
@@ -20,6 +21,8 @@
         Time,
         RecertDisplay,
         FullText,
+        LastHit,
+        Unused,
         BL, // (
         BR, // )
         And,

@@ -1,0 +1,8 @@
+mutation removeSelectedConnection(
+  $appId: Int!
+  $connectionId: Int!
+  ) {
+  delete_modelling_selected_connections(where: {app_id: {_eq: $appId}, connection_id: {_eq: $connectionId}}) {
+    affected_rows
+  }
+}

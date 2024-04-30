@@ -10,6 +10,7 @@ from fwo_log import getFwoLogger
 from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
 import ipaddress
 from fmgr_network import resolve_objects, resolve_raw_objects
+import time
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
@@ -138,6 +139,11 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     else:
                         rule.update({ 'rule_track': 'Log'})
 
+                    if '_last_hit' not in rule_orig or rule_orig['_last_hit'] == 0:
+                        rule.update({ 'last_hit': None})
+                    else:                      	
+                        rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
+
                     rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_svc'] = extend_string_list(rule['rule_svc'], rule_orig, 'service', list_delimiter, jwt=jwt, import_id=import_id)
@@ -151,9 +157,12 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                         dst_obj_zone = fmgr_zone.add_zone_if_missing (config2import, rule_orig['dstintf'][0], import_id)
                         rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
 
-                    rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
-                    rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
-                    rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
+                    if 'srcaddr-negate' in rule_orig:
+                        rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
+                    if 'dstaddr-negate' in rule_orig:
+                        rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
+                    if 'service-negate' in rule_orig:
+                        rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
 
                     rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', \
                         rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })

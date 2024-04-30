@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,7 @@ using FWO.Logging;
 namespace FWO.Test
 {
     [TestFixture]
+    [Parallelizable]
     internal class HtmlToPdfTest
     {
         // Pdf converter
@@ -21,6 +23,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void GeneratePdf()
         {
             Log.WriteInfo("Test Log", "starting PDF generation");
@@ -56,7 +59,7 @@ namespace FWO.Test
               bw.Write(pdf);
             }
             Assert.That(filePath, Does.Exist);
-            Assert.Greater(new System.IO.FileInfo(filePath).Length, 5000);
+            ClassicAssert.Greater(new System.IO.FileInfo(filePath).Length, 5000);
         }
 
         [OneTimeTearDown]

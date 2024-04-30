@@ -1,13 +1,17 @@
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Middleware.Client
 
-@page "/request/approvals"
-@attribute [Authorize(Roles = "admin, approver, auditor")]
+@page "/request/approvals/{ticketId?}"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Approver}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
+@inject MiddlewareClient middlewareClient
 
 <h3>@(userConfig.GetText("approvals"))</h3>
 <hr />
@@ -17,18 +21,27 @@
     <DisplayTicketTable Phase="WorkflowPhases.approval" States="states" ReqHandler="reqHandler" 
         ResetParent="Reset" StartPhase="StartApproveTask"/>
 }
-
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private RequestHandler reqHandler;
-    private RequestStateDict states = new RequestStateDict();
+    [Parameter]
+    public string? TicketId { get; set; }
+
+    private RequestHandler reqHandler = new ();
+    private RequestStateDict states = new ();
+    private List<int> OwnerIds = new ();
     private bool InitComplete = false;
 
 
@@ -36,30 +49,35 @@
     {
         try
         {
-            if(authenticationStateTask!.Result.User.IsInRole("admin"))
-            {
-                apiConnection.SetRole("admin");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("approver"))
-            {
-                apiConnection.SetRole("approver");
-            }
-            else
-            {
-                apiConnection.SetRole("auditor");
-            }
-
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Approver, Roles.Auditor});
             await states.Init(apiConnection);
 
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.approval){};
+            if(userConfig.ReqOwnerBased)
+            {
+                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+            }
+            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.approval){};
             await Reset();
+            await HandleTicketId();
             reqHandler.SetContinueEnv(ObjAction.approve);
 
             InitComplete = true;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private async Task HandleTicketId()
+    {
+        if(long.TryParse(TicketId, out long ticketId))
+        {
+            string newPhase = await reqHandler.HandleExtTicketId(WorkflowPhases.approval, ticketId);
+            if(newPhase != "")
+            {
+                NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
+            }
         }
     }
 
@@ -67,12 +85,12 @@
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("approver") || authenticationStateTask!.Result.User.IsInRole("admin"));
-            await reqHandler.Init();
+            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Approver) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            await reqHandler.Init(OwnerIds);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
 
@@ -84,7 +102,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("start_work"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("start_work"), "", true);
         }
     }
 }

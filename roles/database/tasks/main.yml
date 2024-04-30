@@ -17,7 +17,7 @@
         - postgresql-server
         - python3-psycopg2
       when: ansible_os_family == "RedHat"
-      # todo: check if we need and if yes, how to install libpq-dev(el)
+      # todo: check if we need and if true, how to install libpq-dev(el)
 
     - name: install package postgresql packages for debian n ubuntu
       package:
@@ -27,11 +27,12 @@
         - postgresql
         - python3-psycopg2
         - libpq-dev
+        - postgresql-client
       when: ansible_os_family == "Debian"
 
     - name: initdb as extra step for redhat
       shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
-      become: yes
+      become: true
       when: ansible_os_family == "RedHat"
 
     - name: find out installed postgres version
@@ -41,11 +42,6 @@
 
     - name: set fact pg_version
       set_fact: pg_version={{ pg_version_result.stdout | float }}
-
-    - name: activate as_single_query if ansible_version is sufficient
-      set_fact:
-        postgresql_query_as_single_query: yes
-      when: ansible_version.full is version('2.10', '>=')
 
     - name: pg_version to int when possible
       set_fact: pg_version={{ pg_version | int }}
@@ -68,49 +64,49 @@
         path: "{{ postgresql_config_file }}"
         line: log_destination = 'syslog'
         regexp: '\s*log_destination'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf client_min_messages
       lineinfile:
         path: "{{ postgresql_config_file }}"
-        line: client_min_messages = log
+        line: client_min_messages = WARNING
         regexp: '\s*client_min_messages'
-        backup: yes
+        backup: true
           
     - name: edit postgresql.conf log_min_messages
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_min_messages = WARNING
         regexp: '\s*log_min_messages'
-        backup: yes
+        backup: true
           
     - name: edit postgresql.conf application_name
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: application_name = {{ product_name }}-database
         regexp: '\s*application_name'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf log_error_verbosity
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_error_verbosity = DEFAULT
         regexp: '\s*log_error_verbosity'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf log_min_error_statement
       lineinfile:
         path: "{{ postgresql_config_file }}"
-        line: log_min_error_statement = DEBUG2
+        line: log_min_error_statement = ERROR
         regexp: '\s*log_min_error_statement'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf log_line_prefix
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_line_prefix = '%d '
         regexp: '\s*log_line_prefix'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf listening IPs
       lineinfile:
@@ -118,12 +114,12 @@
         line: "listen_addresses = '0.0.0.0'"
         #line: "listen_addresses = '{{ api_network_listening_ip_address }},127.0.0.1'"
         regexp: listen_addresses
-        backup: yes
+        backup: true
 
     - name: edit pg_hba.conf
       blockinfile:
         path: "{{ postgresql_hba_file }}"
-        backup: yes
+        backup: true
         insertbefore: '# IPv4 local connections:'
         block: |
           #host  all         dbadmin             127.0.0.0/8                   md5
@@ -143,10 +139,12 @@
         state: restarted
 
     - name: copy database files to backend target
-      copy: src="{{ item }}" dest="{{ database_install_dir }}" owner="{{ fworch_user }}" group="{{ fworch_user }}"
-      loop:
-        - csv
-        - sql        
+      synchronize: 
+        src: "./"
+        dest: "{{ database_install_dir }}"
+        rsync_opts:
+          - "--chown={{ fworch_user }}:{{ fworch_group }}"   
+      tags: [ 'test' ]
 
     - name: create tablespace directory 
       file:
@@ -157,15 +155,32 @@
         mode: "0755"
       when: table_space is defined
 
-  become: yes
+  become: true
 
 - name: check if database already exists
   postgresql_query:
     query: SELECT count(*) FROM pg_database WHERE datname='{{ fworch_db_name }}'
     db: postgres
   register: db_exists
-  become: yes
+  become: true
   become_user: postgres
+
+- name: make sure {{ fworch_home }}/etc/secrets exists
+  file:
+    path: "{{ fworch_home }}/etc/secrets"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ postgres_group }}"
+    mode: "0750"
+  become: true
+
+# now that postgresq user group exists ...
+- name: set the correct permissions for main key file
+  file:
+    dest: "{{ main_key_file }}"
+    mode: '0640'
+    group: "{{ postgres_group }}"
+  become: true 
 
 - name: create new database
   import_tasks: install-database.yml
@@ -175,13 +190,13 @@
   import_tasks: upgrade-database.yml
   when: installation_mode == "upgrade"
 
-- name: (re)define functions and views
-  include_tasks: recreate-functions-and-views-ansible-pre2.10.yml
-  when: ansible_version.full is version('2.10', '<')
-
-- name: (re)define functions and views
-  include_tasks: recreate-functions-and-views-ansible-2.10.yml
-  when: ansible_version.full is version('2.10', '>=')
+- name: (re)defines functions and views (idempotent)
+  community.postgresql.postgresql_script:
+    db: "{{ fworch_db_name }}"
+    path: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
+  become: true
+  become_user: postgres
+  loop: "{{ database_idempotent_files }}"
 
 - name: install pg test packages
   package:
@@ -189,7 +204,7 @@
   loop:
     - "{{ postgresql_test_package }}"
   tags: [ 'never', 'unittest' ]
-  become: yes
+  become: true
 
 - name: run unit tests
   include_tasks: run-unit-tests.yml
@@ -201,4 +216,4 @@
     state: absent
     path: "{{ fworch_home }}/database"
   when: installation_mode == "upgrade"
-  become: yes
+  become: true

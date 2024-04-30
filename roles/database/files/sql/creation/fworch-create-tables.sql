@@ -1,6 +1,6 @@
 /*
 Created			29.04.2005
-Last modified	13.12.2020
+Last modified	14.07.2023
 Project			Firewall Orchestrator
 Contact			https://cactus.de/fworch
 Database		PostgreSQL 9-13
@@ -12,7 +12,7 @@ the abs_hange_id is needed as it is incremented across 4 different tables
 
 */
 
-Create sequence if not exists "public"."abs_change_id_seq"
+Create sequence  "public"."abs_change_id_seq"
 Increment 1
 Minvalue 1
 Maxvalue 9223372036854775807
@@ -40,7 +40,6 @@ Create table "device" -- contains an entry for each firewall gateway
 	"package_name" Varchar,
 	"package_uid" Varchar,
 	"dev_typ_id" Integer NOT NULL,
-	"tenant_id" Integer,
 	"dev_active" Boolean NOT NULL Default true,
 	"dev_comment" Text,
 	"dev_create" Timestamp NOT NULL Default now(),
@@ -58,7 +57,6 @@ Create table "management" -- contains an entry for each firewall management syst
 	"dev_typ_id" Integer NOT NULL,
 	"mgm_name" Varchar NOT NULL,
 	"mgm_comment" Text,
-	"tenant_id" Integer,
  	"cloud_tenant_id" VARCHAR,
 	"cloud_subscription_id" VARCHAR,	
 	"mgm_create" Timestamp NOT NULL Default now(),
@@ -81,7 +79,7 @@ Create table "management" -- contains an entry for each firewall management syst
  primary key ("mgm_id")
 );
 
-create table if not exists import_credential
+create table import_credential
 (
     id SERIAL PRIMARY KEY,
     credential_name varchar NOT NULL,
@@ -176,6 +174,7 @@ Create table "rule"
 	"rule_create" BIGINT NOT NULL,
 	"rule_last_seen" BIGINT NOT NULL,
 	"dev_id" Integer,
+	"rule_custom_fields" jsonb,
 	"access_rule" BOOLEAN Default TRUE,
 	"nat_rule" BOOLEAN Default FALSE,
 	"xlate_rule" BIGINT,
@@ -196,7 +195,7 @@ Create table "rule_metadata"
 	"rule_last_certified" Timestamp,
 	"rule_last_certifier" Integer,
 	"rule_last_certifier_dn" VARCHAR,
-	"rule_owner" Integer,
+	"rule_owner" Integer, -- points to a uiuser (not an owner)
 	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
 	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
 	"last_change_admin" Integer,
@@ -438,6 +437,14 @@ Create table "txt"
  primary key ("id", "language")
 );
 
+Create table "customtxt"
+(
+	"id" Varchar NOT NULL,
+	"language" Varchar NOT NULL,
+	"txt" Varchar NOT NULL,
+ 	primary key ("id", "language")
+);
+
 Create table "error"
 (
 	"error_id" Varchar NOT NULL UNIQUE,
@@ -451,7 +458,7 @@ Create table "error"
 Create table "tenant"
 (
 	"tenant_id" SERIAL,
-	"tenant_name" Varchar NOT NULL,
+	"tenant_name" Varchar NOT NULL UNIQUE,
 	"tenant_projekt" Varchar,
 	"tenant_comment" Text,
 	"tenant_report" Boolean Default true,
@@ -461,10 +468,19 @@ Create table "tenant"
  primary key ("tenant_id")
 );
 
+Create table tenant_to_management
+(
+	tenant_id Integer NOT NULL,
+	management_id Integer NOT NULL,
+  	shared BOOLEAN NOT NULL DEFAULT TRUE,
+  	primary key ("tenant_id", "management_id")
+);
+
 Create table "tenant_to_device"
 (
 	"tenant_id" Integer NOT NULL,
 	"device_id" Integer NOT NULL,
+	shared Boolean NOT NULL DEFAULT TRUE,
  primary key ("tenant_id", "device_id")
 );
 
@@ -474,8 +490,8 @@ Create table "tenant_network"
 	"tenant_id" Integer NOT NULL,
 	"tenant_net_name" Varchar,
 	"tenant_net_comment" Text,
-	"tenant_net_ip" Cidr,
-	"tenant_net_ip_end" Cidr,
+	"tenant_net_ip" Cidr NOT NULL,
+	"tenant_net_ip_end" Cidr NOT NULL,
 	"tenant_net_create" Timestamp NOT NULL Default now(),
  primary key ("tenant_net_id")
 );
@@ -580,11 +596,13 @@ Create table "import_control"
 	"successful_import" Boolean NOT NULL Default FALSE,
 	"changes_found" Boolean NOT NULL Default FALSE,
 	"import_errors" Varchar,
+	"notification_done" Boolean NOT NULL Default FALSE,
+	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
  primary key ("control_id")
 );
 
 -- temporary table for storing the fw-relevant config during import
-CREATE TABLE IF NOT EXISTS "import_config" (
+CREATE table "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
     "chunk_number" integer,
@@ -712,6 +730,8 @@ Create table "import_rule"
 	"rule_svc_refs" Text,
 	"parent_rule_uid" Text,
 	"rule_type" Varchar Default 'access',
+	"last_hit" Timestamp,
+	"rule_custom_fields" JSONB,
  primary key ("control_id","rule_id")
 );
 
@@ -727,7 +747,7 @@ Create table "import_zone"
 -- drop table if exists gw_route;
 -- drop table if exists gw_interface;
 
-create table if not exists gw_interface
+create table gw_interface
 (
     id SERIAL PRIMARY KEY,
     routing_device INTEGER NOT NULL,
@@ -738,7 +758,7 @@ create table if not exists gw_interface
     netmask_bits INTEGER NOT NULL
 );
 
-create table if not exists gw_route
+create table gw_route
 (
     id SERIAL PRIMARY KEY,
     routing_device INT NOT NULL,
@@ -952,7 +972,7 @@ Create table "report"
  	primary key ("report_id")
 );
 
-Create table if not exists "report_schedule"
+Create table "report_schedule"
 (
 	"report_schedule_id" BIGSERIAL,
 	"report_schedule_name" Varchar, --  NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
@@ -1009,44 +1029,52 @@ Create table "config"
 
 -- owner -------------------------------------------------------
 
-create table if not exists owner
+create table owner
 (
     id SERIAL PRIMARY KEY,
-    name Varchar NOT NULL,
+    name Varchar UNIQUE NOT NULL,
     dn Varchar NOT NULL,
     group_dn Varchar NOT NULL,
     is_default boolean default false,
     tenant_id int,
     recert_interval int,
-	next_recert_date Timestamp,
-    app_id_external varchar not null
+    app_id_external varchar UNIQUE,
+    last_recert_check Timestamp,
+    recert_check_params Varchar,
+	criticality Varchar,
+	active boolean default true,
+	import_source Varchar,
+	common_service_possible boolean default false
 );
 
-create unique index if not exists only_one_default_owner on owner(is_default) 
-where is_default = true;
-
-create table if not exists owner_network
+create table owner_network
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     owner_id int,
+	name Varchar,
     ip cidr NOT NULL,
+    ip_end cidr NOT NULL,
     port int,
-    ip_proto_id int
+    ip_proto_id int,
+	nw_type int,
+	import_source Varchar default 'manual', 
+	is_deleted boolean default false,
+	custom_type int
 );
 
-create table if not exists reqtask_owner
+create table reqtask_owner
 (
     reqtask_id bigint,
     owner_id int
 );
 
-create table if not exists rule_owner
+create table rule_owner
 (
     owner_id int,
     rule_metadata_id bigint
 );
 
-create table if not exists recertification
+create table recertification
 (
 	id BIGSERIAL PRIMARY KEY,
     rule_metadata_id bigint NOT NULL,
@@ -1056,19 +1084,20 @@ create table if not exists recertification
 	user_dn varchar,
 	recertified boolean default false,
 	recert_date Timestamp,
-	comment varchar
+	comment varchar,
+	next_recert_date Timestamp
 );
 
 -- workflow -------------------------------------------------------
 
 -- create schema
-create schema if not exists request;
+create schema request;
 
-CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
+CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify');
 
 -- create tables
-create table if not exists request.reqtask 
+create table request.reqtask 
 (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR,
@@ -1092,10 +1121,11 @@ create table if not exists request.reqtask
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	devices varchar
+	devices varchar,
+	additional_info varchar
 );
 
-create table if not exists request.reqelement 
+create table request.reqelement 
 (
     id BIGSERIAL PRIMARY KEY,
     request_action action_enum NOT NULL default 'create',
@@ -1107,10 +1137,12 @@ create table if not exists request.reqelement
     service_id bigint,
     field rule_field_enum NOT NULL,
     user_id bigint,
-    original_nat_id int
+    original_nat_id bigint,
+	device_id int,
+	rule_uid varchar
 );
 
-create table if not exists request.approval 
+create table request.approval 
 (
     id BIGSERIAL PRIMARY KEY,
     task_id bigint,
@@ -1127,7 +1159,7 @@ create table if not exists request.approval
 	state_id int NOT NULL
 );
 
-create table if not exists request.ticket 
+create table request.ticket 
 (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR NOT NULL,
@@ -1148,7 +1180,7 @@ create table if not exists request.ticket
 	ticket_priority int
 );
 
-create table if not exists request.comment 
+create table request.comment 
 (
     id BIGSERIAL PRIMARY KEY,
     ref_id bigint,
@@ -1158,37 +1190,37 @@ create table if not exists request.comment
 	comment_text varchar
 );
 
-create table if not exists request.ticket_comment
+create table request.ticket_comment
 (
     ticket_id bigint,
     comment_id bigint
 );
 
-create table if not exists request.reqtask_comment
+create table request.reqtask_comment
 (
     task_id bigint,
     comment_id bigint
 );
 
-create table if not exists request.approval_comment
+create table request.approval_comment
 (
     approval_id bigint,
     comment_id bigint
 );
 
-create table if not exists request.impltask_comment
+create table request.impltask_comment
 (
     task_id bigint,
     comment_id bigint
 );
 
-create table if not exists request.state
+create table request.state
 (
     id Integer NOT NULL UNIQUE PRIMARY KEY,
     name Varchar NOT NULL
 );
 
-create table if not exists request.action
+create table request.action
 (
     id SERIAL PRIMARY KEY,
     name Varchar NOT NULL,
@@ -1201,13 +1233,13 @@ create table if not exists request.action
 	external_parameters Varchar
 );
 
-create table if not exists request.state_action
+create table request.state_action
 (
     state_id int,
     action_id int
 );
 
-create table if not exists request.implelement
+create table request.implelement
 (
     id BIGSERIAL PRIMARY KEY,
     implementation_action action_enum NOT NULL default 'create',
@@ -1219,10 +1251,11 @@ create table if not exists request.implelement
     service_id bigint,
     field rule_field_enum NOT NULL,
     user_id bigint,
-    original_nat_id int
+    original_nat_id bigint,
+	rule_uid varchar
 );
 
-create table if not exists request.impltask
+create table request.impltask
 (
     id BIGSERIAL PRIMARY KEY,
 	title VARCHAR,
@@ -1245,4 +1278,157 @@ create table if not exists request.impltask
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp
+);
+
+
+--- Compliance ---
+create schema compliance;
+
+create table compliance.network_zone
+(
+    id BIGSERIAL PRIMARY KEY,
+	name VARCHAR NOT NULL,
+	description VARCHAR NOT NULL,
+	super_network_zone_id bigint,
+	owner_id bigint
+);
+
+create table compliance.network_zone_communication
+(
+    from_network_zone_id bigint NOT NULL,
+	to_network_zone_id bigint NOT NULL
+);
+
+create table compliance.ip_range
+(
+    network_zone_id bigint NOT NULL,
+	ip_range_start inet NOT NULL,
+	ip_range_end inet NOT NULL,
+	PRIMARY KEY(network_zone_id, ip_range_start, ip_range_end)
+);
+
+
+--- Network modelling ---
+create schema modelling;
+
+create table modelling.nwgroup
+(
+ 	id BIGSERIAL PRIMARY KEY,
+	app_id int,
+	id_string Varchar,
+	name Varchar,
+	comment Varchar,
+	group_type int,
+	is_deleted boolean default false,
+	creator Varchar,
+	creation_date timestamp default now()
+);
+
+create table modelling.connection
+(
+ 	id SERIAL PRIMARY KEY,
+	app_id int,
+	proposed_app_id int,
+	name Varchar,
+	reason Text,
+	is_interface boolean default false,
+	used_interface_id int,
+	is_requested boolean default false,
+	ticket_id bigint,
+	common_service boolean default false,
+	is_published boolean default false,
+	creator Varchar,
+	creation_date timestamp default now()
+);
+
+create table modelling.selected_objects
+(
+	app_id int,
+	nwgroup_id bigint,
+	primary key (app_id, nwgroup_id)
+);
+
+create table modelling.selected_connections
+(
+	app_id int,
+	connection_id int,
+	primary key (app_id, connection_id)
+);
+
+create table modelling.nwobject_nwgroup
+(
+    nwobject_id bigint,
+    nwgroup_id bigint,
+	primary key (nwobject_id, nwgroup_id)
+);
+
+create table modelling.nwgroup_connection
+(
+    nwgroup_id bigint,
+    connection_id int,
+	connection_field int, -- enum src=1, dest=2, ...
+	primary key (nwgroup_id, connection_id, connection_field)
+);
+
+create table modelling.nwobject_connection -- (used only if settings flag is set)
+(
+    nwobject_id bigint,
+    connection_id int,
+	connection_field int, -- enum src=1, dest=2, ...
+	primary key (nwobject_id, connection_id, connection_field)
+);
+
+create table modelling.service
+(
+ 	id SERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar,
+	is_global boolean default false,
+	port int,
+	port_end int,
+	proto_id int
+);
+
+create table modelling.service_group
+(
+	id SERIAL PRIMARY KEY,
+	app_id int,
+	name Varchar,
+	is_global boolean default false,
+	comment Varchar,
+	creator Varchar,
+	creation_date timestamp default now()
+);
+
+create table modelling.service_service_group
+(
+	service_id int,
+    service_group_id int,
+	primary key (service_id, service_group_id)
+);
+
+create table modelling.service_group_connection
+(
+    service_group_id int,
+	connection_id int,
+	primary key (service_group_id, connection_id)
+);
+
+create table modelling.service_connection -- (used only if settings flag is set)
+(
+    service_id int,
+    connection_id int,
+	primary key (service_id, connection_id)
+);
+
+create table modelling.change_history
+(
+	id BIGSERIAL PRIMARY KEY,
+	app_id int,
+	change_type int,
+	object_type int,
+    object_id bigint,
+	change_text Varchar,
+	changer Varchar,
+	change_time Timestamp default now()
 );

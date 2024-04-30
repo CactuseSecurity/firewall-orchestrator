@@ -1,0 +1,13 @@
+mutation clearOpenRecerts($ownerId: Int, $mgmId: Int) {
+  delete_recertification(
+    where: {
+      owner_id: { _eq: $ownerId }
+      rule_metadatum: { device: { mgm_id: { _eq: $mgmId } } }
+      recert_date: { _is_null: true }
+    }
+  ) {
+    returning {
+      DeletedId: id
+    }
+  }
+}

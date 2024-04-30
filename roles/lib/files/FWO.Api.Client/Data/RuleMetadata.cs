@@ -35,6 +35,18 @@ namespace FWO.Api.Data
         [JsonProperty("rule_recertification_comment"), JsonPropertyName("rule_recertification_comment")]
         public string Comment { get; set; } = "";
 
+        [JsonProperty("recertification"), JsonPropertyName("recertification")]
+        public List<Recertification> RuleRecertification { get; set; } = new List<Recertification>();
+
+        [JsonProperty("recert_history"), JsonPropertyName("recert_history")]
+        public List<Recertification> RecertHistory { get; set; } = new List<Recertification>();
+
+        [JsonProperty("dev_id"), JsonPropertyName("dev_id")]
+        public int DeviceId { get; set; }
+
+        [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
+        public string? Uid { get; set; } = "";
+
         public DateTime NextRecert { get; set; }
 
         public string LastCertifierName { get; set; } = "";
@@ -42,6 +54,10 @@ namespace FWO.Api.Data
         public bool Recert { get; set; }
 
         public string Style { get; set; } = "";
+
+
+
+
 
 
         public void UpdateRecertPeriods(int recertificationPeriod, int recertificationNoticePeriod)

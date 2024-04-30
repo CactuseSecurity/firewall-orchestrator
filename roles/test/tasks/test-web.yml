@@ -1,6 +1,14 @@
 # this playbook contains web server availabitlity tests
 
-- name: test api version
+# TODO - find out why UI sometimes crashes during upgrade of heavy data installations
+- name: restart UI to avoid testing against crashed UI
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-ui"
+    state: restarted
+  become: true
+  when: "'frontends' in group_names"
+
+- name: test web server availability
   uri:
     url: "{{ loop_url }}"
     method: GET
@@ -8,10 +16,13 @@
       Content-Type: html/text
     body:
     validate_certs: false
-    return_content: yes
+    return_content: true
   register: web_call_result
   changed_when: false
   failed_when: false
+  until: web_call_result.status == 200
+  retries: 10 # 10 * 5 seconds
+  delay: 5 # Every 5 seconds
   loop:
     - "{{ middleware_uri }}/swagger/"
     - https://{{ ui_hostname }}/

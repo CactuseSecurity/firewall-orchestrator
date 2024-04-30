@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -10,6 +10,7 @@
     <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
     <ProjectReference Include="..\FWO.Config.File\FWO.Config.File.csproj" />
     <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\FWO.Mail\FWO.Mail.csproj" />
   </ItemGroup>
 
 </Project>

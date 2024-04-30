@@ -1,8 +1,0 @@
-
-- name: (re)defines functions and views (idempotent) prior to ansible 2.10
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    path_to_script: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
-  become: yes
-  become_user: postgres
-  loop: "{{ database_idempotent_files }}"

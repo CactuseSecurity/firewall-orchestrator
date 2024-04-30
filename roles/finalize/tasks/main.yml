@@ -1,0 +1,131 @@
+# change version to new number in /etc/fworch/fworch.yaml
+
+- name: check for existing main config file
+  stat:
+    path: "{{ fworch_conf_file }}"
+  register: already_installed
+
+- set_fact:
+    already_installed: "{{ already_installed.stat.exists }}"
+
+- debug:
+    msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
+
+- name: fail if unknown installation_mode is set
+  fail:
+    msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
+  when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
+
+- name: fail if not already installed and installation_mode is upgrade
+  fail:
+    msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
+  when: not already_installed and installation_mode == "upgrade"
+
+- name: Modify the product version in the config file
+  block:      
+    - name: Read config file
+      slurp:
+        path: "{{ fworch_conf_file }}"
+      register: config_file
+    
+    - name: Modify product_version
+      set_fact:
+         json_data: "{{ config_file.content | b64decode | from_json | combine({'product_version': product_version }) }}"       
+        
+    - name: Save updated config to file
+      copy:
+        content: "{{ json_data | to_nice_json }}"
+        dest: "{{ fworch_conf_file }}"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+      become: true     
+  when: installation_mode == "upgrade"
+  
+- name: include upgrade script
+  import_tasks: run-upgrades.yml
+  when: "installation_mode == 'upgrade'"
+
+- name: call external python scripts to set some customer specific config settings via API
+  script: "{{ item }}"
+  args:
+    executable: python3
+  become: true
+  when: "'apiserver' in group_names"
+  with_fileglob:
+    - "scripts/customizing/api/*.py"
+
+# Do general cleanup
+# - name: delete ldif files
+#   file:
+#     path: "{{  middleware_ldif_dir }}"
+#     state: absent
+#   become: true
+#   when: "'middlewareserver' in group_names"
+
+- name: restart UI to display new product version
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-ui"
+    state: restarted
+  become: true
+  when: "'frontends' in group_names"
+  
+- name: test whether demo data is present
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}'
+  register: demo_data_present
+  become: true
+  become_user: postgres
+
+- name: find cron jobs in case of missing demo data
+  find:
+    paths: /etc/cron.d
+    patterns: "{{ product_name }}_sample_data_*"
+  register: files_to_delete
+  when: demo_data_present.query_result == []
+  become: true
+
+- name: delete cron jobs in case of missing demo data
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ files_to_delete.files }}"
+  when: demo_data_present.query_result == []
+  become: true
+
+- name: remove temp importer_password from install host
+  file:
+    path: "{{ importer_password_file_on_installer }}"
+    state: absent
+  become: true
+  delegate_to: localhost
+
+- name: start importer service
+  systemd:
+    name: "{{ item }}"
+    state: started
+    daemon_reload: true
+    enabled: true
+  become: true
+  when: "'importers' in group_names"
+  loop:
+    - "{{ product_name }}-importer-legacy"
+    - "{{ product_name }}-importer-api"
+
+- name: remove maint website dir
+  file:
+    path: "{{ fworch_home }}/maint-website"
+    state: absent
+  become: true
+
+- name: deactivate maintenance web site
+  command: "a2dissite {{ product_name }}-maintenance"
+  ignore_errors: true
+  become: true
+
+- name: restart apache without maintenance site
+  service:
+    name: "{{ webserver_package_name }}"
+    state: restarted
+  become: true

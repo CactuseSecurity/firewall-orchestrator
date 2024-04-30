@@ -8,33 +8,108 @@
 <h3>@(userConfig.GetText("ui_messages"))</h3>
 @(userConfig.GetText("U7301"))
 <hr />
-
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" Sortable="true" Filterable="true"/>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" Sortable="true" Filterable="true"/>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
-    <Pager ShowPageNumber="true" ShowTotalCount="true" />
-</Table>
-
+@if(InitComplete)
+{
+    @if(seeAllUsers)
+    {
+        <div class="form-group row">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
+            <div class="col-sm-3">
+                <Dropdown ElementType="UiUser" @bind-SelectedElement="actUser" ElementToString="@(u => u.Name)" Elements="uiUsers" >
+                    <ElementTemplate Context="user">
+                        @user.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary col-sm-1" @onclick="SelectUser">@(userConfig.GetText("select"))</button>
+        </div>
+        <hr />
+    }
+    <div class="vheight75">
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
+            @if(seeAllUsers)
+            {
+                <Column TableItem="LogEntry" Title="@(userConfig.GetText("user"))" Field="@(x => x.UserId)" Sortable="true">
+                    <Template>
+                        @(uiUsers.FirstOrDefault(x => x.DbId == context.UserId)?.Name ?? context.UserId.ToString())
+                    </Template>
+                </Column>
+            }
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private List<LogEntry> logEntrys = new List<LogEntry>();
+    private List<UiUser> uiUsers = new List<UiUser>();
+    private UiUser actUser = new UiUser();
+    private bool seeAllUsers = false; 
+    private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getUiLogEntrys, new { user = userConfig.User.DbId });
+            seeAllUsers = authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+            if(seeAllUsers)
+            {
+                uiUsers.Add(new UiUser(){ DbId = -1, Name = userConfig.GetText("all") });
+                uiUsers.AddRange(await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers));
+                actUser = uiUsers.FirstOrDefault(u => u.Name == userConfig.User.Name) ?? uiUsers[0];
+                await Refresh();
+            }
+            else
+            {
+                logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getUiLogEntrys, new { user = userConfig.User.DbId });
+            }
+            InitComplete = true;
         }
-        catch (Exception exception)
+        catch(Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
         }
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            if(actUser.DbId == -1)
+            {
+                logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getAllUiLogEntrys);
+            }
+            else
+            {
+                logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getUiLogEntrys, new { user = actUser.DbId });
+            }
+        }
+        catch(Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+        }
+    }
+
+    private async Task SelectUser()
+    {
+        await Refresh();
     }
 }

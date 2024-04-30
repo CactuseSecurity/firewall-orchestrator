@@ -11,6 +11,9 @@ using FWO.Middleware.RequestParameters;
 
 namespace FWO.Middleware.Controllers
 {
+    /// <summary>
+    /// Controller for Ldap administration
+    /// </summary>
     // [Authorize]
     [Route("api/[controller]")]
     [ApiController]
@@ -19,6 +22,9 @@ namespace FWO.Middleware.Controllers
         private List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
 
+		/// <summary>
+		/// Constructor needing connection and ldap list
+		/// </summary>
         public AuthenticationServerController(ApiConnection apiConnection, List<Ldap> ldaps)
         {
             this.apiConnection = apiConnection;
@@ -37,7 +43,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">Ldap connection parameters</param>
         /// <returns></returns>
         [HttpGet("TestConnection")]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public ActionResult<string> TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {
             try
@@ -47,14 +53,18 @@ namespace FWO.Middleware.Controllers
             }
             catch (Exception e)
             {
-                Problem("Connection test failed: " + e.Message);
+                return Problem("Connection test failed: " + e.Message);
             }
             return Ok("Connection tested successfully");
         }
 
         // GET: api/<LdapController>
+        /// <summary>
+        /// Get all connected Ldaps.
+        /// </summary>
+        /// <returns>List of all connected Ldaps</returns>
         [HttpGet]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<List<LdapGetUpdateParameters>> Get()
         {
             UiLdapConnection[] ldapConnections = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(AuthQueries.getAllLdapConnections));
@@ -67,8 +77,32 @@ namespace FWO.Middleware.Controllers
         }
 
         // POST api/<LdapController>/5
+        /// <summary>
+        /// Add Ldap connection
+        /// </summary>
+        /// <remarks>
+        /// Name (optional) &#xA;
+        /// Address (required) &#xA;
+        /// Port (required) &#xA;
+        /// Type (required) &#xA;
+        /// PatternLength (required) &#xA;
+        /// SearchUser (required) &#xA;
+        /// Tls (required) &#xA;
+        /// TenantLevel (required) &#xA;
+        /// SearchUserPwd (required) &#xA;
+        /// SearchpathForUsers (required) &#xA;
+        /// SearchpathForRoles (optional) &#xA;
+        /// SearchpathForGroups (optional) &#xA;
+        /// WriteUser (optional) &#xA;
+        /// WriteUserPwd (optional) &#xA;
+        /// TenantId (optional) &#xA;
+        /// GlobalTenantName (optional) &#xA;
+        /// Active (required) &#xA;
+        /// </remarks>
+        /// <param name="ldapData">LdapAddParameters</param>
+        /// <returns>Id of new ldap, 0 if no ldap could be added</returns>
         [HttpPost]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<int> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
         {
             // Add ldap to DB and to middleware ldap list
@@ -86,8 +120,33 @@ namespace FWO.Middleware.Controllers
         }
 
         // PUT api/<LdapController>/Update/5
+        /// <summary>
+        /// Update Ldap connection
+        /// </summary>
+        /// <remarks>
+        /// Id (required) &#xA;
+        /// Name (optional) &#xA;
+        /// Address (required) &#xA;
+        /// Port (required) &#xA;
+        /// Type (required) &#xA;
+        /// PatternLength (required) &#xA;
+        /// SearchUser (required) &#xA;
+        /// Tls (required) &#xA;
+        /// TenantLevel (required) &#xA;
+        /// SearchUserPwd (required) &#xA;
+        /// SearchpathForUsers (required) &#xA;
+        /// SearchpathForRoles (optional) &#xA;
+        /// SearchpathForGroups (optional) &#xA;
+        /// WriteUser (optional) &#xA;
+        /// WriteUserPwd (optional) &#xA;
+        /// TenantId (optional) &#xA;
+        /// GlobalTenantName (optional) &#xA;
+        /// Active (required) &#xA;
+        /// </remarks>
+        /// <param name="ldapData">LdapGetUpdateParameters</param>
+        /// <returns>Id of updated ldap</returns>
         [HttpPut]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<int> Update([FromBody] LdapGetUpdateParameters ldapData)
         {
             // Update ldap in DB and in middleware ldap list
@@ -103,8 +162,16 @@ namespace FWO.Middleware.Controllers
         }
 
         // DELETE api/<LdapController>/5
+        /// <summary>
+        /// Delete Ldap connection
+        /// </summary>
+        /// <remarks>
+        /// Id (required) &#xA;
+        /// </remarks>
+        /// <param name="ldapData">LdapDeleteParameters</param>
+        /// <returns>Id of deleted ldap connection</returns>
         [HttpDelete]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<int> Delete([FromBody] LdapDeleteParameters ldapData)
         {
             // Delete ldap in DB and in middleware ldap list

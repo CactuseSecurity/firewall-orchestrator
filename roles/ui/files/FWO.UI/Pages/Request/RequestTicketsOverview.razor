@@ -1,13 +1,16 @@
+@using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Middleware.Client
 
 @page "/request/ticketsoverview"
-@attribute [Authorize(Roles = "admin, auditor, fw-admin, requester")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 <h3>@(userConfig.GetText("all_readonly"))</h3>
 <hr />
@@ -16,17 +19,24 @@
 {
     <DisplayTicketTable Phase="WorkflowPhases.request" States="states" ReqHandler="reqHandler" ResetParent="Reset"/>
 }
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private RequestHandler reqHandler;
-    private RequestStateDict states = new RequestStateDict();
+    private RequestHandler reqHandler = new ();
+    private RequestStateDict states = new ();
+    private List<int> OwnerIds = new ();
     private bool InitComplete = false;
 
 
@@ -34,32 +44,20 @@
     {
         try
         {
-            if(authenticationStateTask!.Result.User.IsInRole("admin"))
-            {
-                apiConnection.SetRole("admin");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("fw-admin"))
-            {
-                apiConnection.SetRole("fw-admin");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("requester"))
-            {
-                apiConnection.SetRole("requester");
-            }
-            else
-            {
-                apiConnection.SetRole("auditor");
-            }
-
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Auditor });
             await states.Init(apiConnection);
 
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
+            if(userConfig.ReqOwnerBased)
+            {
+                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+            }
+            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
             await Reset();
             InitComplete = true;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
         }
     }
 
@@ -68,17 +66,24 @@
         try
         {
             reqHandler.ReadOnlyMode = true;
-            await reqHandler.Init(1);
-
-            // Todo: put filtering into graphql query
-            if(authenticationStateTask!.Result.User.IsInRole("requester") && !(authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("fw-admin")))
+            if(userConfig.ReqOwnerBased)
             {
-                reqHandler.FilterForRequester();
+                await reqHandler.Init(OwnerIds, true, true);
+            }
+            else
+            {
+                await reqHandler.Init(OwnerIds, true);
+                
+                // Todo: put filtering into graphql query
+                if(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) && !(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)))
+                {
+                    reqHandler.FilterForRequester();
+                }
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
 }

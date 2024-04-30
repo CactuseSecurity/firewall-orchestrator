@@ -49,19 +49,29 @@ namespace FWO.Config.Api
 
         protected void SubscriptionUpdateHandler(ConfigItem[] configItems)
         {
+            HandleUpdate(configItems, false);
+        }
+
+        public void SubscriptionPartialUpdateHandler(ConfigItem[] configItems)
+        {
+            HandleUpdate(configItems, true);
+        }
+
+        protected void HandleUpdate(ConfigItem[] configItems, bool partialUpdate)
+        {
             semaphoreSlim.Wait();
             try
             {
                 Log.WriteDebug("Config subscription update", "New config values received from config subscription");
                 RawConfigItems = configItems;
-                Update(configItems);
+                Update(configItems, partialUpdate);
                 OnChange?.Invoke(this, configItems);
                 Initialized = true;
             }
             finally { semaphoreSlim.Release(); }
         }
 
-        protected void Update(ConfigItem[] configItems)
+        protected void Update(ConfigItem[] configItems, bool partialUpdate = false)
         {
             foreach (PropertyInfo property in GetType().GetProperties())
             {
@@ -86,12 +96,12 @@ namespace FWO.Config.Api
                             Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
                         }
                     }
-                    else
+                    else if (!partialUpdate)
                     {
                         // If this is a global config 
                         if (UserId == 0) 
                         {
-                            Log.WriteError("Load Global Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
+                            Log.WriteDebug("Load Global Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
                         }
 						// If this is a user config item (user might not have changed the default setting)
 						else if (property.GetCustomAttribute<UserConfigDataAttribute>() != null)

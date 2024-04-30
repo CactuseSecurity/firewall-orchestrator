@@ -1,0 +1,19 @@
+mutation prepareNextRecertification(
+  $ruleMetadataId: bigint!
+  $ruleId: bigint!
+  $ipMatch: String
+  $ownerId: Int!
+  $nextRecertDate: timestamp
+  ) {
+  insert_recertification(objects: {
+    rule_metadata_id: $ruleMetadataId
+    rule_id: $ruleId
+    ip_match: $ipMatch
+    owner_id: $ownerId
+    next_recert_date: $nextRecertDate
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

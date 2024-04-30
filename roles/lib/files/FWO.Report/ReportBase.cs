@@ -1,17 +1,48 @@
-﻿using FWO.Api.Client;
-using FWO.Api.Client.Queries;
+﻿using FWO.GlobalConstants;
+using FWO.Api.Client;
 using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
-using System.Text.Json;
 using System.Text;
 using WkHtmlToPdfDotNet;
 
 namespace FWO.Report
 {
+    public enum RsbTab
+    {
+        all = 10, 
+        report = 20, 
+        rule = 30,
+
+        usedObj = 40,
+        unusedObj = 50
+    }
+
+    public enum ObjCategory
+    {
+        all = 0,
+        nobj = 1, 
+        nsrv = 2, 
+        user = 3
+    }
+
+    public struct ObjCatString
+    {
+        public const string NwObj = "nwobj";
+        public const string Svc = "svc";
+        public const string User = "user";
+    }
+
+    public enum OutputLocation
+    {
+        export,
+        report,
+        certification
+    }
+
     public abstract class ReportBase
     {
-        protected StringBuilder HtmlTemplate = new StringBuilder($@"
+        protected StringBuilder HtmlTemplate = new ($@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -41,25 +72,26 @@ namespace FWO.Report
     </head>
     <body>
         <h2>##Title##</h2>
-        <p>Filter: ##Filter##</p>
         <p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>
         <p>##GeneratedOn##: ##Date## (UTC)</p>
-        <p>Devices: ##DeviceFilter##</p>
+        <p>##OtherFilters##</p>
+        <p>##Filter##</p>
         <hr>
         ##Body##
     </body>
 </html>");
 
-        public Management[] Managements = new Management[] { };
-
         public readonly DynGraphqlQuery Query;
         protected UserConfig userConfig;
         public ReportType ReportType;
+        public ReportData ReportData = new();
 
-        private string htmlExport = "";
+        protected string htmlExport = "";
 
         // Pdf converter
-        protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
+        protected static readonly SynchronizedConverter converter = new (new PdfTools());
+        public bool GotObjectsInReport { get; protected set; } = false;
+
 
         public ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
         {
@@ -68,57 +100,119 @@ namespace FWO.Report
             ReportType = reportType;
         }
 
-        public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct);
+        public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
 
-        public bool GotObjectsInReport { get; protected set; } = false;
+        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback); // to be called when exporting
 
-        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
+        public virtual Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
+        {
+            throw new NotImplementedException();
+        }
 
-        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
+        public virtual bool NoRuleFound()
+        {
+            return true;
+        }
 
         public abstract string ExportToCsv();
 
-        public virtual string ExportToJson()
-        {
-            return JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
-        }
+        public abstract string ExportToJson();
 
         public abstract string ExportToHtml();
 
-        public virtual string SetDescription()
+        public abstract string SetDescription();
+
+        public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig)
         {
-            int managementCounter = 0;
-            foreach (var management in Managements.Where(mgt => !mgt.Ignore))
+            DynGraphqlQuery query = Compiler.Compile(reportFilter);
+            ReportType repType = (ReportType)reportFilter.ReportParams.ReportType;
+            return repType switch
             {
-                managementCounter++;
-            }
-            return $"{managementCounter} {userConfig.GetText("managements")}";
+                ReportType.Statistics => new ReportStatistics(query, userConfig, repType),
+                ReportType.Rules => new ReportRules(query, userConfig, repType),
+                ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
+                ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
+                ReportType.Changes => new ReportChanges(query, userConfig, repType),
+                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType),
+                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType),
+                ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
+                ReportType.Recertification => new ReportRules(query, userConfig, repType),
+                ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
+                ReportType.Connections => new ReportConnections(query, userConfig, repType),
+                _ => throw new NotSupportedException("Report Type is not supported."),
+            };
         }
 
-        protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
+        public static string ConstructLink(string type, string symbol, long id, string name, OutputLocation location, string reportId, string style)
+        {
+            string link = location == OutputLocation.export ? $"#" : $"{location}/generation#goto-report-{reportId}-";
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
+        }
+
+        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-                HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
-                HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                HtmlTemplate = HtmlTemplate.Replace("##DeviceFilter##", string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames())));
+                if(ReportType.IsChangeReport())
+                {
+                    string timeRange = $"{userConfig.GetText("change_time")}: " +
+                        $"{userConfig.GetText("from")}: {ToUtcString(Query.QueryVariables["start"]?.ToString())}, " +
+                        $"{userConfig.GetText("until")}: {ToUtcString(Query.QueryVariables["stop"]?.ToString())}";
+                    HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
+                }
+                else if(ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
+                    HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>", "");
+                }
+
+                if(deviceFilter != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+                }
+                else if (ownerFilter != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##OtherFilters##</p>", "");
+                }
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 htmlExport = HtmlTemplate.ToString();
             }
             return htmlExport;
         }
 
+        public static string ToUtcString(string? timestring)
+        {
+            try
+            {
+                return timestring != null ? DateTime.Parse(timestring).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK") : "";
+            }
+            catch(Exception)
+            {
+                return timestring ?? "";
+            }
+        }
+
         public virtual byte[] ToPdf(PaperKind paperKind, int width = -1, int height = -1)
         {
             // HTML
             if (string.IsNullOrEmpty(htmlExport))
+            {
                 htmlExport = ExportToHtml();
+            }
 
-            GlobalSettings globalSettings = new GlobalSettings
+            GlobalSettings globalSettings = new ()
             {
                 ColorMode = ColorMode.Color,
                 Orientation = Orientation.Landscape,
@@ -140,7 +234,7 @@ namespace FWO.Report
                 globalSettings.PaperSize = paperKind;
             }
 
-            HtmlToPdfDocument doc = new HtmlToPdfDocument()
+            HtmlToPdfDocument doc = new ()
             {
                 GlobalSettings = globalSettings,
                 Objects =
@@ -158,29 +252,23 @@ namespace FWO.Report
             return converter.Convert(doc);
         }
 
-        public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig)
+        public static string GetIconClass(ObjCategory? objCategory, string? objType)
         {
-            DynGraphqlQuery query = Compiler.Compile(reportFilter);
-            ReportType repType = (ReportType) reportFilter.ReportParams.ReportType;
-            return repType switch
+            return objType switch
             {
-                ReportType.Statistics => new ReportStatistics(query, userConfig, repType),
-                ReportType.Rules => new ReportRules(query, userConfig, repType),
-                ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
-                ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
-                ReportType.Changes => new ReportChanges(query, userConfig, repType),
-                ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
-                ReportType.Recertification => new ReportRules(query, userConfig, repType),
-                _ => throw new NotSupportedException("Report Type is not supported."),
+                ObjectType.Group when objCategory == ObjCategory.user => Icons.UserGroup,
+                ObjectType.Group => Icons.ObjGroup,
+                ObjectType.Host => Icons.Host,
+                ObjectType.Network => Icons.Network,
+                ObjectType.IPRange => Icons.Range,
+                _ => objCategory switch
+                {
+                    ObjCategory.nobj => Icons.NwObject,
+                    ObjCategory.nsrv => Icons.Service,
+                    ObjCategory.user => Icons.User,
+                    _ => "",
+                },
             };
-        }
-
-        public async Task<Management[]> getRelevantImportIds(ApiConnection apiConnection)
-        {
-            Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-            ImpIdQueryVariables["time"] = (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat));
-            ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
-            return await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
         }
     }
 }

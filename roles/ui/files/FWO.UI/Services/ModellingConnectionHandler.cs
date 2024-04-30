@@ -1,6 +1,5 @@
 ﻿using FWO.Config.Api;
 using FWO.Config.Api.Data;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -11,6 +10,7 @@ namespace FWO.Ui.Services
 {
     public class ModellingConnectionHandler : ModellingHandlerBase
     {
+        public List<FwoOwner> AllApps { get; set; } = new();
         public List<ModellingConnection> Connections { get; set; } = new();
         public List<ModellingConnection> PreselectedInterfaces { get; set; } = new();
         public ModellingConnection ActConn { get; set; } = new();
@@ -25,7 +25,6 @@ namespace FWO.Ui.Services
         public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
 
         public string InterfaceName = "";
-        public bool ReadOnly = false;
 
         public bool srcReadOnly { get; set; } = false;
         public bool dstReadOnly { get; set; } = false;
@@ -36,11 +35,14 @@ namespace FWO.Ui.Services
         public bool RemovePreselectedInterfaceMode = false;
         public bool DisplaySelectedInterfaceMode = false;
         public ModellingConnectionHandler? IntConnHandler;
+        public int RequesterId = 0;
 
         public List<ModellingAppServer> SrcAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = new();
         public List<ModellingAppServer> DstAppServerToAdd { get; set; } = new();
         public List<ModellingAppServer> DstAppServerToDelete { get; set; } = new();
+        public ModellingAppServerHandler AppServerHandler;
+        public bool DisplayAppServerMode = false;
 
         public ModellingAppRoleHandler? AppRoleHandler;
         public List<ModellingAppRole> SrcAppRolesToAdd { get; set; } = new();
@@ -69,36 +71,122 @@ namespace FWO.Ui.Services
         public bool EditSvcGrpMode = false;
         public bool DeleteSvcGrpMode = false;
         public bool DisplaySvcGrpMode = false;
+        public Func<Task> RefreshParent = DefaultInit.DoNothing;
+        public ModellingAppRole DummyAppRole = new();
 
-        private List<FwoOwner> allApps = new();
+        private bool SrcFix = false;
+        private bool DstFix = false;
         private ModellingAppRole actAppRole = new();
         private ModellingNwGroup actNwGrpObj = new();
         private ModellingConnection actInterface = new();
         private ModellingServiceGroup actServiceGroup = new();
         private ModellingConnection ActConnOrig { get; set; } = new();
+        private bool InitOngoing = false;
 
 
         public ModellingConnectionHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingConnection> connections, ModellingConnection conn, bool addMode, bool readOnly, 
-            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
+            Action<Exception?, string, string, bool> displayMessageInUi, Func<Task> refreshParent, bool isOwner = true)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, readOnly, isOwner)
         {
             Connections = connections;
             ActConn = conn;
-            ReadOnly = readOnly;
             ActConnOrig = new ModellingConnection(ActConn);
+            RefreshParent = refreshParent;
         }
 
         public async Task Init()
         {
             try
             {
-                PreselectedInterfaces = ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();
-                await InitAvailableNWObjects();
-                await InitAvailableSvcObjects();
-                RefreshSelectedNwObjects();
-                InterfaceName = await ExtractUsedInterface(ActConn);
-                allApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                if(!InitOngoing)
+                {
+                    InitOngoing = true;
+                    await RefreshObjects();
+                    InterfaceName = await ExtractUsedInterface(ActConn);
+                    AllApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), false, DisplayMessageInUi);
+                    DummyAppRole = await AppRoleHandler.GetDummyAppRole();
+                    if(!AddMode && !ReadOnly && ActConn.IsInterface)
+                    {
+                        // if(await CheckInterfaceInUse(ActConn))
+                        // {
+                            SrcFix = ActConn.SourceFilled();
+                            DstFix = ActConn.DestinationFilled();
+                        // }
+                    }
+                    InitOngoing = false;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        public async Task ReInit()
+        {
+            try
+            {
+                await RefreshActConn();
+                await RefreshObjects();
+                await RefreshParent();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        public async Task PartialInit()
+        {
+            try
+            {
+                if(!InitOngoing)
+                {
+                    InitOngoing = true;
+                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), false, DisplayMessageInUi);
+                    DummyAppRole = await AppRoleHandler.GetDummyAppRole();
+                    InitOngoing = false;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        private async Task RefreshObjects()
+        {
+            await RefreshPreselectedInterfaces();
+            PreselectedInterfaces = ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();
+            await InitAvailableNWObjects();
+            await InitAvailableSvcObjects();
+            RefreshSelectableNwObjects();
+        }
+
+        private async Task RefreshActConn()
+        {
+            try
+            {
+                List<ModellingConnection> conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = ActConn.Id});
+                if(conns.Count > 0)
+                {
+                    ActConn = conns.First();
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        public async Task RefreshPreselectedInterfaces()
+        {
+            try
+            {
+                PreselectedInterfaces = ModellingConnectionWrapper.Resolve(
+                    await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();
             }
             catch (Exception exception)
             {
@@ -142,9 +230,11 @@ namespace FWO.Ui.Services
         {
             try
             {
+                AvailableSvcElems = new();
                 AvailableServiceGroups = (await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups)).Where(x => x.AppId != Application.Id).ToList();
                 AvailableServiceGroups.AddRange(await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id }));
-                AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id });
+                AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getGlobalServices);
+                AvailableServices.AddRange(await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id }));
                 foreach(var svcGrp in AvailableServiceGroups)
                 {
                     AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, svcGrp.Id));
@@ -163,11 +253,35 @@ namespace FWO.Ui.Services
             }
         }
 
+        public async Task<long> CreateNewRequestedInterface(long ticketId, bool asSource, string name, string reason)
+        {
+            //apiConnection.SetProperRole(user, new List<string> { Roles.Modeller, Roles.Admin });
+            ActConn.TicketId = ticketId;
+            ActConn.Name = name + " (Ticket: "+ ActConn.TicketId.ToString() + ")";
+            ActConn.Reason = $"{userConfig.GetText("from_ticket")} {ticketId} ({userConfig.GetText("U9012")}): \r\n{reason}";
+            ActConn.IsInterface = true;
+            ActConn.IsRequested = true;
+            if(asSource)
+            {
+                ActConn.SourceAppRoles.Add(new() { Content = DummyAppRole });
+            }
+            else
+            {
+                ActConn.DestinationAppRoles.Add(new() { Content = DummyAppRole });
+            }
+            await AddConnectionToDb(true);
+
+            ActConn.AppId = RequesterId;
+            await AddToPreselectedList(ActConn);
+            //apiConnection.SwitchBack();
+            return ActConn.Id;
+        }
+
         public string DisplayInterface(ModellingConnection? inter)
         {
             if(inter != null)
             {
-                FwoOwner? app = allApps.FirstOrDefault(x => x.Id == inter.AppId);
+                FwoOwner? app = AllApps.FirstOrDefault(x => x.Id == inter.AppId);
                 if(app != null)
                 {
                     return inter.DisplayWithOwner(app);
@@ -177,7 +291,7 @@ namespace FWO.Ui.Services
             return "";
         }
 
-        public bool RefreshSelectedNwObjects()
+        public bool RefreshSelectableNwObjects()
         {
             AvailableNwElems = new();
             foreach(var obj in AvailableCommonAreas)
@@ -210,6 +324,8 @@ namespace FWO.Ui.Services
             svcReadOnly = true;
             ActConn.IsInterface = false;
             ActConn.UsedInterfaceId = interf.Id;
+            ActConn.InterfaceIsRequested = interf.IsRequested;
+            ActConn.TicketId = interf.TicketId;
             if(srcReadOnly)
             {
                 ActConn.SourceAppServers = new List<ModellingAppServerWrapper>(interf.SourceAppServers){};
@@ -248,6 +364,8 @@ namespace FWO.Ui.Services
             ActConn.Services = new();
             ActConn.ServiceGroups = new();
             ActConn.UsedInterfaceId = null;
+            ActConn.InterfaceIsRequested = false;
+            ActConn.TicketId = null;
             srcReadOnly = false;
             dstReadOnly = false;
             svcReadOnly = false;
@@ -278,10 +396,26 @@ namespace FWO.Ui.Services
 
         public async Task DisplaySelectedInterface(ModellingConnection interf)
         {
-            FwoOwner? app = allApps.FirstOrDefault(x => x.Id == interf.AppId);
-            IntConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, app ?? new(), Connections, interf, false, true, DisplayMessageInUi, false);
+            FwoOwner? app = AllApps.FirstOrDefault(x => x.Id == interf.AppId);
+            IntConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, app ?? new(), Connections, interf, false, true, DisplayMessageInUi, DefaultInit.DoNothing, false);
             await IntConnHandler.Init();
             DisplaySelectedInterfaceMode = true;
+        }
+
+        public void DisplayAppServer(ModellingAppServer? appServer)
+        {
+            if(appServer != null)
+            {
+                try
+                {
+                    AppServerHandler = new (apiConnection, userConfig, Application, appServer, new(), false, DisplayMessageInUi){ ReadOnly = true };
+                    DisplayAppServerMode = true;
+                }
+                catch (Exception exception)
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("display_app_server"), "", true);
+                }
+            }
         }
 
         public void AppServerToSource(List<ModellingAppServer> srcAppServers)
@@ -533,7 +667,7 @@ namespace FWO.Ui.Services
             try
             {
                 SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, Application, AvailableServiceGroups,
-                    serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi, IsOwner, DisplaySvcGrpMode);
+                    serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi, ReInit, IsOwner, DisplaySvcGrpMode);
                 EditSvcGrpMode = true;
             }
             catch (Exception exception)
@@ -670,8 +804,8 @@ namespace FWO.Ui.Services
         {
             if(ActConn.IsInterface)
             {
-                dstReadOnly = SrcFilledInWork();
-                srcReadOnly = DstFilledInWork();
+                dstReadOnly = SrcFix || SrcFilledInWork();
+                srcReadOnly = DstFix || DstFilledInWork();
                 svcReadOnly = false;
             }
             else if (ActConn.UsedInterfaceId != null)
@@ -699,20 +833,20 @@ namespace FWO.Ui.Services
             return dstReadOnly || (ActConn.IsInterface && SrcFilledInWork());
         }
 
-        public bool SrcFilledInWork()
+        public bool SrcFilledInWork(int dummyARCount = 0)
         {
             return ActConn.SourceNwGroups.Count - SrcNwGroupsToDelete.Count > 0 || 
-                ActConn.SourceAppRoles.Count - SrcAppRolesToDelete.Count > 0 ||
+                ActConn.SourceAppRoles.Count - dummyARCount - SrcAppRolesToDelete.Count > 0 ||
                 ActConn.SourceAppServers.Count - SrcAppServerToDelete.Count > 0 ||
                 SrcNwGroupsToAdd.Count > 0 ||
                 SrcAppServerToAdd.Count > 0 ||
                 SrcAppRolesToAdd.Count > 0;
         }
 
-        public bool DstFilledInWork()
+        public bool DstFilledInWork(int dummyARCount = 0)
         {
             return ActConn.DestinationNwGroups.Count - DstNwGroupsToDelete.Count > 0 || 
-                ActConn.DestinationAppRoles.Count- DstAppRolesToDelete.Count > 0 || 
+                ActConn.DestinationAppRoles.Count - dummyARCount - DstAppRolesToDelete.Count > 0 || 
                 ActConn.DestinationAppServers.Count - DstAppServerToDelete.Count > 0 ||
                 DstNwGroupsToAdd.Count > 0 ||
                 DstAppServerToAdd.Count > 0 ||
@@ -725,6 +859,27 @@ namespace FWO.Ui.Services
                 ActConn.ServiceGroups.Count - SvcGrpToDelete.Count > 0 ||
                 SvcToAdd != null && SvcToAdd.Count > 0 ||
                 SvcGrpToAdd != null && SvcGrpToAdd.Count > 0;
+        }
+
+        public async Task AddToPreselectedList(ModellingConnection? requestedInterface)
+        {
+            try
+            {
+                if(requestedInterface != null)
+                {
+                    var Variables = new
+                    {
+                        appId = requestedInterface.AppId,
+                        connectionId = requestedInterface.Id
+                    };
+                    await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addSelectedConnection, Variables);
+                    PreselectedInterfaces.Add(requestedInterface);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("add_interface"), "", true);
+            }
         }
 
         public async Task<bool> Save()
@@ -775,27 +930,44 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if(!ActConn.IsInterface && (!(ActConn.SrcFromInterface || SrcFilledInWork()) || 
-                !(ActConn.DstFromInterface || DstFilledInWork()) || !(ActConn.UsedInterfaceId != null || SvcFilledInWork())))
+            if(ActConn.IsInterface)
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9006"), true);
-                return false;
+                int srcDummyARCount = ActConn.SourceAppRoles.Where(x => x.Content.Id == DummyAppRole.Id).Count();
+                int dstDummyARCount = ActConn.DestinationAppRoles.Where(x => x.Content.Id == DummyAppRole.Id).Count();
+                if(!(SrcFilledInWork(srcDummyARCount) || DstFilledInWork(dstDummyARCount)) || !SvcFilledInWork())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9004"), true);
+                    return false;
+                }
+                if(!AddMode && (SrcFilledInWork(srcDummyARCount) != ActConnOrig.SourceFilled() || DstFilledInWork(dstDummyARCount) != ActConnOrig.DestinationFilled()))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9005"), true);
+                    return false;
+                }
             }
-            if(ActConn.IsInterface && !AddMode && (SrcFilledInWork() != ActConnOrig.SourceFilled() || DstFilledInWork() != ActConnOrig.DestinationFilled()))
+            else
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9005"), true);
-                return false;
-            }
-            if(ActConn.IsInterface && (!(SrcFilledInWork() || DstFilledInWork()) || !SvcFilledInWork()))
-            {
-                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9004"), true);
-                return false;
+                if(!(ActConn.SrcFromInterface || SrcFilledInWork()) || 
+                    !(ActConn.DstFromInterface || DstFilledInWork()) ||
+                    !(ActConn.UsedInterfaceId != null || SvcFilledInWork()))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9006"), true);
+                    return false;
+                }
             }
             return true;
         }
 
         private void SyncSrcChanges()
         {
+            if(ActConn.IsRequested && SrcFilledInWork(1))
+            {
+                ModellingAppRoleWrapper? linkedDummyAR = ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
+                if (linkedDummyAR != null)
+                {
+                    SrcAppRolesToDelete.Add(linkedDummyAR.Content);
+                }
+            }
             foreach(var appServer in SrcAppServerToDelete)
             {
                 ActConn.SourceAppServers.Remove(ActConn.SourceAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new Exception("Did not find app server."));
@@ -824,6 +996,14 @@ namespace FWO.Ui.Services
 
         private void SyncDstChanges()
         {
+            if(ActConn.IsRequested && DstFilledInWork(1))
+            {
+                ModellingAppRoleWrapper? linkedDummyAR = ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
+                if (linkedDummyAR != null)
+                {
+                    DstAppRolesToDelete.Add(linkedDummyAR.Content);
+                }
+            }
             foreach(var appServer in DstAppServerToDelete)
             {
                 ActConn.DestinationAppServers.Remove(ActConn.DestinationAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id)  ?? throw new Exception("Did not find app server."));
@@ -870,17 +1050,22 @@ namespace FWO.Ui.Services
             }
         }
 
-        private async Task AddConnectionToDb()
+        private async Task AddConnectionToDb(bool propose = false)
         {
             try
             {
+                int? appId = propose ? null : Application.Id;
+                int? proposedAppId = propose ? Application.Id : null;
                 var Variables = new
                 {
                     name = ActConn.Name,
-                    appId = Application.Id,
+                    appId = appId,
+                    proposedAppId = proposedAppId,
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
+                    isRequested = ActConn.IsRequested,
+                    ticketId = ActConn.TicketId,
                     creator = userConfig.User.Name,
                     commonSvc = ActConn.IsCommonService
                 };
@@ -889,7 +1074,7 @@ namespace FWO.Ui.Services
                 {
                     ActConn.Id = returnIds[0].NewId;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"New {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", Application.Id);
+                        $"New {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", appId);
                     if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                     {
                         await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers).ToList(), 
@@ -929,10 +1114,13 @@ namespace FWO.Ui.Services
                 {
                     id = ActConn.Id,
                     name = ActConn.Name,
-                    appId = Application.Id,
+                    appId = ActConn.AppId,
+                    proposedAppId = ActConn.ProposedAppId,
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
+                    isRequested = ActConn.IsRequested,
+                    isPublished = ActConn.IsPublished,
                     commonSvc = ActConn.IsCommonService
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);
@@ -1091,26 +1279,27 @@ namespace FWO.Ui.Services
 
         public void Close()
         {
-            SrcAppServerToAdd = new List<ModellingAppServer>();
-            SrcAppServerToDelete = new List<ModellingAppServer>();
-            DstAppServerToAdd = new List<ModellingAppServer>();
-            DstAppServerToDelete = new List<ModellingAppServer>();
-            SrcAppRolesToAdd = new List<ModellingAppRole>();
-            SrcAppRolesToDelete = new List<ModellingAppRole>();
-            DstAppRolesToAdd = new List<ModellingAppRole>();
-            DstAppRolesToDelete = new List<ModellingAppRole>();
-            SrcNwGroupsToAdd = new List<ModellingNwGroup>();
-            SrcNwGroupsToDelete = new List<ModellingNwGroup>();
-            DstNwGroupsToAdd = new List<ModellingNwGroup>();
-            DstNwGroupsToDelete = new List<ModellingNwGroup>();
-            SvcToAdd = new List<ModellingService>();
-            SvcToDelete = new List<ModellingService>();
-            SvcGrpToAdd = new List<ModellingServiceGroup>();
-            SvcGrpToDelete = new List<ModellingServiceGroup>();
+            SrcAppServerToAdd = new ();
+            SrcAppServerToDelete = new ();
+            DstAppServerToAdd = new ();
+            DstAppServerToDelete = new ();
+            SrcAppRolesToAdd = new ();
+            SrcAppRolesToDelete = new ();
+            DstAppRolesToAdd = new ();
+            DstAppRolesToDelete = new ();
+            SrcNwGroupsToAdd = new ();
+            SrcNwGroupsToDelete = new ();
+            DstNwGroupsToAdd = new ();
+            DstNwGroupsToDelete = new ();
+            SvcToAdd = new ();
+            SvcToDelete = new ();
+            SvcGrpToAdd = new ();
+            SvcGrpToDelete = new ();
             SearchNWObjectMode = false;
             RemoveNwObjectMode = false;
             RemovePreselectedInterfaceMode = false;
             DisplaySelectedInterfaceMode = false;
+            DisplayAppServerMode = false;
             AddAppRoleMode = false;
             EditAppRoleMode = false;
             DeleteAppRoleMode = false;

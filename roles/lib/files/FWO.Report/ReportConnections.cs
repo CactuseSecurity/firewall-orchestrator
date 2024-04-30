@@ -1,4 +1,3 @@
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Report.Filter;
@@ -62,7 +61,7 @@ namespace FWO.Report
                 if(ownerReport.Interfaces.Count > 0)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("interfaces")}</h4>");
-                    AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, ref report);
+                    AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, ref report, true);
                 }
                 if(ownerReport.CommonServices.Count > 0)
                 {
@@ -81,17 +80,21 @@ namespace FWO.Report
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        private void AppendConnectionsGroupHtml(List<ModellingConnection> connections, OwnerReport? ownerReport, ref StringBuilder report)
+        private void AppendConnectionsGroupHtml(List<ModellingConnection> connections, OwnerReport? ownerReport, ref StringBuilder report, bool isInterface = false)
         {
             OwnerReport.AssignConnectionNumbers(connections);
             bool IsGlobalComSvc = ownerReport == null;
             report.AppendLine("<table>");
-            AppendConnectionHeadlineHtml(ref report, IsGlobalComSvc);
+            AppendConnectionHeadlineHtml(ref report, IsGlobalComSvc, isInterface);
             foreach (var connection in connections)
             {
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{connection.OrderNumber}</td>");
                 report.AppendLine($"<td>{connection.Id}</td>");
+                if(isInterface)
+                {
+                    report.AppendLine($"<td>{GlobalConfig.ShowBool(connection.IsPublished)}</td>");
+                }
                 if(IsGlobalComSvc)
                 {
                     report.AppendLine($"<td>{connection.App.Name}</td>");
@@ -106,26 +109,51 @@ namespace FWO.Report
                 }
                 else
                 {
-                    report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedSrcNames(connection))}</td>");
-                    report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedSvcNames(connection))}</td>");
-                    report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedDstNames(connection))}</td>");
+                    if((connection.InterfaceIsRequested && connection.SrcFromInterface) || (connection.IsRequested && connection.SourceFilled()))
+                    {
+                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested)}</td>");
+                    }
+                    else
+                    {
+                        report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedSrcNames(connection))}</td>");
+                    }
+                    if(connection.InterfaceIsRequested || connection.IsRequested)
+                    {
+                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested)}</td>");
+                    }
+                    else
+                    {
+                        report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedSvcNames(connection))}</td>");
+                    }
+                    if((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled()))
+                    {
+                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested)}</td>");
+                    }
+                    else
+                    {
+                        report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedDstNames(connection))}</td>");
+                    }
                 }
             }
             report.AppendLine("</table>");
             report.AppendLine("<hr>");
         }
 
-        private void AppendConnectionHeadlineHtml(ref StringBuilder report, bool showOwnerName)
+        private void AppendConnectionHeadlineHtml(ref StringBuilder report, bool showOwnerName, bool isInterface = false)
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
+            if(isInterface)
+            {
+                report.AppendLine($"<th>{userConfig.GetText("published")}</th>");
+            }
             if(showOwnerName)
             {
                 report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
             }
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("func_reason")}</th>");
+            report.AppendLine($"<th>{(isInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))}</th>");
             report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
@@ -207,5 +235,13 @@ namespace FWO.Report
             }
             return $"{counter} {userConfig.GetText("connections")}";
         }
+
+        private string DisplayReqInt(long? ticketId, bool otherOwner)
+        {
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(otherOwner ? "C9007" : "C9008")}\"";
+            string content = $"{userConfig.GetText("interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
+            return $"<span class=\"text-danger\" {tooltip}><i>{content}</i></span>";
+        }
+
     }
 }

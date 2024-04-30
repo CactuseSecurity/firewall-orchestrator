@@ -11,7 +11,7 @@
 
 <ReportTabset/>
 
-<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { reportScheduleInEdit = new ReportSchedule() { RepeatInterval = Interval.Never }; ShowSaveReportScheduleDialog = true; }">@(userConfig.GetText("add"))</button>
+<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { reportScheduleInEdit = new ReportSchedule() { RepeatInterval = Interval.Never }; ShowAddReportScheduleDialog = true; }">@(userConfig.GetText("add"))</button>
 
 <div class="vheight75">
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="reportSchedules" PageSize="0">
@@ -39,7 +39,7 @@
             </Template>
         </Column>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("template"))" Field="@(reportSchedule => reportSchedule.Template.Name)" Sortable="true" Filterable="true"/>
-        <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("owner"))" Field="@(reportSchedule => reportSchedule.Owner.Name)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("schedule_owner"))" Field="@(reportSchedule => reportSchedule.Owner.Name)" Sortable="true" Filterable="true"/>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("active"))" Field="@(reportSchedule => reportSchedule.Active)" Sortable="true" Filterable="true">
                 <Template>
                     @(GlobalConfig.ShowBool(context.Active))
@@ -54,7 +54,7 @@
     </Table>
 </div>
 
-<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowSaveReportScheduleDialog || ShowEditReportScheduleDialog)">
+<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowAddReportScheduleDialog || ShowEditReportScheduleDialog)">
     <Body>
         <div>
             <div class="form-group row">
@@ -148,8 +148,8 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowSaveReportScheduleDialog ? SaveReportSchedule() : EditScheduledReport())">@(userConfig.GetText("save"))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditReportScheduleDialog = ShowSaveReportScheduleDialog = false">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateScheduledReport())">@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditReportScheduleDialog = ShowAddReportScheduleDialog = false">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -169,11 +169,11 @@
 @code
 {
     private GraphQlApiSubscription<List<ReportSchedule>>? reportSchedulesSubscription;
-    private List<ReportSchedule> reportSchedules = new List<ReportSchedule>();
-    private ReportSchedule reportScheduleInEdit = new ReportSchedule();
+    private List<ReportSchedule> reportSchedules = new ();
+    private ReportSchedule reportScheduleInEdit = new ();
     private DateTime actDate = DateTime.Today;
     private DateTime actTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
-    private bool ShowSaveReportScheduleDialog = false;
+    private bool ShowAddReportScheduleDialog = false;
     private bool ShowEditReportScheduleDialog = false;
     private bool ShowDeleteReportScheduleDialog = false;
 
@@ -229,7 +229,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SaveReportSchedule()
+    private async Task AddReportSchedule()
     {
         try
         {
@@ -262,7 +262,7 @@
                 };
                 reportScheduleInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
 
-                ShowSaveReportScheduleDialog = false;
+                ShowAddReportScheduleDialog = false;
             }
         }
         catch (Exception exception)
@@ -272,7 +272,7 @@
         }
     }
 
-    private async Task EditScheduledReport()
+    private async Task UpdateScheduledReport()
     {
         try
         {
@@ -287,7 +287,7 @@
                 {
                     report_schedule_id = reportScheduleInEdit.Id,
                     report_schedule_name = reportScheduleInEdit.Name,
-                    report_schedule_owner_id = uiUserDbId,
+                    report_schedule_owner_id = reportScheduleInEdit.Owner.DbId,
                     report_schedule_template_id = reportScheduleInEdit.Template.Id,
                     report_schedule_start_time = reportScheduleInEdit.StartTime,
                     report_schedule_repeat = reportScheduleInEdit.RepeatOffset,

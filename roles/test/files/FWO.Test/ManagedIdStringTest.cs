@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using FWO.GlobalConstants;
 using FWO.Api.Data;
 
@@ -28,101 +29,101 @@ namespace FWO.Test
         [Test]
         public void TestManagedIdStringStartEmpty()
         {
-            Assert.AreEqual("", IdString1.Whole);
-            Assert.AreEqual("", IdString1.FixedPart);
-            Assert.AreEqual("", IdString1.AppPart);
-            Assert.AreEqual("", IdString1.FreePart);
-            Assert.AreEqual("", IdString1.CombinedFixPart);
+            ClassicAssert.AreEqual("", IdString1.Whole);
+            ClassicAssert.AreEqual("", IdString1.FixedPart);
+            ClassicAssert.AreEqual("", IdString1.AppPart);
+            ClassicAssert.AreEqual("", IdString1.FreePart);
+            ClassicAssert.AreEqual("", IdString1.CombinedFixPart);
             
             IdString1.SetAppPartFromExtId("APP-0001");
-            Assert.AreEqual("", IdString1.Whole);
-            Assert.AreEqual("", IdString1.FixedPart);
-            Assert.AreEqual("", IdString1.AppPart);
-            Assert.AreEqual("", IdString1.Separator);
-            Assert.AreEqual("", IdString1.FreePart);
-            Assert.AreEqual("", IdString1.CombinedFixPart);
+            ClassicAssert.AreEqual("", IdString1.Whole);
+            ClassicAssert.AreEqual("", IdString1.FixedPart);
+            ClassicAssert.AreEqual("", IdString1.AppPart);
+            ClassicAssert.AreEqual("", IdString1.Separator);
+            ClassicAssert.AreEqual("", IdString1.FreePart);
+            ClassicAssert.AreEqual("", IdString1.CombinedFixPart);
 
             IdString1.NamingConvention = NamingConvention2;
             IdString1.SetAppPartFromExtId("APP-0001");
-            Assert.AreEqual("    00001-", IdString1.Whole);
-            Assert.AreEqual("    ", IdString1.FixedPart);
-            Assert.AreEqual("00001-", IdString1.AppPart);
-            Assert.AreEqual("-", IdString1.Separator);
-            Assert.AreEqual("", IdString1.FreePart);
-            Assert.AreEqual("    00001", IdString1.CombinedFixPart);
+            ClassicAssert.AreEqual("    00001-", IdString1.Whole);
+            ClassicAssert.AreEqual("    ", IdString1.FixedPart);
+            ClassicAssert.AreEqual("00001-", IdString1.AppPart);
+            ClassicAssert.AreEqual("-", IdString1.Separator);
+            ClassicAssert.AreEqual("", IdString1.FreePart);
+            ClassicAssert.AreEqual("    00001", IdString1.CombinedFixPart);
 
             IdString1.FixedPart = "x";
-            Assert.AreEqual("x???00001-", IdString1.Whole);
-            Assert.AreEqual("x???", IdString1.FixedPart);
-            Assert.AreEqual("00001-", IdString1.AppPart);
-            Assert.AreEqual("-", IdString1.Separator);
-            Assert.AreEqual("", IdString1.FreePart);
-            Assert.AreEqual("x???00001", IdString1.CombinedFixPart);
+            ClassicAssert.AreEqual("x???00001-", IdString1.Whole);
+            ClassicAssert.AreEqual("x???", IdString1.FixedPart);
+            ClassicAssert.AreEqual("00001-", IdString1.AppPart);
+            ClassicAssert.AreEqual("-", IdString1.Separator);
+            ClassicAssert.AreEqual("", IdString1.FreePart);
+            ClassicAssert.AreEqual("x???00001", IdString1.CombinedFixPart);
 
             IdString1.FixedPart = "muchlonger";
-            Assert.AreEqual("much00001-", IdString1.Whole);
-            Assert.AreEqual("much", IdString1.FixedPart);
-            Assert.AreEqual("00001-", IdString1.AppPart);
-            Assert.AreEqual("-", IdString1.Separator);
-            Assert.AreEqual("", IdString1.FreePart);
-            Assert.AreEqual("much00001", IdString1.CombinedFixPart);
+            ClassicAssert.AreEqual("much00001-", IdString1.Whole);
+            ClassicAssert.AreEqual("much", IdString1.FixedPart);
+            ClassicAssert.AreEqual("00001-", IdString1.AppPart);
+            ClassicAssert.AreEqual("-", IdString1.Separator);
+            ClassicAssert.AreEqual("", IdString1.FreePart);
+            ClassicAssert.AreEqual("much00001", IdString1.CombinedFixPart);
         }
 
         [Test]
         public void TestManagedIdStringPrefilled()
         {
-            Assert.AreEqual("AR5001234-123", IdString2.Whole);
-            Assert.AreEqual("", IdString2.FixedPart);
-            Assert.AreEqual("", IdString2.AppPart);
-            Assert.AreEqual("", IdString2.Separator);
-            Assert.AreEqual("AR5001234-123", IdString2.FreePart);
-            Assert.AreEqual("", IdString2.CombinedFixPart);
+            ClassicAssert.AreEqual("AR5001234-123", IdString2.Whole);
+            ClassicAssert.AreEqual("", IdString2.FixedPart);
+            ClassicAssert.AreEqual("", IdString2.AppPart);
+            ClassicAssert.AreEqual("", IdString2.Separator);
+            ClassicAssert.AreEqual("AR5001234-123", IdString2.FreePart);
+            ClassicAssert.AreEqual("", IdString2.CombinedFixPart);
 
             IdString2.NamingConvention = NamingConvention1;
-            Assert.AreEqual("AR5001234-123", IdString2.Whole);
-            Assert.AreEqual("AR", IdString2.FixedPart);
-            Assert.AreEqual("", IdString2.AppPart);
-            Assert.AreEqual("", IdString2.Separator);
-            Assert.AreEqual("5001234-123", IdString2.FreePart);
-            Assert.AreEqual("AR", IdString2.CombinedFixPart);
+            ClassicAssert.AreEqual("AR5001234-123", IdString2.Whole);
+            ClassicAssert.AreEqual("AR", IdString2.FixedPart);
+            ClassicAssert.AreEqual("", IdString2.AppPart);
+            ClassicAssert.AreEqual("", IdString2.Separator);
+            ClassicAssert.AreEqual("5001234-123", IdString2.FreePart);
+            ClassicAssert.AreEqual("AR", IdString2.CombinedFixPart);
 
             IdString2.NamingConvention = NamingConvention2;
-            Assert.AreEqual("AR5001234-123", IdString2.Whole);
-            Assert.AreEqual("AR50", IdString2.FixedPart);
-            Assert.AreEqual("01234-", IdString2.AppPart);
-            Assert.AreEqual("-", IdString2.Separator);
-            Assert.AreEqual("123", IdString2.FreePart);
-            Assert.AreEqual("AR5001234", IdString2.CombinedFixPart);
+            ClassicAssert.AreEqual("AR5001234-123", IdString2.Whole);
+            ClassicAssert.AreEqual("AR50", IdString2.FixedPart);
+            ClassicAssert.AreEqual("01234-", IdString2.AppPart);
+            ClassicAssert.AreEqual("-", IdString2.Separator);
+            ClassicAssert.AreEqual("123", IdString2.FreePart);
+            ClassicAssert.AreEqual("AR5001234", IdString2.CombinedFixPart);
 
             IdString2.SetAppPartFromExtId("COM-99999");
-            Assert.AreEqual("AR50199999-123", IdString2.Whole);
-            Assert.AreEqual("AR50", IdString2.FixedPart);
-            Assert.AreEqual("199999-", IdString2.AppPart);
-            Assert.AreEqual("-", IdString2.Separator);
-            Assert.AreEqual("123", IdString2.FreePart);
-            Assert.AreEqual("AR50199999", IdString2.CombinedFixPart);
+            ClassicAssert.AreEqual("AR50199999-123", IdString2.Whole);
+            ClassicAssert.AreEqual("AR50", IdString2.FixedPart);
+            ClassicAssert.AreEqual("199999-", IdString2.AppPart);
+            ClassicAssert.AreEqual("-", IdString2.Separator);
+            ClassicAssert.AreEqual("123", IdString2.FreePart);
+            ClassicAssert.AreEqual("AR50199999", IdString2.CombinedFixPart);
 
             IdString2.NamingConvention =  new();
-            Assert.AreEqual("AR50199999-123", IdString2.Whole);
-            Assert.AreEqual("", IdString2.FixedPart);
-            Assert.AreEqual("", IdString2.AppPart);
-            Assert.AreEqual("", IdString2.Separator);
-            Assert.AreEqual("AR50199999-123", IdString2.FreePart);
-            Assert.AreEqual("", IdString2.CombinedFixPart);
+            ClassicAssert.AreEqual("AR50199999-123", IdString2.Whole);
+            ClassicAssert.AreEqual("", IdString2.FixedPart);
+            ClassicAssert.AreEqual("", IdString2.AppPart);
+            ClassicAssert.AreEqual("", IdString2.Separator);
+            ClassicAssert.AreEqual("AR50199999-123", IdString2.FreePart);
+            ClassicAssert.AreEqual("", IdString2.CombinedFixPart);
         }
 
         [Test]
         public void TestReconstructAreaIdString()
         {
-            Assert.AreEqual("NA", ModellingManagedIdString.ConvertAppRoleToArea("AR5000001", NamingConvention1));
-            Assert.AreEqual("NA91", ModellingManagedIdString.ConvertAppRoleToArea("AR9104106-001", NamingConvention2));
-            Assert.AreEqual("R91", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
+            ClassicAssert.AreEqual("NA", ModellingManagedIdString.ConvertAppRoleToArea("AR5000001", NamingConvention1));
+            ClassicAssert.AreEqual("NA91", ModellingManagedIdString.ConvertAppRoleToArea("AR9104106-001", NamingConvention2));
+            ClassicAssert.AreEqual("R91", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
             NamingConvention3.NetworkAreaPattern = "XYZ";
-            Assert.AreEqual("XYZR91", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
+            ClassicAssert.AreEqual("XYZR91", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
             NamingConvention3.AppRolePattern = "AR91";
-            Assert.AreEqual("XYZ", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
+            ClassicAssert.AreEqual("XYZ", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
             NamingConvention3.AppRolePattern = "AR91123";
-            Assert.AreEqual("XYZ", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
+            ClassicAssert.AreEqual("XYZ", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
         }
     }
 }

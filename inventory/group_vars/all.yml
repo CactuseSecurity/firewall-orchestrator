@@ -1,5 +1,5 @@
 ### general settings
-product_version: "8.1"
+product_version: "8.1.2"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -109,7 +109,7 @@ importer_password_file_on_installer: etc/importer.pwd
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
-dotnet_version: "6.0"
+dotnet_version: "8.0"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
 debug_level: "1"

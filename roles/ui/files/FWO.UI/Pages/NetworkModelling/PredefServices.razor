@@ -41,7 +41,7 @@
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
-<EditServiceGroup @bind-Display="EditSvcGrpMode" @bind-SvcGroupHandler="SvcGrpHandler" AddMode="AddSvcGrpMode" AsAdmin="true"/>
+<EditServiceGroup @bind-Display="EditSvcGrpMode" @bind-SvcGroupHandler="SvcGrpHandler" AsAdmin="true"/>
 <ConfirmDelete @bind-Display="DeleteSvcGrpMode" PerformAction="async () => {await DeleteServiceGroup(); StateHasChanged();}" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@Message" DeleteAllowed="DeleteAllowed"/>
 <InProgress Display="workInProgress"/>
 
@@ -125,7 +125,7 @@
         try
         {
             serviceGroup.IsGlobal = true;
-            SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, dummyApplication, PredefServiceGroups, serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi);
+            SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, dummyApplication, PredefServiceGroups, serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi, DefaultInit.DoNothing);
             EditSvcGrpMode = true;
         }
         catch (Exception exception)

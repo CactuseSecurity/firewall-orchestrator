@@ -43,7 +43,7 @@
             Filterable="false">
             <Template>
                 <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5241"))">
-                    @if (context.Id != 1)
+                    @if (context.Id != GlobalConst.kTenant0Id)
                     {
                         <button type="button" class="btn btn-sm btn-warning"
                             @onclick="() => EditTenant(context)">@(userConfig.GetText("edit"))</button>
@@ -56,7 +56,7 @@
         <Column TableItem="Tenant" Title="@(userConfig.GetText("comment"))" Field="@(x => x.Comment)" Sortable="true"
             Filterable="true">
             <Template>
-                @if (context.Id != 1)
+                @if (context.Id != GlobalConst.kTenant0Id)
                 {
                     @(context.Comment)
                 }
@@ -129,7 +129,7 @@
                 <Authorized>
                     @if (addDeleteAllowed && !AddTenantMode)
                     {
-                        @if (actTenant.Id != 1)
+                        @if (actTenant.Id != GlobalConst.kTenant0Id)
                         {
                             <button type="button" class="btn btn-sm btn-danger"
                                 @onclick="() => RequestDeleteTenant(actTenant)">@(userConfig.GetText("delete_tenant"))</button>

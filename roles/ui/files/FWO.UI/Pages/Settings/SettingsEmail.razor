@@ -4,6 +4,7 @@
 @using FWO.Config.Api.Data
 @using System
 @using FWO.Mail
+@using FWO.Encryption
 
 @page "/settings/email"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -18,7 +19,7 @@
     <HelpLink Page="settings/email"/>
 </div>
 @(userConfig.GetText("U5319"))
-<hr />
+<hr>
 
 <EditForm Model="@emailForm" OnValidSubmit="@Save">
     <DataAnnotationsValidator />
@@ -65,6 +66,19 @@
             <input id="emailSenderAddress" type="email" class="form-control form-control-sm" @bind="actEmailConnection.SenderEmailAddress" />
         </div>
     </div>
+    <hr>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491f"))">
+        <label for="useDummyEmailAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("use_dummy_email_address")):</label>
+        <div class="col-sm-1">
+            <input id="useDummyEmailAddress" type="checkbox" @bind="editableConfig.UseDummyEmailAddress" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491g"))">
+        <label for="dummyEmailAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("dummy_email_address")):</label>
+        <div class="col-sm-8">
+            <input id="dummyEmailAddress" type="email" class="form-control form-control-sm" @bind="editableConfig.DummyEmailAddress" />
+        </div>
+    </div>
 </EditForm>
 <hr>
 
@@ -90,7 +104,7 @@
 
     private EmailForm emailForm = new EmailForm() {  };
     private ConfigData? editableConfig;
-    private EmailConnection actEmailConnection = new EmailConnection();
+    private EmailConnection actEmailConnection = new ();
 
     protected override async Task OnInitializedAsync()
     {
@@ -134,6 +148,20 @@
                 }
                 if (actEmailConnection.Password != null)
                 {
+                    string mainKey = AesEnc.GetMainKey();
+                    string encryptedSecret = actEmailConnection.Password;
+
+                    // only encrypt secret if it was not already encrypted
+                    try
+                    {
+                        string decryptedSecret = AesEnc.Decrypt(actEmailConnection.Password, mainKey);
+                    }
+                    catch (Exception)
+                    {
+                        encryptedSecret = AesEnc.Encrypt(actEmailConnection.Password, mainKey);
+                        actEmailConnection.Password = encryptedSecret;
+                    }
+
                     editableConfig.EmailPassword = actEmailConnection.Password;
                 }
                 else
@@ -182,7 +210,14 @@
     {
         try
         {
-            MailKitMailer mailer = new MailKitMailer(actEmailConnection);
+            // decrypt password if set
+            string encryptedPassword = "";
+            if (actEmailConnection.Password != null)
+            {
+                encryptedPassword = actEmailConnection.Password;
+                actEmailConnection.Password = AesEnc.Decrypt(actEmailConnection.Password, AesEnc.GetMainKey());
+            }
+            MailKitMailer mailer = new(actEmailConnection);
             if (userConfig.User.Email == null || userConfig.User.Email  == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("E8101"), true);
@@ -199,6 +234,11 @@
                 {
                     DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), "could not send message", true);
                 }
+            }
+            // if password was set, re-assign the enrypted password
+            if (actEmailConnection.Password != null)
+            {
+                actEmailConnection.Password = encryptedPassword;
             }
         }
         catch (System.Exception exception)

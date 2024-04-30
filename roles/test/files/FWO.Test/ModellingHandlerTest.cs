@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Ui.Services;
@@ -70,34 +71,34 @@ namespace FWO.Test
         public async Task TestExtractUsedSrcInterface()
         {
             ModellingConnection conn = new(){ Id = 3, UsedInterfaceId = 1 };
-            Assert.AreEqual("Interf1", await AppHandler.ExtractUsedInterface(conn));
-            Assert.AreEqual(true, conn.SrcFromInterface);
-            Assert.AreEqual(false, conn.DstFromInterface);
-            Assert.AreEqual(0, conn.SourceAppServers.Count);
-            Assert.AreEqual("AppRole1", conn.SourceAppRoles[0].Content.Name);
-            Assert.AreEqual("NwGroup1", conn.SourceNwGroups[0].Content.Name);
-            Assert.AreEqual(0, conn.DestinationAppServers.Count);
-            Assert.AreEqual(0, conn.DestinationAppRoles.Count);
-            Assert.AreEqual(0, conn.DestinationNwGroups.Count);
-            Assert.AreEqual("ServiceGrp1", conn.ServiceGroups[0].Content.Name);
-            Assert.AreEqual(0, conn.Services.Count);
+            ClassicAssert.AreEqual("Interf1", await AppHandler.ExtractUsedInterface(conn));
+            ClassicAssert.AreEqual(true, conn.SrcFromInterface);
+            ClassicAssert.AreEqual(false, conn.DstFromInterface);
+            ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
+            ClassicAssert.AreEqual("AppRole1", conn.SourceAppRoles[0].Content.Name);
+            ClassicAssert.AreEqual("NwGroup1", conn.SourceNwGroups[0].Content.Name);
+            ClassicAssert.AreEqual(0, conn.DestinationAppServers.Count);
+            ClassicAssert.AreEqual(0, conn.DestinationAppRoles.Count);
+            ClassicAssert.AreEqual(0, conn.DestinationNwGroups.Count);
+            ClassicAssert.AreEqual("ServiceGrp1", conn.ServiceGroups[0].Content.Name);
+            ClassicAssert.AreEqual(0, conn.Services.Count);
         }
 
         [Test]
         public async Task TestExtractUsedDstInterface()
         {
             ModellingConnection conn = new(){ Id = 4, UsedInterfaceId = 2 };
-            Assert.AreEqual("Interf2", await AppHandler.ExtractUsedInterface(conn));
-            Assert.AreEqual(false, conn.SrcFromInterface);
-            Assert.AreEqual(true, conn.DstFromInterface);
-            Assert.AreEqual(0, conn.SourceAppServers.Count);
-            Assert.AreEqual(0, conn.SourceAppRoles.Count);
-            Assert.AreEqual(0, conn.SourceNwGroups.Count);
-            Assert.AreEqual("AppServer2", conn.DestinationAppServers[0].Content.Name);
-            Assert.AreEqual("AppRole2", conn.DestinationAppRoles[0].Content.Name);
-            Assert.AreEqual(0, conn.DestinationNwGroups.Count);
-            Assert.AreEqual(0, conn.ServiceGroups.Count);
-            Assert.AreEqual("Service2", conn.Services[0].Content.Name);
+            ClassicAssert.AreEqual("Interf2", await AppHandler.ExtractUsedInterface(conn));
+            ClassicAssert.AreEqual(false, conn.SrcFromInterface);
+            ClassicAssert.AreEqual(true, conn.DstFromInterface);
+            ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
+            ClassicAssert.AreEqual(0, conn.SourceAppRoles.Count);
+            ClassicAssert.AreEqual(0, conn.SourceNwGroups.Count);
+            ClassicAssert.AreEqual("AppServer2", conn.DestinationAppServers[0].Content.Name);
+            ClassicAssert.AreEqual("AppRole2", conn.DestinationAppRoles[0].Content.Name);
+            ClassicAssert.AreEqual(0, conn.DestinationNwGroups.Count);
+            ClassicAssert.AreEqual(0, conn.ServiceGroups.Count);
+            ClassicAssert.AreEqual("Service2", conn.Services[0].Content.Name);
         }
 
         // AppHandler
@@ -125,9 +126,9 @@ namespace FWO.Test
             List<string> expectedDst = new(){$"<span class=\"text-secondary\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside3 (11.0.0.1)</span></span></span></span>"};
             List<string> expectedSvc = new(){$"<span class=\"text-secondary\"><span class=\"{Icons.ServiceGroup}\"></span> <span><b>SvcGroup1</b></span></span>",
                                              $"<span class=\"text-secondary\"><span class=\"{Icons.Service}\"></span> <span>Svc1 (1111/UDP)</span></span>"};
-            Assert.AreEqual(expectedSrc, AppHandler.GetSrcNames(conn));
-            Assert.AreEqual(expectedDst, AppHandler.GetDstNames(conn));
-            Assert.AreEqual(expectedSvc, AppHandler.GetSvcNames(conn));
+            ClassicAssert.AreEqual(expectedSrc, AppHandler.GetSrcNames(conn));
+            ClassicAssert.AreEqual(expectedDst, AppHandler.GetDstNames(conn));
+            ClassicAssert.AreEqual(expectedSvc, AppHandler.GetSvcNames(conn));
         }
 
 
@@ -142,7 +143,7 @@ namespace FWO.Test
                 new(AppServerInside3) { TooltipText = userConfig.GetText("C9002") }
             };
             await AppRoleHandler.SelectAppServersFromArea(TestArea);
-            Assert.AreEqual(expectedResult, AppRoleHandler.AppServersInArea);
+            ClassicAssert.AreEqual(expectedResult, AppRoleHandler.AppServersInArea);
         }
 
         [Test]
@@ -151,16 +152,16 @@ namespace FWO.Test
             ModellingManagedIdString idFixString = new() { NamingConvention = NamingConvention1 };
             idFixString.ConvertAreaToAppRoleFixedPart(TestArea.IdString);
             idFixString.SetAppPartFromExtId("APP-1234");
-            Assert.AreEqual("00002", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
+            ClassicAssert.AreEqual("00002", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
 
             idFixString.NamingConvention = NamingConvention2;
             idFixString.ConvertAreaToAppRoleFixedPart("NA91");
             idFixString.SetAppPartFromExtId("APP-1234");
             AppRoleHandler.NamingConvention = NamingConvention2;
-            Assert.AreEqual("003", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
+            ClassicAssert.AreEqual("003", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
 
             idFixString.ConvertAreaToAppRoleFixedPart("NA99");
-            Assert.AreEqual("001", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
+            ClassicAssert.AreEqual("001", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
         }
     }
 }

@@ -1,8 +1,12 @@
 @using FWO.Config.Api
 @using FWO.Ui.Display
+@using FWO.Middleware.Client
+@using FWO.Ui.Pages.Request
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
+@inject MiddlewareClient middlewareClient
 
 @if (Display)
 {
@@ -11,48 +15,72 @@
         <EditConnLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-ConnHandler="ConnHandler"/>
     }
     <div style="margin-left: @($"{(ConnHandler.ReadOnly ? 0 : sidebarLeftWidth) + 10}px");">
-        <h3>@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface") : (ConnHandler.ActConn.IsCommonService ? userConfig.GetText("common_service") : userConfig.GetText("connection")))</h3>
-            @if(ConnHandler.ActConn.UsedInterfaceId != null && !PopupMode)
+        <h3>@GetTitle()</h3>
+        @if(ConnHandler.ActConn.UsedInterfaceId != null && !PopupMode)
+        {
+            <div class="col-sm-12 me-auto">
+                <div class="d-flex flex-row">
+                    <label class="">@(userConfig.GetText("used_interface")): </label>
+                    <h5 class="ml-13">@ConnHandler.InterfaceName</h5>
+                    <button type="button" class="btn btn-sm btn-primary ml-13" @onclick="async () =>
+                        {await ConnHandler.DisplaySelectedInterface(await ConnHandler.GetUsedInterface(ConnHandler.ActConn) ?? new());
+                        await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                        @(ConnHandler.DisplayButton("display_interface", Icons.Display))</button>
+                </div>
+            </div>
+        }
+        <div class="col-sm-11 border rounded m-2 p-2">
+            <div class="form-group row me-auto">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
+                @if(ConnHandler.ReadOnly)
+                {
+                    <label class="col-sm-9">@ConnHandler.ActConn.Name</label>
+                }
+                else
+                {
+                    <input type="text" class="col-sm-9" data-toggle="@(ConnHandler.ActConn.IsRequested ? "tooltip" : "")"
+                        title="@(ConnHandler.ActConn.IsRequested ? userConfig.PureLine("U9012") : "")" @bind="ConnHandler.ActConn.Name" />
+                }
+            </div>
+            <div class="form-group row mt-2 me-auto">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))*:</label>
+                @if(ConnHandler.ReadOnly)
+                {
+                    <label class="col-sm-9">@ConnHandler.ActConn.Reason</label>
+                }
+                else
+                {
+                    <textarea rows="3" type="text" class="col-sm-9" data-toggle="@(ConnHandler.ActConn.IsRequested ? "tooltip" : "")"
+                        title="@(ConnHandler.ActConn.IsRequested ? userConfig.PureLine("U9012") : "")" @bind="ConnHandler.ActConn.Reason" />
+                }
+            </div>
+            @if(ConnHandler.ActConn.IsInterface)
             {
-                <div class="col-sm-12 me-auto">
-                    <div class="d-flex flex-row">
-                        <label class="">@(userConfig.GetText("used_interface")): </label>
-                        <h5 class="ml-13">@ConnHandler.InterfaceName</h5>
-                        <button type="button" class="btn btn-sm btn-primary ml-13" @onclick="async () =>
-                            {await ConnHandler.DisplaySelectedInterface(await ConnHandler.GetUsedInterface(ConnHandler.ActConn) ?? new());
-                            await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                            @(ConnHandler.DisplayButton("display_interface", Icons.Display))</button>
+                <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("C9009"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("publish")):</label>
+                    <div class="col-sm-1">
+                        @if(ConnHandler.ReadOnly)
+                        {
+                            <input type="checkbox" class="w-100" disabled @bind="ConnHandler.ActConn.IsPublished">
+                        }
+                        else
+                        {
+                            <input type="checkbox" class="w-100" @bind="ConnHandler.ActConn.IsPublished">
+                        }
                     </div>
                 </div>
             }
-            <div class="col-sm-11 border rounded m-2 p-2">
-                <div class="form-group row me-auto">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
-                    @if(ConnHandler.ReadOnly)
+            <br>
+            <div class="form-group row">
+                <div class="col-sm-4">
+                    <h6>@(userConfig.GetText("source"))</h6>
+                    @if(ConnHandler.ReadOnly || ConnHandler.srcReadOnly)
                     {
-                        <label class="col-sm-9">@ConnHandler.ActConn.Name</label>
-                    }
-                    else
-                    {
-                        <input type="text" class="col-sm-9" @bind="ConnHandler.ActConn.Name" />
-                    }
-                </div>
-                <div class="form-group row mt-2 me-auto">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("func_reason"))*:</label>
-                    @if(ConnHandler.ReadOnly)
-                    {
-                        <label class="col-sm-9">@ConnHandler.ActConn.Reason</label>
-                    }
-                    else
-                    {
-                        <textarea rows="3" type="text" class="col-sm-9" @bind="ConnHandler.ActConn.Reason" />
-                    }
-                </div>
-                <br>
-                <div class="form-group row">
-                    <div class="col-sm-4">
-                        <h6>@(userConfig.GetText("source"))</h6>
-                        @if(ConnHandler.ReadOnly || ConnHandler.srcReadOnly)
+                        @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.SrcFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.SourceFilled()))
+                        {
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested))
+                        }
+                        else
                         {
                             foreach(var src in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups))
                             {
@@ -76,50 +104,65 @@
                             }
                             foreach(var src in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers))
                             {
-                                <div class="col-sm-10">
-                                    <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon(ConnHandler.ActConn.SrcFromInterface))</div>
+                                <div class="col-sm-12 me-auto">
+                                    <div class="row">
+                                        <div class="col-sm-10">
+                                            <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon(ConnHandler.ActConn.SrcFromInterface))</div>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => {ConnHandler.DisplayAppServer(src); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                                @(ConnHandler.DisplayButton("display_app_server", Icons.Display))</button>
+                                        </div>
+                                    </div>
                                 </div>
                             }
                         }
-                        else 
+                    }
+                    else 
+                    {
+                        <div class="@SrcClass()" 
+                            ondragover="event.preventDefault();"
+                            ondragstart="event.dataTransfer.setData('', event.target.id);"
+                            @ondrop="HandleSrcDrop">
+                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups)"
+                                    ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" 
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles.Where(x => x.Content.Id != ConnHandler.DummyAppRole.Id).ToList())"
+                                    ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false"
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers)"
+                                    ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false"
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                        </div>
+                    }
+                </div>
+                <div class="col-sm-4">
+                    <h6>@(userConfig.GetText("service"))</h6>
+                    @if(ConnHandler.ReadOnly || ConnHandler.svcReadOnly)
+                    {
+                        @if(ConnHandler.ActConn.InterfaceIsRequested || ConnHandler.ActConn.IsRequested)
                         {
-                            <div class="@SrcClass()" 
-                                ondragover="event.preventDefault();"
-                                ondragstart="event.dataTransfer.setData('', event.target.id);"
-                                @ondrop="HandleSrcDrop">
-                                <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups)"
-                                        ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" 
-                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                                <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles)"
-                                        ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false"
-                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                                <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers)"
-                                        ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false"
-                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                            </div>
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested))
                         }
-                    </div>
-                    <div class="col-sm-4">
-                        <h6>@(userConfig.GetText("service"))</h6>
-                        @if(ConnHandler.ReadOnly || ConnHandler.svcReadOnly)
+                        else
                         {
                             foreach(var grp in ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups))
                             {
@@ -142,36 +185,43 @@
                                 </div>
                             }
                         }
-                        else 
+                    }
+                    else 
+                    {
+                        <div class="@dropzoneClass" 
+                            ondragover="event.preventDefault();"
+                            ondragstart="event.dataTransfer.setData('', event.target.id);"
+                            @ondrop="HandleSvcDrop">
+                            <EditList ElementType="ModellingServiceGroup" Elements="ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups)"
+                                    ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" 
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="ModellingService" Elements="ModellingServiceWrapper.Resolve(ConnHandler.ActConn.Services)"
+                                    ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false"
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                        </div>
+                    }
+                </div>
+                <div class="col-sm-4">
+                    <h6>@(userConfig.GetText("destination"))</h6>
+                    @if(ConnHandler.ReadOnly || ConnHandler.dstReadOnly)
+                    {
+                        @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.DstFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.DestinationFilled()))
                         {
-                            <div class="@dropzoneClass" 
-                                ondragover="event.preventDefault();"
-                                ondragstart="event.dataTransfer.setData('', event.target.id);"
-                                @ondrop="HandleSvcDrop">
-                                <EditList ElementType="ModellingServiceGroup" Elements="ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups)"
-                                        ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" 
-                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                                <EditList ElementType="ModellingService" Elements="ModellingServiceWrapper.Resolve(ConnHandler.ActConn.Services)"
-                                        ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false"
-                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                            </div>
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested))
                         }
-                    </div>
-                    <div class="col-sm-4">
-                        <h6>@(userConfig.GetText("destination"))</h6>
-                        @if(ConnHandler.ReadOnly || ConnHandler.dstReadOnly)
+                        else
                         {
                             foreach(var dst in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups))
                             {
@@ -195,64 +245,81 @@
                             }
                             foreach(var dst in ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers))
                             {
-                                <div class="col-sm-10">
-                                    <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon(ConnHandler.ActConn.DstFromInterface))</div>
+                                <div class="col-sm-12 me-auto">
+                                    <div class="row">
+                                        <div class="col-sm-10">
+                                            <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon(ConnHandler.ActConn.DstFromInterface))</div>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => {ConnHandler.DisplayAppServer(dst); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                                @(ConnHandler.DisplayButton("display_app_server", Icons.Display))</button>
+                                        </div>
+                                    </div>
                                 </div>
                             }
                         }
-                        else 
-                        {
-                            <div class="@DestClass()" 
-                                ondragover="event.preventDefault();"
-                                ondragstart="event.dataTransfer.setData('', event.target.id);"
-                                @ondrop="HandleDstDrop">
-                                <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups)" 
-                                        ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false"
-                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                                <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles)"
-                                        ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false"
-                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                                <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers)"
-                                        ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false"
-                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
-                                    <Display>
-                                        <div class="row">
-                                            <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
-                                        </div>
-                                    </Display>
-                                </EditList>
-                            </div>
-                        }
-                    </div>
+                    }
+                    else 
+                    {
+                        <div class="@DestClass()" 
+                            ondragover="event.preventDefault();"
+                            ondragstart="event.dataTransfer.setData('', event.target.id);"
+                            @ondrop="HandleDstDrop">
+                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups)" 
+                                    ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false"
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles.Where(x => x.Content.Id != ConnHandler.DummyAppRole.Id).ToList())"
+                                    ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false"
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers)"
+                                    ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false"
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                        </div>
+                    }
                 </div>
-                @if(!ConnHandler.AddMode)
-                {
-                    <br>
-                    <label class="col-sm-12 small">@(userConfig.GetText("created_by")): @(ConnHandler.ActConn.Creator), @(userConfig.GetText("creation_date")): @(ConnHandler.ActConn.CreationDate)</label>
-                }
             </div>
-            <div class="ml-13 btn-group">
-                @if(PopupMode)
-                {}
-                else if(ConnHandler.ReadOnly)
+            @if(!ConnHandler.AddMode)
+            {
+                <br>
+                <label class="col-sm-12 small">@CreationInfo()</label>
+            }
+        </div>
+        <div class="ml-13 btn-group">
+            @if(!PopupMode)
+            {
+                @if(ConnHandler.ActConn.IsRequested)
+                {
+                    <button type="button" class="btn btn-sm btn-dark" @onclick="DisplayTicket">@(ConnHandler.DisplayButton("display_ticket", Icons.Display, userConfig.GetText("ticket")))</button>
+                    @if(!ConnHandler.ReadOnly)
+                    {
+                        <button type="button" class="btn btn-sm btn-dark" @onclick="GotoTicket">@(ConnHandler.DisplayButton("edit_ticket", Icons.Edit, userConfig.GetText("ticket")))</button>
+                    }
+                }
+                if(ConnHandler.ReadOnly)
                 {
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
                 }
                 else
                 {
-                    @if(ConnHandler.IsOwner)
+                    @if(ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested)
                     {
                         <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     }
@@ -266,18 +333,24 @@
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(ConnHandler.DisplayButton("remove_interface", Icons.Unuse, "interface"))</button>
                     }
                 }
-            </div>
+            }
+        </div>
     </div>
     <InProgress Display="workInProgress"/>
-    <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler" AddMode="false"/>
-    <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" AddMode="false"/>
+    <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
+    <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
+    <EditAppServer @bind-Display="ConnHandler.DisplayAppServerMode" AppServerHandler="ConnHandler.AppServerHandler"/>
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
+    <DisplayImplementationTask ReqHandler="reqHandler" States="states" IncludePopups="false"/>
 }
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     [Parameter]
     public bool Display { get; set; } = false;
@@ -299,7 +372,7 @@
 
 
     private ModellingDnDContainer Container { get; set; } = new();
-    private int sidebarInitWidth = GlobalConst.kSidebarLeftWidth + 300;
+    private int sidebarInitWidth = GlobalConst.kSidebarLeftWidth + 400;
     private int sidebarLeftWidth;
     
     private List<ModellingService> services = new();
@@ -308,6 +381,11 @@
     private static string dropzoneClass = "minheight-dropzone bg-secondary dropzone";
     private static string forbiddenDropzoneClass = "minheight-dropzone bg-white";
     private bool workInProgress = false;
+
+    private RequestHandler reqHandler = new ();
+    private RequestStateDict states = new ();
+    private List<int> OwnerIds = new ();
+    private ModellingConnection unchangedConn = new();
 
     protected override void OnInitialized()
     {
@@ -319,6 +397,7 @@
         if(Display)
         {
             ConnHandler.CalcVisibility();
+            unchangedConn = new(ConnHandler.ActConn);
         }
     }
 
@@ -390,16 +469,123 @@
         Container.Clear();
     }
 
-    private async Task Save()
+    private async Task<bool> Save()
     {
         workInProgress = true;
+        ModellingConnection connBeforeSave = new(ConnHandler.ActConn);
+
+        bool publishRequested = ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.IsPublished;
+        if(publishRequested)
+        {
+            ConnHandler.ActConn.Creator = userConfig.User.Name;
+            ConnHandler.ActConn.IsRequested = false;
+            if(ConnHandler.ActConn.AppId == null)
+            {
+                ConnHandler.ActConn.AppId = ConnHandler.ActConn.ProposedAppId;
+                ConnHandler.ActConn.ProposedAppId = null;
+            }
+        }
         if(await ConnHandler.Save())
         {
+            unchangedConn = new(ConnHandler.ActConn);
+            if(publishRequested)
+            {
+                await PromoteTicket();
+            }
             Close();
+            return true;
         }
         else
         {
+            ConnHandler.ActConn = connBeforeSave;
             workInProgress = false;
+            return false;
+        }
+    }
+
+    private async Task PromoteTicket()
+    {
+        if(ConnHandler.ActConn.TicketId != null)
+        {
+            try
+            {
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
+                TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
+                if(await ticketCreator.PromoteTicket(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId)))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);
+                }
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
+            }
+            catch(Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("publish"), "", true);
+            }
+        }
+    }
+
+    private void GotoTicket()
+    {
+        if(UnsavedChangesMade())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("E9014"), "", false);
+        }
+        else
+        {
+            NavigationManager.NavigateTo($"/request/tickets/{ConnHandler.ActConn.TicketId}");
+        }
+    }
+
+    private bool UnsavedChangesMade()
+    {
+        return unchangedConn.Name != ConnHandler.ActConn.Name
+            || unchangedConn.Reason != ConnHandler.ActConn.Reason 
+            || unchangedConn.IsPublished != ConnHandler.ActConn.IsPublished
+            || ConnHandler.SrcAppServerToAdd.Count > 0
+            || ConnHandler.SrcAppServerToDelete.Count > 0
+            || ConnHandler.DstAppServerToAdd.Count > 0
+            || ConnHandler.DstAppServerToDelete.Count > 0
+            || ConnHandler.SrcAppRolesToAdd.Count > 0
+            || ConnHandler.SrcAppRolesToDelete.Count > 0
+            || ConnHandler.DstAppRolesToAdd.Count > 0
+            || ConnHandler.DstAppRolesToDelete.Count > 0
+            || ConnHandler.SrcNwGroupsToAdd.Count > 0
+            || ConnHandler.SrcNwGroupsToDelete.Count > 0
+            || ConnHandler.DstNwGroupsToAdd.Count > 0
+            || ConnHandler.DstNwGroupsToDelete.Count > 0
+            || ConnHandler.SvcToAdd.Count > 0
+            || ConnHandler.SvcToDelete.Count > 0
+            || ConnHandler.SvcGrpToAdd.Count > 0
+            || ConnHandler.SvcGrpToDelete.Count > 0;
+    }
+
+    private async Task DisplayTicket()
+    {
+        if(ConnHandler.ActConn.TicketId != null)
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
+            await states.Init(apiConnection);
+            OwnerIds = (await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners)).ConvertAll(x => x.Id);
+            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
+            reqHandler.ReadOnlyMode = true;
+            await reqHandler.Init(OwnerIds, true, true);
+            RequestTicket? ticket = await reqHandler.ResolveTicket((long)ConnHandler.ActConn.TicketId);
+            if(ticket != null)
+            {
+                reqHandler.SetTicketEnv(ticket);
+                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                if(reqTask != null)
+                {
+                    reqHandler.SetReqTaskEnv(reqTask);
+                    RequestImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
+                    if(implTask != null)
+                    {
+                        reqHandler.SelectImplTask(implTask, ObjAction.display);
+                    }
+                }
+            }
+            StateHasChanged();
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
         }
     }
 
@@ -435,5 +621,29 @@
             return forbiddenDropzoneClass;
         }
         return dropzoneClass;
+    }
+
+    private string GetTitle()
+    {
+        string title = userConfig.GetText("connection");
+        if(ConnHandler.ActConn.IsCommonService)
+        {
+            title = userConfig.GetText("common_service");
+        }
+        else if (ConnHandler.ActConn.IsRequested)
+        {
+            title = userConfig.GetText("requested_interface");
+        }
+        else if (ConnHandler.ActConn.IsInterface)
+        {
+            title = userConfig.GetText("interface");
+        }
+        return title;
+    }
+
+    private string CreationInfo()
+    {
+        return $"{(ConnHandler.ActConn.IsRequested ? userConfig.GetText("requested_by") : userConfig.GetText("created_by"))}: {ConnHandler.ActConn.Creator}, " +
+            $"{userConfig.GetText("creation_date")}: {ConnHandler.ActConn.CreationDate}";
     }
 }

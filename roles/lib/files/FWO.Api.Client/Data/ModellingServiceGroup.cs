@@ -19,6 +19,17 @@ namespace FWO.Api.Data
         public List<ModellingServiceWrapper> Services { get; set; } = new();
 
 
+        public ModellingServiceGroup()
+        {}
+
+        public ModellingServiceGroup(ModellingServiceGroup svcGroup) : base(svcGroup)
+        {
+            Comment = svcGroup.Comment;
+            Creator = svcGroup.Creator;
+            CreationDate = svcGroup.CreationDate;
+            Services = svcGroup.Services;
+        }
+
         public override string DisplayWithIcon()
         {
             return $"<span class=\"{Icons.ServiceGroup}\"></span> " + DisplayHtml();

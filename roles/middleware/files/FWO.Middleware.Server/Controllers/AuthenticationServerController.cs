@@ -1,7 +1,5 @@
-﻿using FWO.Config.Api;
-using FWO.Api.Client.Queries;
+﻿using FWO.Api.Client.Queries;
 using FWO.Api.Client;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Logging;
 using FWO.Middleware.Server;

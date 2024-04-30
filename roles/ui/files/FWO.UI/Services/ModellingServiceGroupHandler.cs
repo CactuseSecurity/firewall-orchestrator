@@ -1,5 +1,4 @@
 ﻿using FWO.Config.Api;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -18,20 +17,21 @@ namespace FWO.Ui.Services
         public bool AddServiceMode = false;
         public bool EditServiceMode = false;
         public bool DeleteServiceMode = false;
-        public bool ReadOnly = false;
+        public Func<Task> RefreshParent = DefaultInit.DoNothing;
 
 
         public ModellingServiceGroupHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             List<ModellingServiceGroup> serviceGroups, ModellingServiceGroup serviceGroup, List<ModellingService> availableServices,
-            List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
+            List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, 
+            Func<Task> refreshParent, bool isOwner = true, bool readOnly = false)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, readOnly, isOwner)
         {
             ServiceGroups = serviceGroups;
             ActServiceGroup = serviceGroup;
             ActServiceGroup.AppId = application.Id;
             AvailableServices = availableServices;
             AvailableSvcElems = availableSvcElems;
-            ReadOnly = readOnly;
+            RefreshParent = refreshParent;
         }
 
         public void ServicesToSvcGroup(List<ModellingService> services)
@@ -44,7 +44,20 @@ namespace FWO.Ui.Services
                 }
             }
         }
-        
+
+        public async Task RefreshActServiceGroup()
+        {
+            try
+            {
+                ActServiceGroup = await apiConnection.SendQueryAsync<ModellingServiceGroup>(ModellingQueries.getServiceGroupById, new { id = ActServiceGroup.Id });
+                await RefreshParent();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
         public void CreateService()
         {
             AddServiceMode = true;
@@ -115,6 +128,7 @@ namespace FWO.Ui.Services
                     else
                     {
                         await UpdateServiceGroupInDb();
+                        await RefreshParent();
                     }
                     Close();
                     return true;

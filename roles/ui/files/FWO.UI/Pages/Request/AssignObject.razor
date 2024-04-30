@@ -2,6 +2,9 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 @using FWO.Middleware.Client
+@using FWO.Middleware.RequestParameters
+@using System.Net
+@using RestSharp
 
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -24,15 +27,17 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    @if(userAndGroupList.Count > 0)
+                    @if(userAndGroupList.Count > 0 && selectedUserGroup != null && selectedUserGroup.Dn != origAssignedGroup)
                     {
                         <div class="col-sm-2">
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
                                 <Authorized>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { PrepAssign(); await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { PrepAssign(); await Assign(StatefulObject); await Close();}" @onclick:preventDefault>
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </Authorized>
                                 <NotAuthorized>
-                                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" disabled>
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </NotAuthorized> 
                             </AuthorizeView>
                         </div>
@@ -42,17 +47,21 @@
                     && (origAssignedGroup == userConfig.User.Dn /* || userConfig.User.Groups.Contains((new DistName(origAssignedGroup)).Group)*/ )) 
                     // userConfig.User.Groups is currently not filled, because information may be available only in external Ldap
                 {
-                    <form class="form-group row">
+                    <form class="form-group row mt-2">
                         <label for="backAssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
                         <label id="backAssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
-                            <Authorized>
-                                <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
-                            </Authorized>
-                            <NotAuthorized>
-                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign1"))</button>
-                            </NotAuthorized> 
-                        </AuthorizeView>
+                        <div class="col-sm-2">
+                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
+                                <Authorized>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button type="button" class="btn btn-sm btn-success" disabled>
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
+                        </div>
                     </form>
                 }
             </form>
@@ -93,25 +102,58 @@
     public string ObjectName { get; set; } = "";
 
     [Parameter]
-    public List<string> RoleList { get; set; } = new List<string>();
+    public List<string> RoleList { get; set; } = new ();
+    
+    [Parameter]
+    public FwoOwner? Owner { get; set; }
 
-    private List<UiUser> userAndGroupList = new List<UiUser>();
-    private string? origAssignedGroup;
+    private List<UiUser> userAndGroupList = new ();
+    private string origAssignedGroup = "";
     private UiUser? selectedUserGroup;
+    private bool firstTry = true;
 
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display && firstTry)
+        {
+            firstTry = false;
+            await InitGroupList();
+            origAssignedGroup = StatefulObject.AssignedGroup ?? "";
+            selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == StatefulObject.AssignedGroup);
+        }
+    }
+
+    private async Task InitGroupList()
     {
         try
         {
-            foreach(var role in RoleList)
+            if(userConfig.ReqOwnerBased && Owner != null)
             {
-                List<UiUser> tmpList = await RoleAccess.GetRoleMembers(middlewareClient, role);
-                foreach(var elem in tmpList)
+                RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
+                if (middlewareServerResponse.StatusCode == HttpStatusCode.OK && middlewareServerResponse.Data != null)
                 {
-                    if(!userAndGroupList.Any(x => x.Dn == elem.Dn))
+                    foreach (var ldapUserGroup in middlewareServerResponse.Data)
                     {
-                        userAndGroupList.Add(elem);
+                        if(new DistName(ldapUserGroup.GroupDn).Group == GlobalConst.kModellerGroup + Owner.Name)
+                        {
+                            userAndGroupList = ldapUserGroup.Members.ConvertAll(x => new UiUser(){ Dn = x, Name = new DistName(x).UserName });
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach(var role in RoleList)
+                {
+                    List<UiUser> tmpList = await RoleAccess.GetRoleMembers(middlewareClient, role);
+                    foreach(var elem in tmpList)
+                    {
+                        if(!userAndGroupList.Any(x => x.Dn == elem.Dn))
+                        {
+                            userAndGroupList.Add(elem);
+                        }
                     }
                 }
             }
@@ -122,23 +164,15 @@
         }
     }
 
-    protected override void OnParametersSet()
-    {
-        if (Display)
-        {
-            origAssignedGroup = (StatefulObject.AssignedGroup != null ? new string(StatefulObject.AssignedGroup): null);
-            selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == StatefulObject.AssignedGroup);
-        }
-    }
-
     private void PrepAssign()
     {
-        StatefulObject.AssignedGroup = (selectedUserGroup != null ? selectedUserGroup.Dn : "");
+        StatefulObject.AssignedGroup = selectedUserGroup?.Dn ?? "";
     }
 
     private async Task Close()
     {
-        Display = false;
         await ResetParent();
+        Display = false;
+        firstTry = true;
     }
 }

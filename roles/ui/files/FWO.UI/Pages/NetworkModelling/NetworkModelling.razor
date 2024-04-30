@@ -1,7 +1,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Display
 
-@page "/networkmodelling/{appId?}"
+@page "/networkmodelling/{appId?}/{connId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
@@ -17,22 +17,9 @@
     <hr />
 
     <div class="form-group row">
-        <label class="col-form-label col-sm-1">@(userConfig.GetText("application")):</label>&nbsp;
-        @if(apps.Count == 1)
-        {
-            <label class="col-form-label text-primary col-sm-4">@((MarkupString)DisplayApp(selectedApp))</label>
-        }
-        else
-        {
-            <div class="col-sm-4">
-                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display(userConfig.GetText("common_service")))"
-                        SelectedElement="selectedApp" SelectedElementChanged="InitApp" Elements="apps">
-                    <ElementTemplate Context="app">
-                        @((MarkupString)DisplayApp(app))
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        }
+        <div class="col-sm-4">
+            <SelectOwner SelectedOwner="selectedApp" SelectedOwnerChanged="InitApp" Apps="apps" />
+        </div>
         <div class="col-sm-6">
             <div class="btn-group">
                 <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button>
@@ -78,7 +65,7 @@
             </TabSet>
         </div>
         <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
-            Title="@userConfig.GetText("delete_connection")" DeleteMessage="@appHandler.Message" AllowedRoles="@Roles.Modeller"/>
+            Title="@userConfig.GetText(appHandler.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")" DeleteMessage="@appHandler.Message" DeleteAllowed="appHandler.DeleteAllowed" AllowedRoles="@Roles.Modeller"/>
     }
 }
 else
@@ -99,8 +86,12 @@ else
     [Parameter]
     public string? AppId { get; set; }
 
+    [Parameter]
+    public string? ConnId { get; set; }
+
     private bool tabSelected = false;
     private bool restoreTab = false;
+    private ModellingConnection? lastConn;
     private ModellingAppHandler? appHandler;
     private List<FwoOwner> apps = new();
     private FwoOwner selectedApp = new();
@@ -129,13 +120,14 @@ else
             else if(restoreTab)
             {
                 restoreTab = false;
-                appHandler.RestoreTab();
+                appHandler.RestoreTab(lastConn);
             }
         }
     }
 
     private bool SetRestoreTab()
     {
+        lastConn = appHandler?.connHandler?.ActConn;
         restoreTab = true;
         return true;
     }
@@ -144,7 +136,7 @@ else
     {
         try
         {
-            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
             if (apps.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
@@ -201,6 +193,7 @@ else
             }
             appSelected = true;
             tabSelected = false;
+            await InitConn();
         }
         catch (Exception exception)
         {
@@ -208,18 +201,23 @@ else
         }
     }
 
+    private async Task InitConn()
+    {
+        if(ConnId != null && int.TryParse(ConnId, out int connectionId))
+        {
+            ModellingConnection? selectedConn = appHandler?.Connections.FirstOrDefault(c => c.Id == connectionId);
+            if (selectedConn != null)
+            {
+                tabSelected = true;
+                appHandler?.InitActiveTab(selectedConn);
+                await appHandler?.EditConn(selectedConn);
+            }
+        }
+    }
+
     private void ManualAppServer()
     {
         manualAppServer = true;
-    }
-
-    public string DisplayApp(FwoOwner app)
-    {
-        string tooltip = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9004")}\"")
-            : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9003")}\"";
-        string textToDisplay = (app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "*") : "!") + app.Display(userConfig.GetText("common_service"));
-        string textClass = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "text-success") : "text-danger";
-        return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
     }
 
     private void ShowHistory()

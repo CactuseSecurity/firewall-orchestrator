@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="async () => await Cancel()">
     <Body>
         @if (Display)
         {
@@ -42,7 +42,7 @@
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -60,7 +60,10 @@
     public EventCallback<bool> PromoteChanged { get; set; }
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; } = () => throw new Exception("ResetParent function undefined");
+    public Func<Task> CloseParent { get; set; } = () => throw new Exception("CloseParent function undefined");
+
+    [Parameter]
+    public Func<Task> CancelParent { get; set; } = () => throw new Exception("CancelParent function undefined");
 
     [Parameter]
     public string ObjectName { get; set; } = "";
@@ -72,17 +75,17 @@
     public Func<RequestStatefulObject, Task> Save { get; set; } = _ => throw new Exception("Save function undefined");
 
     [Parameter]
-    public RequestStatefulObject StatefulObject { get; set; } = new RequestStatefulObject();
+    public RequestStatefulObject StatefulObject { get; set; } = new ();
 
     [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+    public StateMatrix StateMatrix { get; set; } = new ();
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
 
     private bool Display { get; set; } = false;
-    private List<int> possibleStates = new List<int>();
+    private List<int> possibleStates = new ();
     private string? optComm;
 
     protected override async Task OnParametersSetAsync()
@@ -117,6 +120,13 @@
     {
         Display = false;
         Promote = false;
-        await ResetParent();
+        await CloseParent();
+    }
+
+    private async Task Cancel()
+    {
+        Display = false;
+        Promote = false;
+        await CancelParent();
     }
 }

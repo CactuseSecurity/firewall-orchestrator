@@ -5,10 +5,12 @@ namespace FWO.GlobalConstants
     /// </summary>
     public struct GlobalConst
     {
-        public const string kFwoBaseDir = "/usr/local/fworch";
+        public const string kFwoProdName = "fworch";
+        public const string kFwoBaseDir = "/usr/local/" + kFwoProdName;
         public const string kMainKeyFile = kFwoBaseDir + "/etc/secrets/main_key";
 
         public const string kEnglish = "English";
+        public const int kTenant0Id = 1;
 
         public const int kSidebarLeftWidth = 300;
         public const int kSidebarRightWidth = 300;
@@ -29,8 +31,9 @@ namespace FWO.GlobalConstants
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
 
-        public const string kLdapInternalPostfix = "dc=fworch,dc=internal";
+        public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
 
+        public const string kDummyAppRole = "DummyAppRole";
     }
 
     public struct ObjectType

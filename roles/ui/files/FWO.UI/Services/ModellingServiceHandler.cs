@@ -1,5 +1,4 @@
 ﻿using FWO.Config.Api;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -17,7 +16,7 @@ namespace FWO.Ui.Services
 
         public ModellingServiceHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
             ModellingService service, List<ModellingService> availableServices, List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, isOwner)
+            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, false, isOwner)
         {
             ActService = service;
             AvailableServices = availableServices;
@@ -43,6 +42,7 @@ namespace FWO.Ui.Services
                     {
                         await UpdateServiceInDb();
                     }
+                    ActServiceOrig = new ModellingService(ActService);
                     return true;
                 }
             }
@@ -55,10 +55,10 @@ namespace FWO.Ui.Services
 
         public void Reset()
         {
-            ActService = ActServiceOrig;
+            ActService = new(ActServiceOrig);
             if(!AddMode)
             {
-                AvailableServices[AvailableServices.FindIndex(x => x.Id == ActService.Id)] = ActServiceOrig;
+                AvailableServices[AvailableServices.FindIndex(x => x.Id == ActService.Id)] = ActService;
             }
         }
 

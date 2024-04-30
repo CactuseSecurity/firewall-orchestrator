@@ -69,7 +69,7 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true">
             <Template>
                 <div data-toggle="tooltip" title="@(userConfig.PureLine("H5273"))">
-                    @(context.Tenant != null ? (context.Tenant.Id == 1 && context.LdapConnection.GlobalTenantName != null && 
+                    @(context.Tenant != null ? (context.Tenant.Id == GlobalConst.kTenant0Id && context.LdapConnection.GlobalTenantName != null && 
                         context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
                 </div>
             </Template>       
@@ -165,6 +165,18 @@
                         </div>
                     </div>
                 }
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5281"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("firstname")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Firstname" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5282"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("lastname")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Lastname" />
+                    </div>
+                </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5274"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
                     <div class="col-sm-8">
@@ -378,7 +390,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Groups = new List<string>();
+                user.Groups = new ();
                 foreach (var group in groups)
                 {
                     if (group.Users != null && group.Users.Exists(x => x.Dn == user.Dn))
@@ -400,7 +412,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Roles = new List<string>();
+                user.Roles = new ();
                 foreach (var role in roles)
                 {
                     if (role.Users != null && role.Users.Exists(x => x.Dn == user.Dn))
@@ -444,6 +456,16 @@
                         relatedUiUser.Email = ldapUser.Email;
                         await updateUserInDb(relatedUiUser);
                     }
+                    if (relatedUiUser.Firstname != ldapUser.Firstname)
+                    {
+                        relatedUiUser.Firstname = ldapUser.Firstname;
+                        await updateUserInDb(relatedUiUser);
+                    }
+                    if (relatedUiUser.Lastname != ldapUser.Lastname)
+                    {
+                        relatedUiUser.Lastname = ldapUser.Lastname;
+                        await updateUserInDb(relatedUiUser);
+                    }
                 }
                 else
                 {
@@ -483,10 +505,12 @@
                         Dn = user.UserDn, 
                         Name = distname.UserName, 
                         Email = user.Email, 
+                        Firstname = user.Firstname, 
+                        Lastname = user.Lastname, 
                         PasswordMustBeChanged = false,
                         LdapConnection = internalLdap
                     };
-                    string tenantName = distname.getTenant(internalLdap.TenantLevel);
+                    string tenantName = distname.GetTenantNameViaLdapTenantLevel(internalLdap.TenantLevel);
                     if (tenantName != "")
                     {
                         newUser.Tenant = new Tenant(){ Name = tenantName };
@@ -536,9 +560,11 @@
             var Variables = new
             {
                 id = user.DbId,
-                email = user.Email
+                email = user.Email,
+                uiuser_first_name = user.Firstname,
+                uiuser_last_name = user.Lastname
             };
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserEmail, Variables);
+            await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserEmail, Variables);
         }
         catch (Exception exception)
         {
@@ -561,11 +587,13 @@
                 uuid = user.Dn,
                 uiuser_username = user.Name,
                 email = user.Email,
+                uiuser_first_name = user.Firstname,
+                uiuser_last_name = user.Lastname,
                 tenant = (user.Tenant != null ? user.Tenant.Id : (int?)null),
                 passwordMustBeChanged = user.PasswordMustBeChanged,
                 ldapConnectionId = user.LdapConnection.Id
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addUser, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
             if(returnIds != null)
             {
                 user.DbId = returnIds[0].NewId;
@@ -634,6 +662,9 @@
             AddMode = true;
             newUser = new UiUser(user);
             newUser.Password = "";
+            newUser.Firstname = user.Firstname;
+            newUser.Lastname = user.Lastname;
+            newUser.Email = user.Email;
             selectedLdap = (newUser.LdapConnection != null ? newUser.LdapConnection : writableLdaps.FirstOrDefault());
             SetAvailableTenants(selectedLdap);
             selectedTenant = newUser.Tenant;
@@ -656,7 +687,7 @@
         {
             actUser.LdapConnection = new UiLdapConnection();
         }
-        if (actUser.Tenant != null && actUser.Tenant.Id == 1 && actUser.LdapConnection.GlobalTenantName != null && actUser.LdapConnection.GlobalTenantName != "")
+        if (actUser.Tenant != null && actUser.Tenant.Id == GlobalConst.kTenant0Id && actUser.LdapConnection.GlobalTenantName != null && actUser.LdapConnection.GlobalTenantName != "")
         {
             actUser.Tenant.Name = actUser.LdapConnection.GlobalTenantName;
         }
@@ -671,7 +702,7 @@
             user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
             // todo: further dn specification maybe in ldapconnection?
             user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
-                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == 1 && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
+                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == GlobalConst.kTenant0Id && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
         }
         user.Groups = new List<string>();
         if(selectedGroup != null)
@@ -708,6 +739,8 @@
                     UserAddParameters parameters = new UserAddParameters
                     {
                         Email = actUser.Email, 
+                        Firstname = actUser.Firstname, 
+                        Lastname = actUser.Lastname, 
                         LdapId = actUser.LdapConnection.Id, 
                         Password = actUser.Password, 
                         UserDn = actUser.Dn,
@@ -732,7 +765,7 @@
             }
             else
             {
-                // Update existing user in ldap --> currently only email
+                // Update existing user in ldap --> currently only email; TODO: add first and last name
                 UserEditParameters parameters = new UserEditParameters {Email = actUser.Email, LdapId = actUser.LdapConnection.Id, UserId = actUser.DbId };
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)

@@ -225,7 +225,9 @@
                                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5526"))">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("option")):</label>
                                     <div class="col-sm-8">
-                                        <Dropdown ElementType="PathAnalysisOptions" @bind-SelectedElement="actPathAnalysisParams.Option" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(PathAnalysisOptions)).Cast<PathAnalysisOptions>()">
+                                        <Dropdown ElementType="PathAnalysisOptions" @bind-SelectedElement="actPathAnalysisParams.Option" 
+                                                ElementToString="@(o => userConfig.GetText(o.ToString()))"
+                                                Elements="Enum.GetValues(typeof(PathAnalysisOptions)).Cast<PathAnalysisOptions>()">
                                             <ElementTemplate Context="opt">
                                                 @(userConfig.GetText(opt.ToString()))
                                             </ElementTemplate>
@@ -236,10 +238,63 @@
                             break;
                         case nameof(StateActionTypes.ExternalCall):
                             break;
+                        case nameof(StateActionTypes.SendEmail):
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("email_to"))*:</label>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actEmailActionParams.RecipientTo" 
+                                                ElementToString="@(o => userConfig.GetText(o.ToString()))"
+                                                Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>()">
+                                            <ElementTemplate Context="opt">
+                                                @(userConfig.GetText(opt.ToString()))
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("email_cc")):</label>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="EmailRecipientOption?" @bind-SelectedElement="actEmailActionParams.RecipientCC" 
+                                                ElementToString="@(o => userConfig.GetText(o?.ToString() ?? " "))" Nullable="true"
+                                                Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption?>()">
+                                            <ElementTemplate Context="opt">
+                                                @(userConfig.GetText(opt?.ToString() ?? " "))
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                </div>
+                            </div>
+                            break;
+                        case nameof(StateActionTypes.CreateConnection):
+                            break;
+                        case nameof(StateActionTypes.UpdateConnectionOwner):
+                            break;
+                        case nameof(StateActionTypes.UpdateConnectionRelease):
+                            break;
+                        case nameof(StateActionTypes.DisplayConnection):
+                            break;
                         default:
                             break;
                     }
                 </div>
+                @if(actAction.ActionType == nameof(StateActionTypes.SendEmail))
+                {
+                    <div class="form-group row col-sm-12 mt-2">
+                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email_subject")):</label>
+                            <input type="text" class="col-sm-10" @bind="actEmailActionParams.Subject" />
+                        </div>
+                    </div>
+                    <div class="form-group row col-sm-12 mt-2">
+                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email_body")):</label>
+                            <textarea rows="4" name="text" class="col-sm-10" @bind="actEmailActionParams.Body" />
+                        </div>
+                    </div>
+                }
             }
         </Body>
         <Footer>
@@ -271,21 +326,22 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestStateAction> actions = new List<RequestStateAction>();
-    private List<RequestState> states = new List<RequestState>();
-    private List<RequestState> statesPlus = new List<RequestState>();
-    private List<UiUser> userAndGroupList = new List<UiUser>();
-    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
+    private List<RequestStateAction> actions = new ();
+    private List<RequestState> states = new ();
+    private List<RequestState> statesPlus = new ();
+    private List<UiUser> userAndGroupList = new ();
+    private List<TaskType> availableTaskTypes { get; set; } = new ();
 
-    private RequestStateAction actAction = new RequestStateAction();
-    private ApprovalParams actApprovalParams = new ApprovalParams();
+    private RequestStateAction actAction = new ();
+    private ApprovalParams actApprovalParams = new ();
     private int toState = -1;
     private string message = "";
-    private PathAnalysisActionParams actPathAnalysisParams = new PathAnalysisActionParams();
+    private PathAnalysisActionParams actPathAnalysisParams = new ();
+    private EmailActionParams actEmailActionParams = new ();
     private string? selectedPhase;
     private TaskType? selectedTaskType;
-    private RequestState selectedState = new RequestState();
-    private static RequestState AutomaticState = new RequestState(){ Id = -1, Name = "automatic" };
+    private RequestState selectedState = new ();
+    private static RequestState AutomaticState = new (){ Id = -1, Name = "automatic" };
     private RequestState selectedToState = AutomaticState;
     private UiUser? selectedUserGroup;
 
@@ -355,6 +411,17 @@ else
                     break;
                 case nameof(StateActionTypes.ExternalCall):
                     break;
+                case nameof(StateActionTypes.SendEmail):
+                    actEmailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                    break;
+                case nameof(StateActionTypes.CreateConnection):
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionOwner):
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionRelease):
+                    break;
+                case nameof(StateActionTypes.DisplayConnection):
+                    break;
                 default:
                     break;
             }
@@ -388,6 +455,17 @@ else
                     actAction.ExternalParams = JsonSerializer.Serialize(actPathAnalysisParams);
                     break;
                 case nameof(StateActionTypes.ExternalCall):
+                    break;
+                case nameof(StateActionTypes.SendEmail):
+                    actAction.ExternalParams = JsonSerializer.Serialize(actEmailActionParams);
+                    break;
+                case nameof(StateActionTypes.CreateConnection):
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionOwner):
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionRelease):
+                    break;
+                case nameof(StateActionTypes.DisplayConnection):
                     break;
                 default:
                     break;

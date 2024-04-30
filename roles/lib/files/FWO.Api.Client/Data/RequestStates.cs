@@ -14,7 +14,7 @@ namespace FWO.Api.Data
         public string Name { get; set; } = "";
 
         [JsonProperty("actions"), JsonPropertyName("actions")]
-        public List<RequestStateActionDataHelper> Actions { get; set; } = new List<RequestStateActionDataHelper>();
+        public List<RequestStateActionDataHelper> Actions { get; set; } = new ();
 
 
         public RequestState(){}
@@ -28,7 +28,7 @@ namespace FWO.Api.Data
 
         public string ActionList()
         {
-            List<string> actionNames = new List<string>();
+            List<string> actionNames = new ();
             foreach(var action in Actions)
             {
                 actionNames.Add(action.Action.Name);
@@ -39,11 +39,12 @@ namespace FWO.Api.Data
 
     public class RequestStateDict
     {
-        public Dictionary<int, string> Name = new Dictionary<int, string>();
+        public Dictionary<int, string> Name = new ();
 
         public async Task Init(ApiConnection apiConnection)
         {
-            List<RequestState> states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            List<RequestState> states = await apiConnection.SendQueryAsync<List<RequestState>>(Client.Queries.RequestQueries.getStates);
+            Name = new ();
             foreach(var state in states)
             {
                 Name.Add(state.Id, state.Name);

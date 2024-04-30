@@ -229,6 +229,7 @@
     {
         try
         {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Auditor });
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
             {
@@ -298,7 +299,7 @@
         Tenant? tenantFromTemplate = null;
         if (template.ReportParams.TenantFilter.IsActive)
         {
-            tenantFromTemplate = await Tenant.getSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
+            tenantFromTemplate = await Tenant.GetSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
         }
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);
@@ -409,9 +410,15 @@
 
     private async Task GenerateConnectionsReport(CancellationToken token)
     {
+        ModellingAppRole dummyAppRole = new();
+        List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
+        if(dummyAppRoles.Count > 0)
+        {
+            dummyAppRole = dummyAppRoles.First();
+        }
         foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners)
         {
-            OwnerReport actOwnerData = new(){ Name = selectedOwner.Name };
+            OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Name };
             currentReport.ReportData.OwnerData.Add(actOwnerData);
             await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
             connIntermediate =>

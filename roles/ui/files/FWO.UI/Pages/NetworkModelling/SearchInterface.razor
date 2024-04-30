@@ -68,7 +68,7 @@
 
 
     private List<ModellingConnection> selectableInterfaces { get; set; } = new();
-    private List<ModellingConnection> allInterfaces { get; set; } = new();
+    private List<ModellingConnection> allPublishedInterfaces { get; set; } = new();
     private ModellingConnection? selectedInterface;
     private bool FirstTry = true;
 
@@ -80,7 +80,7 @@
             try
             {
                 FirstTry = false;
-                allInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaces);
+                allPublishedInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getPublishedInterfaces);
                 RefreshSelectionList();
             }
             catch (Exception exception)
@@ -93,10 +93,10 @@
     private void RefreshSelectionList()
     {
         selectableInterfaces = new();
-        if(allInterfaces != null && allInterfaces.Count > 0)
+        if(allPublishedInterfaces != null && allPublishedInterfaces.Count > 0)
         {
             selectableInterfaces = PreselectedInterfaces != null && PreselectedInterfaces.Count > 0 ?
-                allInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null)?.ToList() ?? new() : allInterfaces;
+                allPublishedInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null)?.ToList() ?? new() : allPublishedInterfaces;
             
             foreach(var interf in selectableInterfaces)
             {

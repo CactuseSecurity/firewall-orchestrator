@@ -1,5 +1,4 @@
-﻿using FWO.GlobalConstants;
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
 using FWO.Logging;
 using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
@@ -32,7 +31,7 @@ namespace FWO.Middleware.Controllers
         /// </summary>
         /// <returns>List of groups</returns>
         [HttpGet]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
         public async Task<ActionResult<List<GroupGetReturnParameters>>> Get()
         {
             try

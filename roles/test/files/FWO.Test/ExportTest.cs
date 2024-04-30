@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using FWO.Logging;
 using FWO.Report;
 using FWO.Report.Filter;
@@ -97,7 +98,7 @@ namespace FWO.Test
             "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -133,7 +134,7 @@ namespace FWO.Test
             "<td>not<br>TestService2 (6666-7777/UDP)</td>" +
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -169,7 +170,7 @@ namespace FWO.Test
             "<td>not<br>6666-7777/UDP</td>" +
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -220,7 +221,7 @@ namespace FWO.Test
             "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -288,7 +289,7 @@ namespace FWO.Test
             "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRecerts.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRecerts.ExportToHtml(), true)));
         }
 
         [Test]
@@ -338,7 +339,7 @@ namespace FWO.Test
             "<h4>Users</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></table></body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportNatRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportNatRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -404,7 +405,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
         }
 
         [Test]
@@ -466,7 +467,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
         }
 
         [Test]
@@ -529,7 +530,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
         }
 
         [Test]
@@ -557,8 +558,8 @@ namespace FWO.Test
             "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">AppRole1 ()</a></td></table><hr>" +
             "<h4>Interfaces</h4><table>" +
-            "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
-            "<tr><td>1</td><td>102</td><td>Inter2</td><td></td><td></td>" +
+            "<tr><th>No.</th><th>Id</th><th>Published</th><th>Name</th><th>Interface Description</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
+            "<tr><td>1</td><td>102</td><td>✖</td><td>Inter2</td><td></td><td></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc3\" target=\"_top\" style=\"\"></a><br>" +
             "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc4\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\"> ()</a><br>" +
@@ -594,7 +595,7 @@ namespace FWO.Test
             "<span>Service2 (2345/UDP)</span></td>" +
             "<td><span class=\"\" ><span class=\"\" ><span class=\"\">AppServer2 (2.0.0.0)</span></span></span></td></table><hr>" +
             "</body></html>";
-            Assert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportConnections.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportConnections.ExportToHtml(), true)));
         }
 
         [Test]
@@ -616,7 +617,7 @@ namespace FWO.Test
             "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
             "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\",\"dstzn\",\"TestIpRange (1.2.3.4-1.2.3.5)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
             "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\",\"\",\"not(TestUser2@TestIpRange (1.2.3.4-1.2.3.5))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
+            ClassicAssert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
         }
 
         [Test]
@@ -638,7 +639,7 @@ namespace FWO.Test
             "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
             "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4-1.2.3.5\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
             "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4-1.2.3.5)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
+            ClassicAssert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
         }
 
         [Test]
@@ -667,7 +668,7 @@ namespace FWO.Test
             "\" deleted: not(TestService2 (6666-7777/UDP)) added: TestService2 (6666-7777/UDP)\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
             "\"\",\"not(TestUser2@TestIpRange (1.2.3.4-1.2.3.5))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
+            ClassicAssert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
         }
 
         [Test]
@@ -690,7 +691,7 @@ namespace FWO.Test
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"127.0.0.1/32 deleted: 1.2.3.4/32 added: 2.3.4.5\",\"dstzn\",\"1.2.3.4-1.2.3.5 added: 10.0.6.0/24\",\" deleted: 443/TCP added: not(443/TCP)\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\" deleted: not(TestUser2@1.2.3.4-1.2.3.5) added: TestUser2@1.2.3.4-1.2.3.5\",\" deleted: not(6666-7777/UDP) added: 6666-7777/UDP\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4-1.2.3.5)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
+            ClassicAssert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
         }
 
 
@@ -749,7 +750,7 @@ namespace FWO.Test
             "\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
             "\"Ignore\": false}]";
             // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportRules.ExportToJson(), true, true))));
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -774,7 +775,7 @@ namespace FWO.Test
             "\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"],\"destination zone\": \"\",\"destination negated\": true," +
             "\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"],\"service negated\": true," +
             "\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
         }
 
        [Test]
@@ -800,7 +801,7 @@ namespace FWO.Test
             "\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"],\"destination zone\": \"\"," +
             "\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4-1.2.3.5\"],\"service negated\": true," +
             "\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -894,7 +895,7 @@ namespace FWO.Test
             "\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": [],\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
             "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
             "\"Ignore\": false}]";
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -926,7 +927,7 @@ namespace FWO.Test
             "\"destination zone\": \"\",\"destination negated\": true,\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"]," +
             "\"service negated\": true,\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
             // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -957,7 +958,7 @@ namespace FWO.Test
             "\"source zone\": \"\",\"source negated\": true,\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"]," +
             "\"destination zone\": \"\",\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4-1.2.3.5\"]," +
             "\"service negated\": true,\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
 

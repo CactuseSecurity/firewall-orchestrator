@@ -6,6 +6,7 @@
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   become: true
+  tags: [ 'test', 'unittest' ]
 
 - block:
 ### OS basics
@@ -54,6 +55,7 @@
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
     when: not is_manger_pw_present_flag.stat.exists
+    tags: [ 'test' ]
 
   - name: Generate the root password hash for the config
     command: "slappasswd -T {{ ldap_manager_pwd_file }}"

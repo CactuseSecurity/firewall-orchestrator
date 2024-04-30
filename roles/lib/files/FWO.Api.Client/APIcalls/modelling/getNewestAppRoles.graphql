@@ -1,0 +1,6 @@
+query getNewestAppRoles ($pattern: String!){
+  modelling_nwgroup (where: { id_string: { _ilike: $pattern }, group_type: { _eq: 20 } } order_by: { id: desc }){
+    id
+    id_string
+  }
+}

@@ -1,4 +1,5 @@
-﻿using FWO.Logging;
+﻿using FWO.Api.Data;
+using FWO.Logging;
 using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
@@ -30,10 +31,9 @@ namespace FWO.Middleware.Controllers
         /// </summary>
         /// <returns>List of groups</returns>
         [HttpGet]
-        [Authorize(Roles = "admin, auditor, recertifier")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
         public async Task<ActionResult<List<GroupGetReturnParameters>>> Get()
         {
-            bool admin = User.IsInRole("admin");
             try
             {
                 ConcurrentBag<GroupGetReturnParameters> allGroups = new ConcurrentBag<GroupGetReturnParameters>();
@@ -74,7 +74,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">GroupAddDeleteParameters</param>
         /// <returns>Dn of new group, empty string if no group could be created</returns>
         [HttpPost]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<string> Create([FromBody] GroupAddDeleteParameters parameters)
         {
             string groupDn = "";
@@ -113,7 +113,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">GroupAddDeleteParameters</param>
         /// <returns>true if group deleted</returns>
         [HttpDelete]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<bool> Delete([FromBody] GroupAddDeleteParameters parameters)
         {
             bool groupDeleted = false;
@@ -151,7 +151,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">GroupEditParameters</param>
         /// <returns>Dn of updated group</returns>
         [HttpPut]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<string> Edit([FromBody] GroupEditParameters parameters)
         {
             string groupUpdatedDn = "";
@@ -189,7 +189,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">GroupGetParameters</param>
         /// <returns>List of groups</returns>
         [HttpPost("Get")]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<List<string>> Get([FromBody] GroupGetParameters parameters)
         {
             List<string> allGroups = new List<string>();
@@ -221,7 +221,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">GroupAddDeleteUserParameters</param>
         /// <returns>true if user could be added to group</returns>
         [HttpPost("User")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<bool> AddUser([FromBody] GroupAddDeleteUserParameters parameters)
         {
             bool userAdded = false;
@@ -259,7 +259,7 @@ namespace FWO.Middleware.Controllers
         /// <param name="parameters">GroupAddDeleteUserParameters</param>
         /// <returns>true if user could be removed from group</returns>        [HttpDelete("User")]
         [HttpDelete("User")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<bool> RemoveUser([FromBody] GroupAddDeleteUserParameters parameters)
         {
             bool userRemoved = false;

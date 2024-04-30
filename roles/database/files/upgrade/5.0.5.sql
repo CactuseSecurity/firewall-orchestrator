@@ -114,5 +114,18 @@ Alter table "request_user_change" ALTER COLUMN "log_usr_id" TYPE BIGINT;
 
 -- add some missing foreign keys
 
-Alter table "usr" add foreign key ("user_create") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "usr" add foreign key ("user_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
+DO $$
+BEGIN
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'usr_user_create_fkey')
+  THEN
+    Alter table "usr" add foreign key ("user_create") references "import_control" ("control_id") on update restrict on delete cascade;
+  END IF;
+  IF NOT EXISTS(select constraint_name 
+    from information_schema.referential_constraints
+    where constraint_name = 'usr_user_last_seen_fkey')
+  THEN
+    Alter table "usr" add foreign key ("user_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
+  END IF;
+END $$;

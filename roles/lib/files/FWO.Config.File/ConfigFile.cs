@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace FWO.Config.File
 {
@@ -26,23 +27,43 @@ namespace FWO.Config.File
         private const string jwtPrivateKeyPath = basePath + "/secrets/jwt_private_key.pem";
 
         /// <summary>
-        /// Internal connection to middleware server. Used to connect with api server.
+        /// All config data found in the main config file
         /// </summary>
-        //private readonly MiddlewareClient middlewareClient;
+        private class ConfigFileData
+        {
+            /// <summary>
+            /// Uri of the middleware server (http)
+            /// </summary>
+            [JsonPropertyName("middleware_native_uri")]
+            public string? MiddlewareServerNativeUri { get; set; }
+
+            /// <summary>
+            /// Uri of the middleware server reverse proxy (https)
+            /// </summary>
+            [JsonPropertyName("middleware_uri")]
+            public string? MiddlewareServerUri { get; set; }
+
+            [JsonPropertyName("api_uri")]
+            public string? ApiServerUri { get; set; }
+
+            [JsonPropertyName("remote_addresses")]
+            public string[]? RemoteAddresses { get; set; }
+
+            [JsonPropertyName("product_version")]
+            public string? ProductVersion { get; set; }
+        }
 
         /// <summary>
-        /// Internal connection to api server. Used to get/edit config data.
+        /// Config file data found in the main config file
         /// </summary>
-        //private readonly APIConnection apiConnection;
-
+        private static ConfigFileData Data { get; set; } = new ConfigFileData();
 
         private static RsaSecurityKey? jwtPrivateKey = null;
         public static RsaSecurityKey JwtPrivateKey
         {
             get
             {
-                jwtPrivateKey = CriticalConfigValueLoaded(jwtPrivateKey);
-                return jwtPrivateKey;
+                return CriticalConfigValueLoaded(jwtPrivateKey);
             }
         }
 
@@ -51,57 +72,47 @@ namespace FWO.Config.File
         {
             get
             {
-                jwtPublicKey = CriticalConfigValueLoaded(jwtPublicKey);
-                return jwtPublicKey;
+                return CriticalConfigValueLoaded(jwtPublicKey);
             }
         }
 
-        private static string? apiServerUri = null;
         public static string ApiServerUri
         {
             get
             {
-                apiServerUri = CriticalConfigValueLoaded(apiServerUri);
-                return apiServerUri;
+                return CriticalConfigValueLoaded(Data.ApiServerUri);
             }
         }
 
-        private static string? middlewareServerNativeUri = null;
         public static string MiddlewareServerNativeUri
         {
             get
             {
-                middlewareServerNativeUri = CriticalConfigValueLoaded(middlewareServerNativeUri);
-                return middlewareServerNativeUri;
+                return CriticalConfigValueLoaded(Data.MiddlewareServerNativeUri);
             }
         }
 
-        private static string? middlewareServerUri = null;
         public static string MiddlewareServerUri
         {
             get
             {
-                middlewareServerUri = CriticalConfigValueLoaded(middlewareServerUri);
-                return middlewareServerUri;
+                return CriticalConfigValueLoaded(Data.MiddlewareServerUri);
             }
         }
 
-        private static string? productVersion = null;
         public static string ProductVersion
         {
             get
             {
-                productVersion = CriticalConfigValueLoaded(productVersion);
-                return productVersion;
+                return CriticalConfigValueLoaded(Data.ProductVersion);
             }
         }
 
-        private static Dictionary<string,string> customSettings = new Dictionary<string,string>();
-        public Dictionary<string,string> CustomSettings
+        public static string[] RemoteAddresses
         {
             get
             {
-                return customSettings;
+                return CriticalConfigValueLoaded(Data.RemoteAddresses);
             }
         }
 
@@ -114,21 +125,17 @@ namespace FWO.Config.File
         {
             try
             {
-                // Reset all values
-                jwtPrivateKey = null;
-                jwtPublicKey = null;
-                middlewareServerNativeUri = null;
-                middlewareServerUri = null;
-                apiServerUri = null;
-                productVersion = null;
-
                 // Read config as json from file
                 string configFile = System.IO.File.ReadAllText(configFilePath).TrimEnd();
 
                 // Deserialize config to dictionary
-                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string, string>>(configFile) ?? throw new Exception("Config file could not be parsed.");
+                Data = JsonSerializer.Deserialize<ConfigFileData>(configFile) ?? throw new Exception("Config file could not be parsed.");
 
-                // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See NotNullCriticalConfigValue()
+                // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See CriticalConfigValueLoaded()
+
+                // Reset all keys
+                jwtPrivateKey = null;
+                jwtPublicKey = null;
 
                 // Try to read jwt private key
                 IgnoreExceptions(() => jwtPrivateKey = KeyImporter.ExtractKeyFromPem(System.IO.File.ReadAllText(privateKeyFilePath), isPrivateKey: true));
@@ -136,17 +143,6 @@ namespace FWO.Config.File
                 // Try to read jwt public key
                 IgnoreExceptions(() => jwtPublicKey = KeyImporter.ExtractKeyFromPem(System.IO.File.ReadAllText(publicKeyFilePath), isPrivateKey: false));
 
-                // Try to get uri of the middleware server (http)
-                IgnoreExceptions(() => middlewareServerNativeUri = configFileData["middleware_native_uri"]);
-
-                // Try to get uri of the middleware server reverse proxy (https)
-                IgnoreExceptions(() => middlewareServerUri = configFileData["middleware_uri"]);
-
-                // Try to get api uri
-                IgnoreExceptions(() => apiServerUri = configFileData["api_uri"]);
-
-                // Try to get productVersion
-                IgnoreExceptions(() => productVersion = configFileData["product_version"]);
             }
             catch (Exception configFileReadException)
             {
@@ -176,7 +172,7 @@ namespace FWO.Config.File
         
         private static void IgnoreExceptions(Action method)
         {
-            try { method(); } catch (Exception e){ Log.WriteDebug("Config value", $"Config value could not be loaded. Error: {e.Message}"); }
+            try { method(); } catch (Exception e) { Log.WriteDebug("Config value", $"Config value could not be loaded. Error: {e.Message}"); }
         }
     }
 }

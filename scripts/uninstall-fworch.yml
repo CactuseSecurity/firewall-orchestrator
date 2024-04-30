@@ -188,6 +188,8 @@
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data
         - "{{ api_hasura_cli_bin }}"
+        - /var/fworch
+        - /var/log/fworch 
       ignore_errors: true
 
     - name: remove OS users and delete home directories

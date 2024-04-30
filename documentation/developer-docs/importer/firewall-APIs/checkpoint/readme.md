@@ -76,7 +76,8 @@ gives the sid (session id) which can then be used to authenticate for further ap
   "api-server-version" : "1.8",
   "user-name" : "apiuser",
   "user-uid" : "ba2038a1-437f-45ef-8ea5-c8785cdad9a7"
-}```
+}
+```
 
 
 ## logout
@@ -92,4 +93,40 @@ curl --insecure --request POST \
   --header 'Content-Type: application/json' \
   --header 'X-chkp-sid: PhTmI9SD02MTtCWCcTHpc8FsIlX63icc9CvF19PB3qo' \
   --data '{"name": "FirstLayer shared with inline layer"}'
+```
+
+## get an arbitrary object by UID
+
+```console
+curl --insecure --request POST   --url https://192.168.100.88/web_api/show-object   --header 'Content-Type: application/json'   --header 'X-chkp-sid: KJC5pzFMSRINoVTSByVhUq1xdEE33WD0uy9iXl-cG-4'   --data '{"uid": "dd699ecd-1420-41a0-931f-de7f55f799b6", "details-level": "full"}'
+```
+results in 
+```console
+{
+  "object" : {
+    "uid" : "d699ecd-1420-41a0-931f-de7f55f799b6",
+    "type" : "access-section",
+    "domain" : {
+      "uid" : "3981ee76-52c3-1744-bf5b-75fe309b1ed9",
+      "name" : "dom-name1",
+      "domain-type" : "domain"
+    },
+    "tags" : [ ],
+    "meta-info" : {
+      "lock" : "unlocked",
+      "validation-state" : "ok",
+      "last-modify-time" : {
+        "posix" : 1668506934927,
+        "iso-8601" : "2022-11-15T11:08+0100"
+      },
+      "last-modifier" : "admin-user-1234",
+      "creation-time" : {
+        "posix" : 1668506934927,
+        "iso-8601" : "2022-11-15T11:08+0100"
+      },
+      "creator" : "admin-user-3433"
+    },
+    "read-only" : false
+  }
+}
 ```

@@ -1,0 +1,140 @@
+﻿@using FWO.Config.Api
+@using System.Text.Json
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if(AppServerHandler != null)
+{
+    <PopUp Title="@(AppServerHandler.ReadOnly ? userConfig.GetText("app_server") : (AppServerHandler.AddMode ? userConfig.GetText("add_app_server") : userConfig.GetText("edit_app_server")))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
+        <Body>
+            @if (Display)
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    @if(AppServerHandler.ReadOnly)
+                    {
+                        <label class="col-sm-9">@AppServerHandler.ActAppServer.Name</label>
+                    }
+                    else
+                    {
+                        <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Name" />
+                    }
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                    <div class="col-sm-9">
+                        @if(AppServerHandler.ReadOnly)
+                        {
+                            <label>@actAppServerType.Name</label>
+                        }
+                        else
+                        {
+                            <Dropdown ElementType="AppServerType" ElementToString="@(a => a.Name)" SelectedElement="actAppServerType" SelectedElementChanged="SetAppServerType" Elements="appServerTypes.Where(x => x.Id != 0)">
+                                <ElementTemplate Context="appServerType">
+                                    @appServerType.Name
+                                </ElementTemplate>
+                            </Dropdown>
+                        }
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
+                    @if(AppServerHandler.ReadOnly)
+                    {
+                        <label class="col-sm-9">@AppServerHandler.ActAppServer.Ip</label>
+                    }
+                    else
+                    {
+                        <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Ip" />
+                    }
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                @if(AppServerHandler.ReadOnly)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
+                }
+                else
+                {
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await AppServerHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                        </NotAuthorized> 
+                    </AuthorizeView>
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                }
+            </div>
+        </Footer>
+    </PopUp>
+}
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public ModellingAppServerHandler AppServerHandler { get; set; }
+
+    private List<AppServerType> appServerTypes = new();
+    private AppServerType actAppServerType = new();
+    private bool firstTry = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if(userConfig.ModAppServerTypes != "")
+            {
+                appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Display && firstTry)
+        {
+            firstTry = false;
+            actAppServerType = appServerTypes.FirstOrDefault(a => a.Id == AppServerHandler.ActAppServer.CustomType) ?? new();
+        }
+    }
+
+    private void SetAppServerType(AppServerType newAppServerType)
+    {
+        actAppServerType = newAppServerType;
+        AppServerHandler.ActAppServer.CustomType = newAppServerType.Id;
+    }
+
+    private void Cancel()
+    {
+        AppServerHandler.Reset();
+        Close();
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+        firstTry = true;
+    }
+}

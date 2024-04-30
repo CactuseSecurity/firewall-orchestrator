@@ -1,0 +1,13 @@
+mutation newRuleOwnership(
+  $ownerId: Int!
+  $ruleMetadataId: bigint!
+  ) {
+  insert_rule_owner(objects: {
+    owner_id: $ownerId
+    rule_metadata_id: $ruleMetadataId
+  }) {
+    returning {
+      newId: rule_metadata_id
+    }
+  }
+}

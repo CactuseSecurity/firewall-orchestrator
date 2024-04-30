@@ -1,0 +1,5 @@
+query getServiceGroupIdsForService ($serviceId: Int!){
+  modelling_service_service_group (where: { service_id: { _eq: $serviceId } }){
+    service_group_id
+  }
+}

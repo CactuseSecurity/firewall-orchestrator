@@ -1,0 +1,18 @@
+mutation updateService(
+  $id: Int!
+  $name: String
+  $port: Int
+  $portEnd: Int
+  $protoId: Int
+  ) {
+  update_modelling_service_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      name: $name
+      port: $port
+      port_end: $portEnd
+      proto_id: $protoId
+  }) {
+    UpdatedId: id
+  }
+}

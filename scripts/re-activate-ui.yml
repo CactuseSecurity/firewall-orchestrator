@@ -1,0 +1,24 @@
+# this script disables the maintenance website and replaces it with the fworch UI
+
+---
+- hosts: localhost
+  tasks:
+
+    - name: Set Apache URL
+      set_fact:
+        product_name: fworch
+
+    - name: disable apache2 maintenance web site
+      command: "a2dissite {{ product_name }}-maintenance"
+      become: true
+      ignore_errors: true
+
+    - name: enable {{ product_name }} web site
+      command: "a2ensite {{ product_name }}-ui"
+      become: true
+
+    - name: restart apache without maintenance site
+      service:
+        name: "{{ webserver_package_name }}"
+        state: restarted
+      become: true

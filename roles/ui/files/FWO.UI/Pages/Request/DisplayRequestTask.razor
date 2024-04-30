@@ -1,14 +1,15 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Ui.Pages.NetworkModelling
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" XLarge="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayReqTaskMode)
         {
@@ -31,7 +32,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
@@ -42,8 +43,8 @@
                     </div>
                     <div class="col-sm-3">
                         <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
-                            <div class="col-sm-8">
+                            <label class="col-sm-5 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
+                            <div class="col-sm-7">
                                 <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.CurrentHandler?.Name</label>
                             </div>
                         </div>
@@ -57,7 +58,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
@@ -121,10 +122,26 @@
                             </div>
                         </div>
                     }
+                    else if(actTaskType == TaskType.new_interface)
+                    {
+                        <div class="col-sm-6">
+                            <div class="form-group row">
+                                @if (ReqHandler.EditReqTaskMode)
+                                {
+                                    <SelectOwner @bind-SelectedOwner="actOwner" Apps="ReqHandler.AllOwners" WithConnectionStatus="false" Nullable="true"/>
+                                }
+                                else
+                                {
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                    <label class="col-sm-8 border bg-secondary">@actOwner?.Name</label>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
                 @if(actTaskType == TaskType.generic)
                 {
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
                         <div class="col-sm-11">
                             <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditReqTaskMode)" @bind="ReqHandler.ActReqTask.FreeText"/>   
@@ -133,7 +150,7 @@
                 }
                 else if(actTaskType == TaskType.access)
                 {
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <div class="col-sm-3">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
@@ -204,7 +221,7 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">
                         <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditReqTaskMode)" @bind="ReqHandler.ActReqTask.Reason"/>   
@@ -223,12 +240,13 @@
 
                 @if(!ReqHandler.EditReqTaskMode)
                 {
-                    <div class="form-group row">
+                    <div class="form-group row mt-2">
                         <div class="col-sm-1">
                             <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                             @if(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
                             {
-                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                             }
                         </div>
                         <div class="col-sm-11">
@@ -237,21 +255,21 @@
                     </div>
                 }
 
-                @if(ReqHandler.EditReqTaskMode || ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
-                {
-                    <div class="col-sm-12">
-                        <div class="form-group row justify-content-center">
-                            @foreach(var action in offeredActions)
-                            {
+                <div class="row justify-content-center mt-2">
+                    @foreach(var action in offeredActions)
+                    {
+                        @if(ReqHandler.EditReqTaskMode || ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode || RequestStateAction.IsReadonlyType(action.ActionType))
+                        {
+                            <div>
                                 <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                            }
-                        </div>
-                    </div>
-                }
+                            </div>
+                        }
+                    }
+                </div>
 
                 @if(Phase == WorkflowPhases.planning || ReqHandler.ActReqTask.ImplementationTasks.Count > 0)
                 {
-                    <h5>@(userConfig.GetText("implementation_tasks"))</h5>
+                    <h5 class="mt-2">@(userConfig.GetText("implementation_tasks"))</h5>
 
                     <DisplayImplTaskTable Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
                         AllImplTasks="ReqHandler.ActReqTask.ImplementationTasks" StartImplPhase="StartImplPhase"/>
@@ -263,47 +281,62 @@
         <div class="btn-group">
             @if (ReqHandler.EditReqTaskMode)
             {
-                <AuthorizeView Roles="admin, requester, fw-admin">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("save"))</button>
+                        @if(ReqHandler.AddTicketMode)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("add"))</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("save"))</button>
+                        }
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
             else if (ReqHandler.PlanReqTaskMode)
             {
-                <AuthorizeView Roles="admin, planner, fw-admin">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("change_state"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
             else if (ReqHandler.ApproveReqTaskMode)
             {
-                <AuthorizeView Roles="admin, approver, fw-admin">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(userConfig.GetText("approve"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("approve"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("approve"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            @if(ReqHandler.EditReqTaskMode || ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
+            {
+                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+            }
         </div>
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
-<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfAddComment"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteReqTaskMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<CommentObject @bind-Display="ReqHandler.DisplayReqTaskCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfAddComment"/>
 <DisplayPathAnalysis @bind-Display="ReqHandler.DisplayPathAnalysisMode" ResetParent="ResetPathAnalysis" ReqTask="ReqHandler.ActReqTask"/>
+<EditConnPopup @bind-Display="ReqHandler.ActionHandler.DisplayConnectionMode" ConnHandler="ReqHandler.ActionHandler.ConnHandler"/>
+
 
 @code
 {
@@ -314,10 +347,10 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
 
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
@@ -329,23 +362,25 @@
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
-    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
-    private List<RuleAction> ruleActions = new List<RuleAction>();
-    private List<Tracking> trackings = new List<Tracking>();
+    private List<TaskType> availableTaskTypes { get; set; } = new ();
+    private List<RuleAction> ruleActions = new ();
+    private List<Tracking> trackings = new ();
 
-    private List<NwObjectElement> actSources = new List<NwObjectElement>();
-    private List<NwObjectElement> actDestinations = new List<NwObjectElement>();
-    private List<NwServiceElement> actServices = new List<NwServiceElement>();
-    private List<NwRuleElement> actRules = new List<NwRuleElement>();
+    private List<NwObjectElement> actSources = new ();
+    private List<NwObjectElement> actDestinations = new ();
+    private List<NwServiceElement> actServices = new ();
+    private List<NwRuleElement> actRules = new ();
     private TaskType actTaskType = TaskType.access;
 
-    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+    private List<RequestStateAction> offeredActions = new ();
     private string allComments = "";
     private IEnumerable<Device> selectedDevices { get; set; } = new List<Device>();
     private Device? actRuleDevice;
     private RuleAction? actRuleAction;
     private Tracking? actTracking;
-    bool firstParamSet = false;
+    private FwoOwner? actOwner;
+    private FwoOwner? oldOwner;
+    private bool firstParamSet = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -353,6 +388,7 @@
         try
         {
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            actTaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.Last() : TaskType.access;
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
             InitElements();
@@ -368,20 +404,24 @@
     {
         try
         {
-            if (ReqHandler.DisplayReqTaskMode)
+            if (ReqHandler.DisplayReqTaskMode && firstParamSet)
             {
                 InitElements();
                 await InitComments();
                 await Reset();
-                if(firstParamSet)
+                if(!ReqHandler.AddReqTaskMode)
                 {
                     Enum.TryParse<TaskType>(ReqHandler.ActReqTask.TaskType, out actTaskType);
                     if(!availableTaskTypes.Contains(actTaskType))
                     {
                         DisplayMessageInUi(null, userConfig.GetText("display_task"), userConfig.GetText("E8014"), true);
                     }
-                    firstParamSet = false;
+                    if(ReqHandler.ActReqTask.TaskType == TaskType.new_interface.ToString() && ReqHandler.ActReqTask.Owners.Count > 0)
+                    {
+                        oldOwner = actOwner;
+                    }
                 }
+                firstParamSet = false;
              }
         }
         catch (Exception exception)
@@ -392,24 +432,32 @@
 
     private void InitElements()
     {
-        actSources = ReqHandler.ActReqTask.getNwObjectElements(ElemFieldType.source);
-        actDestinations = ReqHandler.ActReqTask.getNwObjectElements(ElemFieldType.destination);
-        actServices = ReqHandler.ActReqTask.getServiceElements();
-        actRules = ReqHandler.ActReqTask.getRuleElements();
+        actSources = ReqHandler.ActReqTask.GetNwObjectElements(ElemFieldType.source);
+        actDestinations = ReqHandler.ActReqTask.GetNwObjectElements(ElemFieldType.destination);
+        actServices = ReqHandler.ActReqTask.GetServiceElements();
+        actRules = ReqHandler.ActReqTask.GetRuleElements();
     }
 
     private async Task InitComments()
     {
-        allComments = ReqHandler.ActReqTask.getAllComments();
+        allComments = ReqHandler.ActReqTask.GetAllComments();
     }
 
     private async Task Close()
     {
+        firstParamSet = true;
         await ResetParent();
+    }
+
+    private async Task Cancel()
+    {
+        ReqHandler.DisplayPromoteReqTaskMode = false;
+        ReqHandler.DisplayApproveMode = false;
     }
 
     private async Task Reset()
     {
+        Log.WriteDebug("DisplayRequestTask", "Reset");
         offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, ReqHandler.Phase);
         selectedDevices = new List<Device>();
         foreach(int devId in ReqHandler.ActReqTask.getDeviceList().ToArray())
@@ -420,9 +468,10 @@
                 selectedDevices = selectedDevices.Append<Device>(dev);
             }
         }
-        actRuleDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.getRuleDeviceId());
+        actRuleDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.GetRuleDeviceId());
         actRuleAction = ruleActions.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.RuleAction);
         actTracking = trackings.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.Tracking);
+        actOwner = ReqHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
         StateHasChanged();
     }
 
@@ -443,7 +492,7 @@
 
     private async Task PerformAction(RequestStateAction action)
     {
-        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActReqTask, RequestObjectScopes.RequestTask);
+        await ReqHandler.ActionHandler.PerformAction(action, ReqHandler.ActReqTask, RequestObjectScopes.RequestTask);
         await Reset();
     }
 
@@ -525,6 +574,19 @@
             ReqHandler.ActReqTask.TaskType = actTaskType.ToString();
             ReqHandler.ActReqTask.RuleAction = actRuleAction?.Id;
             ReqHandler.ActReqTask.Tracking = actTracking?.Id;
+            ReqHandler.ActReqTask.RemovedOwners = new();
+            ReqHandler.ActReqTask.NewOwners = new();
+            if(actOwner != oldOwner)
+            {
+                if(oldOwner != null)
+                {
+                    ReqHandler.ActReqTask.RemovedOwners.Add(oldOwner);
+                }
+                if(actOwner != null)
+                {
+                    ReqHandler.ActReqTask.NewOwners.Add(actOwner);
+                }
+            }
             if (ReqHandler.ActReqTask.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
@@ -537,6 +599,7 @@
             if (await CheckTaskValues())
             {
                 ReqHandler.ActReqTask.SetDeviceList(selectedDevices.ToList());
+                ReqHandler.ActReqTask.Owners = new() { new() { Owner = actOwner ?? new() } };
                 if (ReqHandler.AddReqTaskMode)
                 {
                     await ReqHandler.AddApproval();
@@ -558,7 +621,7 @@
 
     private async Task<bool> CheckTaskValues()
     {
-        if (ReqHandler.ActReqTask.Title == null || ReqHandler.ActReqTask.Title == "")
+        if (ReqHandler.ActReqTask.Title == null || ReqHandler.ActReqTask.Title == "" || actOwner == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;

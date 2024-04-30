@@ -668,6 +668,19 @@ sub parse_config_base_objects { # ($debug_level, $mgm_name)
 			}
 			if (!defined($obj_ip_last)) { $obj_ip_last = ''; }
 			if (!defined($obj_type)) { $obj_type = ''; }
+			if ($obj_type eq 'interface-subnet')
+			{ 
+				# interface-subnet is not CIDR conform, therefore we change the netmask to a single host
+				$obj_type = 'host';
+				if ($v6flag==1)
+				{
+					$obj_netmask = '128';
+				}
+				else
+				{
+					$obj_netmask = '255.255.255.255';
+				}
+			}
 			if (!defined($comment)) { $comment = ''; }
 			if (!defined($obj_netmask)) { $obj_netmask = '255.255.255.255'; }
 			if (!$v6flag) { $obj_netmask = &calc_subnetmask($obj_netmask); }
@@ -689,7 +702,7 @@ sub parse_config_base_objects { # ($debug_level, $mgm_name)
 			print_debug("found object uid $uuid", $debug, 4);
 			next NEW_LINE; 
 		}
-		if ($line =~ /^\s+set\stype\s(\w+)$/ && $context eq 'firewall address single object') {
+		if ($line =~ /^\s+set\stype\s([\w\-]+)$/ && $context eq 'firewall address single object') {
 			$obj_type = $1;
 			if ($obj_type eq 'multicastrange' || $obj_type eq 'iprange') { $obj_type = 'ip_range'; }
 			print_debug("found object type $obj_type", $debug, 4);

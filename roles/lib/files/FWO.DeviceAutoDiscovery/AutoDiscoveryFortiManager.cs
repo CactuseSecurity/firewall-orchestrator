@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using RestSharp;
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;
@@ -28,12 +29,12 @@ namespace FWO.DeviceAutoDiscovery
                 FortiManagerClient restClientFM = new FortiManagerClient(superManagement);
 
                 RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret);
-                if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse?.Data?.SessionId != null && sessionResponse?.Data?.SessionId != "")
+                if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
                 {
-                    string sessionId = sessionResponse!.Data!.SessionId;
+                    string sessionId = sessionResponse.Data.SessionId;
                     Log.WriteDebug("Autodiscovery", $"successful FortiManager login, got SessionID: {sessionId}");
                     // need to use @ verbatim identifier for special chars in sessionId
-                    RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(@sessionId!);
+                    RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(sessionId);
                     if (adomResponse.StatusCode == HttpStatusCode.OK && adomResponse.IsSuccessful)
                     {
                         List<Adom>? adomList = adomResponse?.Data?.Result[0]?.AdomList;

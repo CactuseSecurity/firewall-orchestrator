@@ -1,7 +1,24 @@
+# - name: show ansible_facts
+#   debug:
+#     msg:
+#     - "ansible_fact {{ item.key }} = {{ item.value }}"
+#   loop: "{{ ansible_facts|dict2items }}"
+
+
+- set_fact:
+    os_codename: undefined
+
+- set_fact:
+    os_codename: bookworm
+  when: ansible_facts['distribution']|lower == "debian" and (ansible_facts['distribution_release'] == "bookworm" or ansible_facts['distribution_release'] == "trixie")
+
+- set_fact:
+    os_codename: jammy
+  when: ansible_facts['distribution']|lower == "ubuntu" and ansible_facts['distribution_version']|string is version('22', '>=') and ansible_facts['distribution_version']|string is version('22.10', '<')
 
 - block:
 
-  - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
+  - name: install libs needed for pdf creator nuget package HakanL/WkHtmlToPdf-DotNet
     package:
       name: "{{ item }}"
       state: present
@@ -14,25 +31,30 @@
       - xfonts-75dpi
       - libssl-dev
 
+
+  # install latest wkhtml package in addtion for newer OSes
   - block:
-    - name: download wkhtmltox for ubuntu 22.04 only
+      
+    - name: download wkhtmltox for {{ os_codename }}
       get_url:
-        url: https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
-        dest: "{{ lib_tmp_dir }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb"
+        url: https://github.com/wkhtmltopdf/packaging/releases/download/{{ wkhtmltopdf_version }}/wkhtmltox_{{ wkhtmltopdf_version }}.{{ os_codename }}_amd64.deb
+        dest: "{{ lib_tmp_dir }}/{{ wkhtmltopdf_version }}.{{ os_codename }}_amd64.deb"
         force: true
         mode: "0644"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
       environment: "{{ proxy_env }}"
 
-    - name: install wkhtmltox for ubuntu 22.04 only
-      command: dpkg -i {{ lib_tmp_dir }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
+    - name: install wkhtmltox for {{ os_codename }}
+      command: dpkg -i {{ lib_tmp_dir }}/{{ wkhtmltopdf_version }}.{{ os_codename }}_amd64.deb
 
-    - name: remove wkhtmltox package file after installation (for ubuntu 22.04 only)
+    - name: remove wkhtmltox package file after installation (for {{ os_codename }})
       file:
-        path: "{{ lib_tmp_dir }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb"
+        path: "{{ lib_tmp_dir }}/wkhtmltox_{{ wkhtmltopdf_version }}.{{ os_codename }}_amd64.deb"
         state: absent
-    when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] == '22.04'
+
+    when: |
+      os_codename == "jammy" or os_codename == "bookworm"
 
   become: true
   environment: "{{ proxy_env }}"

@@ -1,0 +1,73 @@
+﻿@inject UserConfig userConfig
+
+<PopUp Title="@Title" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <div class="form-group row">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(Label):</label>
+                    <div class="col-sm-9">
+                        <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUser" Elements="Users">
+                            <ElementTemplate Context="user">
+                                @user.Dn
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await Remove(selectedUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<UiUser, Task> Remove { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public List<UiUser> Users { get; set; } = new();
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Label { get; set; } = "";
+
+
+    private UiUser selectedUser = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Display)
+        {
+            selectedUser = (Users.Count == 0 ? new UiUser() : Users.First());
+        }
+    }  
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

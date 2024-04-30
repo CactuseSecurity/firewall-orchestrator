@@ -1,0 +1,13 @@
+mutation addNwObjectToNwGroup(
+  $nwObjectId: bigint!
+  $nwGroupId: bigint!
+  ) {
+  insert_modelling_nwobject_nwgroup(objects: {
+    nwobject_id: $nwObjectId
+    nwgroup_id: $nwGroupId
+  }) {
+    returning {
+      newId: nwobject_id
+    }
+  }
+}

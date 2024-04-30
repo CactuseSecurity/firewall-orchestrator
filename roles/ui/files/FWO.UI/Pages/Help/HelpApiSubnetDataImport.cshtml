@@ -1,0 +1,51 @@
+﻿@page "/help/API/subnetdataimport"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("import_subnet_data")</h3>
+    @(Html.Raw(userConfig.GetText("H6931")))
+
+    <pre>
+{
+  "areas": [
+    {
+      "name": "Area172",
+      "id_string": "NA172",
+      "subnets": [
+        {
+          "name": "first172",
+          "ip": "172.0.0.0/32"
+        },
+        {
+          "name": "another172",
+          "ip": "172.1.2.4/32",
+          "ip_end": "172.1.2.5/32"
+        }
+      ]
+    },
+    {
+      "name": "Area10",
+      "id_string": "NA10",
+      "subnets": [
+        {
+          "name": "all10",
+          "ip": "10.0.0.0/7"
+        }
+      ]
+    }
+  ]
+}
+    </pre>
+
+    @(Html.Raw(userConfig.GetText("H6932")))
+</div>

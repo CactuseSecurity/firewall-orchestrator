@@ -18,10 +18,12 @@ nat_postfix = '_NatNwObj'
 fwo_api_http_import_timeout = 14400 # 4 hours
 importer_user_name = 'importer'  # todo: move to config file?
 fwo_config_filename = base_dir + '/etc/fworch.json'
+mainKeyFile=base_dir + '/etc/secrets/main_key'
 importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
 import_tmp_path = base_dir + '/tmp/import'
 fwo_config_filename = base_dir + '/etc/fworch.json'
 max_recursion_level = 25 # do not call a function recursively more than this
+default_section_header_text = 'section without name'
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
 # should be between 500 and 2.000 in production (results in a max obj number of max. 5 x this value - nwobj/svc/rules/...)

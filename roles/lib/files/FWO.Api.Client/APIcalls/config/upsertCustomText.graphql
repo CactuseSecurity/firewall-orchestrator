@@ -1,0 +1,17 @@
+﻿mutation upsertCustomText($id: String!, $lang: String!, $text: String!) {
+  insert_customtxt(
+    objects: {
+      id: $id
+      language: $lang
+      txt: $text
+    },
+    on_conflict: {
+      constraint: customtxt_pkey ,
+      update_columns: [txt]
+    }
+  ) {
+    returning {
+      id: id
+    }
+  }
+}

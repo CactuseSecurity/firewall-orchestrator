@@ -57,6 +57,12 @@
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
+                TokenKind.Unused => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: new string[] { "not-used-for-days", "unused", "unused-days", "not-used" },
+                    NoWhiteSpaceRequiered: new string[] { }
+                ),
+
                 TokenKind.Source => new TokenSyntax
                 (
                     WhiteSpaceRequiered: new string[] { "source", "src" },

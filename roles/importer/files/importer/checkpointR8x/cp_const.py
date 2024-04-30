@@ -14,7 +14,8 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 nw_obj_table_names = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 
     'gateways-and-servers', 'simple-gateways', 
-    'dns-domains', 'updatable-objects-repository-content'
+    'dns-domains', 'updatable-objects-repository-content',
+    'interoperable-devices'
 ]
 
 # simple as in: no groups
@@ -28,7 +29,7 @@ svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObj
 api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names to look at during import
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
-    'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 
+    'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',
     'CpmiAnyObject', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host', 
     'cluster-member'
 ]

@@ -1,0 +1,62 @@
+{
+    "config": [
+        {
+            "config_key": "DefaultLanguage",
+            "config_value": "German",
+            "config_user": 0
+        },
+        {
+            "config_key": "modNamingConvention",
+            "config_value": "{\"networkAreaRequired\":true,\"useAppPart\":true,\"fixedPartLength\":4,\"freePartLength\":3,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}",
+            "config_user": 0
+        },
+        {
+            "config_key": "importAppDataSleepTime",
+            "config_value": "12",
+            "config_user": 0
+        },
+        {
+            "config_key": "modCommonAreas",
+            "config_value": "[{\"area_id\":88,\"use_in_src\":true,\"use_in_dst\":false},{\"area_id\":43,\"use_in_src\":true,\"use_in_dst\":true}]",
+            "config_user": 0
+        },
+        {
+            "config_key": "reducedProtocolSet",
+            "config_value": "True",
+            "config_user": 0
+        }
+    ],
+    "modelling_service": [
+        {
+          "port": 443,
+          "port_end": null,
+          "proto_id": 6,
+          "name": "https",
+          "is_global": true
+        },
+        {
+          "port": 79,
+          "port_end": 79,
+          "proto_id": 6,
+          "name": "finger",
+          "is_global": true
+        }
+    ],
+    "customtxt": [
+        {
+          "id": "owner",
+          "language": "German",
+          "txt": "Applikation"
+        },
+        {
+          "id": "missing_owner_id",
+          "language": "German",
+          "txt": "Fehlende ApplikationsID"
+        },
+        {
+          "id": "as_owner",
+          "language": "German",
+          "txt": "f&uuml;r Applikation"
+        }
+      ]
+}

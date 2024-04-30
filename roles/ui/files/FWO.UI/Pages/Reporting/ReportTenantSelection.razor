@@ -1,0 +1,58 @@
+﻿@using FWO.Config.Api
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+@if (tenantList.Count > 1)
+{
+    <div class="p-3">
+        <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
+        <Dropdown SelectedElement="SelectedTenant" SelectedElementChanged="SelectedTenantChanged"
+                ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true" Elements="tenantList">
+            <ElementTemplate Context="tenant">
+                @tenant.Name
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+}
+else
+{
+    <div class="p-3">
+        <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant.Name</h5>
+    </div>
+}
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public Tenant SelectedTenant { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Tenant> SelectedTenantChanged { get; set; }
+
+    [Parameter]
+    public bool TenantFilteringAllowed { get; set; } = false;
+
+    private List<Tenant> tenantList = new List<Tenant>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (TenantFilteringAllowed)
+            {
+                tenantList = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+                tenantList?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1); // sort list of tenants
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+}

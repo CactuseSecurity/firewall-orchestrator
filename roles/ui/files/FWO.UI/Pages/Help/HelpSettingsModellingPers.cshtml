@@ -1,0 +1,22 @@
+﻿@page "/help/settings/modellingpersonal"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("modelling_settings"))</h3>
+    @(Html.Raw(userConfig.GetText("H5621")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5605")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5618")))</li>
+    </ul>
+</div>

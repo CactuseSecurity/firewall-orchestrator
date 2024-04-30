@@ -1,0 +1,108 @@
+﻿@using FWO.Config.Api
+@using FWO.Middleware.Client
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Requester}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+
+<PopUp Title="@(userConfig.GetText("create_ticket"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <p>@(MessageHeader)</p>
+            <p>@((MarkupString)Message)</p>
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                <div class="col-sm-8">
+                    <textarea rows="3" type="text" class="form-control form-control-sm" @bind="commentText" />
+                </div>
+            </div>
+
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {CreateTicket(); Close();}">@(userConfig.GetText("create_ticket"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("create_ticket"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public List<Rule> SelectedRules { get; set; } = new List<Rule>();
+
+    public string MessageHeader { get; set; } = "";
+    public string Message { get; set; } = "";
+
+    private string commentText = "";
+    private Dictionary<int, List<string>> ruleUidsPerDevice = new Dictionary<int, List<string>>();
+
+
+    protected override void OnParametersSet()
+    {
+        if(Display)
+        {
+            commentText = "";
+            AnalyseSelected();
+            MessageHeader = userConfig.GetText("rules_to_delete")+ ":";
+            Message = "";
+            foreach(int devId in ruleUidsPerDevice.Keys)
+            {
+                Message += string.Join("<br>", ruleUidsPerDevice[devId]);
+            }
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+
+    private void AnalyseSelected()
+    {
+        ruleUidsPerDevice.Clear();
+        foreach(Rule rule in SelectedRules)
+        {
+            if(!ruleUidsPerDevice.Keys.Contains(rule.DeviceId))
+            {
+                ruleUidsPerDevice.Add(rule.DeviceId, new List<string>());
+            }
+            ruleUidsPerDevice[rule.DeviceId].Add(rule.Uid ?? rule.Name ?? rule.Id.ToString());
+        }
+    }
+
+    private async Task CreateTicket()
+    {
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin});
+        TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
+        foreach(int devId in ruleUidsPerDevice.Keys)
+        {
+            await ticketCreator.CreateUnusedRuleDeleteTicket(devId, ruleUidsPerDevice[devId], commentText, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+        }
+        apiConnection.SwitchBack();
+        Close();
+    }
+}

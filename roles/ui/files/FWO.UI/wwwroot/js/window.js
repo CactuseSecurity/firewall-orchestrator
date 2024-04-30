@@ -22,6 +22,8 @@ function isChild(childId, parentId) {
     return parent.contains(child);
 }
 
-function setProperty (element, property, value) {
-    element[property] = value;
+function setProperty(element, property, value) {
+    if (element != null) {
+        element[property] = value;
+    }
 }

@@ -41,7 +41,7 @@
     sample_fortigate_name: "{{ test_fortigate_name }}"
     sample_checkpoint_name: "{{ test_checkpoint_name }}"
     sample_config_user: fworchtest
-    sample_config_user_home: "/home/{{ sample_config_user }}"
+    # sample_config_user_home: "/home/{{ sample_config_user }}"
   when: "'sampleserver' in group_names"
 
 - name: include test auth data
@@ -62,6 +62,7 @@
 
 - name: auth testing
   import_tasks: test-auth.yml
+  when: "not run_on_github|bool"
 
 - name: api testing
   import_tasks: test-api.yml
@@ -81,3 +82,11 @@
     test_importer_handler_guard: stop
   changed_when: true
   notify: "test importer handler"
+
+- name: delete ldif files
+  file:
+    path: "{{  middleware_ldif_dir }}"
+    state: absent
+  become: true
+  when: "'middlewareserver' in group_names"
+

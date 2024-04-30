@@ -1,0 +1,55 @@
+﻿@using FWO.Config.Api
+@using FWO.Config.Api.Data
+
+@inherits LayoutComponentBase
+@layout MainLayout
+
+@inject UserConfig userConfig
+
+<Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
+    <div class="me-2 ms-2 mt-4 mb-4">
+        <ul class="navbar-nav navbar-dark flex-column">
+            <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("network_zones"))">
+                <h5>@(userConfig.GetText("network_zones"))</h5>
+            </li>
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="/compliance/zones/configuration">
+                        <span class="@Icons.Settings"></span> @(userConfig.GetText("configuration"))
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" href="/compliance/zones/matrix">
+                    <span class="@Icons.Matrix"></span> @(userConfig.GetText("matrix"))
+                </NavLink>
+            </li>
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" href="/compliance/zones/checks">
+                    <span class="@Icons.Check"></span> @(userConfig.GetText("checks"))
+                </NavLink>
+            </li>
+        </ul>
+    </div>
+</Sidebar>
+
+
+<div style="margin-left: @($"{sidebarWidth + 20}px");">
+    @Body
+</div>
+
+@code
+{
+    private int sidebarWidth = 250;
+
+    protected override void OnInitialized()
+    {
+        userConfig.OnChange += OnChange;
+    }
+
+    private void OnChange(Config _, ConfigItem[] __)
+    {
+        Task.Run(async () => await InvokeAsync(StateHasChanged));
+    }
+}
+

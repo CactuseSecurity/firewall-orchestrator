@@ -1,0 +1,270 @@
+@using FWO.Config.Api
+@using FWO.Ui.Display
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if (Display)
+{
+    <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
+            Size="@(AppRoleHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
+        <Body>
+            <div class="row">
+                @if(!AppRoleHandler.ReadOnly)
+                {
+                    <div class="col-sm-6">
+                        <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-AppRoleHandler="AppRoleHandler"/>
+                    </div>
+                }
+                <div class="@(AppRoleHandler.ReadOnly ? "col-sm-12" : "col-sm-6")">
+                    <h3>@(userConfig.GetText("app_role"))</h3>
+                    <div class="col-sm-11 border rounded m-2 p-2">
+                        @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
+                        {
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
+                                @if(AppRoleHandler.AddMode && !AppRoleHandler.ReadOnly)
+                                {
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))" 
+                                                SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
+                                            <ElementTemplate Context="area">
+                                                @((MarkupString)(area.DisplayHtml() + DisplayObjectCount(area)))
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <label class="col-sm-8 bg-secondary">@AppRoleHandler.ActAppRole.Area.Display()</label>
+                                }
+                            </div>
+                        }
+                        <div class="form-group row mt-2">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
+                            @if(AppRoleHandler.ReadOnly)
+                            {
+                                <label class="col-sm-8">@AppRoleHandler.ActAppRole.IdString</label>
+                            }
+                            else if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
+                            {
+                                <input type="text" class="col-sm-4" readonly @bind="AppRoleHandler.ActAppRole.ManagedIdString.CombinedFixPart" />
+                                <span class="col-sm-1">@AppRoleHandler.ActAppRole.ManagedIdString.Separator</span>
+                                <input type="text" class="col-sm-3" @bind="AppRoleHandler.ActAppRole.ManagedIdString.FreePart" />
+                            }
+                            else
+                            {
+                                <input type="text" class=" col-sm-8" @bind="AppRoleHandler.ActAppRole.IdString" />
+                            }
+                        </div>
+                        <div class="form-group row mt-2">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                            @if(AppRoleHandler.ReadOnly)
+                            {
+                                <label class="col-sm-8">@AppRoleHandler.ActAppRole.Name</label>
+                            }
+                            else
+                            {
+                                <input type="text" class="col-sm-8" @bind="AppRoleHandler.ActAppRole.Name" />
+                            }
+                        </div>
+                        <div class="form-group row mt-2">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                            @if(AppRoleHandler.ReadOnly)
+                            {
+                                <label class="col-sm-8">@AppRoleHandler.ActAppRole.Comment</label>
+                            }
+                            else
+                            {
+                                <input type="text" class="col-sm-8" @bind="AppRoleHandler.ActAppRole.Comment" />
+                            }
+                        </div>
+                        <br>
+                        <div class="col-sm-12">
+                            <h6>@(userConfig.GetText("app_server"))</h6>
+                            @if(AppRoleHandler.ReadOnly)
+                            {
+                                foreach(var appserver in ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers))
+                                {
+                                    <div class="mh-13 col-sm-11 mt-1 border bg-transparent">@((MarkupString)appserver.DisplayWithIcon())</div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="minheight-dropzone bg-secondary dropzone" 
+                                    ondragover="event.preventDefault();"
+                                    ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                    @ondrop="HandleServerDrop">
+                                    <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false">
+                                        <Display>
+                                            <div class="row">
+                                                <div class="col-sm-12 ms-2 bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                            </div>
+                                        </Display>
+                                    </EditList>
+                                </div>
+                            }
+                        </div>
+                        @if(!AppRoleHandler.AddMode)
+                        {
+                            <label class="col-sm-12 small mt-2">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
+                        }
+                    </div>
+                </div>
+            </div>
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                @if(AppRoleHandler.ReadOnly)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+                }
+                else
+                {
+                    @if(AppRoleHandler.IsOwner)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    }
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+                }
+            </div>
+        </Footer>
+    </PopUp>
+    <InProgress Display="workInProgress"/>
+}
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+        
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public ModellingAppRoleHandler AppRoleHandler { get; set; }
+
+    [Parameter]
+    public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
+
+    private ModellingDnDContainer Container { get; set; } = new();
+    int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth + 300;
+
+    private List<ModellingNetworkArea> areas = new();
+    private ModellingAppRole unchangedAppRole = new();
+    private bool firstTry = true;
+    private bool workInProgress = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
+            areas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
+            apiConnection.SwitchBack();
+            // todo: select relevant areas for owner?
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Display && firstTry)
+        {
+            firstTry = false;
+            if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
+            {
+                if(areas.Count == 0)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("E9002"), "", true);
+                }
+                else
+                {
+                    foreach(var area in areas)
+                    {
+                        AppRoleHandler.CountMembers(area);
+                    }
+                    ModellingNetworkArea? existArea = areas.FirstOrDefault(a => a.IdString == AppRoleHandler.ActAppRole.Area?.IdString);
+                    if(existArea != null)
+                    {
+                        AppRoleHandler.ActAppRole.Area = existArea;
+                    }
+                    await OnSelectedAreaChanged(AppRoleHandler.AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
+                }
+            }
+            else
+            {
+                AppRoleHandler.AppServersInArea = AppRoleHandler.AvailableAppServers.Where(x => !x.IsDeleted).ToList();
+            }
+            unchangedAppRole = new(AppRoleHandler.ActAppRole);
+        }
+    }
+
+    private string DisplayObjectCount(ModellingNetworkArea area)
+    {
+        return $": {area.MemberCount.ToString()} {userConfig.GetText("objects")}";
+    }
+
+    private void HandleServerDrop()
+    {
+        if(Container.AppServerElements.Count > 0)
+        {
+            AppRoleHandler.AppServerToAppRole(Container.AppServerElements);
+        }
+        Container.Clear();
+    }
+
+    private async Task Save()
+    {
+        if(await AppRoleHandler.Save())
+        {
+            if(unchangedAppRole.Name != AppRoleHandler.ActAppRole.Name || unchangedAppRole.IdString != AppRoleHandler.ActAppRole.IdString)
+            {
+                await RefreshParent();
+            }
+            unchangedAppRole = new(AppRoleHandler.ActAppRole);
+            Close();
+        }
+    }
+
+    private void Close()
+    {
+        firstTry = true;
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+
+    private async Task OnSelectedAreaChanged(ModellingNetworkArea? newArea)
+    {
+        try
+        {
+            if(!workInProgress)
+            {
+                workInProgress = true;
+                await AppRoleHandler.InitAppRole(newArea);
+                workInProgress = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+}

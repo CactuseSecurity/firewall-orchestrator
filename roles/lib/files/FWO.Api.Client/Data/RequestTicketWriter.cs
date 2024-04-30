@@ -7,7 +7,7 @@ namespace FWO.Api.Data
     {
 
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<RequestReqTaskWriter> Tasks { get; set; } = new List<RequestReqTaskWriter>();
+        public List<RequestReqTaskWriter> Tasks { get; set; } = new ();
 
 
         public RequestTicketWriter(RequestTicket ticket)

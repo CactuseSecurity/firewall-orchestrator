@@ -1,0 +1,12 @@
+mutation setAppServerType(
+  $id: bigint!
+  $customType: Int
+  ) {
+  update_owner_network_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      custom_type: $customType
+  }) {
+    UpdatedId: id
+  }
+}

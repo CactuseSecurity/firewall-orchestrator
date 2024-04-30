@@ -1,0 +1,189 @@
+﻿@using FWO.Config.Api
+@using FWO.Ui.Display
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("predef_services") )" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <button type="button" class="btn btn-sm btn-success ms-5 mb-2" @onclick="CreateServiceGroup">@(ModellingHandlerBase.DisplayButton(userConfig, "add_service_group", Icons.Add))</button>
+            <div class="vheight75">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingServiceGroup" Items="PredefServiceGroups" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                <AuthorizeView Roles="@Roles.Admin" Context="ctx">
+                                    <Authorized>
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" disabled class="btn btn-sm btn-danger">@(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    </NotAuthorized> 
+                                </AuthorizeView>
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("comment"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                </Table>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+    </Footer>
+</PopUp>
+<EditServiceGroup @bind-Display="EditSvcGrpMode" @bind-SvcGroupHandler="SvcGrpHandler" AsAdmin="true"/>
+<ConfirmDelete @bind-Display="DeleteSvcGrpMode" PerformAction="async () => {await DeleteServiceGroup(); StateHasChanged();}" Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@Message" DeleteAllowed="DeleteAllowed"/>
+<InProgress Display="workInProgress"/>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+
+    public ModellingServiceGroupHandler? SvcGrpHandler;
+    private FwoOwner dummyApplication = new();  // Todo: Special App for predef Services?
+    public List<ModellingServiceGroup> PredefServiceGroups { get; set; } = new();
+    public List<ModellingService> AvailableServices { get; set; } = new();
+    public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
+    public bool AddSvcGrpMode = false;
+    public bool EditSvcGrpMode = false;
+    public bool DeleteSvcGrpMode = false;
+    public ModellingServiceGroup ActServiceGroup { get; set; } = new();
+    public string Message = "";
+    public bool DeleteAllowed { get; set; } = true;
+    private bool workInProgress = false;
+    private bool firstTry = true;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display && firstTry)
+        {
+            await Refresh();
+            firstTry = false;
+        }
+    }
+
+    public async Task Refresh()
+    {
+        workInProgress = true;
+        try
+        {
+            PredefServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups);
+            AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getGlobalServices);
+            foreach(var svcGrp in PredefServiceGroups)
+            {
+                AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, svcGrp.Id));
+            }
+            if(userConfig.AllowServiceInConn)
+            {
+                foreach(var svc in AvailableServices)
+                {
+                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, svc.Id));
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+        workInProgress = false;
+    }
+
+    public void CreateServiceGroup()
+    {
+        AddSvcGrpMode = true;
+        HandleServiceGroup(new ModellingServiceGroup(){});
+    }
+
+    public void EditServiceGroup(ModellingServiceGroup serviceGroup)
+    {
+        AddSvcGrpMode = false;
+        HandleServiceGroup(serviceGroup);
+    }
+
+    public void HandleServiceGroup(ModellingServiceGroup serviceGroup)
+    {
+        try
+        {
+            serviceGroup.IsGlobal = true;
+            SvcGrpHandler = new ModellingServiceGroupHandler(apiConnection, userConfig, dummyApplication, PredefServiceGroups, serviceGroup, AvailableServices, AvailableSvcElems, AddSvcGrpMode, DisplayMessageInUi, DefaultInit.DoNothing);
+            EditSvcGrpMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_service_group"), "", true);
+        }
+    }
+
+    public async Task RequestDeleteServiceGrp(ModellingServiceGroup serviceGroup)
+    {
+        ActServiceGroup = serviceGroup;
+        DeleteAllowed = !await CheckServiceGroupIsInUse();
+        Message = DeleteAllowed ? userConfig.GetText("U9004") + serviceGroup.Name + "?" : userConfig.GetText("E9008") + serviceGroup.Name;
+        DeleteSvcGrpMode = true;
+    }
+
+    private async Task<bool> CheckServiceGroupIsInUse()
+    {
+        try
+        {
+            List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForServiceGroup, new { serviceGroupId = ActServiceGroup.Id });
+            if (foundConnections.Count == 0)
+            {
+                return false;
+            }
+            return true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
+            return true;
+        }
+    }
+
+    public async Task DeleteServiceGroup()
+    {
+        try
+        {
+            apiConnection.SetRole(Roles.Admin);
+            if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
+            {
+                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.ServiceGroup, ActServiceGroup.Id,
+                    $"Deleted Predefined Service Group: {ActServiceGroup.Display()}", apiConnection, userConfig, null, DisplayMessageInUi);
+                PredefServiceGroups.Remove(ActServiceGroup);
+                DeleteSvcGrpMode = false;
+            }
+            apiConnection.SwitchBack();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_service_group"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        firstTry = true;
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

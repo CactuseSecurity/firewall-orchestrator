@@ -24,6 +24,7 @@ class Interface:
 
         self.ip_version = ip_version
 
+
 class InterfaceSerializable(Interface):
     def __init__(self, ifaceIn):
         if type(ifaceIn) is dict:

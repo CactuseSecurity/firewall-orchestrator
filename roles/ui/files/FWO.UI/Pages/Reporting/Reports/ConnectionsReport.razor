@@ -1,0 +1,48 @@
+﻿@using FWO.Ui.Display
+@using FWO.Config.Api
+@using FWO.Report
+@using FWO.Report.Filter
+
+@inject UserConfig userConfig
+
+@foreach(var appHandler in AppHandlers)
+{
+    <H5>@appHandler.Application.Display(userConfig.GetText("common_service"))</H5>
+
+    @if(appHandler.GetRegularConnections().Count > 0)
+    {
+        <Collapse Title="@userConfig.GetText("connections")" Style="@("primary")" StartToggled="false">
+            <ConnectionTable Connections="@appHandler.GetRegularConnections()" AppHandler="appHandler" Readonly="true"/>
+        </Collapse>
+    }
+    @if(appHandler.GetInterfaces().Count > 0)
+    {
+        <Collapse Title="@userConfig.GetText("interfaces")" Style="@("primary")" StartToggled="false">
+            <ConnectionTable Connections="@appHandler.GetInterfaces()" AppHandler="appHandler" Readonly="true"/>
+        </Collapse>
+    }
+    @if(appHandler.GetCommonServices().Count > 0)
+    {
+        <Collapse Title="@userConfig.GetText("own_common_services")" Style="@("primary")" StartToggled="false">
+            <ConnectionTable Connections="@appHandler.GetCommonServices()" AppHandler="appHandler" Readonly="true"/>
+        </Collapse>
+    }
+}
+@if(AppHandlers.Count > 0)
+{
+    @if(AllCommonServices != null && AllCommonServices.Count > 0)
+    {
+        <Collapse Title="@userConfig.GetText("global_common_services")" Style="@("primary")" StartToggled="false">
+            <ConnectionTable Connections="@AllCommonServices" AppHandler="AppHandlers.First()" Readonly="true" ShowAppName="true"/>
+        </Collapse>
+    }
+}
+
+@code
+{
+    [Parameter]
+    public List<ModellingAppHandler> AppHandlers { get; set; } = null;
+
+    [Parameter]
+    public List<ModellingConnection>? AllCommonServices { get; set; } = null;
+}

@@ -1,28 +1,21 @@
 ---
 # for installation options see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
 
-- hosts: importers
-  tasks:
-    - name: stop importer service before making any changes
-      systemd:
-        name: "{{ item }}"
-        state: stopped
-      become: yes
-      when: "not installation_mode == 'new'"
-      ignore_errors: yes
-      loop:
-        - "{{ product_name }}-importer-legacy"
-        - "{{ product_name }}-importer-api"
+- hosts: all
+  roles:
+    - { role: prepare }
   tags:
+    - backend
     - frontend
     - importer
+    - ui
 
 - hosts: all
   tasks:
     - name: uninstall product
       import_tasks: scripts/uninstall-fworch.yml
       when: "installation_mode == 'uninstall'"
-      become: yes
+      become: true
   tags:
     - backend
     - frontend
@@ -105,7 +98,7 @@
       service:
         name: "{{ ui_service_name }}"
         state: restarted
-      become: yes
+      become: true
       when: "not installation_mode == 'uninstall'"
   tags:
     - frontend
@@ -119,16 +112,33 @@
 
 - hosts: all
   roles:
-    - { role: test, when: "not installation_mode == 'uninstall'" }
+    - { role: finalize, when: "not installation_mode == 'uninstall'" }
   tags:
-    - test
-
-- hosts: all
-  roles:
-    - { role: cleanup, when: "not installation_mode == 'uninstall'" }
-  tags:
-    - cleanup
+    - finalize
     - backend
     - frontend
     - importer
     - ui
+
+- hosts: all
+  roles:
+    - { role: test, when: not installation_mode == 'uninstall' }
+  tags:
+    - test
+    - quicktest
+
+- hosts: all
+  tasks:
+    # display status & pwds
+    - name: show listener status
+      import_tasks: scripts/show-fworch-listeners.yml
+      become: true
+
+    - name: display secrets for this installation
+      debug:
+        msg:
+          - "Your initial UI admin password is '{{ admin_password }}'"
+          - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
+      when: |
+        admin_password is defined and 
+        api_hasura_admin_secret is defined

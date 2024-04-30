@@ -1,0 +1,5 @@
+query getImportedAppServers ($importSource: String!, $appId: Int){
+  owner_network (where: { import_source: { _eq: $importSource }, nw_type: { _eq: 10 }, owner_id: { _eq: $appId } }){
+    ...appServerDetails
+  }
+}

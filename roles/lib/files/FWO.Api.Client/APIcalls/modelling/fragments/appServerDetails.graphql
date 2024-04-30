@@ -1,0 +1,8 @@
+fragment appServerDetails on owner_network {
+  id
+  name
+  ip
+  import_source
+  is_deleted
+  custom_type
+}

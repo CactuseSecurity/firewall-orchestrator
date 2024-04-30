@@ -33,10 +33,6 @@ fragment networkObjectDetails on object {
   objgrp_flats(order_by: {objgrp_flat_member_id: asc}) {
     id_flat: objgrp_flat_id
     byFlatId: objectByObjgrpFlatMemberId {
-      network_object_limits {
-        first_ip
-        last_ip
-      }
       obj_id
       obj_name
       obj_ip

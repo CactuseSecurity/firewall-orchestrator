@@ -6,6 +6,7 @@ using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Logging;
 using FWO.Mail;
+using FWO.Encryption;
 using FWO.Middleware.RequestParameters;
 using FWO.Report;
 using FWO.Report.Filter;
@@ -19,11 +20,11 @@ namespace FWO.Middleware.Server
     public class RecertCheck
     {
         private readonly ApiConnection apiConnectionMiddlewareServer;
-        private GlobalConfig globalConfig;
-        private List<GroupGetReturnParameters> groups = new List<GroupGetReturnParameters>();
-        private List<UiUser> uiUsers = new List<UiUser>();
+        private readonly GlobalConfig globalConfig;
+        private List<GroupGetReturnParameters> groups = new ();
+        private List<UiUser> uiUsers = new ();
         private RecertCheckParams? globCheckParams;
-        private List<FwoOwner> owners = new List<FwoOwner>();
+        private List<FwoOwner> owners = new ();
 
         /// <summary>
         /// Constructor for Recertification check class
@@ -43,26 +44,36 @@ namespace FWO.Middleware.Server
             try
             {
                 await InitEnv();
-                EmailConnection emailConnection = new EmailConnection(globalConfig.EmailServerAddress, globalConfig.EmailPort,
-                    globalConfig.EmailTls, globalConfig.EmailUser, globalConfig.EmailPassword, globalConfig.EmailSenderAddress);
-                MailKitMailer mailer = new MailKitMailer(emailConnection);
-                JwtWriter jwtWriter = new JwtWriter(ConfigFile.JwtPrivateKey);
+                string decryptedSecret = "";
+                try
+                {
+                    string mainKey = AesEnc.GetMainKey();
+                    decryptedSecret = AesEnc.Decrypt(globalConfig.EmailPassword, mainKey);
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError("CheckRecertifications", $"Could not decrypt mailserver password.", exception);				
+                }
+                EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
+                    globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
+                MailKitMailer mailer = new(emailConnection);
+                JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                 ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
 
                 foreach(var owner in owners)
                 {
-                    if(isCheckTime(owner))
+                    if(IsCheckTime(owner))
                     {
                         // todo: refine handling
-                        List<Rule> upcomingRecerts = await generateRecertificationReport(apiConnectionReporter, owner, false);
-                        List<Rule> overdueRecerts = new List<Rule>(); // await generateRecertificationReport(apiConnectionReporter, owner, true);
+                        List<Rule> upcomingRecerts = await GenerateRecertificationReport(apiConnectionReporter, owner, false);
+                        List<Rule> overdueRecerts = new (); // await GenerateRecertificationReport(apiConnectionReporter, owner, true);
 
                         if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
                         {
-                            await mailer.SendAsync(prepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, new CancellationToken());
+                            await mailer.SendAsync(PrepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, new CancellationToken());
                             emailsSent++;
                         }
-                        await setOwnerLastCheck(owner);
+                        await SetOwnerLastCheck(owner);
                     }
                 }
             }
@@ -88,7 +99,7 @@ namespace FWO.Middleware.Server
             owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
         }
 
-        private bool isCheckTime(FwoOwner owner)
+        private bool IsCheckTime(FwoOwner owner)
         {
             RecertCheckParams checkParams = (owner.RecertCheckParamString != null && owner.RecertCheckParamString != "" ? 
                 System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParamString) : 
@@ -150,43 +161,46 @@ namespace FWO.Middleware.Server
             return false;
         }
 
-        private async Task<List<Rule>> generateRecertificationReport(ApiConnection apiConnection, FwoOwner owner, bool overdueOnly)
+        private async Task<List<Rule>> GenerateRecertificationReport(ApiConnection apiConnection, FwoOwner owner, bool overdueOnly)
         {
-            List<Rule> rules = new List<Rule>();
+            List<Rule> rules = new ();
             try
             {
-                CancellationToken token = new CancellationToken();
-                UserConfig userConfig = new UserConfig(globalConfig);
+                CancellationToken token = new ();
+                UserConfig userConfig = new (globalConfig);
 
-                DeviceFilter deviceFilter = new DeviceFilter();
-                deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                DeviceFilter deviceFilter = new()
+                {
+                    Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)
+                };
                 deviceFilter.applyFullDeviceSelection(true);
 
-                RecertFilter recertFilter = new RecertFilter()
+                ReportParams reportParams = new((int)ReportType.Recertification, deviceFilter)
                 {
-                    RecertOwnerList = new List<int>() { owner.Id },
-                    RecertOverdueOnly = overdueOnly,
-                    RecertificationDisplayPeriod = globalConfig.RecertificationNoticePeriod
+                    RecertFilter = new()
+                    {
+                        RecertOwnerList = new List<int>() { owner.Id },
+                        RecertificationDisplayPeriod = globalConfig.RecertificationNoticePeriod
+                    }
                 };
-                ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
-                ReportBase? currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+                ReportBase? currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
 
-                Management[] managements = new Management[0];
+                ReportData reportData = new ();
 
                 await currentReport.Generate(int.MaxValue, apiConnection,
-                managementsReportIntermediate =>
+                rep =>
                 {
-                    managements = managementsReportIntermediate;
+                    reportData.ManagementData = rep.ManagementData;
                     return Task.CompletedTask;
                 }, token);
 
-                foreach (Management management in managements)
+                foreach (var management in reportData.ManagementData)
                 {
-                    foreach (Device device in management.Devices)
+                    foreach (var device in management.Devices)
                     {
                         if (device.ContainsRules())
                         {
-                            foreach (Rule rule in device.Rules!)
+                            foreach (var rule in device.Rules!)
                             {
                                 rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
                                 rule.DeviceName = device.Name ?? "";
@@ -203,7 +217,7 @@ namespace FWO.Middleware.Server
             return rules;
         }
 
-        private MailData prepareEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
+        private MailData PrepareEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
         {
             string subject = globalConfig.RecCheckEmailSubject + " " + owner.Name;
             string body = "";
@@ -212,7 +226,7 @@ namespace FWO.Middleware.Server
                 body += globalConfig.RecCheckEmailUpcomingText + "\r\n\r\n";
                 foreach(var rule in upcomingRecerts)
                 {
-                    body += prepareLine(rule);
+                    body += PrepareLine(rule);
                 }
             }
             if(overdueRecerts.Count > 0)
@@ -220,23 +234,27 @@ namespace FWO.Middleware.Server
                 body += globalConfig.RecCheckEmailOverdueText + "\r\n\r\n";
                 foreach(var rule in overdueRecerts)
                 {
-                    body += prepareLine(rule);
+                    body += PrepareLine(rule);
                 }
             }
-            return new MailData(collectEmailAddresses(owner), subject, body);
+            return new MailData(CollectEmailAddresses(owner), subject, body);
         }
 
-        private string prepareLine(Rule rule)
+        private static string PrepareLine(Rule rule)
         {
             Recertification? nextRecert = rule.Metadata.RuleRecertification.FirstOrDefault(x => x.RecertDate == null);
             return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": " 
                     + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n\r\n";  // link ?
         }
 
-        private List<string> collectEmailAddresses(FwoOwner owner)
+        private List<string> CollectEmailAddresses(FwoOwner owner)
         {
-            List<string> tos = new List<string>();
-            List<string> userDns = new List<string>();
+            if(globalConfig.UseDummyEmailAddress)
+            {
+                return new() { globalConfig.DummyEmailAddress };
+            }
+            List<string> tos = new ();
+            List<string> userDns = new ();
             if(owner.Dn != "")
             {
                 userDns.Add(owner.Dn);
@@ -257,14 +275,14 @@ namespace FWO.Middleware.Server
             return tos;
         }
 
-        private async Task setOwnerLastCheck(FwoOwner owner)
+        private async Task SetOwnerLastCheck(FwoOwner owner)
         {
             var Variables = new
             {
                 id = owner.Id,
                 lastRecertCheck = DateTime.Now
             };
-            await apiConnectionMiddlewareServer.SendQueryAsync<object>(FWO.Api.Client.Queries.OwnerQueries.setOwnerLastCheck, Variables);
+            await apiConnectionMiddlewareServer.SendQueryAsync<object>(OwnerQueries.setOwnerLastCheck, Variables);
         }
     }
 }

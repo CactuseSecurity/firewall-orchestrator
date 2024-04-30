@@ -3,25 +3,27 @@
 @using FWO.Ui.Services
 
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" XLarge="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
             <div class="m-2">
-                <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
                                 @if((context.ApproverDn == null || context.ApproverDn == "") && !ReqHandler.AddTicketMode && !ReqHandler.ReadOnlyMode)
                                 {
-                                    <button class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">@(userConfig.GetText("add_comment"))</button>
-                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 }
                             </div>
                         </Template>
@@ -46,7 +48,7 @@
                     </Column>
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(context.getAllComments())
+                            @(context.GetAllComments())
                         </Template>
                     </Column>
                 </Table>
@@ -55,13 +57,13 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>
 
 <AssignObject @bind-Display="ReqHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="ReqHandler.ActApproval" Assign="ReqHandler.AssignApprovalGroup" ObjectName="" RoleList="validRoles"/>
-<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
+<CommentObject @bind-Display="ReqHandler.DisplayApprovalCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
 
 @code
 {
@@ -75,18 +77,18 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public RequestHandler ReqHandler { get; set; } = new ();
 
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
+    public List<RequestApproval> Approvals { get; set; } = new ();
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public RequestStateDict States { get; set; } = new ();
 
-    static List<string> validRoles = new List<string>(){"approver"};
+    static List<string> validRoles = new (){Roles.Approver};
 
 
     private async Task Close()

@@ -1,0 +1,9 @@
+
+query getOwnersWithConn {
+  owner_list: owner (where: {id: { _gt: 0 }} order_by: { name: asc }){
+    ...ownerDetails
+    connections_aggregate {
+      aggregate { count }
+    }      
+  }
+}

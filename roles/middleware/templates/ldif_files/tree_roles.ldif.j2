@@ -161,3 +161,14 @@ cn: reviewer
 uniqueMember:
 description: T0017
 {%- endif %}
+
+
+dn: cn=modeller,ou=role,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: modeller
+uniqueMember:
+description: T0018
+{%- endif %}

@@ -2,6 +2,7 @@
 using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,7 @@ using Assert = NUnit.Framework.Assert;
 namespace FWO.Test
 {
     [TestFixture]
+    [Parallelizable]
     internal class ConfigFileTest
     {
         private const string configFileTestPath = "config_file.test";
@@ -107,71 +109,77 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         [Test]
         public void CorrectConfigFile()
         {
-            CreateAndReadConfigFile(correctConfigFile);
-            Assert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
-            Assert.AreEqual("http://127.0.0.1:8880/", ConfigFile.MiddlewareServerUri);
-            Assert.AreEqual("https://127.0.0.1:9443/api/v1/graphqlo/", ConfigFile.ApiServerUri);
-            Assert.AreEqual("500", ConfigFile.ProductVersion);
+            CreateAndReadConfigFile(0, correctConfigFile);
+            ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
+            ClassicAssert.AreEqual("http://127.0.0.1:8880/", ConfigFile.MiddlewareServerUri);
+            ClassicAssert.AreEqual("https://127.0.0.1:9443/api/v1/graphqlo/", ConfigFile.ApiServerUri);
+            ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
         }
 
         [Test]
         public void IncorrectSyntaxConfigFile()
         {
-            Assert.Catch(typeof(TargetInvocationException), () => CreateAndReadConfigFile(incorrectSyntaxConfigFile));
+            Assert.Catch(typeof(TargetInvocationException), () => CreateAndReadConfigFile(1, incorrectSyntaxConfigFile));
         }
 
         [Test]
         public void MissingValueConfigFile()
         {
-            CreateAndReadConfigFile(missingValueConfigFile);
-            Assert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
+            CreateAndReadConfigFile(2, missingValueConfigFile);
+            ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
             Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.MiddlewareServerUri; });
             Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.ApiServerUri; });
-            Assert.AreEqual("500", ConfigFile.ProductVersion);
+            ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
         }
 
         [Test]
         public void CorrectPublicKey()
         {
-            CreateAndReadConfigFile(correctConfigFile, "", correctPublicKey);
-            Assert.AreEqual(KeyImporter.ExtractKeyFromPem(correctPublicKey, isPrivateKey: false)!.KeyId, ConfigFile.JwtPublicKey.KeyId);
+            CreateAndReadConfigFile(3, correctConfigFile, "", correctPublicKey);
+            ClassicAssert.AreEqual(KeyImporter.ExtractKeyFromPem(correctPublicKey, isPrivateKey: false)!.KeyId, ConfigFile.JwtPublicKey.KeyId);
         }
 
         [Test]
         public void CorrectPrivateKey()
         {
-            CreateAndReadConfigFile(correctConfigFile, correctPrivateKey, "");
-            Assert.AreEqual(KeyImporter.ExtractKeyFromPem(correctPrivateKey, isPrivateKey: true)!.KeyId, ConfigFile.JwtPrivateKey.KeyId);
+            CreateAndReadConfigFile(4, correctConfigFile, correctPrivateKey, "");
+            ClassicAssert.AreEqual(KeyImporter.ExtractKeyFromPem(correctPrivateKey, isPrivateKey: true)!.KeyId, ConfigFile.JwtPrivateKey.KeyId);
         }
 
         [Test]
         public void IncorrectPublicKey()
         {
-            CreateAndReadConfigFile(correctConfigFile, "", incorrectPublicKey);
+            CreateAndReadConfigFile(5, correctConfigFile, "", incorrectPublicKey);
             Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.JwtPublicKey; });
         }
 
         [Test]
         public void IncorrectPrivateKey()
         {
-            CreateAndReadConfigFile(correctConfigFile, incorrectPrivateKey, "");
+            CreateAndReadConfigFile(6, correctConfigFile, incorrectPrivateKey, "");
             Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.JwtPrivateKey; });
         }
 
         [OneTimeTearDown]
         public void OnFinish()
         {
-            File.Delete(configFileTestPath);
-            File.Delete(privateKeyTestPath);
-            File.Delete(publicKeyTestPath);
+            for (int uniqueId = 0; uniqueId < 7; uniqueId++)
+            {
+                File.Delete(configFileTestPath + uniqueId);
+                File.Delete(privateKeyTestPath + uniqueId);
+                File.Delete(publicKeyTestPath + uniqueId);
+            }
         }
 
-        private static void CreateAndReadConfigFile(string fileContent, string privateKey = "", string publicKey = "")
+        private static void CreateAndReadConfigFile(int uniqueId, string fileContent, string privateKey = "", string publicKey = "")
         {
-            File.WriteAllText(configFileTestPath, fileContent);
-            File.WriteAllText(privateKeyTestPath, privateKey);
-            File.WriteAllText(publicKeyTestPath, publicKey);
-            TestHelper.InvokeMethod<ConfigFile, object?>("Read", new object[] { configFileTestPath, privateKeyTestPath, publicKeyTestPath });
+            string uniqueConfigFilePath = configFileTestPath + uniqueId;
+            string uniquePrivateKeyTestPath = privateKeyTestPath + uniqueId;
+            string uniquepublicKeyTestPath = publicKeyTestPath + uniqueId;
+            File.WriteAllText(uniqueConfigFilePath, fileContent);
+            File.WriteAllText(uniquePrivateKeyTestPath, privateKey);
+            File.WriteAllText(uniquepublicKeyTestPath, publicKey);
+            TestHelper.InvokeMethod<ConfigFile, object?>("Read", new object[] { uniqueConfigFilePath, uniquePrivateKeyTestPath, uniquepublicKeyTestPath });
         }
     }
 }

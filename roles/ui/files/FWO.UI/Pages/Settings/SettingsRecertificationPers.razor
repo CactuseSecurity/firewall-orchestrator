@@ -4,25 +4,30 @@
 @using FWO.Ui.Services
 
 @page "/settings/recertificationpersonal"
-@attribute [Authorize(Roles = "admin, recertifier, auditor")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("recert_settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("recert_settings"))</h3>
+    <HelpLink Page="settings/recertificationpersonal"/>
+</div>
 @(userConfig.GetText("U5414"))
 <hr />
 
 @if (configData != null)
 {
-     <form class="form-inline" onsubmit="return false">
-        <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
-        <div class="col-sm-2">
-            <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />
+     <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5419"))">
+            <label for="recertificationDisplayPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
+            <div class="col-sm-2">
+                <input id="recertificationDisplayPeriod" type="number" min="0" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />
+            </div>
         </div>
     </form>
     <hr />
-    <button class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(userConfig.GetText("save"))</button>  
+    <button type="button" class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(userConfig.GetText("save"))</button>  
 }
 else
 {

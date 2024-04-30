@@ -23,13 +23,15 @@ namespace FWO.Report.Filter.Ast
                     query.ruleWhereStatement += "_and: [{"; 
                     query.nwObjWhereStatement += "_and: [{";
                     query.svcObjWhereStatement += "_and: [{";
-                    query.userObjWhereStatement += "_and: [{"; 
+                    query.userObjWhereStatement += "_and: [{";
+                    query.connectionWhereStatement += "_and: [{"; 
                     break;
                 case TokenKind.Or: // or terms need to be enclosed in []
                     query.ruleWhereStatement += "_or: [{"; 
                     query.nwObjWhereStatement += "_or: [{";
                     query.svcObjWhereStatement += "_or: [{";
-                    query.userObjWhereStatement += "_or: [{"; 
+                    query.userObjWhereStatement += "_or: [{";
+                    query.connectionWhereStatement += "_or: [{"; 
                     break;
                 default:
                     throw new SemanticException($"### Compiler Error: Found unexpected and unsupported connector token (prefix): \"{Connector}\". ###", Connector.Position);
@@ -45,6 +47,7 @@ namespace FWO.Report.Filter.Ast
                     query.nwObjWhereStatement += "}, {";
                     query.svcObjWhereStatement += "}, {";
                     query.userObjWhereStatement += "}, {";
+                    query.connectionWhereStatement += "}, {";
                     break;
                 default:
                     throw new SemanticException($"### Compiler Error: Found unexpected and unsupported connector token (operator): \"{Connector}\". ###", Connector.Position);
@@ -60,6 +63,7 @@ namespace FWO.Report.Filter.Ast
                     query.nwObjWhereStatement += "}] ";
                     query.svcObjWhereStatement += "}] ";
                     query.userObjWhereStatement += "}] ";
+                    query.connectionWhereStatement += "}] ";
                     break;
                 default:
                     throw new SemanticException($"### Compiler Error: Found unexpected and unsupported connector token (suffix): \"{Connector}\" ###", Connector.Position);

@@ -1,0 +1,15 @@
+mutation addNwGroupToConnection(
+  $nwGroupId: bigint!
+  $connectionId: Int!
+  $connectionField: Int!
+  ) {
+  insert_modelling_nwgroup_connection(objects: {
+    nwgroup_id: $nwGroupId
+    connection_id: $connectionId
+    connection_field: $connectionField
+  }) {
+    returning {
+      newId: nwgroup_id
+    }
+  }
+}

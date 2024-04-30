@@ -1,9 +1,4 @@
 ﻿using FWO.Report.Filter.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FWO.Report.Filter.Ast
 {
@@ -39,6 +34,9 @@ namespace FWO.Report.Filter.Ast
                 case TokenKind.Owner:
                     ExtractOwnerFilter(query);
                     break;
+                case TokenKind.Unused:
+                    ExtractUnusedFilter(query);
+                    break;
                 default:
                     break;
             }
@@ -56,6 +54,8 @@ namespace FWO.Report.Filter.Ast
             string queryVarName = AddVariable<int>(query, "dport", Operator.Kind, semanticValue);
             query.ruleWhereStatement += "rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte" +
                 ": $" + queryVarName + "}, svc_port_end: {_gte: $" + queryVarName + " } } } } }";
+            query.connectionWhereStatement += $"_or: [ {{ service_connections: {{service: {{ port: {{ _lte: ${queryVarName} }}, port_end: {{ _gte: ${queryVarName} }} }} }} }}, " +
+                $"{{ service_group_connections: {{service_group: {{ service_service_groups: {{ service: {{ port: {{ _lte: ${queryVarName} }}, port_end: {{ _gte: ${queryVarName} }} }} }} }} }} }} ]";
             return query;
         }
 
@@ -65,6 +65,15 @@ namespace FWO.Report.Filter.Ast
             query.ruleWhereStatement += $"owner: {{  {ExtractOperator()}: ${QueryVarName} }}";
             return query;
         }
-        
+
+        private DynGraphqlQuery ExtractUnusedFilter(DynGraphqlQuery query)
+        {
+            string QueryVarName = AddVariable<DateTime>(query, "cut", Operator.Kind, DateTime.Now.AddDays(-semanticValue));
+            query.ruleWhereStatement += $@"rule_metadatum: {{_or: [
+                    {{_and: [{{rule_last_hit: {{_is_null: false}} }}, {{rule_last_hit: {{_lte: ${QueryVarName} }} }} ] }},
+                    {{ rule_last_hit: {{_is_null: true}} }} 
+                ]}}";
+            return query;
+        }
     }
 }

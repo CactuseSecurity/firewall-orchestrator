@@ -1,35 +1,40 @@
 ﻿@using FWO.Config.Api
+@using FWO.Api.Data
+
 @inject UserConfig userConfig
 
-<nav class="sidebar fixed sidebar-dark bg-dark shadow">
-    <div class="sidebar-main d-flex flex-row" style="left:0px;">
-        <div class="sidebar-dark bg-dark" style="width:250px; overflow-x:scroll;">
-            <ul class="sidebar-nav mr-auto">
+<nav class="bg-gray fixed sidebar-help shadow">
+    <div class="sidebar-help d-flex flex-row" style="left:0px;">
+        <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
+            <ul class="sidebar-help me-auto">
                 <p></p>
                 <h5>@(userConfig.GetText("alerts"))</h5>
                 <a class="nav-link" href="/help/monitoring/open_alerts/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-bell"></span> @(userConfig.GetText("open_alerts"))
+                    <span class="@Icons.Alarm"></span> @(userConfig.GetText("open_alerts"))
                 </a>
                 <a class="nav-link" href="/help/monitoring/all_alerts/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-bell"></span> @(userConfig.GetText("all_alerts"))
+                    <span class="@Icons.Alarm"></span> @(userConfig.GetText("all_alerts"))
                 </a>
+                <p></p>
                 <h5>@(userConfig.GetText("background_checks"))</h5>
                 <a class="nav-link" href="/help/monitoring/autodiscovery/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-magnifying-glass"></span> @(userConfig.GetText("autodiscovery"))
+                    <span class="@Icons.Search"></span> @(userConfig.GetText("autodiscovery"))
                 </a>
                 <a class="nav-link" href="/help/monitoring/daily_checks/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-check"></span> @(userConfig.GetText("daily_checks"))
+                    <span class="@Icons.Check"></span> @(userConfig.GetText("daily_checks"))
                 </a>
+                <p></p>
                 <h5>@(userConfig.GetText("import"))</h5>
                 <a class="nav-link" href="/help/monitoring/import_status/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_status"))
+                    <span class="@Icons.Import"></span> @(userConfig.GetText("import_status"))
                 </a>
                 <a class="nav-link" href="/help/monitoring/import_logs/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_logs"))
+                    <span class="@Icons.Import"></span> @(userConfig.GetText("import_logs"))
                 </a>
+                <p></p>
                 <h5>@(userConfig.GetText("personal"))</h5>
                 <a class="nav-link" href="/help/monitoring/ui_messages/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-monitor"></span> @(userConfig.GetText("ui_messages"))
+                    <span class="@Icons.UiMessages"></span> @(userConfig.GetText("ui_messages"))
                 </a>
             </ul>
         </div>

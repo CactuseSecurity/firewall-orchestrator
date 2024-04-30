@@ -4,6 +4,8 @@ query getUserByDn($dn: String!) {
     uuid
     uiuser_username
     uiuser_email
+    uiuser_first_name
+    uiuser_last_name
     uiuser_language
     uiuser_password_must_be_changed
   }

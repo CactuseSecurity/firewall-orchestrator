@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -12,63 +10,75 @@ namespace FWO.Logging
         private static string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
         private static Random random = new Random();
 
-        static Log() 
+        static Log()
         {
             Task.Factory.StartNew(async () =>
             {
                 // log switch - log file locking
-                DateTime lastLockFileRead = new DateTime(0);
-                bool logOwned = false;
+                bool logOwnedByExternal = false;
+                Stopwatch stopwatch = new Stopwatch();
 
                 while (true)
                 {
                     try
                     {
-                        DateTime lastLockFileChange = File.GetLastWriteTime(lockFilePath);
+                        // Open file
+                        using FileStream file = await GetFile(lockFilePath);
+                        // Read file content
+                        using StreamReader reader = new StreamReader(file);
+                        string lockFileContent = (await reader.ReadToEndAsync()).Trim();
 
-                        if (lastLockFileRead != lastLockFileChange)
+                        // Forcefully release lock after timeout
+                        if (logOwnedByExternal && stopwatch.ElapsedMilliseconds > 10_000)
                         {
-                            using FileStream file = await GetFile(lockFilePath);
-                            // read file content
-                            using StreamReader reader = new StreamReader(file);
-                            string lockFileContent = (await reader.ReadToEndAsync()).Trim();
-
-                            // REQUESTED - lock was requested by log swap process
-                            // GRANTED - lock was granted by us
-                            // RELEASED - lock was released by log swap process
-                            // ACKNOWLEDGED - lock release was acknowledged by us
-                            if (lockFileContent.EndsWith("REQUESTED"))
-                            {
-                                // only request lock if it is not already requested by us
-                                if (!logOwned)
-                                {
-                                    semaphore.Wait();
-                                    logOwned = true;
-                                }
-                                using StreamWriter writer = new StreamWriter(file);
-                                await writer.WriteLineAsync("GRANTED");
-                            }
-                            if (lockFileContent.EndsWith("RELEASED"))
-                            {
-                                // only release lock if it was formerly requested by us
-                                if (logOwned) 
-                                { 
-                                    semaphore.Release();
-                                    logOwned = false;
-                                }
-                                using StreamWriter writer = new StreamWriter(file);
-                                await writer.WriteLineAsync("ACKNOWLEDGED");
-                            }
-
-                            lastLockFileRead = lastLockFileChange;
+                            using StreamWriter writer = new StreamWriter(file);
+                            await writer.WriteLineAsync("FORCEFULLY RELEASED");
+                            stopwatch.Reset();
+                            semaphore.Release();
+                            logOwnedByExternal = false;
                         }
-
-                        await Task.Delay(1000);
+                        // GRANTED - lock was granted by us
+                        else if (lockFileContent.EndsWith("GRANTED"))
+                        {
+                            // Request lock if it is not already requested by us
+                            // (in case of restart with log already granted)
+                            if (!logOwnedByExternal)
+                            {
+                                semaphore.Wait();
+                                stopwatch.Restart();
+                                logOwnedByExternal = true;
+                            }
+                        }
+                        // REQUESTED - lock was requested by log swap process
+                        else if (lockFileContent.EndsWith("REQUESTED"))
+                        {
+                            // only request lock if it is not already requested by us
+                            if (!logOwnedByExternal)
+                            {
+                                semaphore.Wait();
+                                stopwatch.Restart();
+                                logOwnedByExternal = true;
+                            }
+                            using StreamWriter writer = new StreamWriter(file);
+                            await writer.WriteLineAsync("GRANTED");
+                        }
+                        // RELEASED - lock was released by log swap process
+                        else if (lockFileContent.EndsWith("RELEASED"))
+                        {
+                            // only release lock if it was formerly requested by us
+                            if (logOwnedByExternal) 
+                            {
+                                stopwatch.Reset();
+                                semaphore.Release();
+                                logOwnedByExternal = false;
+                            }
+                        }
                     }
                     catch (Exception)
                     {
                         //WriteError("Log file locking", "Error while accessing log lock file.", e);
                     }
+                    await Task.Delay(1000);
                 }
             }, TaskCreationOptions.LongRunning);
         }
@@ -105,12 +115,12 @@ namespace FWO.Logging
             WriteLog("Warning", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.DarkYellow);
         }
 
-        public static void WriteError(string Title, string? Text = null, Exception? Error = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteError(string Title, string? Text = null, Exception? Error = null, string? User = null, string? Role = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
             string DisplayText =
-                (Text != null ?
-                $"{Text}"
-                : "") +
+                (User != null ? $"User: {User}, " : "") +
+                (Role != null ? $"Role: {Role}, " : "") +
+                (Text != null ? $"{Text}" : "") +
                 (Error != null ?
                 "\n ---\n" +
                 $"Exception thrown: \n {Error?.GetType().Name} \n" +

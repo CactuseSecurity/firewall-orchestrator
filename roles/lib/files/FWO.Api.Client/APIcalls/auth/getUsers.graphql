@@ -4,6 +4,8 @@ query getUsers{
     uuid
     uiuser_username
     uiuser_email
+    uiuser_first_name
+    uiuser_last_name
     tenant{
       tenant_id
       tenant_name

@@ -1,0 +1,12 @@
+mutation setAppServerDeletedState(
+  $id: bigint!
+  $deleted: Boolean!
+  ) {
+  update_owner_network_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      is_deleted: $deleted
+  }) {
+    UpdatedId: id
+  }
+}

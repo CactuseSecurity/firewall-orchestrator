@@ -4,43 +4,61 @@
 
 
 @page "/settings/report"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, auditor, fw-admin")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("report_settings"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("report_settings"))</h3>
+    <HelpLink Page="settings/report"/>
+</div>
 @(userConfig.GetText("U5413"))
 <hr />
 
 @if (configData != null)
 {
-    <form class="form-inline" onsubmit="return false">
-        <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch")):</label>
-        <div class="col-sm-2">
-            <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="configData!.ElementsPerFetch" />
+    <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
+            <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch")):</label>
+            <div class="col-sm-2">
+                <input id="elementsPerFetch" type="number" min="0" class="form-control form-control-sm" @bind="configData!.ElementsPerFetch" />
+            </div>
         </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices")):</label>
-        <div class="col-sm-2">
-            <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm" @bind="configData!.MinCollapseAllDevices">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5422"))">
+            <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices")):</label>
+            <div class="col-sm-2">
+                <input id="minCollapseAllDevices" type="number" min="0" class="form-control form-control-sm" @bind="configData!.MinCollapseAllDevices">
+            </div>
         </div>
-    </form>
-    @* <form class="form-inline" onsubmit="return false">
-        <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages")):</label>
-        <div class="col-sm-2">
-            <input id="maxMessages" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxMessages">
+        @* <div class="form-group row">
+            <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages")):</label>
+            <div class="col-sm-2">
+                <input id="maxMessages" type="number" min="0" class="form-control form-control-sm w-100" @bind="configData!.MaxMessages">
+            </div>
+        </div> *@
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5423"))">
+            <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime")):</label>
+            <div class="col-sm-2">
+                <input id="messageViewTime" type="number" min="0" class="form-control form-control-sm" @bind="configData!.MessageViewTime">
+            </div>
         </div>
-    </form> *@
-    <form class="form-inline" onsubmit="return false">
-        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime")):</label>
-        <div class="col-sm-2">
-            <input id="messageViewTime" type="number" class="form-control form-control-sm" @bind="configData!.MessageViewTime">
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5447"))">
+            <label for="unusedTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance")):</label>
+            <div class="col-sm-2">
+                <input id="unusedTolerance" type="number" min="0" class="form-control form-control-sm" @bind="configData!.UnusedTolerance" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5448"))">
+            <label for="creationTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance")):</label>
+            <div class="col-sm-2">
+                <input id="creationTolerance" type="number" min="0" class="form-control form-control-sm" @bind="configData!.CreationTolerance" />
+            </div>
         </div>
     </form>
     <hr />
-    <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
 }
 else
 {

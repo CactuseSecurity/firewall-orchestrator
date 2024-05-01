@@ -40,7 +40,7 @@ jobs:
   #   - name: do test install in case of merged pull request
   #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
 
-  # test_ubuntu_latest:
+  test_ubuntu_latest:
     name: test build on ubuntu latest
     runs-on: ubuntu-latest
     steps:

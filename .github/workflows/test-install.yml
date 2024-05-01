@@ -21,36 +21,30 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # ubuntu18 was unstable at github (2022-07-06 - 2022-07-11)
-  test_ubuntu_18:
-    name: test build on ubuntu_18
-    runs-on: ubuntu-18.04
-    steps:
-    - uses: actions/checkout@v3
-    - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
+  # # ubuntu18 was unstable at github (2022-07-06 - 2022-07-11)
+  # # does not seem to be supported by hithub anymore (2024-05-01)
 
-  test_ubuntu_20:
-    name: test build on ubuntu_20
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-    - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
-
-  test_ubuntu_22:
-    name: test build on  ubuntu_22
-    runs-on: ubuntu-22.04
-    steps:
-    - uses: actions/checkout@v3
-    - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
-
-  ## test_ubuntu_latest:
-  #   name: test build on ubuntu latest
-  #   runs-on: ubuntu-latest
+  # test_ubuntu_20:
+  #   name: test build on ubuntu_20
+  #   runs-on: ubuntu-20.04
   #   steps:
   #   - uses: actions/checkout@v3
   #   - name: do test install in case of merged pull request
   #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
+
+  # test_ubuntu_22:
+  #   name: test build on  ubuntu_22
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - name: do test install in case of merged pull request
+  #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
+
+  # test_ubuntu_latest:
+    name: test build on ubuntu latest
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: do test install in case of merged pull request
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
 

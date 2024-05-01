@@ -92,7 +92,7 @@
             - There are upgradable OS packages available, please run OS upgrade before running FWORCH installer. 
             - Use "-e force_install=true" to overwrite this check and install anyway at your own risk.
       when: |
-        not force_install|bool and not run_on_github|bool and
+        not force_install|bool and
         (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian") and
         upgradable_packages.stdout_lines|length > 1
 

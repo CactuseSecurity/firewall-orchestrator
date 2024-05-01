@@ -28,7 +28,7 @@ jobs:
   #   steps:
   #   - uses: actions/checkout@v3
   #   - name: do test install in case of merged pull request
-  #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes --skip-tags test site.yml -K
+  #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook --skip-tags test site.yml -K
 
   # test_ubuntu_20:
   #   name: test build on ubuntu_20
@@ -36,8 +36,8 @@ jobs:
   #   steps:
   #   - uses: actions/checkout@v3
   #   - name: do test install in case of merged pull request
-  #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes site.yml -K
-#      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes --skip-tags test site.yml -K
+  #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook site.yml -K
+#      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook --skip-tags test site.yml -K
 
   # test_ubuntu_22:
   #   name: test build on  ubuntu_22
@@ -45,7 +45,7 @@ jobs:
   #   steps:
   #   - uses: actions/checkout@v3
   #   - name: do test install in case of merged pull request
-  #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes site.yml -K
+  #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook site.yml -K
 
   test_ubuntu_latest:
     name: test build on ubuntu latest
@@ -53,5 +53,5 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=false -e force_install=true site.yml -K
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
 

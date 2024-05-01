@@ -22,7 +22,6 @@ sample_hostname: "{{ groups['sampleserver'].0 }}"
 #   upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api
 installation_mode: new
 install_syslog: true
-run_on_github: false
 add_demo_data: true
 api_docu: false
 force_install: false

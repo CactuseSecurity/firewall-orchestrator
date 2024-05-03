@@ -1,11 +1,8 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Config.Api;
 using FWO.Api.Client;
-using FWO.Api.Client.Queries;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Ui.Services;
 using FWO.Middleware.Client;
@@ -15,8 +12,6 @@ using System.Net;
 using FWO.Logging;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Authentication;
-using System.Security.Principal;
-
 
 namespace FWO.Ui.Auth
 {
@@ -60,11 +55,12 @@ namespace FWO.Ui.Auth
 					throw new AuthenticationException("login_importer_error");
 				}
 
-                // anonymous has no authorization to login via UI
-                if (jwtReader.ContainsRole(Roles.Anonymous))
-                {
-                    throw new AuthenticationException("not_authorized");
-                }
+				// anonymous has no authorization to login via UI
+				if (jwtReader.ContainsRole(Roles.Anonymous))
+				{
+					throw new AuthenticationException("not_authorized");
+				}
+				
 				// Save jwt in session storage.
 				await sessionStorage.SetAsync("jwt", jwtString);
 
@@ -183,7 +179,7 @@ namespace FWO.Ui.Auth
 		{
 			List<int> ownerIds = new();
 			List<string> ownerClaims = await GetClaimList(jwtString, "x-hasura-editable-owners");
-			if(ownerClaims.Count > 0)
+			if (ownerClaims.Count > 0)
 			{
 				string[] separatingStrings = { ",", "{", "}" };
 				string[] owners = ownerClaims[0].Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);

@@ -34,6 +34,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getCommonServices;
         public static readonly string newConnection;
         public static readonly string updateConnection;
+        public static readonly string updateConnectionOwner;
+        public static readonly string updateConnectionPublish;
         public static readonly string deleteConnection;
         public static readonly string addAppServerToConnection;
         public static readonly string removeAppServerFromConnection;
@@ -122,6 +124,8 @@ namespace FWO.Api.Client.Queries
                 getCommonServices = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getCommonServices.graphql");
                 newConnection = File.ReadAllText(QueryPath + "modelling/newConnection.graphql");
                 updateConnection = File.ReadAllText(QueryPath + "modelling/updateConnection.graphql");
+                updateConnectionOwner = File.ReadAllText(QueryPath + "modelling/updateConnectionOwner.graphql");
+                updateConnectionPublish = File.ReadAllText(QueryPath + "modelling/updateConnectionPublish.graphql");
                 deleteConnection = File.ReadAllText(QueryPath + "modelling/deleteConnection.graphql");
                 addAppServerToConnection = File.ReadAllText(QueryPath + "modelling/addAppServerToConnection.graphql");
                 removeAppServerFromConnection = File.ReadAllText(QueryPath + "modelling/removeAppServerFromConnection.graphql");

@@ -923,7 +923,7 @@ namespace FWO.Ui.Services
             return false;
         }
 
-        private bool CheckConn()
+        public bool CheckConn()
         {
             if(ActConn.Name == null || ActConn.Name == "" || ActConn.Reason == null || ActConn.Reason == "")
             {

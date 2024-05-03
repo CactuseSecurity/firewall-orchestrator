@@ -273,6 +273,8 @@ INSERT INTO txt VALUES ('permissions_text',		'German', 	'Ihre Berechtigungen wur
 INSERT INTO txt VALUES ('permissions_text',		'English', 	'Your permissions have been changed. Re-login to update your permissions.');
 INSERT INTO txt VALUES ('login_importer_error',	'German', 	'Nutzer mit der Rolle "Importer" d&uuml;rfen sich nicht an der Benutzeroberfl&auml;che anmelden. Diese Rolle dient einzig dem Importieren von eingebundenen Ger&auml;ten.');
 INSERT INTO txt VALUES ('login_importer_error',	'English', 	'Users with role "importer" are not allowed to log into the user interface. The only purpose of this role is to import included devices.');
+INSERT INTO txt VALUES ('not_authorized',	    'German', 	'Authentisierung OK, aber keine Berechtigung/Authorisierung vorhanden.');
+INSERT INTO txt VALUES ('not_authorized',	    'English', 	'Authentication succeeded, but not authorized.');
 
 -- navigation
 INSERT INTO txt VALUES ('reporting', 			'German',	'Reporting');

@@ -49,7 +49,10 @@ namespace FWO.Ui.Services
         {
             try
             {
-                ActServiceGroup = await apiConnection.SendQueryAsync<ModellingServiceGroup>(ModellingQueries.getServiceGroupById, new { id = ActServiceGroup.Id });
+                if(ActServiceGroup.Id > 0)
+                {
+                    ActServiceGroup = await apiConnection.SendQueryAsync<ModellingServiceGroup>(ModellingQueries.getServiceGroupById, new { id = ActServiceGroup.Id });
+                }
                 await RefreshParent();
             }
             catch (Exception exception)

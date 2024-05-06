@@ -119,7 +119,7 @@ namespace FWO.Ui.Services
                     await UpdateConnectionOwner(owner, ticketId);
                     break;
                 case nameof(StateActionTypes.UpdateConnectionRelease):
-                    await UpdateConnectionRelease(action, owner);
+                    await UpdateConnectionPublish(owner, ticketId);
                     break;
                 case nameof(StateActionTypes.DisplayConnection):
                     await DisplayConnection(statefulObject, scope);
@@ -189,16 +189,9 @@ namespace FWO.Ui.Services
                             var Variables = new
                             {
                                 id = conn.Id,
-                                name = conn.Name,
-                                appId = owner.Id,
-                                reason = conn.Reason,
-                                isInterface = conn.IsInterface,
-                                usedInterfaceId = conn.UsedInterfaceId,
-                                isRequested = conn.IsRequested,
-                                isPublished = conn.IsPublished,
-                                commonSvc = conn.IsCommonService
+                                appId = owner.Id
                             };
-                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionOwner, Variables);
                             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
                                 $"Updated {(conn.IsInterface? "Interface" : "Connection")}: {conn.Name}", apiConnection, requestHandler.userConfig, owner.Id, DefaultInit.DoNothing);
                         }
@@ -212,9 +205,42 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateConnectionRelease(RequestStateAction action, FwoOwner? owner)
+        public async Task UpdateConnectionPublish(FwoOwner? owner, long? ticketId)
         {
-            Log.WriteDebug("UpdateConnectionRelease", "Perform Action");
+            Log.WriteDebug("UpdateConnectionPublish", "Perform Action");
+            try
+            {
+                if(owner != null && ticketId != null) // todo: role check
+                {
+                    apiConnection.SetRole(Roles.Modeller);
+                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                    foreach(var conn in Connections)
+                    {
+                        if(conn.IsRequested && !conn.IsPublished)
+                        {
+                            ConnHandler = new (apiConnection, requestHandler.userConfig, owner, new(), conn, true, false, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
+                            await ConnHandler.PartialInit();
+                            if(ConnHandler.CheckConn())
+                            {
+                                var Variables = new
+                                {
+                                    id = conn.Id,
+                                    isRequested = false,
+                                    isPublished = true
+                                };
+                                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionPublish, Variables);
+                                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
+                                    $"Updated {(conn.IsInterface? "Interface" : "Connection")}: {conn.Name}", apiConnection, requestHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                            }
+                        }
+                    }
+                    apiConnection.SwitchBack();
+                }
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Update Connection Publish", $"Could not publish connection: ", exc);
+            }
         }
 
         public async Task DisplayConnection(RequestStatefulObject statefulObject, RequestObjectScopes scope)

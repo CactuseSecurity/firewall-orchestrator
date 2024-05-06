@@ -263,29 +263,31 @@ namespace FWO.Middleware.Server
 			{
 				foreach (string memberDn in ldap.GetGroupMembers(userGroupDn))
 				{
-					await UiUserHandler.UpsertUiUser(apiConnection, await ConvertLdapToUiUser(apiConnection, memberDn), false);
+					UiUser? uiUser = await ConvertLdapToUiUser(apiConnection, memberDn);
+					if(uiUser != null)
+					{
+						await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+					}
 				}
-			}
+			 }
 		}
 
-		private async Task<UiUser> ConvertLdapToUiUser(ApiConnection apiConnection, string userDn)
+		private async Task<UiUser?> ConvertLdapToUiUser(ApiConnection apiConnection, string userDn)
 		{
 			// add the modelling user to local uiuser table for later ref to email address
-			UiUser uiUser = new();
-
 			// find the user in all connected ldaps
 			foreach (Ldap ldap in connectedLdaps)
 			{
-				if (!ldap.UserSearchPath.IsNullOrEmpty() && userDn.ToLower().Contains(ldap.UserSearchPath.ToLower()))
+				if (!ldap.UserSearchPath.IsNullOrEmpty() && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
 				{
-					LdapEntry ldapUser = ldap.GetUserDetailsFromLdap(userDn);
+					LdapEntry? ldapUser = ldap.GetUserDetailsFromLdap(userDn);
 					
 					if (ldapUser != null)
 					{
 						// add data from ldap entry to uiUser
-						uiUser = new()
+						return new()
 						{
-							LdapConnection = new UiLdapConnection(),
+							LdapConnection = new UiLdapConnection(){ Id = ldap.Id },
 							Dn = ldapUser.Dn,
 							Name = ldap.GetName(ldapUser),
 							Firstname = ldap.GetFirstName(ldapUser),
@@ -293,19 +295,15 @@ namespace FWO.Middleware.Server
 							Email = ldap.GetEmail(ldapUser),
 							Tenant = await DeriveTenantFromLdap(ldap, ldapUser)							
 						};
-						uiUser.LdapConnection.Id = ldap.Id;
-						return uiUser;			
 					}
 				}
 			}
-			return uiUser;
-
+			return null;
 		}
 
 		private async Task<Tenant> DeriveTenantFromLdap(Ldap ldap, LdapEntry ldapUser)
 		{
 			// try to derive the the user's tenant from the ldap settings
-
 			Tenant tenant = new()
 			{
 				Id = GlobalConst.kTenant0Id  // default: tenant0 (id=1)
@@ -325,7 +323,7 @@ namespace FWO.Middleware.Server
 				{
 					if (!ldap.GlobalTenantName.IsNullOrEmpty())
 					{
-						tenantName = ldap.GlobalTenantName;
+						tenantName = ldap.GlobalTenantName ?? "";
 					}
 				}
 
@@ -336,9 +334,7 @@ namespace FWO.Middleware.Server
 					tenant.Id = tenants[0].Id;
 				}
 			}
-
 			return tenant;
-
 		}
 
 		private string CreateUserGroup(ModellingImportAppData incomingApp)
@@ -403,7 +399,29 @@ namespace FWO.Middleware.Server
 					internalLdap.RemoveUserFromEntry(member, groupDn);
 				}
 			}
+			UpdateRoles(groupDn);
 			return groupDn;
+		}
+
+		private void UpdateRoles(string groupDn)
+		{
+			List<string> roles = internalLdap.GetRoles([groupDn]);
+			if(!roles.Contains(Roles.Modeller))
+			{
+				internalLdap.AddUserToEntry(groupDn, modellerRoleDn);
+			}
+			if(!roles.Contains(Roles.Requester))
+			{
+				internalLdap.AddUserToEntry(groupDn, requesterRoleDn);
+			}
+			if(!roles.Contains(Roles.Implementer))
+			{
+				internalLdap.AddUserToEntry(groupDn, implementerRoleDn);
+			}
+			if(!roles.Contains(Roles.Reviewer))
+			{
+				internalLdap.AddUserToEntry(groupDn, reviewerRoleDn);
+			}
 		}
 
 		private async Task ImportAppServers(ModellingImportAppData incomingApp, int applId)

@@ -255,16 +255,16 @@
                     </div>
                 }
 
-                <div class="row justify-content-center mt-2">
-                    @foreach(var action in offeredActions)
-                    {
-                        @if(ReqHandler.EditReqTaskMode || ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode || RequestStateAction.IsReadonlyType(action.ActionType))
+                <div class="col-sm-12 mt-2">
+                    <div class="btn-group">
+                        @foreach(var action in offeredActions)
                         {
-                            <div>
-                                <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                            </div>
+                            @if(ReqHandler.EditReqTaskMode || ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode || RequestStateAction.IsReadonlyType(action.ActionType))
+                            {
+                                <button type="button" class="btn btn-sm btn-dark ml-13" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                            }
                         }
-                    }
+                    </div>
                 </div>
 
                 @if(Phase == WorkflowPhases.planning || ReqHandler.ActReqTask.ImplementationTasks.Count > 0)
@@ -492,7 +492,7 @@
 
     private async Task PerformAction(RequestStateAction action)
     {
-        await ReqHandler.ActionHandler.PerformAction(action, ReqHandler.ActReqTask, RequestObjectScopes.RequestTask);
+        await ReqHandler.ActionHandler.PerformAction(action, ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, actOwner, ReqHandler.ActReqTask.TicketId);
         await Reset();
     }
 

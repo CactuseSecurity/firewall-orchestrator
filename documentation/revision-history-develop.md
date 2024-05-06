@@ -202,3 +202,6 @@ bugfix release:
 - fix demo managements (change import from deactivated to activated - does not affect test managements)
 - upgrade to dotnet 8.0
 - adding all imported modelling users to uiuser
+
+# 8.2.1 - xx.05.2024 DEVELOP
+- fix misleading login error message when authorisation is missing

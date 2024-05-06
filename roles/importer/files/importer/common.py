@@ -349,7 +349,11 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
                 with open(filename, 'r') as json_file:
                     config = json.load(json_file)
     except requests.exceptions.RequestException:
-        error_string = 'got HTTP status code{code} while trying to read config file from URL {filename}'.format(code=str(r.status_code), filename=filename)
+        try:
+            r
+            error_string = 'got HTTP status code{code} while trying to read config file from URL {filename}'.format(code=str(r.status_code), filename=filename)
+        except NameError:
+            error_string = 'got error while trying to read config file from URL {filename}'.format(filename=filename)
         error_count += 1
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         raise ConfigFileNotFound(error_string) from None

@@ -273,6 +273,8 @@ INSERT INTO txt VALUES ('permissions_text',		'German', 	'Ihre Berechtigungen wur
 INSERT INTO txt VALUES ('permissions_text',		'English', 	'Your permissions have been changed. Re-login to update your permissions.');
 INSERT INTO txt VALUES ('login_importer_error',	'German', 	'Nutzer mit der Rolle "Importer" d&uuml;rfen sich nicht an der Benutzeroberfl&auml;che anmelden. Diese Rolle dient einzig dem Importieren von eingebundenen Ger&auml;ten.');
 INSERT INTO txt VALUES ('login_importer_error',	'English', 	'Users with role "importer" are not allowed to log into the user interface. The only purpose of this role is to import included devices.');
+INSERT INTO txt VALUES ('not_authorized',	    'German', 	'Authentisierung OK, aber keine Berechtigung/Authorisierung vorhanden.');
+INSERT INTO txt VALUES ('not_authorized',	    'English', 	'Authentication succeeded, but not authorized.');
 
 -- navigation
 INSERT INTO txt VALUES ('reporting', 			'German',	'Reporting');
@@ -5747,11 +5749,11 @@ INSERT INTO txt VALUES ('H9011', 'English', 'An application is - from the perspe
 INSERT INTO txt VALUES ('H9021', 'German',  'Verbindungen sind die Hauptbestandteile des Kommunikationsprofils. Es wird zwischen verschiedenen Arten von Verbindungen unterschieden:');
 INSERT INTO txt VALUES ('H9021', 'English', 'Connections are the main components of the communication profile. There are different types of connections:');
 INSERT INTO txt VALUES ('H9022', 'German',  'Schnittstellen: Sie dienen in erster Linie der Modellierung von (aus Sicht der Applikation) externen Verbindungen oder der B&uuml;ndelung interner Objekte.
-    Es m&uuml;ssen in der Applikation neben dem Dienst entweder Quelle oder Ziel definiert werden. Die Schnittstellen werden in den anderen Applikationen
-    zur Auswahl angeboten und k&ouml;nnen dort in der Definition von eigenen Verbindungen verwendet werden.
+    Es m&uuml;ssen in der Applikation neben dem Dienst entweder Quelle oder Ziel definiert werden. Die Schnittstellen k&ouml;nnen durch Setzen des entsprechendenn H&auml;kchens ver&ouml;ffentlicht und dadurch in den anderen Applikationen
+    zur Auswahl angeboten werden. Sie k&ouml;nnen dann dort in der Definition von eigenen Verbindungen verwendet werden.
 ');
 INSERT INTO txt VALUES ('H9022', 'English', 'Interfaces: They serve primarily the modelling of (relative to the application) external connections or the bundling of internal objects.
-    Besides the service either source or destination have to be defined in the application. The interfaces are offered to other applications to use
+    Besides the service either source or destination have to be defined in the application. The interfaces can be published by setting the respective flag and are then offered to other applications to use
     them in the definition of own connections.
 ');
 INSERT INTO txt VALUES ('H9023', 'German',  'Standard: Zentrale Objekte zur Modellierung der Kommunikationsverbindungen. Dabei m&uuml;ssen Quelle, Dienst und Ziel aus den in der Bibliothek 
@@ -5809,4 +5811,32 @@ INSERT INTO txt VALUES ('H9043', 'German',  'Dienstgruppen: In Dienstgruppen k&o
 ');
 INSERT INTO txt VALUES ('H9043', 'English', 'Service Groups: Simple services can be bundled in Service Groups. A name has to be given to them, comments can be added.
     Again definition can be done by the modeller, but also Service Groups predefined by the administrator can be used.
+');
+INSERT INTO txt VALUES ('H9051', 'German',  'Beantragung neuer Schnittstellen: Wenn externe Schnittstellen von anderen Applikationen ben&ouml;tigt werden, k&ouml;nnen diese &uuml;ber die entsprechende Schaltfl&auml;che in der Bibliothek beantragt werden.
+    <ul>
+        <li>Es erscheint ein Dialog, in dem die externe Applikation ausgew&auml;hlt und eine Begr&uuml;ndung eingetragen werden m&uuml;ssen, sowie das H&auml;kchen, ob die Schnittstelle als Quelle oder Ziel genutzt werden soll.</li>
+        <li>Beim Abschicken der Anforderung wird
+            <ul>
+                <li>bei der externen Applikation automatisch eine Dummy-Schnittstelle angelegt, die dann in der eigenen Schnittstellen-Auswahl erscheint und direkt zur Erstellung eigener Verbindungen genutzt werden kann.
+                    Sie wird in der Liste der eigenen Verbindungen mit Eintr&auml;gen "Schnittstelle angefordert" in Quelle/Ziel und Dienst als solche gekennzeichnet.</li>
+                <li>der oder die f&uuml;r die externe Applikation Verantwortlichen per Email &uuml;ber den Antrag informiert.</li>
+                <li>im Workflow-Modul ein Ticket mit dem Antrag erstellt. Je nach Konfiguration des Workflows kann hier der Auftrag abgelehnt, an andere Applikationen weitergeleitet, einzelnen Bearbeitern zugewiesen oder mit Kommentaren versehen werden.</li>
+            </ul>
+        </li>
+        <li>Wird die Schnittstelle auf der Gegenseite modelliert und ver&ouml;ffentlicht, wandelt sich auch die eigene nutzende Verbindung automatisch in eine "normale" Verbindung um, eine weiteres Eingreifen des Antragstellers ist nicht mehr notwendig.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H9051', 'English', 'Request new interface: If external interfaces from other applications are needed, they can be requested via a button in the library.
+    <ul>
+        <li>A dialogue is displayed to select the external Application. A reason field has to be filled as well as the checkbox, if the interface should be used as source or destination.</li>
+        <li>If the request is submitted
+            <ul>
+                <li>a dummy interface is created automatically at the target application, which then appears in the own interface selection in the library and can be used for the definition of the own connection.
+                    It is marked as such by the text "Interface requested" in Source/Destination and Service in the list of own the connections.</li>
+                <li>the responsible(s) of the external Application is informed about the request by email.</li>
+                <li>a ticket in the Workflow module is created. Depending on the configuration of the workflow, the request can be rejected, forwarded to other applications, assigned to aperson in charge or commented.</li>
+            </ul>
+        </li>
+        <li>When the requested interface is modelled and published on the other side, the own using connection is changed to a "regular" connection automatically, further action is not necessary.</li>
+    </ul>
 ');

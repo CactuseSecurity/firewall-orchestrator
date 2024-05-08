@@ -41,7 +41,8 @@
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" Sortable="true" Filterable="true" />
     }        
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-    <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))" Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
+    <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
+        Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
         <Template>
             <ExpandableList2 Elements="AppHandler.GetSrcNames(context)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">

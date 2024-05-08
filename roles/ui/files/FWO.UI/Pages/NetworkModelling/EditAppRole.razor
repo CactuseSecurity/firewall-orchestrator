@@ -27,7 +27,7 @@
                                 {
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))" 
-                                                SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
+                                                SelectedElementChanged="OnSelectedAreaChanged" Elements="areas.Where(x => x.MemberCount > 0)" Nullable="true">
                                             <ElementTemplate Context="area">
                                                 @((MarkupString)(area.DisplayHtml() + DisplayObjectCount(area)))
                                             </ElementTemplate>

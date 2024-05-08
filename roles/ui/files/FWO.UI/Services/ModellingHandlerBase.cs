@@ -1,5 +1,4 @@
 ﻿using FWO.Config.Api;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -17,11 +16,13 @@ namespace FWO.Ui.Services
         protected readonly UserConfig userConfig;
         protected Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+        public List<ModellingAppServer> AvailableAppServers { get; set; } = [];
+        
         public bool ReadOnly = false;
         public bool IsOwner { get; set; } = true;
         public string Message { get; set; } = "";
         public bool DeleteAllowed { get; set; } = true;
-        public List<ModellingService> SvcToAdd { get; set; } = new();
+        public List<ModellingService> SvcToAdd { get; set; } = [];
         private ModellingService actService = new();
 
         public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 

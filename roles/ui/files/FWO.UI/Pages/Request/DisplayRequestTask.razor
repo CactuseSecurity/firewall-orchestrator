@@ -230,7 +230,9 @@
 
                 @if(actTaskType == TaskType.access)
                 {
-                    <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
+                    <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
+                        Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
+                        Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
                         TaskId="ReqHandler.ActReqTask.Id" EditMode="ReqHandler.EditReqTaskMode" />
                 }
                 else if(actTaskType == TaskType.rule_delete)
@@ -362,17 +364,24 @@
     public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
-    private List<TaskType> availableTaskTypes { get; set; } = new ();
-    private List<RuleAction> ruleActions = new ();
-    private List<Tracking> trackings = new ();
+    private List<TaskType> availableTaskTypes { get; set; } = [];
+    private List<RuleAction> ruleActions = [];
+    private List<Tracking> trackings = [];
 
-    private List<NwObjectElement> actSources = new ();
-    private List<NwObjectElement> actDestinations = new ();
-    private List<NwServiceElement> actServices = new ();
-    private List<NwRuleElement> actRules = new ();
+    private List<NwObjectElement> actSources = [];
+    private List<NwObjectElement> actDestinations = [];
+    private List<NwServiceElement> actServices = [];
+    private List<NwRuleElement> actRules = [];
+
+    private List<NwObjectElement> sourcesToAdd = [];
+    private List<NwObjectElement> sourcesToDelete = [];
+    private List<NwObjectElement> destinationsToAdd = [];
+    private List<NwObjectElement> destinationsToDelete = [];
+    private List<NwServiceElement> servicesToAdd = [];
+    private List<NwServiceElement> servicesToDelete = [];
     private TaskType actTaskType = TaskType.access;
 
-    private List<RequestStateAction> offeredActions = new ();
+    private List<RequestStateAction> offeredActions = [];
     private string allComments = "";
     private IEnumerable<Device> selectedDevices { get; set; } = new List<Device>();
     private Device? actRuleDevice;
@@ -531,33 +540,62 @@
 
     private void UpdateElements()
     {
-        foreach(var oldElem in ReqHandler.ActReqTask.Elements.Where(x => x.Id > 0 && (x.Field == ElemFieldType.source.ToString() || 
-            x.Field == ElemFieldType.destination.ToString() || x.Field == ElemFieldType.service.ToString() || x.Field == ElemFieldType.rule.ToString())))
+        foreach(var src in sourcesToDelete)
         {
-            if(actSources.FirstOrDefault(x => x.ElemId == oldElem.Id) == null && 
-                actDestinations.FirstOrDefault(x => x.ElemId == oldElem.Id) == null && 
-                actServices.FirstOrDefault(x => x.ElemId == oldElem.Id) == null &&
-                actRules.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            actSources.Remove(src);
+            RequestReqElement? oldElem = ReqHandler.ActReqTask.Elements.FirstOrDefault(x => x.Id == src.ElemId);
+            if(oldElem != null)
             {
                 ReqHandler.ActReqTask.RemovedElements.Add(oldElem);
+                ReqHandler.ActReqTask.Elements.Remove(oldElem);
             }
         }
+        foreach(var dst in destinationsToDelete)
+        {
+            actDestinations.Remove(dst);
+            RequestReqElement? oldElem = ReqHandler.ActReqTask.Elements.FirstOrDefault(x => x.Id == dst.ElemId);
+            if(oldElem != null)
+            {
+                ReqHandler.ActReqTask.RemovedElements.Add(oldElem);
+                ReqHandler.ActReqTask.Elements.Remove(oldElem);
+            }
+        }
+        foreach(var svc in servicesToDelete)
+        {
+            actServices.Remove(svc);
+            RequestReqElement? oldElem = ReqHandler.ActReqTask.Elements.FirstOrDefault(x => x.Id == svc.ElemId);
+            if(oldElem != null)
+            {
+                ReqHandler.ActReqTask.RemovedElements.Add(oldElem);
+                ReqHandler.ActReqTask.Elements.Remove(oldElem);
+            }
+        }
+        foreach(var src in sourcesToAdd)
+        {
+            src.TaskId = ReqHandler.ActReqTask.Id;
+            actSources.Add(src);
+            ReqHandler.ActReqTask.Elements.Add(src.ToReqElement(ElemFieldType.source));
+        }
+        foreach(var dst in destinationsToAdd)
+        {
+            dst.TaskId = ReqHandler.ActReqTask.Id;
+            actDestinations.Add(dst);
+            ReqHandler.ActReqTask.Elements.Add(dst.ToReqElement(ElemFieldType.destination));
+        }
+        foreach(var svc in servicesToAdd)
+        {
+            svc.TaskId = ReqHandler.ActReqTask.Id;
+            actServices.Add(svc);
+            ReqHandler.ActReqTask.Elements.Add(svc.ToReqElement());
+        }
+        sourcesToDelete = [];
+        destinationsToDelete = [];
+        servicesToDelete = [];
+        sourcesToAdd = [];
+        destinationsToAdd = [];
+        servicesToAdd = [];
 
-        ReqHandler.ActReqTask.Elements.RemoveAll(x => (x.Field == ElemFieldType.source.ToString() || 
-            x.Field == ElemFieldType.destination.ToString() || x.Field == ElemFieldType.service.ToString() || x.Field == ElemFieldType.rule.ToString()));
-
-        foreach(var source in actSources)
-        {
-            ReqHandler.ActReqTask.Elements.Add(source.ToReqElement(ElemFieldType.source));
-        }
-        foreach(var destination in actDestinations)
-        {
-            ReqHandler.ActReqTask.Elements.Add(destination.ToReqElement(ElemFieldType.destination));
-        }
-        foreach(var service in actServices)
-        {
-            ReqHandler.ActReqTask.Elements.Add(service.ToReqElement());
-        }
+        ReqHandler.ActReqTask.Elements.RemoveAll(x => x.Field == ElemFieldType.rule.ToString());
         foreach(var rule in actRules)
         {
             RequestReqElement reqElem = rule.ToReqElement();
@@ -599,7 +637,11 @@
             if (await CheckTaskValues())
             {
                 ReqHandler.ActReqTask.SetDeviceList(selectedDevices.ToList());
-                ReqHandler.ActReqTask.Owners = new() { new() { Owner = actOwner ?? new() } };
+                ReqHandler.ActReqTask.Owners = [];
+                if (actOwner != null)
+                {
+                    ReqHandler.ActReqTask.Owners.Add(new() { Owner = actOwner });
+                }
                 if (ReqHandler.AddReqTaskMode)
                 {
                     await ReqHandler.AddApproval();
@@ -621,7 +663,8 @@
 
     private async Task<bool> CheckTaskValues()
     {
-        if (ReqHandler.ActReqTask.Title == null || ReqHandler.ActReqTask.Title == "" || actOwner == null)
+        if (ReqHandler.ActReqTask.Title == null || ReqHandler.ActReqTask.Title == "" || 
+            (actTaskType == TaskType.new_interface && actOwner == null))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;

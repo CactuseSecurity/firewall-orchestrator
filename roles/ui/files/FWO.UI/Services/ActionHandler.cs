@@ -8,7 +8,7 @@ namespace FWO.Ui.Services
 {
     public class ActionHandler
     {
-        private List<RequestState> states = new ();
+        private List<RequestState> states = [];
         private readonly ApiConnection apiConnection;
         private readonly RequestHandler requestHandler = new ();
         private string? ScopedUserTo { get; set; } = "";
@@ -30,7 +30,7 @@ namespace FWO.Ui.Services
 
         public List<RequestStateAction> GetOfferedActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, WorkflowPhases phase)
         {
-            List<RequestStateAction> offeredActions = new ();
+            List<RequestStateAction> offeredActions = [];
             List<RequestStateAction> stateActions = GetRelevantActions(statefulObject, scope);
             foreach(var action in stateActions.Where(x => x.Event == StateActionEvents.OfferButton.ToString()))
             {
@@ -300,7 +300,7 @@ namespace FWO.Ui.Services
 
         private List<RequestStateAction> GetRelevantActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, bool toState=true)
         {
-            List<RequestStateAction> stateActions = new ();
+            List<RequestStateAction> stateActions = [];
             try
             {
                 int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();

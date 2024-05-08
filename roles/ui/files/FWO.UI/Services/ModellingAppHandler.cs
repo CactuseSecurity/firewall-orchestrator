@@ -128,7 +128,7 @@ namespace FWO.Ui.Services
         {
             if((conn.InterfaceIsRequested && conn.SrcFromInterface) || (conn.IsRequested && conn.SourceFilled()))
             {
-                return new () { DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested) };
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested)];
             }
 
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList();
@@ -153,7 +153,7 @@ namespace FWO.Ui.Services
         {
             if((conn.InterfaceIsRequested && conn.DstFromInterface) || (conn.IsRequested && conn.DestinationFilled()))
             {
-                return new () { DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested) };
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested)];
             }
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList();
             foreach(var nwGroup in nwGroups)
@@ -177,7 +177,7 @@ namespace FWO.Ui.Services
         {
             if(conn.InterfaceIsRequested || conn.IsRequested)
             {
-                return new () { DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested) };
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested)];
             }
             List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
@@ -271,5 +271,23 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
             }
         }
+
+        // public async Task EditAppRole(ModellingAppRole? appRole)
+        // {
+        //     try
+        //     {
+        //         if(appRole != null)
+        //         {
+        //             AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
+        //             AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, [],
+        //                 appRole, AvailableAppServers, [], false, DisplayMessageInUi, IsOwner, false);
+        //             EditAppRoleMode = true;
+        //         }
+        //     }
+        //     catch (Exception exception)
+        //     {
+        //         DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
+        //     }
+        // }
     }
 }

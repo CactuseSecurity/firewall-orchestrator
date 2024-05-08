@@ -1,5 +1,4 @@
-﻿using FWO.GlobalConstants;
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -24,22 +23,18 @@ namespace FWO.Ui.Services
 
         public async Task<List<RequestTicket>> FetchTickets(StateMatrix stateMatrix, List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
         {
-            List<RequestTicket> tickets = new ();
+            List<RequestTicket> tickets = [];
             try
             {
                 // todo: filter own approvals, plannings...
                 int fromState = allStates ? 0 : stateMatrix.LowestInputState;
                 int toState = allStates ? 999 : stateMatrix.LowestEndState;
 
+                var Variables = new { fromState, toState };
+                tickets = await ApiConnection.SendQueryAsync<List<RequestTicket>>(RequestQueries.getTickets, Variables);
                 if(UserConfig.ReqOwnerBased && ! ignoreOwners)
                 {
-                    var Variables = new { ownerIds, fromState, toState };
-                    tickets = await ApiConnection.SendQueryAsync<List<RequestTicket>>(RequestQueries.getTicketsByOwners, Variables);
-                }
-                else
-                {
-                    var Variables = new { fromState, toState };
-                    tickets = await ApiConnection.SendQueryAsync<List<RequestTicket>>(RequestQueries.getTickets, Variables);
+                    tickets = FilterWrongOwnersOut(tickets, ownerIds);
                 }
                 foreach (var ticket in tickets)
                 {
@@ -51,6 +46,31 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
             }
             return tickets;
+        }
+
+        private static List<RequestTicket> FilterWrongOwnersOut(List<RequestTicket> ticketsIn, List<int> ownerIds)
+        {
+            List<RequestTicket> ticketsOut = [];
+            foreach(var ticket in ticketsIn)
+            {
+                if(ticket.Tasks.FirstOrDefault(ta => ta.TaskType != TaskType.new_interface.ToString()) != null
+                    || ticket.Tasks.FirstOrDefault(ta => ta.Owners.Count == 0) != null)
+                {
+                    ticketsOut.Add(ticket);
+                }
+                else
+                {
+                    foreach(var task in ticket.Tasks)
+                    {
+                        if(task.Owners.FirstOrDefault(x => ownerIds.Contains(x.Owner.Id)) != null)
+                        {
+                            ticketsOut.Add(ticket);
+                            break;
+                        }
+                    }
+                }
+            }
+            return ticketsOut;
         }
 
         public async Task<RequestTicket> GetTicket(int id)
@@ -276,7 +296,7 @@ namespace FWO.Ui.Services
                 {
                     await DeleteReqElementFromDb(elem.Id);
                 }
-                reqtask.RemovedElements = new ();
+                reqtask.RemovedElements = [];
 
                 foreach(var element in reqtask.Elements)
                 {
@@ -565,7 +585,7 @@ namespace FWO.Ui.Services
                 {
                     await DeleteImplElementFromDb(elem.Id);
                 }
-                impltask.RemovedElements = new ();
+                impltask.RemovedElements = [];
 
                 foreach(var element in impltask.ImplElements)
                 {

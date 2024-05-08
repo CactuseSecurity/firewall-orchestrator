@@ -14,7 +14,6 @@ namespace FWO.Ui.Services
         public List<ModellingConnection> Connections { get; set; } = new();
         public List<ModellingConnection> PreselectedInterfaces { get; set; } = new();
         public ModellingConnection ActConn { get; set; } = new();
-        public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         public List<ModellingAppRole> AvailableAppRoles { get; set; } = new();
         public List<ModellingNwGroupWrapper> AvailableSelectedObjects { get; set; } = new();
         public List<ModellingNwGroupWrapper> AvailableCommonAreas { get; set; } = new();
@@ -105,7 +104,7 @@ namespace FWO.Ui.Services
                     await RefreshObjects();
                     InterfaceName = await ExtractUsedInterface(ActConn);
                     AllApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
-                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), false, DisplayMessageInUi);
+                    AppRoleHandler = new (apiConnection, userConfig, new(), [], new(), [], [], false, DisplayMessageInUi);
                     DummyAppRole = await AppRoleHandler.GetDummyAppRole();
                     if(!AddMode && !ReadOnly && ActConn.IsInterface)
                     {
@@ -124,20 +123,6 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task ReInit()
-        {
-            try
-            {
-                await RefreshActConn();
-                await RefreshObjects();
-                await RefreshParent();
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-            }
-        }
-
         public async Task PartialInit()
         {
             try
@@ -145,10 +130,24 @@ namespace FWO.Ui.Services
                 if(!InitOngoing)
                 {
                     InitOngoing = true;
-                    AppRoleHandler = new (apiConnection, userConfig, new(), new(), new(), new(), new(), false, DisplayMessageInUi);
+                    AppRoleHandler = new (apiConnection, userConfig, new(), [], new(), [], [], false, DisplayMessageInUi);
                     DummyAppRole = await AppRoleHandler.GetDummyAppRole();
                     InitOngoing = false;
                 }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        public async Task ReInit()
+        {
+            try
+            {
+                await RefreshActConn();
+                await RefreshObjects();
+                await RefreshParent();
             }
             catch (Exception exception)
             {
@@ -202,12 +201,12 @@ namespace FWO.Ui.Services
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
 
                 List<ModellingNwGroup> allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
-                CommonAreaConfigItems = new();
+                CommonAreaConfigItems = [];
                 if(userConfig.ModCommonAreas != "")
                 {
                     CommonAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas) ?? new();
                 }
-                AvailableCommonAreas = new();
+                AvailableCommonAreas = [];
                 foreach(var comAreaConfig in CommonAreaConfigItems)
                 {
                     ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == comAreaConfig.AreaId);
@@ -731,7 +730,7 @@ namespace FWO.Ui.Services
         {
             foreach(var grp in serviceGrps)
             {
-                if(ActConn.ServiceGroups.FirstOrDefault(w => w.Content.Id == grp.Id) == null && !SvcGrpToAdd.Contains(grp))
+                if((ActConn.ServiceGroups.FirstOrDefault(w => w.Content.Id == grp.Id) == null) && (SvcGrpToAdd.FirstOrDefault(g => g.Id == grp.Id) == null))
                 {
                     SvcGrpToAdd.Add(grp);
                 }
@@ -793,7 +792,7 @@ namespace FWO.Ui.Services
         {
             foreach(var svc in services)
             {
-                if(ActConn.Services.FirstOrDefault(w => w.Content.Id == svc.Id) == null && !SvcToAdd.Contains(svc))
+                if((ActConn.Services.FirstOrDefault(w => w.Content.Id == svc.Id) == null) && (SvcToAdd.FirstOrDefault(s => s.Id == svc.Id) == null))
                 {
                     SvcToAdd.Add(svc);
                 }

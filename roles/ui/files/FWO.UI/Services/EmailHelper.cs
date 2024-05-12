@@ -44,8 +44,8 @@ namespace FWO.Ui.Services
         private readonly MiddlewareClient middlewareClient;
         private readonly UserConfig userConfig;
         private readonly Action<Exception?, string, string, bool> displayMessageInUi;
-        private List<UserGroup> ownerGroups = new ();
-        private List<UiUser> uiUsers = new ();
+        private List<UserGroup> ownerGroups = [];
+        private List<UiUser> uiUsers = [];
         private string? ScopedUserTo;
         private string? ScopedUserCc;
 
@@ -97,7 +97,7 @@ namespace FWO.Ui.Services
 
         private List<string> GetRecipients(EmailRecipientOption recipientOption, RequestStatefulObject statefulObject, FwoOwner? owner, string? scopedUser)
         {
-            List<string> recipients = new();
+            List<string> recipients = [];
             switch(recipientOption)
             {
                 case EmailRecipientOption.CurrentHandler:
@@ -142,7 +142,7 @@ namespace FWO.Ui.Services
 
         private List<string> GetAddressesFromGroup(string? groupDn)
         {
-            List<string> tos = new();
+            List<string> tos = [];
             UserGroup? ownerGroup = ownerGroups.FirstOrDefault(x => x.Dn == groupDn);
             if(ownerGroup != null)
             {

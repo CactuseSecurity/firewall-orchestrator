@@ -31,7 +31,7 @@ namespace FWO.Report
             //     gotNewObjects = newConnections.Count > 0;
             //     ReportData.OwnerData.Connections.AddRange(newConnections);
 
-            ReportData reportData = new() { OwnerData = new() { new(){ Connections = conns } } };
+            ReportData reportData = new() { OwnerData = [new(){ Connections = conns }] };
             await callback(reportData);
 
             // }
@@ -242,6 +242,5 @@ namespace FWO.Report
             string content = $"{userConfig.GetText("interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
             return $"<span class=\"text-danger\" {tooltip}><i>{content}</i></span>";
         }
-
     }
 }

@@ -125,10 +125,10 @@ namespace FWO.Report
 
         public List<NetworkService> GetAllServices(bool resolved = false)
         {
-            List<NetworkService> allServices = new();
+            List<NetworkService> allServices = [];
             foreach(var conn in Connections)
             {
-                List<NetworkService> svcList = new();
+                List<NetworkService> svcList = [];
                 foreach (var svcGrp in conn.ServiceGroups)
                 {
                     NetworkService serviceGroup = svcGrp.Content.ToNetworkServiceGroup();

@@ -1108,20 +1108,7 @@
                       "ticket_id",
                       "used_interface_id"
                     ],
-                    "filter": {
-                      "_or": [
-                        {
-                          "app_id": {
-                            "_in": "x-hasura-editable-owners"
-                          }
-                        },
-                        {
-                          "app_id": {
-                            "_is_null": true
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "check": {}
                   },
                   "comment": ""

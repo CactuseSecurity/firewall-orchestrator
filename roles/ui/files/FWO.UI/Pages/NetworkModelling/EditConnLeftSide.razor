@@ -165,6 +165,25 @@
             </div>
             <br>
         }
+        else if(ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.IsRequested)
+        {
+            <br><br>
+            <h5>@(userConfig.GetText("interfaces"))</h5>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("C9010"))">
+                <div class="col-sm-10">
+                    <DraggableList AllElements="ConnHandler.Connections.Where(c => c.IsInterface && !c.IsRequested).ToList()" @bind-SelectedElements="selectedInterfaces" 
+                        HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
+                </div>
+                <div class="col-sm-2">
+                    @if(selectedInterfaces.Count  == 1)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="ReplaceInterface">
+                            @(ConnHandler.DisplayButton("replace", Icons.Use))</button>
+                    }
+                </div>
+            </div>
+            <br>
+        }
     </div>
 </Sidebar>
 <EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" RefreshParent="async () => await WrapAsync(ConnHandler.ReInit)"/>
@@ -184,7 +203,6 @@
     Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectableNwObjects"/>
 <ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
     Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
-<EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
 <RequestInterfacePopup @bind-Display="SelectAppMode" Apps="ConnHandler.AllApps" RequestingOwner="ConnHandler.Application" RefreshParent="async () => await WrapAsync(ConnHandler.RefreshPreselectedInterfaces)"/>
 
 
@@ -224,6 +242,12 @@
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
     {
         return $"<span class=\"{Icons.Interface}\"></span> " + ConnHandler.DisplayInterface(interf);
+    }
+
+    private async Task ReplaceInterface()
+    {
+        await ConnHandler.RequestReplaceInterface(selectedInterfaces[0]);
+        ConnHandlerChanged.InvokeAsync(ConnHandler);
     }
 
     private bool InterfaceToConn(ModellingConnection interf)

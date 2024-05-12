@@ -36,6 +36,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateConnection;
         public static readonly string updateConnectionOwner;
         public static readonly string updateConnectionPublish;
+        public static readonly string replaceUsedInterface;
         public static readonly string deleteConnection;
         public static readonly string addAppServerToConnection;
         public static readonly string removeAppServerFromConnection;
@@ -50,6 +51,7 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getSelectedConnections;
         public static readonly string addSelectedConnection;
+        public static readonly string removeSelectedConnectionFromApp;
         public static readonly string removeSelectedConnection;
 
         public static readonly string getNwGroupObjects;
@@ -126,6 +128,7 @@ namespace FWO.Api.Client.Queries
                 updateConnection = File.ReadAllText(QueryPath + "modelling/updateConnection.graphql");
                 updateConnectionOwner = File.ReadAllText(QueryPath + "modelling/updateConnectionOwner.graphql");
                 updateConnectionPublish = File.ReadAllText(QueryPath + "modelling/updateConnectionPublish.graphql");
+                replaceUsedInterface = File.ReadAllText(QueryPath + "modelling/replaceUsedInterface.graphql");
                 deleteConnection = File.ReadAllText(QueryPath + "modelling/deleteConnection.graphql");
                 addAppServerToConnection = File.ReadAllText(QueryPath + "modelling/addAppServerToConnection.graphql");
                 removeAppServerFromConnection = File.ReadAllText(QueryPath + "modelling/removeAppServerFromConnection.graphql");
@@ -140,6 +143,7 @@ namespace FWO.Api.Client.Queries
 
                 getSelectedConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getSelectedConnections.graphql");
                 addSelectedConnection = File.ReadAllText(QueryPath + "modelling/addSelectedConnection.graphql");
+                removeSelectedConnectionFromApp = File.ReadAllText(QueryPath + "modelling/removeSelectedConnectionFromApp.graphql");
                 removeSelectedConnection = File.ReadAllText(QueryPath + "modelling/removeSelectedConnection.graphql");
 
                 getNwGroupObjects = File.ReadAllText(QueryPath + "modelling/getNwGroupObjects.graphql");

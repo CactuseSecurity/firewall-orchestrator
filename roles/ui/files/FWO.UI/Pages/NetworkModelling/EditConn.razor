@@ -340,7 +340,8 @@
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
     <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
     <EditAppServer @bind-Display="ConnHandler.DisplayAppServerMode" AppServerHandler="ConnHandler.AppServerHandler"/>
-    <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
+    <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"
+        ReplaceMode="ConnHandler.ReplaceMode" Replace="ReplaceInterface"/>
     <DisplayImplementationTask ReqHandler="reqHandler" States="states" IncludePopups="false"/>
 }
 
@@ -401,11 +402,18 @@
         }
     }
 
-    private void HandleSrcDrop()
+    private async Task HandleSrcDrop()
     {
         if(Container.ConnElement != null)
         {
-            ConnHandler.InterfaceToConn(Container.ConnElement);
+            if(ConnHandler.ActConn.IsInterface)
+            {
+                await ConnHandler.RequestReplaceInterface(Container.ConnElement);
+            }
+            else
+            {
+                ConnHandler.InterfaceToConn(Container.ConnElement);
+            }  
         }
         else if(!ConnHandler.SrcDropForbidden())
         {
@@ -425,11 +433,18 @@
         Container.Clear();
     }
 
-    private void HandleDstDrop()
+    private async Task HandleDstDrop()
     {
         if(Container.ConnElement != null)
         {
-            ConnHandler.InterfaceToConn(Container.ConnElement);
+            if(ConnHandler.ActConn.IsInterface)
+            {
+                await ConnHandler.RequestReplaceInterface(Container.ConnElement);
+            }
+            else
+            {
+                ConnHandler.InterfaceToConn(Container.ConnElement);
+            }
         }
         else if(!ConnHandler.DstDropForbidden())
         {
@@ -449,11 +464,18 @@
         Container.Clear();
     }
 
-    private void HandleSvcDrop()
+    private async Task HandleSvcDrop()
     {
         if(Container.ConnElement != null)
         {
-            ConnHandler.InterfaceToConn(Container.ConnElement);
+            if(ConnHandler.ActConn.IsInterface)
+            {
+                await ConnHandler.RequestReplaceInterface(Container.ConnElement);
+            }
+            else
+            {
+                ConnHandler.InterfaceToConn(Container.ConnElement);
+            }
         }
         else 
         {
@@ -503,19 +525,25 @@
         }
     }
 
+    private async Task ReplaceInterface()
+    {
+        await ConnHandler.ReplaceInterface(authenticationStateTask, middlewareClient);
+        Close();
+    }
+
     private async Task PromoteTicket()
     {
         if(ConnHandler.ActConn.TicketId != null)
         {
             try
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor ]);
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
                 if(await ticketCreator.PromoteTicket(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId)))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);
                 }
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             }
             catch(Exception exception)
             {

@@ -205,3 +205,6 @@ bugfix release:
 
 # 8.2.1 - xx.05.2024 DEVELOP
 - fix misleading login error message when authorisation is missing
+
+# 8.2.2 - 12.05.2024 DEVELOP
+- remove cascading delete for used interfaces 

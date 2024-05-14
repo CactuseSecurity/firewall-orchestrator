@@ -1,5 +1,12 @@
 @using FWO.Config.Api
+@using FWO.Config.Api.Data
 @using FWO.Ui.Display
+@using FWO.Tufin.SecureChange
+@using FWO.Rest.Client
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Net
+@using RestSharp
 
 @page "/networkmodelling/{appId?}/{connId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")]
@@ -7,13 +14,14 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
+@inject GlobalConfig globalConfig
 
-@if(!appHandler?.EditConnMode ?? true)
+@if (!appHandler?.EditConnMode ?? true)
 {
     <div class="input-group">
-        <h3>@(userConfig.GetText("network_modelling"))</h3>
-        <HelpLink Page="modelling"/>
-    </div>
+    <h3>@(userConfig.GetText("network_modelling"))</h3>
+    <HelpLink Page="modelling" />
+</div>
     <hr />
 
     <div class="form-group row">
@@ -22,58 +30,72 @@
         </div>
         <div class="col-sm-6">
             <div class="btn-group">
-                <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button>
-                <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
-                @* <button type="button" class="btn btn-sm btn-dark ms-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
+                <button type="button" class="ms-5 btn btn-sm btn-primary"
+                    @onclick="Report">@(userConfig.GetText("generate_report"))</button>
+                <button type="button" class="btn btn-sm btn-dark"
+                    @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
+                <button type="button" class="ms-5 btn btn-sm btn-primary"
+                    @onclick="RequestFwChange">@(userConfig.GetText("request_fw_change"))</button>
             </div>
         </div>
     </div>
     <hr />
-    @if(appSelected)
+    @if (appSelected)
     {
         <div class="form-group row m-2">
-            <h5>@(userConfig.GetText("comm_profile"))&nbsp;
-            @if(appActive)
-            {
-                <div class="btn-group ms-5">
-                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
-                        <Authorized>
-                            <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">@(appHandler.DisplayButton("edit_app_server", Icons.Edit, "app_server"))</button>
-                        </Authorized>
-                    </AuthorizeView>
-                </div>
-            }
+    <h5>@(userConfig.GetText("comm_profile"))&nbsp;
+        @if (appActive)
+                {
+                    <div class="btn-group ms-5">
+                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+                            <Authorized>
+                                <button type="button" class="btn btn-sm btn-dark"
+                                    @onclick="ManualAppServer">@(appHandler.DisplayButton("edit_app_server", Icons.Edit,
+                        "app_server"))</button>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                }
             </h5>
         </div>
         <div class="m-2 vheight75">
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
                 <Tab Title="@(userConfig.GetText("connections"))" Position=0>
-                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">@(appHandler.DisplayButton("add_connection", Icons.Add))</button>
-                    <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive"/>
+                    <button type="button" class="btn btn-sm btn-success mb-2"
+                        @onclick="appHandler.AddConnection">@(appHandler.DisplayButton("add_connection", Icons.Add))</button>
+                    <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler"
+                        AppActive="appActive" />
                 </Tab>
                 <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
-                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">@(appHandler.DisplayButton("add_interface", Icons.Add))</button>
-                    <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler" AppActive="appActive"/>
+                    <button type="button" class="btn btn-sm btn-success mb-2"
+                        @onclick="appHandler.AddInterface">@(appHandler.DisplayButton("add_interface", Icons.Add))</button>
+                    <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler"
+                        AppActive="appActive" />
                 </Tab>
-                @if(selectedApp.CommSvcPossible)
+                @if (selectedApp.CommSvcPossible)
                 {
                     <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
-                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service", Icons.Add))</button>
-                        <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive"/>
+                        <button type="button" class="btn btn-sm btn-success mb-2"
+                            @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service",
+                Icons.Add))</button>
+                        <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler"
+                            AppActive="appActive" />
                     </Tab>
                 }
             </TabSet>
         </div>
-        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode" PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
-            Title="@userConfig.GetText(appHandler.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")" DeleteMessage="@appHandler.Message" DeleteAllowed="appHandler.DeleteAllowed" AllowedRoles="@Roles.Modeller"/>
+        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode"
+            PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
+            Title="@userConfig.GetText(appHandler.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")"
+            DeleteMessage="@appHandler.Message" DeleteAllowed="appHandler.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
     }
 }
 else
 {
-    <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler" ClosingAction="SetRestoreTab"/>
+    <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler" ClosingAction="SetRestoreTab" />
 }
-<ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp"/>
-<ShowHistory @bind-Display="showHistory" Applications="apps" SelectedApp="selectedApp"/>
+<ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp" />
+<ShowHistory @bind-Display="showHistory" Applications="apps" SelectedApp="selectedApp" />
 
 @code
 {
@@ -104,7 +126,8 @@ else
     protected override async Task OnInitializedAsync()
     {
         // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin,
+Roles.Auditor });
         await InitAppList();
     }
 
@@ -112,12 +135,12 @@ else
     {
         if (appSelected && appHandler != null)
         {
-            if(!tabSelected)
+            if (!tabSelected)
             {
                 tabSelected = true;
                 appHandler.InitActiveTab();
             }
-            else if(restoreTab)
+            else if (restoreTab)
             {
                 restoreTab = false;
                 appHandler.RestoreTab(lastConn);
@@ -136,14 +159,15 @@ else
     {
         try
         {
-            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi,
+            true);
             if (apps.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
             }
             else
             {
-                if(AppId != null)
+                if (AppId != null)
                 {
                     await HandleLink();
                 }
@@ -163,7 +187,7 @@ else
     private async Task HandleLink()
     {
         FwoOwner? existingApp = apps.FirstOrDefault(a => a.ExtAppId == AppId);
-        if(existingApp != null)
+        if (existingApp != null)
         {
             selectedApp = existingApp;
         }
@@ -179,17 +203,18 @@ else
         {
             appSelected = false;
             selectedApp = newApp;
-            bool isOwner = authenticationStateTask!.Result.User.IsInRole(Roles.Modeller) && userConfig.User.Ownerships.Contains(selectedApp.Id);
+            bool isOwner = authenticationStateTask!.Result.User.IsInRole(Roles.Modeller) &&
+            userConfig.User.Ownerships.Contains(selectedApp.Id);
             appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner);
             await appHandler.Init();
             appActive = selectedApp.Active;
-            if(isOwner)
+            if (isOwner)
             {
                 apiConnection.SetRole(Roles.Modeller);
             }
             else
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor});
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor });
             }
             appSelected = true;
             tabSelected = false;
@@ -203,7 +228,7 @@ else
 
     private async Task InitConn()
     {
-        if(ConnId != null && int.TryParse(ConnId, out int connectionId))
+        if (ConnId != null && int.TryParse(ConnId, out int connectionId))
         {
             ModellingConnection? selectedConn = appHandler?.Connections.FirstOrDefault(c => c.Id == connectionId);
             if (selectedConn != null)
@@ -230,8 +255,107 @@ else
         NavigationManager.NavigateTo($"/report/generation/{selectedApp.Id}");
     }
 
-    private async Task ExtRequest()
+    private async Task RequestFwChange()
     {
+        SCTicket ticket = new("test ticket 1", TicketPriority.High);
+        ConfigData? configData;
+        string extTicketingSystemUrl = "";
+        string ticketTemplate = "";
+        string taskTemplate = "";
 
+        // mockup
+
+        List<NetworkObject> sources = new()
+        {
+            new()
+                {
+                    Id = 42,
+                    Name = "srv1",
+                    Type = new NetworkObjectType(){ Name = ObjectType.Host },
+                    IP = "1.2.3.4"
+                }
+        };
+
+        List<NetworkObject> destinations = new()
+        {
+            new()
+            {
+                Id = 4711,
+                Name = "srv1",
+                Type = new NetworkObjectType(){ Name = ObjectType.Host },
+                IP = "5.5.5.5"
+            }
+        };
+
+        List<NetworkService> svcs = new()
+        {        
+            new()
+            {
+                Id = 1234,
+                Name = "svcX",
+                Type = new NetworkServiceType(){ Name = ServiceType.SimpleService },
+                DestinationPort = 112,
+                Protocol = new NetworkProtocol(){Id = 50, Name = "ESP"}
+            }
+        };
+
+        // adding access request
+        ticket.AddTask(sources, svcs, destinations);
+
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            List<ExternalTicketSystem> extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new();
+            if (extTicketSystems.Count()>0)
+            {
+                RestResponse<int> ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystems.First(), appHandler.Connections);
+                if (ticketIdResponse.StatusCode != HttpStatusCode.OK)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("xxx"), userConfig.GetText("xxx"), true);
+                }
+                else
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("xxx"), "created ticket: " + ticketIdResponse.Data, true);                    
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+
+
+
+/*
+        if (appHandler?.Connections != null && appHandler?.Connections.Count()>0)
+        {
+            if (appHandler.Connections.First() != null)
+            {
+                ModellingConnection firstConn = appHandler.Connections.First();
+                //ticket.AddTask(FirstConn.SourceAppServers[0], FirstConn.Services[0], FirstConn.DestinationAppServers[0]);
+                //ticketNumber = ticket.CreateTicketInTufin();
+            }
+
+            foreach (Connection conn in appHandler.Connections)
+            {
+            SCTicket ticket = new (conn);
+            ticketNumber = ticket.Create();
+            }
+            
+
+            
+            foreach conn in appHandler.conns
+            create ticket to create objects??
+            store these tickets with conn?
+
+            SCTicket ticket = new (conn);
+            ticketNumber = ticket.Create();
+            store ticketNumber with conn with state = open
+
+            in MW: create scheduler to check each conn that has open tickets
+
+
+        }
+*/
     }
 }

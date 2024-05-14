@@ -109,6 +109,7 @@ insert into config (config_key, config_value, config_user) VALUES ('impChangeNot
 insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifyType', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifySleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifyStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('extTicketSystems', '[{"Url":"","TicketTemplate":"{}", "TasksTemplates": "{}" }]', 0);
 
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');

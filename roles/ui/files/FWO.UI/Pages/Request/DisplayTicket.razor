@@ -90,14 +90,12 @@
                     </div>
                 </div>
                 <div class="col-sm-12 mt-2">
-                    <div class="form-group row justify-content-center">
+                    <div class="btn-group">
                         @foreach(var action in offeredActions)
                         {
                             @if(!ReqHandler.ReadOnlyMode || RequestStateAction.IsReadonlyType(action.ActionType))
                             {
-                                <div>
-                                    <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                                </div>
+                                <button type="button" class="btn btn-sm btn-dark ml-13" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
                         }
                     </div>
@@ -262,7 +260,7 @@
 
     private async Task PerformAction(RequestStateAction action)
     {
-        await ReqHandler.ActionHandler.PerformAction(action, ReqHandler.ActTicket, RequestObjectScopes.Ticket);
+        await ReqHandler.ActionHandler.PerformAction(action, ReqHandler.ActTicket, RequestObjectScopes.Ticket, null, ReqHandler.ActTicket.Id);
         await ResetParent();
     }
 

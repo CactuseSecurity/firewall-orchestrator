@@ -1,0 +1,14 @@
+mutation updateConnectionPublish(
+  $id: Int!
+  $isPublished: Boolean
+  $isRequested: Boolean
+  ) {
+  update_modelling_connection_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      is_requested: $isRequested
+      is_published: $isPublished
+  }) {
+    UpdatedId: id
+  }
+}

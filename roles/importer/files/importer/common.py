@@ -350,7 +350,9 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
                     config = json.load(json_file)
     except requests.exceptions.RequestException:
         try:
+            # check if response "r" is defined:
             r
+            
             error_string = 'got HTTP status code{code} while trying to read config file from URL {filename}'.format(code=str(r.status_code), filename=filename)
         except NameError:
             error_string = 'got error while trying to read config file from URL {filename}'.format(filename=filename)

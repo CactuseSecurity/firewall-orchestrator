@@ -16,7 +16,6 @@ namespace FWO.Ui.Services
         public List<ModellingAppRole> AppRoles { get; set; } = [];
         public ModellingAppRole ActAppRole { get; set; } = new();
         public List<ModellingAppServer> AppServersInArea { get; set; } = [];
-        public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = [];
         public List<ModellingAppServer> AppServerToAdd { get; set; } = [];
         public List<ModellingAppServer> AppServerToDelete { get; set; } = [];
         public ModellingNamingConvention NamingConvention = new();

@@ -20,16 +20,13 @@ namespace FWO.Ui.Services
         public List<ModellingNwGroupWrapper> AvailableSelectedObjects { get; set; } = [];
         public List<ModellingNwGroupWrapper> AvailableCommonAreas { get; set; } = [];
         public List<CommonAreaConfig> CommonAreaConfigItems { get; set; } = [];
-        public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = [];
         public List<ModellingServiceGroup> AvailableServiceGroups { get; set; } = [];
-        public List<ModellingService> AvailableServices { get; set; } = [];
-        public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = [];
-
+    
         public string InterfaceName = "";
 
-        public bool srcReadOnly { get; set; } = false;
-        public bool dstReadOnly { get; set; } = false;
-        public bool svcReadOnly { get; set; } = false;
+        public bool SrcReadOnly { get; set; } = false;
+        public bool DstReadOnly { get; set; } = false;
+        public bool SvcReadOnly { get; set; } = false;
 
         public bool SearchNWObjectMode = false;
         public bool RemoveNwObjectMode = false;
@@ -257,7 +254,6 @@ namespace FWO.Ui.Services
 
         public async Task<long> CreateNewRequestedInterface(long ticketId, bool asSource, string name, string reason)
         {
-            //apiConnection.SetProperRole(user, new List<string> { Roles.Modeller, Roles.Admin });
             ActConn.TicketId = ticketId;
             ActConn.Name = name + " (Ticket: "+ ActConn.TicketId.ToString() + ")";
             ActConn.Reason = $"{userConfig.GetText("from_ticket")} {ticketId} ({userConfig.GetText("U9012")}): \r\n{reason}";
@@ -275,7 +271,6 @@ namespace FWO.Ui.Services
 
             ActConn.AppId = RequesterId;
             await AddToPreselectedList(ActConn);
-            //apiConnection.SwitchBack();
             return ActConn.Id;
         }
 
@@ -413,14 +408,14 @@ namespace FWO.Ui.Services
         public void InterfaceToConn(ModellingConnection interf)
         {
             InterfaceName = interf.Name ?? "";
-            srcReadOnly = interf.SourceFilled();
-            dstReadOnly = interf.DestinationFilled();
-            svcReadOnly = true;
+            SrcReadOnly = interf.SourceFilled();
+            DstReadOnly = interf.DestinationFilled();
+            SvcReadOnly = true;
             ActConn.IsInterface = false;
             ActConn.UsedInterfaceId = interf.Id;
             ActConn.InterfaceIsRequested = interf.IsRequested;
             ActConn.TicketId = interf.TicketId;
-            if(srcReadOnly)
+            if(SrcReadOnly)
             {
                 ActConn.SourceAppServers = new List<ModellingAppServerWrapper>(interf.SourceAppServers){};
                 ActConn.SourceAppRoles = new List<ModellingAppRoleWrapper>(interf.SourceAppRoles){};
@@ -441,14 +436,14 @@ namespace FWO.Ui.Services
         public void RemoveInterf()
         {
             InterfaceName = "";
-            if(srcReadOnly)
+            if(SrcReadOnly)
             {
                 ActConn.SourceAppServers = [];
                 ActConn.SourceAppRoles = [];
                 ActConn.SourceNwGroups = [];
                 ActConn.SrcFromInterface = false;
             }
-            if(dstReadOnly)
+            if(DstReadOnly)
             {
                 ActConn.DestinationAppServers = [];
                 ActConn.DestinationAppRoles = [];
@@ -460,9 +455,9 @@ namespace FWO.Ui.Services
             ActConn.UsedInterfaceId = null;
             ActConn.InterfaceIsRequested = false;
             ActConn.TicketId = null;
-            srcReadOnly = false;
-            dstReadOnly = false;
-            svcReadOnly = false;
+            SrcReadOnly = false;
+            DstReadOnly = false;
+            SvcReadOnly = false;
         }
 
         public void RequestRemovePreselectedInterface(ModellingConnection interf)
@@ -898,33 +893,33 @@ namespace FWO.Ui.Services
         {
             if(ActConn.IsInterface)
             {
-                dstReadOnly = SrcFix || SrcFilledInWork();
-                srcReadOnly = DstFix || DstFilledInWork();
-                svcReadOnly = false;
+                DstReadOnly = SrcFix || SrcFilledInWork();
+                SrcReadOnly = DstFix || DstFilledInWork();
+                SvcReadOnly = false;
             }
             else if (ActConn.UsedInterfaceId != null)
             {
-                srcReadOnly = ActConn.SrcFromInterface;
-                dstReadOnly = ActConn.DstFromInterface;
-                svcReadOnly = true;
+                SrcReadOnly = ActConn.SrcFromInterface;
+                DstReadOnly = ActConn.DstFromInterface;
+                SvcReadOnly = true;
             }
             else
             {
-                srcReadOnly = false;
-                dstReadOnly = false;
-                svcReadOnly = false;
+                SrcReadOnly = false;
+                DstReadOnly = false;
+                SvcReadOnly = false;
             }
             return true;
         }
 
         public bool SrcDropForbidden()
         {
-            return srcReadOnly || (ActConn.IsInterface && DstFilledInWork());
+            return SrcReadOnly || (ActConn.IsInterface && DstFilledInWork());
         }
 
         public bool DstDropForbidden()
         {
-            return dstReadOnly || (ActConn.IsInterface && SrcFilledInWork());
+            return DstReadOnly || (ActConn.IsInterface && SrcFilledInWork());
         }
 
         public bool SrcFilledInWork(int dummyARCount = 0)
@@ -986,15 +981,15 @@ namespace FWO.Ui.Services
                 }
                 if(CheckConn())
                 {
-                    if(!srcReadOnly)
+                    if(!SrcReadOnly)
                     {
                         SyncSrcChanges();
                     }
-                    if(!dstReadOnly)
+                    if(!DstReadOnly)
                     {
                         SyncDstChanges();
                     }
-                    if(!svcReadOnly)
+                    if(!SvcReadOnly)
                     {
                         SyncSvcChanges();
                     }

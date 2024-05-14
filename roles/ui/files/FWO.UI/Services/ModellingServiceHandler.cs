@@ -9,8 +9,6 @@ namespace FWO.Ui.Services
     public class ModellingServiceHandler : ModellingHandlerBase
     {
         public ModellingService ActService { get; set; } = new();
-        public List<ModellingService> AvailableServices { get; set; } = new();
-        public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
         private ModellingService ActServiceOrig { get; set; } = new();
 
 

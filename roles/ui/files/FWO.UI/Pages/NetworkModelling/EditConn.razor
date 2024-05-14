@@ -74,7 +74,7 @@
             <div class="form-group row">
                 <div class="col-sm-4">
                     <h6>@(userConfig.GetText("source"))</h6>
-                    @if(ConnHandler.ReadOnly || ConnHandler.srcReadOnly)
+                    @if(ConnHandler.ReadOnly || ConnHandler.SrcReadOnly)
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.SrcFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.SourceFilled()))
                         {
@@ -156,7 +156,7 @@
                 </div>
                 <div class="col-sm-4">
                     <h6>@(userConfig.GetText("service"))</h6>
-                    @if(ConnHandler.ReadOnly || ConnHandler.svcReadOnly)
+                    @if(ConnHandler.ReadOnly || ConnHandler.SvcReadOnly)
                     {
                         @if(ConnHandler.ActConn.InterfaceIsRequested || ConnHandler.ActConn.IsRequested)
                         {
@@ -215,7 +215,7 @@
                 </div>
                 <div class="col-sm-4">
                     <h6>@(userConfig.GetText("destination"))</h6>
-                    @if(ConnHandler.ReadOnly || ConnHandler.dstReadOnly)
+                    @if(ConnHandler.ReadOnly || ConnHandler.DstReadOnly)
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.DstFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.DestinationFilled()))
                         {

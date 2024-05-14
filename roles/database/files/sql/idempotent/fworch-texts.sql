@@ -5854,7 +5854,7 @@ INSERT INTO txt VALUES ('H9051', 'English', 'Request new interface: If external 
 ');
 INSERT INTO txt VALUES ('H9052', 'German',  'Der beauftragte Modellierer kann die angefragte Schnittstelle durch eine bereits vorhandene ersetzen:
     <ul>
-        <li>Beim Editieren der beantragten Schnittstelle wird in der Bibliothek unten eine Liste der eigenen Schnittestellen angeboten, von der eine per Schaltfl&auml;che oder Drag&Drop eine ausgew&auml;hlt werden kann.</li>
+        <li>Beim Editieren der beantragten Schnittstelle wird in der Bibliothek unten eine Liste der eigenen Schnittstellen angeboten, von der eine per Schaltfl&auml;che oder Drag&Drop ausgew&auml;hlt werden kann.</li>
         <li>Entspricht die ausgew&auml;hlte Schnittstelle dem Typ (Quelle oder Ziel) der beantragten, wird sie in einem neuen Fenster dargestellt.</li>
         <li>Beim Speichern werden
             <ul>

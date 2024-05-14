@@ -17,7 +17,10 @@ namespace FWO.Ui.Services
         protected Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
         public List<ModellingAppServer> AvailableAppServers { get; set; } = [];
-        
+        public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = [];
+        public List<ModellingService> AvailableServices { get; set; } = [];
+        public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = [];
+
         public bool ReadOnly = false;
         public bool IsOwner { get; set; } = true;
         public string Message { get; set; } = "";
@@ -307,7 +310,7 @@ namespace FWO.Ui.Services
             string? ownerString = authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners")?.Value;
             if(ownerString != null)
             {
-                string[] separatingStrings = { ",", "{", "}" };
+                string[] separatingStrings = [",", "{", "}"];
                 string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
             }

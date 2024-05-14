@@ -165,7 +165,9 @@ namespace FWO.Ui.Services
             // {
             //     ModellingConnection proposedInterface = new(){ IsInterface = true, IsRequested = true, TicketId = requestHandler.ActTicket.Id };
             //     ModellingConnectionHandler ConnHandler = new (apiConnection, requestHandler.userConfig, requestHandler.ActReqTask.Owners.First().Owner, new(), proposedInterface, true, false, DefaultInit.DoNothing, false);
+            //     apiConnection.SetProperRole(user, [Roles.Modeller, Roles.Admin]);
             //     await ConnHandler.CreateNewRequestedInterface();
+            //     apiConnection.SwitchBack());
             // }
             // catch(Exception exc)
             // {
@@ -257,7 +259,7 @@ namespace FWO.Ui.Services
                 FwoOwner? owner = requestHandler.ActReqTask.Owners?.First()?.Owner;
                 if(owner != null)
                 {
-                    apiConnection.SetProperRole(requestHandler.AuthUser, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
+                    apiConnection.SetProperRole(requestHandler.AuthUser, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
                     ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == requestHandler.GetConnId());
                     if(conn != null)

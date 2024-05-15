@@ -1,65 +1,71 @@
 using FWO.Api.Data;
-using FWO.Tufin.SecureChange;
 
 namespace FWO.Tufin.SecureChange
 {
 
-
 	public class ExternalAccessRequestTicketTask : RequestReqTask
 	{
-
-		private List<NetworkUser>? SourceUsers = [];
-		private List<NetworkUser>? DestinationUsers = [];
-		private List<NetworkObject> Sources = [];
-		private List<NetworkService> Services = [];
-		private List<NetworkObject> Destinations = [];
+		private ModellingConnection Connection = new();
 
 		// mockup:
 		private string Action = "accept";
-		//private string Reason = "reasoning ...";
 		private string Logging = "Ja";
 
 		private string EndDate = "";
-		private string AppId = "APP-4711";
+		// private string AppId = "APP-4711";
 		private string ComDocumented = "false";
-		private string TicketText = "";
 				
 		private TicketTaskType TaskType = TicketTaskType.AccessRequest;
 
-		public string FillTaskTemplate(string taskTemplate)
+		public ExternalAccessRequestTicketTask()
+		{
+		}
+
+		public ExternalAccessRequestTicketTask(ModellingConnection modellingConnection)
+		{
+			Connection = modellingConnection;
+		}
+
+
+		public string FillTaskTemplate(string tasksTemplate)
 		{			
-			return TicketText.Replace("@@TASKS@@", taskTemplate)
-				.Replace("@@USERS@@", SourceUsers.ToString())
-				.Replace("@@SOURCES@@", Sources.ToString())
-				.Replace("@@DESTINATIONS@@", Destinations.ToString())
-				.Replace("@@SERVICES@@", Services.ToString())
+			return tasksTemplate
+				.Replace("@@USERS@@", "[]") // data not provided yet
+				.Replace("@@SOURCES@@", ConvertNetworkObjectWrapperssToTufinJsonString(Connection.SourceAppServers, "source"))
+				.Replace("@@DESTINATIONS@@", ConvertNetworkObjectWrapperssToTufinJsonString(Connection.SourceAppServers, "destination"))
+				.Replace("@@SERVICES@@", ConvertNetworkServiceWrapperssToTufinJsonString(Connection.Services))
 				.Replace("@@ACTION@@", Action)
 				.Replace("@@REASON@@", Reason)
 				.Replace("@@LOGGING@@", Logging)
 				.Replace("@@ENDDATE@@", EndDate)
-				.Replace("@@APPID@@", AppId)
+				.Replace("@@APPID@@", Connection.App.ExtAppId)
 				.Replace("@@COM_DOCUMENTED@@", ComDocumented);
-		
-		}
-		
-		// TODO:  implement Users, Action, Reason, Logging, EndDate, AppId, ComDocumented
-
-		public ExternalAccessRequestTicketTask(ModellingConnection conn)
-
-		{
-			// Sources = conn.SourceNwGroups.All();
-			// Destinations = conn.DestinationNwGroups.All();
-			// Services = conn.Services.All( _ => _);
 		}
 
-		public ExternalAccessRequestTicketTask(List<NetworkObject> sources, List<NetworkService> services, List<NetworkObject> destinations)
-
+		private string ConvertNetworkObjectWrapperssToTufinJsonString(List<ModellingAppServerWrapper> nwObjects, string nwObjField = "source")
 		{
-			Sources = sources;
-			Destinations = destinations;
-			Services = services;
+			string result = "[]";
+			// TODO: implement
+			return result;
+		}
+
+		private string ConvertNetworkServiceWrapperssToTufinJsonString(List<ModellingServiceWrapper> services)
+		{
+			string result = "[";
+			foreach (ModellingServiceWrapper svc in services)
+			{
+				result += $@"
+				{{
+					""@type"": ""PREDEFINED"", 
+					""protocol"": ""{svc.Content.ProtoId}"", 
+					""port"": {svc.Content.Port},
+					""predefined_name"": ""{svc.Content.Name}""
+				}},";
+			}
+			result = result.TrimEnd(',');
+			result += "]";
+			return result;
 		}
 
 	}
 }
-

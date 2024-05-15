@@ -257,58 +257,29 @@ Roles.Auditor });
 
     private async Task RequestFwChange()
     {
-        SCTicket ticket = new("test ticket 1", TicketPriority.High);
+        // read external ticketing system information from config
         ConfigData? configData;
-        string extTicketingSystemUrl = "";
-        string ticketTemplate = "";
-        string taskTemplate = "";
-
-        // mockup
-
-        List<NetworkObject> sources = new()
-        {
-            new()
-                {
-                    Id = 42,
-                    Name = "srv1",
-                    Type = new NetworkObjectType(){ Name = ObjectType.Host },
-                    IP = "1.2.3.4"
-                }
-        };
-
-        List<NetworkObject> destinations = new()
-        {
-            new()
-            {
-                Id = 4711,
-                Name = "srv1",
-                Type = new NetworkObjectType(){ Name = ObjectType.Host },
-                IP = "5.5.5.5"
-            }
-        };
-
-        List<NetworkService> svcs = new()
-        {        
-            new()
-            {
-                Id = 1234,
-                Name = "svcX",
-                Type = new NetworkServiceType(){ Name = ServiceType.SimpleService },
-                DestinationPort = 112,
-                Protocol = new NetworkProtocol(){Id = 50, Name = "ESP"}
-            }
-        };
-
-        // adding access request
-        ticket.AddTask(sources, svcs, destinations);
+        List<ExternalTicketSystem> extTicketSystems = new();
 
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            List<ExternalTicketSystem> extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new();
-            if (extTicketSystems.Count()>0)
+            extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+
+        // build ticket
+        SCTicket ticket = new(appHandler.Connections, "test ticket 1", TicketPriority.High);
+
+        // create external ticket
+        if (extTicketSystems.Count()>0)
+        {
+            try
             {
-                RestResponse<int> ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystems.First(), appHandler.Connections);
+                RestResponse<int> ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystems.First());
                 if (ticketIdResponse.StatusCode != HttpStatusCode.OK)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("xxx"), userConfig.GetText("xxx"), true);
@@ -318,44 +289,20 @@ Roles.Auditor });
                     DisplayMessageInUi(null, userConfig.GetText("xxx"), "created ticket: " + ticketIdResponse.Data, true);                    
                 }
             }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
-        }
-
-
-
-/*
-        if (appHandler?.Connections != null && appHandler?.Connections.Count()>0)
-        {
-            if (appHandler.Connections.First() != null)
+            catch (Exception exception)
             {
-                ModellingConnection firstConn = appHandler.Connections.First();
-                //ticket.AddTask(FirstConn.SourceAppServers[0], FirstConn.Services[0], FirstConn.DestinationAppServers[0]);
-                //ticketNumber = ticket.CreateTicketInTufin();
+                DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
             }
-
-            foreach (Connection conn in appHandler.Connections)
-            {
-            SCTicket ticket = new (conn);
-            ticketNumber = ticket.Create();
-            }
-            
-
-            
-            foreach conn in appHandler.conns
-            create ticket to create objects??
-            store these tickets with conn?
-
-            SCTicket ticket = new (conn);
-            ticketNumber = ticket.Create();
-            store ticketNumber with conn with state = open
-
-            in MW: create scheduler to check each conn that has open tickets
-
-
         }
-*/
+
+        // TODO: 
+        // create object tickets
+        // prevent Admins from requesting tickets
+        // hide button fore requesting tickets?
+        // store ticketNumber 
+        // in MW: create scheduler to check each ticket if they have been closed
+        // ceate internal ticket for each ext ticket
+        // mark closed tickets as "implemented" in internal tickets
+
     }
 }

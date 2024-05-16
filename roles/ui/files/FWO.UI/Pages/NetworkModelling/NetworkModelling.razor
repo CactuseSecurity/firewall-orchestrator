@@ -282,16 +282,16 @@ Roles.Auditor });
                 RestResponse<int> ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystems.First());
                 if (ticketIdResponse.StatusCode != HttpStatusCode.OK)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("xxx"), userConfig.GetText("xxx"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse.StatusDescription + ", " + ticketIdResponse.ErrorMessage, true);
                 }
                 else
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("xxx"), "created ticket: " + ticketIdResponse.Data, true);                    
+                    DisplayMessageInUi(null, userConfig.GetText("ext_ticket_success"), userConfig.GetText("ext_ticket_number") + ": " + ticketIdResponse.Data, true);                    
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+                DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_fail"), userConfig.GetText("E5301"), false);
             }
         }
 

@@ -4,6 +4,7 @@ using RestSharp;
 using RestSharp.Serializers.NewtonsoftJson;
 using RestSharp.Serializers;
 using Microsoft.IdentityModel.Tokens;
+using FWO.Logging;
 
 namespace FWO.Tufin.SecureChange
 {
@@ -140,7 +141,7 @@ public class SCTicket : ExternalTicket
 		JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
 		config.UseSerializer(() => serializer);
 	}
-	public async Task<RestResponse<int>> CreateTicketInTufin(ExternalTicketSystem tufinSystem, string authHeader = "")
+	public async Task<RestResponse<int>> CreateTicketInTufin(ExternalTicketSystem tufinSystem)
 
 	{
 		string ticketText = "";
@@ -169,14 +170,31 @@ public class SCTicket : ExternalTicket
 			.Replace("@@TASKS@@", taskText);
 
 		// build API call
-		RestRequest request = new RestRequest("tickets.json", Method.Post);
+		RestRequest request = new("tickets.json", Method.Post);
 		request.AddJsonBody(ticketText);
 		request.AddHeader("Content-Type", "application/json");
-		request.AddHeader("Authorization", authHeader);
-		RestClientOptions restClientOptions = new RestClientOptions();
+		request.AddHeader("Authorization", tufinSystem.Authorization);
+		RestClientOptions restClientOptions = new();
 		restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
 		restClientOptions.BaseUrl = new Uri(tufinSystem.Url);
-		RestClient restClient = new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
+		RestClient restClient = new(restClientOptions, null, ConfigureRestClientSerialization);
+
+		// Debugging SecureChange API call
+		string headers = "";
+		string body = "";
+		foreach (Parameter p in request.Parameters)
+		{
+			if (p.Name == "")
+			{
+				body = $"--data '{p.Value}'";
+			}
+			else
+			{
+				if (p.Name != "Authorization") // avoid logging of credentials
+					headers += $"--header '{p.Name}: {p.Value}' ";
+			}
+		}
+		Log.WriteDebug("API", $"Sending API Call to SecureChange:\ncurl --insecure --request {request.Method} --url {restClient.Options.BaseUrl} {body} {headers} ");
 
 		// send API call
 		return await restClient.ExecuteAsync<int>(request);

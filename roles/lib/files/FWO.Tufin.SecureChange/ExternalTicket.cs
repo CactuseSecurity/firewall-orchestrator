@@ -11,9 +11,7 @@ namespace FWO.Tufin.SecureChange
 	abstract public class ExternalTicket : RequestTicket
 
 	{
-
-		public List<ExternalAccessRequestTicketTask> TicketTasks = new();
-		protected TicketPriority Priority = TicketPriority.Normal;
+		public List<ExternalAccessRequestTicketTask> TicketTasks = [];
 		protected string OnBehalfOfUser = "";
 		// protected string OnBehalfOfUser = """"requester_id": 55,"""";
 
@@ -91,8 +89,7 @@ namespace FWO.Tufin.SecureChange
 									},
 									{
 										"@xsi.type": "date",
-										"name": "Regel befristen bis:",
-										"date": "@@ENDDATE@@"
+										"name": "Regel befristen bis:"
 									},
 									{
 										"@xsi.type": "text_field",
@@ -102,7 +99,7 @@ namespace FWO.Tufin.SecureChange
 									{
 										"@xsi.type": "checkbox",
 										"name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
-										"value":  "@@COM_DOCUMENTED@@"
+										"value":  @@COM_DOCUMENTED@@
 									},
 									{
 										"@xsi.type": "drop_down_list",
@@ -117,7 +114,6 @@ namespace FWO.Tufin.SecureChange
 public class SCTicket : ExternalTicket
 {
 	private string Subject { get; set; } = "";
-	private TicketPriority Priority { get; set; } = TicketPriority.Normal;
 	private string OnBehalfUser { get; set; } = "";
 
 	public SCTicket(List<ModellingConnection> connections, string subject, TicketPriority priority = TicketPriority.Normal)
@@ -128,7 +124,7 @@ public class SCTicket : ExternalTicket
 			TicketTasks.Add(new ExternalAccessRequestTicketTask(conn));
 		}
 		Subject = subject;
-		Priority = priority;
+		Priority = (int) priority;
 	}
 
 	public void AddTask(ModellingConnection connection)
@@ -138,7 +134,7 @@ public class SCTicket : ExternalTicket
 	}
 	private void ConfigureRestClientSerialization(SerializerConfig config)
 	{
-		JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
+		JsonNetSerializer serializer = new (); // Case insensivitive is enabled by default
 		config.UseSerializer(() => serializer);
 	}
 	public async Task<RestResponse<int>> CreateTicketInTufin(ExternalTicketSystem tufinSystem)

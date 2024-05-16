@@ -8,11 +8,11 @@ namespace FWO.Tufin.SecureChange
 		private ModellingConnection Connection = new();
 
 		// mockup:
-		private string Action = "accept";
+		private string Action = "Accept";
 		private string Logging = "Ja";
-
 		private string EndDate = "";
 		// private string AppId = "APP-4711";
+		//private string Reason = "der Grund ..."
 		private string ComDocumented = "false";
 				
 		private TicketTaskType TaskType = TicketTaskType.AccessRequest;
@@ -30,7 +30,7 @@ namespace FWO.Tufin.SecureChange
 		public string FillTaskTemplate(string tasksTemplate)
 		{			
 			return tasksTemplate
-				.Replace("@@USERS@@", "[]") // data not provided yet
+				.Replace("@@USERS@@", "[\"Any\"]") // data not provided yet
 				.Replace("@@SOURCES@@", ConvertNetworkObjectWrapperssToTufinJsonString(Connection.SourceAppServers, "source"))
 				.Replace("@@DESTINATIONS@@", ConvertNetworkObjectWrapperssToTufinJsonString(Connection.SourceAppServers, "destination"))
 				.Replace("@@SERVICES@@", ConvertNetworkServiceWrapperssToTufinJsonString(Connection.Services))
@@ -42,14 +42,14 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@COM_DOCUMENTED@@", ComDocumented);
 		}
 
-		private string ConvertNetworkObjectWrapperssToTufinJsonString(List<ModellingAppServerWrapper> nwObjects, string nwObjField = "source")
+		static private string ConvertNetworkObjectWrapperssToTufinJsonString(List<ModellingAppServerWrapper> nwObjects, string nwObjField = "source")
 		{
 			string result = "[]";
 			// TODO: implement
 			return result;
 		}
 
-		private string ConvertNetworkServiceWrapperssToTufinJsonString(List<ModellingServiceWrapper> services)
+		static private string ConvertNetworkServiceWrapperssToTufinJsonString(List<ModellingServiceWrapper> services)
 		{
 			string result = "[";
 			foreach (ModellingServiceWrapper svc in services)

@@ -180,8 +180,7 @@ insert into config (config_key, config_value, config_user) VALUES ('extTicketSys
 									},
 									{
 										"@xsi.type": "date",
-										"name": "Regel befristen bis:",
-										"date": "@@ENDDATE@@"
+										"name": "Regel befristen bis:"
 									},
 									{
 										"@xsi.type": "text_field",
@@ -191,7 +190,7 @@ insert into config (config_key, config_value, config_user) VALUES ('extTicketSys
 									{
 										"@xsi.type": "checkbox",
 										"name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
-										"value":  "@@COM_DOCUMENTED@@"
+										"value":  @@COM_DOCUMENTED@@
 									},
 									{
 										"@xsi.type": "drop_down_list",

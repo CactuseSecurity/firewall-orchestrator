@@ -168,7 +168,7 @@
         else if(ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.IsRequested)
         {
             <br><br>
-            <h5>@(userConfig.GetText("interfaces"))</h5>
+            <h5>@(userConfig.GetText("own_interfaces"))</h5>
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("C9010"))">
                 <div class="col-sm-10">
                     <DraggableList AllElements="ConnHandler.Connections.Where(c => c.IsInterface && !c.IsRequested).ToList()" @bind-SelectedElements="selectedInterfaces" 

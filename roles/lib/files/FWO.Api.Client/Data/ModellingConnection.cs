@@ -48,26 +48,26 @@ namespace FWO.Api.Data
         public DateTime? CreationDate { get; set; }
 
         [JsonProperty("services"), JsonPropertyName("services")]
-        public List<ModellingServiceWrapper> Services { get; set; } = new();
+        public List<ModellingServiceWrapper> Services { get; set; } = [];
 
         [JsonProperty("service_groups"), JsonPropertyName("service_groups")]
-        public List<ModellingServiceGroupWrapper> ServiceGroups { get; set; } = new();
+        public List<ModellingServiceGroupWrapper> ServiceGroups { get; set; } = [];
 
         [JsonProperty("source_nwobjects"), JsonPropertyName("source_nwobjects")]
-        public List<ModellingAppServerWrapper> SourceAppServers { get; set; } = new();
+        public List<ModellingAppServerWrapper> SourceAppServers { get; set; } = [];
 
         [JsonProperty("source_approles"), JsonPropertyName("source_approles")]
-        public List<ModellingAppRoleWrapper> SourceAppRoles { get; set; } = new();
+        public List<ModellingAppRoleWrapper> SourceAppRoles { get; set; } = [];
 
         [JsonProperty("destination_nwobjects"), JsonPropertyName("destination_nwobjects")]
-        public List<ModellingAppServerWrapper> DestinationAppServers { get; set; } = new();
+        public List<ModellingAppServerWrapper> DestinationAppServers { get; set; } = [];
 
         [JsonProperty("destination_approles"), JsonPropertyName("destination_approles")]
-        public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = new();
+        public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = [];
 
         
-        public List<ModellingNwGroupWrapper> SourceNwGroups { get; set; } = new();
-        public List<ModellingNwGroupWrapper> DestinationNwGroups { get; set; } = new();
+        public List<ModellingNwGroupWrapper> SourceNwGroups { get; set; } = [];
+        public List<ModellingNwGroupWrapper> DestinationNwGroups { get; set; } = [];
         
 
         public bool SrcFromInterface { get; set; } = false;
@@ -167,7 +167,7 @@ namespace FWO.Api.Data
 
         public void ExtractNwGroups()
         {
-            SourceNwGroups = new();
+            SourceNwGroups = [];
             foreach(var nwGroup in SourceAppRoles)
             {
                 if(nwGroup.Content.GroupType != (int)ModellingTypes.ModObjectType.AppRole)
@@ -176,7 +176,7 @@ namespace FWO.Api.Data
                 }
             }
             SourceAppRoles = SourceAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ModObjectType.AppRole).ToList();
-            DestinationNwGroups = new();
+            DestinationNwGroups = [];
             foreach(var nwGroup in DestinationAppRoles)
             {
                 if(nwGroup.Content.GroupType != (int)ModellingTypes.ModObjectType.AppRole)

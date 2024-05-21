@@ -236,8 +236,6 @@
                                 </div>
                             </div>
                             break;
-                        case nameof(StateActionTypes.ExternalCall):
-                            break;
                         case nameof(StateActionTypes.SendEmail):
                             <div class="col-sm-4">
                                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
@@ -267,14 +265,6 @@
                                     </div>
                                 </div>
                             </div>
-                            break;
-                        case nameof(StateActionTypes.CreateConnection):
-                            break;
-                        case nameof(StateActionTypes.UpdateConnectionOwner):
-                            break;
-                        case nameof(StateActionTypes.UpdateConnectionRelease):
-                            break;
-                        case nameof(StateActionTypes.DisplayConnection):
                             break;
                         default:
                             break;
@@ -409,18 +399,8 @@ else
                 case nameof(StateActionTypes.TrafficPathAnalysis):
                     actPathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
                     break;
-                case nameof(StateActionTypes.ExternalCall):
-                    break;
                 case nameof(StateActionTypes.SendEmail):
                     actEmailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
-                    break;
-                case nameof(StateActionTypes.CreateConnection):
-                    break;
-                case nameof(StateActionTypes.UpdateConnectionOwner):
-                    break;
-                case nameof(StateActionTypes.UpdateConnectionRelease):
-                    break;
-                case nameof(StateActionTypes.DisplayConnection):
                     break;
                 default:
                     break;
@@ -454,18 +434,8 @@ else
                 case nameof(StateActionTypes.TrafficPathAnalysis):
                     actAction.ExternalParams = JsonSerializer.Serialize(actPathAnalysisParams);
                     break;
-                case nameof(StateActionTypes.ExternalCall):
-                    break;
                 case nameof(StateActionTypes.SendEmail):
                     actAction.ExternalParams = JsonSerializer.Serialize(actEmailActionParams);
-                    break;
-                case nameof(StateActionTypes.CreateConnection):
-                    break;
-                case nameof(StateActionTypes.UpdateConnectionOwner):
-                    break;
-                case nameof(StateActionTypes.UpdateConnectionRelease):
-                    break;
-                case nameof(StateActionTypes.DisplayConnection):
                     break;
                 default:
                     break;

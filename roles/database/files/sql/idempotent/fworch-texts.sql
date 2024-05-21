@@ -63,6 +63,8 @@ INSERT INTO txt VALUES ('UpdateConnectionOwner','German', 	'Verbindungseigent&uu
 INSERT INTO txt VALUES ('UpdateConnectionOwner','English', 	'Update Connection Owner');
 INSERT INTO txt VALUES ('UpdateConnectionRelease','German', 'Verbindung ver&ouml;ffentlichen');
 INSERT INTO txt VALUES ('UpdateConnectionRelease','English','Publish Connection');
+INSERT INTO txt VALUES ('UpdateConnectionReject','German',  'Schnittstelle ablehnen');
+INSERT INTO txt VALUES ('UpdateConnectionReject','English', 'Reject Interface');
 INSERT INTO txt VALUES ('DisplayConnection',    'German',   'Verbindung darstellen');
 INSERT INTO txt VALUES ('DisplayConnection',    'English',  'Display Connection');
 INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
@@ -187,6 +189,20 @@ INSERT INTO txt VALUES ('LastCommenter', 		'German',	'Letzter Kommentierender');
 INSERT INTO txt VALUES ('LastCommenter', 	    'English',	'Last commenter');
 INSERT INTO txt VALUES ('AllCommenters', 		'German',	'Alle Kommentierenden');
 INSERT INTO txt VALUES ('AllCommenters', 	    'English',	'All commenters');
+INSERT INTO txt VALUES ('Standard', 		    'German',	'Normal');
+INSERT INTO txt VALUES ('Standard', 	        'English',	'Standard');
+INSERT INTO txt VALUES ('InterfaceRequested', 	'German',	'Schnittstelle beantragt');
+INSERT INTO txt VALUES ('InterfaceRequested', 	'English',	'Interface requested');
+INSERT INTO txt VALUES ('InterfaceRejected',    'German',	'Schnittstelle abgelehnt');
+INSERT INTO txt VALUES ('InterfaceRejected', 	'English',	'Interface rejected');
+INSERT INTO txt VALUES ('Published',            'German',   'Ver&ouml;ffentlicht');
+INSERT INTO txt VALUES ('Published',            'English',  'Published');
+INSERT INTO txt VALUES ('Requested', 	        'German',	'Beantragt');
+INSERT INTO txt VALUES ('Requested', 	        'English',	'Requested');
+INSERT INTO txt VALUES ('Rejected',             'German',	'Abgelehnt');
+INSERT INTO txt VALUES ('Rejected', 	        'English',	'Rejected');
+INSERT INTO txt VALUES ('Internal',             'German',	'Intern');
+INSERT INTO txt VALUES ('Internal', 	        'English',	'Internal');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -1148,6 +1164,8 @@ INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnitts
 INSERT INTO txt VALUES ('requested_interface',  'English',	'Requested Interface');
 INSERT INTO txt VALUES ('interface_requested',  'German',	'Schnittstelle angefordert');
 INSERT INTO txt VALUES ('interface_requested',  'English',	'Interface requested');
+INSERT INTO txt VALUES ('own_interfaces',       'German',	'Eigene Schnittstellen');
+INSERT INTO txt VALUES ('own_interfaces',       'English',	'Own Interfaces');
 INSERT INTO txt VALUES ('use',                  'German', 	'Benutzen');
 INSERT INTO txt VALUES ('use',                  'English', 	'Use');
 INSERT INTO txt VALUES ('services_group', 	    'German',	'Dienstgruppe');
@@ -2785,7 +2803,7 @@ INSERT INTO txt VALUES ('C9006', 'English', 'Create this interface as source.');
 INSERT INTO txt VALUES ('C9007', 'German',  'Angefrage Schnittstelle - noch auf der Gegenseite zu modellieren!');
 INSERT INTO txt VALUES ('C9007', 'English', 'Requested interface - to be modelled in the counterpart!');
 INSERT INTO txt VALUES ('C9008', 'German',  'Angefrage Schnittstelle - bitte modellieren!');
-INSERT INTO txt VALUES ('C9008', 'English', 'Requested interface - please modell!');
+INSERT INTO txt VALUES ('C9008', 'English', 'Requested interface - please model!');
 INSERT INTO txt VALUES ('C9009', 'German',  'Mit der Ver&ouml;ffentlichung wird die Schnittstelle f&uuml;r andere Modellierer sicht- und nutzbar.
     Bei R&uuml;cknahme der Ver&ouml;ffentlichung &auml;ndert sich lediglich die Sichtbarkeit bei der Suche - f&uuml;r bereits vorhandene nutzende Verbindungen &auml;ndert sich nichts.
 ');
@@ -2794,6 +2812,8 @@ INSERT INTO txt VALUES ('C9009', 'English', 'By publishing the interface is visi
 ');
 INSERT INTO txt VALUES ('C9010', 'German',  'Angefrage Schnittstelle durch bereits vorhandene ersetzen.');
 INSERT INTO txt VALUES ('C9010', 'English', 'Replace requested by already existing interface.');
+INSERT INTO txt VALUES ('C9011', 'German',  'Angefrage Schnittstelle wurde abgelehnt.');
+INSERT INTO txt VALUES ('C9011', 'English', 'Requested interface was rejected.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.

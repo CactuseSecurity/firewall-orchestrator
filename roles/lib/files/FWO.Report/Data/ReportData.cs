@@ -4,9 +4,9 @@ namespace FWO.Report
 {
     public class ReportData
     {
-        public List<ManagementReport> ManagementData = new();
-        public List<OwnerReport> OwnerData = new();
-        public List<ModellingConnection> GlobalComSvc = new();
+        public List<ManagementReport> ManagementData = [];
+        public List<OwnerReport> OwnerData = [];
+        public List<ModellingConnection> GlobalComSvc = [];
         public ManagementReport GlobalStats = new();
 
 

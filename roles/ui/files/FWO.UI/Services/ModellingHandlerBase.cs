@@ -278,7 +278,7 @@ namespace FWO.Ui.Services
         public static async Task<List<FwoOwner>> GetOwnApps(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig,
             ApiConnection apiConnection, Action<Exception?, string, string, bool> DisplayMessageInUi, bool withConn = false)
         {
-            List<FwoOwner> apps = new();
+            List<FwoOwner> apps = [];
             try
             {
                 if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))

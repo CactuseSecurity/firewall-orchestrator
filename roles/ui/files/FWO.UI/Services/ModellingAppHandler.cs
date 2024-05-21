@@ -9,7 +9,7 @@ namespace FWO.Ui.Services
     public class ModellingAppHandler : ModellingHandlerBase
     {
         public ModellingConnectionHandler? connHandler;
-        public List<ModellingConnection> Connections = new();
+        public List<ModellingConnection> Connections = [];
         public ModellingConnection ConnToDelete = new();
         public bool AddConnMode = false;
         public bool EditConnMode = false;

@@ -188,7 +188,7 @@
                         }
                         else
                         {
-                            <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
+                            <div class="spinner-border" role="status"><span class="sr-only">@(userConfig.GetText("loading"))</span></div>
                         }
                         <br>
                     </Authorized>
@@ -214,7 +214,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
+        <span class="sr-only">@(userConfig.GetText("loading"))</span>
     </div>
 }
 

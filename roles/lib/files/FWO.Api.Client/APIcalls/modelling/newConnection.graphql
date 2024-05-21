@@ -9,6 +9,7 @@ mutation newConnection(
   $ticketId: bigint
   $creator: String
   $commonSvc: Boolean
+  $connState: String
   ) {
   insert_modelling_connection(objects: {
     name: $name
@@ -21,6 +22,7 @@ mutation newConnection(
     ticket_id: $ticketId
     creator: $creator
     common_service: $commonSvc
+    conn_state: $connState
   }) {
     returning {
       newId: id

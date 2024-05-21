@@ -200,7 +200,7 @@ namespace FWO.Ui.Services
                     {
                         await AssignOwnerInDb(returnId, owner.Owner.Id);
                     }
-                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
             }
             catch (Exception exception)
@@ -240,7 +240,7 @@ namespace FWO.Ui.Services
                 {
                     await UpdateReqElementsInDb(reqtask);
                     await UpdateOwnersInDb(reqtask);
-                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
             }
             catch (Exception exception)
@@ -905,7 +905,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
             }
             catch (Exception exception)

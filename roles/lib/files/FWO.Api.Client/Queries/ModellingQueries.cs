@@ -36,6 +36,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateConnection;
         public static readonly string updateConnectionOwner;
         public static readonly string updateConnectionPublish;
+        public static readonly string updateConnectionState;
         public static readonly string replaceUsedInterface;
         public static readonly string deleteConnection;
         public static readonly string addAppServerToConnection;
@@ -128,6 +129,7 @@ namespace FWO.Api.Client.Queries
                 updateConnection = File.ReadAllText(QueryPath + "modelling/updateConnection.graphql");
                 updateConnectionOwner = File.ReadAllText(QueryPath + "modelling/updateConnectionOwner.graphql");
                 updateConnectionPublish = File.ReadAllText(QueryPath + "modelling/updateConnectionPublish.graphql");
+                updateConnectionState = File.ReadAllText(QueryPath + "modelling/updateConnectionState.graphql");
                 replaceUsedInterface = File.ReadAllText(QueryPath + "modelling/replaceUsedInterface.graphql");
                 deleteConnection = File.ReadAllText(QueryPath + "modelling/deleteConnection.graphql");
                 addAppServerToConnection = File.ReadAllText(QueryPath + "modelling/addAppServerToConnection.graphql");

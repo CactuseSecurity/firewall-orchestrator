@@ -212,3 +212,4 @@ bugfix release:
 
 # 8.2.3 - 21.05.2024 DEVELOP
 - remove cascading delete for used interfaces 
+- new state field in connections

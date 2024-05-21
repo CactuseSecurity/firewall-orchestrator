@@ -68,11 +68,12 @@ namespace FWO.Ui.Services
             return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
         }
 
-        public static string DisplayReqInt(UserConfig userConfig, long? ticketId, bool otherOwner)
+        public static string DisplayReqInt(UserConfig userConfig, long? ticketId, bool otherOwner, bool rejected = false)
         {
-            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(otherOwner ? "C9007" : "C9008")}\"";
-            string content = $"{userConfig.GetText("interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
-            return $"<span class=\"text-danger\" {tooltip}><i>{content}</i></span>";
+            string tooltipKey = rejected ? "C9011": otherOwner ? "C9007" : "C9008";
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(tooltipKey)}\"";
+            string content = $"{userConfig.GetText(rejected ? "InterfaceRejected" : "interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
+            return $"<span class=\"{(rejected ? "text-danger" : "text-warning")}\" {tooltip}><i>{content}</i></span>";
         }
 
         protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text, int? applicationId)
@@ -185,6 +186,7 @@ namespace FWO.Ui.Services
                         if(interf[0].IsRequested)
                         {
                             conn.InterfaceIsRequested = true;
+                            conn.InterfaceIsRejected = interf[0].ConnState == ConState.Rejected.ToString();
                             conn.TicketId = interf[0].TicketId;
                         }
                         else
@@ -205,7 +207,15 @@ namespace FWO.Ui.Services
                             conn.Services = interf[0].Services;
                             conn.ServiceGroups = interf[0].ServiceGroups;
                         }
-                    }  
+                        if(interf[0].ConnState == ConState.Rejected.ToString())
+                        {
+                            conn.ConnState = ConState.InterfaceRejected.ToString();
+                        }
+                        else if(interf[0].ConnState == ConState.Requested.ToString())
+                        {
+                            conn.ConnState = ConState.InterfaceRequested.ToString();
+                        }
+                    }
                 }
             }
             catch (Exception exception)

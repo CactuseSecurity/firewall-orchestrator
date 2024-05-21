@@ -15,7 +15,8 @@ namespace FWO.Api.Data
         CreateConnection = 20,
         UpdateConnectionOwner = 21,
         UpdateConnectionRelease = 22,
-        DisplayConnection = 23
+        DisplayConnection = 23,
+        UpdateConnectionReject = 24
         // CreateReport = 30
     }
 

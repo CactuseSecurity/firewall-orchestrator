@@ -1338,7 +1338,8 @@ create table modelling.connection
 	common_service boolean default false,
 	is_published boolean default false,
 	creator Varchar,
-	creation_date timestamp default now()
+	creation_date timestamp default now(),
+	conn_state Varchar
 );
 
 create table modelling.selected_objects

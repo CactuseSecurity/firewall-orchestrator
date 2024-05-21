@@ -3,6 +3,21 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
+    public enum ConState
+    {
+        // Connections:
+        // Standard,
+        InterfaceRequested,
+        InterfaceRejected,
+        // DivergencyVarianceAnalysis,
+
+        // Interfaces:
+        // Published,
+        Requested,
+        // Internal,
+        Rejected
+    }
+
     public class ModellingConnection
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -47,6 +62,9 @@ namespace FWO.Api.Data
         [JsonProperty("creation_date"), JsonPropertyName("creation_date")]
         public DateTime? CreationDate { get; set; }
 
+        [JsonProperty("conn_state"), JsonPropertyName("conn_state")]
+        public string ConnState { get; set; } = "";
+
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<ModellingServiceWrapper> Services { get; set; } = [];
 
@@ -65,14 +83,13 @@ namespace FWO.Api.Data
         [JsonProperty("destination_approles"), JsonPropertyName("destination_approles")]
         public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = [];
 
-        
         public List<ModellingNwGroupWrapper> SourceNwGroups { get; set; } = [];
         public List<ModellingNwGroupWrapper> DestinationNwGroups { get; set; } = [];
         
-
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
         public bool InterfaceIsRequested { get; set; } = false;
+        public bool InterfaceIsRejected { get; set; } = false;
 
         public int OrderNumber { get; set; } = 0;
 
@@ -96,6 +113,7 @@ namespace FWO.Api.Data
            IsCommonService = conn.IsCommonService;
            Creator = conn.Creator;
            CreationDate = conn.CreationDate;
+           ConnState = conn.ConnState;
            Services = new List<ModellingServiceWrapper>(conn.Services);
            ServiceGroups = new List<ModellingServiceGroupWrapper>(conn.ServiceGroups);
            SourceAppServers = new List<ModellingAppServerWrapper>(conn.SourceAppServers);
@@ -107,6 +125,7 @@ namespace FWO.Api.Data
            SrcFromInterface = conn.SrcFromInterface;
            DstFromInterface = conn.DstFromInterface;
            InterfaceIsRequested = conn.InterfaceIsRequested;
+           InterfaceIsRejected = conn.InterfaceIsRejected;
         }
 
         public int CompareTo(ModellingConnection secondConnection)
@@ -137,24 +156,11 @@ namespace FWO.Api.Data
             return 0;
         }
 
-        public string DisplayWithOwner(FwoOwner owner)
+        public string DisplayNameWithOwner(FwoOwner owner)
         {
             return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";
         }
         
-        public string GetConnType()
-        {
-            if(IsInterface)
-            {
-                return "interface";
-            }
-            if(IsCommonService)
-            {
-                return "common_service";
-            }
-            return "connection";
-        }
-
         public bool SourceFilled()
         {
             return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0 || SourceNwGroups.Count > 0;
@@ -193,6 +199,7 @@ namespace FWO.Api.Data
             Name = Sanitizer.SanitizeOpt(Name, ref shortened);
             Reason = Sanitizer.SanitizeCommentOpt(Reason, ref shortened);
             Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
+            ConnState = Sanitizer.SanitizeMand(ConnState, ref shortened);
             return shortened;
         }
     }

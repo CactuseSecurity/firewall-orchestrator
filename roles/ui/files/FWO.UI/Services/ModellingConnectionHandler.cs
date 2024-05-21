@@ -6,6 +6,7 @@ using FWO.Api.Client.Queries;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Middleware.Client;
+using System.Data;
 
 
 namespace FWO.Ui.Services
@@ -281,7 +282,7 @@ namespace FWO.Ui.Services
                 FwoOwner? app = AllApps.FirstOrDefault(x => x.Id == inter.AppId);
                 if(app != null)
                 {
-                    return inter.DisplayWithOwner(app);
+                    return inter.DisplayNameWithOwner(app);
                 }
                 return inter.Name ?? "";
             }
@@ -414,6 +415,7 @@ namespace FWO.Ui.Services
             ActConn.IsInterface = false;
             ActConn.UsedInterfaceId = interf.Id;
             ActConn.InterfaceIsRequested = interf.IsRequested;
+            ActConn.InterfaceIsRejected = interf.ConnState == ConState.Rejected.ToString();
             ActConn.TicketId = interf.TicketId;
             if(SrcReadOnly)
             {
@@ -454,6 +456,7 @@ namespace FWO.Ui.Services
             ActConn.ServiceGroups = [];
             ActConn.UsedInterfaceId = null;
             ActConn.InterfaceIsRequested = false;
+            ActConn.InterfaceIsRejected = false;
             ActConn.TicketId = null;
             SrcReadOnly = false;
             DstReadOnly = false;
@@ -993,6 +996,7 @@ namespace FWO.Ui.Services
                     {
                         SyncSvcChanges();
                     }
+                    SetState();
                     if(AddMode)
                     {
                         await AddConnectionToDb();
@@ -1139,12 +1143,54 @@ namespace FWO.Ui.Services
             }
         }
 
+        private void SetState()
+        {
+            if(ActConn.IsInterface)
+            {
+                if(ActConn.ConnState != ConState.Rejected.ToString())
+                {
+                    if(ActConn.IsPublished)
+                    {
+                        // ActConn.ConnState = ConState.Published.ToString();
+                    }
+                    else if(ActConn.IsRequested)
+                    {
+                        ActConn.ConnState = ConState.Requested.ToString();
+                    }
+                    // else
+                    // {
+                    //     ActConn.ConnState = ConState.Internal.ToString();
+                    // }
+                }
+            }
+            else if(ActConn.UsedInterfaceId != null)
+            {
+                if(ActConn.InterfaceIsRejected)
+                {
+                    ActConn.ConnState = ConState.InterfaceRejected.ToString();
+                }
+                else if(ActConn.InterfaceIsRequested)
+                {
+                    ActConn.ConnState = ConState.InterfaceRequested.ToString();
+                }
+                // else
+                // {
+                //     ActConn.ConnState = ConState.Standard.ToString();
+                // }
+            }
+            else
+            {
+                // ActConn.ConnState = ConState.Standard.ToString();
+            }
+        }
+
         private async Task AddConnectionToDb(bool propose = false)
         {
             try
             {
                 int? appId = propose ? null : Application.Id;
                 int? proposedAppId = propose ? Application.Id : null;
+
                 var Variables = new
                 {
                     name = ActConn.Name,
@@ -1156,7 +1202,8 @@ namespace FWO.Ui.Services
                     isRequested = ActConn.IsRequested,
                     ticketId = ActConn.TicketId,
                     creator = userConfig.User.Name,
-                    commonSvc = ActConn.IsCommonService
+                    commonSvc = ActConn.IsCommonService,
+                    connState = ActConn.ConnState
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newConnection, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -1210,7 +1257,8 @@ namespace FWO.Ui.Services
                     usedInterfaceId = ActConn.UsedInterfaceId,
                     isRequested = ActConn.IsRequested,
                     isPublished = ActConn.IsPublished,
-                    commonSvc = ActConn.IsCommonService
+                    commonSvc = ActConn.IsCommonService,
+                    connState = ActConn.ConnState
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, ActConn.Id,

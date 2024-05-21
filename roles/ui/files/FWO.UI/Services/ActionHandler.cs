@@ -42,7 +42,7 @@ namespace FWO.Ui.Services
             return offeredActions;
         }
 
-        public async Task DoStateChangeActions(RequestStatefulObject statefulObject, RequestObjectScopes scope)
+        public async Task DoStateChangeActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner = null, long? ticketId = null)
         {
             if (statefulObject.StateChanged())
             {
@@ -51,7 +51,7 @@ namespace FWO.Ui.Services
                 {
                     if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
                     {
-                        await PerformAction(action, statefulObject, scope);
+                        await PerformAction(action, statefulObject, scope, owner, ticketId);
                     }
                 }
                 List<RequestStateAction> fromStateActions = GetRelevantActions(statefulObject, scope, false);
@@ -59,7 +59,7 @@ namespace FWO.Ui.Services
                 {
                     if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
                     {
-                        await PerformAction(action, statefulObject, scope);
+                        await PerformAction(action, statefulObject, scope, owner, ticketId);
                     }
                 }
                 statefulObject.ResetStateChanged();
@@ -84,7 +84,8 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task PerformAction(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+        public async Task PerformAction(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope,
+            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
         {
             switch(action.ActionType)
             {
@@ -120,6 +121,9 @@ namespace FWO.Ui.Services
                     break;
                 case nameof(StateActionTypes.UpdateConnectionRelease):
                     await UpdateConnectionPublish(owner, ticketId);
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionReject):
+                    await UpdateConnectionReject(owner, ticketId);
                     break;
                 case nameof(StateActionTypes.DisplayConnection):
                     await DisplayConnection(statefulObject, scope);
@@ -220,7 +224,7 @@ namespace FWO.Ui.Services
                     {
                         if(conn.IsRequested && !conn.IsPublished)
                         {
-                            ConnHandler = new (apiConnection, requestHandler.userConfig, owner, new(), conn, true, false, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
+                            ConnHandler = new (apiConnection, requestHandler.userConfig, owner, [], conn, true, false, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
                             await ConnHandler.PartialInit();
                             if(ConnHandler.CheckConn())
                             {
@@ -242,6 +246,38 @@ namespace FWO.Ui.Services
             catch(Exception exc)
             {
                 Log.WriteError("Update Connection Publish", $"Could not publish connection: ", exc);
+            }
+        }
+
+        public async Task UpdateConnectionReject(FwoOwner? owner, long? ticketId)
+        {
+            Log.WriteDebug("UpdateConnectionReject", "Perform Action");
+            try
+            {
+                if(owner != null && ticketId != null) // todo: role check
+                {
+                    apiConnection.SetRole(Roles.Modeller);
+                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                    foreach(var conn in Connections)
+                    {
+                        if(conn.IsRequested)
+                        {
+                            var Variables = new
+                            {
+                                id = conn.Id,
+                                connState = ConState.Rejected.ToString()
+                            };
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionState, Variables);
+                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
+                                $"Rejected {(conn.IsInterface? "Interface" : "Connection")}: {conn.Name}", apiConnection, requestHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                        }
+                    }
+                    apiConnection.SwitchBack();
+                }
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Reject Connection", $"Could not change state: ", exc);
             }
         }
 

@@ -4511,8 +4511,8 @@ INSERT INTO txt VALUES ('H5566', 'English', 'Auto-create implementation tasks: I
 ');
 INSERT INTO txt VALUES ('H5567', 'German',  'Pfadanalyse aktivieren: Dem Planer werden Werkzeuge zur automatischen Pfadanalyse (Pr&uuml;fung, Erzeugen von Implementierungsauftr&auml;gen, Bereinigung) zur Verf&uuml;gung gestellt.');
 INSERT INTO txt VALUES ('H5567', 'English', 'Activate Path Analysis: The planner gets access to tools for automatic path analysis (check, creation of implementation tasks, cleanup).');
-INSERT INTO txt VALUES ('H5568', 'German',  'Eigent&uuml;merbasiert: Darstellung der Antr&auml;ge erfolgt nach Eigent&uuml;mern. diese k&ouml;nnen gegenseitig zugewiesen werden.');
-INSERT INTO txt VALUES ('H5568', 'English', 'Owner based: Display of tickets by ownwer. They can be assigned to each other.');
+INSERT INTO txt VALUES ('H5568', 'German',  'Eigent&uuml;merbasiert: Darstellung der Antr&auml;ge erfolgt nach Eigent&uuml;mern. Diese k&ouml;nnen gegenseitig zugewiesen werden.');
+INSERT INTO txt VALUES ('H5568', 'English', 'Owner based: Display of tickets by owner. They can be assigned to each other.');
 INSERT INTO txt VALUES ('H5569', 'German',  'Compliance-Modul anzeigen: Das Compliance-Modul wird auch f&uuml;r Nutzer in den Workflow-Rollen (requester, approver, planner, implementer, reviewer) dargestellt.');
 INSERT INTO txt VALUES ('H5569', 'English', 'Show Compliance Module: The Compliance module is also displayed for users in the workflow roles (requester, approver, planner, implementer, reviewer).');
 INSERT INTO txt VALUES ('H5570', 'German',  'Eingeschr&auml;nkte Darstellung: Die Auswahlm&ouml;glichkeiten werden f&uuml;r den Nutzer auf ein Minimum reduziert (z.B. keine Ticketdarstellung in der Implementierungsphase).');

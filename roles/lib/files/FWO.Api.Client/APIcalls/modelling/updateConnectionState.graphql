@@ -1,0 +1,12 @@
+mutation updateConnectionState(
+  $id: Int!
+  $connState: String
+  ) {
+  update_modelling_connection_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      conn_state: $connState
+  }) {
+    UpdatedId: id
+  }
+}

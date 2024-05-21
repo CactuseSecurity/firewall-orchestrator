@@ -1025,6 +1025,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
+                      "conn_state",
                       "creation_date",
                       "creator",
                       "id",
@@ -1048,6 +1049,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
+                      "conn_state",
                       "creation_date",
                       "creator",
                       "id",
@@ -1071,6 +1073,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
+                      "conn_state",
                       "creation_date",
                       "creator",
                       "id",
@@ -1091,11 +1094,23 @@
               ],
               "update_permissions": [
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "conn_state"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
                       "app_id",
                       "common_service",
+                      "conn_state",
                       "creation_date",
                       "creator",
                       "id",

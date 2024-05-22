@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="IPAddressRange" Version="6.0.0" />
     <PackageReference Include="GraphQL.Client" Version="6.0.5" />
-    <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="6.0.5" />
+    <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="6.1.0" />
     <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="6.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Components" Version="8.0.5" />
   </ItemGroup>

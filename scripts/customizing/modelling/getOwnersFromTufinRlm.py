@@ -179,7 +179,13 @@ def rlmLogin(user, password, api_url):
 
 def rlmGetOwners(token, api_url):
 
-    headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}
+    headers = {}
+    rlmVersion = 2.5
+
+    if rlmVersion < 2.6:
+        headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}
+    else:
+        api_url += "?access_token=" + token
 
     with requests.Session() as session:
         session.verify = False

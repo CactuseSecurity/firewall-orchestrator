@@ -160,9 +160,9 @@ public class SCTicket : ExternalTicket
 		// substitute ticket template data
 		ticketText = TicketTemplate
 			.Replace("@@TICKET_SUBJECT@@", "test ticket create connection1")
-			.Replace("@@PRIORITY@@", Priority.ToString())
-			.Replace("@@ONBEHALF@@", OnBehalfOfUser)
-			.Replace("@@WORKFLOW_NAME@@", "workflow_name")
+			.Replace("@@PRIORITY@@", "Normal")
+			// .Replace("@@ONBEHALF@@", OnBehalfOfUser)
+			// .Replace("@@WORKFLOW_NAME@@", "workflow_name")
 			.Replace("@@TASKS@@", taskText);
 
 		// build API call

@@ -180,17 +180,17 @@ public class SCTicket : ExternalTicket
 		string body = "";
 		foreach (Parameter p in request.Parameters)
 		{
-			if (p.Name == "")
+			if (p.Name == "") // body parameter has empty name
 			{
 				body = $"--data '{p.Value}'";
 			}
 			else
 			{
-				if (p.Name != "Authorization") // avoid logging of credentials
-					headers += $"--header '{p.Name}: {p.Value}' ";
+				headers += $"--header '{p.Name}: {p.Value}' ";
 			}
 		}
-		Log.WriteDebug("API", $"Sending API Call to SecureChange:\ncurl --insecure --request {request.Method} --url {restClient.Options.BaseUrl} {body} {headers} ");
+		// avoid logging of credentials, so no headers are logged
+		Log.WriteDebug("API", $"Sending API Call to SecureChange:\ncurl --insecure --request {request.Method} --url {restClient.Options.BaseUrl} {body}");
 
 		// send API call
 		return await restClient.ExecuteAsync<int>(request);

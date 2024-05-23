@@ -265,7 +265,7 @@ namespace FWO.Ui.Services
                             var Variables = new
                             {
                                 id = conn.Id,
-                                connState = ConState.Rejected.ToString()
+                                connProp = ConState.Rejected.ToString()
                             };
                             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionState, Variables);
                             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,

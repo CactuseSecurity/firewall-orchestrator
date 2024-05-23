@@ -62,8 +62,8 @@ namespace FWO.Api.Data
         [JsonProperty("creation_date"), JsonPropertyName("creation_date")]
         public DateTime? CreationDate { get; set; }
 
-        [JsonProperty("conn_state"), JsonPropertyName("conn_state")]
-        public string ConnState { get; set; } = "";
+        [JsonProperty("conn_prop"), JsonPropertyName("conn_prop")]
+        public string? Properties { get; set; } = "";
 
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<ModellingServiceWrapper> Services { get; set; } = [];
@@ -92,40 +92,50 @@ namespace FWO.Api.Data
         public bool InterfaceIsRejected { get; set; } = false;
 
         public int OrderNumber { get; set; } = 0;
+        public Dictionary<string, string>? Props;
 
 
         public ModellingConnection()
-        {}
+        {
+            if(Properties != null && Properties != "")
+            {
+                Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties);
+            }
+        }
 
         public ModellingConnection(ModellingConnection conn)
         {
-           OrderNumber = conn.OrderNumber;
-           Id = conn.Id;
-           AppId = conn.AppId;
-           ProposedAppId = conn.ProposedAppId;
-           Name = conn.Name;
-           Reason = conn.Reason;
-           IsInterface = conn.IsInterface;
-           UsedInterfaceId = conn.UsedInterfaceId;
-           IsRequested = conn.IsRequested;
-           IsPublished = conn.IsPublished;
-           TicketId = conn.TicketId;
-           IsCommonService = conn.IsCommonService;
-           Creator = conn.Creator;
-           CreationDate = conn.CreationDate;
-           ConnState = conn.ConnState;
-           Services = new List<ModellingServiceWrapper>(conn.Services);
-           ServiceGroups = new List<ModellingServiceGroupWrapper>(conn.ServiceGroups);
-           SourceAppServers = new List<ModellingAppServerWrapper>(conn.SourceAppServers);
-           SourceAppRoles = new List<ModellingAppRoleWrapper>(conn.SourceAppRoles);
-           SourceNwGroups = new List<ModellingNwGroupWrapper>(conn.SourceNwGroups);
-           DestinationAppServers = new List<ModellingAppServerWrapper>(conn.DestinationAppServers);
-           DestinationAppRoles = new List<ModellingAppRoleWrapper>(conn.DestinationAppRoles);
-           DestinationNwGroups = new List<ModellingNwGroupWrapper>(conn.DestinationNwGroups);
-           SrcFromInterface = conn.SrcFromInterface;
-           DstFromInterface = conn.DstFromInterface;
-           InterfaceIsRequested = conn.InterfaceIsRequested;
-           InterfaceIsRejected = conn.InterfaceIsRejected;
+            OrderNumber = conn.OrderNumber;
+            Id = conn.Id;
+            AppId = conn.AppId;
+            ProposedAppId = conn.ProposedAppId;
+            Name = conn.Name;
+            Reason = conn.Reason;
+            IsInterface = conn.IsInterface;
+            UsedInterfaceId = conn.UsedInterfaceId;
+            IsRequested = conn.IsRequested;
+            IsPublished = conn.IsPublished;
+            TicketId = conn.TicketId;
+            IsCommonService = conn.IsCommonService;
+            Creator = conn.Creator;
+            CreationDate = conn.CreationDate;
+            Properties = conn.Properties;
+            Services = new List<ModellingServiceWrapper>(conn.Services);
+            ServiceGroups = new List<ModellingServiceGroupWrapper>(conn.ServiceGroups);
+            SourceAppServers = new List<ModellingAppServerWrapper>(conn.SourceAppServers);
+            SourceAppRoles = new List<ModellingAppRoleWrapper>(conn.SourceAppRoles);
+            SourceNwGroups = new List<ModellingNwGroupWrapper>(conn.SourceNwGroups);
+            DestinationAppServers = new List<ModellingAppServerWrapper>(conn.DestinationAppServers);
+            DestinationAppRoles = new List<ModellingAppRoleWrapper>(conn.DestinationAppRoles);
+            DestinationNwGroups = new List<ModellingNwGroupWrapper>(conn.DestinationNwGroups);
+            SrcFromInterface = conn.SrcFromInterface;
+            DstFromInterface = conn.DstFromInterface;
+            InterfaceIsRequested = conn.InterfaceIsRequested;
+            InterfaceIsRejected = conn.InterfaceIsRejected;
+            if(Properties != null && Properties != "")
+            {
+                Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties);
+            }
         }
 
         public int CompareTo(ModellingConnection secondConnection)
@@ -193,13 +203,34 @@ namespace FWO.Api.Data
             DestinationAppRoles = DestinationAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ModObjectType.AppRole).ToList();
         }
 
+        public void AddProperty(string key, string value = "")
+        {
+            Props ??= [];
+            Props.TryAdd(key, value);
+            Properties = System.Text.Json.JsonSerializer.Serialize(Props);
+        }
+
+        public string GetStringProperty(string prop)
+        {
+            if(Props != null && Props.TryGetValue(prop, out string? value))
+            {
+                return value;
+            }
+            return "";
+        }
+
+        public bool GetBoolProperty(string prop)
+        {
+            return Props?.ContainsKey(prop) ?? false;
+        }
+
         public bool Sanitize()
         {
             bool shortened = false;
             Name = Sanitizer.SanitizeOpt(Name, ref shortened);
             Reason = Sanitizer.SanitizeCommentOpt(Reason, ref shortened);
             Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
-            ConnState = Sanitizer.SanitizeMand(ConnState, ref shortened);
+            Properties = Sanitizer.SanitizeOpt(Properties, ref shortened);
             return shortened;
         }
     }

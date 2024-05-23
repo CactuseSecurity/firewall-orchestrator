@@ -18,7 +18,7 @@
                         { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(AppHandler.DisplayButton("details", Icons.Display))</button>
                     @if(AppActive)
                     {
-                        @if(context.ConnState != ConState.InterfaceRejected.ToString() && context.ConnState != ConState.Rejected.ToString())
+                        @if(!context.GetBoolProperty(ConState.InterfaceRejected.ToString()) && !context.GetBoolProperty(ConState.Rejected.ToString()))
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="async () => 
                                 { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(AppHandler.DisplayButton("edit", Icons.Edit))</button>
@@ -41,7 +41,7 @@
     }
     else
     {
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("state"))" Field="@(x => x.ConnState)" Sortable="true" Filterable="false" >
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
             <Template>
                 @((MarkupString)DisplayState(context))
             </Template>
@@ -115,13 +115,21 @@
 
     public string DisplayState(ModellingConnection connection)
     {
-        switch (connection.ConnState)
+        List<string> relevantProps = [];
+        foreach(var prop in connection.Props)
         {
-            case nameof(ConState.InterfaceRequested):
-                return $"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">!</span>";
-            case nameof(ConState.InterfaceRejected):
-                return $"<span class=\"text-error\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{GlobalConfig.ShowBool(false)}</span>";
-            default: return "";
+            switch (prop.Key)
+            {
+                case nameof(ConState.InterfaceRequested):
+                    relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">!</span>");
+                    break;
+                case nameof(ConState.InterfaceRejected):
+                    relevantProps.Add($"<span class=\"text-error\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{GlobalConfig.ShowBool(false)}</span>");
+                    break;
+                default:
+                    break;
+            }
         }
+        return string.Join(",", relevantProps);
     }
 }

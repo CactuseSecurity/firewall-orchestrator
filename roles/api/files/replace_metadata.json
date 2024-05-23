@@ -1025,7 +1025,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
-                      "conn_state",
+                      "conn_prop",
                       "creation_date",
                       "creator",
                       "id",
@@ -1049,7 +1049,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
-                      "conn_state",
+                      "conn_prop",
                       "creation_date",
                       "creator",
                       "id",
@@ -1073,7 +1073,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
-                      "conn_state",
+                      "conn_prop",
                       "creation_date",
                       "creator",
                       "id",
@@ -1097,7 +1097,7 @@
                   "role": "implementer",
                   "permission": {
                     "columns": [
-                      "conn_state"
+                      "conn_prop"
                     ],
                     "filter": {},
                     "check": {}
@@ -1110,7 +1110,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
-                      "conn_state",
+                      "conn_prop",
                       "creation_date",
                       "creator",
                       "id",

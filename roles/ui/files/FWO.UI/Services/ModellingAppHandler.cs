@@ -129,7 +129,7 @@ namespace FWO.Ui.Services
             if((conn.InterfaceIsRequested && conn.SrcFromInterface) || (conn.IsRequested && conn.SourceFilled()))
             {
                 return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested,
-                    conn.ConnState == ConState.Rejected.ToString() || conn.ConnState == ConState.InterfaceRejected.ToString())];
+                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
 
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList();
@@ -155,7 +155,7 @@ namespace FWO.Ui.Services
             if((conn.InterfaceIsRequested && conn.DstFromInterface) || (conn.IsRequested && conn.DestinationFilled()))
             {
                 return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
-                    conn.ConnState == ConState.Rejected.ToString() || conn.ConnState == ConState.InterfaceRejected.ToString())];
+                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList();
             foreach(var nwGroup in nwGroups)
@@ -180,7 +180,7 @@ namespace FWO.Ui.Services
             if(conn.InterfaceIsRequested || conn.IsRequested)
             {
                 return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
-                    conn.ConnState == ConState.Rejected.ToString() || conn.ConnState == ConState.InterfaceRejected.ToString())];
+                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
             List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));

@@ -78,7 +78,7 @@
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.SrcFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.SourceFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.ConnState == ConState.Rejected.ToString()))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -160,7 +160,7 @@
                     {
                         @if(ConnHandler.ActConn.InterfaceIsRequested || ConnHandler.ActConn.IsRequested)
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.ConnState == ConState.Rejected.ToString()))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -219,7 +219,7 @@
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.DstFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.DestinationFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.ConnState == ConState.Rejected.ToString()))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {

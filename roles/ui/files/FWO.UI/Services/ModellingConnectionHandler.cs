@@ -415,7 +415,7 @@ namespace FWO.Ui.Services
             ActConn.IsInterface = false;
             ActConn.UsedInterfaceId = interf.Id;
             ActConn.InterfaceIsRequested = interf.IsRequested;
-            ActConn.InterfaceIsRejected = interf.ConnState == ConState.Rejected.ToString();
+            ActConn.InterfaceIsRejected = interf.GetBoolProperty(ConState.Rejected.ToString());
             ActConn.TicketId = interf.TicketId;
             if(SrcReadOnly)
             {
@@ -1147,19 +1147,19 @@ namespace FWO.Ui.Services
         {
             if(ActConn.IsInterface)
             {
-                if(ActConn.ConnState != ConState.Rejected.ToString())
+                if(!ActConn.GetBoolProperty(ConState.Rejected.ToString()))
                 {
                     if(ActConn.IsPublished)
                     {
-                        // ActConn.ConnState = ConState.Published.ToString();
+                        // ActConn.AddProperty(ConState.Published.ToString());
                     }
                     else if(ActConn.IsRequested)
                     {
-                        ActConn.ConnState = ConState.Requested.ToString();
+                        ActConn.AddProperty(ConState.Requested.ToString());
                     }
                     // else
                     // {
-                    //     ActConn.ConnState = ConState.Internal.ToString();
+                    //     ActConn.AddProperty(ConState.Internal.ToString());
                     // }
                 }
             }
@@ -1167,20 +1167,12 @@ namespace FWO.Ui.Services
             {
                 if(ActConn.InterfaceIsRejected)
                 {
-                    ActConn.ConnState = ConState.InterfaceRejected.ToString();
+                    ActConn.AddProperty(ConState.InterfaceRejected.ToString());
                 }
                 else if(ActConn.InterfaceIsRequested)
                 {
-                    ActConn.ConnState = ConState.InterfaceRequested.ToString();
+                    ActConn.AddProperty(ConState.InterfaceRequested.ToString());
                 }
-                // else
-                // {
-                //     ActConn.ConnState = ConState.Standard.ToString();
-                // }
-            }
-            else
-            {
-                // ActConn.ConnState = ConState.Standard.ToString();
             }
         }
 
@@ -1203,7 +1195,7 @@ namespace FWO.Ui.Services
                     ticketId = ActConn.TicketId,
                     creator = userConfig.User.Name,
                     commonSvc = ActConn.IsCommonService,
-                    connState = ActConn.ConnState
+                    connProp = ActConn.Properties
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newConnection, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -1258,7 +1250,7 @@ namespace FWO.Ui.Services
                     isRequested = ActConn.IsRequested,
                     isPublished = ActConn.IsPublished,
                     commonSvc = ActConn.IsCommonService,
-                    connState = ActConn.ConnState
+                    connProp = ActConn.Properties
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, ActConn.Id,

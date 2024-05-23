@@ -186,7 +186,7 @@ namespace FWO.Ui.Services
                         if(interf[0].IsRequested)
                         {
                             conn.InterfaceIsRequested = true;
-                            conn.InterfaceIsRejected = interf[0].ConnState == ConState.Rejected.ToString();
+                            conn.InterfaceIsRejected = interf[0].GetBoolProperty(ConState.Rejected.ToString());
                             conn.TicketId = interf[0].TicketId;
                         }
                         else
@@ -207,13 +207,13 @@ namespace FWO.Ui.Services
                             conn.Services = interf[0].Services;
                             conn.ServiceGroups = interf[0].ServiceGroups;
                         }
-                        if(interf[0].ConnState == ConState.Rejected.ToString())
+                        if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
                         {
-                            conn.ConnState = ConState.InterfaceRejected.ToString();
+                            conn.AddProperty(ConState.InterfaceRejected.ToString());
                         }
-                        else if(interf[0].ConnState == ConState.Requested.ToString())
+                        else if(interf[0].GetBoolProperty(ConState.Requested.ToString()))
                         {
-                            conn.ConnState = ConState.InterfaceRequested.ToString();
+                            conn.AddProperty(ConState.InterfaceRequested.ToString());
                         }
                     }
                 }

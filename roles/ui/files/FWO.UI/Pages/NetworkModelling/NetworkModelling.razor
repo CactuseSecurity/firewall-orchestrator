@@ -257,6 +257,10 @@ Roles.Auditor });
 
     private async Task RequestFwChange()
     {
+
+        DisplayMessageInUi(null, "Coming soon", "...", true);
+        return;
+
         // read external ticketing system information from config
         ConfigData? configData;
         List<ExternalTicketSystem> extTicketSystems = new();

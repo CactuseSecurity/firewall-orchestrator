@@ -1167,6 +1167,7 @@ namespace FWO.Ui.Services
             {
                 if(ActConn.InterfaceIsRejected)
                 {
+                    ActConn.RemoveProperty(ConState.InterfaceRequested.ToString());
                     ActConn.AddProperty(ConState.InterfaceRejected.ToString());
                 }
                 else if(ActConn.InterfaceIsRequested)

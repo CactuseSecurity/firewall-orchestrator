@@ -116,18 +116,24 @@
     public string DisplayState(ModellingConnection connection)
     {
         List<string> relevantProps = [];
-        foreach(var prop in connection.Props)
+        if(connection.Props != null)
         {
-            switch (prop.Key)
+            foreach(var prop in connection.Props)
             {
-                case nameof(ConState.InterfaceRequested):
-                    relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">!</span>");
-                    break;
-                case nameof(ConState.InterfaceRejected):
-                    relevantProps.Add($"<span class=\"text-error\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{GlobalConfig.ShowBool(false)}</span>");
-                    break;
-                default:
-                    break;
+                switch (prop.Key)
+                {
+                    case nameof(ConState.InterfaceRequested):
+                        if(!connection.Props.ContainsKey(ConState.InterfaceRejected.ToString()))
+                        {
+                            relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">!</span>");
+                        }
+                        break;
+                    case nameof(ConState.InterfaceRejected):
+                        relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{GlobalConfig.ShowBool(false)}</span>");
+                        break;
+                    default:
+                        break;
+                }
             }
         }
         return string.Join(",", relevantProps);

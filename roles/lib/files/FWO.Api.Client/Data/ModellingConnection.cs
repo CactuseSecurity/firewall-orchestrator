@@ -96,12 +96,7 @@ namespace FWO.Api.Data
 
 
         public ModellingConnection()
-        {
-            if(Properties != null && Properties != "")
-            {
-                Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties);
-            }
-        }
+        {}
 
         public ModellingConnection(ModellingConnection conn)
         {
@@ -132,6 +127,10 @@ namespace FWO.Api.Data
             DstFromInterface = conn.DstFromInterface;
             InterfaceIsRequested = conn.InterfaceIsRequested;
             InterfaceIsRejected = conn.InterfaceIsRejected;
+        }
+
+        private void InitProps()
+        {
             if(Properties != null && Properties != "")
             {
                 Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties);
@@ -206,12 +205,23 @@ namespace FWO.Api.Data
         public void AddProperty(string key, string value = "")
         {
             Props ??= [];
+            InitProps();
             Props.TryAdd(key, value);
             Properties = System.Text.Json.JsonSerializer.Serialize(Props);
         }
 
+        public void RemoveProperty(string key)
+        {
+            InitProps();
+            if(Props != null && Props.ContainsKey(key))
+            {
+                Props.Remove(key);
+            }
+        }
+
         public string GetStringProperty(string prop)
         {
+            InitProps();
             if(Props != null && Props.TryGetValue(prop, out string? value))
             {
                 return value;
@@ -221,6 +231,7 @@ namespace FWO.Api.Data
 
         public bool GetBoolProperty(string prop)
         {
+            InitProps();
             return Props?.ContainsKey(prop) ?? false;
         }
 

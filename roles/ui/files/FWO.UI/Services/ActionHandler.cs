@@ -262,10 +262,11 @@ namespace FWO.Ui.Services
                     {
                         if(conn.IsRequested)
                         {
+                            conn.AddProperty(ConState.Rejected.ToString());
                             var Variables = new
                             {
                                 id = conn.Id,
-                                connProp = ConState.Rejected.ToString()
+                                connProp = conn.Properties
                             };
                             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionState, Variables);
                             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,

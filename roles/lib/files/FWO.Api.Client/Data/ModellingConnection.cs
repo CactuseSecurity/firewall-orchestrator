@@ -149,6 +149,16 @@ namespace FWO.Api.Data
             {
                 return comSvcCompare;
             }
+            int publishedCompare = Compare(IsPublished, secondConnection.IsPublished);
+            if (publishedCompare != 0)
+            {
+                return publishedCompare;
+            }
+            int rejectedCompare = -Compare(GetBoolProperty(ConState.Rejected.ToString()), secondConnection.GetBoolProperty(ConState.Rejected.ToString()));
+            if (rejectedCompare != 0)
+            {
+                return rejectedCompare;
+            }
             return Name?.CompareTo(secondConnection.Name) ?? -1;
         }
 
@@ -233,6 +243,40 @@ namespace FWO.Api.Data
         {
             InitProps();
             return Props?.ContainsKey(prop) ?? false;
+        }
+
+        public void SyncState()
+        {
+            if(IsInterface)
+            {
+                if(!GetBoolProperty(ConState.Rejected.ToString()))
+                {
+                    if(IsPublished)
+                    {
+                        // AddProperty(ConState.Published.ToString());
+                    }
+                    else if(IsRequested)
+                    {
+                        AddProperty(ConState.Requested.ToString());
+                    }
+                    // else
+                    // {
+                    //     AddProperty(ConState.Internal.ToString());
+                    // }
+                }
+            }
+            else if(UsedInterfaceId != null)
+            {
+                if(InterfaceIsRejected)
+                {
+                    RemoveProperty(ConState.InterfaceRequested.ToString());
+                    AddProperty(ConState.InterfaceRejected.ToString());
+                }
+                else if(InterfaceIsRequested)
+                {
+                    AddProperty(ConState.InterfaceRequested.ToString());
+                }
+            }
         }
 
         public bool Sanitize()

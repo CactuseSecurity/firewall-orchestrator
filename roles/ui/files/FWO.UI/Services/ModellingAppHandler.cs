@@ -45,6 +45,7 @@ namespace FWO.Ui.Services
                 {
                     conn.ExtractNwGroups();
                     await ExtractUsedInterface(conn);
+                    conn.SyncState();
                 }
                 ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
             }
@@ -111,7 +112,9 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetInterfaces()
         {
-            return Connections.Where(x => x.IsInterface).ToList();
+            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface).ToList();
+            tmpList.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
+            return tmpList;
         }
 
         public List<ModellingConnection> GetCommonServices()

@@ -996,7 +996,7 @@ namespace FWO.Ui.Services
                     {
                         SyncSvcChanges();
                     }
-                    SetState();
+                    ActConn.SyncState();
                     if(AddMode)
                     {
                         await AddConnectionToDb();
@@ -1140,40 +1140,6 @@ namespace FWO.Ui.Services
             foreach(var svcGrp in SvcGrpToAdd)
             {
                 ActConn.ServiceGroups.Add(new ModellingServiceGroupWrapper(){ Content = svcGrp });
-            }
-        }
-
-        private void SetState()
-        {
-            if(ActConn.IsInterface)
-            {
-                if(!ActConn.GetBoolProperty(ConState.Rejected.ToString()))
-                {
-                    if(ActConn.IsPublished)
-                    {
-                        // ActConn.AddProperty(ConState.Published.ToString());
-                    }
-                    else if(ActConn.IsRequested)
-                    {
-                        ActConn.AddProperty(ConState.Requested.ToString());
-                    }
-                    // else
-                    // {
-                    //     ActConn.AddProperty(ConState.Internal.ToString());
-                    // }
-                }
-            }
-            else if(ActConn.UsedInterfaceId != null)
-            {
-                if(ActConn.InterfaceIsRejected)
-                {
-                    ActConn.RemoveProperty(ConState.InterfaceRequested.ToString());
-                    ActConn.AddProperty(ConState.InterfaceRejected.ToString());
-                }
-                else if(ActConn.InterfaceIsRequested)
-                {
-                    ActConn.AddProperty(ConState.InterfaceRequested.ToString());
-                }
             }
         }
 

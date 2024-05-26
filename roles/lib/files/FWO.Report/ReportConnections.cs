@@ -61,9 +61,8 @@ namespace FWO.Report
                 if(ownerReport.Interfaces.Count > 0)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("interfaces")}</h4>");
-                    List<ModellingConnection> tmpList = ownerReport.Interfaces.Where(x => x.IsInterface).ToList();
-                    tmpList.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
-                    AppendConnectionsGroupHtml(tmpList, ownerReport, ref report, true);
+                    ownerReport.Interfaces.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
+                    AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, ref report, true);
                 }
                 if(ownerReport.CommonServices.Count > 0)
                 {

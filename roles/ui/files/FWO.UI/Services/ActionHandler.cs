@@ -268,7 +268,7 @@ namespace FWO.Ui.Services
                                 id = conn.Id,
                                 connProp = conn.Properties
                             };
-                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionState, Variables);
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
                             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
                                 $"Rejected {(conn.IsInterface? "Interface" : "Connection")}: {conn.Name}", apiConnection, requestHandler.userConfig, owner.Id, DefaultInit.DoNothing);
                         }

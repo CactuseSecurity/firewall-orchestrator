@@ -1,4 +1,4 @@
-mutation updateConnectionState(
+mutation updateConnectionProperties(
   $id: Int!
   $connProp: String
   ) {

@@ -210,6 +210,6 @@ bugfix release:
 - fix email credential decryption
 - start of Tufin SecureChange integration
 
-# 8.2.3 - 21.05.2024 DEVELOP
+# 8.2.3 - 26.05.2024 DEVELOP
 - remove cascading delete for used interfaces 
-- new state field in connections
+- new properties field in connections

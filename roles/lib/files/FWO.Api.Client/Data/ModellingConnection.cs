@@ -6,15 +6,11 @@ namespace FWO.Api.Data
     public enum ConState
     {
         // Connections:
-        // Standard,
         InterfaceRequested,
         InterfaceRejected,
-        // DivergencyVarianceAnalysis,
 
         // Interfaces:
-        // Published,
         Requested,
-        // Internal,
         Rejected
     }
 
@@ -251,18 +247,10 @@ namespace FWO.Api.Data
             {
                 if(!GetBoolProperty(ConState.Rejected.ToString()))
                 {
-                    if(IsPublished)
-                    {
-                        // AddProperty(ConState.Published.ToString());
-                    }
-                    else if(IsRequested)
+                    if(!IsPublished && IsRequested)
                     {
                         AddProperty(ConState.Requested.ToString());
                     }
-                    // else
-                    // {
-                    //     AddProperty(ConState.Internal.ToString());
-                    // }
                 }
             }
             else if(UsedInterfaceId != null)

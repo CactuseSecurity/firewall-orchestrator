@@ -98,7 +98,7 @@ namespace FWO.Test
             "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -134,7 +134,7 @@ namespace FWO.Test
             "<td>not<br>TestService2 (6666-7777/UDP)</td>" +
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
             "</body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -170,7 +170,7 @@ namespace FWO.Test
             "<td>not<br>6666-7777/UDP</td>" +
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
             "</body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -221,7 +221,7 @@ namespace FWO.Test
             "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -289,7 +289,7 @@ namespace FWO.Test
             "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportRecerts.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRecerts.ExportToHtml(), true)));
         }
 
         [Test]
@@ -339,7 +339,7 @@ namespace FWO.Test
             "<h4>Users</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table></table></body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportNatRules.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportNatRules.ExportToHtml(), true)));
         }
 
         [Test]
@@ -405,7 +405,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true)));
         }
 
         [Test]
@@ -467,7 +467,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true)));
         }
 
         [Test]
@@ -530,7 +530,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportChanges.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true)));
         }
 
         [Test]
@@ -595,7 +595,7 @@ namespace FWO.Test
             "<span>Service2 (2345/UDP)</span></td>" +
             "<td><span class=\"\" ><span class=\"\" ><span class=\"\">AppServer2 (2.0.0.0)</span></span></span></td></table><hr>" +
             "</body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, removeLinebreaks(removeGenDate(reportConnections.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportConnections.ExportToHtml(), true)));
         }
 
         [Test]
@@ -617,7 +617,7 @@ namespace FWO.Test
             "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
             "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\",\"dstzn\",\"TestIpRange (1.2.3.4-1.2.3.5)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
             "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\",\"\",\"not(TestUser2@TestIpRange (1.2.3.4-1.2.3.5))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            ClassicAssert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
+            ClassicAssert.AreEqual(expectedCsvResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToCsv())));
         }
 
         [Test]
@@ -639,7 +639,7 @@ namespace FWO.Test
             "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
             "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4-1.2.3.5\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
             "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4-1.2.3.5)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            ClassicAssert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
+            ClassicAssert.AreEqual(expectedCsvResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToCsv())));
         }
 
         [Test]
@@ -668,7 +668,7 @@ namespace FWO.Test
             "\" deleted: not(TestService2 (6666-7777/UDP)) added: TestService2 (6666-7777/UDP)\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
             "\"\",\"not(TestUser2@TestIpRange (1.2.3.4-1.2.3.5))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            ClassicAssert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
+            ClassicAssert.AreEqual(expectedCsvResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToCsv())));
         }
 
         [Test]
@@ -691,7 +691,7 @@ namespace FWO.Test
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"127.0.0.1/32 deleted: 1.2.3.4/32 added: 2.3.4.5\",\"dstzn\",\"1.2.3.4-1.2.3.5 added: 10.0.6.0/24\",\" deleted: 443/TCP added: not(443/TCP)\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\" deleted: not(TestUser2@1.2.3.4-1.2.3.5) added: TestUser2@1.2.3.4-1.2.3.5\",\" deleted: not(6666-7777/UDP) added: 6666-7777/UDP\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4-1.2.3.5)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            ClassicAssert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
+            ClassicAssert.AreEqual(expectedCsvResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToCsv())));
         }
 
 
@@ -750,7 +750,7 @@ namespace FWO.Test
             "\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
             "\"Ignore\": false}]";
             // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportRules.ExportToJson(), true, true))));
-            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -775,7 +775,7 @@ namespace FWO.Test
             "\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"],\"destination zone\": \"\",\"destination negated\": true," +
             "\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"],\"service negated\": true," +
             "\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToJson(), false, true)));
         }
 
        [Test]
@@ -801,7 +801,7 @@ namespace FWO.Test
             "\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"],\"destination zone\": \"\"," +
             "\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4-1.2.3.5\"],\"service negated\": true," +
             "\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportRules.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -895,7 +895,7 @@ namespace FWO.Test
             "\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": [],\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
             "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
             "\"Ignore\": false}]";
-            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -927,7 +927,7 @@ namespace FWO.Test
             "\"destination zone\": \"\",\"destination negated\": true,\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"]," +
             "\"service negated\": true,\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
             // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
-            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
         [Test]
@@ -958,63 +958,63 @@ namespace FWO.Test
             "\"source zone\": \"\",\"source negated\": true,\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"]," +
             "\"destination zone\": \"\",\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4-1.2.3.5\"]," +
             "\"service negated\": true,\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            ClassicAssert.AreEqual(expectedJsonResult, removeLinebreaks(removeGenDate(reportChanges.ExportToJson(), false, true)));
+            ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
 
-        private NetworkLocation[] InitFroms(bool resolved, bool user = false)
+        private static NetworkLocation[] InitFroms(bool resolved, bool user = false)
         {
             if(resolved)
             {
-                return new NetworkLocation[]{ new NetworkLocation(user ? TestUser1 : new NetworkUser(), new NetworkObject(){ ObjectGroupFlats = new GroupFlat<NetworkObject>[]
-                {
-                    new GroupFlat<NetworkObject>(){ Object = TestIp1 },
-                    new GroupFlat<NetworkObject>(){ Object = TestIp2 }
-                }})};
+                return [ new NetworkLocation(user ? TestUser1 : new NetworkUser(), new NetworkObject(){ ObjectGroupFlats =
+                [
+                    new(){ Object = TestIp1 },
+                    new(){ Object = TestIp2 }
+                ]})];
             }
             else
             {
-                return new NetworkLocation[]
-                {
-                    new NetworkLocation(user ? TestUser1 : new NetworkUser(), TestIp1),
-                    new NetworkLocation(user ? TestUser1 : new NetworkUser(), TestIp2)
-                };
+                return
+                [
+                    new(user ? TestUser1 : new NetworkUser(), TestIp1),
+                    new(user ? TestUser1 : new NetworkUser(), TestIp2)
+                ];
             }
         }
 
-        private NetworkLocation[] InitTos(bool resolved, bool user = false)
+        private static NetworkLocation[] InitTos(bool resolved, bool user = false)
         {
             if(resolved)
             {
-                return new NetworkLocation[]{ new NetworkLocation(user ? TestUser2 : new NetworkUser(), new NetworkObject(){ ObjectGroupFlats = new GroupFlat<NetworkObject>[]
-                {
-                    new GroupFlat<NetworkObject>(){ Object = TestIpRange }
-                }})};
+                return [ new NetworkLocation(user ? TestUser2 : new NetworkUser(), new NetworkObject(){ ObjectGroupFlats =
+                [
+                    new(){ Object = TestIpRange }
+                ]})];
             }
             else
             {
-                return new NetworkLocation[]
-                {
-                    new NetworkLocation(user ? TestUser2 : new NetworkUser(), TestIpRange),
-                };
+                return
+                [
+                    new(user ? TestUser2 : new NetworkUser(), TestIpRange),
+                ];
             }
         }
 
-        private ServiceWrapper[] InitServices(NetworkService service, bool resolved)
+        private static ServiceWrapper[] InitServices(NetworkService service, bool resolved)
         {
             if(resolved)
             {
-                return new ServiceWrapper[]{new ServiceWrapper(){ Content = new NetworkService(){ServiceGroupFlats = new GroupFlat<NetworkService>[]
-                {
+                return [new ServiceWrapper(){ Content = new NetworkService(){ServiceGroupFlats =
+                [
                     new GroupFlat<NetworkService>(){ Object = service }
-                }}}};
+                ]}}];
             }
             else
             {
-                return new ServiceWrapper[]
-                {
-                    new ServiceWrapper(){ Content = service },
-                };
+                return
+                [
+                    new(){ Content = service },
+                ];
             }
         }
 
@@ -1067,32 +1067,32 @@ namespace FWO.Test
             Rule2 = InitRule2(resolved);
             return new ReportData()
             {
-                ManagementData = new List<ManagementReport>()
-                {
+                ManagementData =
+                [
                     new ()
                     {
                         Name = "TestMgt",
-                        ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
-                        ReportServices = new NetworkService[]{ TestService1, TestService2 },
-                        ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
-                        Devices = new DeviceReport[]
-                        {
+                        ReportObjects = [TestIp1, TestIp2, TestIpRange],
+                        ReportServices = [TestService1, TestService2],
+                        ReportUsers = [TestUser1, TestUser2],
+                        Devices =
+                        [
                             new ()
                             {
                                 Name = "TestDev",
-                                Rules = new Rule[]{ Rule1, Rule2 }
+                                Rules = [Rule1, Rule2]
                             }
-                        }
+                        ]
                     }
-                }
+                ]
             };
         }
 
         private ReportData ConstructRecertReport()
         {
             RecertRule1 = InitRule1(false);
-            RecertRule1.Metadata.RuleRecertification = new List<Recertification>()
-            {
+            RecertRule1.Metadata.RuleRecertification =
+            [
                 new ()
                 {
                     NextRecertDate  = DateTime.Now.AddDays(5),
@@ -1105,37 +1105,37 @@ namespace FWO.Test
                     FwoOwner = new FwoOwner(){ Name = "TestOwner2" },
                     IpMatch = TestIp2.Name
                 }
-            };
+            ];
             RecertRule2 = InitRule2(false);
-            RecertRule2.Metadata.RuleRecertification = new List<Recertification>()
-            {
+            RecertRule2.Metadata.RuleRecertification =
+            [
                 new ()
                 {
                     NextRecertDate  = DateTime.Now,
                     FwoOwner = new FwoOwner(){ Name = "TestOwner1" },
                     IpMatch = TestIpRange.Name
                 }
-            };
+            ];
             return new ReportData()
             {
-                ManagementData = new List<ManagementReport>()
-                {
+                ManagementData =
+                [
                     new ()
                     { 
                         Name = "TestMgt",
-                        ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
-                        ReportServices = new NetworkService[]{ TestService1, TestService2 },
-                        ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
-                        Devices = new DeviceReport[]
-                        { 
+                        ReportObjects = [TestIp1, TestIp2, TestIpRange],
+                        ReportServices = [TestService1, TestService2],
+                        ReportUsers = [TestUser1, TestUser2],
+                        Devices =
+                        [
                             new ()
                             { 
                                 Name = "TestDev", 
-                                Rules = new Rule[]{ RecertRule1, RecertRule2 }
+                                Rules = [RecertRule1, RecertRule2]
                             } 
-                        }
+                        ]
                     }
-                }
+                ]
             };
         }
 
@@ -1145,39 +1145,39 @@ namespace FWO.Test
             NatRule.NatData = new NatData()
             {
                 TranslatedSourceNegated = false,
-                TranslatedFroms = new NetworkLocation[]
-                {
+                TranslatedFroms =
+                [
                     new (TestUser2, TestIp1Changed)
-                },
+                ],
                 TranslatedDestinationNegated = true,
-                TranslatedTos = new NetworkLocation[]
-                {
+                TranslatedTos =
+                [
                     new (new NetworkUser(), TestIp1Changed),
                     new (new NetworkUser(), TestIpNew)
-                },
+                ],
                 TranslatedServiceNegated = false,
-                TranslatedServices = new ServiceWrapper[]
-                {
+                TranslatedServices =
+                [
                     new (){ Content = TestService1 },
                     new (){ Content = TestService2 }
-                }
+                ]
             };
             return new ReportData()
             {
-                ManagementData = new List<ManagementReport>()
-                {
+                ManagementData =
+                [
                     new ()
                     { 
                         Name = "TestMgt",
-                        ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange, TestIpNew, TestIp1Changed },
-                        ReportServices = new NetworkService[]{ TestService1, TestService2 },
-                        ReportUsers = new NetworkUser[]{ TestUser2 },
-                        Devices = new DeviceReport[]
-                        { 
-                            new (){ Name = "TestDev", Rules = new Rule[]{ NatRule }} 
-                        }
+                        ReportObjects = [TestIp1, TestIp2, TestIpRange, TestIpNew, TestIp1Changed],
+                        ReportServices = [TestService1, TestService2],
+                        ReportUsers = [TestUser2],
+                        Devices =
+                        [
+                            new (){ Name = "TestDev", Rules = [NatRule]} 
+                        ]
                     }
-                }
+                ]
             };
         }
 
@@ -1190,20 +1190,20 @@ namespace FWO.Test
             if(resolved)
             {
                 Rule1Changed.Froms[0].Object.ObjectGroupFlats[0].Object = TestIp1Changed;
-                Rule1Changed.Tos = new NetworkLocation[]{new (new NetworkUser(), new NetworkObject(){ObjectGroupFlats = new GroupFlat<NetworkObject>[]
-                {
+                Rule1Changed.Tos = [new (new NetworkUser(), new NetworkObject(){ObjectGroupFlats =
+                [
                     new (){ Object = TestIpRange },
                     new (){ Object = TestIpNew }
-                }})};  
+                ]})];  
             }
             else
             {
                 Rule1Changed.Froms[0].Object = TestIp1Changed;
-                Rule1Changed.Tos = new NetworkLocation[]
-                {
+                Rule1Changed.Tos =
+                [
                     new (new NetworkUser(), TestIpRange),
                     new (new NetworkUser(), TestIpNew)
-                };
+                ];
             }
             Rule1Changed.Uid = "";
             Rule1Changed.ServiceNegated = true;
@@ -1241,21 +1241,21 @@ namespace FWO.Test
             };
             return new ReportData()
             {
-                ManagementData = new List<ManagementReport>()
-                {
+                ManagementData =
+                [
                     new ()
                     { 
                         Name = "TestMgt",
-                        Devices = new DeviceReport[]
-                        {
+                        Devices =
+                        [
                             new ()
                             { 
                                 Name = "TestDev",
-                                RuleChanges = new RuleChange[]{ ruleChange1, ruleChange2, ruleChange3, ruleChange4 }
+                                RuleChanges = [ruleChange1, ruleChange2, ruleChange3, ruleChange4]
                             }
-                        }
+                        ]
                     }
-                }
+                ]
             };
         }
 
@@ -1263,55 +1263,55 @@ namespace FWO.Test
         {
             ModellingAppServer AppServer1 = new() {Id = 11, Number = 1, Name = "AppServer1", Ip = "1.0.0.0"};
             ModellingAppServer AppServer2 = new() {Id = 12, Number = 2, Name = "AppServer2", Ip = "2.0.0.0"};
-            ModellingAppRole AppRole1 = new() { Id = 21, Number = 3, Name = "AppRole1", Comment = "CommAR1", AppServers = new() { new() { Content = AppServer1 } } };
+            ModellingAppRole AppRole1 = new() { Id = 21, Number = 3, Name = "AppRole1", Comment = "CommAR1", AppServers = [new() { Content = AppServer1 }] };
             ModellingService Service1 = new() { Id = 31, Number = 1, Name = "Service1", Port = 1234, Protocol = new() { Name = "TCP" } };
             ModellingService Service2 = new() { Id = 32, Number = 2, Name = "Service2", Port = 2345, Protocol = new() { Name = "UDP" } };
-            ModellingServiceGroup ServiceGroup1 = new() { Id = 41, Number = 3, Name = "ServiceGroup1", Comment = "CommSG1", Services = new(){ new() { Content = Service1 } } };
+            ModellingServiceGroup ServiceGroup1 = new() { Id = 41, Number = 3, Name = "ServiceGroup1", Comment = "CommSG1", Services = [new() { Content = Service1 }] };
             ModellingConnection Conn1 = new() 
             { 
                 Id = 101, Name = "Conn1", 
-                SourceAppServers = new(){ new() { Content = AppServer1 } },
-                DestinationAppRoles = new(){ new() { Content = AppRole1 } },
-                Services = new(){ new() { Content = Service1 } },
-                ServiceGroups = new(){ new() { Content = ServiceGroup1 } }
+                SourceAppServers = [new() { Content = AppServer1 }],
+                DestinationAppRoles = [new() { Content = AppRole1 }],
+                Services = [new() { Content = Service1 }],
+                ServiceGroups = [new() { Content = ServiceGroup1 }]
             };
             ModellingConnection Inter2 = new() 
             { 
                 Id = 102, Name = "Inter2", 
-                DestinationAppServers = new(){ new() { Content = AppServer2 } },
-                DestinationAppRoles = new(){ new() {} },
-                Services = new(){ new() { Content = Service2 } },
-                ServiceGroups = new(){ new() {} }
+                DestinationAppServers = [new() { Content = AppServer2 }],
+                DestinationAppRoles = [new() {}],
+                Services = [new() { Content = Service2 }],
+                ServiceGroups = [new() {}]
             };
             ModellingConnection ComSvc3 = new() 
             { 
                 Id = 103, Name = "ComSvc3", App = new(){ Name = "App1" },
-                SourceAppServers = new(){ new() { Content = AppServer1 } },
-                DestinationAppServers = new(){ new() { Content = AppServer2 } },
-                Services = new(){ new() { Content = Service2 } },
-                ServiceGroups = new(){ new() {} }
+                SourceAppServers = [new() { Content = AppServer1 }],
+                DestinationAppServers = [new() { Content = AppServer2 }],
+                Services = [new() { Content = Service2 }],
+                ServiceGroups = [new() {}]
             };
 
             ReportData reportData = new ()
             {
-                OwnerData = new ()
-                {
+                OwnerData =
+                [
                     new ()
                     {
                         Name = "TestOwner",
-                        Connections = new(){ Conn1, Inter2, ComSvc3 },
-                        RegularConnections = new(){ Conn1 },
-                        Interfaces = new(){ Inter2 },
-                        CommonServices = new(){ ComSvc3 },
+                        Connections = [Conn1, Inter2, ComSvc3],
+                        RegularConnections = [Conn1],
+                        Interfaces = [Inter2],
+                        CommonServices = [ComSvc3],
                     }
-                },
-                GlobalComSvc = new(){ ComSvc3 }
+                ],
+                GlobalComSvc = [ComSvc3]
             };
             reportData.OwnerData.First().PrepareObjectData();
             return reportData;
         }
 
-        private static string removeGenDate(string exportString, bool html = false, bool json = false)
+        private static string RemoveGenDate(string exportString, bool html = false, bool json = false)
         {
             string dateText = html ? "<p>Generated on: " : "report generation date" + (json ? "\"" : "") + ": " + (json ? "\"" : "");
             int startGenTime = exportString.IndexOf(dateText);
@@ -1322,7 +1322,7 @@ namespace FWO.Test
             return exportString;
         }
 
-        private static string removeLinebreaks(string exportString)
+        private static string RemoveLinebreaks(string exportString)
         {
             while(exportString.Contains("\n "))
             {

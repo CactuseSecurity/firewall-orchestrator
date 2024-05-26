@@ -31,8 +31,8 @@ namespace FWO.Tufin.SecureChange
 		{			
 			return tasksTemplate
 				.Replace("@@USERS@@", "[\"Any\"]") // data not provided yet
-				.Replace("@@SOURCES@@", ConvertNetworkObjectWrapperssToTufinJsonString(Connection.SourceAppServers, "source"))
-				.Replace("@@DESTINATIONS@@", ConvertNetworkObjectWrapperssToTufinJsonString(Connection.SourceAppServers, "destination"))
+				.Replace("@@SOURCES@@", ConvertNetworkObjectWrapperssToTufinJsonString(Connection.SourceAppServers))
+				.Replace("@@DESTINATIONS@@", ConvertNetworkObjectWrapperssToTufinJsonString(Connection.SourceAppServers))
 				.Replace("@@SERVICES@@", ConvertNetworkServiceWrapperssToTufinJsonString(Connection.Services))
 				.Replace("@@ACTION@@", Action)
 				.Replace("@@REASON@@", Reason)
@@ -42,10 +42,21 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@COM_DOCUMENTED@@", ComDocumented);
 		}
 
-		static private string ConvertNetworkObjectWrapperssToTufinJsonString(List<ModellingAppServerWrapper> nwObjects, string nwObjField = "source")
+		static private string ConvertNetworkObjectWrapperssToTufinJsonString(List<ModellingAppServerWrapper> nwObjects)
 		{
-			string result = "[]";
-			// TODO: implement
+			// TODO: this is just a mock-up, needs to handle app roles, ...
+			string result = "[";
+			foreach (ModellingAppServerWrapper srv in nwObjects)
+			{
+				result += $@"{{
+									""@type"": ""IP"",
+									""ip_address"": ""{srv.Content.Ip}"",
+									""netmask"": ""255.255.255.255"",
+									""cidr"": 32
+							}},";
+			}
+			result = result.TrimEnd(',');
+			result += "]";
 			return result;
 		}
 
@@ -56,10 +67,10 @@ namespace FWO.Tufin.SecureChange
 			{
 				result += $@"
 				{{
-					""@type"": ""PREDEFINED"", 
+					""@type"": ""PROTOCOL"", 
 					""protocol"": ""{svc.Content.ProtoId}"", 
 					""port"": {svc.Content.Port},
-					""predefined_name"": ""{svc.Content.Name}""
+					""name"": ""{svc.Content.Name}""
 				}},";
 			}
 			result = result.TrimEnd(',');

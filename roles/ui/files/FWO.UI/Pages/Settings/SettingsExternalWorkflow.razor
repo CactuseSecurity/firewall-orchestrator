@@ -56,13 +56,13 @@
              <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5595"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_template")):</label>
                 <div class="col-sm-8">
-                    <textarea rows="5" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("ticket_template")) @bind="ticketTemplate"></textarea>   
+                    <textarea rows="10" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("ext_ticket_template_ph")) @bind="ticketTemplate"></textarea>   
                 </div>
             </div>
              <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_task_template")):</label>
                 <div class="col-sm-8">
-                    <textarea rows="5" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("task_template")) @bind="tasksTemplate"></textarea>   
+                    <textarea rows="30" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("ext_task_template_ph")) @bind="tasksTemplate"></textarea>   
                 </div>
             </div>
         </div>

@@ -1152,6 +1152,188 @@ INSERT INTO txt VALUES ('ext_ticket_template', 	'German',	'Template Ticket-Text'
 INSERT INTO txt VALUES ('ext_ticket_template', 	'English',	'Template ticket text');
 INSERT INTO txt VALUES ('ext_task_template', 	'German',	'Template Aufgabentext');
 INSERT INTO txt VALUES ('ext_task_template', 	'English',	'Template task text');
+INSERT INTO txt VALUES ('ext_ticket_template_ph','German',	'Ticket Template im JSON-Format, Bspw. f&uuml;r Tufin Secure Change:
+{
+	"ticket": {
+		"subject": "@@TICKET_SUBJECT@@",
+		"priority": "@@PRIORITY@@",
+		"requester": "@@ONBEHALF@@",
+		"domain_name": "",
+		"workflow": {
+			"name": "@@WORKFLOW_NAME@@"
+		},
+		"steps": {
+			"step": [
+				{
+					"name": "Erfassung des Antrags",
+					"tasks": {
+						"task": {
+							"fields": {
+								"field": [
+										@@TASKS@@
+								]
+							}
+						}
+					}
+				}
+			]
+		}
+	}
+}
+');
+INSERT INTO txt VALUES ('ext_ticket_template_ph','English',	'Ticket Template in JSON format, e. g.  for Tufin Secure Change:
+{
+	"ticket": {
+		"subject": "@@TICKET_SUBJECT@@",
+		"priority": "@@PRIORITY@@",
+		"requester": "@@ONBEHALF@@",
+		"domain_name": "",
+		"workflow": {
+			"name": "@@WORKFLOW_NAME@@"
+		},
+		"steps": {
+			"step": [
+				{
+					"name": "Request creation",
+					"tasks": {
+						"task": {
+							"fields": {
+								"field": [
+										@@TASKS@@
+								]
+							}
+						}
+					}
+				}
+			]
+		}
+	}
+}');
+INSERT INTO txt VALUES ('ext_task_template_ph',  'German',	'Template Text je Verbindung, f&uuml;r Tufin Secure Change etwa:
+    {
+        "@xsi.type": "multi_access_request",
+        "name": "Gewünschter Zugang",
+        "read_only": false,
+        "access_request": {
+            "order": "AR1",
+            "verifier_result": {
+                "status": "not run"
+            },
+            "use_topology": true,
+            "targets": {
+                "target": {
+                    "@type": "ANY"
+                }
+            },
+            "users": {
+                "user": @@USERS@@
+            },
+            "sources": {
+                "source": @@SOURCES@@
+            },
+            "destinations": {
+                "destination": @@DESTINATIONS@@
+            },
+            "services": {
+                "service": @@SERVICES@@
+            },
+            "action": "@@ACTION@@",
+            "labels": ""
+        }
+    },
+    {
+        "@xsi.type": "text_area",
+        "name": "Grund für den Antrag",
+        "read_only": false,
+        "text": "@@REASON@@"
+    },
+    {
+        "@xsi.type": "drop_down_list",
+        "name": "Regel Log aktivieren?",
+        "selection": "@@LOGGING@@"
+    },
+    {
+        "@xsi.type": "date",
+        "name": "Regel befristen bis:"
+    },
+    {
+        "@xsi.type": "text_field",
+        "name": "Anwendungs-ID",
+        "text": "@@APPID@@"
+    },
+    {
+        "@xsi.type": "checkbox",
+        "name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
+        "value":  @@COM_DOCUMENTED@@
+    },
+    {
+        "@xsi.type": "drop_down_list",
+        "name": "Expertenmodus: Exakt wie beantragt implementieren (Designervorschlag ignorieren)",
+        "selection": "Nein"
+    }');
+INSERT INTO txt VALUES ('ext_task_template_ph', 'English',	'Template text for each connection; e.g. for Tufin Secure Change:
+    {
+        "@xsi.type": "multi_access_request",
+        "name": "Required access",
+        "read_only": false,
+        "access_request": {
+            "order": "AR1",
+            "verifier_result": {
+                "status": "not run"
+            },
+            "use_topology": true,
+            "targets": {
+                "target": {
+                    "@type": "ANY"
+                }
+            },
+            "users": {
+                "user": @@USERS@@
+            },
+            "sources": {
+                "source": @@SOURCES@@
+            },
+            "destinations": {
+                "destination": @@DESTINATIONS@@
+            },
+            "services": {
+                "service": @@SERVICES@@
+            },
+            "action": "@@ACTION@@",
+            "labels": ""
+        }
+    },
+    {
+        "@xsi.type": "text_area",
+        "name": "Reason for the connection request",
+        "read_only": false,
+        "text": "@@REASON@@"
+    },
+    {
+        "@xsi.type": "drop_down_list",
+        "name": "Activate logging?",
+        "selection": "@@LOGGING@@"
+    },
+    {
+        "@xsi.type": "date",
+        "name": "Rule termination date:"
+    },
+    {
+        "@xsi.type": "text_field",
+        "name": "Application ID",
+        "text": "@@APPID@@"
+    },
+    {
+        "@xsi.type": "checkbox",
+        "name": "Connection defined in application security documentation",
+        "value":  @@COM_DOCUMENTED@@
+    },
+    {
+        "@xsi.type": "drop_down_list",
+        "name": "Expert mode?",
+        "selection": "Nein"
+    }');
+
 
 INSERT INTO txt VALUES ('area', 	            'German',	'Area');
 INSERT INTO txt VALUES ('area', 	            'English',	'Area');

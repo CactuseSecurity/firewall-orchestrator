@@ -7,6 +7,15 @@
         - "{{ wsgi_package_name }}"
       environment: "{{ proxy_env }}"
 
+    - name: enable apache modules proxy proxy_http ssl
+      apache2_module: state=present name={{ item }}
+      loop:
+        - rewrite
+        - proxy
+        - proxy_http
+        - ssl
+        - proxy_wstunnel
+
     - name: copy mw httpd config file to mw target
       template:
         src: "httpd.conf"
@@ -36,15 +45,6 @@
         dest: "/etc/ssl/certs/"
         remote_src: true
       when: installation_mode == "new"
-
-    - name: enable apache modules proxy proxy_http ssl
-      apache2_module: state=present name={{ item }}
-      loop:
-        - rewrite
-        - proxy
-        - proxy_http
-        - ssl
-        - proxy_wstunnel
 
     - name: enable {{ product_name }} middleware apache site
       command: "a2ensite {{ product_name }}-mw"

@@ -52,6 +52,7 @@
 
   - name: disable {{ product_name }} web site
     command: "a2dissite {{ product_name }}-ui"
+    ignore_errors: true
 
   - name: restart apache with maintenance site
     service:

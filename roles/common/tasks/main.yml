@@ -35,24 +35,6 @@
     # when upgrading check if we are not attempting a downgrade
     - block:
     
-      - name: create group {{ fworch_group }}
-        group:
-          name: "{{ fworch_user }}"
-          gid: "{{ user_id }}"
-          state: present
-        
-      - name: add user {{ fworch_user }}
-        user:
-          name: "{{ fworch_user }}"
-          comment: "{{ product_name }} User"
-          uid: "{{ user_id }}"
-          home: "{{ fworch_home }}"
-          shell: /bin/bash
-          group: "{{ fworch_group }}"
-          generate_ssh_key: true
-          ssh_key_bits: 4096
-          ssh_key_file: .ssh/id_rsa
-
       - name: fetch remote config file
         fetch:
           src: "{{ fworch_conf_file }}"
@@ -131,6 +113,30 @@
     - name: include redhat install basics
       include_tasks: redhat_preps.yml
       when: installation_mode == "new" and ansible_os_family == "RedHat"
+
+
+    # ensure fworch user and group are present
+    - block:
+      - name: create group {{ fworch_group }}
+        group:
+          name: "{{ fworch_user }}"
+          gid: "{{ user_id }}"
+          state: present
+        
+      - name: add user {{ fworch_user }}
+        user:
+          name: "{{ fworch_user }}"
+          comment: "{{ product_name }} User"
+          uid: "{{ user_id }}"
+          home: "{{ fworch_home }}"
+          shell: /bin/bash
+          group: "{{ fworch_group }}"
+          generate_ssh_key: true
+          ssh_key_bits: 4096
+          ssh_key_file: .ssh/id_rsa
+
+      become: true
+
 
     - name: create var lock directory
       file:

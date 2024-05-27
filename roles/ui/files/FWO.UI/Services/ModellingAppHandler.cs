@@ -9,7 +9,7 @@ namespace FWO.Ui.Services
     public class ModellingAppHandler : ModellingHandlerBase
     {
         public ModellingConnectionHandler? connHandler;
-        public List<ModellingConnection> Connections = new();
+        public List<ModellingConnection> Connections = [];
         public ModellingConnection ConnToDelete = new();
         public bool AddConnMode = false;
         public bool EditConnMode = false;
@@ -45,6 +45,7 @@ namespace FWO.Ui.Services
                 {
                     conn.ExtractNwGroups();
                     await ExtractUsedInterface(conn);
+                    conn.SyncState();
                 }
                 ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
             }
@@ -111,7 +112,9 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetInterfaces()
         {
-            return Connections.Where(x => x.IsInterface).ToList();
+            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface).ToList();
+            tmpList.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
+            return tmpList;
         }
 
         public List<ModellingConnection> GetCommonServices()
@@ -128,7 +131,8 @@ namespace FWO.Ui.Services
         {
             if((conn.InterfaceIsRequested && conn.SrcFromInterface) || (conn.IsRequested && conn.SourceFilled()))
             {
-                return new () { DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested) };
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested,
+                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
 
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList();
@@ -153,7 +157,8 @@ namespace FWO.Ui.Services
         {
             if((conn.InterfaceIsRequested && conn.DstFromInterface) || (conn.IsRequested && conn.DestinationFilled()))
             {
-                return new () { DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested) };
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
+                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
             List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList();
             foreach(var nwGroup in nwGroups)
@@ -177,7 +182,8 @@ namespace FWO.Ui.Services
         {
             if(conn.InterfaceIsRequested || conn.IsRequested)
             {
-                return new () { DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested) };
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
+                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
             List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
@@ -257,7 +263,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteConnection, new { id = ConnToDelete.Id })).AffectedRows > 0)
+                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteConnection, new { id = ConnToDelete.Id })).DeletedId == ConnToDelete.Id)
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Connection, ConnToDelete.Id,
                         $"Deleted {(ConnToDelete.IsInterface? "Interface" : "Connection")}: {ConnToDelete.Name}", Application.Id);
@@ -271,5 +277,23 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
             }
         }
+
+        // public async Task EditAppRole(ModellingAppRole? appRole)
+        // {
+        //     try
+        //     {
+        //         if(appRole != null)
+        //         {
+        //             AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
+        //             AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, [],
+        //                 appRole, AvailableAppServers, [], false, DisplayMessageInUi, IsOwner, false);
+        //             EditAppRoleMode = true;
+        //         }
+        //     }
+        //     catch (Exception exception)
+        //     {
+        //         DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
+        //     }
+        // }
     }
 }

@@ -13,13 +13,11 @@ namespace FWO.Ui.Services
 {
     public class ModellingAppRoleHandler : ModellingHandlerBase
     {
-        public List<ModellingAppRole> AppRoles { get; set; } = new();
+        public List<ModellingAppRole> AppRoles { get; set; } = [];
         public ModellingAppRole ActAppRole { get; set; } = new();
-        public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
-        public List<ModellingAppServer> AppServersInArea { get; set; } = new();
-        public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = new();
-        public List<ModellingAppServer> AppServerToAdd { get; set; } = new();
-        public List<ModellingAppServer> AppServerToDelete { get; set; } = new();
+        public List<ModellingAppServer> AppServersInArea { get; set; } = [];
+        public List<ModellingAppServer> AppServerToAdd { get; set; } = [];
+        public List<ModellingAppServer> AppServerToDelete { get; set; } = [];
         public ModellingNamingConvention NamingConvention = new();
 
         private ModellingManagedIdString OrigId = new();

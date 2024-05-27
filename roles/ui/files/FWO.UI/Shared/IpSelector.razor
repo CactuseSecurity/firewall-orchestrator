@@ -6,8 +6,11 @@
 @inject UserConfig userConfig
 
 <div class="form-group row">
-    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip_addresses")):</label>
-    <div class="col-sm-9 me-auto">
+    @if(WithLabel)
+    {
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip_addresses")):</label>
+    }
+    <div class="@(WithLabel ? "col-sm-9" : "col-sm-12") me-auto">
         @if(Readonly)
         {
             @foreach(var adr in IpAddresses)
@@ -29,7 +32,7 @@
                     <div class="col-sm-10">
                         <IpAddressInput @bind-IpRange="ipRangeToAdd" />
                     </div>
-                    <button @onclick="AddIpRange" type="button" class="col-sm-2 btn btn-sm btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
+                    <button @onclick="AddIpRange" type="button" class="col-sm-2 btn btn-sm btn-success" id="addIpAddress">@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
         }
@@ -39,22 +42,25 @@
 @code
 {
     [Parameter]
-    public List<NwObjectElement> IpAddresses { get; set; } = new List<NwObjectElement>();
+    public List<NwObjectElement> IpAddresses { get; set; } = [];
 
     [Parameter]
-    public List<NwObjectElement> IpsToAdd { get; set; } = new List<NwObjectElement>();
+    public List<NwObjectElement> IpsToAdd { get; set; } = [];
 
     [Parameter]
     public EventCallback<List<NwObjectElement>> IpsToAddChanged { get; set; }
 
     [Parameter]
-    public List<NwObjectElement> IpsToDelete { get; set; } = new List<NwObjectElement>();
+    public List<NwObjectElement> IpsToDelete { get; set; } = [];
 
     [Parameter]
     public EventCallback<List<NwObjectElement>> IpsToDeleteChanged { get; set; }
 
     [Parameter]
     public bool Readonly { get; set; } = false;
+
+    [Parameter]
+    public bool WithLabel { get; set; } = true;
 
 
     private IPAddressRange? ipRangeToAdd;

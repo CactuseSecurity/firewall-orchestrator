@@ -1025,6 +1025,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
+                      "conn_prop",
                       "creation_date",
                       "creator",
                       "id",
@@ -1048,6 +1049,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
+                      "conn_prop",
                       "creation_date",
                       "creator",
                       "id",
@@ -1071,6 +1073,7 @@
                     "columns": [
                       "app_id",
                       "common_service",
+                      "conn_prop",
                       "creation_date",
                       "creator",
                       "id",
@@ -1091,11 +1094,23 @@
               ],
               "update_permissions": [
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "conn_prop"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
                       "app_id",
                       "common_service",
+                      "conn_prop",
                       "creation_date",
                       "creator",
                       "id",
@@ -1108,20 +1123,7 @@
                       "ticket_id",
                       "used_interface_id"
                     ],
-                    "filter": {
-                      "_or": [
-                        {
-                          "app_id": {
-                            "_in": "x-hasura-editable-owners"
-                          }
-                        },
-                        {
-                          "app_id": {
-                            "_is_null": true
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "check": {}
                   },
                   "comment": ""

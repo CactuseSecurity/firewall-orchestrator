@@ -6,9 +6,9 @@
 
 <div class="p-3">
     <h5 class="text-left">@(userConfig.GetText("recert_parameter"))</h5>
-    <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
+    <h7 class="text-left text-white">@(userConfig.GetText("due_within")):</h7>
     <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="RecertFilter.RecertificationDisplayPeriod" />
-    <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+    <h7 class="text-left text-white">@(userConfig.GetText("owner"))</h7>
     <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true" SelectedElement="selectedOwner" 
             SelectedElementChanged="SelectedOwnerChanged" Elements="ownerList">
         <ElementTemplate Context="owner">
@@ -40,7 +40,7 @@
                 }
                 await FilterInputChanged.InvokeAsync(FilterInput);
             })" />
-        <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
+        <label class="form-check-label text-white" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
     </div>
 </div>
 
@@ -62,7 +62,7 @@
     [Parameter]
     public EventCallback<RecertFilter> RecertFilterChanged { get; set; }
 
-    private List<FwoOwner> ownerList = new List<FwoOwner>();
+    private List<FwoOwner> ownerList = [];
     private FwoOwner? selectedOwner = null;
 
 

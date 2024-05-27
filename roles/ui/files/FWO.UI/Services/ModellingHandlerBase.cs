@@ -1,5 +1,4 @@
 ﻿using FWO.Config.Api;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -17,11 +16,16 @@ namespace FWO.Ui.Services
         protected readonly UserConfig userConfig;
         protected Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+        public List<ModellingAppServer> AvailableAppServers { get; set; } = [];
+        public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = [];
+        public List<ModellingService> AvailableServices { get; set; } = [];
+        public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = [];
+
         public bool ReadOnly = false;
         public bool IsOwner { get; set; } = true;
         public string Message { get; set; } = "";
         public bool DeleteAllowed { get; set; } = true;
-        public List<ModellingService> SvcToAdd { get; set; } = new();
+        public List<ModellingService> SvcToAdd { get; set; } = [];
         private ModellingService actService = new();
 
         public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -64,11 +68,12 @@ namespace FWO.Ui.Services
             return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
         }
 
-        public static string DisplayReqInt(UserConfig userConfig, long? ticketId, bool otherOwner)
+        public static string DisplayReqInt(UserConfig userConfig, long? ticketId, bool otherOwner, bool rejected = false)
         {
-            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(otherOwner ? "C9007" : "C9008")}\"";
-            string content = $"{userConfig.GetText("interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
-            return $"<span class=\"text-danger\" {tooltip}><i>{content}</i></span>";
+            string tooltipKey = rejected ? "C9011": otherOwner ? "C9007" : "C9008";
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(tooltipKey)}\"";
+            string content = $"{userConfig.GetText(rejected ? "InterfaceRejected" : "interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
+            return $"<span class=\"{(rejected ? "text-danger" : "text-warning")}\" {tooltip}><i>{content}</i></span>";
         }
 
         protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text, int? applicationId)
@@ -181,6 +186,7 @@ namespace FWO.Ui.Services
                         if(interf[0].IsRequested)
                         {
                             conn.InterfaceIsRequested = true;
+                            conn.InterfaceIsRejected = interf[0].GetBoolProperty(ConState.Rejected.ToString());
                             conn.TicketId = interf[0].TicketId;
                         }
                         else
@@ -201,7 +207,15 @@ namespace FWO.Ui.Services
                             conn.Services = interf[0].Services;
                             conn.ServiceGroups = interf[0].ServiceGroups;
                         }
-                    }  
+                        if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
+                        {
+                            conn.AddProperty(ConState.InterfaceRejected.ToString());
+                        }
+                        else if(interf[0].GetBoolProperty(ConState.Requested.ToString()))
+                        {
+                            conn.AddProperty(ConState.InterfaceRequested.ToString());
+                        }
+                    }
                 }
             }
             catch (Exception exception)
@@ -274,7 +288,7 @@ namespace FWO.Ui.Services
         public static async Task<List<FwoOwner>> GetOwnApps(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig,
             ApiConnection apiConnection, Action<Exception?, string, string, bool> DisplayMessageInUi, bool withConn = false)
         {
-            List<FwoOwner> apps = new();
+            List<FwoOwner> apps = [];
             try
             {
                 if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
@@ -306,7 +320,7 @@ namespace FWO.Ui.Services
             string? ownerString = authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners")?.Value;
             if(ownerString != null)
             {
-                string[] separatingStrings = { ",", "{", "}" };
+                string[] separatingStrings = [",", "{", "}"];
                 string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
             }

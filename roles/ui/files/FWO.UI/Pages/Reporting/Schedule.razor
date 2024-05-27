@@ -148,7 +148,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateScheduledReport())">@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateReportSchedule())">@(userConfig.GetText("save"))</button>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditReportScheduleDialog = ShowAddReportScheduleDialog = false">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
@@ -272,7 +272,7 @@
         }
     }
 
-    private async Task UpdateScheduledReport()
+    private async Task UpdateReportSchedule()
     {
         try
         {

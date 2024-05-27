@@ -2,11 +2,11 @@ namespace FWO.Api.Data
 {
     public class ModellingFilter
     {
-        public List<FwoOwner> SelectedOwners {get; set;} = new ();
+        public List<FwoOwner> SelectedOwners {get; set;} = [];
         public FwoOwner SelectedOwner 
         {
             get { return SelectedOwners.FirstOrDefault() ?? new(); }
-            set { SelectedOwners = new() { value }; }
+            set { SelectedOwners = [value]; }
         }
 
 

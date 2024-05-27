@@ -12,6 +12,7 @@ fragment connectionDetails on modelling_connection {
   common_service
   creator
   creation_date
+  conn_prop
   source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){
     owner_network{
       ...appServerDetails

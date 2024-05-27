@@ -1,6 +1,5 @@
 ﻿using NUnit.Framework;
 using NUnit.Framework.Legacy;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Ui.Services;
 
@@ -17,8 +16,8 @@ namespace FWO.Test
         static readonly ModellingHandlerTestApiConn apiConnection = new();
         static readonly Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         static readonly FwoOwner Application = new();
-        static readonly List<KeyValuePair<int, long>> AvailableNwElems = new();
-        static readonly List<ModellingAppRole> AvailableAppRoles = new();
+        static readonly List<KeyValuePair<int, long>> AvailableNwElems = [];
+        static readonly List<ModellingAppRole> AvailableAppRoles = [];
         static readonly ModellingAppRole AppRole = new();
         static readonly bool AddAppRoleMode = false;
         static readonly bool IsOwner = true;
@@ -26,8 +25,8 @@ namespace FWO.Test
         static readonly ModellingAppServer AppServerInside1 = new(){ Name = "AppServerInside1", Ip = "10.0.0.0" };
         static readonly ModellingAppServer AppServerInside2 = new(){ Name = "AppServerInside2", Ip = "10.0.0.5" };
         static readonly ModellingAppServer AppServerInside3 = new(){ Name = "AppServerInside3", Ip = "11.0.0.1" };
-        static readonly List<ModellingAppServer> AvailableAppServers = new() 
-        { 
+        static readonly List<ModellingAppServer> AvailableAppServers =
+        [
             AppServerInside1,
             AppServerInside2,
             AppServerInside3,
@@ -36,13 +35,13 @@ namespace FWO.Test
             new(){ Ip = "11.0.0.4" },
             new(){ Ip = "12.0.0.0" },
             new(){ Ip = "255.255.255.255" }
-        };
+        ];
 
-        static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", Subnets = new()
-        { 
+        static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", Subnets =
+        [
             new(){ Content = new(){ Name = "Testsubnet1", Ip = "10.0.0.0/24", IpEnd = "10.0.0.0/24" }},
             new(){ Content = new(){ Name = "Testsubnet2", Ip = "11.0.0.0/30", IpEnd = "11.0.0.0/30" }}
-        }};
+        ]};
 
         static readonly ModellingNamingConvention NamingConvention1 = new()
         {
@@ -109,15 +108,15 @@ namespace FWO.Test
             {
                 UsedInterfaceId = 1,
                 SrcFromInterface = false,
-                SourceAppServers = new(){ new(){ Content = AppServerInside1 }, new(){ Content = AppServerInside2 }},
-                SourceAppRoles = new(){ new(){ Content = new(){ Name = "AppRole1", IdString = "AR5000001", IsDeleted = true }}},
-                SourceNwGroups = new(){ new(){ Content = TestArea }},
+                SourceAppServers = [new(){ Content = AppServerInside1 }, new(){ Content = AppServerInside2 }],
+                SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1", IdString = "AR5000001", IsDeleted = true }}],
+                SourceNwGroups = [new(){ Content = TestArea }],
                 DstFromInterface = true,
-                DestinationAppServers = new(){ new(){ Content = AppServerInside3 }},
-                DestinationAppRoles = new(){},
-                DestinationNwGroups = new(){},
-                ServiceGroups = new(){ new(){ Content = new(){ Name = "SvcGroup1", IsGlobal = true}}},
-                Services = new(){ new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Name = "UDP"}} }}
+                DestinationAppServers = [new(){ Content = AppServerInside3 }],
+                DestinationAppRoles = [],
+                DestinationNwGroups = [],
+                ServiceGroups = [new(){ Content = new(){ Name = "SvcGroup1", IsGlobal = true}}],
+                Services = [new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Name = "UDP"}} }]
             };
             List<string> expectedSrc = new(){$"<span class=\"\"><span class=\"{Icons.NwGroup}\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
                                              $"<span class=\"\"><span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span></span>",
@@ -136,12 +135,12 @@ namespace FWO.Test
         [Test]
         public async Task TestSelectAppServersFromArea()
         {
-            List<ModellingAppServer> expectedResult = new() 
-            { 
+            List<ModellingAppServer> expectedResult =
+            [
                 new(AppServerInside1) { TooltipText = userConfig.GetText("C9002") },
                 new(AppServerInside2) { TooltipText = userConfig.GetText("C9002") },
                 new(AppServerInside3) { TooltipText = userConfig.GetText("C9002") }
-            };
+            ];
             await AppRoleHandler.SelectAppServersFromArea(TestArea);
             ClassicAssert.AreEqual(expectedResult, AppRoleHandler.AppServersInArea);
         }

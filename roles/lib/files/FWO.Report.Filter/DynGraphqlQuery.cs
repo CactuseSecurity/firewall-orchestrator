@@ -247,7 +247,7 @@ namespace FWO.Report.Filter
             {
                 query.QueryParameters.Add("$appId: Int!");
                 query.QueryVariables["appId"] = modellingFilter.SelectedOwner.Id;
-                query.connectionWhereStatement += $@"{{app_id: {{ _eq: $appId }} }}";
+                query.connectionWhereStatement += $@"{{ _or: [ {{ app_id: {{ _eq: $appId }} }}, {{ proposed_app_id: {{ _eq: $appId }} }} ] }}";
             }
         }
 

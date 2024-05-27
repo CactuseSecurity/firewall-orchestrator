@@ -8,9 +8,9 @@
     <div class="col-sm-4">
         @if(userConfig.ReqOwnerBased)
         {
-            <Dropdown ElementType="FwoOwner" @bind-SelectedElement="selectedOwnerOpt" ElementToString="@(o => o.Name)" Elements="ownerOptions" AppendWidth="100">
+            <Dropdown ElementType="FwoOwner" @bind-SelectedElement="selectedOwnerOpt" ElementToString="@(o => o.Display(""))" Elements="ownerOptions" AppendWidth="100">
                 <ElementTemplate Context="owner">
-                    @owner.Name
+                    @owner.Display("")
                 </ElementTemplate>
                 <Append>
                     <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="async () => {await SelectOwner(selectedOwnerOpt);}">@(userConfig.GetText("select"))</button>
@@ -47,14 +47,14 @@
     public Func<FwoOwner, Task> SelectOwner { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public List<FwoOwner> Owners { get; set; } = new();
+    public List<FwoOwner> Owners { get; set; } = [];
 
     [Parameter]
     public RequestHandler ReqHandler { get; set; } = new ();
 
-    private List<Device> deviceOptions = new ();
+    private List<Device> deviceOptions = [];
     private Device selectedDeviceOpt = new ();
-    private List<FwoOwner> ownerOptions = new ();
+    private List<FwoOwner> ownerOptions = [];
     private FwoOwner selectedOwnerOpt = new ();
 
     protected override async Task OnInitializedAsync()
@@ -84,12 +84,12 @@
         ownerOptions = new (Owners);
         ownerOptions.Add(allMyOwners);
         ownerOptions.Add(assignedToMe);
-        selectedOwnerOpt = allMyOwners;
         if(!userConfig.ReqReducedView || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
         {
             ownerOptions.Add(optTicket);
-            selectedOwnerOpt = optTicket;
         }
+        ownerOptions.Sort((FwoOwner a, FwoOwner b) => a?.CompareTo(b) ?? -1);
+        selectedOwnerOpt = allMyOwners;
     }
 
     private void InitDeviceOptions()

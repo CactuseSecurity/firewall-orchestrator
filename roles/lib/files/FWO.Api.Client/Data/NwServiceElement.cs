@@ -11,7 +11,7 @@
 
         public RequestReqElement ToReqElement()
         {
-            RequestReqElement element = new RequestReqElement()
+            RequestReqElement element = new ()
             {
                 Id = ElemId,
                 TaskId = TaskId,
@@ -25,7 +25,7 @@
 
         public RequestImplElement ToImplElement()
         {
-            RequestImplElement element = new RequestImplElement()
+            RequestImplElement element = new ()
             {
                 Id = ElemId,
                 ImplTaskId = TaskId,

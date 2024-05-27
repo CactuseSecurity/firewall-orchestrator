@@ -10,8 +10,6 @@ namespace FWO.Ui.Services
     {
         public List<ModellingServiceGroup> ServiceGroups { get; set; } = new();
         public ModellingServiceGroup ActServiceGroup { get; set; } = new();
-        public List<ModellingService> AvailableServices { get; set; } = new();
-        public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();
         public ModellingServiceHandler? ServiceHandler;
         public List<ModellingService> SvcToDelete { get; set; } = new();
         public bool AddServiceMode = false;

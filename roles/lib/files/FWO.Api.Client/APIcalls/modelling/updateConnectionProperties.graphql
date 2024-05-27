@@ -1,0 +1,12 @@
+mutation updateConnectionProperties(
+  $id: Int!
+  $connProp: String
+  ) {
+  update_modelling_connection_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      conn_prop: $connProp
+  }) {
+    UpdatedId: id
+  }
+}

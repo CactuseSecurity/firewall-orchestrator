@@ -29,7 +29,7 @@
                                         <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))" 
                                                 SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
                                             <ElementTemplate Context="area">
-                                                @((MarkupString)(area.DisplayHtml() + DisplayObjectCount(area)))
+                                                @((MarkupString)DisplayAreaWithObjectCount(area))
                                             </ElementTemplate>
                                         </Dropdown>
                                     </div>
@@ -201,6 +201,7 @@
                     {
                         AppRoleHandler.CountMembers(area);
                     }
+                    CustomSortAreas();
                     ModellingNetworkArea? existArea = areas.FirstOrDefault(a => a.IdString == AppRoleHandler.ActAppRole.Area?.IdString);
                     if(existArea != null)
                     {
@@ -215,6 +216,11 @@
             }
             unchangedAppRole = new(AppRoleHandler.ActAppRole);
         }
+    }
+
+    private string DisplayAreaWithObjectCount(ModellingNetworkArea area)
+    {
+        return $"<span class=\"{(area.MemberCount == 0 ? "text-secondary" : "")}\">{area.DisplayHtml() + DisplayObjectCount(area)}</span>";
     }
 
     private string DisplayObjectCount(ModellingNetworkArea area)
@@ -266,5 +272,10 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
+    }
+
+    private void CustomSortAreas()
+    {
+        areas.Sort((ModellingNetworkArea a, ModellingNetworkArea b) => a?.CompareTo(b) ?? -1);
     }
 }

@@ -47,7 +47,9 @@ namespace FWO.Api.Data
 
         public string Display(string comSvcTxt)
         {
-            return Name + " (" + ExtAppId + (CommSvcPossible? $", {comSvcTxt}" : "") + ")";
+            string comSvcAppendix = CommSvcPossible && comSvcTxt != "" ? $", {comSvcTxt}" : "";
+            string appIdPart = ExtAppId != "" ? $" ({ExtAppId}{comSvcAppendix})" : "";
+            return $"{Name}{appIdPart}";
         }
 
         public override bool Sanitize()
@@ -56,6 +58,15 @@ namespace FWO.Api.Data
             Criticality = Sanitizer.SanitizeOpt(Criticality, ref shortened);
             ImportSource = Sanitizer.SanitizeCommentOpt(ImportSource, ref shortened);
             return shortened;
+        }
+
+        public int CompareTo(FwoOwner secondOwner)
+        {
+            if(Id <= 0 || secondOwner.Id <= 0)
+            {
+                return Id.CompareTo(secondOwner.Id);
+            }
+            return Name?.CompareTo(secondOwner.Name) ?? -1;
         }
     }
 

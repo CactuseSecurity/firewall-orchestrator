@@ -8,7 +8,7 @@ namespace FWO.Ui.Services
 {
     public class ActionHandler
     {
-        private List<RequestState> states = new ();
+        private List<RequestState> states = [];
         private readonly ApiConnection apiConnection;
         private readonly RequestHandler requestHandler = new ();
         private string? ScopedUserTo { get; set; } = "";
@@ -30,7 +30,7 @@ namespace FWO.Ui.Services
 
         public List<RequestStateAction> GetOfferedActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, WorkflowPhases phase)
         {
-            List<RequestStateAction> offeredActions = new ();
+            List<RequestStateAction> offeredActions = [];
             List<RequestStateAction> stateActions = GetRelevantActions(statefulObject, scope);
             foreach(var action in stateActions.Where(x => x.Event == StateActionEvents.OfferButton.ToString()))
             {
@@ -42,7 +42,7 @@ namespace FWO.Ui.Services
             return offeredActions;
         }
 
-        public async Task DoStateChangeActions(RequestStatefulObject statefulObject, RequestObjectScopes scope)
+        public async Task DoStateChangeActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner = null, long? ticketId = null)
         {
             if (statefulObject.StateChanged())
             {
@@ -51,7 +51,7 @@ namespace FWO.Ui.Services
                 {
                     if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
                     {
-                        await PerformAction(action, statefulObject, scope);
+                        await PerformAction(action, statefulObject, scope, owner, ticketId);
                     }
                 }
                 List<RequestStateAction> fromStateActions = GetRelevantActions(statefulObject, scope, false);
@@ -59,7 +59,7 @@ namespace FWO.Ui.Services
                 {
                     if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
                     {
-                        await PerformAction(action, statefulObject, scope);
+                        await PerformAction(action, statefulObject, scope, owner, ticketId);
                     }
                 }
                 statefulObject.ResetStateChanged();
@@ -84,7 +84,8 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task PerformAction(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+        public async Task PerformAction(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope,
+            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
         {
             switch(action.ActionType)
             {
@@ -120,6 +121,9 @@ namespace FWO.Ui.Services
                     break;
                 case nameof(StateActionTypes.UpdateConnectionRelease):
                     await UpdateConnectionPublish(owner, ticketId);
+                    break;
+                case nameof(StateActionTypes.UpdateConnectionReject):
+                    await UpdateConnectionReject(owner, ticketId);
                     break;
                 case nameof(StateActionTypes.DisplayConnection):
                     await DisplayConnection(statefulObject, scope);
@@ -165,7 +169,9 @@ namespace FWO.Ui.Services
             // {
             //     ModellingConnection proposedInterface = new(){ IsInterface = true, IsRequested = true, TicketId = requestHandler.ActTicket.Id };
             //     ModellingConnectionHandler ConnHandler = new (apiConnection, requestHandler.userConfig, requestHandler.ActReqTask.Owners.First().Owner, new(), proposedInterface, true, false, DefaultInit.DoNothing, false);
+            //     apiConnection.SetProperRole(user, [Roles.Modeller, Roles.Admin]);
             //     await ConnHandler.CreateNewRequestedInterface();
+            //     apiConnection.SwitchBack());
             // }
             // catch(Exception exc)
             // {
@@ -218,7 +224,7 @@ namespace FWO.Ui.Services
                     {
                         if(conn.IsRequested && !conn.IsPublished)
                         {
-                            ConnHandler = new (apiConnection, requestHandler.userConfig, owner, new(), conn, true, false, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
+                            ConnHandler = new (apiConnection, requestHandler.userConfig, owner, [], conn, true, false, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
                             await ConnHandler.PartialInit();
                             if(ConnHandler.CheckConn())
                             {
@@ -243,6 +249,39 @@ namespace FWO.Ui.Services
             }
         }
 
+        public async Task UpdateConnectionReject(FwoOwner? owner, long? ticketId)
+        {
+            Log.WriteDebug("UpdateConnectionReject", "Perform Action");
+            try
+            {
+                if(owner != null && ticketId != null) // todo: role check
+                {
+                    apiConnection.SetRole(Roles.Modeller);
+                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                    foreach(var conn in Connections)
+                    {
+                        if(conn.IsRequested)
+                        {
+                            conn.AddProperty(ConState.Rejected.ToString());
+                            var Variables = new
+                            {
+                                id = conn.Id,
+                                connProp = conn.Properties
+                            };
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
+                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
+                                $"Rejected {(conn.IsInterface? "Interface" : "Connection")}: {conn.Name}", apiConnection, requestHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                        }
+                    }
+                    apiConnection.SwitchBack();
+                }
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Reject Connection", $"Could not change state: ", exc);
+            }
+        }
+
         public async Task DisplayConnection(RequestStatefulObject statefulObject, RequestObjectScopes scope)
         {
             try
@@ -257,7 +296,7 @@ namespace FWO.Ui.Services
                 FwoOwner? owner = requestHandler.ActReqTask.Owners?.First()?.Owner;
                 if(owner != null)
                 {
-                    apiConnection.SetProperRole(requestHandler.AuthUser, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
+                    apiConnection.SetProperRole(requestHandler.AuthUser, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
                     ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == requestHandler.GetConnId());
                     if(conn != null)
@@ -300,7 +339,7 @@ namespace FWO.Ui.Services
 
         private List<RequestStateAction> GetRelevantActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, bool toState=true)
         {
-            List<RequestStateAction> stateActions = new ();
+            List<RequestStateAction> stateActions = [];
             try
             {
                 int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();

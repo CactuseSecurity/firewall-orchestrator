@@ -427,12 +427,12 @@
                 return InvokeAsync(StateHasChanged);
             }, token);
 
-            await PrepareReportData(selectedOwner, actOwnerData);
+            await PrepareConnReportData(selectedOwner, actOwnerData);
         }
         currentReport.ReportData.GlobalComSvc = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
     }
 
-    async Task PrepareReportData(FwoOwner selectedOwner, OwnerReport ownerData)
+    async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerReport ownerData)
     {
         ModellingAppHandler appHandler = new (apiConnection, userConfig, selectedOwner, DisplayMessageInUi);
         await appHandler.Init(ownerData.Connections);

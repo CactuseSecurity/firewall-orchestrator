@@ -7,6 +7,13 @@
         - "{{ wsgi_package_name }}"
       environment: "{{ proxy_env }}"
 
+    - name: copy mw httpd config file to mw target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-mw.conf"
+        owner: root
+        group: root
+
     - name: enable apache modules proxy proxy_http ssl
       apache2_module: state=present name={{ item }}
       loop:
@@ -15,13 +22,6 @@
         - proxy_http
         - ssl
         - proxy_wstunnel
-
-    - name: copy mw httpd config file to mw target
-      template:
-        src: "httpd.conf"
-        dest: "{{ http_conf_dir }}/{{ product_name }}-mw.conf"
-        owner: root
-        group: root
 
     - name: create apache certificates
       include_role:

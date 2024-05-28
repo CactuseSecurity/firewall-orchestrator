@@ -1,6 +1,24 @@
 
 - block:
 
+  - name: create group {{ fworch_group }}
+    group:
+      name: "{{ fworch_user }}"
+      gid: "{{ user_id }}"
+      state: present
+    
+  - name: add user {{ fworch_user }}
+    user:
+      name: "{{ fworch_user }}"
+      comment: "{{ product_name }} User"
+      uid: "{{ user_id }}"
+      home: "{{ fworch_home }}"
+      shell: /bin/bash
+      group: "{{ fworch_group }}"
+      generate_ssh_key: true
+      ssh_key_bits: 4096
+      ssh_key_file: .ssh/id_rsa
+
   - name: create maint website dir
     file:
       path: "/var/www/html/"
@@ -34,6 +52,7 @@
 
   - name: disable {{ product_name }} web site
     command: "a2dissite {{ product_name }}-ui"
+    ignore_errors: true
 
   - name: restart apache with maintenance site
     service:

@@ -12,7 +12,7 @@ Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
  
 ## Add VS Code Extensions from Marketplace
 recommended:
-- C#
+- C# --> make sure to activate OmniSharp Support in settings
 - Razor+
 - Debugger for Firefox
 - GitHub Pull Requests and Issues, see <https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-pull-request-github>

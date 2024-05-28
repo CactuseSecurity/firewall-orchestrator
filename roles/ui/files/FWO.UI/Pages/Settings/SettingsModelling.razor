@@ -234,22 +234,22 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private List<string> appDataPaths = new();
-    private List<string> PathsToAdd = new();
-    private List<string> PathsToDelete = new();
+    private List<string> appDataPaths = [];
+    private List<string> PathsToAdd = [];
+    private List<string> PathsToDelete = [];
     private string actPath = "";
     
-    private List<AppServerType> appServerTypes = new();
-    private List<AppServerType> appServerTypesToAdd = new();
-    private List<AppServerType> appServerTypesToDelete = new();
+    private List<AppServerType> appServerTypes = [];
+    private List<AppServerType> appServerTypesToAdd = [];
+    private List<AppServerType> appServerTypesToDelete = [];
     private AppServerType actAppServerType = new();
     private string appServerDefaultTypeName = "";
     
-    private List<ModellingNwGroup> allAreas = new();
-    private List<ModellingNwGroupWrapper> pureAreaList = new();
-    private List<CommonAreaConfig> commAreaConfigItems = new();
-    private List<CommonArea> commonAreas = new();
-    private List<CommonArea> AreasToDelete = new();
+    private List<ModellingNwGroup> allAreas = [];
+    private List<ModellingNwGroupWrapper> pureAreaList = [];
+    private List<CommonAreaConfig> commAreaConfigItems = [];
+    private List<CommonArea> commonAreas = [];
+    private List<CommonArea> AreasToDelete = [];
     private bool predefServices = false;
     private bool searchArea = false;
     private ModellingNamingConvention namingConvention = new();

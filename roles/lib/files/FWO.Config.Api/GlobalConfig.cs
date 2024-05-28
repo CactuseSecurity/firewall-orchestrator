@@ -1,5 +1,6 @@
 ﻿using FWO.Logging;
 using FWO.Config.File;
+using FWO.GlobalConstants;
 using FWO.Api.Client;
 using FWO.Config.Api.Data;
 using FWO.Api.Client.Queries;
@@ -14,10 +15,10 @@ namespace FWO.Config.Api
         /// <summary>
         /// Global config constants
         /// </summary>
-        public string productVersion { get; set; }
-        public Language[] uiLanguages { get; set; }
-        public Dictionary<string, Dictionary<string, string>> langDict { get; set; }
-        public Dictionary<string, Dictionary<string, string>> overDict { get; set; }
+        public string ProductVersion { get; set; }
+        public Language[] UiLanguages { get; set; }
+        public Dictionary<string, Dictionary<string, string>> LangDict { get; set; }
+        public Dictionary<string, Dictionary<string, string>> OverDict { get; set; }
 
 
         /// <summary>
@@ -33,9 +34,9 @@ namespace FWO.Config.Api
         {
             string productVersion = ConfigFile.ProductVersion;
 
-            Language[] uiLanguages = Array.Empty<Language>();
-            Dictionary<string, Dictionary<string, string>> tmpLangDicts = new();
-            Dictionary<string, Dictionary<string, string>> tmpLangOverDicts = new();
+            Language[] uiLanguages = [];
+            Dictionary<string, Dictionary<string, string>> tmpLangDicts = [];
+            Dictionary<string, Dictionary<string, string>> tmpLangOverDicts = [];
 
             if (loadLanguageData)
             {
@@ -72,25 +73,25 @@ namespace FWO.Config.Api
                 Dictionary<string, Dictionary<string, string>> langDict, Dictionary<string, Dictionary<string, string>> overDict)
             : base(apiConnection, 0)
         {
-            this.productVersion = productVersion;
-            this.uiLanguages = uiLanguages;
-            this.langDict = langDict;
-            this.overDict = overDict;
+            ProductVersion = productVersion;
+            UiLanguages = uiLanguages;
+            LangDict = langDict;
+            OverDict = overDict;
         }
 
         public override string GetText(string key) 
         {
-            if(langDict.ContainsKey(DefaultLanguage) && langDict[DefaultLanguage].ContainsKey(key))
+            if(LangDict.TryGetValue(DefaultLanguage, out Dictionary<string, string>? langDict) && langDict.TryGetValue(key, out string? value))
             {
-                return System.Web.HttpUtility.HtmlDecode(langDict[DefaultLanguage][key]);
+                return System.Web.HttpUtility.HtmlDecode(value);
             }
-            return "(undefined text)";
+            return GlobalConst.kUndefinedText;
         }
         
         private static async Task<Dictionary<string, string>> LoadLangDict(Language lang, ApiConnection apiConnection, bool over = false)
         {
             var languageVariable = new { language = lang.Name };
-            Dictionary<string, string> dict = new();
+            Dictionary<string, string> dict = [];
             List<UiText> uiTexts = await apiConnection.SendQueryAsync<List<UiText>>(over ? ConfigQueries.getCustomTextsPerLanguage : ConfigQueries.getTextsPerLanguage, languageVariable);
             foreach (UiText text in uiTexts)
             {

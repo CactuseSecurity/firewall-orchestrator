@@ -19,7 +19,7 @@
 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5702"))">
     <label class="col-form-label col-sm-1">@(userConfig.GetText("language")):</label>
     <div class="col-sm-4">
-        <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
+        <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.UiLanguages">
             <ElementTemplate Context="language">
                 @(userConfig.GetText(language.Name))
             </ElementTemplate>
@@ -106,7 +106,7 @@
 
     protected override void OnInitialized()
     {
-        selectedLanguage = globalConfig.uiLanguages.FirstOrDefault() ?? new Language();
+        selectedLanguage = globalConfig.UiLanguages.FirstOrDefault() ?? new Language();
     }
 
     private async Task LoadDicts(Language lang)

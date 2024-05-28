@@ -19,7 +19,7 @@
 <div class="form-group row">
     <label class="col-form-label col-sm-2">@(userConfig.GetText("language"))</label>
     <div class="col-sm-4">
-        <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
+        <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.UiLanguages">
             <ElementTemplate Context="language">
                 @(userConfig.GetText(language.Name))
             </ElementTemplate>
@@ -37,7 +37,7 @@
 
     protected override void OnInitialized()
     {
-        selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == userConfig.User.Language) ?? new Language();
+        selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == userConfig.User.Language) ?? new Language();
         StateHasChanged();
     }
 

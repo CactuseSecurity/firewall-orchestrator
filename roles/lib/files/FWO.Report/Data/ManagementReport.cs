@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using System.Text.Json.Serialization;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 
 namespace FWO.Report
@@ -14,47 +13,47 @@ namespace FWO.Report
         public string Name { get; set; } = "";
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
-        public DeviceReport[] Devices { get; set; } = Array.Empty<DeviceReport>();
+        public DeviceReport[] Devices { get; set; } = [];
 
         [JsonProperty("import"), JsonPropertyName("import")]
-        public Import Import { get; set; } = new Import();
+        public Import Import { get; set; } = new ();
 
         public long? RelevantImportId { get; set; }
 
         [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
-        public NetworkObject[] Objects { get; set; } = Array.Empty<NetworkObject>();
+        public NetworkObject[] Objects { get; set; } = [];
 
         [JsonProperty("serviceObjects"), JsonPropertyName("serviceObjects")]
-        public NetworkService[] Services { get; set; } = Array.Empty<NetworkService>();
+        public NetworkService[] Services { get; set; } = [];
 
         [JsonProperty("userObjects"), JsonPropertyName("userObjects")]
-        public NetworkUser[] Users { get; set; } = Array.Empty<NetworkUser>();
+        public NetworkUser[] Users { get; set; } = [];
 
         [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
-        public NetworkObject[] ReportObjects { get; set; } = Array.Empty<NetworkObject>();
+        public NetworkObject[] ReportObjects { get; set; } = [];
 
         [JsonProperty("reportServiceObjects"), JsonPropertyName("reportServiceObjects")]
-        public NetworkService[] ReportServices { get; set; } = Array.Empty<NetworkService>();
+        public NetworkService[] ReportServices { get; set; } = [];
 
         [JsonProperty("reportUserObjects"), JsonPropertyName("reportUserObjects")]
-        public NetworkUser[] ReportUsers { get; set; } = Array.Empty<NetworkUser>();
+        public NetworkUser[] ReportUsers { get; set; } = [];
 
 
         //[JsonProperty("rule_id"), JsonPropertyName("rule_id")]
-        public List<long> ReportedRuleIds { get; set; } = new List<long>();
-        public List<long> ReportedNetworkServiceIds { get; set; } = new List<long>();
+        public List<long> ReportedRuleIds { get; set; } = [];
+        public List<long> ReportedNetworkServiceIds { get; set; } = [];
 
         [JsonProperty("objects_aggregate"), JsonPropertyName("objects_aggregate")]
-        public ObjectStatistics NetworkObjectStatistics { get; set; } = new ObjectStatistics();
+        public ObjectStatistics NetworkObjectStatistics { get; set; } = new ();
 
         [JsonProperty("services_aggregate"), JsonPropertyName("services_aggregate")]
-        public ObjectStatistics ServiceObjectStatistics { get; set; } = new ObjectStatistics();
+        public ObjectStatistics ServiceObjectStatistics { get; set; } = new ();
 
         [JsonProperty("usrs_aggregate"), JsonPropertyName("usrs_aggregate")]
-        public ObjectStatistics UserObjectStatistics { get; set; } = new ObjectStatistics();
+        public ObjectStatistics UserObjectStatistics { get; set; } = new ();
         
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
-        public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
+        public ObjectStatistics RuleStatistics { get; set; } = new ();
 
         public bool Ignore { get; set; }
 

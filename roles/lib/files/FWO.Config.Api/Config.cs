@@ -20,9 +20,9 @@ namespace FWO.Config.Api
 
         public event Action<Config, ConfigItem[]>? OnChange;
 
-        protected SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+        protected SemaphoreSlim semaphoreSlim = new(1, 1);
 
-        public ConfigItem[] RawConfigItems { get; set; }
+        public ConfigItem[] RawConfigItems { get; set; } = [];
 
         protected Config() { }
 

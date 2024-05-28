@@ -94,16 +94,16 @@
   when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
   ignore_errors: true
 
-- name: stop and disable fworch-ui
+- name: stop and disable {{ product_name }}-ui
   service:
-    name: fworch-ui
+    name: "{{ product_name }}-ui"
     state: stopped
     enabled: no
   ignore_errors: true
 
-- name: stop and disable fworch-middleware
+- name: stop and disable {{ product_name }}-middleware
   service:
-    name: fworch-middleware
+    name: "{{ product_name }}-middleware"
     state: stopped
     enabled: no
   ignore_errors: true
@@ -117,7 +117,7 @@
 
 - block:
     - name: disable apache sites
-      command: a2dissite fworch-ui
+      command: a2dissite {{ product_name }}-ui
       ignore_errors: true
 
     - name: disable apache modules (due to a bug with php mod not properly getting purged)
@@ -129,7 +129,7 @@
         - proxy_wstunnel
       ignore_errors: true
 
-    - name: uninstall all packages for fworch, keeping git and ansible
+    - name: uninstall all packages for {{ product_name }}, keeping git and ansible
       package:
         state: absent
         name: "{{ item }}"
@@ -175,27 +175,27 @@
         name: slapd
         purge: yes
 
-    - name: remove fworch dirs and files
+    - name: remove {{ product_name }} dirs and files
       file:
         name: "{{ item }}"
         state: absent
       loop:
         - "{{ fworch_home }}"
-        - /etc/fworch
-        - /etc/apache2/sites-available/fworch-ui.conf
-        - /etc/apache2/sites-available/fworch-api.conf
-        - /etc/apache2/sites-available/fworch-mw.conf
-        - /etc/apache2/sites-available/fworch-maintenance.conf
-        - /etc/apache2/sites-enabled/fworch-ui.conf
-        - /etc/apache2/sites-enabled/fworch-api.conf
-        - /etc/apache2/sites-enabled/fworch-mw.conf
-        - /etc/apache2/sites-enabled/fworch-maintenance.conf
-        - /var/lib/ldap/fworch.internal
+        - /etc/{{ product_name }}
+        - /etc/apache2/sites-available/{{ product_name }}-ui.conf
+        - /etc/apache2/sites-available/{{ product_name }}-api.conf
+        - /etc/apache2/sites-available/{{ product_name }}-mw.conf
+        - /etc/apache2/sites-available/{{ product_name }}-maintenance.conf
+        - /etc/apache2/sites-enabled/{{ product_name }}-ui.conf
+        - /etc/apache2/sites-enabled/{{ product_name }}-api.conf
+        - /etc/apache2/sites-enabled/{{ product_name }}-mw.conf
+        - /etc/apache2/sites-enabled/{{ product_name }}-maintenance.conf
+        - /var/lib/ldap/{{ product_name }}.internal
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data
         - "{{ api_hasura_cli_bin }}"
-        - /var/fworch
-        - /var/log/fworch 
+        - /var/{{ product_name }}
+        - /var/log/{{ product_name }} 
       ignore_errors: true
 
     - name: remove OS users and delete home directories

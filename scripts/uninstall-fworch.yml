@@ -182,12 +182,14 @@
       loop:
         - "{{ fworch_home }}"
         - /etc/fworch
-        - /etc/apache2/sites-available/fworch-*.conf
-        # - /etc/apache2/sites-available/fworch-api.conf
-        # - /etc/apache2/sites-available/fworch-mw.conf
-        - /etc/apache2/sites-enabled/fworch-*.conf
-        # - /etc/apache2/sites-enabled/fworch-api.conf
-        # - /etc/apache2/sites-enabled/fworch-mw.conf
+        - /etc/apache2/sites-available/fworch-ui.conf
+        - /etc/apache2/sites-available/fworch-api.conf
+        - /etc/apache2/sites-available/fworch-mw.conf
+        - /etc/apache2/sites-available/fworch-maintenance.conf
+        - /etc/apache2/sites-enabled/fworch-ui.conf
+        - /etc/apache2/sites-enabled/fworch-api.conf
+        - /etc/apache2/sites-enabled/fworch-mw.conf
+        - /etc/apache2/sites-enabled/fworch-maintenance.conf
         - /var/lib/ldap/fworch.internal
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data

@@ -30,25 +30,25 @@ namespace FWO.Api.Data
 
 	public class ExternalTicketSystem
 	{
-		[JsonProperty("Id"), JsonPropertyName("Id")]
+		[JsonProperty(nameof(Id)), JsonPropertyName(nameof(Id))]
 		public int Id { get; set; } = 0;
 		
-		[JsonProperty("TicketSystemType"), JsonPropertyName("TicketSystemType")]
+		[JsonProperty(nameof(TicketSystemType)), JsonPropertyName(nameof(TicketSystemType))]
 		public TicketSystemType Type { get; set; } = TicketSystemType.Generic;
 				
-		[JsonProperty("Authorization"), JsonPropertyName("Authorization")]
+		[JsonProperty(nameof(Authorization)), JsonPropertyName(nameof(Authorization))]
 		public string Authorization { get; set; } = "Basic xyz"; // replace xyz with b64encode(username:password)
 
-		[JsonProperty("Name"), JsonPropertyName("Name")]
+		[JsonProperty(nameof(Name)), JsonPropertyName(nameof(Name))]
 		public string Name { get; set; } = "";
 		
-		[JsonProperty("Url"), JsonPropertyName("Url")]
+		[JsonProperty(nameof(Url)), JsonPropertyName(nameof(Url))]
 		public string Url { get; set; } = "";
 		
-		[JsonProperty("TicketTemplate"), JsonPropertyName("TicketTemplate")]
+		[JsonProperty(nameof(TicketTemplate)), JsonPropertyName(nameof(TicketTemplate))]
 		public string TicketTemplate { get; set; } = "";
 
-		[JsonProperty("TasksTemplate"), JsonPropertyName("TasksTemplate")]
+		[JsonProperty(nameof(TasksTemplate)), JsonPropertyName(nameof(TasksTemplate))]
 		public string TasksTemplate { get; set; } = "";
 		
 		public ExternalTicketSystem()

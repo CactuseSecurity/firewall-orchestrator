@@ -262,13 +262,11 @@ Roles.Auditor });
         return;
 
         // read external ticketing system information from config
-        ConfigData? configData;
         List<ExternalTicketSystem> extTicketSystems = new();
 
         try
         {
-            configData = await globalConfig.GetEditableConfig();
-            extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new();
+            extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(userConfig.ExtTicketSystems) ?? new();
         }
         catch (Exception exception)
         {

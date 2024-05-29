@@ -11,17 +11,7 @@
 @using FWO.Logging
 @using FWO.Recert
 @using FWO.Ui.Pages.NetworkModelling
-
-
-@using FWO.Config.Api
-@using FWO.GlobalConstants
-@using FWO.Api.Data
 @using System.Text.Json
-@using System.Net
-@using FWO.Middleware.Client
-@using FWO.Middleware.RequestParameters
-@using RestSharp
-
 
 @page "/settings/extticketing"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]

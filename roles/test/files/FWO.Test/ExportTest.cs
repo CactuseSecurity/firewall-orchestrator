@@ -68,7 +68,7 @@ namespace FWO.Test
             "<p>Devices: TestMgt [TestDev]</p>" +
             "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4><hr>" +
+            "<h4>TestDev</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td>TestRule1</td><td>srczn</td>" +
             "<td><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</td>" +
@@ -81,23 +81,23 @@ namespace FWO.Test
             "<td></td>" +
             "<td>not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</td>" +
             "<td>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
-            "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
-            "<h4>Network Objects</h4><hr>" +
+            "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr>" +
+            "<h4>Network Objects</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
             "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
-            "</table>" +
-            "<h4>Network Services</h4><hr>" +
+            "</table><hr>" +
+            "<h4>Network Services</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
-            "</table>" +
-            "<h4>Users</h4><hr>" +
+            "</table><hr>" +
+            "<h4>Users</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
-            "</table></body></html>";
+            "</table><hr></body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
 
@@ -119,7 +119,7 @@ namespace FWO.Test
             "<p>Devices: TestMgt [TestDev]</p>" +
             "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4><hr>" +
+            "<h4>TestDev</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td>TestRule1</td><td>srczn</td>" +
             "<td>TestIp1 (1.2.3.4/32)<br>TestIp2 (127.0.0.1/32)</td>" +
@@ -132,7 +132,7 @@ namespace FWO.Test
             "<td></td>" +
             "<td>not<br>TestUser2@TestIpRange (1.2.3.4-1.2.3.5)</td>" +
             "<td>not<br>TestService2 (6666-7777/UDP)</td>" +
-            "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
+            "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr>" +
             "</body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
@@ -155,7 +155,7 @@ namespace FWO.Test
             "<p>Devices: TestMgt [TestDev]</p>" +
             "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4><hr>" +
+            "<h4>TestDev</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td>TestRule1</td><td>srczn</td>" +
             "<td>1.2.3.4/32<br>127.0.0.1/32</td>" +
@@ -168,7 +168,7 @@ namespace FWO.Test
             "<td></td>" +
             "<td>not<br>TestUser2@1.2.3.4-1.2.3.5</td>" +
             "<td>not<br>6666-7777/UDP</td>" +
-            "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
+            "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr>" +
             "</body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
@@ -191,7 +191,7 @@ namespace FWO.Test
             "<p>Devices: TestMgt [TestDev]</p>" +
             "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4><hr>" +
+            "<h4>TestDev</h4>" +
             "<table><tr><th>No.</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td>2022-04-19</td><td>TestRule1</td><td>srczn</td>" +
             "<td><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</td>" +
@@ -204,23 +204,23 @@ namespace FWO.Test
             "<td></td>" +
             "<td>not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</td>" +
             "<td>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
-            "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
-            "<h4>Network Objects</h4><hr>" +
+            "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr>" +
+            "<h4>Network Objects</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
             "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
-            "</table>" +
-            "<h4>Network Services</h4><hr>" +
+            "</table><hr>" +
+            "<h4>Network Services</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
-            "</table>" +
-            "<h4>Users</h4><hr>" +
+            "</table><hr>" +
+            "<h4>Users</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
-            "</table></body></html>";
+            "</table><hr></body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
 
@@ -242,7 +242,7 @@ namespace FWO.Test
             "<p>Devices: TestMgt [TestDev]</p>" +
             "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4><hr>" +
+            "<h4>TestDev</h4>" +
             "<table><tr><th>No.</th><th>Next Recertification Date</th><th>Owner</th><th>IP address match</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td>" +
             $"<td><p>1.&nbsp;{DateOnly.FromDateTime(DateTime.Now.AddDays(5)).ToString("yyyy-MM-dd")}</p><p style=\"color: red;\">2.&nbsp;{DateOnly.FromDateTime(DateTime.Now.AddDays(-5)).ToString("yyyy-MM-dd")}</p></td>" +
@@ -275,20 +275,20 @@ namespace FWO.Test
             "<td>none</td>" +
             "<td><b>Y</b></td>" +
             "<td>uid2:123</td>" +
-            "<td>comment2</td></tr></table>" +
-            "<h4>Network Objects</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            "<td>comment2</td></tr></table><hr>" +
+            "<h4>Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
             "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
-            "</table>" +
-            "<h4>Network Services</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            "</table><hr>" +
+            "<h4>Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
-            "</table>" +
-            "<h4>Users</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            "</table><hr>" +
+            "<h4>Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
-            "</table></body></html>";
+            "</table><hr></body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRecerts.ExportToHtml(), true)));
         }
 
@@ -310,7 +310,7 @@ namespace FWO.Test
             "<p>Devices: TestMgt [TestDev]</p>" +
             "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4><hr>" +
+            "<h4>TestDev</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Translated Source</th><th>Translated Destination</th><th>Translated Services</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td>" +
             "<td>TestRule1</td>" +
@@ -324,21 +324,21 @@ namespace FWO.Test
             "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
             "<td><b>Y</b></td>" +
             "<td>uid1</td>" +
-            "<td>comment1</td></tr></table>" +
-            "<h4>Network Objects</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            "<td>comment1</td></tr></table><hr>" +
+            "<h4>Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
             "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "<tr><td>4</td><td><a name=nwobj4>TestIpNew</a></td><td>Network</td><td>10.0.6.0/24</td><td></td><td></td><td></td></tr>" +
             "<tr><td>5</td><td><a name=nwobj5>TestIp1Changed</a></td><td>Host</td><td>2.3.4.5</td><td></td><td></td><td></td></tr>" +
-            "</table>" +
-            "<h4>Network Services</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            "</table><hr>" +
+            "<h4>Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
             "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
-            "</table>" +
-            "<h4>Users</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            "</table><hr>" +
+            "<h4>Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
-            "</table></table></body></html>";
+            "</table><hr></table></body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportNatRules.ExportToHtml(), true)));
         }
 
@@ -360,7 +360,7 @@ namespace FWO.Test
             "<p>Devices: TestMgt [TestDev]</p>" +
             "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4><hr>" +
+            "<h4>TestDev</h4>" +
             "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>05.04.2023 12:00:00</td><td>Rule added</td><td><p style=\"color: green; text-decoration: bold;\">TestRule1</p></td>" +
             "<td><p style=\"color: green; text-decoration: bold;\">srczn</p></td>" +
@@ -403,7 +403,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">none</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\"><b>Y</b></p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
+            "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table><hr>" +
             "</body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true)));
         }
@@ -426,7 +426,7 @@ namespace FWO.Test
             "<p>Devices: TestMgt [TestDev]</p>" +
             "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4><hr>" +
+            "<h4>TestDev</h4>" +
             "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>05.04.2023 12:00:00</td><td>Rule added</td>" +
             "<td><p style=\"color: green; text-decoration: bold;\">TestRule1</p></td>" +
@@ -465,7 +465,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">none</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\"><b>Y</b></p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
+            "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table><hr>" +
             "</body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true)));
         }
@@ -488,7 +488,7 @@ namespace FWO.Test
             "<p>Devices: TestMgt [TestDev]</p>" +
             "<p>Filter: TestFilter</p><hr>" +
             "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4><hr>" +
+            "<h4>TestDev</h4>" +
             "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>05.04.2023 12:00:00</td><td>Rule added</td>" +
             "<td><p style=\"color: green; text-decoration: bold;\">TestRule1</p></td>" +
@@ -528,7 +528,7 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">none</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\"><b>Y</b></p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
+            "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table><hr>" +
             "</body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true)));
         }

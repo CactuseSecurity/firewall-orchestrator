@@ -61,7 +61,7 @@
         <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
     </Footer>
 </PopUp>
-<EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" AppServerHandler="appServerListHandler.AppServerHandler"/>
+<EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" @bind-AppServerHandler="appServerListHandler.AppServerHandler"/>
 <ConfirmDelete @bind-Display="appServerListHandler.DeleteAppServerMode" PerformAction="async () => {await appServerListHandler.DeleteAppServer(); StateHasChanged();}"
     Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message"/>
 <Confirm @bind-Display="appServerListHandler.ReactivateAppServerMode" PerformAction="async () => {await appServerListHandler.ReactivateAppServer(); StateHasChanged();}"
@@ -89,7 +89,7 @@
     private bool firstTry = true;
 
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {
@@ -107,7 +107,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Display && firstTry)
+        if (Display && firstTry && appServerListHandler != null)
         {
             workInProgress = true;
             await appServerListHandler.Init(Application);

@@ -10,7 +10,7 @@
 <div class="col-sm-11 border rounded m-2 p-2">
     <h5>@(userConfig.GetText("app_server"))</h5>
     <div class="form-group row">
-        <div class="col-sm-9">
+        <div class="col-sm-10">
             <DraggableList AllElements="AppRoleHandler.AppServersInArea" @bind-SelectedElements="selectedAppServers" 
                 HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
         </div>

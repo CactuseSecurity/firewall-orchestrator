@@ -7,6 +7,7 @@
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
 <div class="input-group">
@@ -47,7 +48,7 @@ else
     {
         try
         {
-            configData = await userConfig.GetEditableConfig();
+            configData = await globalConfig.GetEditableConfig();
         }
         catch (Exception exception)
         {
@@ -61,7 +62,7 @@ else
         {
             if (configData != null)
             {
-                await userConfig.WriteToDatabase(configData, apiConnection);
+                await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("recert_settings"), userConfig.GetText("U5301"), false);             
             }
             else

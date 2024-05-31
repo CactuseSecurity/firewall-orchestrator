@@ -550,8 +550,8 @@
 
     private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
     {
-        List<ReportType> ListOut = new List<ReportType>();
-        List<ReportType> orderedReportTypeList = new List<ReportType>()
+        List<ReportType> ListOut = [];
+        List<ReportType> orderedReportTypeList = new ()
         {
             ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
             ReportType.Recertification,

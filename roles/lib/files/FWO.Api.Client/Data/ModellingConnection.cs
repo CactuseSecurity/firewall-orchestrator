@@ -223,6 +223,7 @@ namespace FWO.Api.Data
             {
                 Props.Remove(key);
             }
+            Properties = System.Text.Json.JsonSerializer.Serialize(Props);
         }
 
         public string GetStringProperty(string prop)
@@ -251,6 +252,10 @@ namespace FWO.Api.Data
                     {
                         AddProperty(ConState.Requested.ToString());
                     }
+                    else
+                    {
+                        RemoveProperty(ConState.Requested.ToString());
+                    }
                 }
             }
             else if(UsedInterfaceId != null)
@@ -264,6 +269,10 @@ namespace FWO.Api.Data
                 {
                     AddProperty(ConState.InterfaceRequested.ToString());
                 }
+                else
+                {
+                    RemoveProperty(ConState.InterfaceRequested.ToString());
+                }
             }
         }
 
@@ -273,7 +282,7 @@ namespace FWO.Api.Data
             Name = Sanitizer.SanitizeOpt(Name, ref shortened);
             Reason = Sanitizer.SanitizeCommentOpt(Reason, ref shortened);
             Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
-            Properties = Sanitizer.SanitizeOpt(Properties, ref shortened);
+            Properties = Sanitizer.SanitizeKeyOpt(Properties, ref shortened);
             return shortened;
         }
     }

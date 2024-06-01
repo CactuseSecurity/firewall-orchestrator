@@ -145,9 +145,12 @@ namespace FWO.Config.Api
 
         public async Task<ConfigData> GetEditableConfig()
         {
-            await semaphoreSlim.WaitAsync();
-            try { return (ConfigData)CloneEditable(); }
-            finally { semaphoreSlim.Release(); }
+            // await semaphoreSlim.WaitAsync();
+            // try
+            // { 
+            return (ConfigData)CloneEditable();
+            // }
+            // finally { semaphoreSlim.Release(); }
         }
 
         protected static void SubscriptionExceptionHandler(Exception exception)

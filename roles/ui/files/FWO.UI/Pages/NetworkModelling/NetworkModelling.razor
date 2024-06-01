@@ -262,7 +262,16 @@ Roles.Auditor });
         return;
 
         // read external ticketing system information from config
-        List<ExternalTicketSystem> extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(userConfig.ExtTicketSystems) ?? new();
+        List<ExternalTicketSystem> extTicketSystems = new();
+
+        try
+        {
+            extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(userConfig.ExtTicketSystems) ?? new();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
 
         // build ticket
         SCTicket ticket = new(appHandler.Connections, "test ticket 1", TicketPriority.High);

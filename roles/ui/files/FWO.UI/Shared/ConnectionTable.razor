@@ -51,9 +51,17 @@
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" Sortable="true" Filterable="true" />
     }        
-    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
+        <Template>
+            @((MarkupString)DisplayConditional(context, context.Name))
+        </Template>
+    </Column>
     <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
-        Field="@(x => x.Reason)" Sortable="true" Filterable="true" />
+            Field="@(x => x.Reason)" Sortable="true" Filterable="true" >
+        <Template>
+            @((MarkupString)DisplayConditional(context, context.Reason))
+        </Template>
+    </Column>
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
         <Template>
             <ExpandableList2 Elements="AppHandler.GetSrcNames(context)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">
@@ -106,11 +114,20 @@
 
     private string getTableRowClass(ModellingConnection conn)
     {
-        if(conn.IsRequested)
+        @* if(conn.IsRequested)
         {
             return "td-bg-light-grey";
-        }
+        } *@
         return "";
+    }
+
+    private string DisplayConditional(ModellingConnection conn, string content)
+    {
+        if(conn.IsRequested)
+        {
+            return $"<span class=\"text-secondary\">{content}</span>";
+        }
+        return content;
     }
 
     public string DisplayState(ModellingConnection connection)
@@ -136,6 +153,6 @@
                 }
             }
         }
-        return string.Join(",", relevantProps);
+        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"color:green\">{GlobalConfig.ShowBool(true)}</span>";
     }
 }

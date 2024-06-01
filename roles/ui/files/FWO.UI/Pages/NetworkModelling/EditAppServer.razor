@@ -63,7 +63,7 @@
                 {
                     <AuthorizeView Roles="@Roles.Admin">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {if(await AppServerHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("save"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
@@ -90,6 +90,9 @@
 
     [Parameter]
     public ModellingAppServerHandler AppServerHandler { get; set; }
+
+    [Parameter]
+    public EventCallback<ModellingAppServerHandler> AppServerHandlerChanged { get; set; }
 
     private List<AppServerType> appServerTypes = new();
     private AppServerType actAppServerType = new();
@@ -129,6 +132,15 @@
     {
         AppServerHandler.Reset();
         Close();
+    }
+
+    private async Task Save()
+    {
+        if(await AppServerHandler.Save())
+        {
+            await AppServerHandlerChanged.InvokeAsync(AppServerHandler);
+            Close();
+        }
     }
 
     private void Close()

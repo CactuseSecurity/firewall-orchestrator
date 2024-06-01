@@ -34,6 +34,7 @@ namespace FWO.GlobalConstants
 		public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
 
 		public const string kDummyAppRole = "DummyAppRole";
+		public const string kUndefinedText = "(undefined text)";
 	}
 
 	public struct ObjectType

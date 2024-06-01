@@ -277,7 +277,7 @@ Roles.Auditor });
         SCTicket ticket = new(appHandler.Connections, "test ticket 1", TicketPriority.High);
 
         // create external ticket
-        if (extTicketSystems.Count()>0)
+        if (extTicketSystems.Count() > 0)
         {
             try
             {
@@ -293,7 +293,7 @@ Roles.Auditor });
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_fail"), userConfig.GetText("E5301"), false);
+                DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_fail"), userConfig.GetText("E9101"), false);
             }
         }
 

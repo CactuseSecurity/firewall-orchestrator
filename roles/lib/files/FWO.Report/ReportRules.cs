@@ -26,7 +26,7 @@ namespace FWO.Report
 
             List<ManagementReport> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
-            ReportData.ManagementData = new ();
+            ReportData.ManagementData = [];
             foreach(var management in managementsWithRelevantImportId)
             {
                 Query.QueryVariables["mgmId"] = management.Id;
@@ -175,11 +175,14 @@ namespace FWO.Report
         {
             foreach (var mgt in ReportData.ManagementData)
             {
-                foreach (var dev in mgt.Devices.Where(d => (d.Rules != null && d.Rules.Length > 0)))
+                foreach (var dev in mgt.Devices.Where(d => d.Rules != null && d.Rules.Length > 0))
                 {
-                    foreach (Rule rule in dev.Rules)
+                    if (dev.Rules !=null)
                     {
-                        mgt.ReportedRuleIds.Add(rule.Id);
+                        foreach (Rule rule in dev.Rules)
+                        {
+                            mgt.ReportedRuleIds.Add(rule.Id);
+                        }
                     }
                 }
                 mgt.ReportedRuleIds = mgt.ReportedRuleIds.Distinct().ToList();
@@ -277,7 +280,7 @@ namespace FWO.Report
                         report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
                         foreach (var rule in gateway.Rules)
                         {
-                            report.Append("{");
+                            report.Append('{');
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
                                 report.Append(ruleDisplayJson.DisplayNumber(rule));
@@ -304,23 +307,25 @@ namespace FWO.Report
                             report.Append("},");  // EO rule
                         } // rules
                         report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
-                        report.Append("]"); // EO rules
-                        report.Append("}"); // EO gateway internal
+                        report.Append(']'); // EO rules
+                        report.Append('}'); // EO gateway internal
                         report.Append("},"); // EO gateway external
                     }
                 } // gateways
                 report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
-                report.Append("]"); // EO gateways
-                report.Append("}"); // EO management internal
+                report.Append(']'); // EO gateways
+                report.Append('}'); // EO management internal
                 report.Append("},"); // EO management external
             } // managements
             report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
-            report.Append("]"); // EO managements
-            report.Append("}"); // EO top
+            report.Append(']'); // EO managements
+            report.Append('}'); // EO top
 
             dynamic? json = JsonConvert.DeserializeObject(report.ToString());
-            JsonSerializerSettings settings = new ();
-            settings.Formatting = Formatting.Indented;
+            JsonSerializerSettings settings = new()
+            {
+                Formatting = Formatting.Indented
+            };
             return JsonConvert.SerializeObject(json, settings);            
         }
 
@@ -341,12 +346,12 @@ namespace FWO.Report
                 {
                     if (device.Rules != null && device.Rules.Length > 0)
                     {
-                        appendRulesForDeviceHtml(ref report, device, ruleDisplayHtml);
+                        AppendRulesForDeviceHtml(ref report, device, ruleDisplayHtml);
                     }
                 }
 
                 // show all objects used in this management's rules
-                appendObjectsForManagementHtml(ref report, managementReport);
+                AppendObjectsForManagementHtml(ref report, managementReport);
             }
 
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
@@ -381,12 +386,11 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void appendRulesForDeviceHtml(ref StringBuilder report, DeviceReport device, RuleDisplayHtml ruleDisplayHtml)
+        private void AppendRulesForDeviceHtml(ref StringBuilder report, DeviceReport device, RuleDisplayHtml ruleDisplayHtml)
         {
             if (device.ContainsRules())
             {
                 report.AppendLine($"<h4>{device.Name}</h4>");
-                report.AppendLine("<hr>");
                 report.AppendLine("<table>");
                 appendRuleHeadlineHtml(ref report);
                 foreach (var rule in device.Rules!)
@@ -427,23 +431,23 @@ namespace FWO.Report
                     }
                 }
                 report.AppendLine("</table>");
+                report.AppendLine("<hr>");
             }
         }
 
-        private void appendObjectsForManagementHtml(ref StringBuilder report, ManagementReport managementReport)
+        private void AppendObjectsForManagementHtml(ref StringBuilder report, ManagementReport managementReport)
         {
             int objNumber = 1;
-            appendNetworkObjectsForManagementHtml(ref report, ref objNumber, managementReport);
-            appendNetworkServicesForManagementHtml(ref report, ref objNumber, managementReport);
-            appendUsersForManagementHtml(ref report, ref objNumber, managementReport);
+            AppendNetworkObjectsForManagementHtml(ref report, ref objNumber, managementReport);
+            AppendNetworkServicesForManagementHtml(ref report, ref objNumber, managementReport);
+            AppendUsersForManagementHtml(ref report, ref objNumber, managementReport);
         }
 
-        private void appendNetworkObjectsForManagementHtml(ref StringBuilder report, ref int objNumber, ManagementReport managementReport)
+        private void AppendNetworkObjectsForManagementHtml(ref StringBuilder report, ref int objNumber, ManagementReport managementReport)
         {
             if (managementReport.ReportObjects != null && !ReportType.IsResolvedReport())
             {
                 report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
-                report.AppendLine("<hr>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -467,15 +471,15 @@ namespace FWO.Report
                     report.AppendLine("</tr>");
                 }
                 report.AppendLine("</table>");
+                report.AppendLine("<hr>");
             }
         }
 
-        private void appendNetworkServicesForManagementHtml(ref StringBuilder report, ref int objNumber, ManagementReport managementReport)
+        private void AppendNetworkServicesForManagementHtml(ref StringBuilder report, ref int objNumber, ManagementReport managementReport)
         {
             if (managementReport.ReportServices != null && !ReportType.IsResolvedReport())
             {
                 report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
-                report.AppendLine("<hr>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -505,15 +509,15 @@ namespace FWO.Report
                     report.AppendLine("</tr>");
                 }
                 report.AppendLine("</table>");
+                report.AppendLine("<hr>");
             }
         }
 
-        private void appendUsersForManagementHtml(ref StringBuilder report, ref int objNumber, ManagementReport managementReport)
+        private void AppendUsersForManagementHtml(ref StringBuilder report, ref int objNumber, ManagementReport managementReport)
         {
             if (managementReport.ReportUsers != null && !ReportType.IsResolvedReport())
             {
                 report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
-                report.AppendLine("<hr>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -536,6 +540,7 @@ namespace FWO.Report
                     report.AppendLine("</tr>");
                 }
                 report.AppendLine("</table>");
+                report.AppendLine("<hr>");
             }
         }
     }

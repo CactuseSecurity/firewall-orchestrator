@@ -27,8 +27,6 @@ namespace FWO.Report
                     if (device.Rules != null && device.Rules.Length > 0)
                     {
                         report.AppendLine($"<h4>{device.Name}</h4>");
-                        report.AppendLine("<hr>");
-
                         report.AppendLine("<table>");
                         report.AppendLine("<tr>");
                         report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -73,8 +71,8 @@ namespace FWO.Report
                                 report.AppendLine("</tr>");
                             }
                         }
-
                         report.AppendLine("</table>");
+                        report.AppendLine("<hr>");
                     }
                 }
 
@@ -84,7 +82,6 @@ namespace FWO.Report
                 if (managementReport.ReportObjects != null)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
-                    report.AppendLine("<hr>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -108,12 +105,12 @@ namespace FWO.Report
                         report.AppendLine("</tr>");
                     }
                     report.AppendLine("</table>");
+                    report.AppendLine("<hr>");
                 }
 
                 if (managementReport.ReportServices != null)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
-                    report.AppendLine("<hr>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -143,12 +140,12 @@ namespace FWO.Report
                         report.AppendLine("</tr>");
                     }
                     report.AppendLine("</table>");
+                    report.AppendLine("<hr>");
                 }
 
                 if (managementReport.ReportUsers != null)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
-                    report.AppendLine("<hr>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -171,6 +168,7 @@ namespace FWO.Report
                         report.AppendLine("</tr>");
                     }
                     report.AppendLine("</table>");
+                    report.AppendLine("<hr>");
                 }
 
                 report.AppendLine("</table>");

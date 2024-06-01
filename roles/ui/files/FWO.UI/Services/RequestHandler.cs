@@ -362,7 +362,7 @@ namespace FWO.Ui.Services
                 {
                     if(reqtask.StateId <= ActTicket.StateId)
                     {
-                        List<int> ticketStateList = new () { ActTicket.StateId };
+                        List<int> ticketStateList = [ActTicket.StateId];
                         reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
                         await dbAcc.UpdateReqTaskStateInDb(reqtask);
                     }

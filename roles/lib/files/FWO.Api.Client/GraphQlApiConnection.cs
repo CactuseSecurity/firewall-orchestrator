@@ -1,15 +1,9 @@
-﻿using System;
-using System.Net.Http;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using System.Text.Json;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 using GraphQL.Client.Serializer.Newtonsoft;
 using GraphQL.Client.Abstractions;
-using System.Linq;
-using System.Net.WebSockets;
-using System.Net.Security;
 using Newtonsoft.Json.Linq;
 using FWO.Logging;
 
@@ -31,7 +25,7 @@ namespace FWO.Api.Client
             this.ApiServerUri = ApiServerUri;
 
             // Allow all certificates | TODO: REMOVE IF SERVER GOT VALID CERTIFICATE
-            HttpClientHandler Handler = new HttpClientHandler
+            HttpClientHandler Handler = new()
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
             };
@@ -73,13 +67,18 @@ namespace FWO.Api.Client
             graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
         }
 
+        public string GetActRole()
+        {
+            if(graphQlClient.HttpClient.DefaultRequestHeaders.TryGetValues("x-hasura-role", out IEnumerable<string>? roles))
+            {
+                return roles.First();
+            }
+            return "";
+        }
+
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
-            try
-            {
-                prevRole = graphQlClient.HttpClient.DefaultRequestHeaders.GetValues("x-hasura-role")?.First() ?? "";
-            }
-            catch(Exception){}
+            prevRole = GetActRole();
 
             // first look if user is already in one of the target roles 
             foreach(string role in targetRoleList)
@@ -119,7 +118,7 @@ namespace FWO.Api.Client
         {
             try
             {
-                Log.WriteDebug("API call", $"Sending API call {operationName}: {query.Substring(0, Math.Min(query.Length, 50)).Replace(Environment.NewLine, "")}... " +
+                Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? $"with variables: { JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
                 // Log.WriteDebug("API call", "API response received.");

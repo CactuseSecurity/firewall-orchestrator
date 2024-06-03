@@ -1385,6 +1385,8 @@ INSERT INTO txt VALUES ('created_by',		    'German', 	'Erstellt von');
 INSERT INTO txt VALUES ('created_by',		    'English', 	'Created by');
 INSERT INTO txt VALUES ('requested_by',		    'German', 	'Beantragt von');
 INSERT INTO txt VALUES ('requested_by',		    'English', 	'Requested by');
+INSERT INTO txt VALUES ('for',		            'German', 	'f&uuml;r');
+INSERT INTO txt VALUES ('for',		            'English', 	'for');
 INSERT INTO txt VALUES ('log_change',		    'German', 	'&Auml;nderung loggen');
 INSERT INTO txt VALUES ('log_change',		    'English', 	'Log Change');
 INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie');

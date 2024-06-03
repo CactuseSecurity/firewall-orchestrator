@@ -58,6 +58,9 @@
     [Parameter]
     public int Width { get; set; }
 
+    [Parameter]
+    public bool StartCollapsed { get; set; } = false;
+
     private bool Collapsed = false;
 
     private double resizeStartX;
@@ -66,6 +69,15 @@
 
     private string minMaxButtonSymbol = Icons.CollapseRight;
     private string overflowSidebar = "auto";
+
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if(firstRender && Width > 0 && StartCollapsed)
+        {
+            ToggleCollapse(true);
+        }
+    }
 
     private void ResizeStart(DragEventArgs dragArgs)
     {

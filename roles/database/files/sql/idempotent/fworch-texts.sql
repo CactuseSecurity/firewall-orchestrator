@@ -1461,6 +1461,10 @@ INSERT INTO txt VALUES ('default_app_server_type','German', 'Standardtyp');
 INSERT INTO txt VALUES ('default_app_server_type','English','Default Type');
 INSERT INTO txt VALUES ('replace',              'German',   'Ersetzen');
 INSERT INTO txt VALUES ('replace',              'English',  'Replace');
+INSERT INTO txt VALUES ('share_link', 	        'German',	'Link teilen');
+INSERT INTO txt VALUES ('share_link', 	        'English',	'Share Link');
+INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopieren');
+INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

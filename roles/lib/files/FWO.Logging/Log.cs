@@ -6,9 +6,9 @@ namespace FWO.Logging
 {
     public static class Log
     {
-        private static SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-        private static string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
-        private static Random random = new Random();
+        private static SemaphoreSlim semaphore = new (1, 1);
+        private static readonly string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
+        private static readonly Random random = new ();
 
         static Log()
         {
@@ -16,7 +16,7 @@ namespace FWO.Logging
             {
                 // log switch - log file locking
                 bool logOwnedByExternal = false;
-                Stopwatch stopwatch = new Stopwatch();
+                Stopwatch stopwatch = new ();
 
                 while (true)
                 {
@@ -25,13 +25,13 @@ namespace FWO.Logging
                         // Open file
                         using FileStream file = await GetFile(lockFilePath);
                         // Read file content
-                        using StreamReader reader = new StreamReader(file);
+                        using StreamReader reader = new (file);
                         string lockFileContent = (await reader.ReadToEndAsync()).Trim();
 
                         // Forcefully release lock after timeout
                         if (logOwnedByExternal && stopwatch.ElapsedMilliseconds > 10_000)
                         {
-                            using StreamWriter writer = new StreamWriter(file);
+                            using StreamWriter writer = new (file);
                             await writer.WriteLineAsync("FORCEFULLY RELEASED");
                             stopwatch.Reset();
                             semaphore.Release();
@@ -59,7 +59,7 @@ namespace FWO.Logging
                                 stopwatch.Restart();
                                 logOwnedByExternal = true;
                             }
-                            using StreamWriter writer = new StreamWriter(file);
+                            using StreamWriter writer = new (file);
                             await writer.WriteLineAsync("GRANTED");
                         }
                         // RELEASED - lock was released by log swap process
@@ -127,7 +127,6 @@ namespace FWO.Logging
                 $"Message: \n {Error?.Message.TrimStart()} \n" +
                 $"Stack Trace: \n {Error?.StackTrace?.TrimStart()}"
                 : "");
-
 
             WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
         }

@@ -1,4 +1,5 @@
-﻿using FWO.Config.Api;
+﻿using FWO.GlobalConstants;
+using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Api.Data;
 using FWO.Api.Client;
@@ -73,6 +74,8 @@ namespace FWO.Ui.Services
         public bool DisplaySvcGrpMode = false;
         public Func<Task> RefreshParent = DefaultInit.DoNothing;
         public ModellingAppRole DummyAppRole = new();
+        public int LastWidth = GlobalConst.kGlobLibraryWidth;
+        public bool LastCollapsed = false;
 
         private bool SrcFix = false;
         private bool DstFix = false;

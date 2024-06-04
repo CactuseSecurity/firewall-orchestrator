@@ -9,6 +9,7 @@ namespace FWO.Ui.Services
     public class ModellingAppHandler : ModellingHandlerBase
     {
         public ModellingConnectionHandler? connHandler;
+        public ModellingConnectionHandler? overviewConnHandler;
         public List<ModellingConnection> Connections = [];
         public ModellingConnection ConnToDelete = new();
         public bool AddConnMode = false;
@@ -48,6 +49,10 @@ namespace FWO.Ui.Services
                     conn.SyncState();
                 }
                 ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
+                overviewConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, new(), true, 
+                    false, DisplayMessageInUi, ReInit, IsOwner);
+                await overviewConnHandler.Init();
+                overviewConnHandler.LastCollapsed = true;
             }
             catch (Exception exception)
             {
@@ -277,23 +282,5 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
             }
         }
-
-        // public async Task EditAppRole(ModellingAppRole? appRole)
-        // {
-        //     try
-        //     {
-        //         if(appRole != null)
-        //         {
-        //             AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
-        //             AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, [],
-        //                 appRole, AvailableAppServers, [], false, DisplayMessageInUi, IsOwner, false);
-        //             EditAppRoleMode = true;
-        //         }
-        //     }
-        //     catch (Exception exception)
-        //     {
-        //         DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
-        //     }
-        // }
     }
 }

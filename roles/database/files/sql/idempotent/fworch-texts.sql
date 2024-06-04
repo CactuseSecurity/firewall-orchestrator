@@ -1387,6 +1387,8 @@ INSERT INTO txt VALUES ('created_by',		    'German', 	'Erstellt von');
 INSERT INTO txt VALUES ('created_by',		    'English', 	'Created by');
 INSERT INTO txt VALUES ('requested_by',		    'German', 	'Beantragt von');
 INSERT INTO txt VALUES ('requested_by',		    'English', 	'Requested by');
+INSERT INTO txt VALUES ('for',		            'German', 	'f&uuml;r');
+INSERT INTO txt VALUES ('for',		            'English', 	'for');
 INSERT INTO txt VALUES ('log_change',		    'German', 	'&Auml;nderung loggen');
 INSERT INTO txt VALUES ('log_change',		    'English', 	'Log Change');
 INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie');
@@ -1463,6 +1465,10 @@ INSERT INTO txt VALUES ('default_app_server_type','German', 'Standardtyp');
 INSERT INTO txt VALUES ('default_app_server_type','English','Default Type');
 INSERT INTO txt VALUES ('replace',              'German',   'Ersetzen');
 INSERT INTO txt VALUES ('replace',              'English',  'Replace');
+INSERT INTO txt VALUES ('share_link', 	        'German',	'Link teilen');
+INSERT INTO txt VALUES ('share_link', 	        'English',	'Share Link');
+INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopieren');
+INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

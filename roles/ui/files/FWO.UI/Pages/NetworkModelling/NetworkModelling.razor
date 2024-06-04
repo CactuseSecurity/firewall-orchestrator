@@ -18,77 +18,87 @@
 
 @if (!appHandler?.EditConnMode ?? true)
 {
-    <div class="input-group">
-    <h3>@(userConfig.GetText("network_modelling"))</h3>
-    <HelpLink Page="modelling" />
-</div>
-    <hr />
-
-    <div class="form-group row">
-        <div class="col-sm-4">
-            <SelectOwner SelectedOwner="selectedApp" SelectedOwnerChanged="InitApp" Apps="apps" />
+    @if(appHandler != null && appHandler.overviewConnHandler != null && appSelected)
+    {
+        <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.overviewConnHandler" OverviewMode="true"/>
+    }
+    <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
+        <div class="input-group">
+            <h3>@(userConfig.GetText("network_modelling"))</h3>
+            <HelpLink Page="modelling" />
         </div>
-        <div class="col-sm-6">
-            <div class="btn-group">
-                <button type="button" class="ms-5 btn btn-sm btn-primary"
-                    @onclick="Report">@(userConfig.GetText("generate_report"))</button>
-                <button type="button" class="btn btn-sm btn-dark"
-                    @onclick="ShowHistory">@(userConfig.GetText("show_history"))</button>
-                <button type="button" class="ms-5 btn btn-sm btn-primary"
-                    @onclick="RequestFwChange">@(userConfig.GetText("request_fw_change"))</button>
+        <hr />
+        <div class="form-group row">
+            <div class="col-sm-4">
+                <SelectOwner SelectedOwner="selectedApp" SelectedOwnerChanged="InitApp" Apps="apps" />
+            </div>
+            <div class="col-sm-6">
+                <div class="btn-group">
+                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">
+                        @(userConfig.GetText("generate_report"))
+                    </button>
+                    <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">
+                        @(userConfig.GetText("show_history"))
+                    </button>
+                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
+                        @(userConfig.GetText("request_fw_change"))
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-    <hr />
-    @if (appSelected)
-    {
-        <div class="form-group row m-2">
-    <h5>@(userConfig.GetText("comm_profile"))&nbsp;
-        @if (appActive)
+        <hr />
+        @if (appSelected)
+        {
+            <div class="form-group row m-2">
+                <h5>@(userConfig.GetText("comm_profile"))&nbsp;
+                @if (appActive)
                 {
                     <div class="btn-group ms-5">
+                        <button type="button" class="btn btn-sm btn-dark" @onclick="ShareLink">
+                            @(appHandler.DisplayButton("share_link", Icons.Share))
+                        </button>&nbsp;
                         <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-dark"
-                                    @onclick="ManualAppServer">@(appHandler.DisplayButton("edit_app_server", Icons.Edit,
-                        "app_server"))</button>
+                                <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">
+                                    @(appHandler.DisplayButton("edit_app_server", Icons.Edit, "app_server"))
+                                </button>
                             </Authorized>
                         </AuthorizeView>
                     </div>
                 }
-            </h5>
-        </div>
-        <div class="m-2 vheight75">
-            <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
-                <Tab Title="@(userConfig.GetText("connections"))" Position=0>
-                    <button type="button" class="btn btn-sm btn-success mb-2"
-                        @onclick="appHandler.AddConnection">@(appHandler.DisplayButton("add_connection", Icons.Add))</button>
-                    <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler"
-                        AppActive="appActive" />
-                </Tab>
-                <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
-                    <button type="button" class="btn btn-sm btn-success mb-2"
-                        @onclick="appHandler.AddInterface">@(appHandler.DisplayButton("add_interface", Icons.Add))</button>
-                    <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler"
-                        AppActive="appActive" />
-                </Tab>
-                @if (selectedApp.CommSvcPossible)
-                {
-                    <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
-                        <button type="button" class="btn btn-sm btn-success mb-2"
-                            @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service",
-                Icons.Add))</button>
-                        <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler"
-                            AppActive="appActive" />
+                </h5>
+            </div>
+            <div class="m-2 vheight75">
+                <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
+                    <Tab Title="@(userConfig.GetText("connections"))" Position=0>
+                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">
+                            @(appHandler.DisplayButton("add_connection", Icons.Add))
+                        </button>
+                        <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
                     </Tab>
-                }
-            </TabSet>
-        </div>
-        <ConfirmDelete @bind-Display="appHandler.DeleteConnMode"
-            PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
-            Title="@userConfig.GetText(appHandler.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")"
-            DeleteMessage="@appHandler.Message" DeleteAllowed="appHandler.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
-    }
+                    <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
+                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">
+                            @(appHandler.DisplayButton("add_interface", Icons.Add))
+                        </button>
+                        <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                    </Tab>
+                    @if (selectedApp.CommSvcPossible)
+                    {
+                        <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
+                            <button type="button" class="btn btn-sm btn-success mb-2"
+                                @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service", Icons.Add))
+                            </button>
+                            <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                        </Tab>
+                    }
+                </TabSet>
+            </div>
+            <ConfirmDelete @bind-Display="appHandler.DeleteConnMode"
+                PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
+                Title="@userConfig.GetText(appHandler.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")"
+                DeleteMessage="@appHandler.Message" DeleteAllowed="appHandler.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
+        }
+    </div>
 }
 else
 {
@@ -96,6 +106,7 @@ else
 }
 <ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp" />
 <ShowHistory @bind-Display="showHistory" Applications="apps" SelectedApp="selectedApp" />
+<ShareLink @bind-Display="shareLink" Application="selectedApp" />
 
 @code
 {
@@ -122,12 +133,15 @@ else
 
     private bool appActive = false;
     private bool showHistory = false;
-
+    private bool shareLink = false;
+    private int sidebarLeftWidth;
+    private int sidebarInitWidth = GlobalConst.kGlobLibraryWidth;
+    
     protected override async Task OnInitializedAsync()
     {
+        sidebarLeftWidth = sidebarInitWidth;
         // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin,
-Roles.Auditor });
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         await InitAppList();
     }
 
@@ -152,6 +166,7 @@ Roles.Auditor });
     {
         lastConn = appHandler?.connHandler?.ActConn;
         restoreTab = true;
+        sidebarLeftWidth = appHandler?.overviewConnHandler?.LastWidth ?? sidebarInitWidth;
         return true;
     }
 
@@ -243,6 +258,11 @@ Roles.Auditor });
     private void ManualAppServer()
     {
         manualAppServer = true;
+    }
+
+    private void ShareLink()
+    {
+        shareLink = true;
     }
 
     private void ShowHistory()

@@ -259,7 +259,7 @@
                             }
                         }
                     }
-                    else 
+                    else
                     {
                         <div class="@DestClass()" 
                             ondragover="event.preventDefault();"
@@ -373,7 +373,7 @@
 
 
     private ModellingDnDContainer Container { get; set; } = new();
-    private int sidebarInitWidth = GlobalConst.kSidebarLeftWidth + 400;
+    private int sidebarInitWidth = GlobalConst.kGlobLibraryWidth;
     private int sidebarLeftWidth;
     
     private List<ModellingService> services = new();
@@ -619,7 +619,6 @@
 
     private void Cancel()
     {
-        sidebarLeftWidth = sidebarInitWidth;
         ConnHandler.Reset();
         Close();
     }

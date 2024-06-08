@@ -74,6 +74,7 @@ namespace FWO.Report
         <h2>##Title##</h2>
         <p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>
         <p>##GeneratedOn##: ##Date## (UTC)</p>
+        <p>##OwnerFilters##</p>
         <p>##OtherFilters##</p>
         <p>##Filter##</p>
         <hr>
@@ -175,13 +176,18 @@ namespace FWO.Report
                     HtmlTemplate = HtmlTemplate.Replace("<p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>", "");
                 }
 
+                if (ownerFilter != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##OwnerFilters##</p>", "");
+                }
+
                 if(deviceFilter != null)
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
-                }
-                else if (ownerFilter != null)
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
                 }
                 else
                 {

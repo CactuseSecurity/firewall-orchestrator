@@ -26,10 +26,10 @@ namespace FWO.Report
             List<ManagementReport> relevantData = [];
             foreach(var mgt in ReportData.ManagementData)
             {
-                ManagementReport relevantMgt = new();
+                ManagementReport relevantMgt = new(){Name = mgt.Name};
                 foreach(var dev in mgt.Devices)
                 {
-                    DeviceReport relevantDevice = new();
+                    DeviceReport relevantDevice = new(){Name = dev.Name};
                     if(dev.Rules != null)
                     {
                         relevantDevice.Rules = [];

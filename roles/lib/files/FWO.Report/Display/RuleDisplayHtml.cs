@@ -82,7 +82,8 @@ namespace FWO.Ui.Display
         public string DisplayLastRecertifier(Rule rule)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => GetLastRecertifierDisplayString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), 
+                recert => GetLastRecertifierDisplayString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
         protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, OutputLocation location, string style, ReportType reportType, bool disregarded = false)
@@ -93,7 +94,7 @@ namespace FWO.Ui.Display
                 reportType.IsResolvedReport() || disregarded ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.NwObj, ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name), networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style)
                 ).ToString();
-            return $"<span style=\"{style}\">{nwLocation}</span>";
+            return reportType.IsRuleReport() ? $"<span style=\"{style}\">{nwLocation}</span>" : nwLocation;
         }
 
         protected static string ServiceToHtml(NetworkService service, int mgmtId, OutputLocation location, string style, ReportType reportType)

@@ -125,6 +125,8 @@ INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Rep
 INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
 INSERT INTO txt VALUES ('Connections', 	        'German', 	'Verbindungs-Report');
 INSERT INTO txt VALUES ('Connections', 	        'English', 	'Connections Report');
+INSERT INTO txt VALUES ('AppRules', 	        'German', 	'App-Regel-Report');
+INSERT INTO txt VALUES ('AppRules', 		    'English', 	'App Rules Report');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
@@ -706,6 +708,8 @@ INSERT INTO txt VALUES ('network',              'German', 	'Netzwerk');
 INSERT INTO txt VALUES ('network',              'English', 	'network');
 INSERT INTO txt VALUES ('ip_range',             'German', 	'Ip-Bereich');
 INSERT INTO txt VALUES ('ip_range',             'English', 	'Ip Range');
+INSERT INTO txt VALUES ('more',		            'German', 	'weitere');
+INSERT INTO txt VALUES ('more',		            'English', 	'more');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');

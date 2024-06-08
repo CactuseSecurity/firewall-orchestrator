@@ -24,7 +24,7 @@ namespace FWO.Report
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
 
-            List<ManagementReport> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
+            List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
 
             ReportData.ManagementData = [];
             foreach(var management in managementsWithRelevantImportId)
@@ -224,7 +224,7 @@ namespace FWO.Report
                                     report.Append(ruleDisplayCsv.DisplayEnabledCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayUidCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayCommentCsv(rule));
-                                    report = ruleDisplayCsv.RemoveLastChars(report, 1); // remove last chars (comma)
+                                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
                                     report.AppendLine("");  // EO rule
                                 }
                                 else
@@ -298,7 +298,7 @@ namespace FWO.Report
                                 report.Append(ruleDisplayJson.DisplayEnabled(rule.Disabled));
                                 report.Append(ruleDisplayJson.DisplayUid(rule.Uid));
                                 report.Append(ruleDisplayJson.DisplayComment(rule.Comment));
-                                report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last chars (comma)
+                                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
                             }
                             else
                             {
@@ -306,18 +306,18 @@ namespace FWO.Report
                             }
                             report.Append("},");  // EO rule
                         } // rules
-                        report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
                         report.Append(']'); // EO rules
                         report.Append('}'); // EO gateway internal
                         report.Append("},"); // EO gateway external
                     }
                 } // gateways
-                report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
                 report.Append(']'); // EO gateways
                 report.Append('}'); // EO management internal
                 report.Append("},"); // EO management external
             } // managements
-            report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
             report.Append(']'); // EO managements
             report.Append('}'); // EO top
 
@@ -416,11 +416,11 @@ namespace FWO.Report
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestinationZone(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayAction(rule)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayTrack(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayAction(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayTrack(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayUid(rule)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayComment(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                         report.AppendLine("</tr>");
                     }
                     else

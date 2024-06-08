@@ -9,11 +9,11 @@ namespace FWO.Report.Filter
     {
         public static AstNode? CompileToAst(string input)
         {
-            Scanner scanner = new Scanner(input);
+            Scanner scanner = new(input);
             List<Token> tokens = scanner.Scan();
             if(tokens.Count > 0)
             {
-                Parser parser = new Parser(tokens);
+                Parser parser = new(tokens);
                 return parser.Parse();
             }
             else return null;

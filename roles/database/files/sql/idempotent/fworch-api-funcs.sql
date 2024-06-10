@@ -580,7 +580,7 @@ AS $function$
             END IF;
         END IF;
     END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION get_rules_for_owner(device_row device, ownerid integer)
 RETURNS SETOF rule AS $$

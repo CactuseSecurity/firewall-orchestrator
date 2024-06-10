@@ -29,11 +29,7 @@ namespace FWO.Report
             ReportData.ManagementData = [];
             foreach(var management in managementsWithRelevantImportId)
             {
-                Query.QueryVariables["mgmId"] = management.Id;
-                if (ReportType != ReportType.Recertification)
-                {
-                    Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
-                }
+                SetMgtQueryVars(management);
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
                 managementReport.Import = management.Import;
                 ReportData.ManagementData.Add(managementReport);
@@ -50,11 +46,7 @@ namespace FWO.Report
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
                 foreach(var management in managementsWithRelevantImportId)
                 {
-                    Query.QueryVariables["mgmId"] = management.Id;
-                    if (ReportType != ReportType.Recertification)
-                    {
-                        Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-                    }
+                    SetMgtQueryVars(management);
                     ManagementReport? mgtToFill = ReportData.ManagementData.FirstOrDefault(m => m.Id == management.Id);
                     if(mgtToFill != null)
                     {
@@ -64,6 +56,15 @@ namespace FWO.Report
                 await callback(ReportData);
             }
             SetReportedRuleIds();
+        }
+
+        private void SetMgtQueryVars(ManagementReport management)
+        {
+            Query.QueryVariables["mgmId"] = management.Id;
+            if (ReportType != ReportType.Recertification)
+            {
+                Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+            }
         }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting

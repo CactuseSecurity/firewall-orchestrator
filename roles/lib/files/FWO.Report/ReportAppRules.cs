@@ -26,10 +26,10 @@ namespace FWO.Report
             List<ManagementReport> relevantData = [];
             foreach(var mgt in ReportData.ManagementData)
             {
-                ManagementReport relevantMgt = new(){Name = mgt.Name};
+                ManagementReport relevantMgt = new(){ Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
                 foreach(var dev in mgt.Devices)
                 {
-                    DeviceReport relevantDevice = new(){Name = dev.Name};
+                    DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
                     if(dev.Rules != null)
                     {
                         relevantDevice.Rules = [];
@@ -45,6 +45,7 @@ namespace FWO.Report
                                 rule.DisregardedFroms = [.. disregardedFroms];
                                 rule.DisregardedTos = [.. disregardedTos];
                                 relevantDevice.Rules = [.. relevantDevice.Rules, rule];
+                                relevantMgt.ReportedRuleIds.Add(rule.Id);
                             }
                         }
                         if(relevantDevice.Rules.Length > 0)
@@ -55,6 +56,7 @@ namespace FWO.Report
                 }
                 if(relevantMgt.Devices.Length > 0)
                 {
+                    relevantMgt.ReportedRuleIds = mgt.ReportedRuleIds.Distinct().ToList();
                     relevantData.Add(relevantMgt);
                 }
             }

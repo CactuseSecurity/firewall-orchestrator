@@ -23,7 +23,7 @@
             @if (typeof(InputDataType) == typeof(Rule))
             {
                 Rule rule = (Rule)(Object)Content;
-                @($"{rule.DeviceName} - Rule ")
+                @($"{rule.DeviceName} - {userConfig.GetText("rule")} ")
                 if (rule.Uid != null)
                 {
                     if (rule.Uid.Length > 5)
@@ -283,9 +283,6 @@
     [Parameter]
     public bool Reload { get; set; } = false;
 
-    // [Parameter]
-    // public Func<InputDataType, IEnumerable<ModellingAppServer>>? AppServerExtractor { get; set; }
-
 
     // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
     public InputDataType? Content { get; set; }
@@ -393,46 +390,49 @@
                 {
                     switch (Content)
                     {
-                        case ManagementReport m:
+                        case ManagementReport mgt:
                             await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
-                                    int id = m.Id;
-                                    ManagementReport? m_updated = managementsUpdate.ManagementData.FirstOrDefault(mgmt => mgmt.Id == m.Id);
-                                    if (m_updated != null)
+                                    ManagementReport? mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == mgt.Id);
+                                    if (mgtUpdated != null)
                                     {
                                         switch (objCategory)
                                         {
                                             case ObjCategory.all:
-                                                m = m_updated; break;
+                                                mgt = mgtUpdated;
+                                                break;
                                             case ObjCategory.nobj:
-                                                m.Objects = m_updated.Objects; break;
+                                                mgt.Objects = mgtUpdated.Objects;
+                                                mgt.ReportObjects = mgtUpdated.ReportObjects;
+                                                break;
                                             case ObjCategory.nsrv:
-                                                m.Services = m_updated.Services; break;
+                                                mgt.Services = mgtUpdated.Services;
+                                                mgt.ReportServices = mgtUpdated.ReportServices;
+                                                break;
                                             case ObjCategory.user:
-                                                m.Users = m_updated.Users; break;
+                                                mgt.Users = mgtUpdated.Users;
+                                                mgt.ReportUsers = mgtUpdated.ReportUsers;
+                                                break;
                                         }
-
-                                        Content = (InputDataType)(Object)m;
+                                        Content = (InputDataType)(Object)mgt;
                                     }
                                     return InvokeAsync(StateHasChanged);
-                                }, m.Id, false);
-
+                                }, mgt.Id, false);
                             break;
 
-                        case Rule r:
+                        case Rule rule:
                             await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
-                                    Rule? r_updated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
-                                    if (r_updated != null)
+                                    Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
+                                    if (ruleUpdated != null)
                                     {
-                                        r_updated.DeviceName = r.DeviceName;
-                                        Content = (InputDataType)(Object)r_updated;
+                                        ruleUpdated.DeviceName = rule.DeviceName;
+                                        Content = (InputDataType)(Object)ruleUpdated;
                                     }
                                     return InvokeAsync(StateHasChanged);
-                                 }, r.Id, !string.IsNullOrEmpty(r.NatData?.TranslatedSource));
-
+                                 }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
                             break;
                     }
                 }

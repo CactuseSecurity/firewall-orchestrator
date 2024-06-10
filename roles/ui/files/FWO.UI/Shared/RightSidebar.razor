@@ -8,7 +8,7 @@
 @using FWO.Report.Filter
 @using FWO.Ui.Data
 
-@inject ApiConnection Connection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="intWidth">
@@ -68,7 +68,7 @@
                         </div>
                     </Tab>
                 }
-                @if(CurrentReport?.ReportData.OwnerData.Count > 0 && (CurrentReport?.ReportType.IsModellingReport() ?? false))
+                @if(CurrentReport?.ReportData.OwnerData.Count > 0 && CurrentReport?.ReportType == ReportType.Connections)
                 {
                     <Tab Title="@(userConfig.GetText("used_objects"))">
                         <div class="d-md-flex justify-content-md-end sticky-marker-45">
@@ -112,7 +112,7 @@
     public ReportBase? CurrentReport { get; set; }
 
     [Parameter]
-    public List<Rule> SelectedRules { get; set; } = new List<Rule>();
+    public List<Rule> SelectedRules { get; set; } = [];
 
     [Parameter]
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
@@ -123,9 +123,9 @@
     [Parameter]
     public ReportType SelectedReportType  { get; set; } = ReportType.Rules;
         
-    private CollapseState collapseSidebarAll = new CollapseState();
-    private CollapseState collapseSidebarReport = new CollapseState();
-    private CollapseState collapseSidebarRule = new CollapseState();
+    private CollapseState collapseSidebarAll = new ();
+    private CollapseState collapseSidebarReport = new ();
+    private CollapseState collapseSidebarRule = new ();
     private List<ManagementReport> managementsAllObjects = new ();
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
@@ -140,7 +140,7 @@
                 if(AllTabVisible)
                 {
                     PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
-                    managementsAllObjects = await Connection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                    managementsAllObjects = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, paginationVariables);
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -158,18 +158,17 @@
         try
         {
             string query = "";
-            Dictionary<String, object> queryVars = new Dictionary<string, object>();
+            Dictionary<String, object> queryVars = new Dictionary<string, object>()
+            {
+                { "limit", userConfig.ElementsPerFetch },
+                { "offset", 0 }
+            };
             bool gotAllObjects = true;
 
             switch (rsbTab)
             {
                 case RsbTab.all:
-                    queryVars = new Dictionary<string, object>()
-                    {
-                        { "management_id", (int) id },
-                        { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 }
-                    };
+                    queryVars.Add("management_id", (int) id);
                     switch (objType)
                     {
                         case ObjCategory.all:
@@ -188,33 +187,24 @@
                     await FetchObjects(query, queryVars, callback);
                     break;
                 case RsbTab.report:
-                    queryVars = new Dictionary<string, object>()
-                    {
-                        { "mgmIds", (int) id },
-                        { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 }
-                    };
+                    queryVars.Add("mgmIds", (int) id);
                     if (CurrentReport != null)
-                        gotAllObjects = await CurrentReport.GetObjectsForManagementInReport(queryVars, objType, userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, Connection, callback);
-
+                    {
+                        gotAllObjects = await CurrentReport.GetObjectsForManagementInReport(queryVars, objType, 
+                            userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, apiConnection, callback);
+                    }
                     if (!gotAllObjects)
+                    {
                         DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+                    }
                     break;
                 case RsbTab.rule:
-                    queryVars = new Dictionary<string, object>()
-                    {
-                        { "rule_id", id },
-                        { "limit", userConfig.ElementsPerFetch },
-                        { "offset", (int)0 }
-                    };
                     if(objType == ObjCategory.all)
                     {
-                        if (nat)
-                            query = RuleQueries.getNatRuleDetails;
-                        else
-                            query = RuleQueries.getRuleDetails;
+                        queryVars.Add("rule_id", id);
+                        query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
+                        await FetchObjects(query, queryVars, callback);
                     }
-                    await FetchObjects(query, queryVars, callback);
                     break;
             }
         }
@@ -235,7 +225,7 @@
 
             while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
-                List<ManagementReport> managementsCurrentFetch = await Connection.SendQueryAsync<List<ManagementReport>>(query, queryVars);
+                List<ManagementReport> managementsCurrentFetch = await apiConnection.SendQueryAsync<List<ManagementReport>>(query, queryVars);
                 if (fetchCount == 1)
                 {
                     reportData.ManagementData = managementsCurrentFetch;

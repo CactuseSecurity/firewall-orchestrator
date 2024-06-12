@@ -15,7 +15,7 @@
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">@(userConfig.GetText("load"))</button>
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                                @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+                                @if (template.TemplateOwningUserId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">@(userConfig.GetText("edit"))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
@@ -26,7 +26,7 @@
                 </Column>
                 <Column Title="@(userConfig.GetText("name"))" TableItem="ReportTemplate">
                     <Template>
-                        @if (context.Owner == 0)
+                        @if (context.TemplateOwningUserId == 0)
                         {
                             <b>@context.Name</b>
                         }
@@ -160,11 +160,11 @@
     [Parameter]
     public Action<ReportTemplate>? OnTemplateLoad { get; set; }
 
-    public List<ReportTemplate> reportTemplates { get; set; } = new List<ReportTemplate>();
-    public ReportTemplate reportTemplateInEdit = new ReportTemplate();
+    public List<ReportTemplate> reportTemplates { get; set; } = [];
+    public ReportTemplate reportTemplateInEdit = new ();
     private ReportType reportTypeInEdit = ReportType.Rules;
-    private List<FwoOwner> recertOwnerList = new List<FwoOwner>();
-    private List<FwoOwner> modOwnerList = new List<FwoOwner>();
+    private List<FwoOwner> recertOwnerList = [];
+    private List<FwoOwner> modOwnerList = [];
 
     private string tmpTemplateCommentKey = "";
     private string tmpTemplateComment = "";
@@ -174,7 +174,7 @@
     private bool ShowSelectDeviceDialog = false;
     private bool ShowDeleteTemplateDialog = false;
 
-    private Collapse collapseControl = new Collapse();
+    private Collapse collapseControl = new ();
     private DeviceFilter DeviceFilterOrig = new();
 
     private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
@@ -189,12 +189,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await RefreshTemplates();
         recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
         if(showModellingReports)
         {
             modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
         }
+        await RefreshTemplates();
     }
 
     public async Task RefreshTemplates()
@@ -203,7 +203,8 @@
         {
             reportTemplates = (await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates, new { userId = userConfig.User.DbId })).ToList();
             reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
-                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport())).ToList();
+                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
+                                                           modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null)).ToList();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
@@ -329,7 +330,7 @@
                 DisplayMessageInUi(null, userConfig.GetText("save_template"), userConfig.GetText("U0001"), true);
             }
             reportTemplateInEdit.CreationDate = DateTime.Now;
-            reportTemplateInEdit.Owner = userConfig.User.DbId;
+            reportTemplateInEdit.TemplateOwningUserId = userConfig.User.DbId;
 
             var queryVariables = new
             {
@@ -337,7 +338,7 @@
                 reportFilterLine = reportTemplateInEdit.Filter,
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
                 reportTemplateComment = recodeComment(reportTemplateInEdit.Comment),
-                reportTemplateOwner = reportTemplateInEdit.Owner,
+                reportTemplateOwner = reportTemplateInEdit.TemplateOwningUserId,
                 reportParameters = reportTemplateInEdit.ReportParams
             };
 
@@ -370,7 +371,7 @@
                 reportFilterLine = reportTemplateInEdit.Filter,
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
                 reportTemplateComment = recodeComment(reportTemplateInEdit.Comment),
-                reportTemplateOwner = reportTemplateInEdit.Owner,
+                reportTemplateOwner = reportTemplateInEdit.TemplateOwningUserId,
                 reportParameters = reportTemplateInEdit.ReportParams
             };
 

@@ -1,0 +1,72 @@
+﻿@using FWO.Config.Api
+@inject IJSRuntime JSRuntime
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("share_link"))" Size=PopupSize.Large Show="@Display" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <form class="form-group row" @onsubmit="Copy">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" readonly value="@AppLink" >
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Copy">
+            @(ModellingHandlerBase.DisplayButton(userConfig, "copy_to_clipboard", Icons.Clipboard))
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public FwoOwner Application { get; set; } = new();
+
+    private string AppLink = "";
+    private bool FirstTry = true;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Display && FirstTry)
+        {
+            try
+            {
+                FirstTry = false;
+                AppLink = $"{userConfig.UiHostName}/networkmodelling/{Application.ExtAppId}";
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+    }
+
+    private async Task Copy()
+    {
+        await JSRuntime.InvokeVoidAsync("copyText", AppLink);
+        Close();
+    }
+
+    private void Close()
+    {
+        FirstTry = true;
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

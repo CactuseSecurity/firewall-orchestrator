@@ -24,7 +24,7 @@
   ignore_errors: true
 
 - name: find out installed postgres version
-  script: "get_pg_version.sh"
+  script: "scripts/get_pg_version.sh"
   register: pg_version_result
   changed_when: false
 
@@ -37,34 +37,27 @@
     postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
   ignore_errors: true
 
+# postgres operations with postgres user and ignoring errors
 - block:
-    - name: remove database pre pg_version 13
-      postgresql_db:
-        name: fworchdb
-        state: absent
-      become_user: postgres
-      register: drop_db
-      ignore_errors: true
-  when: pg_version|int < 13
 
-- block:
-    - name: remove database for pg_version starting from 13
-      command: psql -c 'drop database if exists fworchdb with ( force )'
-      become_user: postgres
-      register: drop_db
-      ignore_errors: true
-  when: pg_version|int >= 13
+  - name: remove database pre pg_version 13
+    postgresql_db:
+      name: fworchdb
+      state: absent
+    register: drop_db
+    when: pg_version|int < 13
 
-- name: check if db still exists
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: "select exists(SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower('fworchdb'))"
-  become: yes
-  become_user: postgres
-  register: db_exists
-  ignore_errors: true
+  - name: remove database for pg_version starting from 13
+    command: psql -c 'drop database if exists fworchdb with ( force )'
+    register: drop_db
+    when: pg_version|int >= 13
 
-- block:
+  - name: check if db still exists
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: "select exists(SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower('fworchdb'))"
+    register: db_exists
+
   - name: fail when db still exists
     fail:
       msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
@@ -75,15 +68,15 @@
       name: "{{ item }}"
       state: absent
     loop: "{{ database_groups }}"
-    become_user: postgres
 
   - name: remove db users
     postgresql_user:
       name: "{{ item }}"
       state: absent
     loop: "{{ database_users }}"
-    become_user: postgres
 
+  become: true
+  become_user: postgres
   ignore_errors: true
 
 - name: stop and disable slapd

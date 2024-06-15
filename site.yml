@@ -3,32 +3,13 @@
 
 - hosts: all
   roles:
-    - { role: prepare }
+    - { role: common }
   tags:
     - backend
     - frontend
     - importer
     - ui
-
-- hosts: all
-  tasks:
-    - name: uninstall product
-      import_tasks: scripts/uninstall-fworch.yml
-      when: "installation_mode == 'uninstall'"
-      become: true
-  tags:
-    - backend
-    - frontend
-
-- hosts: all
-  roles:
-    - { role: common, when: "not installation_mode == 'uninstall'" }
-  tags:
-    - backend
-    - importer
     - api
-    - ui
-    - frontend
 
 - hosts: databaseserver
   roles:

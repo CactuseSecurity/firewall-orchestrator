@@ -22,7 +22,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
             <div class="col-sm-2">
-                <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
+                <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.UiLanguages">
                     <ElementTemplate Context="language">
                         @(userConfig.GetText(language.Name))
                     </ElementTemplate>
@@ -200,7 +200,7 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
+            selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
             startDate = startTime = configData.AutoDiscoverStartAt;
         }
         catch (Exception exception)

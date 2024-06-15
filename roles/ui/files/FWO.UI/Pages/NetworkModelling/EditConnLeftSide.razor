@@ -6,34 +6,37 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" StartCollapsed="ConnHandler.LastCollapsed">
     <h3>
         <div class="d-flex col-sm-12 pad-10 mt-3 me-auto justify-content-between">
-            <div >@(userConfig.GetText("library")) </div>
+            <div >@(userConfig.GetText("library"))&nbsp</div>
             <div class="align-self-end"><small>@ConnHandler.Application.Display()</small></div>
         </div>
     </h3>
     <div class="col-sm-12 me-auto border rounded p-2">
         <h5>@(userConfig.GetText("network_objects"))</h5>
         <div class="form-group row">
-            <div class="col-sm-10">
+            <div class="@ColWidthClass()">
                 <DraggableList AllElements="ConnHandler.AvailableNwElems" @bind-SelectedElements="selectedNwElems" 
                     HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25"/>
             </div>
-            <div class="col-sm-2">
-                @if(!ConnHandler.SrcDropForbidden() && selectedNwElems.Count > 0)
-                {
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
-                        {NetworkElemsToConn(true); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                        @(ConnHandler.DisplayButton("to_source", Icons.Use, "source"))</button>
-                }
-                @if(!ConnHandler.DstDropForbidden() && selectedNwElems.Count > 0)
-                {
-                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() =>
-                        {NetworkElemsToConn(false); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                        @(ConnHandler.DisplayButton("to_dest", Icons.Use, "destination"))</button>
-                }
-            </div>
+            @if(!OverviewMode)
+            {
+                <div class="col-sm-2">
+                    @if(!ConnHandler.SrcDropForbidden() && selectedNwElems.Count > 0)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                            {NetworkElemsToConn(true); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                            @(ConnHandler.DisplayButton("to_source", Icons.Use, "source"))</button>
+                    }
+                    @if(!ConnHandler.DstDropForbidden() && selectedNwElems.Count > 0)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() =>
+                            {NetworkElemsToConn(false); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                            @(ConnHandler.DisplayButton("to_dest", Icons.Use, "destination"))</button>
+                    }
+                </div>
+            }
         </div>
         <div class="btn-group mt-1">
             @if(ConnHandler.Application.CommSvcPossible)
@@ -74,18 +77,21 @@
         {
             <h5>@(userConfig.GetText("services"))</h5>
             <div class="form-group row">
-                <div class="col-sm-10">
+                <div class="@ColWidthClass()">
                     <DraggableList AllElements="ConnHandler.AvailableSvcElems" @bind-SelectedElements="selectedSvcElems" 
                         HandleDragStart="HandleSvcDragStart" Display="@DisplaySvcObject" MaxHeight="25"/>
                 </div>
-                <div class="col-sm-2">
-                    @if(selectedSvcElems.Count > 0)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
-                            {ServiceElemsToConn(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                            @(ConnHandler.DisplayButton("to_service", Icons.Use))</button>
-                    }
-                </div>
+                @if(!OverviewMode)
+                {
+                    <div class="col-sm-2">
+                        @if(selectedSvcElems.Count > 0)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                                {ServiceElemsToConn(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                @(ConnHandler.DisplayButton("to_service", Icons.Use))</button>
+                        }
+                    </div>
+                }
             </div>
             <div class="btn-group mt-1">
                 <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
@@ -135,17 +141,20 @@
             <br><br>
             <h5>@(userConfig.GetText("interfaces"))</h5>
             <div class="form-group row">
-                <div class="col-sm-10">
+                <div class="@ColWidthClass()">
                     <DraggableList AllElements="ConnHandler.PreselectedInterfaces" @bind-SelectedElements="selectedInterfaces" 
                         HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
                 </div>
-                <div class="col-sm-2">
-                    @if(selectedInterfaces.Count > 0)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {InterfaceToConn(selectedInterfaces[0]);}">
-                            @(ConnHandler.DisplayButton("use", Icons.Use))</button>
-                    }
-                </div>
+                @if(!OverviewMode)
+                {
+                    <div class="col-sm-2">
+                        @if(selectedInterfaces.Count > 0)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {InterfaceToConn(selectedInterfaces[0]);}">
+                                @(ConnHandler.DisplayButton("use", Icons.Use))</button>
+                        }
+                    </div>
+                }
             </div>
             <div class="btn-group mt-1">
                 <button type="button" class="btn btn-sm btn-success" @onclick="SearchInterface">
@@ -165,7 +174,7 @@
             </div>
             <br>
         }
-        else if(ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.IsRequested)
+        else if(ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.IsRequested && !OverviewMode)
         {
             <br><br>
             <h5>@(userConfig.GetText("own_interfaces"))</h5>
@@ -229,6 +238,8 @@
     [Parameter]
     public EventCallback<ModellingConnectionHandler> ConnHandlerChanged { get; set; }
 
+    [Parameter]
+    public bool OverviewMode { get; set; } = false;
 
     private List<KeyValuePair<int, long>> selectedNwElems = new();
     private List<KeyValuePair<int, int>> selectedSvcElems = new();
@@ -236,7 +247,27 @@
     private bool SearchInterfaceMode = false;
     private bool SearchNwObjectMode = false;
     private bool SelectAppMode = false;
-    private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+    private int sidebarLeftWidth
+    {
+        get { return Width; }
+        set
+        {
+            Width = value;
+            if(OverviewMode)
+            {
+                if(value == 0)
+                {
+                    ConnHandler.LastCollapsed = true;
+                }
+                else
+                {
+                    ConnHandler.LastCollapsed = false;
+                    ConnHandler.LastWidth = value;
+                }
+            }
+            WidthChanged.InvokeAsync(Width);
+        }
+    }
 
     
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
@@ -561,5 +592,10 @@
     {
         await calledFunc();
         await ConnHandlerChanged.InvokeAsync(ConnHandler);
+    }
+
+    private string ColWidthClass()
+    {
+        return OverviewMode ? "col-sm-12" : "col-sm-10";
     }
 }

@@ -49,7 +49,9 @@ namespace FWO.Ui.Services
             await reqHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = reqHandler.MasterStateMatrix.LowestEndState}));
             reqHandler.ActTicket.Tasks.Add(reqHandler.ActReqTask);
             reqHandler.AddTicketMode = true;
-            return await reqHandler.SaveTicket(reqHandler.ActTicket);
+            long ticketId = await reqHandler.SaveTicket(reqHandler.ActTicket);
+            await AddRequesterInfoToImplTask(ticketId, owner);
+            return ticketId;
         }
 
         public async Task SetInterfaceId(long ticketId, long connId, FwoOwner owner)
@@ -69,27 +71,17 @@ namespace FWO.Ui.Services
         public async Task<bool> PromoteTicket(FwoOwner owner, long ticketId, string comment = "")
         {
             await reqHandler.Init([owner.Id]);
-            RequestTicket? ticket = await reqHandler.ResolveTicket(ticketId);
-            if(ticket != null)
+            RequestImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
+            if(implTask != null)
             {
-                reqHandler.SetTicketEnv(ticket);
-                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
-                if(reqTask != null)
+                await reqHandler.ContinueImplPhase(implTask);
+                if(comment != "")
                 {
-                    reqHandler.SetReqTaskEnv(reqTask);
-                    RequestImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
-                    if(implTask != null)
-                    {
-                        await reqHandler.ContinueImplPhase(implTask);
-                        if(comment != "")
-                        {
-                            await reqHandler.ConfAddCommentToImplTask(comment);
-                        }
-                        int newState = reqHandler.MasterStateMatrix.LowestEndState;
-                        await reqHandler.PromoteImplTask(new(){ StateId = newState });
-                        return true;
-                    }
+                    await reqHandler.ConfAddCommentToImplTask(comment);
                 }
+                int newState = reqHandler.MasterStateMatrix.LowestEndState;
+                await reqHandler.PromoteImplTask(new(){ StateId = newState });
+                return true;
             }
             return false;
         }
@@ -152,6 +144,33 @@ namespace FWO.Ui.Services
             await reqHandler.SaveTicket(reqHandler.ActTicket);
         }
 
+        private async Task AddRequesterInfoToImplTask(long ticketId, FwoOwner owner)
+        {
+            RequestImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
+            if(implTask != null)
+            {
+                reqHandler.SetImplTaskEnv(implTask);
+                string comment = $"{userConfig.GetText("requested_by")}: {userConfig.User.Name} {userConfig.GetText("for")} {owner.Display()}";
+                await reqHandler.ConfAddCommentToImplTask(comment);
+            }
+        }
+
+        private async Task<RequestImplTask?> FindNewInterfaceImplTask(long ticketId)
+        {
+            RequestTicket? ticket = await reqHandler.ResolveTicket(ticketId);
+            if(ticket != null)
+            {
+                reqHandler.SetTicketEnv(ticket);
+                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                if(reqTask != null)
+                {
+                    reqHandler.SetReqTaskEnv(reqTask);
+                    return reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
+                }
+            }
+            return null;
+        }
+        
         private void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
         {
             if (exception == null)

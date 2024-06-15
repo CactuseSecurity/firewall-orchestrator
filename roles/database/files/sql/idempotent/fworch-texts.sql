@@ -1385,6 +1385,8 @@ INSERT INTO txt VALUES ('created_by',		    'German', 	'Erstellt von');
 INSERT INTO txt VALUES ('created_by',		    'English', 	'Created by');
 INSERT INTO txt VALUES ('requested_by',		    'German', 	'Beantragt von');
 INSERT INTO txt VALUES ('requested_by',		    'English', 	'Requested by');
+INSERT INTO txt VALUES ('for',		            'German', 	'f&uuml;r');
+INSERT INTO txt VALUES ('for',		            'English', 	'for');
 INSERT INTO txt VALUES ('log_change',		    'German', 	'&Auml;nderung loggen');
 INSERT INTO txt VALUES ('log_change',		    'English', 	'Log Change');
 INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie');
@@ -1461,6 +1463,10 @@ INSERT INTO txt VALUES ('default_app_server_type','German', 'Standardtyp');
 INSERT INTO txt VALUES ('default_app_server_type','English','Default Type');
 INSERT INTO txt VALUES ('replace',              'German',   'Ersetzen');
 INSERT INTO txt VALUES ('replace',              'English',  'Replace');
+INSERT INTO txt VALUES ('share_link', 	        'German',	'Link teilen');
+INSERT INTO txt VALUES ('share_link', 	        'English',	'Share Link');
+INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopieren');
+INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2817,10 +2823,8 @@ INSERT INTO txt VALUES ('E5291', 'English', 'Owner could not be saved');
 INSERT INTO txt VALUES ('E5292', 'German',  'Dn oder Gruppe muss gef&uuml;llt sein');
 INSERT INTO txt VALUES ('E5292', 'English', 'Dn or group has to be filled');
 
-INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration f&uuml;r Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
-INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');
-INSERT INTO txt VALUES ('E5302', 'German',  'Konfiguration konnte nicht gelesen werden, Standardwert gesetzt: ');
-INSERT INTO txt VALUES ('E5302', 'English', 'Error reading Config, taking default: ');
+INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
+INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
 
 INSERT INTO txt VALUES ('E5401', 'German',  'Bitte das alte Passwort eintragen');
 INSERT INTO txt VALUES ('E5401', 'English', 'Please insert the old password');
@@ -2927,6 +2931,8 @@ INSERT INTO txt VALUES ('E9015', 'German',  'Schnittstelle kann beantragte nicht
 INSERT INTO txt VALUES ('E9015', 'English', 'Interface cannot replace requested one: Wrong type.');
 INSERT INTO txt VALUES ('E9016', 'German',  'Beantragte Schnittstelle kann nicht gel&ouml;scht werden.');
 INSERT INTO txt VALUES ('E9016', 'English', 'Requested interface cannot be deleted.');
+INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
+INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

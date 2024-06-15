@@ -13,6 +13,8 @@ namespace FWO.GlobalConstants
 		public const int kTenant0Id = 1;
 
 		public const int kSidebarLeftWidth = 300;
+		public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
+		public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
 		public const int kSidebarRightWidth = 300;
 		public const int kHoursToMilliseconds = 3600000;
 
@@ -34,6 +36,7 @@ namespace FWO.GlobalConstants
 		public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
 
 		public const string kDummyAppRole = "DummyAppRole";
+		public const string kUndefinedText = "(undefined text)";
 	}
 
 	public struct ObjectType

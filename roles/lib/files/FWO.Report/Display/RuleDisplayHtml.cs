@@ -86,13 +86,15 @@ namespace FWO.Ui.Display
                 recert => GetLastRecertifierDisplayString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, OutputLocation location, string style, ReportType reportType, bool disregarded = false)
+        protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
             string nwLocation = DisplayNetworkLocation(networkLocation, reportType, 
-                reportType.IsResolvedReport() || networkLocation.User == null || disregarded ? null :
-                ReportDevicesBase.ConstructLink(ObjCatString.User, ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name), networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style),
-                reportType.IsResolvedReport() || disregarded ? null :
-                ReportDevicesBase.ConstructLink(ObjCatString.NwObj, ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name), networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style)
+                reportType.IsResolvedReport() || networkLocation.User == null ? null :
+                ReportDevicesBase.ConstructLink(ObjCatString.User, ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name),
+                    networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style),
+                reportType.IsResolvedReport() ? null :
+                ReportDevicesBase.ConstructLink(ObjCatString.NwObj, ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name),
+                    networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style)
                 ).ToString();
             return reportType.IsRuleReport() ? $"<span style=\"{style}\">{nwLocation}</span>" : nwLocation;
         }
@@ -119,18 +121,25 @@ namespace FWO.Ui.Display
             }
             else
             {
-                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, location, highlightedStyle, reportType)));
+                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos, 
+                    nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, location, highlightedStyle, reportType)));
             }
             if(reportType == ReportType.AppRules)
             {
-                if((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) || 
-                    (!isSource && rule.Tos.Length > 0 && rule.DisregardedTos.Length > 0))
+                if(!rule.ShowDisregarded &&
+                    ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) || 
+                    (!isSource && rule.Tos.Length > 0 && rule.DisregardedTos.Length > 0)))
                 {
                     result.Append($"<br><span class=\"text-secondary\">... ({(isSource ? rule.DisregardedFroms.Length : rule.DisregardedTos.Length)} {userConfig.GetText("more")})</span>");
                 }
                 else
                 {
-                    result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.DisregardedFroms : rule.DisregardedTos, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType, true)));
+                    if(result.Length > 0)
+                    {
+                        result.Append("<br>");
+                    }
+                    result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.DisregardedFroms : rule.DisregardedTos,
+                        nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, location, nwLoc.Object.IsAnyObject() ? highlightedStyle : style, reportType)));
                 }
             }
 

@@ -140,7 +140,7 @@ namespace FWO.Report
                 ReportType.Recertification => new ReportRules(query, userConfig, repType),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),
-                ReportType.AppRules => new ReportAppRules(query, userConfig, repType),
+                ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

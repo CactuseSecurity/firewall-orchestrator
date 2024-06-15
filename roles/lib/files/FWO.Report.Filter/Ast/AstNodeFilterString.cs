@@ -1,6 +1,4 @@
-﻿using FWO.Report.Filter;
-
-namespace FWO.Report.Filter.Ast
+﻿namespace FWO.Report.Filter.Ast
 {
     internal class AstNodeFilterString : AstNodeFilter
     {
@@ -48,20 +46,20 @@ namespace FWO.Report.Filter.Ast
             string queryVarName = AddVariable<string>(query, "fullTextFiler", Operator.Kind, semanticValue!);
             string queryOperator = ExtractOperator();
 
-            List<string> ruleFieldNames = new () { "rule_src", "rule_dst", "rule_svc", "rule_action", "rule_name", "rule_comment", "rule_uid" };
-            List<string> ruleSearchParts = new ();
+            List<string> ruleFieldNames = ["rule_src", "rule_dst", "rule_svc", "rule_action", "rule_name", "rule_comment", "rule_uid"];
+            List<string> ruleSearchParts = [];
             foreach (string field in ruleFieldNames)
             {
                 ruleSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
             }
             query.RuleWhereStatement += $"_or: [ {string.Join(", ", ruleSearchParts)} ]";
 
-            List<string> connFieldNames = new () { "name", "reason" /*, "creator" */ };
-            List<string> nwobjFieldNames = new () { "name" /*, "creator" */ };
-            List<string> nwGroupFieldNames = new () { "id_string", "name", "comment" /*, "creator" */ };
-            List<string> svcFieldNames = new () { "name" };
-            List<string> svcGroupFieldNames = new () { "name", "comment" /*, "creator" */ };
-            List<string> connSearchParts = new ();
+            List<string> connFieldNames = ["name", "reason" /*, "creator" */];
+            List<string> nwobjFieldNames = ["name" /*, "creator" */];
+            List<string> nwGroupFieldNames = ["id_string", "name", "comment" /*, "creator" */];
+            List<string> svcFieldNames = ["name"];
+            List<string> svcGroupFieldNames = ["name", "comment" /*, "creator" */];
+            List<string> connSearchParts = [];
             foreach (string field in connFieldNames)
             {
                 connSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");

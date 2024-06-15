@@ -18,18 +18,18 @@ namespace FWO.Middleware.Server
 	/// </summary>
 	public class AppDataImport : DataImportBase
 	{
-		private List<ModellingImportAppData> importedApps = new();
-		private List<FwoOwner> existingApps = new();
-		private List<ModellingAppServer> existingAppServers = new();
+		private List<ModellingImportAppData> importedApps = [];
+		private List<FwoOwner> existingApps = [];
+		private List<ModellingAppServer> existingAppServers = [];
 
 		private Ldap internalLdap = new();
 
-		private List<Ldap> connectedLdaps = new();
+		private List<Ldap> connectedLdaps = [];
 		private string modellerRoleDn = "";
 		private string requesterRoleDn = "";
 		private string implementerRoleDn = "";
 		private string reviewerRoleDn = "";
-		List<GroupGetReturnParameters> allGroups = new();
+		List<GroupGetReturnParameters> allGroups = [];
 
 
 		/// <summary>
@@ -102,7 +102,7 @@ namespace FWO.Middleware.Server
 			int deleteCounter = 0;
 			int deleteFailCounter = 0;
 
-			existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(Api.Client.Queries.OwnerQueries.getOwners);
+			existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
 			foreach (var incomingApp in importedApps)
 			{
 				if (await SaveApp(incomingApp))
@@ -237,7 +237,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.OwnerQueries.deactivateOwner, new { id = app.Id });
+				await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.deactivateOwner, new { id = app.Id });
 			}
 			catch (Exception exc)
 			{
@@ -436,7 +436,7 @@ namespace FWO.Middleware.Server
 				importSource = incomingApp.ImportSource,
 				appId = applId
 			};
-			existingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(Api.Client.Queries.ModellingQueries.getImportedAppServers, Variables);
+			existingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getImportedAppServers, Variables);
 			foreach (var incomingAppServer in incomingApp.AppServers)
 			{
 				if (await SaveAppServer(incomingAppServer, applId, incomingApp.ImportSource))
@@ -507,7 +507,7 @@ namespace FWO.Middleware.Server
 					importSource = impSource,
 					customType = 0
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAppServer, Variables);
+				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables);
 			}
 			catch (Exception exc)
 			{
@@ -526,7 +526,7 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 					deleted = false
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAppServerDeletedState, Variables);
+				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerDeletedState, Variables);
 			}
 			catch (Exception exc)
 			{
@@ -545,7 +545,7 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 					customType = 0
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAppServerType, Variables);
+				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerType, Variables);
 			}
 			catch (Exception exc)
 			{
@@ -564,7 +564,7 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 					deleted = true
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAppServerDeletedState, Variables);
+				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerDeletedState, Variables);
 			}
 			catch (Exception exc)
 			{

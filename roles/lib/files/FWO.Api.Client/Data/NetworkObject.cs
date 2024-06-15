@@ -80,5 +80,11 @@ namespace FWO.Api.Data
                 return $"<td>{MemberNames}</td>";
             }
         }
+
+        public bool IsAnyObject()
+        {
+            return IP == "0.0.0.0/32" && IpEnd == "255.255.255.255/32" ||
+                IP == "::/128" && IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128";
+        }
     }
 }

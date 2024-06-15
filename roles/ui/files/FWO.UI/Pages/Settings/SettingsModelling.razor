@@ -1,4 +1,5 @@
 ﻿@using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 @using System.Text.Json
@@ -273,7 +274,8 @@ else
                     appServerDefaultTypeName = appServerTypes.FirstOrDefault(x => x.Id == 0)?.Name ?? "";
                 }
             }
-            allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
+            allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects,
+                new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
             RefreshAreas();
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
@@ -347,11 +349,11 @@ else
                 PrepareConfigData();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
 
-                PathsToDelete = new();
-                PathsToAdd = new();
-                AreasToDelete = new();
-                appServerTypesToAdd = new();
-                appServerTypesToDelete = new();
+                PathsToDelete = [];
+                PathsToAdd = [];
+                AreasToDelete = [];
+                appServerTypesToAdd = [];
+                appServerTypesToDelete = [];
                 RefreshAreas();
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }

@@ -33,7 +33,7 @@
         }
         else if (actReportFilters.ReportType.IsModellingReport())
         {
-            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId"/>
+            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" AllParams="@(actReportFilters.ReportType == ReportType.AppRules)"/>
         }
         else if(actReportFilters.ReportType == ReportType.UnusedRules)
         {

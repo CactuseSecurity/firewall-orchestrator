@@ -17,8 +17,10 @@
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
                                 @if (template.TemplateOwningUserId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
                                 {
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">@(userConfig.GetText("edit"))</button>
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 }
                             </div>
                         }

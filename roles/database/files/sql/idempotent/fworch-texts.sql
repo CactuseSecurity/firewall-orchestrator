@@ -1471,6 +1471,20 @@ INSERT INTO txt VALUES ('share_link', 	        'German',	'Link teilen');
 INSERT INTO txt VALUES ('share_link', 	        'English',	'Share Link');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopieren');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
+INSERT INTO txt VALUES ('rule_filters',		    'German', 	'Regel-Filter');
+INSERT INTO txt VALUES ('rule_filters',			'English', 	'Rule Filters');
+INSERT INTO txt VALUES ('match_source',			'German', 	'in Quelle');
+INSERT INTO txt VALUES ('match_source',			'English', 	'in Source');
+INSERT INTO txt VALUES ('match_destination',	'German', 	'in Ziel');
+INSERT INTO txt VALUES ('match_destination',	'English', 	'in Destination');
+INSERT INTO txt VALUES ('match_either',			'German', 	'in Quelle oder Ziel');
+INSERT INTO txt VALUES ('match_either',			'English', 	'in Source or Destination');
+INSERT INTO txt VALUES ('match_any',			'German', 	'in Any-Regeln');
+INSERT INTO txt VALUES ('match_any',			'English', 	'in Any Rules');
+INSERT INTO txt VALUES ('match_drop_rules',		'German', 	'in Drop-Regeln');
+INSERT INTO txt VALUES ('match_drop_rules',		'English', 	'in Drop rules');
+INSERT INTO txt VALUES ('show_full_rules',		'German', 	'vollst&auml;ndige Regeln anzeigen');
+INSERT INTO txt VALUES ('show_full_rules',		'English', 	'show full rules');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

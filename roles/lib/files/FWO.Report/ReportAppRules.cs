@@ -11,8 +11,12 @@ namespace FWO.Report
     public class ReportAppRules : ReportRules
     {
         private List<IPAddressRange> ownerIps = [];
+        private readonly ModellingFilter modellingFilter;
 
-        public ReportAppRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
+        public ReportAppRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ModellingFilter modellingFilter) : base(query, userConfig, reportType)
+        {
+            this.modellingFilter = modellingFilter;
+        }
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -35,17 +39,31 @@ namespace FWO.Report
                         relevantDevice.Rules = [];
                         foreach(var rule in dev.Rules)
                         {
-                            (List<NetworkLocation> relevantFroms, List<NetworkLocation> disregardedFroms) = CheckNetworkObjects(rule.Froms);
-                            (List<NetworkLocation> relevantTos, List<NetworkLocation> disregardedTos) = CheckNetworkObjects(rule.Tos);
-
-                            if(relevantFroms.Count > 0 || relevantTos.Count > 0)
+                            if(modellingFilter.ShowDropRules || !IsDropRule(rule))
                             {
-                                rule.Froms = [.. relevantFroms];
-                                rule.Tos = [.. relevantTos];
-                                rule.DisregardedFroms = [.. disregardedFroms];
-                                rule.DisregardedTos = [.. disregardedTos];
-                                relevantDevice.Rules = [.. relevantDevice.Rules, rule];
-                                relevantMgt.ReportedRuleIds.Add(rule.Id);
+                                List<NetworkLocation> relevantFroms = [];
+                                List<NetworkLocation> disregardedFroms = [.. rule.Froms];
+                                if(modellingFilter.ShowSourceMatch)
+                                {
+                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms);
+                                }
+                                List<NetworkLocation> relevantTos = [];
+                                List<NetworkLocation> disregardedTos = [.. rule.Tos];
+                                if(modellingFilter.ShowDestinationMatch)
+                                {
+                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos);
+                                }
+
+                                if(relevantFroms.Count > 0 || relevantTos.Count > 0)
+                                {
+                                    rule.Froms = [.. relevantFroms];
+                                    rule.Tos = [.. relevantTos];
+                                    rule.DisregardedFroms = [.. disregardedFroms];
+                                    rule.DisregardedTos = [.. disregardedTos];
+                                    rule.ShowDisregarded = modellingFilter.ShowFullRules;
+                                    relevantDevice.Rules = [.. relevantDevice.Rules, rule];
+                                    relevantMgt.ReportedRuleIds.Add(rule.Id);
+                                }
                             }
                         }
                         if(relevantDevice.Rules.Length > 0)
@@ -71,26 +89,45 @@ namespace FWO.Report
                 IPAddress.Parse(DisplayBase.StripOffNetmask(s.IpEnd != "" ? s.IpEnd : s.Ip))))];
         }
 
+        private static bool IsDropRule(Rule rule)
+        {
+            return rule.Action == "drop" || rule.Action == "reject" || rule.Action == "deny";
+        }
+
         private (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList)
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
             foreach(var obj in objList.Where(o => o.Object.IP != null))
             {
-                bool found = false;
-                foreach(var ownerIpRange in ownerIps)
+                if(obj.Object.IsAnyObject())
                 {
-                    if(ComplianceNetworkZone.OverlapExists(new IPAddressRange(IPAddress.Parse(DisplayBase.StripOffNetmask(obj.Object.IP)),
-                        IPAddress.Parse(DisplayBase.StripOffNetmask(obj.Object.IpEnd != "" ? obj.Object.IpEnd : obj.Object.IP))), ownerIpRange))
+                    if(modellingFilter.ShowAnyMatch)
                     {
                         relevantObjects.Add(obj);
-                        found = true;
-                        break;
+                    }
+                    else
+                    {
+                        disregardedObjects.Add(obj);
                     }
                 }
-                if(!found)
+                else
                 {
-                    disregardedObjects.Add(obj);
+                    bool found = false;
+                    foreach(var ownerIpRange in ownerIps)
+                    {
+                        if(ComplianceNetworkZone.OverlapExists(new IPAddressRange(IPAddress.Parse(DisplayBase.StripOffNetmask(obj.Object.IP)),
+                            IPAddress.Parse(DisplayBase.StripOffNetmask(obj.Object.IpEnd != "" ? obj.Object.IpEnd : obj.Object.IP))), ownerIpRange))
+                        {
+                            relevantObjects.Add(obj);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if(!found)
+                    {
+                        disregardedObjects.Add(obj);
+                    }
                 }
             }
             return (relevantObjects, disregardedObjects);

@@ -18,6 +18,8 @@ namespace FWO.Ui.Services
 
         public Shared.TabSet tabset = new();
         public Shared.Tab? actTab;
+        public int ActWidth = 0;
+        public bool StartCollapsed = true;
 
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -49,10 +51,14 @@ namespace FWO.Ui.Services
                     conn.SyncState();
                 }
                 ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
-                overviewConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, new(), true, 
-                    false, DisplayMessageInUi, ReInit, IsOwner);
+                overviewConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, new(), true,
+                    false, DisplayMessageInUi, ReInit, IsOwner)
+                {
+                    LastWidth = ActWidth,
+                    LastCollapsed = StartCollapsed || ActWidth == 0
+                };
+                 
                 await overviewConnHandler.Init();
-                overviewConnHandler.LastCollapsed = true;
             }
             catch (Exception exception)
             {

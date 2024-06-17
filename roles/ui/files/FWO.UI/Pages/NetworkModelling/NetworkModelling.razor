@@ -102,7 +102,7 @@
 }
 else
 {
-    <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler" ClosingAction="SetRestoreTab" />
+    <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler" ClosingAction="PrepareRestore" />
 }
 <ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp" />
 <ShowHistory @bind-Display="showHistory" Applications="apps" SelectedApp="selectedApp" />
@@ -134,12 +134,11 @@ else
     private bool appActive = false;
     private bool showHistory = false;
     private bool shareLink = false;
-    private int sidebarLeftWidth;
-    private int sidebarInitWidth = GlobalConst.kGlobLibraryWidth;
+    private int sidebarLeftWidth = GlobalConst.kGlobLibraryWidth;
+    private bool firstInit = true;
     
     protected override async Task OnInitializedAsync()
     {
-        sidebarLeftWidth = sidebarInitWidth;
         // if use has modeller role, choose it before all others for this menu
         apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         await InitAppList();
@@ -162,11 +161,11 @@ else
         }
     }
 
-    private bool SetRestoreTab()
+    private bool PrepareRestore()
     {
         lastConn = appHandler?.connHandler?.ActConn;
         restoreTab = true;
-        sidebarLeftWidth = appHandler?.overviewConnHandler?.LastWidth ?? sidebarInitWidth;
+        sidebarLeftWidth = appHandler?.overviewConnHandler?.LastWidth ?? GlobalConst.kGlobLibraryWidth;
         return true;
     }
 
@@ -220,7 +219,12 @@ else
             selectedApp = newApp;
             bool isOwner = authenticationStateTask!.Result.User.IsInRole(Roles.Modeller) &&
             userConfig.User.Ownerships.Contains(selectedApp.Id);
-            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner);
+            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner)
+            {
+                ActWidth = sidebarLeftWidth,
+                StartCollapsed = firstInit
+            };
+            firstInit = false;
             await appHandler.Init();
             appActive = selectedApp.Active;
             if (isOwner)

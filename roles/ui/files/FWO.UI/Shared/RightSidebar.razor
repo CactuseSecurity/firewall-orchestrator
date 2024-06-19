@@ -158,7 +158,7 @@
         try
         {
             string query = "";
-            Dictionary<String, object> queryVars = new Dictionary<string, object>()
+            Dictionary<String, object> queryVars = new ()
             {
                 { "limit", userConfig.ElementsPerFetch },
                 { "offset", 0 }

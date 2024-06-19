@@ -97,5 +97,10 @@ namespace FWO.Api.Data
         public NetworkLocation[] DisregardedTos { get; set; } = [];
         public bool ShowDisregarded { get; set; } = false;
 
+        public bool IsDropRule()
+        {
+            return Action == "drop" || Action == "reject" || Action == "deny";
+        }
+
     }
 }

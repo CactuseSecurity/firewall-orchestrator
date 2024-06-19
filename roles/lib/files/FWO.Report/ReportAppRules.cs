@@ -24,6 +24,17 @@ namespace FWO.Report
             await PrepareAppRulesReport(apiConnection);
         }
 
+        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
+        {
+            bool gotAllObjects = await base.GetObjectsForManagementInReport(objQueryVariables, objects, maxFetchCycles, apiConnection, callback);
+            if (gotAllObjects)
+            {
+                // Todo: - Filter non visible if not ShowFullRules
+                //       - Mark own objects (also in groups)
+            }
+            return gotAllObjects;
+        }
+
         private async Task PrepareAppRulesReport(ApiConnection apiConnection)
         {
             await GetAppServers(apiConnection);
@@ -39,7 +50,7 @@ namespace FWO.Report
                         relevantDevice.Rules = [];
                         foreach(var rule in dev.Rules)
                         {
-                            if(modellingFilter.ShowDropRules || !IsDropRule(rule))
+                            if(modellingFilter.ShowDropRules || !rule.IsDropRule())
                             {
                                 List<NetworkLocation> relevantFroms = [];
                                 List<NetworkLocation> disregardedFroms = [.. rule.Froms];
@@ -74,7 +85,7 @@ namespace FWO.Report
                 }
                 if(relevantMgt.Devices.Length > 0)
                 {
-                    relevantMgt.ReportedRuleIds = mgt.ReportedRuleIds.Distinct().ToList();
+                    relevantMgt.ReportedRuleIds = relevantMgt.ReportedRuleIds.Distinct().ToList();
                     relevantData.Add(relevantMgt);
                 }
             }
@@ -87,11 +98,6 @@ namespace FWO.Report
                 new { appId = Query.SelectedOwner?.Id });
             ownerIps = [.. appServers.ConvertAll(s => new IPAddressRange(IPAddress.Parse(DisplayBase.StripOffNetmask(s.Ip)),
                 IPAddress.Parse(DisplayBase.StripOffNetmask(s.IpEnd != "" ? s.IpEnd : s.Ip))))];
-        }
-
-        private static bool IsDropRule(Rule rule)
-        {
-            return rule.Action == "drop" || rule.Action == "reject" || rule.Action == "deny";
         }
 
         private (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList)
@@ -132,25 +138,5 @@ namespace FWO.Report
             }
             return (relevantObjects, disregardedObjects);
         }
-
-        // public override string SetDescription()
-        // {
-        //     return "";
-        // }
-
-        // public override string ExportToJson()
-        // {
-        //     return "";
-        // }
-
-        // public override string ExportToHtml()
-        // {
-        //     return "";
-        // }
-
-        // public override string ExportToCsv()
-        // {
-        //     return "";
-        // }
     }
 }

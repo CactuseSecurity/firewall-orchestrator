@@ -2,6 +2,25 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": ".NET Core SSH Attach ubu20",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickRemoteProcess}",
+            "pipeTransport": {
+                "pipeProgram": "ssh",
+                "pipeArgs": [ "-T", "-p 22006", "tim@localhost" ],
+                "debuggerPath": "~/vsdbg-root/vsdbg",
+                "pipeCwd": "${workspaceRoot}",
+                "quoteArgs": true
+            },
+            "sourceFileMap": {
+                "/home/tim/firewall-orchestrator/roles": "${workspaceRoot}"
+            },
+            "logging": {
+              "logging.diagnosticsLog.protocolMessages": true
+            }
+        },
+        {
             "name": "c#-MiddlewareServer",
             "type": "coreclr",
             "request": "launch",
@@ -82,7 +101,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m5",
+                "-m23",
                 "-d1",
                 "-f",
                 "-s",

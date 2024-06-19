@@ -1,5 +1,21 @@
 #!/usr/bin/python3
-# dependencies: this script needs the package python3-git
+# reads the main app data from a git repo
+# and renriches the data with csv files containing users and server ip addresses
+
+# dependencies: 
+#   a) package python3-git must be installed
+#   b) requires the following config items in /usr/local/orch/etc/secrets/customizingConfig.json
+#       Tufin RLM
+#           username
+#           password
+#           apiBaseUri      # Tufin API, e.g. "https://tufin.domain.com/"
+#       git
+#           gitRepoUrl
+#           gitusername
+#           gitpassword
+#       csvFiles # array of file basenames containing the app data
+#       ldapPath # full ldap user path (used for building DN from user basename)
+
 
 from asyncio.log import logger
 import traceback
@@ -19,17 +35,13 @@ import git  # apt install python3-git # or: pip install git
 import csv
 
 
+
 baseDir = "/usr/local/fworch/"
 baseDirEtc = baseDir + "etc/"
 repoTargetDir = baseDirEtc + "cmdb-repo"
 defaultConfigFileName = baseDirEtc + "secrets/customizingConfig.json"
 defaultRlmImportFileName = baseDir + "scripts/customizing/modelling/getOwnersFromTufinRlm.json"
 importSourceString = "tufinRlm"
-custPrefix = '/xxx'
-csvFiles = [
-    repoTargetDir + custPrefix + "COM_3.csv",
-    repoTargetDir + custPrefix + "APP_4.csv"
-]
 
 # TUFIN settings:
 api_url_path_rlm_login = 'apps/public/rlm/oauth/token'
@@ -70,7 +82,7 @@ def readConfig(configFilename):
             customConfig = json.loads(customConfigFH.read())
         return (customConfig['username'], customConfig['password'], customConfig['apiBaseUri'],
                 customConfig['ldapPath'],
-                customConfig['gitRepoUrl'], customConfig['gitusername'], customConfig['gitpassword'])
+                customConfig['gitRepoUrl'], customConfig['gitusername'], customConfig['gitpassword'], customConfig['csvFiles'])
     except:
         logger.error("could not read config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
@@ -250,7 +262,7 @@ if __name__ == "__main__":
     logger = getLogger(debug_level_in=2)
 
     # read config
-    rlmUsername, rlmPassword, rlmApiUrl, ldapPath, gitRepoUrl, gitUsername, gitPassword = readConfig(args.config)
+    rlmUsername, rlmPassword, rlmApiUrl, ldapPath, gitRepoUrl, gitUsername, gitPassword, csvFiles = readConfig(args.config)
 
     ######################################################
     # 1. get all owners
@@ -266,6 +278,7 @@ if __name__ == "__main__":
 
     dfAllApps = []
     for csvFile in csvFiles:
+        csvFile = repoTargetDir + '/' + csvFile # add directory to csv files
         with open(csvFile, newline='') as csvFile:
             reader = csv.reader(csvFile)
             dfAllApps += list(reader)[1:]# Skip headers in first line

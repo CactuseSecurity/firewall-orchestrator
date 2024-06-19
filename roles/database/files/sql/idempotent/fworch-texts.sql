@@ -183,6 +183,8 @@ INSERT INTO txt VALUES ('OwnerMainResponsible', 'German',	'Eigent&uuml;mer Haupt
 INSERT INTO txt VALUES ('OwnerMainResponsible', 'English',	'Owner Main Responsible');
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'German',	'Eigent&uuml;mer alle Verantwortlichen');
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'English',	'Owner all responsibles');
+INSERT INTO txt VALUES ('OwnerGroupOnly',       'German',	'nur Eigent&uuml;mergruppe');
+INSERT INTO txt VALUES ('OwnerGroupOnly',       'English',	'Owner Group only');
 INSERT INTO txt VALUES ('Requester', 		    'German',	'Antragsteller');
 INSERT INTO txt VALUES ('Requester', 	        'English',	'Requester');
 INSERT INTO txt VALUES ('Approver', 		    'German',	'Genehmiger');
@@ -2131,6 +2133,10 @@ INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorges
 INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
 INSERT INTO txt VALUES ('modReqInterfaceName',  'German',   'Name der beantragten Schnittstelle');
 INSERT INTO txt VALUES ('modReqInterfaceName',  'English',  'Name of requested interface');
+INSERT INTO txt VALUES ('modReqEmailReceiver',  'German',   'Empf&auml;nger der Antragsbenachrichtigung');
+INSERT INTO txt VALUES ('modReqEmailReceiver',  'English',  'Receiver of request email');
+INSERT INTO txt VALUES ('modReqEmailRequesterInCc','German','Antragssteller in CC');
+INSERT INTO txt VALUES ('modReqEmailRequesterInCc','English','Requester in CC');
 INSERT INTO txt VALUES ('modReqEmailSubject',   'German',   'Titel der Antragsbenachrichtigung');
 INSERT INTO txt VALUES ('modReqEmailSubject',   'English',  'Subject of request emails');
 INSERT INTO txt VALUES ('modReqEmailBody',      'German',   'Text der Antragsbenachrichtigung');
@@ -4918,6 +4924,14 @@ INSERT INTO txt VALUES ('H5628', 'German',  'Vordefinierte Dienste: Hier wird de
 ');
 INSERT INTO txt VALUES ('H5628', 'English', 'Predefined Services: Offers a menu to the administrator to define, change or delete predefined services or service groups.
     These services are available for all applications.
+');
+INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Auswahl, wem die Email mit der Antragsbenachrichtigung geschickt werden soll:
+    Der Eigent&uuml;mergruppe (Default), dem Hauptverantwortlichen oder beiden. 
+    Desweiteren kann festgelegt werden, ob der Antragsteller die Nachricht im Cc bekommen soll (Default: ja).
+');
+INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of request emails: Selection to whom the request notification email should be sent:
+    the Owner Group, the Owner Main Responsible or both.
+    Furtheron it can be determined whether the requester should get the email in Cc (default: yes).
 ');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.

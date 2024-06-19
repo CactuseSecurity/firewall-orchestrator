@@ -20,3 +20,6 @@ RETURNS SETOF rule AS $$
         ORDER BY rule_name;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
+
+insert into config (config_key, config_value, config_user) VALUES ('modReqEmailReceiver', 'OwnerGroupOnly', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('modReqEmailRequesterInCc', 'true', 0) ON CONFLICT DO NOTHING;

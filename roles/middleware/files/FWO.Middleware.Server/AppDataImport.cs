@@ -115,7 +115,7 @@ namespace FWO.Middleware.Server
 				}
 				foreach (var existingApp in existingApps.Where(x => x.ImportSource == incomingApp.ImportSource && x.Active))
 				{
-					if (importedApps.FirstOrDefault(x => x.Name == existingApp.Name) == null)
+					if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
 					{
 						if (await DeactivateApp(existingApp))
 						{
@@ -185,6 +185,10 @@ namespace FWO.Middleware.Server
 			ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, Variables)).ReturnIds;
 			if (returnIds != null)
 			{
+				if(incomingApp.MainUser != null && incomingApp.MainUser != "")
+				{
+					UpdateRoles(incomingApp.MainUser);
+				}
 				int appId = returnIds[0].NewId;
 				foreach (var appServer in incomingApp.AppServers)
 				{
@@ -229,6 +233,10 @@ namespace FWO.Middleware.Server
 				commSvcPossible = existingApp.CommSvcPossible
 			};
 			await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.updateOwner, Variables);
+			if(incomingApp.MainUser != null && incomingApp.MainUser != "")
+			{
+				UpdateRoles(incomingApp.MainUser);
+			}
 			await ImportAppServers(incomingApp, existingApp.Id);
 			return userGroupDn;
 		}
@@ -403,24 +411,24 @@ namespace FWO.Middleware.Server
 			return groupDn;
 		}
 
-		private void UpdateRoles(string groupDn)
+		private void UpdateRoles(string dn)
 		{
-			List<string> roles = internalLdap.GetRoles([groupDn]);
+			List<string> roles = internalLdap.GetRoles([dn]);
 			if(!roles.Contains(Roles.Modeller))
 			{
-				internalLdap.AddUserToEntry(groupDn, modellerRoleDn);
+				internalLdap.AddUserToEntry(dn, modellerRoleDn);
 			}
 			if(!roles.Contains(Roles.Requester))
 			{
-				internalLdap.AddUserToEntry(groupDn, requesterRoleDn);
+				internalLdap.AddUserToEntry(dn, requesterRoleDn);
 			}
 			if(!roles.Contains(Roles.Implementer))
 			{
-				internalLdap.AddUserToEntry(groupDn, implementerRoleDn);
+				internalLdap.AddUserToEntry(dn, implementerRoleDn);
 			}
 			if(!roles.Contains(Roles.Reviewer))
 			{
-				internalLdap.AddUserToEntry(groupDn, reviewerRoleDn);
+				internalLdap.AddUserToEntry(dn, reviewerRoleDn);
 			}
 		}
 

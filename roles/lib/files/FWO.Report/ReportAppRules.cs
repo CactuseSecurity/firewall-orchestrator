@@ -26,11 +26,15 @@ namespace FWO.Report
 
         public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
+            int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds")!;
+            ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
+            PrepareFilter(managementReport);
+            UseAdditionalFilter = !modellingFilter.ShowFullRules;
+
             bool gotAllObjects = await base.GetObjectsForManagementInReport(objQueryVariables, objects, maxFetchCycles, apiConnection, callback);
             if (gotAllObjects)
             {
-                // Todo: - Filter non visible if not ShowFullRules
-                //       - Mark own objects (also in groups)
+                PrepareRsbOutput(managementReport);
             }
             return gotAllObjects;
         }
@@ -137,6 +141,54 @@ namespace FWO.Report
                 }
             }
             return (relevantObjects, disregardedObjects);
+        }
+
+        private static void PrepareFilter(ManagementReport mgt)
+        {
+            mgt.RelevantObjectIds = [];
+            mgt.HighlightedObjectIds = [];
+            foreach(var dev in mgt.Devices)
+            {
+                if(dev.Rules != null)
+                {
+                    foreach(var rule in dev.Rules)
+                    {
+                        foreach(var from in rule.Froms)
+                        {
+                            mgt.RelevantObjectIds.Add(from.Object.Id);
+                            mgt.HighlightedObjectIds.Add(from.Object.Id);
+                        }
+                        if(rule.Froms.Length == 0)
+                        {
+                            foreach(var from in rule.DisregardedFroms)
+                            {
+                                mgt.RelevantObjectIds.Add(from.Object.Id);
+                            }
+                        }
+                        foreach(var to in rule.Tos)
+                        {
+                            mgt.RelevantObjectIds.Add(to.Object.Id);
+                            mgt.HighlightedObjectIds.Add(to.Object.Id);
+                        }
+                        if(rule.Tos.Length == 0)
+                        {
+                            foreach(var to in rule.DisregardedTos)
+                            {
+                                mgt.RelevantObjectIds.Add(to.Object.Id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void PrepareRsbOutput(ManagementReport mgt)
+        {
+            foreach(var obj in mgt.ReportObjects)
+            {
+                obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id) || obj.IsAnyObject();
+            }
+            // Todo: handle groups
         }
     }
 }

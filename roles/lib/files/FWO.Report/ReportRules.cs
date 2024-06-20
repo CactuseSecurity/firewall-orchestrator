@@ -15,6 +15,7 @@ namespace FWO.Report
     public class ReportRules : ReportDevicesBase
     {
         private const int ColumnCount = 12;
+        protected bool UseAdditionalFilter = false;
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
@@ -106,19 +107,7 @@ namespace FWO.Report
             objQueryVariables.Add("ruleIds", "{" + string.Join(", ", managementReport.ReportedRuleIds) + "}");
             objQueryVariables.Add("importId", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
 
-            string query = "";
-            switch (objects)
-            {
-                case ObjCategory.all:
-                    query = ObjectQueries.getReportFilteredObjectDetails; break;
-                case ObjCategory.nobj:
-                    query = ObjectQueries.getReportFilteredNetworkObjectDetails; break;
-                case ObjCategory.nsrv:
-                    query = ObjectQueries.getReportFilteredNetworkServiceObjectDetails; break;
-                case ObjCategory.user:
-                    query = ObjectQueries.getReportFilteredUserDetails; break;
-            }
-
+            string query = GetQuery(objects);
             bool newObjects = true;
             int fetchCount = 0;
             int elementsPerFetch = (int)objQueryVariables.GetValueOrDefault("limit")!;
@@ -137,6 +126,11 @@ namespace FWO.Report
                     newObjects = allFilteredObjects.MergeReportObjects(filteredObjects);
                 }
 
+                if(UseAdditionalFilter)
+                {
+                    AdditionalFilter(allFilteredObjects, managementReport.RelevantObjectIds);
+                }
+
                 if (objects == ObjCategory.all || objects == ObjCategory.nobj)
                     managementReport.ReportObjects = allFilteredObjects.ReportObjects;
                 if (objects == ObjCategory.all || objects == ObjCategory.nsrv)
@@ -152,6 +146,23 @@ namespace FWO.Report
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
 
             return fetchCount <= maxFetchCycles;
+        }
+
+        private static string GetQuery(ObjCategory objects)
+        {
+            return objects switch
+            {
+                ObjCategory.all => ObjectQueries.getReportFilteredObjectDetails,
+                ObjCategory.nobj => ObjectQueries.getReportFilteredNetworkObjectDetails,
+                ObjCategory.nsrv => ObjectQueries.getReportFilteredNetworkServiceObjectDetails,
+                ObjCategory.user => ObjectQueries.getReportFilteredUserDetails,
+                _ => "",
+            };
+        }
+
+        private static void AdditionalFilter(ManagementReport mgt, List<long> relevantObjectIds)
+        {
+            mgt.ReportObjects = [.. mgt.ReportObjects.Where(o => relevantObjectIds.Contains(o.Id))];
         }
 
         public override string SetDescription()

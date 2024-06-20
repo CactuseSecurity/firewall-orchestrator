@@ -47,8 +47,10 @@
                             Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(ObjCategory.nobj, context.Id))">@(context.Name)</b>
+                                <div style="@(context.Highlighted ? "color:red;" : "")">
+                                    <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
+                                    <b id="@(GetID(ObjCategory.nobj, context.Id))">@(context.Name)</b>
+                                </div>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkObject">

@@ -48,12 +48,13 @@ namespace FWO.Api.Data
         public string MemberRefs { get; set; } = "";
 
         [JsonProperty("objgrps"), JsonPropertyName("objgrps")]
-        public Group<NetworkObject>[] ObjectGroups { get; set; } = new Group<NetworkObject>[]{};
+        public Group<NetworkObject>[] ObjectGroups { get; set; } = [];
 
         [JsonProperty("objgrp_flats"), JsonPropertyName("objgrp_flats")]
-        public GroupFlat<NetworkObject>[] ObjectGroupFlats { get; set; } = new GroupFlat<NetworkObject>[]{};
+        public GroupFlat<NetworkObject>[] ObjectGroupFlats { get; set; } = [];
 
         public long Number;
+        public bool Highlighted = false;
 
         public override bool Equals(object? obj)
         {
@@ -71,7 +72,7 @@ namespace FWO.Api.Data
 
         public string MemberNamesAsHtml()
         {
-            if (MemberNames != null && MemberNames.Contains("|"))
+            if (MemberNames != null && MemberNames.Contains('|'))
             {
                 return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
             }

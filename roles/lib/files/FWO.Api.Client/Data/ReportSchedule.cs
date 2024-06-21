@@ -12,7 +12,7 @@ namespace FWO.Api.Data
         public string Name { get; set; } = "";
 
         [JsonProperty("report_schedule_owner_user"), JsonPropertyName("report_schedule_owner_user")]
-        public UiUser Owner { get; set; } = new UiUser();
+        public UiUser ScheduleOwningUser { get; set; } = new ();
 
         [JsonProperty("report_schedule_start_time"), JsonPropertyName("report_schedule_start_time")]
         public DateTime StartTime { get; set; } = DateTime.Now.AddSeconds(-DateTime.Now.Second);
@@ -24,10 +24,10 @@ namespace FWO.Api.Data
         public Interval RepeatInterval { get; set; }
 
         [JsonProperty("report_schedule_template"), JsonPropertyName("report_schedule_template")]
-        public ReportTemplate Template { get; set; } = new ReportTemplate();
+        public ReportTemplate Template { get; set; } = new ();
 
         [JsonProperty("report_schedule_formats"), JsonPropertyName("report_schedule_formats")]
-        public List<FileFormat> OutputFormat { get; set; } = new List<FileFormat>();
+        public List<FileFormat> OutputFormat { get; set; } = [];
 
         [JsonProperty("report_schedule_active"), JsonPropertyName("report_schedule_active")]
         public bool Active { get; set; } = true;

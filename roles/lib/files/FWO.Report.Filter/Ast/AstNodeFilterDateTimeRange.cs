@@ -32,7 +32,7 @@
             {
                 if (Operator.Kind==TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
                 {
-                    query.ruleWhereStatement += $@"
+                    query.RuleWhereStatement += $@"
                         _or: [
                             {{ rule: {{ rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }} }}
                             {{ rule: {{ rule_metadatum: {{ rule_last_hit: {{_is_null: true }} }} }} }}
@@ -40,14 +40,14 @@
                 }
                 else // only show rules which have a hit after a certain date (leaving out no hit rules)
                 {
-                    query.ruleWhereStatement += $"rule: {{ rule_metadatum:{{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }}";
+                    query.RuleWhereStatement += $"rule: {{ rule_metadatum:{{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }}";
                 }
             }
             else
             {
                 if (Operator.Kind==TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
                 {
-                    query.ruleWhereStatement += $@"
+                    query.RuleWhereStatement += $@"
                         _or: [
                             {{ rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }}
                             {{ rule_metadatum: {{ rule_last_hit: {{_is_null: true }} }} }}
@@ -55,7 +55,7 @@
                 }
                 else // only show rules which have a hit after a certain date (leaving out no hit rules)
                 {
-                    query.ruleWhereStatement += $"rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }}";
+                    query.RuleWhereStatement += $"rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }}";
                 }
             }
             return query;

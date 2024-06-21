@@ -274,6 +274,12 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
 		public string ModReqInterfaceName { get; set; } = "";
 
+		[JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
+		public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.OwnerGroupOnly;
+
+		[JsonProperty("modReqEmailRequesterInCc"), JsonPropertyName("modReqEmailRequesterInCc")]
+		public bool ModReqEmailRequesterInCc { get; set; } = true;
+
 		[JsonProperty("modReqEmailSubject"), JsonPropertyName("modReqEmailSubject")]
 		public string ModReqEmailSubject { get; set; } = "";
 

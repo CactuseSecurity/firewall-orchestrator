@@ -1,4 +1,3 @@
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 
@@ -68,7 +67,7 @@ namespace FWO.Report.Filter
 
         public ReportParams ToReportParams()
         {
-            ReportParams reportParams = new ReportParams((int)ReportType, ReportType == ReportType.UnusedRules ? ReducedDeviceFilter : DeviceFilter)
+            ReportParams reportParams = new((int)ReportType, ReportType == ReportType.UnusedRules ? ReducedDeviceFilter : DeviceFilter)
             {
                 TimeFilter = SavedTimeFilter,
                 RecertFilter = new RecertFilter(RecertFilter),
@@ -150,9 +149,9 @@ namespace FWO.Report.Filter
             SelectedTenant = newTenantView;
 
             // we must modify the device visibility in the device filter
-            if (SelectedTenant==null || SelectedTenant.Id == 1)
+            if (SelectedTenant == null || SelectedTenant.Id == 1)
             {
-            // tenant0 or no tenant selected --> all devices are visible            
+                // tenant0 or no tenant selected --> all devices are visible            
                 MarkAllDevicesVisible(DeviceFilter.Managements);
             }
             else
@@ -163,7 +162,7 @@ namespace FWO.Report.Filter
             SelectAll = !DeviceFilter.isAnyDeviceFilterSet();
         }
         
-        private void MarkAllDevicesVisible(List<ManagementSelect> mgms)
+        private static void MarkAllDevicesVisible(List<ManagementSelect> mgms)
         {
             foreach (ManagementSelect management in mgms)
             {
@@ -187,7 +186,7 @@ namespace FWO.Report.Filter
                     if (!tenantView.VisibleGatewayIds.Contains(gw.VisibleGateway.Id))
                     {
                         tenantView.VisibleGatewayIds.Append(gw.VisibleGateway.Id);
-                        tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat(new int[] { gw.VisibleGateway.Id }).ToArray();
+                        tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat([gw.VisibleGateway.Id]).ToArray();
                     }
                 }
 
@@ -201,7 +200,7 @@ namespace FWO.Report.Filter
                             if (!tenantView.VisibleGatewayIds.Contains(gw.Id))
                             {
                                 tenantView.VisibleGatewayIds.Append(gw.Id);
-                                tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat(new int[] { gw.Id }).ToArray();
+                                tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat([gw.Id]).ToArray();
                             }
                         }
                     }

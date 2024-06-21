@@ -22,7 +22,7 @@ namespace FWO.Ui.Display
 
         public string DisplayName(Rule rule)
         {
-            return rule.Name != null ? rule.Name : "";
+            return rule.Name ?? "";
         }
 
         public string DisplaySourceZone(Rule rule)
@@ -35,29 +35,29 @@ namespace FWO.Ui.Display
             return rule.DestinationZone != null ? rule.DestinationZone.Name : "";
         }
 
-        public string DisplayAction(Rule rule)
+        public static string DisplayAction(Rule rule)
         {
             return rule.Action;
         }
 
-        public string DisplayTrack(Rule rule)
+        public static string DisplayTrack(Rule rule)
         {
             return rule.Track;
         }
 
-        public string DisplayUid(Rule rule)
+        public static string DisplayUid(Rule rule)
         {
-            return rule.Uid != null ? rule.Uid : "";
+            return rule.Uid ?? "";
         }
 
-        public string DisplayComment(Rule rule)
+        public static string DisplayComment(Rule rule)
         {
-            return rule.Comment != null ? rule.Comment : "";
+            return rule.Comment ?? "";
         }
 
-        public StringBuilder DisplayNetworkLocation(NetworkLocation userNetworkObject, ReportType reportType, string? userName = null, string? objName = null)
+        public static StringBuilder DisplayNetworkLocation(NetworkLocation userNetworkObject, ReportType reportType, string? userName = null, string? objName = null)
         {
-            StringBuilder result = new StringBuilder();
+            StringBuilder result = new();
             
             if (userNetworkObject.User != null &&  userNetworkObject.User.Id > 0)
             {
@@ -85,21 +85,21 @@ namespace FWO.Ui.Display
             return DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
         }
 
-        public StringBuilder RemoveLastChars(StringBuilder s, int count)
+        public static StringBuilder RemoveLastChars(StringBuilder s, int count)
         {
             string x = s.ToString(); 
             x = x.Remove(x.ToString().Length - count, count).ToString();
             return s.Remove(s.ToString().Length - count, count);
         }
 
-        public string Quote(string? input)
+        public static string Quote(string? input)
         {
             return  $"\"{input ?? ""}\"";
         }
 
-        public List<NetworkLocation> getNetworkLocations(NetworkLocation[] locationArray)
+        public static List<NetworkLocation> GetNetworkLocations(NetworkLocation[] locationArray)
         {
-            HashSet<NetworkLocation> collectedUserNetworkObjects = new HashSet<NetworkLocation>();
+            HashSet<NetworkLocation> collectedUserNetworkObjects = [];
             foreach (NetworkLocation networkObject in locationArray)
             {
                 foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
@@ -110,14 +110,14 @@ namespace FWO.Ui.Display
                     }
                 }
             }
-            List<NetworkLocation> userNwObjectList = collectedUserNetworkObjects.ToList<NetworkLocation>();
+            List<NetworkLocation> userNwObjectList = [.. collectedUserNetworkObjects];
             userNwObjectList.Sort();
             return userNwObjectList;
         }
 
-        public List<NetworkService> GetNetworkServices(ServiceWrapper[] serviceArray)
+        public static List<NetworkService> GetNetworkServices(ServiceWrapper[] serviceArray)
         {
-            HashSet<NetworkService> collectedServices = new HashSet<NetworkService>();
+            HashSet<NetworkService> collectedServices = [];
             foreach (ServiceWrapper service in serviceArray)
             {
                 foreach (GroupFlat<NetworkService> nwService in service.Content.ServiceGroupFlats)
@@ -128,16 +128,16 @@ namespace FWO.Ui.Display
                     }
                 }
             }
-            List<NetworkService> serviceList = collectedServices.ToList<NetworkService>();
+            List<NetworkService> serviceList = [.. collectedServices];
             serviceList.Sort(delegate (NetworkService x, NetworkService y) { return x.Name.CompareTo(y.Name); });
             return serviceList;
         }
 
-        protected void AnalyzeElements(string oldElement, string newElement, ref List<string> unchanged, ref List<string> deleted, ref List<string> added)
+        protected static void AnalyzeElements(string oldElement, string newElement, ref List<string> unchanged, ref List<string> deleted, ref List<string> added)
         {
-            string[] separatingStrings = { "," };
-            string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-            string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
+            string[] separatingStrings = [","];
+            string[] oldAr = oldElement.Split(separatingStrings, StringSplitOptions.RemoveEmptyEntries);
+            string[] newAr = newElement.Split(separatingStrings, StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var item in oldAr)
             {

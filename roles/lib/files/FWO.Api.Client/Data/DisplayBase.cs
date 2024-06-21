@@ -134,7 +134,7 @@ namespace FWO.Api.Data
 
         public static string GetNetmask(string ip)
         {
-            int pos = ip.LastIndexOf("/");
+            int pos = ip.LastIndexOf('/');
             if (pos > -1 && ip.Length > pos + 1)
             {
                 return ip[(pos + 1)..];
@@ -142,9 +142,9 @@ namespace FWO.Api.Data
             return "";
         }
 
-        private static string StripOffNetmask(string ip)
+        public static string StripOffNetmask(string ip)
         {
-            int pos = ip.LastIndexOf("/");
+            int pos = ip.LastIndexOf('/');
             if (pos > -1 && ip.Length > pos + 1)
             {
                 return ip[..pos];

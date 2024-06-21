@@ -125,6 +125,8 @@ INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Rep
 INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
 INSERT INTO txt VALUES ('Connections', 	        'German', 	'Verbindungs-Report');
 INSERT INTO txt VALUES ('Connections', 	        'English', 	'Connections Report');
+INSERT INTO txt VALUES ('AppRules', 	        'German', 	'App-Regel-Report');
+INSERT INTO txt VALUES ('AppRules', 		    'English', 	'App Rules Report');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
@@ -181,6 +183,8 @@ INSERT INTO txt VALUES ('OwnerMainResponsible', 'German',	'Eigent&uuml;mer Haupt
 INSERT INTO txt VALUES ('OwnerMainResponsible', 'English',	'Owner Main Responsible');
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'German',	'Eigent&uuml;mer alle Verantwortlichen');
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'English',	'Owner all responsibles');
+INSERT INTO txt VALUES ('OwnerGroupOnly',       'German',	'nur Eigent&uuml;mergruppe');
+INSERT INTO txt VALUES ('OwnerGroupOnly',       'English',	'Owner Group only');
 INSERT INTO txt VALUES ('Requester', 		    'German',	'Antragsteller');
 INSERT INTO txt VALUES ('Requester', 	        'English',	'Requester');
 INSERT INTO txt VALUES ('Approver', 		    'German',	'Genehmiger');
@@ -708,6 +712,8 @@ INSERT INTO txt VALUES ('network',              'German', 	'Netzwerk');
 INSERT INTO txt VALUES ('network',              'English', 	'network');
 INSERT INTO txt VALUES ('ip_range',             'German', 	'Ip-Bereich');
 INSERT INTO txt VALUES ('ip_range',             'English', 	'Ip Range');
+INSERT INTO txt VALUES ('more',		            'German', 	'weitere');
+INSERT INTO txt VALUES ('more',		            'English', 	'more');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -1469,6 +1475,20 @@ INSERT INTO txt VALUES ('share_link', 	        'German',	'Link teilen');
 INSERT INTO txt VALUES ('share_link', 	        'English',	'Share Link');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopieren');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
+INSERT INTO txt VALUES ('rule_filters',		    'German', 	'Regel-Filter');
+INSERT INTO txt VALUES ('rule_filters',			'English', 	'Rule Filters');
+INSERT INTO txt VALUES ('match_source',			'German', 	'in Quelle');
+INSERT INTO txt VALUES ('match_source',			'English', 	'in Source');
+INSERT INTO txt VALUES ('match_destination',	'German', 	'in Ziel');
+INSERT INTO txt VALUES ('match_destination',	'English', 	'in Destination');
+INSERT INTO txt VALUES ('match_either',			'German', 	'in Quelle oder Ziel');
+INSERT INTO txt VALUES ('match_either',			'English', 	'in Source or Destination');
+INSERT INTO txt VALUES ('match_any',			'German', 	'in Any-Regeln');
+INSERT INTO txt VALUES ('match_any',			'English', 	'in Any Rules');
+INSERT INTO txt VALUES ('match_drop_rules',		'German', 	'in Drop-Regeln');
+INSERT INTO txt VALUES ('match_drop_rules',		'English', 	'in Drop rules');
+INSERT INTO txt VALUES ('show_full_rules',		'German', 	'vollst&auml;ndige Regeln anzeigen');
+INSERT INTO txt VALUES ('show_full_rules',		'English', 	'show full rules');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2115,6 +2135,10 @@ INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorges
 INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
 INSERT INTO txt VALUES ('modReqInterfaceName',  'German',   'Name der beantragten Schnittstelle');
 INSERT INTO txt VALUES ('modReqInterfaceName',  'English',  'Name of requested interface');
+INSERT INTO txt VALUES ('modReqEmailReceiver',  'German',   'Empf&auml;nger der Antragsbenachrichtigung');
+INSERT INTO txt VALUES ('modReqEmailReceiver',  'English',  'Receiver of request email');
+INSERT INTO txt VALUES ('modReqEmailRequesterInCc','German','Antragssteller in CC');
+INSERT INTO txt VALUES ('modReqEmailRequesterInCc','English','Requester in CC');
 INSERT INTO txt VALUES ('modReqEmailSubject',   'German',   'Titel der Antragsbenachrichtigung');
 INSERT INTO txt VALUES ('modReqEmailSubject',   'English',  'Subject of request emails');
 INSERT INTO txt VALUES ('modReqEmailBody',      'German',   'Text der Antragsbenachrichtigung');
@@ -4902,6 +4926,14 @@ INSERT INTO txt VALUES ('H5628', 'German',  'Vordefinierte Dienste: Hier wird de
 ');
 INSERT INTO txt VALUES ('H5628', 'English', 'Predefined Services: Offers a menu to the administrator to define, change or delete predefined services or service groups.
     These services are available for all applications.
+');
+INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Auswahl, wem die Email mit der Antragsbenachrichtigung geschickt werden soll:
+    Der Eigent&uuml;mergruppe (Default), dem Hauptverantwortlichen oder beiden. 
+    Desweiteren kann festgelegt werden, ob der Antragsteller die Nachricht im Cc bekommen soll (Default: ja).
+');
+INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of request emails: Selection to whom the request notification email should be sent:
+    the Owner Group, the Owner Main Responsible or both.
+    Furtheron it can be determined whether the requester should get the email in Cc (default: yes).
 ');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.

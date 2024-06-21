@@ -89,6 +89,8 @@ insert into config (config_key, config_value, config_user) VALUES ('modNamingCon
 insert into config (config_key, config_value, config_user) VALUES ('modCommonAreas', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ModAppServerTypes', '[{"Id":0,"Name":"Default"}]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqInterfaceName', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modReqEmailReceiver', 'OwnerGroupOnly', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modReqEmailRequesterInCc', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailSubject', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTicketTitle', '', 0);

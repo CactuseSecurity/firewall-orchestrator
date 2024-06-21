@@ -213,3 +213,7 @@ bugfix release:
 # 8.2.3 - 26.05.2024 DEVELOP
 - remove cascading delete for used interfaces 
 - new properties field in connections
+
+# 8.2.4 - 19.06.2024 DEVELOP
+- owner-filtering for new report type
+- new setting for email recipients

@@ -10,19 +10,6 @@ using Newtonsoft.Json;
 
 namespace FWO.Ui.Services
 {
-    public enum EmailRecipientOption
-    {
-        CurrentHandler = 1,
-        RecentHandler = 2,
-        AssignedGroup = 3,
-        OwnerMainResponsible = 10, 
-        AllOwnerResponsibles = 11,
-        Requester = 20,
-        Approver = 21,
-        LastCommenter = 30
-        // AllCommenters = 31
-    }
-
     public class EmailActionParams
     {
         [JsonProperty("to"), JsonPropertyName("to")]
@@ -67,10 +54,10 @@ namespace FWO.Ui.Services
             ScopedUserCc = scopedUserCc;
         }
 
-        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, bool requesterInCc)
+        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body)
         {
-            List<string>? requester = requesterInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
-            return await SendEmail(CollectEmailAddressesFromOwner(owner), subject, body, requester);
+            List<string>? requester = userConfig.ModReqEmailRequesterInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
+            return await SendEmail(GetRecipients(userConfig.ModReqEmailReceiver, null, owner, null), subject, body, requester);
         }
 
         public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, RequestStatefulObject statefulObject, FwoOwner? owner)
@@ -95,25 +82,28 @@ namespace FWO.Ui.Services
             return await mailer.SendAsync(new MailData(tos, subject, body, null, null, null, null, null, ccs), emailConnection, new CancellationToken(), true);
         }
 
-        private List<string> GetRecipients(EmailRecipientOption recipientOption, RequestStatefulObject statefulObject, FwoOwner? owner, string? scopedUser)
+        private List<string> GetRecipients(EmailRecipientOption recipientOption, RequestStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)
         {
             List<string> recipients = [];
             switch(recipientOption)
             {
                 case EmailRecipientOption.CurrentHandler:
-                    recipients.Add(GetEmailAddress(statefulObject.CurrentHandler?.Dn));
+                    recipients.Add(GetEmailAddress(statefulObject?.CurrentHandler?.Dn));
                     break;
                 case EmailRecipientOption.RecentHandler:
-                    recipients.Add(GetEmailAddress(statefulObject.RecentHandler?.Dn));
+                    recipients.Add(GetEmailAddress(statefulObject?.RecentHandler?.Dn));
                     break;
                 case EmailRecipientOption.AssignedGroup:
-                    recipients.AddRange(CollectEmailAddressesFromUserOrGroup(statefulObject.AssignedGroup));
+                    recipients.AddRange(CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup));
                     break;
                 case EmailRecipientOption.OwnerMainResponsible:
                     recipients.Add(GetEmailAddress(owner?.Dn));
                     break;
                 case EmailRecipientOption.AllOwnerResponsibles:
                     recipients.AddRange(CollectEmailAddressesFromOwner(owner));
+                    break;
+                case EmailRecipientOption.OwnerGroupOnly:
+                    recipients.AddRange(GetAddressesFromGroup(owner?.GroupDn));
                     break;
                 case EmailRecipientOption.Requester:
                 case EmailRecipientOption.Approver:

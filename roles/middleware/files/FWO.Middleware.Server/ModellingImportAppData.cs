@@ -43,13 +43,13 @@ namespace FWO.Middleware.Server
         /// List of allowed modellers (Dn)
         /// </summary>
         [JsonProperty("modellers"), JsonPropertyName("modellers")]
-        public List<string>? Modellers { get; set; } = new();
+        public List<string>? Modellers { get; set; } = [];
 
         /// <summary>
         /// List of Ldap Groups of allowed modellers (Dn): (currently handled same as modellers)
         /// </summary>
         [JsonProperty("modeller_groups"), JsonPropertyName("modeller_groups")]
-        public List<string>? ModellerGroups { get; set; } = new();
+        public List<string>? ModellerGroups { get; set; } = [];
 
         /// <summary>
         /// Criticality of App
@@ -67,7 +67,7 @@ namespace FWO.Middleware.Server
         /// App Servers of App
         /// </summary>
         [JsonProperty("app_servers"), JsonPropertyName("app_servers")]
-        public List<ModellingImportAppServer> AppServers { get; set; } = new();
+        public List<ModellingImportAppServer> AppServers { get; set; } = [];
     }
     
     /// <summary>

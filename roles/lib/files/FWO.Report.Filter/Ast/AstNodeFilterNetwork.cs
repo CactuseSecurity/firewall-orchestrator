@@ -32,12 +32,14 @@ namespace FWO.Report.Filter.Ast
         private DynGraphqlQuery ExtractDestinationFilter(DynGraphqlQuery query)
         {
             if (IsCidr(Value.Text))  // filtering for ip addresses
+            {
                 query = ExtractIpFilter(query, location: "dst", locationTable: "rule_tos");
+            }
             else // string search against dst obj name
             {
                 string QueryVarName = AddVariable<string>(query, "dst", Operator.Kind, Value.Text);
-                query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
-                query.connectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 2 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
+                query.RuleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
+                query.ConnectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 2 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
                     $"{{ nwgroup_connections: {{connection_field: {{ _eq: 2 }}, nwgroup: {{ name: {{ {ExtractOperator()}: ${QueryVarName} }}  }} }} }} ]";
             }
             return query;
@@ -47,12 +49,14 @@ namespace FWO.Report.Filter.Ast
         private DynGraphqlQuery ExtractSourceFilter(DynGraphqlQuery query)
         {
             if (IsCidr(Value.Text))  // filtering for ip addresses
+            {
                 query = ExtractIpFilter(query, location: "src", locationTable: "rule_froms");
+            }
             else // string search against src obj name
             {
                 string QueryVarName = AddVariable<string>(query, "src", Operator.Kind, Value.Text);
-                query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
-                query.connectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 1 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
+                query.RuleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
+                query.ConnectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 1 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
                     $"{{ nwgroup_connections: {{connection_field: {{ _eq: 1 }}, nwgroup: {{ name: {{ {ExtractOperator()}: ${QueryVarName} }}  }} }} }} ]";
             }
             return query;
@@ -60,19 +64,18 @@ namespace FWO.Report.Filter.Ast
 
         private static string SanitizeIp(string cidr_str)
         {
-            IPAddress? ip;
-            if (IPAddress.TryParse(cidr_str, out ip))
+            if (IPAddress.TryParse(cidr_str, out IPAddress? ip))
             {
                 if (ip != null)
                 {
                     if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
                     {
                         cidr_str = ip.ToString();
-                        if (cidr_str.IndexOf("/") < 0) // a single ip without mask
+                        if (cidr_str.IndexOf('/') < 0) // a single ip without mask
                         {
                             cidr_str += "/128";
                         }
-                        if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 128 mask)
+                        if (cidr_str.IndexOf('/') == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 128 mask)
                         {
                             cidr_str += "128";
                         }
@@ -80,19 +83,19 @@ namespace FWO.Report.Filter.Ast
                     else if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                     {
                         cidr_str = ip.ToString();
-                        if (cidr_str.IndexOf("/") < 0) // a single ip without mask
+                        if (cidr_str.IndexOf('/') < 0) // a single ip without mask
                         {
                             cidr_str += "/32";
                         }
-                        if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                        if (cidr_str.IndexOf('/') == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
                         {
                             cidr_str += "32";
                         }
                     }
                 }
-                else 
+                else
                 {
-                  Log.WriteWarning("SanitizeIP", $"unexpected IP address family (neither v4 nor v6) found");
+                    Log.WriteWarning("SanitizeIP", $"unexpected IP address family (neither v4 nor v6) found");
                 }
             }
             return cidr_str;
@@ -100,7 +103,7 @@ namespace FWO.Report.Filter.Ast
 
         private static bool IsCidr(string cidr)
         {
-            return IPAddressRange.TryParse(cidr, out IPAddressRange range);
+            return IPAddressRange.TryParse(cidr, out _);
         }
 
         private DynGraphqlQuery ExtractIpFilter(DynGraphqlQuery query, string location, string locationTable)
@@ -126,7 +129,7 @@ namespace FWO.Report.Filter.Ast
             string ipFilterString =
                     $@" obj_ip_end: {{ _gte: ${QueryVarNameFirst1} }} 
                         obj_ip: {{ _lte: ${QueryVarNameLast2} }}";
-            query.ruleWhereStatement +=
+            query.RuleWhereStatement +=
                 $@" {locationTable}: 
                         {{ object: 
                             {{ objgrp_flats: 
@@ -135,7 +138,7 @@ namespace FWO.Report.Filter.Ast
                                 }}
                             }}
                         }}";
-            query.nwObjWhereStatement +=
+            query.NwObjWhereStatement +=
                 $@" {locationTable}: 
                         {{ object: 
                             {{ objgrp_flats: 
@@ -146,7 +149,7 @@ namespace FWO.Report.Filter.Ast
                         }}";
             ipFilterString = $@" ip_end: {{ _gte: ${QueryVarNameFirst1} }} ip: {{ _lte: ${QueryVarNameLast2} }}";
             int conField = location == "src" ? 1 : 2;
-            query.connectionWhereStatement += $"nwobject_connections: {{connection_field: {{ _eq: {conField} }}, owner_network: {{ {ipFilterString} }} }}";
+            query.ConnectionWhereStatement += $"nwobject_connections: {{connection_field: {{ _eq: {conField} }}, owner_network: {{ {ipFilterString} }} }}";
             return query;
         }
 

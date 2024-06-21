@@ -1,4 +1,5 @@
 ﻿@using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 @using System.Text.Json
@@ -189,6 +190,20 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqInterfaceName")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModReqInterfaceName" />
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
+            <div class="col-sm-3">
+                <Dropdown @bind-SelectedElement="configData!.ModReqEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="selectableRecipientOptions" >
+                    <ElementTemplate Context="opt">
+                        @(userConfig.GetText(opt.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+            <label class="col-form-label col-sm-2">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
+            <div class="col-sm-1">
+                <input type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
+            </div>
+        </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModReqEmailSubject" />
@@ -257,6 +272,8 @@ else
     private DateTime appDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly, 
+        EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible ];
 
     protected override async Task OnInitializedAsync()
     {
@@ -273,7 +290,8 @@ else
                     appServerDefaultTypeName = appServerTypes.FirstOrDefault(x => x.Id == 0)?.Name ?? "";
                 }
             }
-            allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
+            allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects,
+                new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
             RefreshAreas();
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
@@ -347,11 +365,11 @@ else
                 PrepareConfigData();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
 
-                PathsToDelete = new();
-                PathsToAdd = new();
-                AreasToDelete = new();
-                appServerTypesToAdd = new();
-                appServerTypesToDelete = new();
+                PathsToDelete = [];
+                PathsToAdd = [];
+                AreasToDelete = [];
+                appServerTypesToAdd = [];
+                appServerTypesToDelete = [];
                 RefreshAreas();
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }

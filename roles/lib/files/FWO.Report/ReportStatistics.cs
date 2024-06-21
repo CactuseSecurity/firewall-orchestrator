@@ -19,7 +19,7 @@ namespace FWO.Report
 
         public override async Task Generate(int _, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            List<ManagementReport> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
+            List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
 
             ReportData.ManagementData = new ();
 

@@ -99,7 +99,10 @@ namespace FWO.Middleware.Server
 			return user;
 		}
 
-		private static async Task GetOwnerships(ApiConnection apiConn, UiUser user)
+		/// <summary>
+		/// add the ownerships to the given user
+		/// </summary>
+		public static async Task GetOwnerships(ApiConnection apiConn, UiUser user)
 		{
 			try
 			{

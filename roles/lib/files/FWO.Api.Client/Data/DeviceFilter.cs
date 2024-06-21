@@ -14,7 +14,7 @@ namespace FWO.Api.Data
         public string? Name { get; set; }
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
-        public List<DeviceSelect> Devices { get; set; } = new List<DeviceSelect>();
+        public List<DeviceSelect> Devices { get; set; } = [];
 
         public ElementReference? UiReference { get; set; }
 
@@ -23,7 +23,7 @@ namespace FWO.Api.Data
         public bool Shared { get; set; } = true;
         public ManagementSelect Clone()
         {
-            List<DeviceSelect> ClonedDevices = new();
+            List<DeviceSelect> ClonedDevices = [];
             foreach(var dev in Devices)
             {
                 ClonedDevices.Add(new DeviceSelect(dev));
@@ -68,13 +68,13 @@ namespace FWO.Api.Data
     public class DeviceFilter
     {
         [JsonProperty("management"), JsonPropertyName("management")]
-        public List<ManagementSelect> Managements { get; set; } = new List<ManagementSelect>();
+        public List<ManagementSelect> Managements { get; set; } = [];
 
         [JsonProperty("visibleManagements"), JsonPropertyName("visibleManagements")]
-        public List<ManagementSelect> VisibleManagements { get; set; } = new List<ManagementSelect>();
+        public List<ManagementSelect> VisibleManagements { get; set; } = [];
 
         [JsonProperty("visibleGateways"), JsonPropertyName("visibleGateways")]
-        public List<DeviceSelect> VisibleGateways { get; set; } = new List<DeviceSelect>();
+        public List<DeviceSelect> VisibleGateways { get; set; } = [];
 
         public DeviceFilter()
         {}
@@ -90,7 +90,7 @@ namespace FWO.Api.Data
         }        
         public DeviceFilter(List<int> devIds)
         {
-            ManagementSelect dummyManagement = new ManagementSelect();
+            ManagementSelect dummyManagement = new();
             foreach(int id in devIds)
             {
                 dummyManagement.Devices.Add(new DeviceSelect(){Id = id});
@@ -99,7 +99,7 @@ namespace FWO.Api.Data
         }
         public DeviceFilter(int[] devIds)
         {
-            ManagementSelect dummyManagement = new ManagementSelect();
+            ManagementSelect dummyManagement = new();
             foreach(int id in devIds)
             {
                 dummyManagement.Devices.Add(new DeviceSelect(){Id = id});
@@ -109,7 +109,7 @@ namespace FWO.Api.Data
 
         public DeviceFilter Clone()
         {
-            List<ManagementSelect> ClonedManagements = new();
+            List<ManagementSelect> ClonedManagements = [];
             foreach(var mgt in Managements)
             {
                 ClonedManagements.Add(mgt.Clone());
@@ -167,7 +167,7 @@ namespace FWO.Api.Data
 
         public List<int> getSelectedManagements()
         {
-            List<int> selectedMgmts = new List<int>();
+            List<int> selectedMgmts = [];
             foreach (ManagementSelect mgmt in Managements)
             {
                 if (IsSelectedManagement(mgmt))
@@ -180,7 +180,7 @@ namespace FWO.Api.Data
 
         public string listAllSelectedDevices()
         {
-            List<string> devs = new List<string>();
+            List<string> devs = [];
             foreach (ManagementSelect mgmt in Managements)
                 foreach (DeviceSelect dev in mgmt.Devices)
                     if (dev.Selected)
@@ -190,7 +190,7 @@ namespace FWO.Api.Data
 
         public static List<int> ExtractAllDevIds(Management[] managements)
         {
-            List<int> devs = new List<int>();
+            List<int> devs = [];
             foreach (Management mgmt in managements)
                 foreach (Device dev in mgmt.Devices)
                     devs.Add(dev.Id);
@@ -199,7 +199,7 @@ namespace FWO.Api.Data
 
         public static List<int> ExtractSelectedDevIds(Management[] managements)
         {
-            List<int> selectedDevs = new List<int>();
+            List<int> selectedDevs = [];
             foreach (Management mgmt in managements)
                 foreach (Device dev in mgmt.Devices)
                     if (dev.Selected)
@@ -265,7 +265,7 @@ namespace FWO.Api.Data
 
         public override string ToString()
         {
-            StringBuilder result = new StringBuilder();
+            StringBuilder result = new();
             foreach (ManagementSelect management in Managements)
             {
                 result.Append($"{management.Name} [{string.Join(", ", management.Devices.ConvertAll(device => device.Name))}]; ");

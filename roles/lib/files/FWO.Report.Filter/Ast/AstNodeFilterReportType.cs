@@ -46,7 +46,7 @@ namespace FWO.Report.Filter.Ast
 
             if (query.ReportType == ReportType.Statistics)
             {
-                query.ruleWhereStatement +=
+                query.RuleWhereStatement +=
                     @$"rule_head_text: {{_is_null: true}}";
             }
 

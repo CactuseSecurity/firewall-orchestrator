@@ -59,7 +59,7 @@ namespace FWO.Middleware.Controllers
 						user = new UiUser { Name = username, Password = password };
 				}
 
-				AuthManager authManager = new AuthManager(jwtWriter, ldaps, apiConnection);
+				AuthManager authManager = new (jwtWriter, ldaps, apiConnection);
 
 				// Authenticate user
 				string jwt = await authManager.AuthorizeUserAsync(user, validatePassword: true);
@@ -94,8 +94,8 @@ namespace FWO.Middleware.Controllers
 				string targetUserName = parameters.TargetUserName;
 				string targetUserDn = parameters.TargetUserDn;
 
-				AuthManager authManager = new AuthManager(jwtWriter, ldaps, apiConnection);
-				UiUser adminUser = new UiUser() { Name = adminUsername, Password = adminPassword };
+				AuthManager authManager = new (jwtWriter, ldaps, apiConnection);
+				UiUser adminUser = new() { Name = adminUsername, Password = adminPassword };
 				// Check if admin valids are valid
 				try
 				{
@@ -112,7 +112,7 @@ namespace FWO.Middleware.Controllers
 				// Check if username is valid and generate jwt
 				try
 				{
-					UiUser targetUser = new UiUser { Name = targetUserName, Dn = targetUserDn };
+					UiUser targetUser = new() { Name = targetUserName, Dn = targetUserDn };
 					string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false, lifetime);
 					return Ok(jwt);
 				}
@@ -188,8 +188,8 @@ namespace FWO.Middleware.Controllers
 			List<string> userGroups = ldap.GetGroups(ldapUser);
 			if (!ldap.IsInternal())
 			{
-				object groupsLock = new object();
-				List<Task> ldapRoleRequests = new List<Task>();
+				object groupsLock = new ();
+				List<Task> ldapRoleRequests = [];
 
 				foreach (Ldap currentLdap in ldaps)
 				{
@@ -198,7 +198,7 @@ namespace FWO.Middleware.Controllers
 						ldapRoleRequests.Add(Task.Run(() =>
 						{
 							// Get groups from current Ldap
-							List<string> currentGroups = currentLdap.GetGroups(new List<string>() {ldapUser.Dn});
+							List<string> currentGroups = currentLdap.GetGroups([ldapUser.Dn]);
 							lock (groupsLock)
 							{
 								currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();

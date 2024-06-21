@@ -19,7 +19,7 @@
                     @if (!Exporting)
                     {
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">@(userConfig.GetText("download"))</button>
-                        @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+                        @if (context.ReportOwningUser.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
                         {
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
                         }
@@ -45,7 +45,7 @@
                 @(context.GenerationDateStart.ToString("yyyy-MM-dd HH:mm:ssK"))
             </Template>
         </Column>
-        <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.Owner.Name)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.ReportOwningUser.Name)" Sortable="true" Filterable="true"/>
         <Column TableItem="ReportFile" Title="@(userConfig.GetText("description"))" Field="@(reportFile => reportFile.Description)" Sortable="true" Filterable="true"/>
     </Table>
 </div>

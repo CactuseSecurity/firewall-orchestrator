@@ -60,8 +60,8 @@ namespace FWO.Report
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, OutputLocation.export)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                                 report.AppendLine("</tr>");
                             }
                             else

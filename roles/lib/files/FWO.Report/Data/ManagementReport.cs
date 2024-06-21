@@ -56,6 +56,8 @@ namespace FWO.Report
         public ObjectStatistics RuleStatistics { get; set; } = new ();
 
         public bool Ignore { get; set; }
+        public List<long> RelevantObjectIds = [];
+        public List<long> HighlightedObjectIds = [];
 
 
         public ManagementReport()
@@ -86,6 +88,8 @@ namespace FWO.Report
             UserObjectStatistics = managementReport.UserObjectStatistics;
             RuleStatistics = managementReport.RuleStatistics;
             Ignore = managementReport.Ignore;
+            RelevantObjectIds = managementReport.RelevantObjectIds;
+            HighlightedObjectIds = managementReport.HighlightedObjectIds;
         }
 
         public void AssignRuleNumbers()

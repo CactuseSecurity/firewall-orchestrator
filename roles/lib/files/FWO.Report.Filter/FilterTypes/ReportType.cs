@@ -13,7 +13,8 @@ namespace FWO.Report.Filter
         ResolvedChangesTech = 9,
         UnusedRules = 10,
 
-        Connections = 21
+        Connections = 21,
+        AppRules = 22
     }
 
     public static class ReportTypeGroups
@@ -28,6 +29,7 @@ namespace FWO.Report.Filter
                 case ReportType.NatRules:
                 case ReportType.Recertification:
                 case ReportType.UnusedRules:
+                case ReportType.AppRules:
                     return true;
                 default: 
                     return false;
@@ -83,6 +85,7 @@ namespace FWO.Report.Filter
             switch(reportType)
             {
                 case ReportType.Connections:
+                case ReportType.AppRules:
                     return true;
                 default: 
                     return false;

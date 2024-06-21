@@ -101,7 +101,7 @@ namespace FWO.Report
                                 report.Append(ruleChangeDisplayCsv.DisplayEnabled(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayUid(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayComment(ruleChange));
-                                report = ruleChangeDisplayCsv.RemoveLastChars(report, 1); // remove last chars (comma)
+                                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
                                 report.AppendLine("");
                             }
                         }
@@ -231,21 +231,21 @@ namespace FWO.Report
                             report.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayUid(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayComment(ruleChange));
-                            report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last chars (comma)
+                            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
                             report.Append("},");  // EO ruleChange
                         } // rules
-                        report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
                         report.Append(']'); // EO rules
                         report.Append('}'); // EO gateway internal
                         report.Append("},"); // EO gateway external
                     }
                 } // gateways
-                report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
                 report.Append(']'); // EO gateways
                 report.Append('}'); // EO management internal
                 report.Append("},"); // EO management external
             } // managements
-            report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
             report.Append(']'); // EO managements
             report.Append('}'); // EO top
 

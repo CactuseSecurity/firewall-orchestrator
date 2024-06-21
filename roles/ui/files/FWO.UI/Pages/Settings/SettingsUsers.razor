@@ -46,12 +46,12 @@
             <Template>
                 <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5271"))">
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
-                    @if(context.isInternal())
+                    @if(context.IsInternal())
                     {
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
                     }
                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
-                    @if(context.isInternal())
+                    @if(context.IsInternal())
                     {
                         <button type="button" class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">@(userConfig.GetText("reset_password"))</button>
                     }
@@ -872,7 +872,7 @@
             else
             {
                 deleteMessage = userConfig.GetText("U5201") + actUser.Name + "?";
-                if (!actUser.isInternal())
+                if (!actUser.IsInternal())
                 {
                     deleteMessage += userConfig.GetText("U5202");
                 }

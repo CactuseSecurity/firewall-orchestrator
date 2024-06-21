@@ -18,21 +18,21 @@ namespace FWO.Api.Data
         public string Description { get; set; } = "";
 
         [JsonProperty("ip_ranges", ItemConverterType = typeof(IpAddressRangeJsonTypeConverter)), JsonPropertyName("ip_ranges")]
-        public IPAddressRange[] IPRanges { get; set; } = new IPAddressRange[0];
+        public IPAddressRange[] IPRanges { get; set; } = [];
 
         [JsonProperty("super_network_zone"), JsonPropertyName("super_network_zone")]
         public ComplianceNetworkZone? Superzone { get; set; } = null;
 
         [JsonProperty("sub_network_zones"), JsonPropertyName("sub_network_zones")]
-        public ComplianceNetworkZone[] Subzones { get; set; } = new ComplianceNetworkZone[0];
+        public ComplianceNetworkZone[] Subzones { get; set; } = [];
 
         [JsonProperty("network_zone_communication_sources", ItemConverterType = typeof(WrapperConverter<ComplianceNetworkZone>),
-            ItemConverterParameters = new object[] { "from_network_zone" }), JsonPropertyName("network_zone_communication_sources")]
-        public ComplianceNetworkZone[] AllowedCommunicationSources { get; set; } = new ComplianceNetworkZone[0];
+            ItemConverterParameters = ["from_network_zone"]), JsonPropertyName("network_zone_communication_sources")]
+        public ComplianceNetworkZone[] AllowedCommunicationSources { get; set; } = [];
 
         [JsonProperty("network_zone_communication_destinations", ItemConverterType = typeof(WrapperConverter<ComplianceNetworkZone>),
-            ItemConverterParameters = new object[] { "to_network_zone" }), JsonPropertyName("network_zone_communication_destinations")]
-        public ComplianceNetworkZone[] AllowedCommunicationDestinations { get; set; } = new ComplianceNetworkZone[0];
+            ItemConverterParameters = ["to_network_zone"]), JsonPropertyName("network_zone_communication_destinations")]
+        public ComplianceNetworkZone[] AllowedCommunicationDestinations { get; set; } = [];
 
 
         public bool CommunicationAllowedFrom(ComplianceNetworkZone from)
@@ -69,12 +69,12 @@ namespace FWO.Api.Data
         /// <param name="a">First IP range</param>
         /// <param name="b">Second IP range</param>
         /// <returns>True, if IP ranges overlap, false otherwise.</returns>
-        private bool OverlapExists(IPAddressRange a, IPAddressRange b)
+        public static bool OverlapExists(IPAddressRange a, IPAddressRange b)
         {
             return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
         }
 
-        private void RemoveOverlap(List<IPAddressRange> ranges, IPAddressRange toRemove)
+        private static void RemoveOverlap(List<IPAddressRange> ranges, IPAddressRange toRemove)
         {
             for (int i = 0; i < ranges.Count; i++)
             {
@@ -110,7 +110,7 @@ namespace FWO.Api.Data
             }
         }
 
-        private uint IpToUint(IPAddress ipAddress)
+        private static uint IpToUint(IPAddress ipAddress)
         {
             byte[] bytes = ipAddress.GetAddressBytes();
 
@@ -123,7 +123,7 @@ namespace FWO.Api.Data
             return BitConverter.ToUInt32(bytes, 0);
         }
 
-        private IPAddress UintToIp(uint ipAddress)
+        private static IPAddress UintToIp(uint ipAddress)
         {
             byte[] bytes = BitConverter.GetBytes(ipAddress);
 

@@ -712,6 +712,10 @@ INSERT INTO txt VALUES ('network',              'German', 	'Netzwerk');
 INSERT INTO txt VALUES ('network',              'English', 	'network');
 INSERT INTO txt VALUES ('ip_range',             'German', 	'Ip-Bereich');
 INSERT INTO txt VALUES ('ip_range',             'English', 	'Ip Range');
+INSERT INTO txt VALUES ('simple',               'German', 	'Einfach');
+INSERT INTO txt VALUES ('simple',               'English', 	'Simple');
+INSERT INTO txt VALUES ('rpc',                  'German', 	'Rpc');
+INSERT INTO txt VALUES ('rpc',                  'English', 	'Rpc');
 INSERT INTO txt VALUES ('more',		            'German', 	'weitere');
 INSERT INTO txt VALUES ('more',		            'English', 	'more');
 

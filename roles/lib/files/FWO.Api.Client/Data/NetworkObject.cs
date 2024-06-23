@@ -21,7 +21,7 @@ namespace FWO.Api.Data
         public string Uid { get; set; } = "";
 
         [JsonProperty("zone"), JsonPropertyName("zone")]
-        public NetworkZone Zone { get; set; } = new NetworkZone(){};
+        public NetworkZone Zone { get; set; } = new ();
 
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
@@ -30,13 +30,13 @@ namespace FWO.Api.Data
         public int Create { get; set; }
 
         [JsonProperty("obj_create_time"), JsonPropertyName("obj_create_time")]
-        public TimeWrapper CreateTime { get; set; } = new TimeWrapper(){};
+        public TimeWrapper CreateTime { get; set; } = new ();
 
         [JsonProperty("obj_last_seen"), JsonPropertyName("obj_last_seen")]
         public int LastSeen { get; set; }
 
         [JsonProperty("type"), JsonPropertyName("type")]
-        public NetworkObjectType Type { get; set; } = new NetworkObjectType(){};
+        public NetworkObjectType Type { get; set; } = new ();
 
         [JsonProperty("obj_comment"), JsonPropertyName("obj_comment")]
         public string Comment { get; set; } = "";

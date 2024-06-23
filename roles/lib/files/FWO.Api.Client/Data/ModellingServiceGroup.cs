@@ -16,7 +16,7 @@ namespace FWO.Api.Data
         public DateTime? CreationDate { get; set; }
 
         [JsonProperty("services"), JsonPropertyName("services")]
-        public List<ModellingServiceWrapper> Services { get; set; } = new();
+        public List<ModellingServiceWrapper> Services { get; set; } = [];
 
 
         public ModellingServiceGroup()
@@ -37,13 +37,13 @@ namespace FWO.Api.Data
 
         public NetworkService ToNetworkServiceGroup()
         {
-            Group<NetworkService>[] serviceGroups = ModellingServiceGroupWrapper.ResolveAsNetworkServiceGroup(Services ?? new List<ModellingServiceWrapper>());
+            Group<NetworkService>[] serviceGroups = ModellingServiceGroupWrapper.ResolveAsNetworkServiceGroup(Services ?? []);
             return new()
             {
                 Id = Id,
                 Name = Name ?? "",
                 Comment = Comment ?? "",
-                Type = new NetworkServiceType(){ Name = ObjectType.Group },
+                Type = new NetworkServiceType(){ Name = ServiceType.Group },
                 ServiceGroups = serviceGroups,
                 MemberNames = string.Join("|", Array.ConvertAll(serviceGroups, o => o.Object?.Name))
             };

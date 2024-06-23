@@ -108,7 +108,7 @@ namespace FWO.Report
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
-            foreach(var obj in objList.Where(o => o.Object.IP != null))
+            foreach(var obj in objList)
             {
                 if(obj.Object.IsAnyObject())
                 {
@@ -124,15 +124,21 @@ namespace FWO.Report
                 else
                 {
                     bool found = false;
-                    foreach(var ownerIpRange in ownerIps)
+                    if(obj.Object.Type.Name == GlobalConstants.ObjectType.Group)
                     {
-                        if(ComplianceNetworkZone.OverlapExists(new IPAddressRange(IPAddress.Parse(DisplayBase.StripOffNetmask(obj.Object.IP)),
-                            IPAddress.Parse(DisplayBase.StripOffNetmask(obj.Object.IpEnd != "" ? obj.Object.IpEnd : obj.Object.IP))), ownerIpRange))
+                        foreach(var grpobj in obj.Object.ObjectGroupFlats)
                         {
-                            relevantObjects.Add(obj);
-                            found = true;
-                            break;
+                            if(grpobj.Object != null && CheckObj(grpobj.Object))
+                            {
+                                relevantObjects.Add(obj);
+                                found = true;
+                            }
                         }
+                    }
+                    else if(CheckObj(obj.Object))
+                    {
+                        relevantObjects.Add(obj);
+                        found = true;
                     }
                     if(!found)
                     {
@@ -143,7 +149,21 @@ namespace FWO.Report
             return (relevantObjects, disregardedObjects);
         }
 
-        private static void PrepareFilter(ManagementReport mgt)
+        private bool CheckObj(NetworkObject obj)
+        {
+            foreach(var ownerIpRange in ownerIps)
+            {
+                if(obj.IP != null &&
+                    ComplianceNetworkZone.OverlapExists(new IPAddressRange(IPAddress.Parse(DisplayBase.StripOffNetmask(obj.IP)),
+                    IPAddress.Parse(DisplayBase.StripOffNetmask(obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP))), ownerIpRange))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void PrepareFilter(ManagementReport mgt)
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
@@ -157,6 +177,16 @@ namespace FWO.Report
                         {
                             mgt.RelevantObjectIds.Add(from.Object.Id);
                             mgt.HighlightedObjectIds.Add(from.Object.Id);
+                            if(from.Object.Type.Name == GlobalConstants.ObjectType.Group)
+                            {
+                                foreach(var grpobj in from.Object.ObjectGroupFlats)
+                                {
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    {
+                                        mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                                    }
+                                }
+                            }
                         }
                         if(rule.Froms.Length == 0)
                         {
@@ -169,6 +199,16 @@ namespace FWO.Report
                         {
                             mgt.RelevantObjectIds.Add(to.Object.Id);
                             mgt.HighlightedObjectIds.Add(to.Object.Id);
+                            if(to.Object.Type.Name == GlobalConstants.ObjectType.Group)
+                            {
+                                foreach(var grpobj in to.Object.ObjectGroupFlats)
+                                {
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    {
+                                        mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                                    }
+                                }
+                            }
                         }
                         if(rule.Tos.Length == 0)
                         {
@@ -180,6 +220,7 @@ namespace FWO.Report
                     }
                 }
             }
+            mgt.HighlightedObjectIds = mgt.HighlightedObjectIds.Distinct().ToList();
         }
 
         private static void PrepareRsbOutput(ManagementReport mgt)
@@ -187,8 +228,24 @@ namespace FWO.Report
             foreach(var obj in mgt.ReportObjects)
             {
                 obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id) || obj.IsAnyObject();
+                if(obj.Type.Name == GlobalConstants.ObjectType.Group)
+                {
+                    foreach(var grpobj in obj.ObjectGroupFlats)
+                    {
+                        if (grpobj.Object != null)
+                        {
+                            grpobj.Object.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Object.Id) || grpobj.Object.IsAnyObject();
+                        }
+                    }
+                    foreach(var grpobj in obj.ObjectGroups)
+                    {
+                        if (grpobj.Object != null)
+                        {
+                            grpobj.Object.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Object.Id) || grpobj.Object.IsAnyObject();
+                        }
+                    }
+                }
             }
-            // Todo: handle groups
         }
     }
 }

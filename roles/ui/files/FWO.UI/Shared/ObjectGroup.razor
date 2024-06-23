@@ -66,7 +66,7 @@
                                     {
                                         if(member.Object != null)
                                         {
-                                            <div><span class=\"{Icons.NwObject}\"></span> @DisplayBase.DisplayIpWithName(member.Object)</div>
+                                            <div style="@(context.Highlighted ? "color:red;" : "")"><span class=\"{Icons.NwObject}\"></span> @DisplayBase.DisplayIpWithName(member.Object)</div>
                                         }
                                     }
                                 }
@@ -78,13 +78,13 @@
                                             {
                                                 if(member.Object != null)
                                                 {
-                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name, member.Object.Highlighted)
                                                     <br>
                                                 }
                                             }
                                         </Content1>
                                         <Content2>
-                                            @{ List<long> shownMemberIds = new List<long>(); }
+                                            @{ List<long> shownMemberIds = []; }
                                             @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
                                             {
                                                 if(member.Object != null)
@@ -93,7 +93,7 @@
                                                         continue;
                                                     shownMemberIds.Add(member.Object.Id);
 
-                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name, member.Object.Highlighted)
                                                     <br>
                                                 }
                                             }
@@ -357,7 +357,7 @@
         return GetIDPrefix(objCategory) + objId;
     }
 
-    RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name)
+    RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name, bool highlighted=false)
     {
         @* if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
         {
@@ -368,7 +368,7 @@
 
         string page = Recert ? "certification" : "report/generation";
         
-        return @<a href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
+        return @<a style="@(highlighted ? "color:red;" : "")" href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
     private async Task HandleUncollapse(ObjCategory objCategory)

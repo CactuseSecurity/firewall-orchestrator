@@ -78,7 +78,7 @@ namespace FWO.Config.Api
             {
                 User = users[0];
             }
-            await SetUserId(apiConnection, User.DbId);
+            await InitWithUserId(apiConnection, User.DbId);
 
             if (User.Language == null)
             {

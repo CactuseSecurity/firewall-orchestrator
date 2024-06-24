@@ -28,10 +28,10 @@ namespace FWO.Config.Api
 
         protected Config(ApiConnection apiConnection, int userId)
         {
-            SetUserId(apiConnection, userId).Wait();
+            InitWithUserId(apiConnection, userId).Wait();
         }
 
-        public async Task SetUserId(ApiConnection apiConnection, int userId, bool waitForFirstUpdate = true)
+        public async Task InitWithUserId(ApiConnection apiConnection, int userId)
         {
             this.apiConnection = apiConnection;
             UserId = userId;
@@ -156,12 +156,6 @@ namespace FWO.Config.Api
         protected static void SubscriptionExceptionHandler(Exception exception)
         {
             Log.WriteError("Config Subscription", "Config subscription lead to error.", exception);
-        }
-
-        // TODO: Move method
-        public static string ShowBool(bool boolVal)
-        {
-            return boolVal ? "\u2714" : "\u2716";
         }
 
         protected void InvokeOnChange(Config config, ConfigItem[] configItems)

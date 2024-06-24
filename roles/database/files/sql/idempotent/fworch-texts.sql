@@ -712,6 +712,10 @@ INSERT INTO txt VALUES ('network',              'German', 	'Netzwerk');
 INSERT INTO txt VALUES ('network',              'English', 	'network');
 INSERT INTO txt VALUES ('ip_range',             'German', 	'Ip-Bereich');
 INSERT INTO txt VALUES ('ip_range',             'English', 	'Ip Range');
+INSERT INTO txt VALUES ('simple',               'German', 	'Einfach');
+INSERT INTO txt VALUES ('simple',               'English', 	'Simple');
+INSERT INTO txt VALUES ('rpc',                  'German', 	'Rpc');
+INSERT INTO txt VALUES ('rpc',                  'English', 	'Rpc');
 INSERT INTO txt VALUES ('more',		            'German', 	'weitere');
 INSERT INTO txt VALUES ('more',		            'English', 	'more');
 
@@ -3120,6 +3124,7 @@ INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Au
     <li>Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt</li>
     <li>Verbindungen - Anzeige aller in einer Applikation modellierten Verbindungen, Schnittstellen und eigener Common Services mit zus&auml;tzlicher Auflistung aller hierin verwendeter Netzwerk- und Serviceobjekte.
         Hinzu kommt eine Liste aller globalen Common Services.</li>
+    <li>App-Regeln - Darstellung aller Regeln, in welchen Objekte eines vorgegebenen Eigent&uuml;mers verwendet werden. Es kann weiter spezifiziert werden, ob nur Quelle, Ziel oder beides, sowie ob "Any"-Objekte ber&uuml;cksichtigt werden sollen.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report types:
@@ -3137,6 +3142,7 @@ INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report t
     <li>Statistics - display statistical data on the number of objects and rules. Default report time: now</li>
     <li>Connections - display of all connections, interfaces and Common Services modelled in an application with additional lists of all network and service objects used here.
         Additionally a list of all global Common Services is given.</li>
+    <li>App Rules - display of all rules, where objects of the given owner are used. It can be further specified, if only source, destination or both are to be considered as well as "any" objects.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices

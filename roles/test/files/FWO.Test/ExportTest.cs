@@ -84,9 +84,9 @@ namespace FWO.Test
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr>" +
             "<h4>Network Objects</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Network Services</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
@@ -207,9 +207,9 @@ namespace FWO.Test
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr>" +
             "<h4>Network Objects</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Network Services</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
@@ -277,9 +277,9 @@ namespace FWO.Test
             "<td>uid2:123</td>" +
             "<td>comment2</td></tr></table><hr>" +
             "<h4>Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +

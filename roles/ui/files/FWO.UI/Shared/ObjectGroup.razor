@@ -47,7 +47,7 @@
                             Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <div style="@(context.Highlighted ? "color:red;" : "")">
+                                <div style="@(context.Highlighted ? GlobalConst.kStyleHighlighted : "")">
                                     <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
                                     <b id="@(GetID(ObjCategory.nobj, context.Id))">@(context.Name)</b>
                                 </div>
@@ -66,7 +66,7 @@
                                     {
                                         if(member.Object != null)
                                         {
-                                            <div><span class=\"{Icons.NwObject}\"></span> @DisplayBase.DisplayIpWithName(member.Object)</div>
+                                            <div style="@(context.Highlighted ? GlobalConst.kStyleHighlighted : "")"><span class=\"{Icons.NwObject}\"></span> @DisplayBase.DisplayIpWithName(member.Object)</div>
                                         }
                                     }
                                 }
@@ -78,13 +78,13 @@
                                             {
                                                 if(member.Object != null)
                                                 {
-                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name, member.Object.Highlighted)
                                                     <br>
                                                 }
                                             }
                                         </Content1>
                                         <Content2>
-                                            @{ List<long> shownMemberIds = new List<long>(); }
+                                            @{ List<long> shownMemberIds = []; }
                                             @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
                                             {
                                                 if(member.Object != null)
@@ -93,7 +93,7 @@
                                                         continue;
                                                     shownMemberIds.Add(member.Object.Id);
 
-                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name, member.Object.Highlighted)
                                                     <br>
                                                 }
                                             }
@@ -124,7 +124,7 @@
                         <DetailTemplate TableItem="NetworkService">
                             <Detail Title="@(userConfig.GetText("type"))" Data=@(context.Type != null ? context.Type.Name : "") />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
-                            @if (context.Type.Name != ObjectType.Group)
+                            @if (context.Type.Name != ServiceType.Group)
                             {
                                 <Detail Title="@(userConfig.GetText("source_port"))" Data=@(context.SourcePort == context.SourcePortEnd || context.SourcePortEnd.ToString() == "" ? 
                                     context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
@@ -134,7 +134,7 @@
                                 <Detail Title="@(userConfig.GetText("code"))" Data=@context.Code />
                                 <Detail Title="@(userConfig.GetText("timeout"))" Data=@context.Timeout.ToString() />
                             }
-                            @if (context.Type.Name == ObjectType.Group && context.ServiceGroups != null && context.ServiceGroupFlats != null)
+                            @if (context.Type.Name == ServiceType.Group && context.ServiceGroups != null && context.ServiceGroupFlats != null)
                             {
                                 if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
                                 {
@@ -165,7 +165,7 @@
                                             {
                                                 if(member.Object != null)
                                                 {
-                                                    if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
+                                                    if (member.Object.Type.Name == ServiceType.Group || shownMemberIds.Contains(member.Object.Id))
                                                         continue;
                                                     shownMemberIds.Add(member.Object.Id);
 
@@ -357,7 +357,7 @@
         return GetIDPrefix(objCategory) + objId;
     }
 
-    RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name)
+    RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name, bool highlighted=false)
     {
         @* if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
         {
@@ -368,7 +368,7 @@
 
         string page = Recert ? "certification" : "report/generation";
         
-        return @<a href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
+        return @<a style="@(highlighted ? GlobalConst.kStyleHighlighted : "")" href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
     private async Task HandleUncollapse(ObjCategory objCategory)

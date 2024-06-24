@@ -472,7 +472,7 @@ namespace FWO.Report
                 report.AppendLine("</tr>");
                 foreach (var nwobj in managementReport.ReportObjects)
                 {
-                    report.AppendLine("<tr>");
+                    report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlighted : "")}\">");
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.NwObj}{nwobj.Id}>{nwobj.Name}</a></td>");
                     report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
@@ -510,11 +510,15 @@ namespace FWO.Report
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.Svc}{svcobj.Id}>{svcobj.Name}</a></td>");
                     report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
-                    report.AppendLine($"<td>{((svcobj.Type.Name!=ObjectType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
+                    report.AppendLine($"<td>{((svcobj.Type.Name!=ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
                     if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
+                    {
                         report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
+                    }
                     else
+                    {
                         report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
+                    }
                     report.AppendLine(svcobj.MemberNamesAsHtml());
                     report.AppendLine($"<td>{svcobj.Uid}</td>");
                     report.AppendLine($"<td>{svcobj.Comment}</td>");

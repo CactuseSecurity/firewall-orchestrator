@@ -70,8 +70,10 @@ namespace FWO.Report.Filter
             string limitOffsetString = $@"limit: $limit 
                                        offset: $offset ";
 
-            if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport())
+            if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            {
                 filter.Detailed = true;
+            }
 
             switch ((ReportType)filter.ReportParams.ReportType)
             {

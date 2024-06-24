@@ -1,4 +1,5 @@
-﻿using FWO.Api.Data;
+﻿using FWO.GlobalConstants;
+using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text;
 using FWO.Report;
@@ -112,7 +113,7 @@ namespace FWO.Ui.Display
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
-            string highlightedStyle = style + (reportType == ReportType.AppRules ? " color:red;" : "");
+            string highlightedStyle = style + (reportType == ReportType.AppRules ? " " + GlobalConst.kStyleHighlighted : "");
 
             if(reportType.IsResolvedReport())
             {

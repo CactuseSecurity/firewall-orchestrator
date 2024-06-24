@@ -9,6 +9,7 @@
 #           username
 #           password
 #           apiBaseUri      # Tufin API, e.g. "https://tufin.domain.com/"
+#           rlmVersion      # Tufin RLM Version (API breaking change in 2.6)
 #       git
 #           gitRepoUrl
 #           gitusername
@@ -82,7 +83,7 @@ def readConfig(configFilename):
             customConfig = json.loads(customConfigFH.read())
         return (customConfig['username'], customConfig['password'], customConfig['apiBaseUri'],
                 customConfig['ldapPath'],
-                customConfig['gitRepoUrl'], customConfig['gitusername'], customConfig['gitpassword'], customConfig['csvFiles'])
+                customConfig['gitRepoUrl'], customConfig['gitusername'], customConfig['gitpassword'], customConfig['csvFiles'], customConfig['rlmVersion'])
     except:
         logger.error("could not read config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
@@ -215,10 +216,9 @@ def rlmLogin(user, password, api_url):
                             ", status code: " + str(response))
 
 
-def rlmGetOwners(token, api_url):
+def rlmGetOwners(token, api_url, rlmVersion=2.5):
 
     headers = {}
-    rlmVersion = 2.5
 
     if rlmVersion < 2.6:
         headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     logger = getLogger(debug_level_in=2)
 
     # read config
-    rlmUsername, rlmPassword, rlmApiUrl, ldapPath, gitRepoUrl, gitUsername, gitPassword, csvFiles = readConfig(args.config)
+    rlmUsername, rlmPassword, rlmApiUrl, ldapPath, gitRepoUrl, gitUsername, gitPassword, csvFiles, rlmVersion = readConfig(args.config)
 
     ######################################################
     # 1. get all owners
@@ -324,7 +324,7 @@ if __name__ == "__main__":
         try:
             oauthToken = rlmLogin(rlmUsername, rlmPassword, rlmApiUrl + api_url_path_rlm_login)
             # logger.debug("token for RLM: " + oauthToken)
-            rlmOwnerData = rlmGetOwners(oauthToken, rlmApiUrl + api_url_path_rlm_apps)
+            rlmOwnerData = rlmGetOwners(oauthToken, rlmApiUrl + api_url_path_rlm_apps, float(rlmVersion))
 
         except:
             logger.error("error while getting owner data from RLM API: " + str(traceback.format_exc()))

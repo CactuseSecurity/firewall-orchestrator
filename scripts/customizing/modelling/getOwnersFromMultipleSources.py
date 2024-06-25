@@ -17,7 +17,6 @@
 #       csvFiles # array of file basenames containing the app data
 #       ldapPath # full ldap user path (used for building DN from user basename)
 
-
 from asyncio.log import logger
 import traceback
 from textwrap import indent
@@ -34,7 +33,6 @@ import socket
 from pathlib import Path
 import git  # apt install python3-git # or: pip install git
 import csv
-
 
 
 baseDir = "/usr/local/fworch/"
@@ -77,17 +75,15 @@ class ApiServiceUnavailable(Exception):
             super().__init__(self.message)
 
 
-def readConfig(configFilename):
+def readConfig(configFilename, keyToGet):
     try:
         with open(configFilename, "r") as customConfigFH:
             customConfig = json.loads(customConfigFH.read())
-        return (customConfig['username'], customConfig['password'], customConfig['apiBaseUri'],
-                customConfig['ldapPath'],
-                customConfig['gitRepoUrl'], customConfig['gitusername'], customConfig['gitpassword'], customConfig['csvFiles'], customConfig['rlmVersion'])
-    except:
-        logger.error("could not read config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
-        sys.exit(1)
+        return customConfig[keyToGet]
 
+    except:
+        logger.error("could not read key '" + keyToGet + "' from config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
+        sys.exit(1)
 
 # read owners from json file on disk which where imported from RLM
 def getExistingOwnerIds(ownersIn):
@@ -182,9 +178,6 @@ def getLogger(debug_level_in=0):
     logger = logging.getLogger() # use root logger
     # logHandler = logging.StreamHandler(stream=stdout)
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
-    # logHandler.setLevel(llevel)
-    # handlers = [logHandler]
-    # logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=llevel)
     logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
     logger.setLevel(llevel)
 
@@ -262,7 +255,15 @@ if __name__ == "__main__":
     logger = getLogger(debug_level_in=2)
 
     # read config
-    rlmUsername, rlmPassword, rlmApiUrl, ldapPath, gitRepoUrl, gitUsername, gitPassword, csvFiles, rlmVersion = readConfig(args.config)
+    rlmUsername = readConfig(args.config, 'username')
+    rlmPassword = readConfig(args.config, 'password')
+    rlmApiUrl = readConfig(args.config, 'apiBaseUri')
+    ldapPath = readConfig(args.config, 'ldapPath')
+    gitRepoUrl = readConfig(args.config, 'ipamGitRepo')
+    gitUsername = readConfig(args.config, 'ipamGitUser')
+    gitPassword = readConfig(args.config, 'gitpassword')
+    rlmVersion = readConfig(args.config, 'rlmVersion')
+    csvFiles = readConfig(args.config, 'csvFiles')
 
     ######################################################
     # 1. get all owners
@@ -279,18 +280,25 @@ if __name__ == "__main__":
     dfAllApps = []
     for csvFile in csvFiles:
         csvFile = repoTargetDir + '/' + csvFile # add directory to csv files
-        with open(csvFile, newline='') as csvFile:
-            reader = csv.reader(csvFile)
-            dfAllApps += list(reader)[1:]# Skip headers in first line
 
-    logger.info("#total aps: " + str(len(dfAllApps)))
+        try:
+            with open(csvFile, newline='') as csvFile:
+                reader = csv.reader(csvFile)
+                dfAllApps += list(reader)[1:]# Skip headers in first line
+        except:
+            logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
+            sys.exit(1)
+
+    logger.info("#total apps: " + str(len(dfAllApps)))
 
     # append all owners from CSV
     for owner in dfAllApps:
         appId = owner[1]
+        appName = owner[0]
+        appMainUser = owner[3]
         if appId not in ownersById.keys():
             if appId.lower().startswith('app-') or appId.lower().startswith('com-'):
-                mainUserDn = buildDN(owner[3], ldapPath)
+                mainUserDn = buildDN(appMainUser, ldapPath)
                 if mainUserDn=='':
                     logger.warning('adding app without main user: ' + appId)
 
@@ -299,7 +307,7 @@ if __name__ == "__main__":
                     owner[1]:
                         {
                             "app_id_external": appId,
-                            "name": owner[0],
+                            "name": appName,
                             "main_user": mainUserDn,
                             "modellers": [],
                             "import_source": importSourceString,
@@ -345,7 +353,7 @@ if __name__ == "__main__":
             ownersById[appId]['modellers'] += users
             ownersById[appId]['app_servers'] += extractSocketInfo(rlmOwner['asset'], rlmOwner['services'])
         else:
-            logger.warning('got app-id from RLM which is not in main app export: ' + appId)
+            logger.info('ignorning (inactive) app-id from RLM which is not in main app export: ' + appId)
 
     # 3. convert to normalized struct
     normOwners = { "owners": [] }

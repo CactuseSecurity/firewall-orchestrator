@@ -1,13 +1,12 @@
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using FWO.GlobalConstants;
 
 namespace FWO.Api.Data
 {
     public class ModellingNetworkArea : ModellingNwGroup
     {
         [JsonProperty("subnets"), JsonPropertyName("subnets")]
-        public List<NetworkSubnetWrapper> Subnets { get; set; } = new();
+        public List<NetworkSubnetWrapper> Subnets { get; set; } = [];
 
         public int MemberCount = 0;
         
@@ -24,6 +23,19 @@ namespace FWO.Api.Data
         //         MemberNames = string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name))
         //     };
         // }
+
+        public int CompareTo(ModellingNetworkArea secondArea)
+        {
+            if(MemberCount == 0 && secondArea.MemberCount > 0)
+            {
+                return 1;
+            }
+            if(MemberCount > 0 && secondArea.MemberCount == 0)
+            {
+                return -1;
+            }
+            return Name?.CompareTo(secondArea.Name) ?? -1;
+        }
 
         public override bool Sanitize()
         {

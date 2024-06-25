@@ -115,12 +115,12 @@ if __name__ == "__main__":
     # read config
     subnetDataFilename = readConfig(args.config, ['subnetData'])[0]
 
-    try:
-        with open(subnetDataFilename, "r") as subnetFH:
-            subnets = (subnetFH.readlines())
-    except:
-        logger.error("error while trying to read subnets from csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
-        sys.exit(1)
+    # try:
+    #     with open(subnetDataFilename, "r") as subnetFH:
+    #         subnets = (subnetFH.readlines())
+    # except:
+    #     logger.error("error while trying to read subnets from csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
+    #     sys.exit(1)
 
     # normalizing subnet data
 

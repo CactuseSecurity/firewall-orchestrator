@@ -11,7 +11,6 @@ namespace FWO.Ui.Services
     public class ModellingAppServerHandler : ModellingHandlerBase
     {
         public ModellingAppServer ActAppServer { get; set; } = new();
-        public List<ModellingAppServer> AvailableAppServers { get; set; } = new();
         private ModellingAppServer ActAppServerOrig { get; set; } = new();
 
 

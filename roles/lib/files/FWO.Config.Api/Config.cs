@@ -2,14 +2,9 @@
 using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Logging;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace FWO.Config.Api
 {
@@ -25,9 +20,9 @@ namespace FWO.Config.Api
 
         public event Action<Config, ConfigItem[]>? OnChange;
 
-        protected SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+        protected SemaphoreSlim semaphoreSlim = new(1, 1);
 
-        public ConfigItem[] RawConfigItems { get; set; }
+        public ConfigItem[] RawConfigItems { get; set; } = [];
 
         protected Config() { }
 
@@ -150,9 +145,12 @@ namespace FWO.Config.Api
 
         public async Task<ConfigData> GetEditableConfig()
         {
-            await semaphoreSlim.WaitAsync();
-            try { return (ConfigData)CloneEditable(); }
-            finally { semaphoreSlim.Release(); }
+            // await semaphoreSlim.WaitAsync();
+            // try
+            // { 
+            return (ConfigData)CloneEditable();
+            // }
+            // finally { semaphoreSlim.Release(); }
         }
 
         protected static void SubscriptionExceptionHandler(Exception exception)

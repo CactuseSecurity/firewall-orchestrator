@@ -117,7 +117,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
+        <span class="sr-only">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -131,10 +131,10 @@ else
     private ConfigData? configData;
     private bool InitComplete = false;
 
-    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
-    private Dictionary<TaskType, bool> taskTypesActiveDict = new Dictionary<TaskType, bool>();
+    private List<TaskType> availableTaskTypes { get; set; } = [];
+    private Dictionary<TaskType, bool> taskTypesActiveDict = [];
 
-    private List<RequestPriority> prioList = new List<RequestPriority>();
+    private List<RequestPriority> prioList = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,7 +142,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(configData.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
-            taskTypesActiveDict = new Dictionary<TaskType, bool>();
+            taskTypesActiveDict = [];
             foreach(TaskType type in Enum.GetValues(typeof(TaskType)))
             {
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));

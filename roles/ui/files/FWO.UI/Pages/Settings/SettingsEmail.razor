@@ -210,13 +210,6 @@
     {
         try
         {
-            // decrypt password if set
-            string encryptedPassword = "";
-            if (actEmailConnection.Password != null)
-            {
-                encryptedPassword = actEmailConnection.Password;
-                actEmailConnection.Password = AesEnc.Decrypt(actEmailConnection.Password, AesEnc.GetMainKey());
-            }
             MailKitMailer mailer = new(actEmailConnection);
             if (userConfig.User.Email == null || userConfig.User.Email  == "")
             {
@@ -234,11 +227,6 @@
                 {
                     DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), "could not send message", true);
                 }
-            }
-            // if password was set, re-assign the enrypted password
-            if (actEmailConnection.Password != null)
-            {
-                actEmailConnection.Password = encryptedPassword;
             }
         }
         catch (System.Exception exception)

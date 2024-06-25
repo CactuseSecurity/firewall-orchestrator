@@ -4,7 +4,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@ConnHandler?.Application.Name" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+<PopUp Title="@(ReplaceMode ? userConfig.GetText("U9015") : ConnHandler?.Application.Name)" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -12,7 +12,15 @@
         }
     </Body>
     <Footer>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+        @if(ReplaceMode)
+        {
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+        }
     </Footer>
 </PopUp>
 
@@ -30,6 +38,19 @@
 
     [Parameter]
     public ModellingConnectionHandler ConnHandler { get; set; }
+
+    [Parameter]
+    public bool ReplaceMode { get; set; } = false;
+
+    [Parameter]
+    public Func<Task> Replace { get; set; } = DefaultInit.DoNothing;
+
+
+    private async Task Save()
+    {
+        await Replace();
+        Close();
+    }
 
     private void Close()
     {

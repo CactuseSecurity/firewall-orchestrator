@@ -28,18 +28,18 @@ namespace FWO.Ui.Services
 
     public class RequestHandler
     {
-        public List<RequestTicket> TicketList { get; set; } = new ();
+        public List<RequestTicket> TicketList { get; set; } = [];
         public RequestTicket ActTicket { get; set; } = new ();
         public RequestReqTask ActReqTask { get; set; } = new ();
         public RequestImplTask ActImplTask { get; set; } = new ();
         public RequestApproval ActApproval { get; set; } = new ();
 
         public WorkflowPhases Phase = WorkflowPhases.request;
-        public List<Device> Devices = new ();
-        public List<FwoOwner> AllOwners { get; set; } = new ();
-        public List<RequestPriority> PrioList = new ();
-        public List<RequestImplTask> AllTicketImplTasks = new ();
-        public List<RequestImplTask> AllVisibleImplTasks = new ();
+        public List<Device> Devices = [];
+        public List<FwoOwner> AllOwners { get; set; } = [];
+        public List<RequestPriority> PrioList = [];
+        public List<RequestImplTask> AllTicketImplTasks = [];
+        public List<RequestImplTask> AllVisibleImplTasks = [];
         public StateMatrix ActStateMatrix = new ();
         public StateMatrix MasterStateMatrix = new ();
         public ActionHandler ActionHandler;
@@ -115,7 +115,7 @@ namespace FWO.Ui.Services
                 {
                     InitOngoing = true;
                     ActionHandler = new (apiConnection, this);
-                    apiConnection.SetProperRole(AuthUser, new List<string> { Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor });
+                    apiConnection.SetProperRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor]);
                     await ActionHandler.Init();
                     dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
@@ -137,7 +137,7 @@ namespace FWO.Ui.Services
 
         public void FilterForRequester()
         {
-            List<RequestTicket> filteredTicketList = new ();
+            List<RequestTicket> filteredTicketList = [];
             foreach(var ticket in TicketList)
             {
                 if(userConfig.User.DbId == ticket.Requester?.DbId)
@@ -284,7 +284,7 @@ namespace FWO.Ui.Services
 
         public void ResetImplTaskList()
         {
-            AllTicketImplTasks = new ();
+            AllTicketImplTasks = [];
             foreach(var reqTask in ActTicket.Tasks)
             {
                 foreach(var implTask in reqTask.ImplementationTasks)
@@ -362,7 +362,7 @@ namespace FWO.Ui.Services
                 {
                     if(reqtask.StateId <= ActTicket.StateId)
                     {
-                        List<int> ticketStateList = new () { ActTicket.StateId };
+                        List<int> ticketStateList = [ActTicket.StateId];
                         reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
                         await dbAcc.UpdateReqTaskStateInDb(reqtask);
                     }
@@ -432,7 +432,7 @@ namespace FWO.Ui.Services
 
         public void SetReqTaskEnv (RequestReqTask reqTask)
         {
-            ActReqTask = new RequestReqTask(reqTask);
+            ActReqTask = new (reqTask);
             RequestTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActReqTask.TicketId);
             if(tick != null)
             {
@@ -610,7 +610,7 @@ namespace FWO.Ui.Services
         {
             if(ActReqTask.AdditionalInfo != null && ActReqTask.AdditionalInfo != "")
             {
-                Dictionary<string, string> addInfo = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(ActReqTask.AdditionalInfo);
+                Dictionary<string, string>? addInfo = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(ActReqTask.AdditionalInfo);
                 if(addInfo != null && int.TryParse(addInfo["ConnId"], out int connectionId))
                 {
                     return connectionId;
@@ -920,7 +920,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                AllVisibleImplTasks = new ();
+                AllVisibleImplTasks = [];
                 if(selectedOwnerOpt.Id != -3)
                 {
                     foreach(var ticket in TicketList)
@@ -954,7 +954,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                AllVisibleImplTasks = new ();
+                AllVisibleImplTasks = [];
                 if(selectedDeviceOpt.Id != -1)
                 {
                     foreach(var ticket in TicketList)
@@ -1211,7 +1211,7 @@ namespace FWO.Ui.Services
         {
             if (ActReqTask.Approvals.Count > 0)
             {
-                List<int> approvalStates = new ();
+                List<int> approvalStates = [];
                 foreach (var approval in ActReqTask.Approvals)
                 {
                     approvalStates.Add(approval.StateId);
@@ -1232,7 +1232,7 @@ namespace FWO.Ui.Services
         {
             if (reqTask.ImplementationTasks.Count > 0)
             {
-                List<int> implTaskStates = new ();
+                List<int> implTaskStates = [];
                 foreach (var implTask in reqTask.ImplementationTasks)
                 {
                     implTaskStates.Add(implTask.StateId);
@@ -1245,7 +1245,11 @@ namespace FWO.Ui.Services
         public async Task UpdateActReqTaskState()
         {
             await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
-            ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
+            int idx = ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id);
+            if(idx >= 0)
+            {
+                ActTicket.Tasks[idx] = ActReqTask;
+            }
         }
 
         public async Task UpdateActTicketStateFromImplTasks()
@@ -1261,7 +1265,7 @@ namespace FWO.Ui.Services
         {
             if (ActTicket.Tasks.Count > 0)
             {
-                List<int> taskStates = new ();
+                List<int> taskStates = [];
                 foreach (RequestReqTask tsk in ActTicket.Tasks)
                 {
                     taskStates.Add(tsk.StateId);
@@ -1279,7 +1283,11 @@ namespace FWO.Ui.Services
             }
             await AutoCreateOrUpdateImplTasks();
             await dbAcc.UpdateTicketStateInDb(ActTicket);
-            TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
+            int idx = TicketList.FindIndex(x => x.Id == ActTicket.Id);
+            if(idx >= 0)
+            {
+                TicketList[idx] = ActTicket;
+            }
         }
 
 

@@ -19,11 +19,13 @@ namespace FWO.Middleware.Server
     public class ReportScheduler
     {
         private readonly object scheduledReportsLock = new ();
-        private List<ReportSchedule> scheduledReports = new ();
+        private List<ReportSchedule> scheduledReports = [];
         private readonly TimeSpan CheckScheduleInterval = TimeSpan.FromMinutes(1);
 
         private readonly string apiServerUri;
-        private readonly ApiConnection apiConnection;
+        private readonly ApiConnection apiConnectionScheduler;
+        private ApiConnection apiConnectionUserContext;
+        private UserConfig userConfig;
         private readonly GraphQlApiSubscription<ReportSchedule[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
 
@@ -36,14 +38,14 @@ namespace FWO.Middleware.Server
         public ReportScheduler(ApiConnection apiConnection, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
         {
             this.jwtWriter = jwtWriter;            
-            this.apiConnection = apiConnection;
+            this.apiConnectionScheduler = apiConnection;
             apiServerUri = ConfigFile.ApiServerUri;
 
-            connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
+            connectedLdaps = apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
             connectedLdapsSubscription.OnUpdate += OnLdapUpdate;
 
-            //scheduledReports = apiConnection.SendQueryAsync<ReportSchedule[]>(ReportQueries.getReportSchedules).Result.ToList();
-            scheduledReportsSubscription = apiConnection.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
+            //scheduledReports = apiConnectionScheduler.SendQueryAsync<ReportSchedule[]>(ReportQueries.getReportSchedules).Result.ToList();
+            scheduledReportsSubscription = apiConnectionScheduler.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
 
             System.Timers.Timer checkScheduleTimer = new();
             checkScheduleTimer.Elapsed += CheckSchedule;
@@ -64,7 +66,7 @@ namespace FWO.Middleware.Server
         {
             lock (scheduledReportsLock)
             {
-                this.scheduledReports = scheduledReports.ToList();
+                this.scheduledReports = [.. scheduledReports];
             }
         }
 
@@ -76,7 +78,7 @@ namespace FWO.Middleware.Server
 
         private async void CheckSchedule(object? _, ElapsedEventArgs __)
         {
-            List<Task> reportGeneratorTasks = new ();
+            List<Task> reportGeneratorTasks = [];
 
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
@@ -125,23 +127,21 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
-                    Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.Owner.Name}\" with id \"{reportSchedule.Owner.DbId}\" ...");
+                    Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
+
+                    if(!await InitUserEnvironment(reportSchedule))
+                    {
+                        return;
+                    }
 
                     ReportFile reportFile = new ()
                     { 
                         Name = $"{reportSchedule.Name}_{dateTimeNowRounded.ToShortDateString()}",
                         GenerationDateStart = DateTime.Now,
                         TemplateId = reportSchedule.Template.Id,
-                        OwnerId = reportSchedule.Owner.DbId,
+                        OwnerId = reportSchedule.ScheduleOwningUser.DbId,
                         Type = reportSchedule.Template.ReportParams.ReportType
                     };
-
-                    // get uiuser roles + tenant
-                    AuthManager authManager = new (jwtWriter, connectedLdaps, apiConnection);
-                    string jwt = await authManager.AuthorizeUserAsync(reportSchedule.Owner, validatePassword: false, lifetime: TimeSpan.FromDays(365));
-                    ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
-                    GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
-                    UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, reportSchedule.Owner.DbId);
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
@@ -159,24 +159,12 @@ namespace FWO.Middleware.Server
                     }
                     else
                     {
-                        await report.Generate(int.MaxValue, apiConnectionUserContext,
-                            rep =>
-                            {
-                                report.ReportData.OwnerData = rep.OwnerData;
-                                return Task.CompletedTask;
-                            }, token);
-                        foreach(var ownerReport in report.ReportData.OwnerData)
-                        {
-                            ownerReport.Name = reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Name;
-                            ownerReport.RegularConnections = ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
-                            ownerReport.Interfaces = ownerReport.Connections.Where(x => x.IsInterface).ToList();
-                            ownerReport.CommonServices = ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();
-                        }
+                        await GenerateConnectionsReport(reportSchedule, report, apiConnectionUserContext, token);
                     }
                     await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                     WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
                     await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
-                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.Owner.Name}\" with id \"{reportSchedule.Owner.DbId}\" successfully generated.");
+                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
                 }
                 catch (Exception exception)
                 {
@@ -185,19 +173,79 @@ namespace FWO.Middleware.Server
             }, token);
         }
 
-        private static async Task AdaptDeviceFilter(ReportParams reportParams, ApiConnection apiConnection)
+        private async Task<bool> InitUserEnvironment(ReportSchedule reportSchedule)
+        {
+            AuthManager authManager = new (jwtWriter, connectedLdaps, apiConnectionScheduler);
+            string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, lifetime: TimeSpan.FromDays(365));
+            apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
+            userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.ScheduleOwningUser.DbId);
+
+            if(((ReportType)reportSchedule.Template.ReportParams.ReportType).IsModellingReport())
+            {
+                userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
+                await UiUserHandler.GetOwnerships(apiConnectionUserContext, userConfig.User);
+                if(!userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
+                {
+                    Log.WriteDebug("Report Scheduling", "Report not generated as owner is not valid anymore.");
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static async Task GenerateConnectionsReport(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser, CancellationToken token)
+        {
+            ModellingAppRole dummyAppRole = new();
+            List<ModellingAppRole> dummyAppRoles = await apiConnectionUser.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
+            if(dummyAppRoles.Count > 0)
+            {
+                dummyAppRole = dummyAppRoles.First();
+            }
+            foreach(var selectedOwner in reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwners)
+            {
+                OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Name };
+                report.ReportData.OwnerData.Add(actOwnerData);
+                await report.Generate(int.MaxValue, apiConnectionUser,
+                rep =>
+                {
+                    actOwnerData.Connections = rep.OwnerData.First().Connections;
+                    return Task.CompletedTask;
+                }, token);
+            }
+            await PrepareConnReportData(reportSchedule, report, apiConnectionUser);
+            report.ReportData.GlobalComSvc = await apiConnectionUser.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+        }
+
+        private static async Task PrepareConnReportData(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser)
+        {
+            foreach(var ownerReport in report.ReportData.OwnerData)
+            {
+                foreach(var conn in ownerReport.Connections)
+                {
+                    //conn.ExtractNwGroups();
+                    await ExtractUsedInterface(conn, apiConnectionUser);
+                }
+                ownerReport.Name = reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Name;
+                ownerReport.RegularConnections = ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
+                ownerReport.Interfaces = ownerReport.Connections.Where(x => x.IsInterface).ToList();
+                ownerReport.CommonServices = ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();
+            }
+        }
+
+        private static async Task AdaptDeviceFilter(ReportParams reportParams, ApiConnection apiConnectionUser)
         {
             try
             {
                 if(!reportParams.DeviceFilter.isAnyDeviceFilterSet())
                 {
                     // for scheduling no device selection means "all"
-                    reportParams.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+                    reportParams.DeviceFilter.Managements = await apiConnectionUser.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
                     reportParams.DeviceFilter.applyFullDeviceSelection(true);
                 }
                 if(reportParams.ReportType == (int)ReportType.UnusedRules)
                 {
-                    reportParams.DeviceFilter = (await ReportDevicesBase.GetUsageDataUnsupportedDevices(apiConnection, reportParams.DeviceFilter)).reducedDeviceFilter;
+                    reportParams.DeviceFilter = (await ReportDevicesBase.GetUsageDataUnsupportedDevices(apiConnectionUser, reportParams.DeviceFilter)).reducedDeviceFilter;
                 }
             }
             catch (Exception)
@@ -236,7 +284,7 @@ namespace FWO.Middleware.Server
             reportFile.GenerationDateEnd = DateTime.Now;
         }
 
-        private static async Task SaveReport(ReportFile reportFile, string desc, ApiConnection apiConnection)
+        private static async Task SaveReport(ReportFile reportFile, string desc, ApiConnection apiConnectionUser)
         {
             try
             {
@@ -254,7 +302,7 @@ namespace FWO.Middleware.Server
                     report_type = reportFile.Type,
                     description = desc
                 };
-                await apiConnection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+                await apiConnectionUser.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
             }
             catch (Exception)
             {
@@ -279,6 +327,61 @@ namespace FWO.Middleware.Server
         {
             long delta = dateTime.Ticks % roundInterval.Ticks;
             return new DateTime(dateTime.Ticks - delta);
+        }
+
+        // reimplemented from UI.Services as not reachable from here. ToDo: redesign
+        private static async Task<string> ExtractUsedInterface(ModellingConnection conn, ApiConnection apiConnectionUser)
+        {
+            string interfaceName = "";
+            try
+            {
+                if(conn.UsedInterfaceId != null)
+                {
+                    List<ModellingConnection> interf = await apiConnectionUser.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
+                    if(interf.Count > 0)
+                    {
+                        conn.SrcFromInterface = interf[0].SourceFilled();
+                        conn.DstFromInterface = interf[0].DestinationFilled();
+                        if(interf[0].IsRequested)
+                        {
+                            conn.InterfaceIsRequested = true;
+                            conn.InterfaceIsRejected = interf[0].GetBoolProperty(ConState.Rejected.ToString());
+                            conn.TicketId = interf[0].TicketId;
+                        }
+                        else
+                        {
+                            interfaceName = interf[0].Name ?? "";
+                            if(interf[0].SourceFilled())
+                            {
+                                conn.SourceAppServers = interf[0].SourceAppServers;
+                                conn.SourceAppRoles = interf[0].SourceAppRoles;
+                                conn.SourceNwGroups = interf[0].SourceNwGroups;
+                            }
+                            if(interf[0].DestinationFilled())
+                            {
+                                conn.DestinationAppServers = interf[0].DestinationAppServers;
+                                conn.DestinationAppRoles = interf[0].DestinationAppRoles;
+                                conn.DestinationNwGroups = interf[0].DestinationNwGroups;
+                            }
+                            conn.Services = interf[0].Services;
+                            conn.ServiceGroups = interf[0].ServiceGroups;
+                        }
+                        if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
+                        {
+                            conn.AddProperty(ConState.InterfaceRejected.ToString());
+                        }
+                        else if(interf[0].GetBoolProperty(ConState.Requested.ToString()))
+                        {
+                            conn.AddProperty(ConState.InterfaceRequested.ToString());
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                Log.WriteError("Extract Used Interface", $"Could not extract.");
+            }
+            return interfaceName;
         }
     }
 }

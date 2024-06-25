@@ -9,6 +9,7 @@ namespace FWO.Api.Data
         public const string Requirement = "oi oi-eye";
         public const string Security = "oi oi-shield";
         public const string FurtherReading = "oi oi-external-link";
+        public const string Clipboard = "oi oi-clipboard";
 
         // Actions
         public const string Add = "oi oi-plus";
@@ -27,6 +28,7 @@ namespace FWO.Api.Data
         public const string CollapseDown = "oi oi-collapse-down";
         public const string CollapseLeft = "oi oi-collapse-left";
         public const string CollapseRight = "oi oi-collapse-right";
+        public const string Share = "oi oi-fork"; // oi-share-boxed? oi-share?
 
         // Object types: General
         public const string Ldap = "oi oi-key";

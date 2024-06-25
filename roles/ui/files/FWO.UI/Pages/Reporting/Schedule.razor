@@ -17,7 +17,7 @@
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="reportSchedules" PageSize="0">
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("actions"))">
             <Template>
-                @if (context.Owner.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(Roles.Admin))
+                @if (context.ScheduleOwningUser.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(Roles.Admin))
                 {
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() => { reportScheduleInEdit = context; actDate = actTime = context.StartTime; ShowEditReportScheduleDialog = true; }">@(userConfig.GetText("edit"))</button>
@@ -39,7 +39,7 @@
             </Template>
         </Column>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("template"))" Field="@(reportSchedule => reportSchedule.Template.Name)" Sortable="true" Filterable="true"/>
-        <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("schedule_owner"))" Field="@(reportSchedule => reportSchedule.Owner.Name)" Sortable="true" Filterable="true"/>
+        <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("schedule_owner"))" Field="@(reportSchedule => reportSchedule.ScheduleOwningUser.Name)" Sortable="true" Filterable="true"/>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("active"))" Field="@(reportSchedule => reportSchedule.Active)" Sortable="true" Filterable="true">
                 <Template>
                     @(GlobalConfig.ShowBool(context.Active))
@@ -148,7 +148,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateScheduledReport())">@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateReportSchedule())">@(userConfig.GetText("save"))</button>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditReportScheduleDialog = ShowAddReportScheduleDialog = false">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
@@ -188,6 +188,7 @@
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private AuthenticationState? authenticationState;
+    private List<FwoOwner> modOwnerList = [];
     private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
         || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
         || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
@@ -202,13 +203,19 @@
     {
         try
         {
+            uiUserDbId = userConfig.User.DbId;
+            if(showModellingReports)
+            {
+                modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+            }
+
             // Initial fetch to speed up loading before subscription is established
             reportSchedules = (await apiConnection.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules));
             reportSchedulesSubscription = apiConnection.GetSubscription<List<ReportSchedule>>(HandleSubscriptionError, OnReportScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
-            reportTemplates = await apiConnection.SendQueryAsync<List<ReportTemplate>>(ReportQueries.getReportTemplates);
+            reportTemplates = await apiConnection.SendQueryAsync<List<ReportTemplate>>(ReportQueries.getReportTemplates, new { userId = uiUserDbId });
             reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
-                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport())).ToList();
-            uiUserDbId = userConfig.User.DbId;
+                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
+                                                           modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null)).ToList();
             authenticationState = await authenticationStateTask!;
         }
         catch (Exception exception)
@@ -272,7 +279,7 @@
         }
     }
 
-    private async Task UpdateScheduledReport()
+    private async Task UpdateReportSchedule()
     {
         try
         {
@@ -287,7 +294,7 @@
                 {
                     report_schedule_id = reportScheduleInEdit.Id,
                     report_schedule_name = reportScheduleInEdit.Name,
-                    report_schedule_owner_id = reportScheduleInEdit.Owner.DbId,
+                    report_schedule_owner_id = reportScheduleInEdit.ScheduleOwningUser.DbId,
                     report_schedule_template_id = reportScheduleInEdit.Template.Id,
                     report_schedule_start_time = reportScheduleInEdit.StartTime,
                     report_schedule_repeat = reportScheduleInEdit.RepeatOffset,

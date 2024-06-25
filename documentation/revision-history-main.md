@@ -381,3 +381,13 @@ adding report template format fk and permissions
 - encrypt emailPassword in config
 - fixes:
   - demo managements (change import from deactivated to activated - does not affect test managements)
+
+# 8.3 - 25.06.2024 MAIN
+Maintenance release
+- fix misleading login error message when authorisation is missing
+- fix email credential decryption
+- start of Tufin SecureChange integration
+- remove cascading delete for used interfaces 
+- owner-filtering for new report type
+- new setting for email recipients
+- owner-import custom script improvements#

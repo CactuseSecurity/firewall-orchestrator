@@ -31,7 +31,7 @@ namespace FWO.Report
             //     gotNewObjects = newConnections.Count > 0;
             //     ReportData.OwnerData.Connections.AddRange(newConnections);
 
-            ReportData reportData = new() { OwnerData = new() { new(){ Connections = conns } } };
+            ReportData reportData = new() { OwnerData = [new(){ Connections = conns }] };
             await callback(reportData);
 
             // }
@@ -61,6 +61,7 @@ namespace FWO.Report
                 if(ownerReport.Interfaces.Count > 0)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("interfaces")}</h4>");
+                    ownerReport.Interfaces.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
                     AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, ref report, true);
                 }
                 if(ownerReport.CommonServices.Count > 0)
@@ -111,7 +112,8 @@ namespace FWO.Report
                 {
                     if((connection.InterfaceIsRequested && connection.SrcFromInterface) || (connection.IsRequested && connection.SourceFilled()))
                     {
-                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested)}</td>");
+                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested, 
+                            connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
                     }
                     else
                     {
@@ -119,7 +121,8 @@ namespace FWO.Report
                     }
                     if(connection.InterfaceIsRequested || connection.IsRequested)
                     {
-                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested)}</td>");
+                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested,
+                            connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
                     }
                     else
                     {
@@ -127,7 +130,8 @@ namespace FWO.Report
                     }
                     if((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled()))
                     {
-                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested)}</td>");
+                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested,
+                            connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
                     }
                     else
                     {
@@ -236,12 +240,13 @@ namespace FWO.Report
             return $"{counter} {userConfig.GetText("connections")}";
         }
 
-        private string DisplayReqInt(long? ticketId, bool otherOwner)
+        // same as in ModellingHandlerBase (not reachable from here) -> ToDo: redesign!
+        private string DisplayReqInt(long? ticketId, bool otherOwner, bool rejected = false)
         {
-            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(otherOwner ? "C9007" : "C9008")}\"";
-            string content = $"{userConfig.GetText("interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
-            return $"<span class=\"text-danger\" {tooltip}><i>{content}</i></span>";
+            string tooltipKey = rejected ? "C9011": otherOwner ? "C9007" : "C9008";
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(tooltipKey)}\"";
+            string content = $"{userConfig.GetText(rejected ? "InterfaceRejected" : "interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
+            return $"<span class=\"{(rejected ? "text-danger" : "text-warning")}\" {tooltip}><i>{content}</i></span>";
         }
-
     }
 }

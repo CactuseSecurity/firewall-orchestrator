@@ -1,6 +1,4 @@
-﻿using FWO.Report.Filter;
-
-namespace FWO.Report.Filter.Ast
+﻿namespace FWO.Report.Filter.Ast
 {
     internal class AstNodeFilterString : AstNodeFilter
     {
@@ -48,20 +46,20 @@ namespace FWO.Report.Filter.Ast
             string queryVarName = AddVariable<string>(query, "fullTextFiler", Operator.Kind, semanticValue!);
             string queryOperator = ExtractOperator();
 
-            List<string> ruleFieldNames = new () { "rule_src", "rule_dst", "rule_svc", "rule_action", "rule_name", "rule_comment", "rule_uid" };
-            List<string> ruleSearchParts = new ();
+            List<string> ruleFieldNames = ["rule_src", "rule_dst", "rule_svc", "rule_action", "rule_name", "rule_comment", "rule_uid"];
+            List<string> ruleSearchParts = [];
             foreach (string field in ruleFieldNames)
             {
                 ruleSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
             }
-            query.ruleWhereStatement += $"_or: [ {string.Join(", ", ruleSearchParts)} ]";
+            query.RuleWhereStatement += $"_or: [ {string.Join(", ", ruleSearchParts)} ]";
 
-            List<string> connFieldNames = new () { "name", "reason" /*, "creator" */ };
-            List<string> nwobjFieldNames = new () { "name" /*, "creator" */ };
-            List<string> nwGroupFieldNames = new () { "id_string", "name", "comment" /*, "creator" */ };
-            List<string> svcFieldNames = new () { "name" };
-            List<string> svcGroupFieldNames = new () { "name", "comment" /*, "creator" */ };
-            List<string> connSearchParts = new ();
+            List<string> connFieldNames = ["name", "reason" /*, "creator" */];
+            List<string> nwobjFieldNames = ["name" /*, "creator" */];
+            List<string> nwGroupFieldNames = ["id_string", "name", "comment" /*, "creator" */];
+            List<string> svcFieldNames = ["name"];
+            List<string> svcGroupFieldNames = ["name", "comment" /*, "creator" */];
+            List<string> connSearchParts = [];
             foreach (string field in connFieldNames)
             {
                 connSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
@@ -82,14 +80,14 @@ namespace FWO.Report.Filter.Ast
             {
                 connSearchParts.Add($"{{ service_group_connections: {{service_group: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} }} ");
             }
-            query.connectionWhereStatement += $"_or: [ {string.Join(", ", connSearchParts)} ]";
+            query.ConnectionWhereStatement += $"_or: [ {string.Join(", ", connSearchParts)} ]";
             return query;
         }
 
         private DynGraphqlQuery ExtractGatewayFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable(query, "gwName", Operator.Kind, semanticValue);
-            query.ruleWhereStatement += $"device: {{dev_name : {{{ExtractOperator()}: ${queryVarName} }} }}";
+            query.RuleWhereStatement += $"device: {{dev_name : {{{ExtractOperator()}: ${queryVarName} }} }}";
             // query.nwObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
             // query.svcObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
             // query.userObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
@@ -112,18 +110,18 @@ namespace FWO.Report.Filter.Ast
                 queryVarName = AddVariable<string>(query, "mgmName", Operator.Kind, semanticValue!);
                 queryFilterValue = "mgm_name";
             }
-            query.ruleWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
-            query.nwObjWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
-            query.svcObjWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
-            query.userObjWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
+            query.RuleWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
+            query.NwObjWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
+            query.SvcObjWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
+            query.UserObjWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
             return query;
         }
 
         private DynGraphqlQuery ExtractProtocolFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "proto", Operator.Kind, semanticValue!);
-            query.ruleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}";
-            query.connectionWhereStatement += $"_or: [ {{ service_connections: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }}, " +
+            query.RuleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}";
+            query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }}, " +
                 $"{{ service_group_connections: {{service_group: {{ service_service_groups: {{ service: {{ stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} }} }} ]";
             return query;
         }
@@ -131,15 +129,15 @@ namespace FWO.Report.Filter.Ast
         private DynGraphqlQuery ExtractActionFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "action", Operator.Kind, semanticValue!);
-            query.ruleWhereStatement += $"rule_action: {{ {ExtractOperator()}: ${queryVarName} }}";
+            query.RuleWhereStatement += $"rule_action: {{ {ExtractOperator()}: ${queryVarName} }}";
             return query;
         }
 
         private DynGraphqlQuery ExtractServiceFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "svc", Operator.Kind, semanticValue!);
-            query.ruleWhereStatement += $"rule_services: {{ service: {{ svcgrp_flats: {{ serviceBySvcgrpFlatMemberId: {{ svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} ";
-            query.connectionWhereStatement += $"_or: [ {{ service_connections: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}, " +
+            query.RuleWhereStatement += $"rule_services: {{ service: {{ svcgrp_flats: {{ serviceBySvcgrpFlatMemberId: {{ svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} ";
+            query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}, " +
                 $"{{ service_group_connections: {{service_group: {{ _or: [ {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }}, " +
                 $"{{ service_service_groups: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} ] }} }} }} ]";
             return query;

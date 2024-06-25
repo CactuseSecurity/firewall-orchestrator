@@ -32,7 +32,7 @@
     <Footer>
         <AuthorizeView Roles="@Roles.Modeller">
             <Authorized>
-                @if(SelectedOwner.Id > 0)
+                @if(SelectedOwner.Id > 0 && !WorkInProgress)
                 {
                     <button type="button" class="btn btn-sm btn-primary" @onclick="SendRequest">@(userConfig.GetText("request_interface"))</button>
                 }
@@ -48,6 +48,7 @@
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
+<InProgress Display="WorkInProgress"/>
 
 
 @code
@@ -77,6 +78,7 @@
     private bool AsSource { get; set; } = false;
     private string InterfaceName { get; set; } = "";
     private string Reason { get; set; } = "";
+    private bool WorkInProgress = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -90,6 +92,7 @@
 
     private async Task SendRequest()
     {
+        WorkInProgress = true;
         try
         {
             if(CheckInput())
@@ -106,7 +109,7 @@
                     await ConnHandler.PartialInit();
                     ConnHandler.RequesterId = RequestingOwner.Id;
                     long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
-                    await SendEmail(ticketId, connId);
+                    await SendEmail(connId);
                     
                     apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin });
                     await ticketCreator.SetInterfaceId(ticketId, connId, SelectedOwner);
@@ -120,6 +123,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("add_new_request"), "", true);
         }
+        WorkInProgress = false;
     }
 
     private bool CheckInput()
@@ -137,19 +141,17 @@
         return true;
     }
 
-    private async Task SendEmail(long ticketId, long connId)
+    private async Task SendEmail(long connId)
     {
         try
         {
             EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
             await emailHelper.Init();
             string interfaceUrl = $"{userConfig.UiHostName}/networkmodelling/{SelectedOwner.ExtAppId}/{connId}";
-            string ticketUrl = $"{userConfig.UiHostName}/request/tickets/{ticketId}";
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
-                $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>" +
-                $"<a target=\"_blank\" href=\"{ticketUrl}\">{userConfig.GetText("ticket")}: {ticketId.ToString()}</a>";
-            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body, true))
+                $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>"; 
+            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body))
             {
                 DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
             }

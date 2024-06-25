@@ -76,7 +76,7 @@ namespace FWO.Api.Client
 
         public List<int> getAllowedTransitions(int stateIn)
         {
-            return Matrix.ContainsKey(stateIn) ? Matrix[stateIn] : [];
+            return Matrix.TryGetValue(stateIn, out List<int>? value) ? value : [];
         }
 
         public int getDerivedStateFromSubStates(List<int> statesIn)

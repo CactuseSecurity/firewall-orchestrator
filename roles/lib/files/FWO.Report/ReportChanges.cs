@@ -1,6 +1,4 @@
-﻿using FWO.GlobalConstants;
-using FWO.Api.Data;
-using System.Text;
+﻿using System.Text;
 using FWO.Api.Client;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
@@ -73,8 +71,8 @@ namespace FWO.Report
         {
             if (ReportType.IsResolvedReport())
             {
-                StringBuilder report = new StringBuilder();
-                RuleChangeDisplayCsv ruleChangeDisplayCsv = new RuleChangeDisplayCsv(userConfig);
+                StringBuilder report = new ();
+                RuleChangeDisplayCsv ruleChangeDisplayCsv = new (userConfig);
 
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine($"\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
@@ -103,7 +101,7 @@ namespace FWO.Report
                                 report.Append(ruleChangeDisplayCsv.DisplayEnabled(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayUid(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayComment(ruleChange));
-                                report = ruleChangeDisplayCsv.RemoveLastChars(report, 1); // remove last chars (comma)
+                                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
                                 report.AppendLine("");
                             }
                         }
@@ -119,8 +117,8 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new StringBuilder();
-            RuleChangeDisplayHtml ruleChangeDisplayHtml = new RuleChangeDisplayHtml(userConfig);
+            StringBuilder report = new ();
+            RuleChangeDisplayHtml ruleChangeDisplayHtml = new (userConfig);
 
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
@@ -131,8 +129,6 @@ namespace FWO.Report
                 foreach (var device in management.Devices)
                 {
                     report.AppendLine($"<h4>{device.Name}</h4>");
-                    report.AppendLine("<hr>");
-
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
@@ -177,11 +173,10 @@ namespace FWO.Report
                         report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
                         report.AppendLine("</tr>");
                     }
-
                     report.AppendLine("</table>");
+                    report.AppendLine("<hr>");
                 }
             }
-
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
@@ -203,10 +198,10 @@ namespace FWO.Report
 
         private string ExportResolvedChangesToJson()
         {
-            StringBuilder report = new StringBuilder("{");
+            StringBuilder report = new ("{");
             report.Append(DisplayReportHeaderJson());
             report.AppendLine("\"managements\": [");
-            RuleChangeDisplayJson ruleChangeDisplayJson = new RuleChangeDisplayJson(userConfig);
+            RuleChangeDisplayJson ruleChangeDisplayJson = new (userConfig);
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
@@ -219,7 +214,7 @@ namespace FWO.Report
                         report.Append($"{{\"{gateway.Name}\": {{\n\"rule changes\": [");
                         foreach (var ruleChange in gateway.RuleChanges)
                         {
-                            report.Append("{");
+                            report.Append('{');
                             report.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
@@ -236,27 +231,29 @@ namespace FWO.Report
                             report.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayUid(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayComment(ruleChange));
-                            report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last chars (comma)
+                            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
                             report.Append("},");  // EO ruleChange
                         } // rules
-                        report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
-                        report.Append("]"); // EO rules
-                        report.Append("}"); // EO gateway internal
+                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
+                        report.Append(']'); // EO rules
+                        report.Append('}'); // EO gateway internal
                         report.Append("},"); // EO gateway external
                     }
                 } // gateways
-                report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
-                report.Append("]"); // EO gateways
-                report.Append("}"); // EO management internal
+                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
+                report.Append(']'); // EO gateways
+                report.Append('}'); // EO management internal
                 report.Append("},"); // EO management external
             } // managements
-            report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
-            report.Append("]"); // EO managements
-            report.Append("}"); // EO top
+            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
+            report.Append(']'); // EO managements
+            report.Append('}'); // EO top
 
             dynamic? json = JsonConvert.DeserializeObject(report.ToString());
-            JsonSerializerSettings settings = new ();
-            settings.Formatting = Formatting.Indented;
+            JsonSerializerSettings settings = new()
+            {
+                Formatting = Formatting.Indented
+            };
             return JsonConvert.SerializeObject(json, settings);            
         }
     }

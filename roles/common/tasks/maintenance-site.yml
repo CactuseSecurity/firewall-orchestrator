@@ -1,4 +1,3 @@
-
 - block:
 
   - name: create maint website dir
@@ -8,7 +7,7 @@
       mode: "0755"
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
-  
+
   - name: copy maintenance web site index
     copy:
       src: maintenance-info.html
@@ -34,34 +33,11 @@
 
   - name: disable {{ product_name }} web site
     command: "a2dissite {{ product_name }}-ui"
+    ignore_errors: true
 
   - name: restart apache with maintenance site
     service:
       name: "{{ webserver_package_name }}"
       state: restarted     
-
-  when: "installation_mode == 'upgrade' and inventory_hostname in groups['frontends']"
+  
   become: true
-
-
-- name: stop importer service before making any changes
-  systemd:
-    name: "{{ item }}"
-    state: stopped
-  become: true
-  when: "inventory_hostname in groups['importers'] and installation_mode == 'upgrade'"
-  loop:
-    - "{{ product_name }}-importer-legacy"
-    - "{{ product_name }}-importer-api"
-
-- name: stop importer service before making any changes
-  systemd:
-    name: "{{ item }}"
-    state: stopped
-  become: true
-  ignore_errors: true # might not have been installed yet in case of early fail installs
-  when: "inventory_hostname in groups['importers'] and installation_mode == 'uninstall'"
-  loop:
-    - "{{ product_name }}-importer-legacy"
-    - "{{ product_name }}-importer-api"
-

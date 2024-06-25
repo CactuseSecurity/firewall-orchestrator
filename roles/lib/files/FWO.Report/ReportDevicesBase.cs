@@ -1,6 +1,5 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
@@ -13,17 +12,19 @@ namespace FWO.Report
         public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base (query, UserConfig, reportType)
         {}
 
-        public async Task<List<ManagementReport>> getRelevantImportIds(ApiConnection apiConnection)
+        public async Task<List<ManagementReport>> GetRelevantImportIds(ApiConnection apiConnection)
         {
-            Dictionary<string, object> ImpIdQueryVariables = new ();
-            ImpIdQueryVariables["time"] = Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat);
-            ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
+            Dictionary<string, object> ImpIdQueryVariables = new()
+            {
+                ["time"] = Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat),
+                ["mgmIds"] = Query.RelevantManagementIds
+            };
             return await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
         }
 
         public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)
         {
-            List<string> unsupportedList = new ();
+            List<string> unsupportedList = [];
             DeviceFilter reducedDeviceFilter = new (deviceFilter);
             foreach (ManagementSelect management in reducedDeviceFilter.Managements)
             {
@@ -61,11 +62,11 @@ namespace FWO.Report
             {
                 foreach(var dev in mgmt.Devices)
                 {
-                    if(dev.Rules != null && dev.Rules.Count() > 0)
+                    if(dev.Rules != null && dev.Rules.Length > 0)
                     {
                         return false;
                     }
-                    if(dev.RuleChanges != null && dev.RuleChanges.Count() > 0)
+                    if(dev.RuleChanges != null && dev.RuleChanges.Length > 0)
                     {
                         return false;
                     }
@@ -124,7 +125,9 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            return GenerateHtmlFrameBase(title, filter, date, htmlReport, string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames())));
+            return GenerateHtmlFrameBase(title, filter, date, htmlReport,
+                string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames())),
+                Query.SelectedOwner?.Name);
         }
     }
 }

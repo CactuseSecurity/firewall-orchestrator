@@ -37,6 +37,8 @@ namespace FWO.GlobalConstants
 
 		public const string kDummyAppRole = "DummyAppRole";
 		public const string kUndefinedText = "(undefined text)";
+		
+		public const string kStyleHighlighted = "color:red;";
 	}
 
 	public struct ObjectType

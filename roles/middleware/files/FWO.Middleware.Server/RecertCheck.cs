@@ -21,10 +21,10 @@ namespace FWO.Middleware.Server
     {
         private readonly ApiConnection apiConnectionMiddlewareServer;
         private readonly GlobalConfig globalConfig;
-        private List<GroupGetReturnParameters> groups = new ();
-        private List<UiUser> uiUsers = new ();
+        private readonly List<GroupGetReturnParameters> groups = [];
+        private List<UiUser> uiUsers = [];
         private RecertCheckParams? globCheckParams;
-        private List<FwoOwner> owners = new ();
+        private List<FwoOwner> owners = [];
 
         /// <summary>
         /// Constructor for Recertification check class
@@ -66,7 +66,7 @@ namespace FWO.Middleware.Server
                     {
                         // todo: refine handling
                         List<Rule> upcomingRecerts = await GenerateRecertificationReport(apiConnectionReporter, owner, false);
-                        List<Rule> overdueRecerts = new (); // await GenerateRecertificationReport(apiConnectionReporter, owner, true);
+                        List<Rule> overdueRecerts = []; // await GenerateRecertificationReport(apiConnectionReporter, owner, true);
 
                         if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
                         {
@@ -95,8 +95,8 @@ namespace FWO.Middleware.Server
                     groups.AddRange(currentLdap.GetAllInternalGroups());
                 }
             }
-            uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
-            owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
+            owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
         }
 
         private bool IsCheckTime(FwoOwner owner)
@@ -163,7 +163,7 @@ namespace FWO.Middleware.Server
 
         private async Task<List<Rule>> GenerateRecertificationReport(ApiConnection apiConnection, FwoOwner owner, bool overdueOnly)
         {
-            List<Rule> rules = new ();
+            List<Rule> rules = [];
             try
             {
                 CancellationToken token = new ();
@@ -179,7 +179,7 @@ namespace FWO.Middleware.Server
                 {
                     RecertFilter = new()
                     {
-                        RecertOwnerList = new List<int>() { owner.Id },
+                        RecertOwnerList = [owner.Id],
                         RecertificationDisplayPeriod = globalConfig.RecertificationNoticePeriod
                     }
                 };
@@ -251,10 +251,10 @@ namespace FWO.Middleware.Server
         {
             if(globalConfig.UseDummyEmailAddress)
             {
-                return new() { globalConfig.DummyEmailAddress };
+                return [globalConfig.DummyEmailAddress];
             }
-            List<string> tos = new ();
-            List<string> userDns = new ();
+            List<string> tos = [];
+            List<string> userDns = [];
             if(owner.Dn != "")
             {
                 userDns.Add(owner.Dn);

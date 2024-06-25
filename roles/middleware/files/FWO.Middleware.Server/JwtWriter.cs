@@ -35,9 +35,9 @@ namespace FWO.Middleware.Server
 			else
 				Log.WriteDebug("Jwt generation", "Generating empty JWT (startup)");
 
-			JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+			JwtSecurityTokenHandler tokenHandler = new ();
 
-			UiUserHandler uiUserHandler = new UiUserHandler(CreateJWTMiddlewareServer());
+			UiUserHandler uiUserHandler = new (CreateJWTMiddlewareServer());
 			// if lifetime was speciefied use it, otherwise use standard lifetime
 			int jwtMinutesValid = (int)(lifetime?.TotalMinutes ?? await uiUserHandler.GetExpirationTime());
 
@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server
 			if (user != null)
 				subject = SetClaims(await uiUserHandler.HandleUiUserAtLogin(user));
 			else
-				subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = Roles.Anonymous, Roles = new List<string> { Roles.Anonymous } });
+				subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = Roles.Anonymous, Roles = [Roles.Anonymous] });
 			// adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
 			// Create JWToken
@@ -91,8 +91,8 @@ namespace FWO.Middleware.Server
 
 		private string CreateJWTInternal(string role)
 		{
-			JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-			ClaimsIdentity subject = new ClaimsIdentity();
+			JwtSecurityTokenHandler tokenHandler = new ();
+			ClaimsIdentity subject = new ();
 			subject.AddClaim(new Claim("unique_name", role));
 			subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { role }), System.IdentityModel.Tokens.Jwt.JsonClaimValueTypes.JsonArray));
 			subject.AddClaim(new Claim("x-hasura-default-role", role));
@@ -114,7 +114,7 @@ namespace FWO.Middleware.Server
 
 		private static ClaimsIdentity SetClaims(UiUser user)
 		{
-			ClaimsIdentity claimsIdentity = new ClaimsIdentity();
+			ClaimsIdentity claimsIdentity = new ();
 			claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
 			claimsIdentity.AddClaim(new Claim("x-hasura-user-id", user.DbId.ToString()));
 			if (user.Dn != null && user.Dn.Length > 0)
@@ -131,21 +131,22 @@ namespace FWO.Middleware.Server
 				}
 			}
 			claimsIdentity.AddClaim(new Claim("x-hasura-editable-owners", $"{{ {string.Join(",", user.Ownerships)} }}"));
+			AddRoleClaims(claimsIdentity, user);
+			return claimsIdentity;
+		}
 
+		private static void AddRoleClaims(ClaimsIdentity claimsIdentity, UiUser user)
+		{
 			// we need to create an extra list because hasura only accepts an array of roles even if there is only one
-			List<string> hasuraRolesList = new List<string>();
-
+			List<string> hasuraRolesList = [];
 			foreach (string role in user.Roles)
 			{
 				claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role)); // Frontend Roles
 				hasuraRolesList.Add(role); // Hasura Roles
 			}
-
 			// add hasura roles claim as array
 			claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(hasuraRolesList.ToArray()),  System.IdentityModel.Tokens.Jwt.JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
-
 			claimsIdentity.AddClaim(new Claim("x-hasura-default-role", GetDefaultRole(user, hasuraRolesList)));
-			return claimsIdentity;
 		}
 
 		private static string GetDefaultRole(UiUser user, List<string> hasuraRolesList)

@@ -26,48 +26,51 @@ namespace FWO.Config.Api
 
         protected Config() { }
 
-        protected Config(ApiConnection apiConnection, int userId)
+        protected Config(ApiConnection apiConnection, int userId, bool withSubscription = false)
         {
-            InitWithUserId(apiConnection, userId).Wait();
+            InitWithUserId(apiConnection, userId, withSubscription).Wait();
         }
 
-        public async Task InitWithUserId(ApiConnection apiConnection, int userId)
+        public async Task InitWithUserId(ApiConnection apiConnection, int userId, bool withSubscription = false)
         {
             this.apiConnection = apiConnection;
-            UserId = userId;
-            apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler, ConfigQueries.getConfigSubscription, new { UserId });
-            if (waitForFirstUpdate)
+            if(withSubscription) // used in Ui context
             {
-                await Task.Run(async () => { while (!Initialized) { await Task.Delay(10); } });
+                UserId = userId;
+                List<string> ignoreKeys = []; // currently nothing ignored, may be used later
+                apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
+                    ConfigQueries.subscribeConfigChangesByUser, new { UserId , ignoreKeys });
+                await Task.Run(async () => { while (!Initialized) { await Task.Delay(10); } }); // waitForFirstUpdate
+            }
+            else // when only simple read is needed, e.g. during scheduled report in middleware server
+            {
+                ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { User = UserId });
+                if(configItems.Length > 0)
+                {
+                    Update(configItems);
+                    RawConfigItems = configItems;
+                }
+                Initialized = true;
             }
         }
 
-        protected void SubscriptionUpdateHandler(ConfigItem[] configItems)
-        {
-            HandleUpdate(configItems, false);
-        }
-
-        public void SubscriptionPartialUpdateHandler(ConfigItem[] configItems)
-        {
-            HandleUpdate(configItems, true);
-        }
-
-        protected void HandleUpdate(ConfigItem[] configItems, bool partialUpdate)
+        public void SubscriptionUpdateHandler(ConfigItem[] configItems)
         {
             semaphoreSlim.Wait();
             try
             {
-                Log.WriteDebug("Config subscription update", "New config values received from config subscription");
+                Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
                 RawConfigItems = configItems;
-                Update(configItems, partialUpdate);
+                Update(configItems);
                 OnChange?.Invoke(this, configItems);
                 Initialized = true;
             }
             finally { semaphoreSlim.Release(); }
         }
 
-        protected void Update(ConfigItem[] configItems, bool partialUpdate = false)
+        protected void Update(ConfigItem[] configItems)
         {
+            List<string> remainingConfigItemNames = new ([.. Array.ConvertAll(configItems, c => c.Key)]);
             foreach (PropertyInfo property in GetType().GetProperties())
             {
                 // Is the property storing a config value (marked by JsonPropertyName Attribute)?
@@ -80,31 +83,22 @@ namespace FWO.Config.Api
                     {
                         try
                         {
-                            Type propertyType = property.PropertyType;
+                            remainingConfigItemNames.Remove(configItem.Key);
                             TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
                             property.SetValue(this, converter.ConvertFromString(configItem.Value
-                            ?? throw new Exception($"Config value (with key: {configItem.Key}) is null."))
-                            ?? throw new Exception($"Config value (with key: {configItem.Key}) is not convertible to {property.GetType()}."));
+                                ?? throw new Exception($"Config value (with key: {configItem.Key}) is null."))
+                                ?? throw new Exception($"Config value (with key: {configItem.Key}) is not convertible to {property.GetType()}."));
                         }
                         catch (Exception exception)
                         {
                             Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
                         }
                     }
-                    else if (!partialUpdate)
-                    {
-                        // If this is a global config 
-                        if (UserId == 0) 
-                        {
-                            Log.WriteDebug("Load Global Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
-                        }
-						// If this is a user config item (user might not have changed the default setting)
-						else if (property.GetCustomAttribute<UserConfigDataAttribute>() != null)
-                        {
-							Log.WriteDebug("Load Config Items", $"Config item with key \"{key}\" could not be found. User might not have customized the setting. Using default value.");
-						}
-                    }
                 }
+            }
+            foreach(var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
+            {
+                Log.WriteDebug($"Load {(UserId == 0 ? "Global " : "")}Config Items", $"Config item with key \"{name}\" could not be found. {(UserId == 0 ? "" : "User might not have customized the setting. ")}Using default value.");
             }
         }
 

@@ -71,6 +71,10 @@ namespace FWO.Api.Client
         {
             if(graphQlClient.HttpClient.DefaultRequestHeaders.TryGetValues("x-hasura-role", out IEnumerable<string>? roles))
             {
+                if(roles.Count() > 1)
+                {
+                    Log.WriteDebug("API call", $"More than one role in x-hasura-role: {roles}");
+                }
                 return roles.First();
             }
             return "";

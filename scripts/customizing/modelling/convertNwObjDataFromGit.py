@@ -14,9 +14,11 @@ from sys import stdout
 import ipaddress
 import os
 from pathlib import Path
+import git  # apt install python3-git # or: pip install git
 import csv
 
 defaultConfigFilename = "/usr/local/fworch/etc/secrets/customizingConfig.json"
+ipamGitRepoTargetDir = "ipamRepo"
 
 
 def getLogger(debug_level_in=0):
@@ -113,22 +115,37 @@ if __name__ == "__main__":
     logger = getLogger(debug_level_in=2)
 
     # read config
-    subnetDataFilename = readConfig(args.config, ['subnetData'])[0]
+    subnetDataFilename = ipamGitRepoTargetDir + '/' + readConfig(args.config, ['subnetData'])[0]
+    ipamGitRepo = readConfig(args.config, ['ipamGitRepo'])[0]
+    ipamGitUser = readConfig(args.config, ['ipamGitUser'])[0]
+    ipamGitPassword = readConfig(args.config, ['ipamGitPassword'])[0]
 
-    # try:
-    #     with open(subnetDataFilename, "r") as subnetFH:
-    #         subnets = (subnetFH.readlines())
-    # except:
-    #     logger.error("error while trying to read subnets from csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
-    #     sys.exit(1)
+    try:
+        # get cmdb repo
+        if os.path.exists(ipamGitRepoTargetDir):
+            # If the repository already exists, open it and perform a pull
+            repo = git.Repo(ipamGitRepoTargetDir)
+            origin = repo.remotes.origin
+            origin.pull()
+        else:
+            repoUrl = "https://" + ipamGitUser + ":" + ipamGitPassword + "@" + ipamGitRepo
+            repo = git.Repo.clone_from(repoUrl, ipamGitRepoTargetDir)
+    except:
+        logger.error("error while trying to access git repo '" + ipamGitRepo + "', exception: " + str(traceback.format_exc()))
+        sys.exit(1)
 
     # normalizing subnet data
 
     subnetAr = []
-    with open(subnetDataFilename, 'r') as file:
-        csv_reader = csv.DictReader(file)
-        for row in csv_reader:
-            subnetAr.append(row)
+
+    try:
+        with open(subnetDataFilename, 'r') as file:
+            csv_reader = csv.DictReader(file)
+            for row in csv_reader:
+                subnetAr.append(row)
+    except:
+        logger.error("error while trying to read subnet csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
+        sys.exit(1)
 
     normSubnetData = { "subnets": {}, "zones": {}, "areas": {} }
     snId = 0
@@ -142,11 +159,15 @@ if __name__ == "__main__":
             cidr = str(ipaddress.ip_network(subnetIp + '/' + netmask))
             
             nameParts = subnet['Subnetzname'].split('.')
-            zoneName = nameParts[1]
-            if len(nameParts)>=3:
-                subnetName = nameParts[2]
+            if len(nameParts)>1:
+                zoneName = nameParts[1]
+                if len(nameParts)>=3:
+                    subnetName = nameParts[2]
+                else:
+                    subnetName = ""
             else:
-                subnetName = ""
+                logger.warning("ignoring malformed network entry for net " + subnet['Subnetzadresse'] + ", subnetname: " + subnet['Subnetzname'])
+                continue
 
             zoneNamePartsDots = nameParts[0].split('.')
 

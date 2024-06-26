@@ -18,7 +18,7 @@ import git  # apt install python3-git # or: pip install git
 import csv
 
 defaultConfigFilename = "/usr/local/fworch/etc/secrets/customizingConfig.json"
-ipamGitRepoTargetDir = "ipamRepo"
+ipamGitRepoTargetDir = "/usr/local/fworch/etc/ipamRepo"
 
 
 def getLogger(debug_level_in=0):
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     ipamGitPassword = readConfig(args.config, ['ipamGitPassword'])[0]
 
     try:
-        # get cmdb repo
+        # get ipam repo
         if os.path.exists(ipamGitRepoTargetDir):
             # If the repository already exists, open it and perform a pull
             repo = git.Repo(ipamGitRepoTargetDir)

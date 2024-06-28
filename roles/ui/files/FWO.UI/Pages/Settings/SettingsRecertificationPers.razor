@@ -48,7 +48,7 @@ else
     {
         try
         {
-            configData = await globalConfig.GetEditableConfig();
+            configData = await userConfig.GetEditableConfig();
         }
         catch (Exception exception)
         {
@@ -62,7 +62,7 @@ else
         {
             if (configData != null)
             {
-                await globalConfig.WriteToDatabase(configData, apiConnection);
+                await userConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("recert_settings"), userConfig.GetText("U5301"), false);             
             }
             else

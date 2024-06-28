@@ -93,7 +93,7 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
             <Template>
                 <div data-toggle="tooltip" title="@(userConfig.PureLine("H5278"))">
-                    @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+                    @(GlobalFunc.ShowBool(context.PasswordMustBeChanged))
                 </div>
             </Template>
         </Column>

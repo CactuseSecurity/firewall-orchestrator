@@ -91,7 +91,7 @@
         <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
-                @(GlobalConfig.ShowBool(!context.ImportDisabled))
+                @(GlobalFunc.ShowBool(!context.ImportDisabled))
             </Template>
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("debug_level"))" Field="@(x => x.DebugLevel)" Sortable="true" Filterable="true" />

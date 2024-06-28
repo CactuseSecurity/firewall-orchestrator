@@ -167,7 +167,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-
         try
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
@@ -194,7 +193,7 @@
 
     private async Task CollectOwnerships()
     {
-        userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
+        userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new {userDn = userConfig.User.Dn});
 
         List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
         List<string> ownerGrpDns = [];
@@ -207,7 +206,7 @@
         }
         if(ownerGrpDns.Count > 0)
         {
-            groupOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsFromGroups, new {groupDns = ownerGrpDns});
+            groupOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersFromGroups, new {groupDns = ownerGrpDns});
         }
 
         foreach(var owner in userOwnerships)

@@ -7,15 +7,17 @@ using FWO.Api.Data;
 using FWO.Api.Client.Queries;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using System.ComponentModel.Design;
 
 namespace FWO.Config.Api
 {
     /// <summary>
     /// Collection of all config data for the current user
     /// </summary>
-    public class UserConfig : Config
+    public class UserConfig : Config, IDisposable
     {
         private readonly GlobalConfig globalConfig;
+        private bool disposedValue;
 
         public Dictionary<string, string> Translate { get; set; }
         public Dictionary<string, string> Overwrite { get; set; } = [];
@@ -34,8 +36,18 @@ namespace FWO.Config.Api
             return new UserConfig(globalConfig, apiConnection, user);
         }
 
+        private static void CheckUserId (UiUser user)
+        {
+            if (user.DbId == 0)
+            {
+                Log.WriteError("UserConfig", $"Trying to create user config with user id 0");
+                throw new Exception("all fuckecd up");
+            }
+        }
+
         public UserConfig(GlobalConfig globalConfig, ApiConnection apiConnection, UiUser user) : base(apiConnection, user.DbId)
         {
+            CheckUserId(user);
             User = user;
             Translate = globalConfig.LangDict[user.Language!];
             Overwrite = apiConnection != null ? Task.Run(async () => await GetCustomDict(user.Language!)).Result : globalConfig.OverDict[user.Language!];
@@ -46,6 +58,7 @@ namespace FWO.Config.Api
         public UserConfig(GlobalConfig globalConfig) : base()
         {
             User = new UiUser();
+            // CheckUserId(User);
             Translate = globalConfig.LangDict[globalConfig.DefaultLanguage];
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfigOnChange;
@@ -281,6 +294,24 @@ namespace FWO.Config.Api
                 }
             }
             return plainText;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    globalConfig.OnChange -= GlobalConfigOnChange;
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

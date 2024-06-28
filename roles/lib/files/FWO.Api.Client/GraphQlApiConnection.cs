@@ -197,6 +197,10 @@ namespace FWO.Api.Client
             if (disposing)
             {
                 graphQlClient.Dispose();
+                foreach (ApiSubscription subscription in subscriptions)
+                {
+                    subscription.Dispose();
+                }
             }
         }
     }

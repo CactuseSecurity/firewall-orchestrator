@@ -52,7 +52,7 @@ namespace FWO.Config.Api
             Translate = globalConfig.LangDict[user.Language!];
             Overwrite = apiConnection != null ? Task.Run(async () => await GetCustomDict(user.Language!)).Result : globalConfig.OverDict[user.Language!];
             this.globalConfig = globalConfig;
-            globalConfig.OnChange += OnGlobalConfigChange;
+            globalConfig.OnChange += GlobalConfigOnChange;
         }
 
         public UserConfig(GlobalConfig globalConfig) : base()
@@ -61,40 +61,37 @@ namespace FWO.Config.Api
             // CheckUserId(User);
             Translate = globalConfig.LangDict[globalConfig.DefaultLanguage];
             this.globalConfig = globalConfig;
-            globalConfig.OnChange += OnGlobalConfigChange;
+            globalConfig.OnChange += GlobalConfigOnChange;
         }
 
         // only for unit tests
         protected UserConfig() : base()
         {}
         
-        private void OnGlobalConfigChange(Config config, ConfigItem[] changedItems)
+        private void GlobalConfigOnChange(Config config, ConfigItem[] changedItems)
         {
             // Get properties that belong to the user config 
             IEnumerable<PropertyInfo> properties = GetType().GetProperties()
                 .Where(prop => prop.CustomAttributes.Any(attr => attr.GetType() == typeof(UserConfigDataAttribute)));
 
             // Exclude all properties from update that belong to the user config
-            ConfigItem[] relevantChangedItems = changedItems.Where( configItem =>
+            ConfigItem[] relevantChangedItems = changedItems.Where(configItem =>
                 !properties.Any(prop => ((JsonPropertyNameAttribute)prop.GetCustomAttribute(typeof(JsonPropertyNameAttribute))!).Name == configItem.Key)).ToArray();
 
-            if(relevantChangedItems.Length > 0)
-            {
-                Update(relevantChangedItems);
-            }
+            Update(relevantChangedItems);
             InvokeOnChange(this, changedItems);
         }
 
         public async Task SetUserInformation(string userDn, ApiConnection apiConnection)
         {
-            OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
+            GlobalConfigOnChange(globalConfig, globalConfig.RawConfigItems);
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
             UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
             if (users.Length > 0)
             {
                 User = users[0];
             }
-            await InitWithUserId(apiConnection, User.DbId, true);
+            await SetUserId(apiConnection, User.DbId);
 
             if (User.Language == null)
             {

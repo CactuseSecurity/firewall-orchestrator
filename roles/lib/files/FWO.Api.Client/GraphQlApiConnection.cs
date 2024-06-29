@@ -183,7 +183,10 @@ namespace FWO.Api.Client
             try
             {
                 GraphQLRequest request = new GraphQLRequest(subscription, variables, operationName);
-                return new GraphQlApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                GraphQlApiSubscription<SubscriptionResponseType> newSub = 
+                    new GraphQlApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                subscriptions.Add(newSub);
+                return newSub;
             }
             catch (Exception exception)
             {

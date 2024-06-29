@@ -32,34 +32,37 @@
     </div>
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("due_within")):</h5>
-        <input  type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
+        <input type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
+        <br>
+        <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
+        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            <Authorized>
+                <div class="p-3">
+                    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                        @bind-SelectedElement="selectedOwner" Elements="ownerList">
+                        <ElementTemplate Context="owner">
+                            @owner.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                @if(collectedOwnerships.Count > 1)
+                {
+                    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                        @bind-SelectedElement="selectedOwner" Elements="collectedOwnerships">
+                        <ElementTemplate Context="owner">
+                            @owner.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                }
+                else if (selectedOwner != null)
+                {
+                    <input type="text" class="form-control form-control-sm" readonly @bind="selectedOwner.Name" />
+                }
+            </NotAuthorized>
+        </AuthorizeView>
     </div>
-
-    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
-        <Authorized>
-            <div class="p-3">
-                <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
-                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
-                    @bind-SelectedElement="selectedOwner" Elements="ownerList">
-                    <ElementTemplate Context="owner">
-                        @owner.Name
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        </Authorized>
-        <NotAuthorized>
-            @if(collectedOwnerships.Count > 1)
-            {
-                <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
-                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
-                    @bind-SelectedElement="selectedOwner" Elements="collectedOwnerships">
-                    <ElementTemplate Context="owner">
-                        @owner.Name
-                    </ElementTemplate>
-                </Dropdown>
-            }
-        </NotAuthorized>
-    </AuthorizeView>
 
     <DeviceSelection Environment="GlobalConst.kCertification" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices"></DeviceSelection>
 </Sidebar>
@@ -222,7 +225,7 @@
                 recertInterval.Add(owner.Id, owner.RecertInterval ?? userConfig.RecertificationPeriod);
             }
         }
-        if(collectedOwnerships.Count == 1)
+        if(collectedOwnerships.Count > 0)
         {
             selectedOwner = collectedOwnerships[0];
         }

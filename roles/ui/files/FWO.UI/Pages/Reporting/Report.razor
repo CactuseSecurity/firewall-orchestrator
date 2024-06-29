@@ -4,6 +4,7 @@
 @using FWO.Report.Filter.Exceptions
 @using FWO.GlobalConstants
 @using FWO.Api.Data
+@using FWO.Api.Client.Queries
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
@@ -178,20 +179,20 @@
 
     public double reportGenerationDuration;
     private bool processing = false;
-    private CancellationTokenSource tokenSource = new CancellationTokenSource();
+    private CancellationTokenSource tokenSource = new();
 
-    private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
-    private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
+    private List<Rule> selectedItemsRuleReportTable = [];
+    private List<RuleChange> selectedItemsChangeReportTable = [];
 
-    private List<ModellingAppHandler> appHandlers = new();
-    List<int> relevantManagementIds = new ();
+    private List<ModellingAppHandler> appHandlers = [];
+    List<int> relevantManagementIds = [];
     
-    private ReportFilters actReportFilters = new ();
+    private ReportFilters actReportFilters = new();
     private bool InitDone = false;
     private int? injectedAppId = null;
     private bool autoGenerateReport = false;
 
-    private List<string> unsupportedList = new List<string>();
+    private List<string> unsupportedList = [];
     private bool ShowSelectTimeDialog = false;
     private bool ShowCreateTicketDialog = false;
 
@@ -200,7 +201,7 @@
     private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
     private int sidebarRightWidth = GlobalConst.kSidebarRightWidth;
 
-    private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
+    private ReportTemplateComponent reportTemplateControl = new();
 
     private ReportBase? currentReport;
 
@@ -232,7 +233,7 @@
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Auditor });
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Auditor ]);
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
             {
@@ -240,7 +241,7 @@
                 injectedAppId = appId;
                 if(showModellingReports)
                 {
-                    List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(Api.Client.Queries.OwnerQueries.getEditableOwners, new { appIds = appId });
+                    List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = appId });
                     if(owners.Count > 0)
                     {
                         actReportFilters.ModellingFilter.SelectedOwner = owners.First();
@@ -273,6 +274,14 @@
     private void ReportTypeChanged(ReportType newReportType)
     {
         actReportFilters.ReportType = newReportType;
+        if(newReportType.IsModellingReport())
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.Modeller, Roles.Auditor ]);
+        }
+        else
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Auditor ]);
+        }
         actReportFilters.SetDisplayedTimeSelection();
         AdjustDeviceSelection();
         ResetReport();

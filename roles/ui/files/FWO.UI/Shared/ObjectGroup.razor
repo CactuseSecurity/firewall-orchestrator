@@ -160,7 +160,7 @@
                                             }
                                         </Content1>
                                         <Content2>
-                                            @{ List<long> shownMemberIds = new List<long>(); }
+                                            @{ List<long> shownMemberIds = []; }
                                             @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
                                             {
                                                 if(member.Object != null)
@@ -215,7 +215,7 @@
                                         }
                                     </Content1>
                                     <Content2>
-                                        @{ List<long> shownMemberIds = new List<long>(); }
+                                        @{ List<long> shownMemberIds = []; }
                                         @foreach (GroupFlat<NetworkUser> member in context.UserGroupFlats)
                                         {
                                             if(member.Object != null)

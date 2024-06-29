@@ -42,7 +42,6 @@ namespace FWO.Config.Api
             Overwrite = apiConnection != null ? Task.Run(async () => await GetCustomDict(user.Language!)).Result : globalConfig.OverDict[user.Language!];
             this.globalConfig = globalConfig;
             globalConfig.OnChange += OnGlobalConfigChange;
-//            globalConfig.OnChange += GlobalConfigOnChange;
         }
 
         public UserConfig(GlobalConfig globalConfig) : base()
@@ -51,7 +50,6 @@ namespace FWO.Config.Api
             Translate = globalConfig.LangDict[globalConfig.DefaultLanguage];
             this.globalConfig = globalConfig;
             globalConfig.OnChange += OnGlobalConfigChange;
-//            globalConfig.OnChange += GlobalConfigOnChange;
         }
 
         // only for unit tests

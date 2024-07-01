@@ -13,9 +13,10 @@ namespace FWO.Config.Api
     /// <summary>
     /// Collection of all config data for the current user
     /// </summary>
-    public class UserConfig : Config
+    public class UserConfig : Config, IDisposable
     {
         private readonly GlobalConfig globalConfig;
+        private bool disposedValue;
 
         public Dictionary<string, string> Translate { get; set; }
         public Dictionary<string, string> Overwrite { get; set; } = [];
@@ -62,13 +63,10 @@ namespace FWO.Config.Api
                 .Where(prop => prop.CustomAttributes.Any(attr => attr.GetType() == typeof(UserConfigDataAttribute)));
 
             // Exclude all properties from update that belong to the user config
-            ConfigItem[] relevantChangedItems = changedItems.Where( configItem =>
+            ConfigItem[] relevantChangedItems = changedItems.Where(configItem =>
                 !properties.Any(prop => ((JsonPropertyNameAttribute)prop.GetCustomAttribute(typeof(JsonPropertyNameAttribute))!).Name == configItem.Key)).ToArray();
 
-            if(relevantChangedItems.Length > 0)
-            {
-                Update(relevantChangedItems);
-            }
+            Update(relevantChangedItems);
             InvokeOnChange(this, changedItems);
         }
 
@@ -284,6 +282,24 @@ namespace FWO.Config.Api
                 }
             }
             return plainText;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    globalConfig.OnChange -= OnGlobalConfigChange;
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

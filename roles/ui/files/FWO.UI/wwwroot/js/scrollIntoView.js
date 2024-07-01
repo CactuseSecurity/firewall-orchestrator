@@ -4,8 +4,10 @@ function scrollIntoRSBView(htmlObjId) {
   if (!obj)
     return false;
   obj.scrollIntoView({behavior: "smooth", block: "center"});
-  obj.classList.add("fade-bg");
-  obj.classList.add("temp-highlight");
-  setTimeout(() => obj.classList.remove("temp-highlight"), 800)
+  // Highlight the row
+  obj.style.transition = "background-color 500ms linear";
+  obj.style.backgroundColor = "#a4d7f5";
+  // Remove highlight after 800ms
+  setTimeout(() => obj.style.backgroundColor = "", 800);
   return obj.offsetParent !== null; // element visible?
 }

@@ -6,6 +6,8 @@
 
         public event EventHandler<string>? OnAuthHeaderChanged;
 
+        protected List<ApiSubscription> subscriptions = [];
+
         protected void InvokeOnAuthHeaderChanged(object? sender, string newAuthHeader)
         {
             OnAuthHeaderChanged?.Invoke(sender, newAuthHeader);

@@ -25,7 +25,7 @@
             <ul class="navbar-nav me-auto">
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
                     <li class="nav-item px-2">
-                        <a href="/report/generation" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
+                        <a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
                             <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
                         </a>
                     </li>
@@ -39,7 +39,7 @@
                 </AuthorizeView>
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
                     <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="/certification">
+                        <NavLink class="nav-link" href="@("/" + PageName.Certification)">
                             <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
                         </NavLink>
                     </li>

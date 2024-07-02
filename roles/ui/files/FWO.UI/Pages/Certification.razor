@@ -32,34 +32,37 @@
     </div>
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("due_within")):</h5>
-        <input  type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
+        <input type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
+        <br>
+        <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
+        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            <Authorized>
+                <div class="p-3">
+                    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                        @bind-SelectedElement="selectedOwner" Elements="ownerList">
+                        <ElementTemplate Context="owner">
+                            @owner.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                @if(collectedOwnerships.Count > 1)
+                {
+                    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                        @bind-SelectedElement="selectedOwner" Elements="collectedOwnerships">
+                        <ElementTemplate Context="owner">
+                            @owner.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                }
+                else if (selectedOwner != null)
+                {
+                    <input type="text" class="form-control form-control-sm" readonly @bind="selectedOwner.Name" />
+                }
+            </NotAuthorized>
+        </AuthorizeView>
     </div>
-
-    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
-        <Authorized>
-            <div class="p-3">
-                <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
-                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
-                    @bind-SelectedElement="selectedOwner" Elements="ownerList">
-                    <ElementTemplate Context="owner">
-                        @owner.Name
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        </Authorized>
-        <NotAuthorized>
-            @if(collectedOwnerships.Count > 1)
-            {
-                <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
-                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
-                    @bind-SelectedElement="selectedOwner" Elements="collectedOwnerships">
-                    <ElementTemplate Context="owner">
-                        @owner.Name
-                    </ElementTemplate>
-                </Dropdown>
-            }
-        </NotAuthorized>
-    </AuthorizeView>
 
     <DeviceSelection Environment="GlobalConst.kCertification" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices"></DeviceSelection>
 </Sidebar>
@@ -139,17 +142,17 @@
     private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new ();
 
-    private List<ManagementReport> managementsReport = new ();
+    private List<ManagementReport> managementsReport = [];
     
     private bool readonlyMode = false;
     public FwoOwner? selectedOwner = null;
-    private List<FwoOwner> ownerList = new ();
-    private List<FwoOwner> userOwnerships = new ();
-    private List<FwoOwner> groupOwnerships = new ();
-    private List<FwoOwner> collectedOwnerships = new ();
-    private Dictionary<int, int> recertInterval = new ();
+    private List<FwoOwner> ownerList = [];
+    private List<FwoOwner> userOwnerships = [];
+    private List<FwoOwner> groupOwnerships = [];
+    private List<FwoOwner> collectedOwnerships = [];
+    private Dictionary<int, int> recertInterval = [];
     private DeviceFilter deviceFilter = new ();
-    private List<Rule> selectedRules = new ();
+    private List<Rule> selectedRules = [];
     private bool collapseDevices = false;
 
     private ReportBase? currentReport;
@@ -160,17 +163,16 @@
     private string actComment = "";
     private int recertLookAheadDays = 0;
 
-    private List<Rule> Certifications = new ();
-    private Dictionary<int, List<string>> deleteList = new ();
+    private List<Rule> Certifications = [];
+    private Dictionary<int, List<string>> deleteList = [];
 
     private TicketCreator ticketCreator;
 
     protected override async Task OnInitializedAsync()
     {
-
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Recertifier, Roles.Admin, Roles.Auditor });
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
             rulesFound = false;
             ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
 
@@ -194,10 +196,10 @@
 
     private async Task CollectOwnerships()
     {
-        userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
+        userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new {userDn = userConfig.User.Dn});
 
         List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
-        List<string> ownerGrpDns = new ();
+        List<string> ownerGrpDns = [];
         foreach(var grp in ownerGroups)
         {
             if(grp.Users.FirstOrDefault(x => x.Dn == userConfig.User.Dn) != null)
@@ -207,7 +209,7 @@
         }
         if(ownerGrpDns.Count > 0)
         {
-            groupOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsFromGroups, new {groupDns = ownerGrpDns});
+            groupOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersFromGroups, new {groupDns = ownerGrpDns});
         }
 
         foreach(var owner in userOwnerships)
@@ -223,7 +225,7 @@
                 recertInterval.Add(owner.Id, owner.RecertInterval ?? userConfig.RecertificationPeriod);
             }
         }
-        if(collectedOwnerships.Count == 1)
+        if(collectedOwnerships.Count > 0)
         {
             selectedOwner = collectedOwnerships[0];
         }
@@ -294,14 +296,14 @@
 
     private void prepareReport()
     {
-        List<int> ownerList = new List<int>();
+        List<int> ownerList = [];
         if (selectedOwner != null)
         {
             ownerList.Add(selectedOwner.Id);
         }
 
-        ReportParams reportParams = new ReportParams((int) ReportType.Recertification, deviceFilter);
-        reportParams.RecertFilter = new RecertFilter()
+        ReportParams reportParams = new ((int) ReportType.Recertification, deviceFilter);
+        reportParams.RecertFilter = new()
         {
             RecertOwnerList = ownerList,
             RecertShowAnyMatch = true,
@@ -379,7 +381,7 @@
     private void AnalyzeSelected()
     {
         // collect selected recerts + decerts
-        Certifications = new List<Rule>();
+        Certifications = [];
 
         foreach (var management in managementsReport)
         {

@@ -276,7 +276,7 @@ else
 
     private async Task Report()
     {
-        NavigationManager.NavigateTo($"/report/generation/{selectedApp.Id}");
+        NavigationManager.NavigateTo($"/{PageName.ReportGeneration}/{selectedApp.Id}");
     }
 
     private async Task RequestFwChange()

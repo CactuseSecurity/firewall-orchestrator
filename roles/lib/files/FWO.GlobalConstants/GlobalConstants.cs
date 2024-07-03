@@ -41,6 +41,12 @@ namespace FWO.GlobalConstants
 		public const string kStyleHighlighted = "color:red;";
 	}
 
+	public struct PageName
+	{
+		public const string ReportGeneration = "report/generation";
+		public const string Certification = "certification";
+	}
+
 	public struct ObjectType
 	{
 		public const string Group = "group";

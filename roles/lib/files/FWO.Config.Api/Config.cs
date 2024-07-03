@@ -70,7 +70,22 @@ namespace FWO.Config.Api
 
         protected void Update(ConfigItem[] configItems)
         {
-            List<string> remainingConfigItemNames = new ([.. Array.ConvertAll(configItems, c => c.Key)]);
+            //TODO: REMOVE
+#if DEBUG
+            Delegate[] invocations = OnChange?.GetInvocationList() ?? Array.Empty<Delegate>();
+            List<string> methodeNames = new List<string>();
+            List<object?> target = new List<object?>();
+
+            foreach (Delegate invocation in invocations)
+            {
+                target.Add(invocation.Target);
+                methodeNames.Add(invocation.Method.Name);
+            }
+
+            int a;
+#endif
+
+            List<string> remainingConfigItemNames = Array.ConvertAll(configItems, c => c.Key).ToList();
             foreach (PropertyInfo property in GetType().GetProperties())
             {
                 // Is the property storing a config value (marked by JsonPropertyName Attribute)?
@@ -105,6 +120,7 @@ namespace FWO.Config.Api
         public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)
         {
             await semaphoreSlim.WaitAsync();
+            List<ConfigItem> configItemChanges = [];
             try
             {
                 foreach (PropertyInfo property in GetType().GetProperties())
@@ -123,8 +139,8 @@ namespace FWO.Config.Api
                                 string stringValue = converter.ConvertToString(property.GetValue(editedData)
                                                 ?? throw new Exception($"Config value (with key: {key}) is null"))
                                                 ?? throw new Exception($"Config value (with key: {key}) is not convertible to {property.GetType()}.");
-                                // Update or insert config item
-                                await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, new ConfigItem { Key = key, Value = stringValue, User = UserId });
+                                // Add config item to the list of changed config items
+                                configItemChanges.Add(new ConfigItem { Key = key, Value = stringValue, User = UserId });
                             }
                             catch (Exception exception)
                             {
@@ -133,18 +149,20 @@ namespace FWO.Config.Api
                         }
                     }
                 }
+                // Update or insert all config item
+                await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
             }
             finally { semaphoreSlim.Release(); }
         }
 
         public async Task<ConfigData> GetEditableConfig()
         {
-            // await semaphoreSlim.WaitAsync();
-            // try
-            // { 
-            return (ConfigData)CloneEditable();
-            // }
-            // finally { semaphoreSlim.Release(); }
+            await semaphoreSlim.WaitAsync();
+            try
+            { 
+                return (ConfigData)CloneEditable();
+            }
+            finally { semaphoreSlim.Release(); }
         }
 
         protected static void SubscriptionExceptionHandler(Exception exception)

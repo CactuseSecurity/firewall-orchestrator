@@ -106,7 +106,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				List<FwoOwner> dirOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new { userDn = user.Dn });
+				List<FwoOwner> dirOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDn = user.Dn });
 				foreach (var owner in dirOwnerships)
 				{
 					user.Ownerships.Add(owner.Id);

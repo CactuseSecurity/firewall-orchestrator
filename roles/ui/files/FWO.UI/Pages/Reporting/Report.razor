@@ -14,6 +14,7 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
 @if(InitDone)
 {
@@ -233,7 +234,7 @@
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Auditor ]);
+            SetProperRoleForReport();
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
             {
@@ -273,8 +274,31 @@
 
     private void ReportTypeChanged(ReportType newReportType)
     {
+        if(injectedAppId != null)
+        {
+            injectedAppId = null;
+            CleanUri();
+        }
         actReportFilters.ReportType = newReportType;
-        if(newReportType.IsModellingReport())
+        SetProperRoleForReport();
+        actReportFilters.SetDisplayedTimeSelection();
+        AdjustDeviceSelection();
+        ResetReport();
+        StateHasChanged();
+    }
+
+    public void CleanUri()
+    {
+        var index = NavigationManager.Uri.IndexOf(PageName.ReportGeneration, StringComparison.Ordinal);
+        if (index > 0)
+        {
+            NavigationManager.NavigateTo(NavigationManager.Uri.Substring(0, index + PageName.ReportGeneration.Length));
+        }
+    }
+
+    private void SetProperRoleForReport()
+    {
+        if(actReportFilters.ReportType.IsModellingReport())
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.Modeller, Roles.Auditor ]);
         }
@@ -282,10 +306,6 @@
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Auditor ]);
         }
-        actReportFilters.SetDisplayedTimeSelection();
-        AdjustDeviceSelection();
-        ResetReport();
-        StateHasChanged();
     }
 
     private void AdjustDeviceSelection()
@@ -361,6 +381,7 @@
                 return;
             }
             processing = true;
+            SetProperRoleForReport();
             await PrepareReportGeneration();
 
             try

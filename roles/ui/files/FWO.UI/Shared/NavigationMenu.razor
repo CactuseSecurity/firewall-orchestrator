@@ -181,6 +181,6 @@
     private string ComplianceRoles()
     {
         string workflowRoles = userConfig.ReqShowCompliance ? ", " + WorkflowRoles() : "";
-        return $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.Auditor}, {Roles.ReporterViewAll}{workflowRoles}";
+        return $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.ReporterViewAll}, {Roles.Reporter}, {Roles.Auditor}{workflowRoles}";
     }
 }

@@ -17,6 +17,9 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
 
     if fwo_globals.debug_level>4:
         logger.debug("using sid: " + sid )
+        if fwo_globals.debug_level>9:
+            if command!='login':    # do not log passwords
+                logger.debug("json_payload: " + str(json_payload) )
 
     try:
          r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs)
@@ -163,7 +166,7 @@ def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
                 if src['type'] == 'LegacyUserAtLocation':
                     nw_uids_found.append(src["location"])
                 elif src['type'] == 'access-role':
-                    if isinstance(src['networks'], str):  # just a single source
+                    if 'networks' in src and isinstance(src['networks'], str):  # just a single source
                         if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
                             nw_uids_found.append(src['networks'])
                     else:  # more than one source
@@ -263,8 +266,6 @@ def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layername, ac
             # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + layername)
             return None
 
-        if 'total' in rulebase:
-            total=rulebase['total']
         if 'total' in rulebase:
             total=rulebase['total']
         else:

@@ -26,7 +26,7 @@ def collect_svc_objects(object_table, svc_objects):
                     elif 'ip-protocol' in obj:
                         proto = obj['ip-protocol']
                     else:
-                        proto = 0
+                        proto = None
                     member_refs = ''
                     port = ''
                     port_end = ''

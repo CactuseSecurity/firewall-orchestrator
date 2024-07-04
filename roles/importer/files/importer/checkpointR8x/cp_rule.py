@@ -215,6 +215,10 @@ def parse_single_rule(src_rule, rulebase, layer_name, import_id, rule_num, paren
             else:
                 last_hit = None
 
+            targets = []
+            for target in src_rule['install-on']:
+                targets.append(target['name'])
+
             rule = {
                 "control_id":       int(import_id),
                 "rule_num":         int(rule_num),
@@ -232,7 +236,7 @@ def parse_single_rule(src_rule, rulebase, layer_name, import_id, rule_num, paren
                 "rule_svc_refs":    sanitize(rule_svc_ref),
                 "rule_action":      sanitize(src_rule['action']['name']),
                 "rule_track":       sanitize(src_rule['track']['type']['name']),
-                "rule_installon":   sanitize(src_rule['install-on'][0]['name']),
+                "rule_installon":   sanitize(list_delimiter.join(targets)),
                 "rule_time":        sanitize(src_rule['time'][0]['name']),
                 "rule_name":        sanitize(rule_name),
                 "rule_uid":         sanitize(src_rule['uid']),

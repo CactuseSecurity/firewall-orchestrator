@@ -1220,6 +1220,13 @@ create table request.state
     name Varchar NOT NULL
 );
 
+create table request.ext_state
+(
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL,
+	state_id Integer
+);
+
 create table request.action
 (
     id SERIAL PRIMARY KEY,

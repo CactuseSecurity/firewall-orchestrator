@@ -217,3 +217,7 @@ bugfix release:
 # 8.2.4 - 19.06.2024 DEVELOP
 - owner-filtering for new report type
 - new setting for email recipients
+
+# 8.3.1 - 06.07.2024 DEVELOP
+- workflow: external state handling
+- fix config value

@@ -1493,6 +1493,10 @@ INSERT INTO txt VALUES ('match_drop_rules',		'German', 	'in Drop-Regeln');
 INSERT INTO txt VALUES ('match_drop_rules',		'English', 	'in Drop rules');
 INSERT INTO txt VALUES ('show_full_rules',		'German', 	'vollst&auml;ndige Regeln anzeigen');
 INSERT INTO txt VALUES ('show_full_rules',		'English', 	'show full rules');
+INSERT INTO txt VALUES ('reject',               'German',   'Ablehnen');
+INSERT INTO txt VALUES ('reject',               'English',  'Reject');
+INSERT INTO txt VALUES ('reject_interface',     'German',   'Schnittstelle ablehnen');
+INSERT INTO txt VALUES ('reject_interface',     'English',  'Reject interface');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2077,6 +2081,16 @@ INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgang
 INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest exit state');
 INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
 INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
+INSERT INTO txt VALUES ('ext_states',           'German',   'Externe Stati');
+INSERT INTO txt VALUES ('ext_states',           'English',  'External states');
+INSERT INTO txt VALUES ('save_ext_states',      'German',   'Externe Stati speichern');
+INSERT INTO txt VALUES ('save_ext_states',      'English',  'Save external states');
+INSERT INTO txt VALUES ('internal_state_name',  'German', 	'Interner Status-Name');
+INSERT INTO txt VALUES ('internal_state_name',  'English', 	'Internal State Name');
+INSERT INTO txt VALUES ('external_state_name',  'German', 	'Externer Status-Name');
+INSERT INTO txt VALUES ('external_state_name',  'English', 	'External State Name');
+INSERT INTO txt VALUES ('assign_state_to',      'German',   'Status zuordnen zu: ');
+INSERT INTO txt VALUES ('assign_state_to',      'English',  'Assign state to: ');
 INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
 INSERT INTO txt VALUES ('owners',               'German',   'Eigent&uuml;mer');
@@ -2642,6 +2656,10 @@ INSERT INTO txt VALUES ('U9015', 'German',  'Beantragte Schnittstelle mit dieser
 INSERT INTO txt VALUES ('U9015', 'English', 'Replace requested interface by this?');
 INSERT INTO txt VALUES ('U9016', 'German',  'Beantragte Schnittstelle ersetzt durch');
 INSERT INTO txt VALUES ('U9016', 'English', 'Requested interface replaced by');
+INSERT INTO txt VALUES ('U9017', 'German',  'Sind sie sicher, dass sie folgende beantragte Schnittstelle ablehnen wollen: ');
+INSERT INTO txt VALUES ('U9017', 'English', 'Are you sure you want to reject following requested interface: ');
+INSERT INTO txt VALUES ('U9018', 'German',  'Antrag abgelehnt.');
+INSERT INTO txt VALUES ('U9018', 'English', 'Ticket rejected.');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
@@ -4653,6 +4671,8 @@ INSERT INTO txt VALUES ('H5531', 'English', 'An arbitrary number of states can b
     As internally solely the numbers are processed, duplicates in state names are (technically) possible.
     Only states are offered for deletion, who are not used in any state matrix (even in deactivated phases or in actions).
 ');
+INSERT INTO txt VALUES ('H5532', 'German',  'Externe Stati: Um interne Stati &uuml;ber Aktionen ansprechen zu k&ouml;nnen, m&uuml;ssen sie vordefinierten, nach aussen sichtbaren Stati zugeordnet werden.');
+INSERT INTO txt VALUES ('H5532', 'English', 'External States: To be used by actions, internal states have to be assigned to predefined externally visible states.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Stati pro Phase und Tasktyp festgelegt. 
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     In der Installation sind diese Matrizen bereits vorbelegt, sie k&ouml;nnen aber nahezu beliebig &uuml;berschrieben werden.
@@ -4799,7 +4819,7 @@ INSERT INTO txt VALUES ('H5593', 'German',  'URL des externen Ticketing Systems:
 INSERT INTO txt VALUES ('H5593', 'English', 'URL of external ticketing system: Exact address and path under which the external ticket system''s API can be reached.');
 INSERT INTO txt VALUES ('H5594', 'German',  'Authorization-Header-String: Beispielsweise Base64-kodierter String von "Username:Password" mit f&uuml;hrendem "Basic" zur Bezeichnung der Basic Authentication');
 INSERT INTO txt VALUES ('H5594', 'English', 'Authorization header string: E.g. base64 encoded string of "Username:Password" lead by "Basic" to indicate basic authentication');
-INSERT INTO txt VALUES ('H5595', 'German',  'Template Ticket-Text: Vorlagentext mit verschiedenen Platzhaltern, die durch @@PLACEHOLDER@@ gekennzeichnet sind und für jede Anfrage durch die eigentlichen Anfragedaten ersetzt werden. Eine vollst&auml;ndige Liste der Platzhalter finden Sie auf den Hilfeseiten.');
+INSERT INTO txt VALUES ('H5595', 'German',  'Template Ticket-Text: Vorlagentext mit verschiedenen Platzhaltern, die durch @@PLACEHOLDER@@ gekennzeichnet sind und f&uuml;r jede Anfrage durch die eigentlichen Anfragedaten ersetzt werden. Eine vollst&auml;ndige Liste der Platzhalter finden Sie auf den Hilfeseiten.');
 INSERT INTO txt VALUES ('H5595', 'English', 'Template ticket text: template text containing various placeholders indicated by @@PLACEHOLDER@@ which will be substituted for each ticket with the actual ticket data. For a full list of placeholders, see help pages.');
 INSERT INTO txt VALUES ('H5596', 'German',  'Template Aufgabentext: Template pro Verbindung (sollte die folgenden Platzhalter enthalten: @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, ...)');
 INSERT INTO txt VALUES ('H5596', 'English', 'Template task text: Template for each connection (should contain placeholders @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, ...)');

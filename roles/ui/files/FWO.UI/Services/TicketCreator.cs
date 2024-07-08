@@ -11,6 +11,7 @@ namespace FWO.Ui.Services
     {
         private readonly RequestHandler reqHandler;
         private readonly UserConfig userConfig;
+        private readonly ApiConnection apiConnection;
         private int stateId;
         private string ticketTitle = "";
         private string ticketReason = "";
@@ -23,6 +24,7 @@ namespace FWO.Ui.Services
         {
             reqHandler = new (LogMessage, userConfig, authUser, apiConnection, middlewareClient, phase);
             this.userConfig = userConfig;
+            this.apiConnection = apiConnection;
         }
 
         public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, string reason = "")
@@ -68,8 +70,10 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task<bool> PromoteTicket(FwoOwner owner, long ticketId, string comment = "")
+        public async Task<bool> PromoteTicket(FwoOwner owner, long ticketId, ExtStates extState, string comment = "")
         {
+            ExtStateHandler extStateHandler = new(apiConnection);
+            await extStateHandler.Init();
             await reqHandler.Init([owner.Id]);
             RequestImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
             if(implTask != null)
@@ -79,9 +83,12 @@ namespace FWO.Ui.Services
                 {
                     await reqHandler.ConfAddCommentToImplTask(comment);
                 }
-                int newState = reqHandler.MasterStateMatrix.LowestEndState;
-                await reqHandler.PromoteImplTask(new(){ StateId = newState });
-                return true;
+                int? newState = extStateHandler.GetInternalStateId(extState);
+                if(newState != null)
+                {
+                    await reqHandler.PromoteImplTask(new(){ StateId = (int)newState });
+                    return true;
+                } 
             }
             return false;
         }

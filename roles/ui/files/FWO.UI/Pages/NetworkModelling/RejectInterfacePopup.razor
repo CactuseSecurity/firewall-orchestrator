@@ -1,0 +1,117 @@
+﻿@using FWO.Config.Api
+@using FWO.Middleware.Client
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+
+<PopUp Title="@(userConfig.GetText("reject_interface"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div class="row mt-2 me-auto">
+                <p>@Message</p>
+            </div>
+            <div class="row mt-2 me-auto">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                <textarea rows="5" type="text" class="col-sm-9" @bind="Reason" />
+            </div>
+        }
+    </Body>
+    <Footer>
+        <AuthorizeView Roles="@Roles.Modeller">
+            <Authorized>
+                @if(!WorkInProgress)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="SendReject">@(userConfig.GetText("reject"))</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("reject"))</button>
+                }
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("reject"))</button>
+            </NotAuthorized> 
+        </AuthorizeView>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+    </Footer>
+</PopUp>
+<InProgress Display="WorkInProgress"/>
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter] 
+    public ModellingConnection InterfaceToReject { get; set; }
+
+    [Parameter]
+    public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
+    private string Reason { get; set; } = "";
+    private string Message { get; set; } = "";
+    private bool WorkInProgress = false;
+    private bool firstTry = true;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Display && firstTry)
+        {
+            firstTry = false;
+            Message = userConfig.GetText("U9017") + InterfaceToReject.Name + "?";
+        }
+    }
+
+    private async Task SendReject()
+    {
+        WorkInProgress = true;
+        try
+        {
+            if(InterfaceToReject.TicketId != null)
+            {
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Implementer, Roles.Planner, Roles.Approver, Roles.Requester, Roles.Admin, Roles.Auditor]);
+                TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
+                if(await ticketCreator.PromoteTicket(InterfaceToReject.App, (long)InterfaceToReject.TicketId, ExtStates.Rejected, Reason))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("reject_interface"), userConfig.GetText("U9018"), false);
+                }
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
+
+                await RefreshParent();
+            }
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("reject_interface"), "", true);
+        }
+        WorkInProgress = false;
+    }
+
+    private void Close()
+    {
+        Display = false;
+        firstTry = true;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

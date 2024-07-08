@@ -1032,7 +1032,7 @@ Create table "config"
 create table owner
 (
     id SERIAL PRIMARY KEY,
-    name Varchar UNIQUE NOT NULL,
+    name Varchar NOT NULL,
     dn Varchar NOT NULL,
     group_dn Varchar NOT NULL,
     is_default boolean default false,

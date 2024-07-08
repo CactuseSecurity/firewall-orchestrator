@@ -11,3 +11,5 @@ create table request.ext_state
 
 ALTER TABLE request.ext_state DROP CONSTRAINT IF EXISTS request_ext_state_state_foreign_key;
 ALTER TABLE request.ext_state ADD CONSTRAINT request_ext_state_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_name_key;

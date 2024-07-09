@@ -11,6 +11,9 @@
     zone_name
     zone_id
   }
+  rule_metadatum {
+    rule_last_hit
+  }
   active
   rule_create
   rule_last_seen

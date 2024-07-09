@@ -2,7 +2,7 @@
 delete from config where config_key='ModAppServerTypes';
 insert into config (config_key, config_value, config_user) VALUES ('modAppServerTypes', '[{"Id":0,"Name":"Default"}]', 0) ON CONFLICT DO NOTHING;
 
-create table request.ext_state
+create table if not exists request.ext_state
 (
     id SERIAL PRIMARY KEY,
     name Varchar NOT NULL,

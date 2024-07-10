@@ -1,6 +1,5 @@
-details_level = "standard"    # 'standard'
-use_object_dictionary = True
-with_hits = True
+details_level = "full"    # 'standard'
+use_object_dictionary = 'false'
 
 # the following is the static across all installations unique any obj uid 
 # cannot fetch the Any object via API (<=1.7) at the moment
@@ -16,12 +15,12 @@ nw_obj_table_names = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 
     'gateways-and-servers', 'simple-gateways', 
     'dns-domains', 'updatable-objects-repository-content',
-    'interoperable-devices', 'security-zones', 'Global', 'access-roles', 'updatable-objects'
+    'interoperable-devices', 'security-zone'
 ]
 
 # simple as in: no groups
 simple_svc_obj_types = ['services-tcp', 'services-udp', 'services-dce-rpc', 'services-rpc', 'services-other', 
-                        'services-icmp', 'services-icmp6', 'services-sctp', 'services-gtp', 'Global']
+                        'services-icmp', 'services-icmp6', 'services-sctp', 'services-gtp']
 group_svc_obj_types = ['service-groups', 'application-site-categories', 'application-sites']
 
 svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObject' ]
@@ -32,5 +31,5 @@ api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',
     'CpmiAnyObject', 'CpmiVsxNetobj', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host', 
-    'cluster-member', 'CpmiVoipSipDomain'
+    'cluster-member', 'CpmiVoipSipDomain', 'security-zone'
 ]

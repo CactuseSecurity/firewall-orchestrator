@@ -115,7 +115,7 @@ def enrich_config (config, mgm_details, limit=150, details_level=cp_const.detail
                         } ] } ] }
                     )
                     logger.debug ('missing obj: ' + obj['name'] + obj['type'])
-                elif (obj['type'] == 'Internet'):
+                elif (obj['type'] in ['Internet', 'security-zone']):
                     config['object_tables'].append(
                         {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {

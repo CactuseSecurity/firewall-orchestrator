@@ -977,7 +977,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task<bool> Save()
+        public async Task<bool> Save(bool noCheck = false)
         {
             try
             {
@@ -985,7 +985,7 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_connection"), userConfig.GetText("U0001"), true);
                 }
-                if(CheckConn())
+                if(noCheck || CheckConn())
                 {
                     if(!SrcReadOnly)
                     {

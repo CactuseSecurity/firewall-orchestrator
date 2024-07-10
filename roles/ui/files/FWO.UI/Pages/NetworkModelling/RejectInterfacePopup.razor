@@ -24,7 +24,7 @@
             <Authorized>
                 @if(!WorkInProgress)
                 {
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="SendReject">@(userConfig.GetText("reject"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Reject">@(userConfig.GetText("reject"))</button>
                 }
                 else
                 {
@@ -56,7 +56,7 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter] 
-    public ModellingConnection InterfaceToReject { get; set; }
+    public ModellingConnectionHandler ConnHandler { get; set; }
 
     [Parameter]
     public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
@@ -78,27 +78,19 @@
         if (Display && firstTry)
         {
             firstTry = false;
-            Message = userConfig.GetText("U9017") + InterfaceToReject.Name + "?";
+            Message = userConfig.GetText("U9017") + ConnHandler.ActConn.Name + "?";
         }
     }
 
-    private async Task SendReject()
+    private async Task Reject()
     {
         WorkInProgress = true;
         try
         {
-            if(InterfaceToReject.TicketId != null)
-            {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Implementer, Roles.Planner, Roles.Approver, Roles.Requester, Roles.Admin, Roles.Auditor]);
-                TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
-                if(await ticketCreator.PromoteTicket(InterfaceToReject.App, (long)InterfaceToReject.TicketId, ExtStates.Rejected, Reason))
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("reject_interface"), userConfig.GetText("U9018"), false);
-                }
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
-
-                await RefreshParent();
-            }
+            ConnHandler.ActConn.AddProperty(ConState.Rejected.ToString());
+            await ConnHandler.Save(true);
+            await RejectInTicket();
+            await RefreshParent();
             Close();
         }
         catch (Exception exception)
@@ -106,6 +98,20 @@
             DisplayMessageInUi(exception, userConfig.GetText("reject_interface"), "", true);
         }
         WorkInProgress = false;
+    }
+
+    private async Task RejectInTicket()
+    {
+        if(ConnHandler.ActConn.TicketId != null)
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Implementer, Roles.Planner, Roles.Approver, Roles.Requester, Roles.Admin, Roles.Auditor]);
+            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
+            if(await ticketCreator.PromoteTicket(ConnHandler.ActConn.App, (long)ConnHandler.ActConn.TicketId, ExtStates.Rejected, Reason))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("reject_interface"), userConfig.GetText("U9018"), false);
+            }
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
+        }
     }
 
     private void Close()

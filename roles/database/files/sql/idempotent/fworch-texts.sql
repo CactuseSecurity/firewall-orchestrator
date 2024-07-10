@@ -5630,6 +5630,18 @@ INSERT INTO txt VALUES ('H8514', 'English', 'External call: Calls to external co
 ');
 INSERT INTO txt VALUES ('H8515', 'German',  'Pfadanalyse: Die in der automatischen Pfadanalyse gefundenen Ger&auml;te werden als Liste der Ger&auml;te eines Zugriffs-Auftrags &uuml;bernommen oder in einem eigenen Fenster dargestellt.');
 INSERT INTO txt VALUES ('H8515', 'English', 'Path Analysis: The devices found in the automatic path analysis are transferred to the list of devices of a request task or displayed in an own window.');
+INSERT INTO txt VALUES ('H8516', 'German',  'Email verschicken: Es k&ouml;nnen Emails mit vorgegebenen Betreff und Inhalt an alle im Workflow bekannten Akteure (Antragsteller, Genehmiger, letzter Kommentator...) geschickt werden.');
+INSERT INTO txt VALUES ('H8516', 'English', 'Send Email: Emails with self defined subject an body can be sent to all known actors in the workflow (requester, approver, last commenter...).');
+INSERT INTO txt VALUES ('H8517', 'German',  'Verbindung anlegen: TBD.');
+INSERT INTO txt VALUES ('H8517', 'English', 'Create Connection: TBD.');
+INSERT INTO txt VALUES ('H8518', 'German',  'Verbindungseigent&uuml;mer &auml;ndern: Der Eigent&uuml;mer einer Verbindung im Modellierungsmodul kann angepasst werden.');
+INSERT INTO txt VALUES ('H8518', 'English', 'Update Connection Owner: To adapt the owner of a connection in the Modelling module.');
+INSERT INTO txt VALUES ('H8519', 'German',  'Verbindung ver&ouml;ffentlichen: Dient der Ver&ouml;ffentlichung einer Verbindung (bzw. Schnittstelle) im Modellierungsmodul.');
+INSERT INTO txt VALUES ('H8519', 'English', 'Publish Connection: To publish a connection (resp. interface) in the Modelling module.');
+INSERT INTO txt VALUES ('H8520', 'German',  'Verbindung darstellen: Darstellen einer Verbindung/Schnittstelle aus dem Modellierungsmodul im Workflow-Kontext (nur lesend).');
+INSERT INTO txt VALUES ('H8520', 'English', 'Display Connection: Display a connection/interface of the Modelling module in workflow context (read only).');
+INSERT INTO txt VALUES ('H8521', 'German',  'Schnittstelle ablehnen: Ablehnen einer beantragten Schnittstelle im Modellierungsmodul.');
+INSERT INTO txt VALUES ('H8521', 'English', 'Reject Interface: Reject a requested interface of the Modelling module.');
 INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfiehlt es sich, in folgenden Schritten vorzugehen:
     <ul>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Auswahl der zu verwendenden Tasktypen</li>
@@ -6181,5 +6193,21 @@ INSERT INTO txt VALUES ('H9052', 'English', 'The assigned modeller can replace t
             </ul>
         </li>
         <li>From the view of the requester there is no difference, whether the interface was newly modelled or replaced by an alredy existing.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H9053', 'German',  'Der beauftragte Modellierer kann die angefragte Schnittstelle ablehnen:
+    <ul>
+        <li>Beim Editieren der beantragten Schnittstelle wird eine Schaltfl&auml;che "Ablehnen" angeboten.</li>
+        <li>Es erscheint ein Fenster, in dem eine Begr&uuml;ndung eingetragen werden kann (dieser wird in das Kommentarfeld des entsprechenden Implementierungsauftrags &uuml;bernommen).</li>
+        <li>Beim Speichern wird die Schnittstelle auf abgelehnt gesetzt und der zugeh&ouml;rige Antrag auf den entsprechenden Status gesetzt.</li>
+        <li>Bei entsprechender Konfiguration durch den Administrator (<a href="/help/workflow/actions">Aktionen</a>) kann die Schnittstelle auch aus dem Workflow-Antrag heraus abgelehnt werden.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H9053', 'English', 'The assigned modeller can reject the requested interface:
+    <ul>
+        <li>When editing the requested interface a button "Reject" is displayed.</li>
+        <li>A pop up window is shown where the reason for the reject can be inserted (which is added to the comments of the respective implementation task).</li>
+        <li>When saving the interface is set to rejected and the respective workflow request is set to the according state.</li>
+        <li>If configured by the administrator (<a href="/help/workflow/actions">Actions</a>), the interface can also be rejected inside the workflow request.</li>
     </ul>
 ');

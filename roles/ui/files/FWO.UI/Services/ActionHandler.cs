@@ -113,9 +113,9 @@ namespace FWO.Ui.Services
                 case nameof(StateActionTypes.SendEmail):
                     await SendEmail(action, statefulObject, scope, owner, userGrpDn);
                     break;
-                case nameof(StateActionTypes.CreateConnection):
-                    await CreateConnection(action, owner);
-                    break;
+                // case nameof(StateActionTypes.CreateConnection):
+                //     await CreateConnection(action, owner);
+                //     break;
                 case nameof(StateActionTypes.UpdateConnectionOwner):
                     await UpdateConnectionOwner(owner, ticketId);
                     break;

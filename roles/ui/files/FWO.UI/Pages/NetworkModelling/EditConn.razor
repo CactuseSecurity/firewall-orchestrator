@@ -347,7 +347,7 @@
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"
         ReplaceMode="ConnHandler.ReplaceMode" Replace="ReplaceInterface"/>
     <DisplayImplementationTask ReqHandler="reqHandler" States="states" IncludePopups="false"/>
-    <RejectInterfacePopup @bind-Display="RejectInterfaceMode" InterfaceToReject="ConnHandler.ActConn" RefreshParent="async () => await ConnHandler.RefreshPreselectedInterfaces()"/>
+    <RejectInterfacePopup @bind-Display="RejectInterfaceMode" ConnHandler="ConnHandler" RefreshParent="async () => await ConnHandler.ReInit()"/>
 }
 
 @code

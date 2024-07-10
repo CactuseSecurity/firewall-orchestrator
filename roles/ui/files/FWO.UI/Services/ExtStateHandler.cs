@@ -1,9 +1,6 @@
-﻿using System.Text.Json;
-using FWO.Api.Data;
-using FWO.Config.Api;
+﻿using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 
 namespace FWO.Ui.Services
 {

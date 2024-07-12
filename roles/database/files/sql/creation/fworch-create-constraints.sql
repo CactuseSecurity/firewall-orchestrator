@@ -41,3 +41,9 @@ EXCLUDE USING gist (
     network_zone_id WITH =,
     numrange(ip_range_start - '0.0.0.0'::inet, ip_range_end - '0.0.0.0'::inet, '[]') WITH &&
 );
+
+ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_is_host CHECK (is_single_ip(ip));
+ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_end_is_host CHECK (is_single_ip(ip_end));
+
+-- Alter Table modelling.service add Constraint "modelling_service_unique_name" UNIQUE ("name", "app_id");
+-- Alter Table modelling.service add Constraint "modelling_service_unique_name_ext_app_id" UNIQUE ("name", "ext_app_id");

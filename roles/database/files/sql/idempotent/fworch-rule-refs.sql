@@ -1,6 +1,3 @@
--- $Id: iso-rule-refs.sql,v 1.1.2.9 2011-09-28 21:33:17 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-rule-refs.sql,v $
-
 ----------------------------------------------------
 -- FUNCTION:  resolve_all_rule_lists
 -- Zweck:     Generiert die Beziehungen in rule_from, rule_to, rule_svc

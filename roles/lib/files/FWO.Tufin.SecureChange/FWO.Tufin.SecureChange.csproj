@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.24" />
-    <PackageReference Include="RestSharp" Version="111.3.0" />
+    <PackageReference Include="RestSharp" Version="111.4.0" />
     <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="111.3.0" />
     <PackageReference Include="RestSharp.Serializers.SystemTextJson" Version="106.15.0" />
   </ItemGroup>

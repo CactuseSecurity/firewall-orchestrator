@@ -78,7 +78,8 @@
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.SrcFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.SourceFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
+                                ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -160,7 +161,8 @@
                     {
                         @if(ConnHandler.ActConn.InterfaceIsRequested || ConnHandler.ActConn.IsRequested)
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
+                                ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -219,7 +221,8 @@
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.DstFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.DestinationFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
+                                ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -319,7 +322,7 @@
                 }
                 else
                 {
-                    @if(ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested)
+                    @if((ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested) && !ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()))
                     {
                         <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     }
@@ -332,7 +335,7 @@
                     {
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(ConnHandler.DisplayButton("remove_interface", Icons.Unuse, "interface"))</button>
                     }
-                    @if(ConnHandler.ActConn.IsRequested)
+                    @if(ConnHandler.ActConn.IsRequested && !ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()))
                     {
                         <button type="button" class="btn btn-sm btn-danger" @onclick="Reject">@(userConfig.GetText("reject"))</button>
                     }
@@ -347,7 +350,7 @@
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"
         ReplaceMode="ConnHandler.ReplaceMode" Replace="ReplaceInterface"/>
     <DisplayImplementationTask ReqHandler="reqHandler" States="states" IncludePopups="false"/>
-    <RejectInterfacePopup @bind-Display="RejectInterfaceMode" ConnHandler="ConnHandler" RefreshParent="async () => await ConnHandler.ReInit()"/>
+    <RejectInterfacePopup @bind-Display="RejectInterfaceMode" ConnHandler="ConnHandler" RefreshParent="async () => {await ConnHandler.ReInit(); Close();}"/>
 }
 
 @code

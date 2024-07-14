@@ -27,7 +27,7 @@ namespace FWO.Ui.Services
             this.apiConnection = apiConnection;
         }
 
-        public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, string reason = "")
+        public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, FwoOwner requestingOwner, string reason = "")
         {
             await reqHandler.Init([owner.Id]);
             stateId = reqHandler.MasterStateMatrix.LowestEndState;
@@ -39,20 +39,25 @@ namespace FWO.Ui.Services
                     Reason = reason
                 },
                 ObjAction.add);
+            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.ReqOwner, requestingOwner.Id.ToString()} };
             reqHandler.SelectReqTask(new RequestReqTask()
                 {
                     StateId = stateId,
                     Title = userConfig.ModReqTaskTitle,
                     TaskType = TaskType.new_interface.ToString(),
                     Owners = [new() { Owner = owner }],
-                    Reason = reason
+                    Reason = reason,
+                    AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
                 },
                 ObjAction.add);
             await reqHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = reqHandler.MasterStateMatrix.LowestEndState}));
             reqHandler.ActTicket.Tasks.Add(reqHandler.ActReqTask);
             reqHandler.AddTicketMode = true;
             long ticketId = await reqHandler.SaveTicket(reqHandler.ActTicket);
-            await AddRequesterInfoToImplTask(ticketId, owner);
+            if(ticketId > 0)
+            {
+                await AddRequesterInfoToImplTask(ticketId, requestingOwner);
+            }
             return ticketId;
         }
 
@@ -65,7 +70,7 @@ namespace FWO.Ui.Services
                 RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
                 if(reqTask != null)
                 {
-                    await reqHandler.AddAdditionalInfoToReqTask(reqTask, connId);
+                    await reqHandler.SetAddInfoInReqTask(reqTask, AdditionalInfoKeys.ConnId, connId.ToString());
                 }
             }
         }
@@ -157,7 +162,7 @@ namespace FWO.Ui.Services
             if(implTask != null)
             {
                 reqHandler.SetImplTaskEnv(implTask);
-                string comment = $"{userConfig.GetText("requested_by")}: {userConfig.User.Name} {userConfig.GetText("for")} {owner.Display()}";
+                string comment = $"{userConfig.GetText("requested_by")}: {userConfig.User.Name}"; // {userConfig.GetText("for")} {owner.Display()}";
                 await reqHandler.ConfAddCommentToImplTask(comment);
             }
         }

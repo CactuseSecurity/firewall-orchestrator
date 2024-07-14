@@ -365,7 +365,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        private async Task RemoveFromAllSelections()
+        public async Task RemoveFromAllSelections()
         {
             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeSelectedConnection, new { connectionId = ActConn.Id });
         }

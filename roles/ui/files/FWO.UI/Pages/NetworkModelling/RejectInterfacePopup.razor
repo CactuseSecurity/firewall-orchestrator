@@ -83,6 +83,7 @@
         {
             ConnHandler.ActConn.AddProperty(ConState.Rejected.ToString());
             await ConnHandler.Save(true);
+            await ConnHandler.RemoveFromAllSelections();
             await RejectInTicket();
             await RefreshParent();
             Close();

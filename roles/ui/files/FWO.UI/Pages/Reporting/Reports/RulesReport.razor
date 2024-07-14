@@ -32,7 +32,7 @@
                                     </Template>
                                 </Column>
                             }
-                            @if(SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules)
+                            @if(SelectedReportType == ReportType.UnusedRules) // || SelectedReportType == ReportType.AppRules)
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(rule => rule.Metadata.LastHit)" Sortable="false" Filterable="false">
                                     <Template>

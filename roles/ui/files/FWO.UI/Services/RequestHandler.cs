@@ -592,11 +592,56 @@ namespace FWO.Ui.Services
             DisplayReqTaskCommentMode = false;
         }
 
-        public async Task AddAdditionalInfoToReqTask(RequestReqTask reqTask, long connId)
+        public string GetRequestingOwner()
+        {
+            int? ownerId = GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner);
+            if(ownerId != null)
+            {
+                return AllOwners.FirstOrDefault(x => x.Id == ownerId)?.Display() ?? "";
+            }
+            return "";
+        }
+
+        public int? GetAddInfoIntValue(string key)
+        {
+            if(int.TryParse(GetAddInfoValue(key), out int value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        public string GetAddInfoValue(string key)
+        {
+            Dictionary<string, string>? addInfo = GetAddInfos();
+            string value = "";
+            if(addInfo != null && addInfo.TryGetValue(key, out value))
+            {
+                return value;
+            }
+            return "";
+        }
+
+        public async Task SetAddInfoInReqTask(RequestReqTask reqTask, string key, string newValue)
         {
             try
             {
-                Dictionary<string, string> addInfo = new() { {"ConnId", connId.ToString()} };
+                Dictionary<string, string>? addInfo = GetAddInfos();
+                if(addInfo == null)
+                {
+                    addInfo = new() { {key, newValue} };
+                }
+                else
+                {
+                    if(addInfo.ContainsKey(key))
+                    {
+                        addInfo[key] = newValue;
+                    }
+                    else
+                    {
+                        addInfo.Add(key, newValue);
+                    }
+                }
                 reqTask.AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
                 await dbAcc.UpdateReqTaskAdditionalInfo(reqTask);
             }
@@ -606,17 +651,13 @@ namespace FWO.Ui.Services
             }
         }
 
-        public long GetConnId()
+        private Dictionary<string, string>? GetAddInfos()
         {
             if(ActReqTask.AdditionalInfo != null && ActReqTask.AdditionalInfo != "")
             {
-                Dictionary<string, string>? addInfo = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(ActReqTask.AdditionalInfo);
-                if(addInfo != null && int.TryParse(addInfo["ConnId"], out int connectionId))
-                {
-                    return connectionId;
-                }
+                return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(ActReqTask.AdditionalInfo);
             }
-            return 0;
+            return null;
         }
 
         public async Task PromoteReqTask(RequestStatefulObject reqTask)
@@ -771,7 +812,7 @@ namespace FWO.Ui.Services
                 }
                 await UpdateActApproval();
                 await UpdateActReqTaskStateFromApprovals();
-                ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
+                SyncActTicketFromReqTask(ActReqTask);
                 await UpdateActTicketStateFromReqTasks();
                 ApproveReqTaskMode = false;
                 DisplayApproveMode = false;
@@ -1240,15 +1281,21 @@ namespace FWO.Ui.Services
                 reqTask.StateId = ActStateMatrix.getDerivedStateFromSubStates(implTaskStates);
             }
             await dbAcc.UpdateReqTaskStateInDb(reqTask);
+            SyncActTicketFromReqTask(reqTask);
         }
 
         public async Task UpdateActReqTaskState()
         {
             await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
-            int idx = ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id);
+            SyncActTicketFromReqTask(ActReqTask);
+        }
+
+        private void SyncActTicketFromReqTask(RequestReqTask reqTask)
+        {
+            int idx = ActTicket.Tasks.FindIndex(x => x.Id == reqTask.Id);
             if(idx >= 0)
             {
-                ActTicket.Tasks[idx] = ActReqTask;
+                ActTicket.Tasks[idx] = reqTask;
             }
         }
 

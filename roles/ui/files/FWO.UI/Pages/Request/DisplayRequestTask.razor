@@ -125,19 +125,41 @@
                     }
                     else if(actTaskType == TaskType.new_interface)
                     {
-                        <div class="col-sm-6">
-                            <div class="form-group row">
-                                @if (ReqHandler.EditReqTaskMode)
-                                {
+                        @if (ReqHandler.EditReqTaskMode)
+                        {
+                            <div class="col-sm-7">
+                                <div class="form-group row">
                                     <SelectOwner @bind-SelectedOwner="actOwner" Apps="ReqHandler.AllOwners" WithConnectionStatus="false" Nullable="true"/>
-                                }
-                                else
-                                {
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
-                                    <label class="col-sm-8 border bg-secondary">@actOwner?.Name</label>
-                                }
+                                </div>
                             </div>
-                        </div>
+                        }
+                        else
+                        {
+                            @if(ReqHandler.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
+                            {
+                                <div class="col-sm-7">
+                                    <div class="form-group row">
+                                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                        <label class="col-sm-9 border bg-secondary">@actOwner?.Display()</label>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="col-sm-4">
+                                    <div class="form-group row">
+                                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                        <label class="col-sm-8 border bg-secondary">@actOwner?.Display()</label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group row">
+                                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("requesting_owner")):</label>
+                                        <label class="col-sm-8 border bg-secondary">@ReqHandler.GetRequestingOwner()</label>
+                                    </div>
+                                </div>
+                            }
+                        }
                     }
                 </div>
                 @if(actTaskType == TaskType.generic)

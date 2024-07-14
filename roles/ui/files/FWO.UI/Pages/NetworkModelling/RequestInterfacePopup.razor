@@ -99,7 +99,7 @@
             {
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin });
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, Reason);
+                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, Reason);
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller });
 
                 if(ticketId > 0)

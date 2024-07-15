@@ -15,7 +15,6 @@
     rule_metadata_id
     rule_created
     rule_first_hit
-    rule_last_hit
     rule_last_modified
     rule_last_certified
     rule_last_certifier_dn

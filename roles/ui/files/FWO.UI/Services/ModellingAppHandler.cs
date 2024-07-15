@@ -123,7 +123,7 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetInterfaces(bool showRejected = false)
         {
-            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface && (showRejected ? true : !x.GetBoolProperty(ConState.Rejected.ToString()))).ToList();
+            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface && (showRejected || !x.GetBoolProperty(ConState.Rejected.ToString()))).ToList();
             tmpList.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
             return tmpList;
         }

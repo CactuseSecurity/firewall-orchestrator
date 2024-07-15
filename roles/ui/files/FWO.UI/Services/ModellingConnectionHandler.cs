@@ -1056,7 +1056,7 @@ namespace FWO.Ui.Services
 
         private void SyncSrcChanges()
         {
-            if(ActConn.IsRequested && SrcFilledInWork(1))
+            if(ActConn.IsInterface && SrcFilledInWork(1))
             {
                 ModellingAppRoleWrapper? linkedDummyAR = ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
                 if (linkedDummyAR != null)
@@ -1092,7 +1092,7 @@ namespace FWO.Ui.Services
 
         private void SyncDstChanges()
         {
-            if(ActConn.IsRequested && DstFilledInWork(1))
+            if(ActConn.IsInterface && DstFilledInWork(1))
             {
                 ModellingAppRoleWrapper? linkedDummyAR = ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
                 if (linkedDummyAR != null)

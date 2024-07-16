@@ -77,10 +77,22 @@
                         <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
                     </Tab>
                     <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
-                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">
-                            @(appHandler.DisplayButton("add_interface", Icons.Add))
-                        </button>
-                        <ConnectionTable Connections="@appHandler.GetInterfaces()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">
+                                    @(appHandler.DisplayButton("add_interface", Icons.Add))
+                                </button>
+                            </div>
+                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+                                <Authorized>
+                                    <div>
+                                        <input type="checkbox" @bind="showRejected">
+                                        <label class="col-form-label">@(userConfig.GetText("displayRejected")):</label>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
+                        </div>
+                        <ConnectionTable Connections="@appHandler.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" />
                     </Tab>
                     @if (selectedApp.CommSvcPossible)
                     {
@@ -130,6 +142,7 @@ else
     private FwoOwner selectedApp = new();
     private bool appSelected = false;
     private bool manualAppServer = false;
+    private bool showRejected = false;
 
     private bool appActive = false;
     private bool showHistory = false;

@@ -380,7 +380,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
-            if(ReportType == ReportType.UnusedRules)
+            if(ReportType == ReportType.UnusedRules) // || ReportType == ReportType.AppRules)
             {
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
@@ -418,7 +418,7 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayRecertIpMatches(rule)}</td>");
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
                         }
-                        if(ReportType == ReportType.UnusedRules)
+                        if(ReportType == ReportType.UnusedRules) // || ReportType == ReportType.AppRules)
                         {
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
                         }

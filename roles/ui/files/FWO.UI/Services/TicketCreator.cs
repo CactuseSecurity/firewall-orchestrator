@@ -11,6 +11,7 @@ namespace FWO.Ui.Services
     {
         private readonly RequestHandler reqHandler;
         private readonly UserConfig userConfig;
+        private readonly ApiConnection apiConnection;
         private int stateId;
         private string ticketTitle = "";
         private string ticketReason = "";
@@ -23,9 +24,10 @@ namespace FWO.Ui.Services
         {
             reqHandler = new (LogMessage, userConfig, authUser, apiConnection, middlewareClient, phase);
             this.userConfig = userConfig;
+            this.apiConnection = apiConnection;
         }
 
-        public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, string reason = "")
+        public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, FwoOwner requestingOwner, string reason = "")
         {
             await reqHandler.Init([owner.Id]);
             stateId = reqHandler.MasterStateMatrix.LowestEndState;
@@ -37,20 +39,25 @@ namespace FWO.Ui.Services
                     Reason = reason
                 },
                 ObjAction.add);
+            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.ReqOwner, requestingOwner.Id.ToString()} };
             reqHandler.SelectReqTask(new RequestReqTask()
                 {
                     StateId = stateId,
                     Title = userConfig.ModReqTaskTitle,
                     TaskType = TaskType.new_interface.ToString(),
                     Owners = [new() { Owner = owner }],
-                    Reason = reason
+                    Reason = reason,
+                    AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
                 },
                 ObjAction.add);
             await reqHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = reqHandler.MasterStateMatrix.LowestEndState}));
             reqHandler.ActTicket.Tasks.Add(reqHandler.ActReqTask);
             reqHandler.AddTicketMode = true;
             long ticketId = await reqHandler.SaveTicket(reqHandler.ActTicket);
-            await AddRequesterInfoToImplTask(ticketId, owner);
+            if(ticketId > 0)
+            {
+                await AddRequesterInfoToImplTask(ticketId, requestingOwner);
+            }
             return ticketId;
         }
 
@@ -63,13 +70,15 @@ namespace FWO.Ui.Services
                 RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
                 if(reqTask != null)
                 {
-                    await reqHandler.AddAdditionalInfoToReqTask(reqTask, connId);
+                    await reqHandler.SetAddInfoInReqTask(reqTask, AdditionalInfoKeys.ConnId, connId.ToString());
                 }
             }
         }
 
-        public async Task<bool> PromoteTicket(FwoOwner owner, long ticketId, string comment = "")
+        public async Task<bool> PromoteTicket(FwoOwner owner, long ticketId, ExtStates extState, string comment = "")
         {
+            ExtStateHandler extStateHandler = new(apiConnection);
+            await extStateHandler.Init();
             await reqHandler.Init([owner.Id]);
             RequestImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
             if(implTask != null)
@@ -79,9 +88,12 @@ namespace FWO.Ui.Services
                 {
                     await reqHandler.ConfAddCommentToImplTask(comment);
                 }
-                int newState = reqHandler.MasterStateMatrix.LowestEndState;
-                await reqHandler.PromoteImplTask(new(){ StateId = newState });
-                return true;
+                int? newState = extStateHandler.GetInternalStateId(extState);
+                if(newState != null)
+                {
+                    await reqHandler.PromoteImplTask(new(){ StateId = (int)newState });
+                    return true;
+                } 
             }
             return false;
         }
@@ -150,7 +162,7 @@ namespace FWO.Ui.Services
             if(implTask != null)
             {
                 reqHandler.SetImplTaskEnv(implTask);
-                string comment = $"{userConfig.GetText("requested_by")}: {userConfig.User.Name} {userConfig.GetText("for")} {owner.Display()}";
+                string comment = $"{userConfig.GetText("requested_by")}: {userConfig.User.Name}"; // {userConfig.GetText("for")} {owner.Display()}";
                 await reqHandler.ConfAddCommentToImplTask(comment);
             }
         }

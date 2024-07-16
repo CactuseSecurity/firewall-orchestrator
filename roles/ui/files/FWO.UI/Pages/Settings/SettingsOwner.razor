@@ -1,5 +1,6 @@
 ﻿@using System.Net
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 @using FWO.Middleware.Client
@@ -333,14 +334,14 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<FwoOwner> owners = new List<FwoOwner>();
-    private List<FwoOwner> sampleOwners = new List<FwoOwner>();
-    private FwoOwner actOwner = new FwoOwner();
+    private List<FwoOwner> owners = [];
+    private List<FwoOwner> sampleOwners = [];
+    private FwoOwner actOwner = new();
     private Tenant? selectedTenant;
     private DayOfWeek? selectedDayOfWeek;
     private RecertRefresh recertRefresh;
-    private List<Management> managements = new List<Management>();
-    private List<Tenant> tenants = new List<Tenant>();
+    private List<Management> managements = [];
+    private List<Tenant> tenants = [];
 
     private bool showCleanupButton = false;
     private bool CleanupMode = false;
@@ -352,25 +353,25 @@ else
     private bool SearchMode = false;
     private bool UserSearchMode = false;
     private bool InitComplete = false;
-    private RecertCheckParams actRecCheckParams = new RecertCheckParams();
+    private RecertCheckParams actRecCheckParams = new();
     private bool recertCalcInProgress = false;
 
-    private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
-    private List<NwObjectElement> ipsToAdd = new List<NwObjectElement>();
-    private List<NwObjectElement> ipsToDelete = new List<NwObjectElement>();
-    private List<Rule> actRules = new List<Rule>();
-    private List<Rule> rulesToAdd = new List<Rule>();
-    private List<Rule> rulesToDelete = new List<Rule>();
+    private List<NwObjectElement> actIpAddresses = [];
+    private List<NwObjectElement> ipsToAdd = [];
+    private List<NwObjectElement> ipsToDelete = [];
+    private List<Rule> actRules = [];
+    private List<Rule> rulesToAdd = [];
+    private List<Rule> rulesToDelete = [];
 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             AnalyseSampleOwners();
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
-            recertRefresh = new RecertRefresh(apiConnection);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+            recertRefresh = new(apiConnection);
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
@@ -379,7 +380,7 @@ else
             }
             else
             {
-                tenants = new List<Tenant>();
+                tenants = [];
                 foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
                 {
                     tenants.Add(new Tenant(apiTenant));
@@ -395,7 +396,7 @@ else
 
     private void AnalyseSampleOwners()
     {
-        sampleOwners = new List<FwoOwner>();
+        sampleOwners = [];
         foreach (var owner in owners)
         {
             if (owner.Name.EndsWith("_demo"))
@@ -433,8 +434,8 @@ else
             }
             else
             {
-                actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(FWO.Api.Client.Queries.OwnerQueries.getNetworkOwnerships, new { ownerId = actOwner.Id });
-                actRules= await apiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.OwnerQueries.getRuleOwnerships, new { ownerId = actOwner.Id });
+                actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(OwnerQueries.getNetworkOwnerships, new { ownerId = actOwner.Id });
+                actRules= await apiConnection.SendQueryAsync<List<Rule>>(OwnerQueries.getRuleOwnerships, new { ownerId = actOwner.Id });
             }
             ipsToAdd.Clear();
             ipsToDelete.Clear();
@@ -497,7 +498,7 @@ else
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible
         };
-        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, Variables)).ReturnIds;
         if (returnIds == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
@@ -525,7 +526,7 @@ else
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible
         };
-        int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
+        int udId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwner, Variables)).UpdatedId;
         if(udId != actOwner.Id)
         {
             DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5291"), true);
@@ -549,7 +550,7 @@ else
                 ownerId = actOwner.Id,
                 ruleMetadataId = rule.Metadata.Id
             };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newRuleOwnership, Variables);
+            await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newRuleOwnership, Variables);
             actRules.Add(rule);
         }
     }
@@ -563,7 +564,7 @@ else
                 ownerId = actOwner.Id,
                 ruleMetadataId = rule.Metadata.Id
             };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.deleteRuleOwnership, Variables);
+            await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.deleteRuleOwnership, Variables);
             actRules.Remove(rule);
         }
     }
@@ -578,7 +579,7 @@ else
                 ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null), 
                 ip_end = (ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid  && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null)
             };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newNetworkOwnership, Variables);
+            await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newNetworkOwnership, Variables);
             actIpAddresses.Add(ipAdd);
         }
     }
@@ -592,7 +593,7 @@ else
                 ownerId = actOwner.Id,
                 id = ipDel.ElemId
             };
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteNetworkOwnership, Variables);
+            await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteNetworkOwnership, Variables);
             actIpAddresses.Remove(ipDel);
         }
     }
@@ -616,7 +617,7 @@ else
     {
         try
         {
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteOwner, new { id = actOwner.Id });
+            await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteOwner, new { id = actOwner.Id });
             owners.Remove(actOwner);
             DeleteOwnerMode = false;
         }

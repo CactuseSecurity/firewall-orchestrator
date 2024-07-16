@@ -113,9 +113,9 @@ namespace FWO.Ui.Services
                 case nameof(StateActionTypes.SendEmail):
                     await SendEmail(action, statefulObject, scope, owner, userGrpDn);
                     break;
-                case nameof(StateActionTypes.CreateConnection):
-                    await CreateConnection(action, owner);
-                    break;
+                // case nameof(StateActionTypes.CreateConnection):
+                //     await CreateConnection(action, owner);
+                //     break;
                 case nameof(StateActionTypes.UpdateConnectionOwner):
                     await UpdateConnectionOwner(owner, ticketId);
                     break;
@@ -186,7 +186,7 @@ namespace FWO.Ui.Services
             {
                 if(owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetRole(Roles.Modeller);
+                    apiConnection.SetProperRole(requestHandler.AuthUser, [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -218,7 +218,7 @@ namespace FWO.Ui.Services
             {
                 if(owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetRole(Roles.Modeller);
+                    apiConnection.SetProperRole(requestHandler.AuthUser, [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -254,9 +254,9 @@ namespace FWO.Ui.Services
             Log.WriteDebug("UpdateConnectionReject", "Perform Action");
             try
             {
-                if(owner != null && ticketId != null) // todo: role check
+                if(owner != null && ticketId != null)
                 {
-                    apiConnection.SetRole(Roles.Modeller);
+                    apiConnection.SetProperRole(requestHandler.AuthUser, [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -294,11 +294,11 @@ namespace FWO.Ui.Services
                     requestHandler.SetReqTaskEnv(reqTask);
                 }
                 FwoOwner? owner = requestHandler.ActReqTask.Owners?.First()?.Owner;
-                if(owner != null)
+                if(owner != null && requestHandler.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
                 {
                     apiConnection.SetProperRole(requestHandler.AuthUser, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
-                    ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == requestHandler.GetConnId());
+                    ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == requestHandler.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
                     if(conn != null)
                     {
                         ConnHandler = new ModellingConnectionHandler(apiConnection, requestHandler.userConfig, owner ?? new(), Connections, conn, false, true, DefaultInit.DoNothing, DefaultInit.DoNothing, false);

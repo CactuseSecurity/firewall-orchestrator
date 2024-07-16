@@ -192,7 +192,7 @@
     {
         try
         {
-            existingDevices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            existingDevices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
         }
         catch (Exception exception)
         {
@@ -228,7 +228,7 @@
     {
         try
         {
-            existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            existingManagements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             managementsToDisplay = new List<Management>();
             headerText = "";
             actAlertId = null;
@@ -509,7 +509,7 @@
                     debugLevel = discMgmt.DebugLevel,
                     comment = discMgmt.Comment
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newManagement, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     discMgmt.Id = returnIds[0].NewId;
@@ -595,7 +595,7 @@
                     hideInUi = discoveredDevice.HideInUi,
                     comment = discoveredDevice.Comment
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newDevice, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
@@ -650,7 +650,7 @@
             else
             {
                 var Variables = new { id = actManagement.Id };
-                int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+                int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
                 if (delId == actManagement.Id)
                 {
                     existingManagements.Remove(actManagement);
@@ -676,7 +676,7 @@
         try
         {
             var Variables = new { id = management.Id, importDisabled = disable };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.changeManagementState, Variables)).UpdatedId;
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.changeManagementState, Variables)).UpdatedId;
             if (udId == management.Id)
             {
                 if(disable)
@@ -701,7 +701,7 @@
         try
         {
             var Variables = new { id = actDevice.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteDevice, Variables)).DeletedId;
             if (delId == actDevice.Id)
             {
                 // remove device from existing management
@@ -723,7 +723,7 @@
         try
         {
             var Variables = new { id = device.Id, importDisabled = disable };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.changeDeviceState, Variables)).UpdatedId;
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.changeDeviceState, Variables)).UpdatedId;
             if (udId == device.Id)
             {
                 if(disable)
@@ -840,7 +840,7 @@
         try
         {
             var Variables = new { tenantId = 1, deviceId = deviceId };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addDeviceToTenant, Variables);
+            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addDeviceToTenant, Variables);
         }
         catch (System.Exception exception)
         {

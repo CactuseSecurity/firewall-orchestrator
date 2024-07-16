@@ -1,4 +1,5 @@
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Config.Api
@@ -75,11 +76,11 @@
                     }
                     else if(ReqHandler.ActImplTask.TaskType == TaskType.new_interface.ToString())
                     {
-                        <div class="col-sm-6">
+                        <div class="col-sm-8">
                             <div class="form-group row">
                                 @if (ReqHandler.ImplementImplTaskMode)
                                 {
-                                    <div class="col-sm-11">
+                                    <div class="col-sm-9">
                                         <SelectOwner @bind-SelectedOwner="actOwner" Apps="ReqHandler.AllOwners" WithConnectionStatus="false" />
                                     </div>
                                     @if(actOwner != oldOwner)
@@ -92,8 +93,26 @@
                                 }
                                 else
                                 {
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
-                                    <label class="col-sm-8 border bg-secondary">@actOwner?.Display()</label>
+                                    @if(ReqHandler.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
+                                    {
+                                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                        <label class="col-sm-8 border bg-secondary">@actOwner?.Display()</label>
+                                    }
+                                    else
+                                    {
+                                        <div class="col-sm-6">
+                                            <div class="form-group row">
+                                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                                <label class="col-sm-8 border bg-secondary">@actOwner?.Display()</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group row">
+                                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("requesting_owner")):</label>
+                                                <label class="col-sm-8 border bg-secondary">@ReqHandler.GetRequestingOwner()</label>
+                                            </div>
+                                        </div>
+                                    }
                                 }
                             </div>
                         </div>
@@ -323,8 +342,8 @@
     {
         try
         {
-            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
-            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
+            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
+            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
             firstParamSet = true;
         }
         catch (Exception exception)

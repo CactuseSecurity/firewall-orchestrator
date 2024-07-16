@@ -1,0 +1,163 @@
+﻿@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+
+<PopUp Title="@(userConfig.GetText("ext_states"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div class="m-2 vheight75">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestExtState" Items="allExtStates" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="RequestExtState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExtState(context)">
+                                    @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="RequestExtState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" />
+                    <Column TableItem="RequestExtState" Title="@(userConfig.GetText("external_state_name"))" Field="@(x => x.Name)" Sortable="true" Filterable="false" />
+                    <Column TableItem="RequestExtState" Title="@(userConfig.GetText("internal_state_name"))" Field="@(x => x.Name)" Sortable="true" Filterable="false" >
+                        <Template>
+                            @(States.FirstOrDefault(x => x.Id == context.StateId)?.Name)
+                        </Template>
+                    </Column>
+                </Table>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("assign_state_to") + actExtState.Name)" Show="@SelectStateMode" Size=PopupSize.Small OnClose="CloseSelect">
+    <Body>
+        @if (SelectStateMode)
+        {
+            <div class="col-sm-9">
+                <Dropdown ElementType="RequestState" @bind-SelectedElement="selectedState" ElementToString="@(s => s.Name)" Elements="States" Nullable="true">
+                    <ElementTemplate Context="state">
+                        @state.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="ApplySelection">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseSelect">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public List<RequestState> States { get; set; } = [];
+
+
+    private List<RequestExtState> allExtStates = [];
+    private RequestExtState actExtState = new();
+    private bool SelectStateMode = false;
+    private RequestState? incomingState;
+    private RequestState? selectedState;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshExtStates();
+    }
+
+    private async Task RefreshExtStates()
+    {
+        try
+        {
+            allExtStates = await apiConnection.SendQueryAsync<List<RequestExtState>>(RequestQueries.getExtStates);
+            foreach(var extState in Enum.GetNames(typeof(ExtStates)))
+            {
+                if(allExtStates.FirstOrDefault(x => x.Name == extState) == null)
+                {
+                    allExtStates.Add(new(){ Name = extState });
+                }
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void EditExtState(RequestExtState extState)
+    {
+        actExtState = extState;
+        incomingState = States.FirstOrDefault(s => s.Id == extState.StateId);
+        selectedState = incomingState;
+        SelectStateMode = true;
+    }
+
+    private async Task ApplySelection()
+    {
+        try
+        {
+            if(selectedState != incomingState)
+            {
+                if(actExtState.Id > 0)
+                {
+                    await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.removeExtState, new { id = actExtState.Id });
+                }
+                if(selectedState != null)
+                {
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(RequestQueries.addExtState,
+                        new { name = actExtState.Name, stateId = selectedState.Id })).ReturnIds;
+                    if (returnIds != null)
+                    {
+                        actExtState.Id = returnIds[0].NewId;
+                    }
+                }
+                RefreshExtStates();
+            }
+            CloseSelect();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("save_ext_states"), "", true);
+        }
+    }
+
+    private void CloseSelect()
+    {
+        SelectStateMode = false;
+    }
+
+    private void Close()
+    {
+        SelectStateMode = false;
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

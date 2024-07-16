@@ -34,6 +34,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getStates;
         public static readonly string upsertState;
         public static readonly string deleteState;
+        public static readonly string getExtStates;
+        public static readonly string addExtState;
+        public static readonly string removeExtState;
         public static readonly string getActions;
         public static readonly string newAction;
         public static readonly string updateAction;
@@ -84,6 +87,9 @@ namespace FWO.Api.Client.Queries
                 getStates = File.ReadAllText(QueryPath + "request/getStates.graphql");
                 upsertState = File.ReadAllText(QueryPath + "request/upsertState.graphql");
                 deleteState = File.ReadAllText(QueryPath + "request/deleteState.graphql");
+                getExtStates = File.ReadAllText(QueryPath + "request/getExtStates.graphql");
+                addExtState = File.ReadAllText(QueryPath + "request/addExtState.graphql");
+                removeExtState = File.ReadAllText(QueryPath + "request/removeExtState.graphql");
                 getActions = File.ReadAllText(QueryPath + "request/getActions.graphql");
                 newAction = File.ReadAllText(QueryPath + "request/newAction.graphql");
                 updateAction = File.ReadAllText(QueryPath + "request/updateAction.graphql");

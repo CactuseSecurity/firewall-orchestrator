@@ -1032,7 +1032,7 @@ Create table "config"
 create table owner
 (
     id SERIAL PRIMARY KEY,
-    name Varchar UNIQUE NOT NULL,
+    name Varchar NOT NULL,
     dn Varchar NOT NULL,
     group_dn Varchar NOT NULL,
     is_default boolean default false,
@@ -1218,6 +1218,13 @@ create table request.state
 (
     id Integer NOT NULL UNIQUE PRIMARY KEY,
     name Varchar NOT NULL
+);
+
+create table request.ext_state
+(
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL,
+	state_id Integer
 );
 
 create table request.action

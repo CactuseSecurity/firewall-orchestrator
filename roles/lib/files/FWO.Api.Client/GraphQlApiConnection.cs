@@ -63,6 +63,7 @@ namespace FWO.Api.Client
 
         public override void SetRole(string role)
         {
+            prevRole = GetActRole();
             graphQlClient.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
             graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
         }
@@ -106,7 +107,10 @@ namespace FWO.Api.Client
 
         public override void SwitchBack()
         {
-            SetRole(prevRole);
+            if(prevRole != "")
+            {
+                SetRole(prevRole);
+            }
         }
 
         /// <summary>

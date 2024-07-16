@@ -1,6 +1,7 @@
 ﻿@using FWO.Config.Api
 @using FWO.GlobalConstants
 @using FWO.Api.Data
+@using FWO.Api.Client.Queries
 @using System.Text.Json
 @using System.Net
 @using FWO.Middleware.Client
@@ -126,11 +127,11 @@
             {
                 if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 {
-                    managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                    managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
                 }
                 else
                 {
-                    managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+                    managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
                 }
                 await Refresh();
             }
@@ -231,9 +232,9 @@
 
             List<Management> managements = new List<Management>();
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             else
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
 
             int deletedSampleManagements = 0;
             foreach (var management in managements)
@@ -247,7 +248,7 @@
                 }
             }
 
-            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
             int deletedSampleCredentials = 0;
             foreach (var credential in credentials)
             {
@@ -260,7 +261,7 @@
                 }
             }
 
-            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
+            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
             int deletedSampleUsers = 0;
             foreach (var user in users)
             {
@@ -273,7 +274,7 @@
                 }
             }
 
-            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
             int deletedSampleTenants = 0;
             foreach (var tenant in tenants)
             {
@@ -303,7 +304,7 @@
                 }
             }
 
-            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             int deletedSampleOwners = 0;
             foreach (var owner in owners)
             {
@@ -364,7 +365,7 @@
         try
         {
             var Variables = new { id = management.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == management.Id)
             {
                 return true;
@@ -382,7 +383,7 @@
         try
         {
             var Variables = new { id = credential.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteCredential, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteCredential, Variables)).DeletedId;
             if (delId == credential.Id)
             {
                 return true;
@@ -470,7 +471,7 @@
         try
         {
             var Variables = new { id = owner.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteOwner, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteOwner, Variables)).DeletedId;
             if (delId == owner.Id)
             {
                 return true;

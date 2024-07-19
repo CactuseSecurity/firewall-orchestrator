@@ -1,9 +1,6 @@
 # library for FWORCH API calls
-# from asyncio.log import logger
 import re
 import traceback
-# from sqlite3 import Timestamp
-# from textwrap import indent
 import requests.packages
 import requests
 import json
@@ -13,8 +10,9 @@ import gnupg
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
+import time
 
-
+from fwo_const import fwo_config_filename
 from fwo_log import getFwoLogger
 import fwo_globals
 import fwo_const
@@ -327,11 +325,11 @@ def count_changes_per_import(fwo_api_base_url, jwt, import_id):
     return changes_in_import
 
 
-def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_count, change_count):
+def unlock_import(importState):
     logger = getFwoLogger()
     error_during_import_unlock = 0
-    query_variables = {"stopTime": stop_time, "importId": current_import_id,
-                       "success": error_count == 0, "changesFound": change_count > 0, "changeNumber": change_count}
+    query_variables = {"stopTime": datetime.datetime.now().isoformat(), "importId": importState.ImportId,
+                       "success": importState.ErrorCount == 0, "changesFound": importState.ChangeCount > 0, "changeNumber": importState.ChangeCount}
 
     unlock_mutation = """
         mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!, $changeNumber: Int!) {
@@ -341,11 +339,11 @@ def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, e
         }"""
 
     try:
-        unlock_result = call(fwo_api_base_url, jwt, unlock_mutation,
+        unlock_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, unlock_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_import_control = unlock_result['data']['update_import_control']['affected_rows']
     except:
-        logger.exception("failed to unlock import for management id " + str(mgm_id))
+        logger.exception("failed to unlock import for management id " + str(importState.MgmDetails.Id))
         error_during_import_unlock = 1
     return error_during_import_unlock
 
@@ -672,8 +670,8 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
         jsonData.update({"severity": severity})
     if import_id != None:
         jsonData.update({"import_id": import_id})
-    if mgm_details != None and 'name' in mgm_details:
-        jsonData.update({"mgm_name": mgm_details['name']})
+    if mgm_details != None:
+        jsonData.update({"mgm_name": mgm_details.Name})
     query_variables.update({"jsonData": json.dumps(jsonData)})
 
     # write data issue to alert.log file as well
@@ -697,3 +695,46 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
         logger.error("failed to create alert entry: " + json.dumps(query_variables))
         return False
     return True
+
+
+def complete_import(importState):
+    logger = getFwoLogger()
+    
+    success = (importState.ErrorCount==0)
+    try:
+        log_import_attempt(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, importState.MgmDetails.Id, successful=success)
+    except:
+        logger.error('error while trying to log import attempt')
+
+    try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
+        if delete_json_config_in_import_table(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, {"importId": importState.ImportId})<0:
+            importState.ErrorCount += 1
+    except:
+        logger.error("import_management - unspecified error cleaning up import_config: " + str(traceback.format_exc()))
+
+    try: # CLEANUP: delete data of this import from import_object/rule/service/user tables
+        if delete_import_object_tables(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, {"importId": importState.ImportId})<0:
+            importState.ErrorCount += 1
+    except:
+        logger.error("import_management - unspecified error cleaning up import_ object tables: " + str(traceback.format_exc()))
+
+    try: # finalize import by unlocking it
+        importState.ErrorCount += unlock_import(importState)
+    except:
+        logger.error("import_management - unspecified error while unlocking import: " + str(traceback.format_exc()))
+
+    import_result = "import_management: import no. " + str(importState.ImportId) + \
+            " for management " + importState.MgmDetails.Name + ' (id=' + str(importState.MgmDetails.Id) + ")" + \
+            str(" threw errors," if importState.ErrorCount else " successful,") + \
+            " change_count: " + str(importState.ChangeCount) + \
+            ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
+    import_result += ", ERRORS: " + importState.ErrorString if len(importState.ErrorString) > 0 else ""
+    
+    if importState.ErrorCount>0:
+        create_data_issue(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.ErrorString)
+        setAlert(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
+            description=importState.ErrorString, source='import', alertCode=14, mgm_details=importState.MgmDetails)
+
+    logger.info(import_result)
+
+    return importState.ErrorCount

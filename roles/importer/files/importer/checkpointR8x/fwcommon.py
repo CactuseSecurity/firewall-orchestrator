@@ -14,7 +14,7 @@ from cp_user import parse_user_objects_from_rulebase
 
 def has_config_changed (full_config, mgm_details, force=False):
 
-    if full_config != {}:   # a native config was passed in, so we assume that an import has to be done (simulating changes here)
+    if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
         return 1
 
     domain, _ = prepare_get_vars(mgm_details)
@@ -85,20 +85,13 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
 
 
 def prepare_get_vars(mgm_details):
-
     # from 5.8 onwards: preferably use domain uid instead of domain name due to CP R81 bug with certain installations
     if mgm_details['domainUid'] != None:
         domain = mgm_details['domainUid']
     else:
         domain = mgm_details['configPath']
     api_host = mgm_details['hostname']
-    api_user =  mgm_details['import_credential']['user']
-    if mgm_details['domainUid'] != None:
-        api_domain = mgm_details['domainUid']
-    else:
-        api_domain = mgm_details['configPath']
     api_port = str(mgm_details['port'])
-    api_password = mgm_details['import_credential']['secret']
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
 
     return domain, base_url

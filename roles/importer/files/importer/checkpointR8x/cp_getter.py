@@ -9,7 +9,6 @@ from fwo_log import getFwoLogger
 import fwo_globals
 import cp_network
 import cp_const
-import traceback
 
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
@@ -224,7 +223,6 @@ def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=None
             else:
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
 
-    #################################################################################
     # adding inline and domain layers (if they exist)
     add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules)    
 
@@ -353,12 +351,15 @@ def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_ur
         # these must be added to the (network) objects tables
         if matchedObj['type'] == 'CpmiVoipSipDomain':
             logger.info(f"adding voip domain '{matchedObj['name']}' object manually, because it is not retrieved by show objects API command")
-            nativeConfig['object_tables'].append({ 
-                    "object_type": "hosts", "object_chunks": [ {
-                    "objects": [ {
-                    'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': matchedObj['color'],
-                    'type': matchedObj['type']
-                } ] } ] } )
+            if 'object_tables' in nativeConfig:
+                nativeConfig['object_tables'].append({ 
+                        "object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': matchedObj['color'],
+                        'type': matchedObj['type']
+                    } ] } ] } )
+            else:
+                logger.warning(f"found no existing object_tables while adding voip domain '{matchedObj['name']}' object")
 
         return matchedObj
 

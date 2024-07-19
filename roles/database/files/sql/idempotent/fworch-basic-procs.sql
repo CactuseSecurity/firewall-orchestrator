@@ -377,7 +377,7 @@ $$
 LANGUAGE plpgsql;
 
 ---------------------------------------------------------------------------------------
--- Entfiernt Tabs und Leerzeichen am Anfang und Ende des Strings
+-- Entfernt Tabs und Leerzeichen am Anfang und Ende des Strings
 CREATE OR REPLACE FUNCTION del_surrounding_spaces (varchar)
     RETURNS varchar
     AS $$

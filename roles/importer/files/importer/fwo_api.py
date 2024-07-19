@@ -349,9 +349,9 @@ def unlock_import(importState):
 
 
 # this effectively clears the management!
-def delete_import(fwo_api_base_url, jwt, current_import_id):
+def delete_import(importState):
     logger = getFwoLogger()
-    query_variables = {"importId": current_import_id}
+    query_variables = {"importId": importState.ImportId}
 
     delete_import_mutation = """
         mutation deleteImport($importId: bigint!) {
@@ -359,12 +359,12 @@ def delete_import(fwo_api_base_url, jwt, current_import_id):
         }"""
 
     try:
-        result = call(fwo_api_base_url, jwt, delete_import_mutation,
+        result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_import_mutation,
                       query_variables=query_variables, role='importer')
         api_changes = result['data']['delete_import_control']['affected_rows']
     except:
         logger.exception(
-            "fwo_api: failed to unlock import for import id " + str(current_import_id))
+            "fwo_api: failed to unlock import for import id " + str(importState.ImportId))
         return 1  # signaling an error
     if api_changes == 1:
         return 0        # return code 0 is ok

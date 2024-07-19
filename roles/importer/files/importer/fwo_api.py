@@ -390,7 +390,9 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
         if 'errors' in import_result:
             logger.exception("fwo_api:import_json_config - error while writing importable config for mgm id " +
                               str(mgm_id) + ": " + str(import_result['errors']))
-        changes_in_import_control = import_result['data']['insert_import_config']['affected_rows']
+            return 1 # error
+        else:
+            changes_in_import_control = import_result['data']['insert_import_config']['affected_rows']
     except:
         logger.exception("failed to write importable config for mgm id " + str(mgm_id))
         return 1 # error

@@ -145,6 +145,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
     importState = initializeImport(mgmId, debugLevel=debug_level_in, force=force)
     logger = getFwoLogger()
+    config_changed_since_last_import = True
   
     if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
         logger.info("import_management - import disabled for mgm " + str(mgmId))
@@ -180,9 +181,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         configObj = FwConfig(configFromFile['config-format'], configFromFile['fw-config'])
                     else:
                         configObj = FwConfig(configFromFile['config-format'], configFromFile)
-                else:   # assuming normalized config
-                    config2import = configFromFile
-                    configObj = FwConfig('normalized', configFromFile)
+                else:   # assuming native config
+                    # config2import = configFromFile
+                    configObj = FwConfig('native', configFromFile)
 
             if configObj.ConfigFormat != 'normalized':
                 # before importing from normalized config file, we need to replace the import id:

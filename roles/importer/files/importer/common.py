@@ -203,8 +203,8 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         if config_changed_since_last_import or importState.ForceImport:
             try: # now we import the config via API chunk by chunk:
                 for config_chunk in split_config(config2import, importState.ImportId, mgmId):
-                    importState.ErrorCount += fwo_api.import_json_config(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, mgmId, config_chunk)
-                    fwo_api.update_hit_counter(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, mgmId, config_chunk)
+                    importState.ErrorCount += fwo_api.import_json_config(importState, config_chunk)
+                    fwo_api.update_hit_counter(importState, config_chunk)
             except:
                 logger.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
                 raise
@@ -213,7 +213,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
             error_from_imp_control = "assuming error"
             try: # checking for errors during stored_procedure db imort in import_control table
-                error_from_imp_control = fwo_api.get_error_string_from_imp_control(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, {"importId": importState.ImportId})
+                error_from_imp_control = fwo_api.get_error_string_from_imp_control(importState, {"importId": importState.ImportId})
             except:
                 logger.error("import_management - unspecified error while getting error string: " + str(traceback.format_exc()))
 
@@ -241,7 +241,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
             if (importState.DebugLevel>5 or change_count > 0 or importState.ErrorCount > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
                 try:  # store full config in DB
-                    importState.setErrorCounter(importState.ErrorCount + fwo_api.store_full_json_config(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, mgmId, {
+                    importState.setErrorCounter(importState.ErrorCount + fwo_api.store_full_json_config(importState, {
                         "importId": importState.ImportId, "mgmId": mgmId, "config": full_config_json}))
                 except:
                     logger.error("import_management - unspecified error while storing full config: " + str(traceback.format_exc()))

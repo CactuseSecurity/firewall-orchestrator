@@ -47,18 +47,18 @@ def readJsonConfigFromFile(importState, config):
             # check if response "r" is defined:
             r
             
-            error_string = 'got HTTP status code{code} while trying to read config file from URL {filename}'.format(code=str(r.status_code), filename=filename)
+            importState.setErrorString('got HTTP status code{code} while trying to read config file from URL {filename}'.format(code=str(r.status_code), filename=filename))
         except NameError:
-            error_string = 'got error while trying to read config file from URL {filename}'.format(filename=filename)
-        error_count += 1
-        error_count = complete_import(importState)
-        raise ConfigFileNotFound(error_string) from None
+            importState.setErrorString('got error while trying to read config file from URL {filename}'.format(filename=filename))
+        importState.setErrorCounter(importState.ErrorCount+1)
+        complete_import(importState)
+        raise ConfigFileNotFound(importState.ErrorString) from None
     except:
         # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
-        error_string = "Could not read config file {filename}".format(filename=filename)
-        error_count += 1
-        error_count = complete_import(importState)
-        raise ConfigFileNotFound(error_string) from None
+        importState.setErrorString("Could not read config file {filename}".format(filename=filename))
+        importState.setErrorCounter(importState.ErrorCount+1)
+        complete_import(importState)
+        raise ConfigFileNotFound(importState.ErrorString) from None
     
     replace_device_id(config, importState.MgmDetails)
 

@@ -173,7 +173,11 @@ if __name__ == "__main__":
                 naId = subnet[nameColumn][2:4]
                 subnetIp = subnet[ipColumn]
                 netmask = subnet[maskColumn]
-                cidr = str(ipaddress.ip_network(subnetIp + '/' + netmask))
+                try:
+                    cidr = str(ipaddress.ip_network(subnetIp + '/' + netmask))
+                except:
+                    logger.warning('found line with unparsable IP: ' + subnetIp + '/' + netmask)
+                    continue
                 
                 nameParts = subnet[nameColumn].split('.')
                 if len(nameParts)>1:

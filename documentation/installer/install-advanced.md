@@ -1,6 +1,6 @@
 # Advanced installation options
 
-always change into the firewwall-orchestrator directory before starting the installation!
+always change into the firewwall-orchestrator directory before starting the installation.
 
 ## Install parameters
 
@@ -38,7 +38,7 @@ ansible-playbook site.yml -K
 ### Installation behind a proxy (no direct Internet connection)
 
 By default, during installation or upgrade the proxy settings are read from the OS environment of the installer host.
-For example you may have a global system-wide config file /etc/profile.d/proxy.sh with the following content:
+For example you may either use /etc/environment or add a global system-wide config file /etc/profile.d/proxy.sh and add the following content:
 
 ```console
 export http_proxy=http://proxy.int:3128
@@ -49,7 +49,7 @@ export no_proxy=127.0.0.1,localhost
 Also make sure that your proxy is configured in your .gitconfig to be able to do the initial repo cloning.
 See https://gist.github.com/evantoli/f8c23a37eb3558ab8765.
 
-If instead you need to individually set a proxy before installation/upgrade, use the following comamnds in your terminal:
+If instead you need to individually set a proxy before installation/upgrade, use the following commands in your terminal:
 ```console
 export http_proxy=http://proxy.int:3128
 export https_proxy=http://proxy.int:3128
@@ -88,6 +88,8 @@ NB: for vscode-debugging, you also need access to
     visualstudio.com
 
 
+#### Pyhton proxy config
+
 Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows before installing ansible:
 
          pip config set global.proxy http://proxy:3128
@@ -97,6 +99,16 @@ In case of timeout issues (you might be behind a security proxy that does intens
 
           pip --default-timeout=3600 install ansible
           
+##### issues with existing pip config
+
+In case of errors with existing pip config, do not use the script to create the venv but proceed as follows:
+
+remove any local pip config and install manually:
+    
+    rm -f $HOME/.config/pip/pip.conf
+    python3 -m venv ansible-venv
+    source ansible-venv/bin/activate
+    pip install ansible
 
 ### Parameter "api_no_metadata" to prevent meta data import
 

@@ -72,6 +72,8 @@ def parse_svc(svc_orig, import_id,config2import):
 
 
 def add_service(svc, config2import):
+    if 'service_objects' not in config2import:
+        config2import.update({'service_objects': []})
     config2import['service_objects'].append(svc)
 
 

@@ -2,20 +2,20 @@
 {
     public class ModellingDnDContainer
     {
-        public List<ModellingAppServer> AppServerElements { get; set; } = new();
-        public List<ModellingAppRole> AppRoleElements { get; set; } = new();
-        public List<ModellingNwGroup> NwGroupElements { get; set; } = new();
-        public List<ModellingService> SvcElements { get; set; } = new();
-        public List<ModellingServiceGroup> SvcGrpElements { get; set; } = new();
-        public ModellingConnection ConnElement { get; set; } = null;
+        public List<ModellingAppServer> AppServerElements { get; set; } = [];
+        public List<ModellingAppRole> AppRoleElements { get; set; } = [];
+        public List<ModellingNwGroup> NwGroupElements { get; set; } = [];
+        public List<ModellingService> SvcElements { get; set; } = [];
+        public List<ModellingServiceGroup> SvcGrpElements { get; set; } = [];
+        public ModellingConnection? ConnElement { get; set; }
 
         public void Clear()
         {
-            AppServerElements = new();
-            AppRoleElements = new();
-            NwGroupElements = new();
-            SvcElements = new();
-            SvcGrpElements = new();
+            AppServerElements = [];
+            AppRoleElements = [];
+            NwGroupElements = [];
+            SvcElements = [];
+            SvcGrpElements = [];
             ConnElement = null;
         }
     }

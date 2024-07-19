@@ -3729,7 +3729,7 @@ Variablen
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-5",
-        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.5.0.0/32", "ip_end": "10.5.255.255/32"},{"ip": "10.9.0.0/32", "ip": "10.9.255.255/32"}]}
       },
       {
         "name": "6",
@@ -3737,7 +3737,7 @@ Variablen
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-6",
-        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.6.0.0/32", "ip_end": "10.6.255.255/32"}]}
       },
       {
         "name": "7",
@@ -3745,7 +3745,7 @@ Variablen
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-7",
-        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.7.0.0/32", /"ip_end": "10.7.255.21655/32"}]}
       }
   ]
 }
@@ -3765,7 +3765,7 @@ mutation addSingleOwner {
         group_dn: "b"
         app_id_external: "app-sechs"
         owner_networks: {
-          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          data: [{ ip: "10.69.0.0/32", ip_end: "10.69.255.255/32" }, { ip: "10.9.0.0/32", ip_end: "10.9.255.255/32" }]
           on_conflict: {
             constraint: owner_network_ip_unique
             update_columns: [ip]
@@ -3811,7 +3811,7 @@ Variables
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-5",
-        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.5.0.0/32", "ip_end": "10.5.255.255/32"},{"ip": "10.9.0.0/32", "ip": "10.9.255.255/32"}]}
       },
       {
         "name": "6",
@@ -3819,7 +3819,7 @@ Variables
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-6",
-        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.6.0.0/32", "ip_end": "10.6.255.255/32"}]}
       },
       {
         "name": "7",
@@ -3827,7 +3827,7 @@ Variables
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-7",
-        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.7.0.0/32", /"ip_end": "10.7.255.21655/32"}]}
       }
   ]
 }
@@ -3847,7 +3847,7 @@ mutation addSingleOwner {
         group_dn: "b"
         app_id_external: "app-sechs"
         owner_networks: {
-          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          data: [{ ip: "10.69.0.0/32", ip_end: "10.69.255.255/32" }, { ip: "10.9.0.0/32", ip_end: "10.9.255.255/32" }]
           on_conflict: {
             constraint: owner_network_ip_unique
             update_columns: [ip]

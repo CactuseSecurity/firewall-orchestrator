@@ -5,6 +5,7 @@ import fwo_globals
 from fwo_const import max_objs_per_chunk, csv_delimiter, apostrophe, line_delimiter
 from fwo_log import getFwoLogger, getFwoAlertLogger
 from copy import deepcopy
+import re
 
 
 def split_list(list_in, max_list_length):
@@ -168,3 +169,7 @@ def set_ssl_verification(ssl_verification_mode):
         if fwo_globals.debug_level>5:
             logger.debug("ssl_verification: [ca]certfile=" + ssl_verification)
     return ssl_verification
+
+
+def stringIsUri(s):
+    return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s)

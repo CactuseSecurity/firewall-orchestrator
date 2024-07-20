@@ -284,7 +284,7 @@ def unlock_import(importState):
         }"""
 
     try:
-        unlock_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, unlock_mutation,
+        unlock_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, unlock_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_import_control = unlock_result['data']['update_import_control']['affected_rows']
     except:
@@ -304,7 +304,7 @@ def delete_import(importState):
         }"""
 
     try:
-        result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_import_mutation,
+        result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, delete_import_mutation,
                       query_variables=query_variables, role='importer')
         api_changes = result['data']['delete_import_control']['affected_rows']
     except:
@@ -329,7 +329,7 @@ def import_json_config(importState, configChunk):
     try:
         debug_mode = (fwo_globals.debug_level>0)
         configChunk.update({'debug_mode': debug_mode})
-        import_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_mutation,
+        import_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, import_mutation,
                              query_variables=configChunk, role='importer')
         # note: this will not detect errors in triggered stored procedure run
         if 'errors' in import_result:
@@ -375,7 +375,7 @@ def update_hit_counter(importState, query_variables):
 
         if found_hits:
             try:
-                update_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, last_hit_update_mutation,
+                update_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, last_hit_update_mutation,
                                     query_variables=queryVariablesLocal, role='importer')
                 if 'errors' in update_result:
                     logger.exception("fwo_api:update_hit_counter - error while updating hit counters for mgm id " +
@@ -414,7 +414,7 @@ def delete_import_object_tables(importState, query_variables):
         }
     """
     try:
-        delete_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_mutation,
+        delete_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, delete_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_delete_import_tables =  \
             int(delete_result['data']['delete_import_object']['affected_rows']) + \
@@ -435,7 +435,7 @@ def delete_json_config_in_import_table(importState, query_variables):
         }
     """
     try:
-        delete_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_mutation,
+        delete_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, delete_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_delete_config = delete_result['data']['delete_import_config']['affected_rows']
     except:
@@ -455,7 +455,7 @@ def store_full_json_config(importState, query_variables):
     """
 
     try:
-        import_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_mutation,
+        import_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, import_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_import_full_config = import_result['data']['insert_import_full_config']['affected_rows']
     except:
@@ -475,7 +475,7 @@ def store_full_json_config(importState, query_variables):
 #     """
 
 #     try:
-#         delete_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_mutation,
+#         delete_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, delete_mutation,
 #                              query_variables=query_variables, role='importer')
 #         changes_in_delete_full_config = delete_result['data']['delete_import_full_config']['affected_rows']
 #     except:
@@ -486,7 +486,7 @@ def store_full_json_config(importState, query_variables):
 
 def get_error_string_from_imp_control(importState, query_variables):
     error_query = "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
-    return call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, error_query, query_variables=query_variables, role='importer')['data']['import_control']
+    return call(importState.FwoConfig.FwoApiUri, importState.Jwt, error_query, query_variables=query_variables, role='importer')['data']['import_control']
 
 
 def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_id=None, dev_id=None, severity=1, role='importer',
@@ -649,7 +649,7 @@ def complete_import(importState):
     
     success = (importState.ErrorCount==0)
     try:
-        log_import_attempt(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, importState.MgmDetails.Id, successful=success)
+        log_import_attempt(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.MgmDetails.Id, successful=success)
     except:
         logger.error('error while trying to log import attempt')
 
@@ -678,8 +678,8 @@ def complete_import(importState):
     import_result += ", ERRORS: " + importState.ErrorString if len(importState.ErrorString) > 0 else ""
     
     if importState.ErrorCount>0:
-        create_data_issue(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.ErrorString)
-        setAlert(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
+        create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.ErrorString)
+        setAlert(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
             description=importState.ErrorString, source='import', alertCode=14, mgm_details=importState.MgmDetails)
 
     logger.info(import_result)

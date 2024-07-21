@@ -1,4 +1,4 @@
-query getNetworkObjectDetails(
+query getTenantNetworkObjectDetails(
   $management_id: [Int!]
   $nwObjTyp: [String!]
   $nwObjUid: [String!]

@@ -15,6 +15,7 @@ namespace FWO.Report
     public class ReportRules : ReportDevicesBase
     {
         private const int ColumnCount = 12;
+        protected bool UseAdditionalFilter = false;
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
@@ -24,16 +25,12 @@ namespace FWO.Report
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
 
-            List<ManagementReport> managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
+            List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
 
             ReportData.ManagementData = [];
             foreach(var management in managementsWithRelevantImportId)
             {
-                Query.QueryVariables["mgmId"] = management.Id;
-                if (ReportType != ReportType.Recertification)
-                {
-                    Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
-                }
+                SetMgtQueryVars(management);
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
                 managementReport.Import = management.Import;
                 ReportData.ManagementData.Add(managementReport);
@@ -50,11 +47,7 @@ namespace FWO.Report
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
                 foreach(var management in managementsWithRelevantImportId)
                 {
-                    Query.QueryVariables["mgmId"] = management.Id;
-                    if (ReportType != ReportType.Recertification)
-                    {
-                        Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-                    }
+                    SetMgtQueryVars(management);
                     ManagementReport? mgtToFill = ReportData.ManagementData.FirstOrDefault(m => m.Id == management.Id);
                     if(mgtToFill != null)
                     {
@@ -64,6 +57,15 @@ namespace FWO.Report
                 await callback(ReportData);
             }
             SetReportedRuleIds();
+        }
+
+        private void SetMgtQueryVars(ManagementReport management)
+        {
+            Query.QueryVariables["mgmId"] = management.Id;
+            if (ReportType != ReportType.Recertification)
+            {
+                Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+            }
         }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting
@@ -105,19 +107,7 @@ namespace FWO.Report
             objQueryVariables.Add("ruleIds", "{" + string.Join(", ", managementReport.ReportedRuleIds) + "}");
             objQueryVariables.Add("importId", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
 
-            string query = "";
-            switch (objects)
-            {
-                case ObjCategory.all:
-                    query = ObjectQueries.getReportFilteredObjectDetails; break;
-                case ObjCategory.nobj:
-                    query = ObjectQueries.getReportFilteredNetworkObjectDetails; break;
-                case ObjCategory.nsrv:
-                    query = ObjectQueries.getReportFilteredNetworkServiceObjectDetails; break;
-                case ObjCategory.user:
-                    query = ObjectQueries.getReportFilteredUserDetails; break;
-            }
-
+            string query = GetQuery(objects);
             bool newObjects = true;
             int fetchCount = 0;
             int elementsPerFetch = (int)objQueryVariables.GetValueOrDefault("limit")!;
@@ -136,6 +126,11 @@ namespace FWO.Report
                     newObjects = allFilteredObjects.MergeReportObjects(filteredObjects);
                 }
 
+                if(UseAdditionalFilter)
+                {
+                    AdditionalFilter(allFilteredObjects, managementReport.RelevantObjectIds);
+                }
+
                 if (objects == ObjCategory.all || objects == ObjCategory.nobj)
                     managementReport.ReportObjects = allFilteredObjects.ReportObjects;
                 if (objects == ObjCategory.all || objects == ObjCategory.nsrv)
@@ -151,6 +146,23 @@ namespace FWO.Report
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
 
             return fetchCount <= maxFetchCycles;
+        }
+
+        private static string GetQuery(ObjCategory objects)
+        {
+            return objects switch
+            {
+                ObjCategory.all => ObjectQueries.getReportFilteredObjectDetails,
+                ObjCategory.nobj => ObjectQueries.getReportFilteredNetworkObjectDetails,
+                ObjCategory.nsrv => ObjectQueries.getReportFilteredNetworkServiceObjectDetails,
+                ObjCategory.user => ObjectQueries.getReportFilteredUserDetails,
+                _ => "",
+            };
+        }
+
+        private static void AdditionalFilter(ManagementReport mgt, List<long> relevantObjectIds)
+        {
+            mgt.ReportObjects = [.. mgt.ReportObjects.Where(o => relevantObjectIds.Contains(o.Id))];
         }
 
         public override string SetDescription()
@@ -224,7 +236,7 @@ namespace FWO.Report
                                     report.Append(ruleDisplayCsv.DisplayEnabledCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayUidCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayCommentCsv(rule));
-                                    report = ruleDisplayCsv.RemoveLastChars(report, 1); // remove last chars (comma)
+                                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
                                     report.AppendLine("");  // EO rule
                                 }
                                 else
@@ -298,7 +310,7 @@ namespace FWO.Report
                                 report.Append(ruleDisplayJson.DisplayEnabled(rule.Disabled));
                                 report.Append(ruleDisplayJson.DisplayUid(rule.Uid));
                                 report.Append(ruleDisplayJson.DisplayComment(rule.Comment));
-                                report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last chars (comma)
+                                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
                             }
                             else
                             {
@@ -306,18 +318,18 @@ namespace FWO.Report
                             }
                             report.Append("},");  // EO rule
                         } // rules
-                        report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
                         report.Append(']'); // EO rules
                         report.Append('}'); // EO gateway internal
                         report.Append("},"); // EO gateway external
                     }
                 } // gateways
-                report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
                 report.Append(']'); // EO gateways
                 report.Append('}'); // EO management internal
                 report.Append("},"); // EO management external
             } // managements
-            report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
             report.Append(']'); // EO managements
             report.Append('}'); // EO top
 
@@ -368,7 +380,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
-            if(ReportType == ReportType.UnusedRules)
+            if(ReportType == ReportType.UnusedRules) // || ReportType == ReportType.AppRules)
             {
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
@@ -406,7 +418,7 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayRecertIpMatches(rule)}</td>");
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
                         }
-                        if(ReportType == ReportType.UnusedRules)
+                        if(ReportType == ReportType.UnusedRules) // || ReportType == ReportType.AppRules)
                         {
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
                         }
@@ -416,11 +428,11 @@ namespace FWO.Report
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestinationZone(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayAction(rule)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayTrack(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayAction(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayTrack(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayUid(rule)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayComment(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                         report.AppendLine("</tr>");
                     }
                     else
@@ -460,7 +472,7 @@ namespace FWO.Report
                 report.AppendLine("</tr>");
                 foreach (var nwobj in managementReport.ReportObjects)
                 {
-                    report.AppendLine("<tr>");
+                    report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlighted : "")}\">");
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.NwObj}{nwobj.Id}>{nwobj.Name}</a></td>");
                     report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
@@ -498,11 +510,15 @@ namespace FWO.Report
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.Svc}{svcobj.Id}>{svcobj.Name}</a></td>");
                     report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
-                    report.AppendLine($"<td>{((svcobj.Type.Name!=ObjectType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
+                    report.AppendLine($"<td>{((svcobj.Type.Name!=ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
                     if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
+                    {
                         report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
+                    }
                     else
+                    {
                         report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
+                    }
                     report.AppendLine(svcobj.MemberNamesAsHtml());
                     report.AppendLine($"<td>{svcobj.Uid}</td>");
                     report.AppendLine($"<td>{svcobj.Comment}</td>");

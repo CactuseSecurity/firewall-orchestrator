@@ -35,7 +35,7 @@
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.IsPublished))
+                @(GlobalFunc.ShowBool(context.IsPublished))
             </Template>
         </Column>
     }
@@ -146,13 +146,13 @@
                         }
                         break;
                     case nameof(ConState.InterfaceRejected):
-                        relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{GlobalConfig.ShowBool(false)}</span>");
+                        relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{GlobalFunc.ShowBool(false)}</span>");
                         break;
                     default:
                         break;
                 }
             }
         }
-        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"color:green\">{GlobalConfig.ShowBool(true)}</span>";
+        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"color:green\">{GlobalFunc.ShowBool(true)}</span>";
     }
 }

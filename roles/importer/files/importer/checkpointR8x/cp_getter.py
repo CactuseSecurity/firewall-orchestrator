@@ -7,6 +7,8 @@ import time
 from common import FwLoginFailed
 from fwo_log import getFwoLogger
 import fwo_globals
+import cp_network
+import cp_const
 
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
@@ -16,7 +18,10 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
         request_headers.update({'X-chkp-sid' : sid})
 
     if fwo_globals.debug_level>4:
-        logger.debug("using sid: " + sid )
+        logger.debug(f"api call '{command}'")
+        if fwo_globals.debug_level>9:
+            if command!='login':    # do not log passwords
+                logger.debug("json_payload: " + str(json_payload) )
 
     try:
          r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs)
@@ -54,6 +59,14 @@ def login(user, password, api_host, api_port, domain):
             ", ssl_verification: " + str(fwo_globals.verify_certs)
         raise  FwLoginFailed(exception_text)
     return response["sid"]
+
+
+def logout(url, sid):
+    logger = getFwoLogger()
+    if int(fwo_globals.debug_level)>2:
+        logger.debug("logout from url " + url)
+    response = cp_api_call(url, 'logout', {}, sid)
+    return response
 
 
 def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, debug_level=0):
@@ -143,128 +156,52 @@ def get_changes(sid,api_host,api_port,fromdate):
     return 0
 
 
-def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
-    # just a guard:
-    if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
-        logger = getFwoLogger()
-
-        if rule['type']=='access-rule': # normal rule (no nat) - merging lists
-            lsources = rule["source"]
-            ldestinations = rule["destination"]
-            lservices = rule["service"]
-
-        elif rule['type']=='nat-rule':
-            lsources = [rule["translated-source"], rule["original-source"]]
-            ldestinations = [rule["translated-destination"], rule["original-destination"]]
-            lservices = [rule["translated-service"], rule["original-service"]]
-
-        for src in lsources:
-            if 'type' in src:
-                if src['type'] == 'LegacyUserAtLocation':
-                    nw_uids_found.append(src["location"])
-                elif src['type'] == 'access-role':
-                    if isinstance(src['networks'], str):  # just a single source
-                        if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
-                            nw_uids_found.append(src['networks'])
-                    else:  # more than one source
-                        for nw in src['networks']:
-                            nw_uids_found.append(nw)
-                else:  # standard network objects as source, only here we have an uid value
-                    nw_uids_found.append(src['uid'])
-            else:
-                #logger.warning ("found src without type field: " + json.dumps(src))                
-                if 'uid' in src:
-                    nw_uids_found.append(src['uid'])
-
-        for dst in ldestinations:
-            nw_uids_found.append(dst['uid'])
-        for svc in lservices:
-            svc_uids_found.append(svc['uid'])
-    return
-
-
-def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_text):
-    logger = getFwoLogger()
-    chunk_name = ''
-    if 'layerchunks' in rulebase:
-        chunk_name = 'layerchunks'
-    elif 'nat_rule_chunks' in rulebase:
-        chunk_name = 'nat_rule_chunks'
-    else:
-        for rule in rulebase:
-            if 'rulebase' in rule:
-                collect_uids_from_rulebase(rule['rulebase'], nw_uids_found, svc_uids_found, debug_text + '.')
-            else:
-                collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
-        return
-    for layer_chunk in rulebase[chunk_name]:
-        if 'rulebase' in layer_chunk:
-            if fwo_globals.debug_level>5:
-                debug_layer_str = "handling layer with uid " + layer_chunk['uid']
-                if 'name' in layer_chunk:
-                    debug_layer_str += '(' + layer_chunk['name'] + ')'
-                logger.debug ( debug_layer_str )
-            for rule in layer_chunk['rulebase']:
-                if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
-                    collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
-                else:
-                    if 'rulebase' in rule and rule['rulebase'] != []: # found a layer within a rulebase, recursing
-                        if fwo_globals.debug_level>8:
-                            logger.debug ("found embedded rulebase - recursing")
-                        collect_uids_from_rulebase(rule['rulebase'], nw_uids_found, svc_uids_found, debug_text + '.')
-    return
-
-
-def get_all_uids_of_a_type(object_table, obj_table_names):
-    all_uids = []
-
-    if object_table['object_type'] in obj_table_names:
-        for chunk in object_table['object_chunks']:
-            if 'objects' in chunk:
-                for obj in chunk['objects']:
-                    if 'uid' in obj:
-                        all_uids.append(obj['uid'])  # add non-group (simple) refs
-                    elif 'uid-in-updatable-objects-repository' in obj:
-                        all_uids.append(obj['uid-in-updatable-objects-repository'])  # add updatable obj uid
-                    else:
-                        logger.warning ("found nw obj without UID: " + str(obj))
-
-    all_uids = list(set(all_uids)) # remove duplicates
-    return all_uids
-
-
-def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
-    broken_uids = []
-    for uid in all_uids_from_rules:
-        if not uid in all_uids_from_obj_tables:
-            broken_uids.append(uid)
-    return list(set(broken_uids))
-
-
-def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layername, access_type='access', collection_type='rulebase'):
+def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=None, layerName=None, access_type='access', collection_type='rulebase', nativeConfig={}):
     # access_type: access / nat
     # collection_type: rulebase / layer
     logger = getFwoLogger()
-    current_layer_json = { "layername": layername, "layerchunks": [] }
+    if layerUid is not None:
+        current_layer_json = { "layerid": layerUid, "layerchunks": [] }
+    elif layerName is not None:
+        current_layer_json = { "layername": layerName, "layerchunks": [] }
+    else:
+        logger.exception('must provide either layerUid or layerName')
+
     current=0
     total=current+1
     while (current<total) :
 
         show_params_rules['offset']=current
         if collection_type=='layer':
-            show_params_rules['name']=layername
+            if layerUid is not None:
+                show_params_rules['uid']=layerUid
+                # make sure we only have id set
+                if 'name' in show_params_rules:
+                    del show_params_rules['name']
+            else:
+                show_params_rules['name']=layerName
 
         try:
             rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
-            current_layer_json['layerchunks'].append(rulebase)
         except:
-            logger.error("could not find layer " + layername)
+            if layerUid is not None:
+                logger.error("could not find layer uid=" + layerUid)
+            elif layerName is not None:
+                logger.error("could not find layer name=" + layerName)
+            else:
+                logger.error("strange exception here, neither uid nor name for layer known")
             # todo: need to get FWO API jwt here somehow:
             # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + layername)
             return None
 
-        if 'total' in rulebase:
-            total=rulebase['total']
+        try:
+            for ruleField in ['source', 'destination', 'service', 'action', 'track', 'install-on', 'time']:
+                resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfig=nativeConfig, sid=sid, base_url=api_v_url)
+            current_layer_json['layerchunks'].append(rulebase)
+        except:
+            logger.error("error while getting field " + ruleField + " of layer " + layerName + ", params: " + str(show_params_rules))
+            return None
+
         if 'total' in rulebase:
             total=rulebase['total']
         else:
@@ -286,14 +223,13 @@ def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layername, ac
             else:
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
 
-    #################################################################################
     # adding inline and domain layers (if they exist)
     add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules)    
 
     return current_layer_json
 
 
-def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type='access', collection_type='layer'):
+def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type='access', collection_type='layer', nativeConfig={}):
 
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
@@ -305,10 +241,10 @@ def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type=
             rulebase_idx = 0
             for rule in rulebase['rulebase']:
                 if 'inline-layer' in rule:
-                    inline_layer_name = rule['inline-layer']['name']
+                    inline_layer_uid = rule['inline-layer']
                     if fwo_globals.debug_level>5:
-                        logger.debug ( "found inline layer " + inline_layer_name )
-                    inline_layer = get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, inline_layer_name, access_type=access_type, collection_type=collection_type)
+                        logger.debug ( "found inline layer " + inline_layer_uid )
+                    inline_layer = get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=inline_layer_uid, access_type=access_type, collection_type=collection_type, nativeConfig=nativeConfig)
                     rulebase['rulebase'][rulebase_idx+1:rulebase_idx+1] = inline_layer['layerchunks']  #### insert inline layer here
                     rulebase_idx += len(inline_layer['layerchunks'])
 
@@ -317,15 +253,20 @@ def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type=
                 rulebase_idx += 1
 
 
-def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules):
+def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfig={}):
     logger = getFwoLogger()
     nat_rules = { "nat_rule_chunks": [] }
     current=0
     total=current+1
     while (current<total) :
         show_params_rules['offset']=current
-        logger.debug ("get_nat_rules_from_api_as_dict params: " + str(show_params_rules))
+        logger.debug ("params: " + str(show_params_rules))
         rulebase = cp_api_call(api_v_url, 'show-nat-rulebase', show_params_rules, sid)
+
+        for ruleField in ['original-source', 'original-destination', 'original-service', 'translated-source',
+                          'translated-destination', 'translated-service', 'action', 'track', 'install-on', 'time']:
+            resolveRefListFromObjectDictionary(rulebase, ruleField, sid=sid, base_url=api_v_url,  nativeConfig=nativeConfig)
+
         nat_rules['nat_rule_chunks'].append(rulebase)
         if 'total' in rulebase:
             total=rulebase['total']
@@ -370,3 +311,149 @@ def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, plac
     if fwo_globals.debug_level>5:
         logger.debug("result:\n" + json.dumps(top_ruleset_json, indent=2))
     return top_ruleset_json
+
+
+# def createUidIndex(array, key='uid'):
+#     """
+#     Create an index for the array of dictionaries based on the specified key.
+    
+#     :param array: List of dictionaries
+#     :param key: The key to index the dictionaries by
+#     :return: A dictionary with key values mapped to dictionaries
+#     """
+#     uidIndex = {item[key]: item for item in array}
+#     return uidIndex
+
+
+def findElementByUid(array, uid):
+    for el in array:
+        if 'uid' in el and el['uid']==uid:
+            return el
+    return None
+
+    # if not hasattr(findElementByUid, "uidIndex"):
+    #     # Create the index on the first call
+    #     findElementByUid.uidIndex = createUidIndex(array)
+    
+    # # Look up the uid in the index
+    # return findElementByUid.uidIndex.get(uid)
+
+
+def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_url='', rule4debug={}):
+    matchedObj = findElementByUid(objDict, id)
+
+
+    if matchedObj is None: # object not in dict - neet to fetch it from API
+        logger.warning(f"did not find object with uid {id} in object dictionary")
+        return None
+    else:
+        # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
+        # these must be added to the (network) objects tables
+        if matchedObj['type'] == 'CpmiVoipSipDomain':
+            logger.info(f"adding voip domain '{matchedObj['name']}' object manually, because it is not retrieved by show objects API command")
+            if 'object_tables' in nativeConfig:
+                nativeConfig['object_tables'].append({ 
+                        "object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': matchedObj['color'],
+                        'type': matchedObj['type']
+                    } ] } ] } )
+            else:
+                logger.warning(f"found no existing object_tables while adding voip domain '{matchedObj['name']}' object")
+
+        return matchedObj
+
+
+# resolving all uid references using the object dictionary
+# dealing with a single chunk
+def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfig={}, location='network', sid='', base_url=''):
+    if 'objects-dictionary' in rulebase:
+        objDict = rulebase['objects-dictionary']
+    if isinstance(rulebase, list): # found a list of rules
+        for rule in rulebase:
+            if value in rule:
+                valueList = []
+                if isinstance(rule[value], str): # assuming single uid
+                    rule[value] = resolveRefFromObjectDictionary(rule[value], objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule)
+                else:
+                    if 'type' in rule[value]:   # e.g. track
+                        rule[value] = resolveRefFromObjectDictionary(rule[value]['type'], objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule)
+                    else:   # assuming list of rules
+                        for id in rule[value]:
+                            valueList.append(resolveRefFromObjectDictionary(id, objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule))
+                        rule[value] = valueList # replace ref list with object list
+            if 'rulebase' in rule:
+                resolveRefListFromObjectDictionary(rule['rulebase'], value, objDict=objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url)
+    elif 'rulebase' in rulebase:
+        resolveRefListFromObjectDictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url)
+
+
+def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
+    logger.debug(f"getting {uid_missing_obj} from API")
+
+    show_params_host = {'details-level':'full','uid':uid_missing_obj}   # need to get the full object here
+    try:
+        obj = cp_api_call(apiurl, 'show-object', show_params_host, sid)
+    except Exception as e:
+        logger.exception(f"error while trying to get details for object with uid {uid_missing_obj}: {e}")
+        return None
+    else:
+        if obj is not None:
+            if 'object' in obj:
+                obj = obj['object']
+                if (obj['type'] == 'CpmiAnyObject'):
+                    return  { "object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': 'any nw object checkpoint (hard coded)',
+                        'type': 'network', 'ipv4-address': '0.0.0.0/0',
+                        } ] } ] }
+                elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
+                    return { "object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
+                        } ] } ] }
+                elif obj['type'] == 'multicast-address-range':
+                    return {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
+                        } ] } ] }
+                elif (obj['type'] in ['CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj']):
+                    return {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
+                        } ] } ] }
+                elif (obj['type'] == 'Global'):
+                    return {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
+                        } ] } ] }
+                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain' ]):
+                    return {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'group' #, 'ipv4-address': '0.0.0.0/0',
+                        } ] } ] }
+                elif (obj['type'] in ['Internet', 'security-zone']):
+                    return {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',
+                        } ] } ] }
+                elif (obj['type'] == 'access-role'):
+                    return obj
+                elif obj['type'] in cp_const.api_obj_types:    # standard objects with proper ip
+                    return obj
+                else:
+                    logger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + uid_missing_obj )
+            else:
+                if 'code' in obj:
+                    logger.warning("broken ref in CP DB uid=" + uid_missing_obj + ": " + obj['code'])
+                else:
+                    logger.warning("broken ref in CP DB uid=" + uid_missing_obj)
+        else:
+            logger.warning("got 'None' from CP API for uid=" + uid_missing_obj)

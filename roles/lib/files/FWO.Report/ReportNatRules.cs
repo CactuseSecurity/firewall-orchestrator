@@ -60,8 +60,8 @@ namespace FWO.Report
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, OutputLocation.export)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                                 report.AppendLine("</tr>");
                             }
                             else
@@ -129,7 +129,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{objNumber++}</td>");
                         report.AppendLine($"<td><a name={ObjCatString.Svc}{svcobj.Id}>{svcobj.Name}</a></td>");
                         report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
-                        report.AppendLine($"<td>{((svcobj.Type.Name!=ObjectType.Group && svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
+                        report.AppendLine($"<td>{((svcobj.Type.Name!=ServiceType.Group && svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
                         if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
                             report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
                         else

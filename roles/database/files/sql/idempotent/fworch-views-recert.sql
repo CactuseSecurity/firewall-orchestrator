@@ -16,7 +16,6 @@
 
 */
 
-
 DROP VIEW IF EXISTS v_rule_with_src_owner CASCADE;
 DROP VIEW IF EXISTS v_rule_with_dst_owner CASCADE;
 DROP VIEW IF EXISTS v_rule_with_ip_owner CASCADE;

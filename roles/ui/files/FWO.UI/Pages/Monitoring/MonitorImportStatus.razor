@@ -68,7 +68,7 @@
                 <Template>
                     @if (context.LastImport != null && context.LastImport.Length > 0)
                     {
-                        @(GlobalConfig.ShowBool(context.LastImport[0].SuccessfulImport));
+                        @(GlobalFunc.ShowBool(context.LastImport[0].SuccessfulImport));
                     }
                 </Template>
             </Column>

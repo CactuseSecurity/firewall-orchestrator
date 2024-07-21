@@ -15,7 +15,7 @@ def normalize_rulebases_top_level (full_config, current_import_id, config2import
     logger = getFwoLogger()
     target_rulebase = []
     rule_num = 0
-    parent_uid=""
+    parent_uid=None
     section_header_uids=[]
 
     # fill uid_to_name_map:
@@ -46,172 +46,172 @@ def normalize_rulebases_top_level (full_config, current_import_id, config2import
     return target_rulebase
 
 
-def parse_single_rule(src_rule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=0):
+def acceptMalformedParts(objects, part=''):
+    # logger.debug('about to accept malformed rule part (' + part + '): ' + str(objects))
+
+    # if we are dealing with a list with one element, resolve the list
+    if isinstance(objects, list) and len(objects)==1:
+        objects = objects[0]
+
+    if part == 'action' and 'name' in objects:
+        return { 'action': objects['name'] }
+    elif part == 'install-on' and 'name' in objects:
+        return { 'install-on': objects['name'] }
+    elif part == 'time' and 'name' in objects:
+        return { 'time': objects['name'] }
+    elif part == 'track' and 'type' in objects and 'name' in objects['type']:
+        return { 'track': objects['type']['name'] }
+    else:
+        logger.warning('found no uid or name in rule part (' + part + '): ' + str(objects))
+
+
+def parseRulePart (objects, part='source'):
+    addressObjects = {}
+
+    if 'object_chunks' in objects:  # for chunks of actions?!
+        return addressObjects.update(parseRulePart(objects['object_chunks'], part=part)) # need to parse chunk first
+
+    if isinstance(objects, dict): # a single address object
+        if 'uid' in objects and 'name' in objects:
+            addressObjects[objects['uid']] = objects['name']
+            return addressObjects
+        else:
+            return acceptMalformedParts(objects, part=part)
+
+    else:   # assuming list of objects
+        if objects is None:
+            logger.error("rule part " + part + " is None: " + str(objects))
+            return None
+        else:
+            for obj in objects:
+                if obj is not None:
+                    # if 'name' in obj:
+                    #     logger.debug(f"handling obj without uid {obj['name']}, part={part}")
+                    if 'object_chunks' in obj:
+                        addressObjects.update(parseRulePart(obj['object_chunks'], part=part)) # need to parse chunk first
+                    elif 'objects' in obj:
+                        for o in obj['objects']:
+                            addressObjects.update(parseRulePart(o, part=part)) # need to parse chunk first
+                        return addressObjects
+                    else:
+                        if 'type' in obj: # found checkpoint object
+
+                            if obj['type'] == 'LegacyUserAtLocation':
+                                addressObjects[obj['uid']] = obj['name']
+
+                            elif obj['type'] == 'access-role':
+                                if 'networks' in obj:
+                                    if isinstance(obj['networks'], str):  # just a single source
+                                        if obj['networks'] == 'any':
+                                            addressObjects[obj['uid']] = obj['name'] + '@' + 'Any'
+                                        else:
+                                            addressObjects[obj['uid']] = obj['name'] + '@' + obj['networks']
+                                    else:  # more than one source
+                                        for nw in obj['networks']:
+                                            nw_resolved = resolve_uid_to_name(nw)
+                                            if nw_resolved == "":
+                                                addressObjects[obj['uid']] = obj['name']
+                                            else:
+                                                addressObjects[obj['uid']] = obj['name'] + '@' + nw_resolved
+                                else:
+                                    addressObjects[obj['uid']] = obj['name'] # adding IA without IP info, TODO: get full networks details here!
+                            else:  # standard object
+                                addressObjects[obj['uid']] = obj['name']
+                        else:
+                            return acceptMalformedParts(objects, part=part)
+                else:
+                    logger.warning(f"found list with a single None obj")
+
+
+    if '' in addressObjects.values():
+        logger.warning('found empty name in one rule part (' + part + '): ' + str(addressObjects))
+
+    return addressObjects
+
+
+def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=0):
     logger = getFwoLogger()
     # reference to domain rule layer, filling up basic fields
-    if 'type' in src_rule and src_rule['type'] != 'place-holder':
-        if 'rule-number' in src_rule:  # standard rule, no section header
-            # SOURCE names
-            rule_src_name = ''
-            for src in src_rule["source"]:
-                if 'type' in src:
-                    if src['type'] == 'LegacyUserAtLocation':
-                        rule_src_name += src['name'] + list_delimiter
-                    elif src['type'] == 'access-role':
-                        if isinstance(src['networks'], str):  # just a single source
-                            if src['networks'] == 'any':
-                                rule_src_name += src["name"] + \
-                                    '@' + 'Any' + list_delimiter
-                            else:
-                                rule_src_name += src["name"] + '@' + \
-                                    src['networks'] + list_delimiter
-                        else:  # more than one source
-                            for nw in src['networks']:
-                                nw_resolved = resolve_uid_to_name(nw)
-                                if nw_resolved == "":
-                                    rule_src_name += src["name"] + list_delimiter
-                                else:
-                                    rule_src_name += src["name"] + '@' + nw_resolved + list_delimiter
-                    else:  # standard network objects as source
-                        rule_src_name += src["name"] + list_delimiter
+    if 'type' in nativeRule and nativeRule['type'] != 'place-holder':
+        if 'rule-number' in nativeRule:  # standard rule, no section header
+
+            # the following objects might come in chunks:
+            sourceObjects = parseRulePart (nativeRule['source'], 'source')
+            rule_src_ref = list_delimiter.join(sourceObjects.keys())
+            rule_src_name = list_delimiter.join(sourceObjects.values())
+
+            destObjects = parseRulePart (nativeRule['destination'], 'destination')
+            rule_dst_ref = list_delimiter.join(destObjects.keys())
+            rule_dst_name = list_delimiter.join(destObjects.values())
+
+            svcObjects = parseRulePart (nativeRule['service'], 'service')
+            rule_svc_ref = list_delimiter.join(svcObjects.keys())
+            rule_svc_name = list_delimiter.join(svcObjects.values())
+
+            targetObjects = parseRulePart (nativeRule['install-on'], 'install-on')
+            rule_installon = list_delimiter.join(targetObjects.values())
+
+            if isinstance(nativeRule['track'],str):
+                rule_track = nativeRule['track']
+            else:
+                trackObjects = parseRulePart (nativeRule['track'], 'track')
+                if trackObjects is None:
+                    rule_track = 'none'
                 else:
-                    # assuming standard network object as source (interface) with missing type
-                    rule_src_name += src["name"] + list_delimiter
+                    rule_track = list_delimiter.join(trackObjects.values())
 
-            rule_src_name = rule_src_name[:-1]  # removing last list_delimiter
+            actionObjects = parseRulePart (nativeRule['action'], 'action')
+            if actionObjects is not None:
+                rule_action = list_delimiter.join(actionObjects.values()) # expecting only a single action
+            else:
+                rule_action = None
+                logger.warning('found rule without action: ' + str(nativeRule))
 
-            # SOURCE refs
-            rule_src_ref = ''
-            for src in src_rule["source"]:
-                if 'type' in src:
-                    if src['type'] == 'LegacyUserAtLocation':
-                        rule_src_ref += src["userGroup"] + '@' + \
-                            src["location"] + list_delimiter
-                    elif src['type'] == 'access-role':
-                        if isinstance(src['networks'], str):  # just a single source
-                            if src['networks'] == 'any':
-                                rule_src_ref += src['uid'] + '@' + \
-                                    cp_const.any_obj_uid + list_delimiter
-                            else:
-                                rule_src_ref += src['uid'] + '@' + \
-                                    src['networks'] + list_delimiter
-                        else:  # more than one source
-                            for nw in src['networks']:
-                                rule_src_ref += src['uid'] + \
-                                    '@' + nw + list_delimiter
-                    else:  # standard network objects as source
-                        rule_src_ref += src["uid"] + list_delimiter
-                else:
-                    # assuming standard network object as source (interface) with missing type
-                    rule_src_ref += src["uid"] + list_delimiter
-            rule_src_ref = rule_src_ref[:-1]  # removing last list_delimiter
+            timeObjects = parseRulePart (nativeRule['time'], 'time')
+            rule_time = list_delimiter.join(timeObjects.values())   # only considering the first time object
 
-            # rule_dst...
-            rule_dst_name = ''
-            for dst in src_rule["destination"]:
-                if 'type' in dst:
-                    if dst['type'] == 'LegacyUserAtLocation':
-                        rule_dst_name += dst['name'] + list_delimiter
-                    elif dst['type'] == 'access-role':
-                        if isinstance(dst['networks'], str):  # just a single destination
-                            if dst['networks'] == 'any':
-                                rule_dst_name += dst["name"] + \
-                                    '@' + 'Any' + list_delimiter
-                            else:
-                                rule_dst_name += dst["name"] + '@' + \
-                                    dst['networks'] + list_delimiter
-                        else:  # more than one source
-                            for nw in dst['networks']:
-                                rule_dst_name += dst[
-                                    # TODO: this is not correct --> need to reverse resolve name from given UID
-                                    "name"] + '@' + nw + list_delimiter
-                    else:  # standard network objects as destination
-                        rule_dst_name += dst["name"] + list_delimiter
-                else:
-                    # assuming standard network object as destination (interface) with missing type
-                        rule_dst_name += dst["name"] + list_delimiter
-
-            rule_dst_name = rule_dst_name[:-1]
-
-            rule_dst_ref = ''
-            for dst in src_rule["destination"]:
-                if 'type' in dst:
-                    if dst['type'] == 'LegacyUserAtLocation':
-                        rule_dst_ref += dst["userGroup"] + '@' + \
-                            dst["location"] + list_delimiter
-                    elif dst['type'] == 'access-role':
-                        if isinstance(dst['networks'], str):  # just a single destination
-                            if dst['networks'] == 'any':
-                                rule_dst_ref += dst['uid'] + '@' + \
-                                    cp_const.any_obj_uid + list_delimiter
-                            else:
-                                rule_dst_ref += dst['uid'] + '@' + \
-                                    dst['networks'] + list_delimiter
-                        else:  # more than one source
-                            for nw in dst['networks']:
-                                rule_dst_ref += dst['uid'] + \
-                                    '@' + nw + list_delimiter
-                    else:  # standard network objects as destination
-                        rule_dst_ref += dst["uid"] + list_delimiter
-
-                else:
-                    # assuming standard network object as destination (interface) with missing type
-                        rule_dst_ref += dst["uid"] + list_delimiter
-                    
-            rule_dst_ref = rule_dst_ref[:-1]
-
-            # rule_svc...
-            rule_svc_name = ''
-            for svc in src_rule["service"]:
-                rule_svc_name += svc["name"] + list_delimiter
-            rule_svc_name = rule_svc_name[:-1]
-
-            rule_svc_ref = ''
-            for svc in src_rule["service"]:
-                rule_svc_ref += svc["uid"] + list_delimiter
-            rule_svc_ref = rule_svc_ref[:-1]
-
-            if 'name' in src_rule and src_rule['name'] != '':
-                rule_name = src_rule['name']
+            # starting with the non-chunk objects
+            if 'name' in nativeRule and nativeRule['name'] != '':
+                rule_name = nativeRule['name']
             else:
                 rule_name = None
 
             # new in v8.0.3:
             rule_custom_fields = None
-            if 'custom-fields' in src_rule:
-                rule_custom_fields = src_rule['custom-fields']
+            if 'custom-fields' in nativeRule:
+                rule_custom_fields = nativeRule['custom-fields']
 
-            if 'meta-info' in src_rule and 'last-modifier' in src_rule['meta-info']:
-                rule_last_change_admin = src_rule['meta-info']['last-modifier']
+            if 'meta-info' in nativeRule and 'last-modifier' in nativeRule['meta-info']:
+                rule_last_change_admin = nativeRule['meta-info']['last-modifier']
             else:
                 rule_last_change_admin = None
 
             # new in v5.1.17:
-            if 'parent_rule_uid' in src_rule:
+            if 'parent_rule_uid' in nativeRule:
                 logger.debug(
-                    'found rule (uid=' + src_rule['uid'] + ') with parent_rule_uid set: ' + src_rule['parent_rule_uid'])
-                parent_rule_uid = src_rule['parent_rule_uid']
+                    'found rule (uid=' + nativeRule['uid'] + ') with parent_rule_uid set: ' + nativeRule['parent_rule_uid'])
+                parent_rule_uid = nativeRule['parent_rule_uid']
             else:
                 parent_rule_uid = parent_uid
             if parent_rule_uid == '':
                 parent_rule_uid = None
 
             # new in v5.5.1:
-            if 'rule_type' in src_rule:
-                rule_type = src_rule['rule_type']
+            if 'rule_type' in nativeRule:
+                rule_type = nativeRule['rule_type']
             else:
                 rule_type = 'access'
 
-            if 'comments' in src_rule:
-                if src_rule['comments'] == '':
+            if 'comments' in nativeRule:
+                if nativeRule['comments'] == '':
                     comments = None
                 else:
-                    comments = src_rule['comments']
+                    comments = nativeRule['comments']
             else:
                 comments = None
 
-            if 'hits' in src_rule and 'last-date' in src_rule['hits'] and 'iso-8601' in src_rule['hits']['last-date']:
-                last_hit = src_rule['hits']['last-date']['iso-8601']
+            if 'hits' in nativeRule and 'last-date' in nativeRule['hits'] and 'iso-8601' in nativeRule['hits']['last-date']:
+                last_hit = nativeRule['hits']['last-date']['iso-8601']
             else:
                 last_hit = None
 
@@ -220,22 +220,23 @@ def parse_single_rule(src_rule, rulebase, layer_name, import_id, rule_num, paren
                 "rule_num":         int(rule_num),
                 "rulebase_name":    sanitize(layer_name),
                 # rule_ruleid
-                "rule_disabled": not bool(src_rule['enabled']),
-                "rule_src_neg":     bool(src_rule['source-negate']),
+                "rule_disabled": not bool(nativeRule['enabled']),
+                "rule_src_neg":     bool(nativeRule['source-negate']),
                 "rule_src":         sanitize(rule_src_name),
                 "rule_src_refs":    sanitize(rule_src_ref),
-                "rule_dst_neg":     bool(src_rule['destination-negate']),
+                "rule_dst_neg":     bool(nativeRule['destination-negate']),
                 "rule_dst":         sanitize(rule_dst_name),
                 "rule_dst_refs":    sanitize(rule_dst_ref),
-                "rule_svc_neg":     bool(src_rule['service-negate']),
+                "rule_svc_neg":     bool(nativeRule['service-negate']),
                 "rule_svc":         sanitize(rule_svc_name),
                 "rule_svc_refs":    sanitize(rule_svc_ref),
-                "rule_action":      sanitize(src_rule['action']['name']),
-                "rule_track":       sanitize(src_rule['track']['type']['name']),
-                "rule_installon":   sanitize(src_rule['install-on'][0]['name']),
-                "rule_time":        sanitize(src_rule['time'][0]['name']),
+                "rule_action":      sanitize(rule_action),
+                # "rule_track":       sanitize(nativeRule['track']['type']),
+                "rule_track":       sanitize(rule_track),
+                "rule_installon":   sanitize(rule_installon),
+                "rule_time":        sanitize(rule_time),
                 "rule_name":        sanitize(rule_name),
-                "rule_uid":         sanitize(src_rule['uid']),
+                "rule_uid":         sanitize(nativeRule['uid']),
                 "rule_custom_fields": sanitize(rule_custom_fields),
                 "rule_implied":     False,
                 "rule_type":        sanitize(rule_type),

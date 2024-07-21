@@ -1,0 +1,7 @@
+mutation removeExtState($id: Int!) {
+  delete_request_ext_state_by_pk (
+    id: $id
+  ) {
+    DeletedId: id
+  }
+}

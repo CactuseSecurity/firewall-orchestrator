@@ -26,11 +26,6 @@
         public abstract GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, 
             GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null);
 
-        protected virtual void AddSubscription(ApiSubscription subscription)
-        {
-            subscriptions.Add(subscription);
-        }
-
         protected abstract void Dispose(bool disposing);
 
         ~ ApiConnection()

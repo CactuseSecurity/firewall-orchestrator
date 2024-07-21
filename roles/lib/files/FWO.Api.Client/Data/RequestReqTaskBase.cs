@@ -12,6 +12,11 @@ namespace FWO.Api.Data
         afterPathAnalysis
     }
 
+    public struct AdditionalInfoKeys
+    {
+        public const string ConnId = "ConnId";
+        public const string ReqOwner = "ReqOwner";
+    }
 
     public class RequestReqTaskBase : RequestTaskBase
     {

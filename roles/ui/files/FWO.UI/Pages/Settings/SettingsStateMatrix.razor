@@ -239,11 +239,11 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestState> states = new ();
-    private List<int> stateIds = new ();
-    private Dictionary<int,string> stateNames = new ();
-    private List<int> actToStateIds = new List<int>();
-    private List<RequestState> availableStates = new ();
+    private List<RequestState> states = [];
+    private List<int> stateIds = [];
+    private Dictionary<int,string> stateNames = [];
+    private List<int> actToStateIds = [];
+    private List<RequestState> availableStates = [];
     private RequestStateDict statesDict = new ();
 
     private GlobalStateMatrix actStateMatrix = new ();
@@ -257,7 +257,7 @@ else
     private bool ResetMatrixMode = false;
     private bool EditTargetStatesMode = false;
     private TaskType actTaskType = TaskType.master;
-    private List<TaskType> availableTaskTypes { get; set; } = new ();
+    private List<TaskType> availableTaskTypes { get; set; } = [];
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
@@ -272,7 +272,7 @@ else
     {
         try
         {
-            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            states = await apiConnection.SendQueryAsync<List<RequestState>>(RequestQueries.getStates);
             foreach(var state in states)
             {
                 stateIds.Add(state.Id);
@@ -301,7 +301,7 @@ else
 
     public string TargetStateList(List<int> statesIn)
     {
-        List<string> statesOut = new List<string>();
+        List<string> statesOut = [];
         foreach(int state in statesIn)
         {
             statesOut.Add(statesDict.Name[state]);
@@ -312,7 +312,7 @@ else
     private void AddStateToPhase(WorkflowPhases phase)
     {
         actPhase = phase;
-        availableStates = new List<RequestState>();
+        availableStates = [];
         foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix.ContainsKey(x.Id)))
         {
             availableStates.Add(state);
@@ -345,7 +345,7 @@ else
     
     private void AddStateToTargetStates()
     {
-        availableStates = new List<RequestState>();
+        availableStates = [];
         foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId].Contains(x.Id)))
         {
             availableStates.Add(state);

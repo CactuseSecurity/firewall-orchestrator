@@ -36,7 +36,7 @@ namespace FWO.Middleware.Server
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
-            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
+            globalConfig.SubscriptionUpdateHandler(config.ToArray());
             if (globalConfig.ImportSubnetDataSleepTime > 0)
             {
                 ImportSubnetDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * GlobalConst.kHoursToMilliseconds;

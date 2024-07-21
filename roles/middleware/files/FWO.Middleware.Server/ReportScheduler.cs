@@ -24,6 +24,8 @@ namespace FWO.Middleware.Server
 
         private readonly string apiServerUri;
         private readonly ApiConnection apiConnectionScheduler;
+        private ApiConnection apiConnectionUserContext;
+        private UserConfig userConfig;
         private readonly GraphQlApiSubscription<ReportSchedule[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
 
@@ -64,7 +66,7 @@ namespace FWO.Middleware.Server
         {
             lock (scheduledReportsLock)
             {
-                this.scheduledReports = scheduledReports.ToList();
+                this.scheduledReports = [.. scheduledReports];
             }
         }
 
@@ -76,7 +78,7 @@ namespace FWO.Middleware.Server
 
         private async void CheckSchedule(object? _, ElapsedEventArgs __)
         {
-            List<Task> reportGeneratorTasks = new ();
+            List<Task> reportGeneratorTasks = [];
 
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
@@ -125,23 +127,21 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
-                    Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.Owner.Name}\" with id \"{reportSchedule.Owner.DbId}\" ...");
+                    Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
+
+                    if(!await InitUserEnvironment(reportSchedule))
+                    {
+                        return;
+                    }
 
                     ReportFile reportFile = new ()
                     { 
                         Name = $"{reportSchedule.Name}_{dateTimeNowRounded.ToShortDateString()}",
                         GenerationDateStart = DateTime.Now,
                         TemplateId = reportSchedule.Template.Id,
-                        OwnerId = reportSchedule.Owner.DbId,
+                        OwnerId = reportSchedule.ScheduleOwningUser.DbId,
                         Type = reportSchedule.Template.ReportParams.ReportType
                     };
-
-                    // get uiuser roles + tenant
-                    AuthManager authManager = new (jwtWriter, connectedLdaps, apiConnectionScheduler);
-                    string jwt = await authManager.AuthorizeUserAsync(reportSchedule.Owner, validatePassword: false, lifetime: TimeSpan.FromDays(365));
-                    ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
-                    GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
-                    UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.Owner.DbId);
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
@@ -164,13 +164,34 @@ namespace FWO.Middleware.Server
                     await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                     WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
                     await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
-                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.Owner.Name}\" with id \"{reportSchedule.Owner.DbId}\" successfully generated.");
+                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
                 }
                 catch (Exception exception)
                 {
                     Log.WriteError("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" lead to exception.", exception);
                 }
             }, token);
+        }
+
+        private async Task<bool> InitUserEnvironment(ReportSchedule reportSchedule)
+        {
+            AuthManager authManager = new (jwtWriter, connectedLdaps, apiConnectionScheduler);
+            string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, lifetime: TimeSpan.FromDays(365));
+            apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
+            userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.ScheduleOwningUser.DbId);
+
+            if(((ReportType)reportSchedule.Template.ReportParams.ReportType).IsModellingReport())
+            {
+                userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
+                await UiUserHandler.GetOwnerships(apiConnectionUserContext, userConfig.User);
+                if(!userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
+                {
+                    Log.WriteDebug("Report Scheduling", "Report not generated as owner is not valid anymore.");
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static async Task GenerateConnectionsReport(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser, CancellationToken token)

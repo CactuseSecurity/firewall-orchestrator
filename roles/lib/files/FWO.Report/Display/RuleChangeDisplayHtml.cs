@@ -1,5 +1,4 @@
-﻿using FWO.GlobalConstants;
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
 using FWO.Logging;
 using FWO.Config.Api;
 using FWO.Report;
@@ -9,8 +8,8 @@ namespace FWO.Ui.Display
 {
     public class RuleChangeDisplayHtml : RuleDisplayHtml
     {
-        static string addedStyle = "color: green; text-decoration: bold;";
-        static string deletedStyle = "color: red; text-decoration: line-through red;";
+        static readonly string addedStyle = "color: green; text-decoration: bold;";
+        static readonly string deletedStyle = "color: red; text-decoration: line-through red;";
 
         public RuleChangeDisplayHtml(UserConfig userConfig) : base(userConfig)
         { }
@@ -185,7 +184,9 @@ namespace FWO.Ui.Display
         private string DisplayArrayDiff(string oldElement, string newElement, bool oldNegated, bool newNegated)
         {
             if (oldElement == newElement)
+            {
                 return oldElement;
+            }
             else
             {
                 oldElement = oldElement.Replace("<p>", "");
@@ -194,18 +195,18 @@ namespace FWO.Ui.Display
                 newElement = newElement.Replace("<p>", "");
                 newElement = newElement.Replace("</p>", "");
                 newElement = newElement.Replace("\r\n", "");
-                List<string> unchanged = new List<string>();
-                List<string> added = new List<string>();
-                List<string> deleted = new List<string>();
+                List<string> unchanged = [];
+                List<string> added = [];
+                List<string> deleted = [];
 
                 if(oldNegated != newNegated)
                 {
-                    deleted.Add(setStyle(oldElement, deletedStyle));
-                    added.Add(setStyle(newElement, addedStyle));
+                    deleted.Add(SetStyle(oldElement, deletedStyle));
+                    added.Add(SetStyle(newElement, addedStyle));
                 }
                 else
                 {
-                    string[] separatingStrings = { "<br>" };
+                    string[] separatingStrings = ["<br>"];
                     string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
                     string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
 
@@ -217,14 +218,14 @@ namespace FWO.Ui.Display
                         }
                         else
                         {
-                            deleted.Add(setStyle(item, deletedStyle));
+                            deleted.Add(SetStyle(item, deletedStyle));
                         }
                     }
                     foreach (var item in newAr)
                     {
                         if (!oldAr.Contains(item))
                         {
-                            added.Add(setStyle(item, addedStyle));
+                            added.Add(SetStyle(item, addedStyle));
                         }
                     }
                 }
@@ -235,22 +236,22 @@ namespace FWO.Ui.Display
             }
         }
         
-        private string OutputHtmlDeleted(string? input)
+        private static string OutputHtmlDeleted(string? input)
         {
             return  input != null && input != "" ? $"<p style=\"{deletedStyle}\">{input}</p>" : "";
         }
 
-        private string OutputHtmlAdded(string? input)
+        private static string OutputHtmlAdded(string? input)
         {
             return  input != null && input != "" ? $"<p style=\"{addedStyle}\">{input}</p>" : "";
         }
 
-        private string setStyle(string input, string style)
+        private static string SetStyle(string input, string style)
         {
             return input.Replace("style=\"\"", $"style=\"{style}\"");
         }
 
-        private void ThrowErrorUnknowChangeAction(char action)
+        private static void ThrowErrorUnknowChangeAction(char action)
         {
             Log.WriteError("Unknown Change Action", $"found an unexpected change action [{action}]");
         }

@@ -56,16 +56,6 @@ def enrich_config (config, mgm_details, limit=150, details_level=cp_const.detail
         logger.debug ( "found missing svc objects: '" + ",".join(missing_svc_object_uids) + "'" )
 
     if noapi == False:
-        # if sid is None:
-        # TODO: why is the re-genereation of a new sid necessary here?
-        # if mgm_details['domainUid'] != None:
-        #     api_domain = mgm_details['domainUid']
-        # else:
-        #     api_domain = mgm_details['configPath']
-        
-        # sid = cp_getter.login(mgm_details['import_credential']['user'],mgm_details['import_credential']['secret'],mgm_details['hostname'],mgm_details['port'],api_domain)
-        # logger.debug ( "re-logged into api" )
-
         # if an object is not there:
         #   make api call: show object details-level full uid "<uid>" and add object to respective json
         for missing_obj in missing_nw_object_uids:
@@ -75,59 +65,64 @@ def enrich_config (config, mgm_details, limit=150, details_level=cp_const.detail
             if 'object' in obj:
                 obj = obj['object']
                 if (obj['type'] == 'CpmiAnyObject'):
-                    json_obj = {"object_type": "hosts", "object_chunks": [ {
-                            "objects": [ {
-                                'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                                'comments': 'any nw object checkpoint (hard coded)',
-                                'type': 'network', 'ipv4-address': '0.0.0.0/0',
-                                } ] } ] }
-                    config['object_tables'].append(json_obj)
-                elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'interop'):
-                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    config['object_tables'].append(
+                        {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': 'any nw object checkpoint (hard coded)',
+                        'type': 'network', 'ipv4-address': '0.0.0.0/0',
+                        } ] } ] }
+                    )
+                elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
+                    config['object_tables'].append(
+                        {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
-                    config['object_tables'].append(json_obj)
+                    )
                 elif obj['type'] == 'multicast-address-range':
                     logger.debug("found multicast-address-range: " + obj['name'] + " (uid:" + obj['uid']+ ")")
-                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    config['object_tables'].append(
+                        {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
-                    config['object_tables'].append(json_obj)
-                elif (obj['type'] == 'CpmiVsClusterMember' or obj['type'] == 'CpmiVsxClusterMember'):
-                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    )
+                elif (obj['type'] in ['CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj']):
+                    config['object_tables'].append(
+                        {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
-                    config['object_tables'].append(json_obj)
-                    logger.debug ('missing obj: ' + obj['name'] + obj['type'])
+                    )
                 elif (obj['type'] == 'Global'):
-                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    config['object_tables'].append(
+                        {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
-                    config['object_tables'].append(json_obj)
-                    logger.debug ('missing obj: ' + obj['name'] + obj['type'])
-                elif (obj['type'] == 'updatable-object'):
-                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    )
+                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain' ]):
+                    config['object_tables'].append(
+                        {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                         'comments': obj['comments'], 'type': 'group' #, 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
-                    config['object_tables'].append(json_obj)
+                    )
                     logger.debug ('missing obj: ' + obj['name'] + obj['type'])
-                elif (obj['type'] == 'Internet'):
-                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                elif (obj['type'] in ['Internet', 'security-zone']):
+                    config['object_tables'].append(
+                        {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                         'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
-                    config['object_tables'].append(json_obj)
+                    )
                 elif (obj['type'] == 'access-role'):
                     pass # ignorning user objects
                 else:

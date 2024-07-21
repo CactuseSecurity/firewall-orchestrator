@@ -99,7 +99,7 @@
             {
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin });
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, Reason);
+                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, Reason);
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller });
 
                 if(ticketId > 0)
@@ -151,7 +151,7 @@
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
                 $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>"; 
-            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body, true))
+            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body))
             {
                 DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
             }

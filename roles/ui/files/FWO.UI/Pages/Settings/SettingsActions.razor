@@ -1,4 +1,5 @@
 ﻿@using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Config.Api
@@ -316,11 +317,11 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestStateAction> actions = new ();
-    private List<RequestState> states = new ();
-    private List<RequestState> statesPlus = new ();
-    private List<UiUser> userAndGroupList = new ();
-    private List<TaskType> availableTaskTypes { get; set; } = new ();
+    private List<RequestStateAction> actions = [];
+    private List<RequestState> states = [];
+    private List<RequestState> statesPlus = [];
+    private List<UiUser> userAndGroupList = [];
+    private List<TaskType> availableTaskTypes { get; set; } = [];
 
     private RequestStateAction actAction = new ();
     private ApprovalParams actApprovalParams = new ();
@@ -350,8 +351,8 @@ else
     {
         try
         {
-            actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
-            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(RequestQueries.getActions);
+            states = await apiConnection.SendQueryAsync<List<RequestState>>(RequestQueries.getStates);
             statesPlus = new List<RequestState>(states);
             statesPlus.Add(AutomaticState);
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
@@ -454,7 +455,7 @@ else
                     buttonText = actAction.ButtonText,
                     externalParameters = actAction.ExternalParams
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newAction, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(RequestQueries.newAction, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
@@ -481,7 +482,7 @@ else
                     buttonText = actAction.ButtonText,
                     externalParameters = actAction.ExternalParams
                 };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateAction, Variables)).UpdatedId;
+                int udId = (await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateAction, Variables)).UpdatedId;
                 if(udId != actAction.Id)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
@@ -516,7 +517,7 @@ else
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.deleteAction, new { id = actAction.Id });
+            await apiConnection.SendQueryAsync<object>(RequestQueries.deleteAction, new { id = actAction.Id });
             actions.Remove(actAction);
             DeleteActionMode = false;
         }

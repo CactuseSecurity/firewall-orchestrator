@@ -116,7 +116,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     rule.update({ 'rule_num': rule_number})
                     if 'name' in rule_orig:
                         rule.update({ 'rule_name': rule_orig['name']})
-                    rule.update({ 'rule_installon': None })
+                    rule.update({ 'rule_installon': localPkgName })
                     rule.update({ 'rule_implied': False })
                     rule.update({ 'rule_time': None })
                     rule.update({ 'rule_type': 'access' })
@@ -235,7 +235,7 @@ def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
                     # services do not have uids, so using name instead
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] })
                     rule.update({ 'rule_type': 'original' })
-                    rule.update({ 'rule_installon': None })
+                    rule.update({ 'rule_installon': localPkgName })
                     if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
                         rule.update({ 'rule_disabled': False })
                     else:

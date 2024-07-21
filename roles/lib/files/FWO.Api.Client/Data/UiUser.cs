@@ -42,18 +42,18 @@ namespace FWO.Api.Data
         public bool PasswordMustBeChanged { get; set; }
 
         [JsonProperty("ldap_connection"), JsonPropertyName("ldap_connection")]
-        public UiLdapConnection LdapConnection { get; set;} = new UiLdapConnection();
+        public UiLdapConnection LdapConnection { get; set;} = new ();
 
         public string Jwt { get; set; } = "";
-        public List<string> Roles { get; set; } = new();
-        public List<string> Groups { get; set; } = new();
-        public List<int> Ownerships { get; set; } = new();
+        public List<string> Roles { get; set; } = [];
+        public List<string> Groups { get; set; } = [];
+        public List<int> Ownerships { get; set; } = [];
 
 
         public UiUser()
         {
-            Tenant = new Tenant();
-            LdapConnection = new UiLdapConnection();
+            Tenant = new ();
+            LdapConnection = new ();
         }
         
         public UiUser(UiUser user)
@@ -89,16 +89,16 @@ namespace FWO.Api.Data
             Lastname = userGetReturnParameters.Lastname;
             if (userGetReturnParameters.TenantId != 0)
             {
-                Tenant = new Tenant(){Id = userGetReturnParameters.TenantId};
+                Tenant = new (){Id = userGetReturnParameters.TenantId};
             }
             Language = userGetReturnParameters.Language;
             LastLogin = userGetReturnParameters.LastLogin;
             LastPasswordChange = userGetReturnParameters.LastPasswordChange;
             PasswordMustBeChanged = userGetReturnParameters.PwChangeRequired;
-            LdapConnection = new UiLdapConnection(){Id = userGetReturnParameters.LdapId};
+            LdapConnection = new (){Id = userGetReturnParameters.LdapId};
         }
 
-        public bool isInternal()
+        public bool IsInternal()
         {
             return new DistName(Dn).IsInternal();
         }

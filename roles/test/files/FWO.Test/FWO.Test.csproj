@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.90" />
     <PackageReference Include="NUnit" Version="4.1.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.0" />
   </ItemGroup>

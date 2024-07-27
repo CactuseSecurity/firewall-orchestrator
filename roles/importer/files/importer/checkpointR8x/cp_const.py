@@ -1,4 +1,4 @@
-details_level = "standard"    # 'standard'
+details_level = "standard"
 use_object_dictionary = True
 with_hits = True
 
@@ -10,7 +10,6 @@ any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
 
 original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
-
 
 nw_obj_table_names = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 

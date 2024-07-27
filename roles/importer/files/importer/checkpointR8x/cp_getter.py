@@ -17,7 +17,7 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
     if sid != '': # only not set for login
         request_headers.update({'X-chkp-sid' : sid})
 
-    if fwo_globals.debug_level>4:
+    if fwo_globals.debug_level>8:
         logger.debug(f"api call '{command}'")
         if fwo_globals.debug_level>9:
             if command!='login':    # do not log passwords

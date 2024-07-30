@@ -25,7 +25,9 @@ ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_unique UNIQUE (owner_i
 ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("dev_id","rule_uid","rule_create",xlate_rule);
-Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id");
+Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_ UNIQUE ("dev_id", "order_no");
+Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_name UNIQUE ("mgm_id", name");id");
+Alter table "rulebase_on_gateway" add CONSTRAINT unique_rulebase_on_gateway_dev_id_order_no
 Alter Table "service" add Constraint "svc_altkey" UNIQUE ("mgm_id","svc_uid","svc_create");
 Alter Table "stm_dev_typ" add Constraint "Alter_Key1" UNIQUE ("dev_typ_name","dev_typ_version");
 Alter Table "usr" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
@@ -47,3 +49,4 @@ ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_end_is_host CHECK (is_
 
 -- Alter Table modelling.service add Constraint "modelling_service_unique_name" UNIQUE ("name", "app_id");
 -- Alter Table modelling.service add Constraint "modelling_service_unique_name_ext_app_id" UNIQUE ("name", "ext_app_id");
+

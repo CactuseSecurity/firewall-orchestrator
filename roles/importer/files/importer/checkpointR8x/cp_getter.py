@@ -313,30 +313,11 @@ def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, plac
     return top_ruleset_json
 
 
-# def createUidIndex(array, key='uid'):
-#     """
-#     Create an index for the array of dictionaries based on the specified key.
-    
-#     :param array: List of dictionaries
-#     :param key: The key to index the dictionaries by
-#     :return: A dictionary with key values mapped to dictionaries
-#     """
-#     uidIndex = {item[key]: item for item in array}
-#     return uidIndex
-
-
 def findElementByUid(array, uid):
     for el in array:
         if 'uid' in el and el['uid']==uid:
             return el
     return None
-
-    # if not hasattr(findElementByUid, "uidIndex"):
-    #     # Create the index on the first call
-    #     findElementByUid.uidIndex = createUidIndex(array)
-    
-    # # Look up the uid in the index
-    # return findElementByUid.uidIndex.get(uid)
 
 
 def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_url='', rule4debug={}):

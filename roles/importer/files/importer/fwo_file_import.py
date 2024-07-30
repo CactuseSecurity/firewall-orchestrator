@@ -3,9 +3,25 @@ from fwo_log import getFwoLogger
 import fwo_globals
 from fwo_exception import ConfigFileNotFound
 from fwo_api import complete_import
+from fwconfig import FwConfig, FwConfigManagerList, ConfFormat
+import traceback
+from fwoBaseImport import ImportState
 
 
-def readJsonConfigFromFile(importState, config):
+# when we read from a normalized config file, it contains non-matching import ids, so updating them
+# for native configs this function should do nothing
+def replace_import_id(config, current_import_id):
+    for tab in ['network_objects', 'service_objects', 'user_objects', 'zone_objects', 'rules']:
+        if tab in config:
+            for item in config[tab]:
+                if 'control_id' in item:
+                    item['control_id'] = current_import_id
+        else: # assuming native config is read
+            pass
+
+
+def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
+    logger = getFwoLogger()
 
     # when we read from a normalized config file, it contains non-matching dev_ids in gw_ tables
     def replace_device_id(config, mgm_details):
@@ -41,7 +57,8 @@ def readJsonConfigFromFile(importState, config):
                 if importState.ImportFileName.startswith('file://'):   # remove file uri identifier
                     filename = importState.ImportFileName[7:]
                 with open(filename, 'r') as json_file:
-                    config = json.load(json_file)
+                    configJson = json.load(json_file)
+                    config = FwConfig.fromJson(configJson)
     except requests.exceptions.RequestException:
         try:
             # check if response "r" is defined:
@@ -53,13 +70,24 @@ def readJsonConfigFromFile(importState, config):
         importState.setErrorCounter(importState.ErrorCount+1)
         complete_import(importState)
         raise ConfigFileNotFound(importState.ErrorString) from None
-    except:
+    except Exception: 
         # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
         importState.setErrorString("Could not read config file {filename}".format(filename=filename))
         importState.setErrorCounter(importState.ErrorCount+1)
         complete_import(importState)
-        raise ConfigFileNotFound(importState.ErrorString) from None
-    
-    replace_device_id(config, importState.MgmDetails)
+        # raise ConfigFileNotFound(importState.ErrorString) from None
+        logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
+
+    if (isinstance(config, FwConfigManagerList)):
+        replace_device_id(config.Config, importState.MgmDetails)
+        if config.ConfigFormat == ConfFormat.NORMALIZED:
+            # before importing from normalized config file, we need to replace the import id:
+            if importState.ImportFileName is not None:
+                replace_import_id(config.Config, importState.ImportId)
+    else:   # assuming legacy normalized config
+        replace_device_id(config, importState.MgmDetails)
+        if importState.ImportFileName is not None and 'network_objects' in config:
+            # we have read normalized config from file
+            replace_import_id(config, importState.ImportId)
 
     return config

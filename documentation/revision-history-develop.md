@@ -222,3 +222,9 @@ bugfix release:
 - workflow: external state handling
 - fix config value
 - remove uniqueness of owner names
+
+# 8.4 - 31.07.2024 DEVELOP
+- rule to gateway mapping 1:n
+- add report output for rule to gw mapping
+- cleanup/rework of main import function
+

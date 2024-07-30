@@ -4154,6 +4154,14 @@
                 "name": "customtxt",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "languageByLanguage",
+                  "using": {
+                    "foreign_key_constraint_on": "language"
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "anonymous",
@@ -4418,12 +4426,36 @@
                   }
                 },
                 {
+                  "name": "rule_enforced_on_gateways",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "dev_id",
+                      "table": {
+                        "name": "rule_enforced_on_gateway",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_metadata",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "dev_id",
                       "table": {
                         "name": "rule_metadata",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebase_on_gateways",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "dev_id",
+                      "table": {
+                        "name": "rulebase_on_gateway",
                         "schema": "public"
                       }
                     }
@@ -5348,11 +5380,11 @@
                       "import_id",
                       "debug_mode",
                       "start_import_flag",
-                      "chunk_number",
                       "mgm_id",
                       "config"
                     ]
-                  }
+                  },
+                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -5363,13 +5395,13 @@
                       "import_id",
                       "debug_mode",
                       "start_import_flag",
-                      "chunk_number",
                       "mgm_id",
                       "config"
                     ],
                     "filter": {},
                     "allow_aggregations": true
-                  }
+                  },
+                  "comment": ""
                 }
               ],
               "delete_permissions": [
@@ -5636,6 +5668,18 @@
                   }
                 },
                 {
+                  "name": "ruleEnforcedOnGatewaysByDeleted",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "deleted",
+                      "table": {
+                        "name": "rule_enforced_on_gateway",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "ruleFromsByRfLastSeen",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -5702,6 +5746,18 @@
                       "column": "removed",
                       "table": {
                         "name": "rule_user_resolved",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_enforced_on_gateways",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "created",
+                      "table": {
+                        "name": "rule_enforced_on_gateway",
                         "schema": "public"
                       }
                     }
@@ -6768,6 +6824,18 @@
                 "schema": "public"
               },
               "array_relationships": [
+                {
+                  "name": "customtxts",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "language",
+                      "table": {
+                        "name": "customtxt",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "txts",
                   "using": {
@@ -8022,6 +8090,18 @@
                       "column": "mgm_id",
                       "table": {
                         "name": "rule_user_resolved",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebases",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "mgm_id",
+                      "table": {
+                        "name": "rulebase",
                         "schema": "public"
                       }
                     }
@@ -12648,6 +12728,18 @@
                   }
                 },
                 {
+                  "name": "rule_enforced_on_gateways",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_id",
+                      "table": {
+                        "name": "rule_enforced_on_gateway",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_froms",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -13186,6 +13278,38 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "rule_enforced_on_gateway",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "dev_id"
+                  }
+                },
+                {
+                  "name": "importControlByDeleted",
+                  "using": {
+                    "foreign_key_constraint_on": "deleted"
+                  }
+                },
+                {
+                  "name": "import_control",
+                  "using": {
+                    "foreign_key_constraint_on": "created"
+                  }
+                },
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_id"
                   }
                 }
               ]
@@ -14579,6 +14703,154 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "rulebase",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "mgm_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "rulebase_on_gateways",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rulebase_id",
+                      "table": {
+                        "name": "rulebase_on_gateway",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "created",
+                      "deleted",
+                      "is_global",
+                      "name",
+                      "id",
+                      "mgm_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "deleted",
+                      "is_global",
+                      "name",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "deleted",
+                      "is_global",
+                      "name",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "rulebase_on_gateway",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "dev_id"
+                  }
+                },
+                {
+                  "name": "rulebase",
+                  "using": {
+                    "foreign_key_constraint_on": "rulebase_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "dev_id",
+                      "order_no",
+                      "rulebase_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "order_no",
+                      "rulebase_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

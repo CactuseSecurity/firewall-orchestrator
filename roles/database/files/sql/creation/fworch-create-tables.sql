@@ -76,8 +76,10 @@ Create table "management" -- contains an entry for each firewall management syst
 	"importer_hostname" Varchar,
 	"debug_level" Integer,
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
+	"is_super_manager" BOOLEAN DEFAULT FALSE,
  primary key ("mgm_id")
 );
+
 
 create table import_credential
 (
@@ -178,6 +180,7 @@ Create table "rule"
 	"access_rule" BOOLEAN Default TRUE,
 	"nat_rule" BOOLEAN Default FALSE,
 	"xlate_rule" BIGINT,
+	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
  primary key ("rule_id")
 );
 
@@ -605,7 +608,6 @@ Create table "import_control"
 CREATE table "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
-    "chunk_number" integer,
     "config" jsonb NOT NULL,
 	"start_import_flag" Boolean NOT NULL Default FALSE,
 	"debug_mode" Boolean Default FALSE
@@ -1087,6 +1089,32 @@ create table recertification
 	comment varchar,
 	next_recert_date Timestamp
 );
+
+Create Table IF NOT EXISTS "rule_enforced_on_gateway" 
+(
+	"rule_id" Integer NOT NULL,
+	"dev_id" Integer,  --  NULL if rule is available for all gateways of its management
+	"created" BIGINT,
+	"deleted" BIGINT
+);
+
+Create table IF NOT EXISTS "rulebase" 
+(
+	"id" SERIAL primary key,
+	"name" Varchar NOT NULL,
+	"mgm_id" Integer NOT NULL,
+	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
+	"created" BIGINT,
+	"deleted" BIGINT
+);
+
+Create table IF NOT EXISTS "rulebase_on_gateway" 
+(
+	"dev_id" Integer,
+	"rulebase_id" Integer NOT NULL,
+	"order_no" Integer
+);
+
 
 -- workflow -------------------------------------------------------
 

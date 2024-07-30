@@ -1,6 +1,7 @@
 import sys
 import json
 import copy
+import hashlib
 from common import importer_base_dir
 from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
@@ -10,6 +11,8 @@ import cp_const, cp_network, cp_service
 import cp_getter
 from fwo_exception import FwLoginFailed, FwLogoutFailed
 from cp_user import parse_user_objects_from_rulebase
+from fwconfig import FwConfigManager, ConfFormat, ConfigAction, FwConfigManagerList, FwConfigNormalized
+from fwoBaseImport import ImportState, ManagementDetails
 
 
 def has_config_changed (full_config, mgm_details, force=False):
@@ -38,8 +41,9 @@ def has_config_changed (full_config, mgm_details, force=False):
     return result
 
 
-def get_config(config2import, full_config, current_import_id, mgm_details, limit=150, force=False, jwt=None):
+def get_config(full_config: json, importState: ImportState) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
     logger = getFwoLogger()
+    config2import = {}
     logger.debug ( "starting checkpointR8x/get_config" )
 
     if full_config == {}:   # no native config was passed in, so getting it from FW-Manager
@@ -53,21 +57,21 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         if 'users' not in full_config:
             full_config.update({'users': {}})
 
-        domain, base_url = prepare_get_vars(mgm_details)
+        domain, base_url = prepare_get_vars(importState.FullMgmDetails)
 
-        sid = login_cp(mgm_details, domain)
+        sid = login_cp(importState.FullMgmDetails, domain)
 
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
-        result_get_objects = get_objects (full_config, mgm_details, base_url, sid, force=force, limit=str(limit), details_level=cp_const.details_level, test_version='off')
+        result_get_objects = get_objects (full_config, importState.FullMgmDetails, base_url, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level, test_version='off')
         if result_get_objects>0:
             return result_get_objects
         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
 
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
-        result_get_rules = get_rules (full_config, mgm_details, base_url, sid, force=force, limit=str(limit), details_level=cp_const.details_level, test_version='off')
+        result_get_rules = get_rules (full_config, importState.FullMgmDetails, base_url, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level, test_version='off')
         if result_get_rules>0:
             return result_get_rules
         logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
@@ -75,13 +79,52 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         duration = int(time.time()) - starttime
         logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
-    cp_network.normalize_network_objects(full_config, config2import, current_import_id, mgm_id=mgm_details['id'])
-    cp_service.normalize_service_objects(full_config, config2import, current_import_id)
+    cp_network.normalize_network_objects(full_config, config2import, importState.ImportId, mgm_id=importState.MgmDetails.Id)
+    cp_service.normalize_service_objects(full_config, config2import, importState.ImportId)
     #parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
-    config2import.update({'rules':  cp_rule.normalize_rulebases_top_level(full_config, current_import_id, config2import) })
+    config2import.update({'rules':  cp_rule.normalize_rulebases_top_level(full_config, importState.ImportId, config2import) })
     if not parsing_config_only: # get config from cp fw mgr
-        logout_cp("https://" + mgm_details['hostname'] + ":" + str(mgm_details['port']) + "/web_api/", sid)
-    return 0
+        logout_cp("https://" + importState.MgmDetails.Hostname + ":" + str(importState.FullMgmDetails['port']) + "/web_api/", sid)
+    
+    # make sure all keys are present:
+    if not 'network_objects' in config2import:
+        config2import.update({'network_objects': []})
+    if not 'service_objects' in config2import:
+        config2import.update({'service_objects': []})
+    if not 'users' in config2import:
+        config2import.update({'users': []})
+    if not 'zone_objects' in config2import:
+        config2import.update({'zone_objects': []})
+    if not 'rules' in config2import:
+        config2import.update({'rules': []})
+
+    # put dicts into object of class FwConfigManager
+    normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 
+                            config2import['network_objects'],
+                            config2import['service_objects'],
+                            config2import['users'],
+                            config2import['zone_objects'],
+                            config2import['rules']
+                            )
+    manager = FwConfigManager(ManagerUid=calcManagerUid(importState.FullMgmDetails), 
+                              IsGlobal=False, 
+                              DependantManagerUids=[], 
+                              Configs=[normalizedConfig])
+    listOfManagers = FwConfigManagerList()
+
+    listOfManagers.addManager(manager)
+    
+    return 0, listOfManagers
+
+
+def calcManagerUid(mgm_details):
+    if 'domainUid' in mgm_details and mgm_details['domainUid'] is not None:
+        domainUid = mgm_details['domainUid']
+    else:
+        domainUid = '<NODOMAIN>'
+    combination = mgm_details['hostname'] + '/' +  str(mgm_details['port']) + '/' +  \
+                domainUid + '/' +  mgm_details['configPath']
+    return hashlib.sha256(combination.encode()).hexdigest()
 
 
 def prepare_get_vars(mgm_details):
@@ -118,20 +161,20 @@ def get_rules (config_json, mgm_details, v_url, sid, force=False, config_filenam
 
     logger = getFwoLogger()
     config_json.update({'rulebases': [], 'nat_rulebases': [] })
-    show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary,'details-level':details_level, 'show-hits' : cp_const.with_hits}
+    show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary, 'details-level': details_level, 'show-hits': cp_const.with_hits }
 
     # read all rulebases: handle per device details
     for device in mgm_details['devices']:
         if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
-            show_params_rules['name'] = device['global_rulebase_name']
+            show_params_rules.update({'name': device['global_rulebase_name']})
             # get global layer rulebase
             logger.debug ( "getting layer: " + show_params_rules['name'] )
             current_layer_json = cp_getter.get_layer_from_api_as_dict (v_url, sid, show_params_rules, layername=device['global_rulebase_name'], nativeConfig=config_json)
             if current_layer_json is None:
                 return 1
             # now also get domain rules 
-            show_params_rules['name'] = device['local_rulebase_name']
-            current_layer_json['layername'] = device['local_rulebase_name']
+            show_params_rules.update({'name': device['local_rulebase_name']})
+            current_layer_json({'layername': device['local_rulebase_name']})
             logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
             domain_rules = cp_getter.get_layer_from_api_as_dict (v_url, sid, show_params_rules, layername=device['local_rulebase_name'], nativeConfig=config_json)
             if current_layer_json is None:
@@ -146,7 +189,7 @@ def get_rules (config_json, mgm_details, v_url, sid, force=False, config_filenam
                             logger.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
                             current_layer_json = cp_getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
         else:   # no global rules, just get local ones
-            show_params_rules['name'] = device['local_rulebase_name']
+            show_params_rules.update({'name': device['local_rulebase_name']})
             logger.debug ( "getting layer: " + show_params_rules['name'] )
             current_layer_json = cp_getter.get_layer_from_api_as_dict (v_url, sid, show_params_rules, layerName=device['local_rulebase_name'], nativeConfig=config_json)
             if current_layer_json is None:
@@ -157,7 +200,7 @@ def get_rules (config_json, mgm_details, v_url, sid, force=False, config_filenam
         # getting NAT rules - need package name for nat rule retrieval
         # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
         if device['package_name'] != None and device['package_name'] != '':
-            show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary,'details-level':details_level, 'package': device['package_name'] }
+            show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary,'details-level':details_level, 'package': device['package_name'], 'show-hits': cp_const.with_hits }
             if debug_level>3:
                 logger.debug ( "getting nat rules for package: " + device['package_name'] )
             nat_rules = cp_getter.get_nat_rules_from_api_as_dict (v_url, sid, show_params_rules, nativeConfig=config_json)
@@ -176,7 +219,7 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
     logger = getFwoLogger()
 
     config_json["object_tables"] = []
-    show_params_objs = {'limit':limit,'details-level': cp_const.details_level}
+    show_params_objs = {'limit':limit,'details-level': cp_const.details_level }
 
     # getting Original (NAT) object (both for networks and services)
     origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url)['object_chunks'][0]

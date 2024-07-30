@@ -7,13 +7,13 @@ sample_fortigate_basename: fortigate
 sample_fortigate_name: "{{ sample_fortigate_basename }}_demo"
 sample_checkpoint_basename: "checkpoint"
 sample_checkpoint_name: "{{ sample_checkpoint_basename }}_demo"
-sample_checkpoint_uri: "https://fwodemodata.cactus.de/demo11-r82.json"
+sample_checkpoint_uri: "https://fwodemodata.cactus.de/demo11-r82_v{{ product_version }}.json"
 demo_cpr8x_name_without_demo: "CPR81"
 demo_cpr8x_name: "{{ demo_cpr8x_name_without_demo}}_demo"
-demo_cpr8x_uri: "https://fwodemodata.cactus.de/demo09_cpr81.json"
+demo_cpr8x_uri: "https://fwodemodata.cactus.de/demo09_cpr81_v{{ product_version }}.json"
 demo_fos_name_without_demo: "FortiOS"
 demo_fos_name: "{{ demo_fos_name_without_demo }}_demo"
-demo_fos_uri: "https://fwodemodata.cactus.de/demo10_fOS.json"
+demo_fos_uri: "https://fwodemodata.cactus.de/demo10_fOS_v{{ product_version }}.json"
 sample_postfix: _demo
 
 # sample openldap server

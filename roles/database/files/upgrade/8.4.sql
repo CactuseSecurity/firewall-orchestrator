@@ -64,7 +64,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- SELECT * FROM turn_all_cidr_objects_into_ranges();
+SELECT * FROM turn_all_cidr_objects_into_ranges();
 DROP FUNCTION turn_all_cidr_objects_into_ranges();
 
 ALTER TABLE owner_network DROP CONSTRAINT IF EXISTS owner_network_ip_is_host;

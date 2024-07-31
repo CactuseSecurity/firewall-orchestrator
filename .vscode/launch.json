@@ -101,7 +101,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m13",
+                "-m22",
                 "-d6",
                 "-f",
                 "-s",
@@ -327,24 +327,24 @@
                 "-i/tmp/fworch-config.graphql"
             ]
         },
-        {
-            "name": "py-cpr8x-autodiscovery",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
-            "env": {
-                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
-            },
-            "args": [
-                "-a192.168.100.110",
-                "-w/home/tim/secrets/cp_apiuser_pwd",
-                "-uitsecorg",
-                "-d4",
-                "-fjson"
-            ]
-        },
+        // {
+        //     "name": "py-cpr8x-autodiscovery",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
+        //     "console": "integratedTerminal",
+        //     "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
+        //     "env": {
+        //         "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+        //     },
+        //     "args": [
+        //         "-a192.168.100.111",
+        //         "-w/home/tim/secrets/cp_apiuser_pwd",
+        //         "-uitsecorg",
+        //         "-d4",
+        //         "-fjson"
+        //     ]
+        // },
         {
             "name": "py-import-main-loop",
             "type": "debugpy",

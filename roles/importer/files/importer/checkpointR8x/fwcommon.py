@@ -1,7 +1,6 @@
 import sys
 import json
 import copy
-import hashlib
 from common import importer_base_dir
 from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
@@ -12,7 +11,8 @@ import cp_getter
 from fwo_exception import FwLoginFailed, FwLogoutFailed
 from cp_user import parse_user_objects_from_rulebase
 from fwconfig import FwConfigManager, ConfFormat, ConfigAction, FwConfigManagerList, FwConfigNormalized
-from fwoBaseImport import ImportState, ManagementDetails
+from fwoBaseImport import ImportState
+from fwo_base import calcManagerUidHash
 
 
 def has_config_changed (full_config, mgm_details, force=False):
@@ -106,7 +106,7 @@ def get_config(full_config: json, importState: ImportState) -> tuple[int, FwConf
                             config2import['zone_objects'],
                             config2import['rules']
                             )
-    manager = FwConfigManager(ManagerUid=calcManagerUid(importState.FullMgmDetails), 
+    manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails), 
                               IsGlobal=False, 
                               DependantManagerUids=[], 
                               Configs=[normalizedConfig])
@@ -115,16 +115,6 @@ def get_config(full_config: json, importState: ImportState) -> tuple[int, FwConf
     listOfManagers.addManager(manager)
     
     return 0, listOfManagers
-
-
-def calcManagerUid(mgm_details):
-    if 'domainUid' in mgm_details and mgm_details['domainUid'] is not None:
-        domainUid = mgm_details['domainUid']
-    else:
-        domainUid = '<NODOMAIN>'
-    combination = mgm_details['hostname'] + '/' +  str(mgm_details['port']) + '/' +  \
-                domainUid + '/' +  mgm_details['configPath']
-    return hashlib.sha256(combination.encode()).hexdigest()
 
 
 def prepare_get_vars(mgm_details):
@@ -154,7 +144,6 @@ def logout_cp(url, sid):
         return logout_result
     except:
         raise FwLogoutFailed
-
 
 def get_rules (config_json, mgm_details, v_url, sid, force=False, config_filename=None,
     limit=150, details_level=cp_const.details_level, test_version='off', debug_level=0, ssl_verification=True):
@@ -187,7 +176,7 @@ def get_rules (config_json, mgm_details, v_url, sid, force=False, config_filenam
                     for rule in chunk['rulebase']:
                         if "type" in rule and rule["type"] == "place-holder":
                             logger.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
-                            current_layer_json = cp_getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
+                            current_layer_json = cp_getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'], nativeConfig=config_json)
         else:   # no global rules, just get local ones
             show_params_rules.update({'name': device['local_rulebase_name']})
             logger.debug ( "getting layer: " + show_params_rules['name'] )
@@ -210,6 +199,65 @@ def get_rules (config_json, mgm_details, v_url, sid, force=False, config_filenam
                 config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
         else: # always making sure we have an (even empty) nat rulebase per device 
             config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
+    return 0
+
+
+def addRulebaseIfNew(rulebaseToAdd, url, sid, packageName, rulebaseNamesCollected=[], limit=500, nativeConfig={}):
+    if rulebaseToAdd in rulebaseNamesCollected:
+        return None
+    else:
+        rulebaseNamesCollected.append(rulebaseToAdd)
+
+        show_params_rules = {
+            'limit': limit,
+            'use-object-dictionary': cp_const.use_object_dictionary,
+            'details-level': 'standard',
+            'package': packageName, 
+            'show-hits': cp_const.with_hits 
+        }
+
+        logger = getFwoLogger()
+        rulebaseNamesCollected.append(rulebaseToAdd)
+        show_params_rules.update({'name': rulebaseToAdd})
+        logger.debug ( "getting layer: " + show_params_rules['name'] )
+        return cp_getter.get_layer_from_api_as_dict (url, sid, show_params_rules, layerName=rulebaseToAdd, nativeConfig=nativeConfig)
+    
+
+def getRules (config_json, mgm_details, v_url, sid, force=False, config_filename=None,
+    limit=150, details_level=cp_const.details_level, test_version='off', debug_level=0, ssl_verification=True):
+
+    logger = getFwoLogger()
+    config_json.update({'rulebases': [], 'nat_rulebases': [] })
+    show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary, 'details-level': details_level, 'show-hits': cp_const.with_hits }
+
+    rulebaseNamesCollected = []
+    rulebases = []
+    # read all rulebases: handle per device details
+    for device in mgm_details['devices']:
+        if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
+            rulebases.append(addRulebaseIfNew(device['global_rulebase_name'], rulebaseNamesCollected, limit=limit, nativeConfig=config_json))
+        if device['local_rulebase_name'] not in rulebaseNamesCollected:
+            rulebases.append(addRulebaseIfNew(device['local_rulebase_name'], rulebaseNamesCollected, limit=limit, nativeConfig=config_json))
+
+
+        # TODO: add ref to nat rulebase per gateway
+        # getting NAT rules - we need the package name for nat rule retrieval
+
+        if device['package_name'] != None and device['package_name'] != '':
+            if device['local_rulebase_name'] not in rulebaseNamesCollected:
+                rulebases.append(addRulebaseIfNew(device['local_rulebase_name'], rulebaseNamesCollected, limit=limit, nativeConfig=config_json))
+                show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary,'details-level':details_level, 'package': device['package_name'], 'show-hits': cp_const.with_hits }
+                                
+                nat_rules = cp_getter.get_nat_rules_from_api_as_dict (v_url, sid, show_params_rules, nativeConfig=config_json)
+                if len(nat_rules)>0:
+                    config_json['nat_rulebases'].append(nat_rules)
+                else:
+                    config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
+            else: # always making sure we have an (even empty) nat rulebase per device 
+                config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
+
+    config_json.update({ 'rulebases': rulebases })
+
     return 0
     
 

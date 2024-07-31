@@ -1,9 +1,10 @@
 import json
+from copy import deepcopy
+import re
+import hashlib
 import fwo_globals
 from fwo_const import max_objs_per_chunk, csv_delimiter, apostrophe, line_delimiter
 from fwo_log import getFwoLogger, getFwoAlertLogger
-from copy import deepcopy
-import re
 
 
 def split_list(list_in, max_list_length):
@@ -101,3 +102,20 @@ def set_ssl_verification(ssl_verification_mode):
 
 def stringIsUri(s):
     return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s)
+
+
+def replaceNoneWithEmpty(s):
+    if s is None or s == '':
+        return '<EMPTY>'
+    else:
+        return str(s)
+
+
+def calcManagerUidHash(mgm_details):
+    combination = f"""
+        {replaceNoneWithEmpty(mgm_details['hostname'])}
+        {replaceNoneWithEmpty(mgm_details['port'])}
+        {replaceNoneWithEmpty(mgm_details['domainUid'])}
+        {replaceNoneWithEmpty(mgm_details['configPath'])}
+    """
+    return hashlib.sha256(combination.encode()).hexdigest()

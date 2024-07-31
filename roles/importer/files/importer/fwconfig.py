@@ -6,9 +6,9 @@ from enum import Enum, auto
 import fwo_globals
 from fwo_log import getFwoLogger
 from fwo_data_networking import InterfaceSerializable, RouteSerializable
-from fwo_base import split_list
+from fwo_base import split_list, calcManagerUidHash
 from fwo_const import max_objs_per_chunk
-from fwoBaseImport import ImportState
+from fwoBaseImport import ImportState, ManagementDetails
 
 
 class ConfigAction(Enum):
@@ -42,15 +42,9 @@ class FwConfig():
     ConfigFormat: ConfFormat
     Config: dict
 
-    def __init__(self, configFormat=None, config=None):
-        if configFormat is not None:
-            self.ConfigFormat = configFormat
-        else:
-            self.ConfigFormat = None
-        if config is not None:
-            self.Config = config
-        else:
-            self.Config = {}
+    def __init__(self, configFormat: ConfFormat=ConfFormat.NORMALIZED, config={}):
+        self.ConfigFormat = configFormat
+        self.Config = config
 
     @classmethod
     def fromJson(cls, jsonDict):
@@ -79,7 +73,25 @@ class NetworkObject():
                    jsonDict['ip_end'],
                    jsonDict['color'])
 
+# 'policy':
+#     {
+#         'policy_name': 'pol1',
+#         'policy_uid': 'a32bc348234-23432a',
+#         'enforcing_gateway_uids':  [ ... ], // how to define order of policies? rule_order_num?
+#         'rules': [ { ... }, { ... }, ... ]
+#     }
+class Policy():
+    Uid: str
+    Name: str
+    EnforcingGatewayUids: List[str]
+    Rules: List[dict]
 
+    def __init__(self, Uid: str, Name: str, EnforcingGatewayUids: str=[], Rules: str=[]):
+        self.Name = Uid
+        self.Uid = Name
+        self.EnforcingGatewayUids = EnforcingGatewayUids
+        self.Rules = Rules
+ 
 """
     the normalized configuraton of a firewall management to import
     this applies to a single management which might be either a global or a stand-alone management
@@ -108,7 +120,7 @@ class FwConfigNormalized(FwConfig):
     Services: List[dict]
     Users: List[dict]
     Zones: List[dict]
-    Policies: List[dict]
+    Policies: dict
     Routing: List[dict]
     Interfaces: List[dict]
 
@@ -146,13 +158,12 @@ class FwConfigNormalized(FwConfig):
     def __str__(self):
         return f"{self.Action}({str(self.Networks)})"
 
-    def serialize(self, withAction=True):
+    def toJsonLegacy(self, withAction=True):
         config = {
             'network_objects': self.Networks,
             'service_objects': self.Services,
             'users': self.Users,
             'zone_objects': self.Zones,
-            # 'policies': self.Policies,
             'rules': self.Policies,
             'routing': self.Routing,
             'interfaces': self.Interfaces
@@ -165,10 +176,10 @@ class FwConfigNormalized(FwConfig):
     
     def toJson(self):
         # json.load(self.serialize(withAction=True))
-        return self.serialize(withAction=True)
+        return self.toJsonLegacy(withAction=False)
 
 """
-    the normalized configuraton of a firewall management to import
+    the normalized configuration of a firewall management to import
     this set of configs contains the full configuration of either a single manager or a super manager
 
     FwConfigManager:
@@ -180,8 +191,10 @@ class FwConfigNormalized(FwConfig):
     }
 """
 class FwConfigManager():
-
-    def __init__(self, ManagerUid: str, IsGlobal: bool, DependantManagerUids: List[str], Configs: List[FwConfigNormalized]):
+    def __init__(self, ManagerUid: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[FwConfigNormalized]=[]):
+        """
+            mandatory parameter: ManagerUid, 
+        """
         self.ManagerUid = ManagerUid
         self.IsGlobal = IsGlobal
         self.DependantManagerUids = DependantManagerUids
@@ -208,8 +221,9 @@ class FwConfigManagerList():
     ConfigFormat: ConfFormat
     ManagerSet: List[FwConfigManager]
 
-    def __init__(self, ManagerSet: List[FwConfigManager]=[]):
+    def __init__(self, ConfigFormat=ConfFormat.NORMALIZED, ManagerSet: List[FwConfigManager]=[]):
         self.ManagerSet = ManagerSet
+        self.ConfigFormat=ConfigFormat
 
     def __str__(self):
         return f"{str(self.ManagerSet)})"
@@ -221,11 +235,60 @@ class FwConfigManagerList():
         configOut = {}
         for mgr in self.ManagerSet:
             for config in mgr.Configs:
-                configOut.update(config.serialize(withAction=False))
+                configOut.update(config.toJsonLegacy(withAction=False))
         return json.dumps(configOut, indent=2)
 
     def addManager(self, manager):
         self.ManagerSet.append(manager)
+
+    def getDevUidFromRulebaseName(rb_name: str) -> str:
+        return rb_name
+
+    def getPolicyUidFromRulebaseName(rb_name: str) -> str:
+        return rb_name
+
+    def convertFromLegacyNormalizedConfig(self, legacyConfig: dict, mgmDetails: ManagementDetails) -> None:
+        if 'networkobjects' in legacyConfig:
+            mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.FullMgmDetails),
+                                  IsGlobal=False,
+                                  DependantManagerUids = [],
+                                  Configs=[])
+            convertedConfig = FwConfigNormalized(action=ConfigAction.INSERT,
+                                                 networks=legacyConfig['network_objects'],
+                                                 users=legacyConfig['users'],
+                                                 services=legacyConfig['network_services'])
+            policies = {}
+            rulebase_names = []
+
+            # now we need to convert rulebases, routing and interfaces to match the device structure
+            for rule in legacyConfig['rules']:
+                rb_name = rule['rulebase_name']
+                policyUid = self.getPolicyUidFromRulebaseName(rb_name)
+                if rb_name not in rulebase_names:   # add new policy
+                    rulebase_names.append(rb_name)
+                    policy = Policy(Uid=rb_name, Name=rb_name, EnforcingGatewayUids=[self.getDevUidFromRulebaseName()], Rules=[])
+                    policies.update( { policyUid: policy } )
+                policies[policyUid].Rules.append(rule)
+            mgr.Configs.append(convertedConfig)
+            self.addManager(mgr)
+        else:
+            logger = getFwoLogger()
+            logger.error(f"found malformed legacy config: {str(legacyConfig)}")
+        pass
+
+    def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: ManagementDetails):
+        if 'networkobjects' in legacyConfig:
+            mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.FullMgmDetails),
+                                  IsGlobal=False,
+                                  DependantManagerUids = [],
+                                  Configs=[])
+            convertedConfig = FwConfig()
+            mgr.Configs.append(convertedConfig)
+            self.addManager(mgr)
+        else:
+            logger = getFwoLogger()
+            logger.error(f"found malformed legacy config: {str(legacyConfig)}")
+        pass
 
 # split the config into chunks of max size "max_objs_per_chunk" to avoid 
 # timeout of import while writing data to import table

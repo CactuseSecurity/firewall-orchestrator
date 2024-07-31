@@ -84,7 +84,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 # for config_chunk in split_config(importState, configNormalized):
                 for managerSet in configNormalized.ManagerSet:
                     for config in managerSet.Configs:
-                        configChunk = config.serialize(withAction=False)
+                        configChunk = config.toJsonLegacy(withAction=False)
                         importState.setChangeCounter (importState.ErrorCount + fwo_api.import_json_config(importState, configChunk))
                         fwo_api.update_hit_counter(importState, config)
                 # currently assuming only one chunk
@@ -138,7 +138,7 @@ def initiateImportStart(importState):
 
     importState.setChangeCounter (
         importState.ErrorCount + fwo_api.import_json_config(importState, 
-                                    emptyDummyConfig.serialize(withAction=False), 
+                                    emptyDummyConfig.toJsonLegacy(withAction=False), 
                                     startImport=True))
 
 
@@ -213,8 +213,8 @@ def get_config_from_api(importState, configNative, import_tmp_path=import_tmp_pa
             logger.debug ( "has_config_changed: no new changes found")
 
         if config_changed_since_last_import or importState.ForceImport:
-            _, configNormalized = fw_module.get_config( # get config from product-specific FW API
-                configNative,  importState)
+            # get config from product-specific FW API
+            _, configNormalized = fw_module.get_config(configNative,  importState)
         else:
             configNormalized = {}
     except (FwLoginFailed) as e:

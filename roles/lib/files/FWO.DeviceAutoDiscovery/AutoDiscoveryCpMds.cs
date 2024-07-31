@@ -36,7 +36,7 @@ namespace FWO.DeviceAutoDiscovery
                         if (sessionResponse?.Data?.SessionId == null || sessionResponse.Data.SessionId == "")
                         {
                             Log.WriteWarning("Autodiscovery", $"Did not receive a correct session ID when trying to login to manager {superManagement.Name} (id={superManagement.Id})");
-                            return new List<Management>() { };
+                            return [];
                         }
                         string sessionId = sessionResponse.Data.SessionId;
                         Log.WriteDebug("Autodiscovery", $"successful CP Manager login, got SessionID: {sessionId}");
@@ -58,7 +58,7 @@ namespace FWO.DeviceAutoDiscovery
                             {
                                 Log.WriteDebug("Autodiscovery", $"found domain '{domain.Name}'");
 
-                                Management currentManagement = new Management
+                                Management currentManagement = new()
                                 {
                                     Name = superManagement.Name + "__" + domain.Name,
                                     ImporterHostname = superManagement.ImporterHostname,
@@ -73,7 +73,7 @@ namespace FWO.DeviceAutoDiscovery
                                     DebugLevel = superManagement.DebugLevel,
                                     SuperManagerId = superManagement.Id,
                                     DeviceType = new DeviceType { Id = 9 },
-                                    Devices = new Device[] { }
+                                    Devices = []
                                 };
                                 // if super manager is just a simple management
                                 if (domain.Name == "") // set some settings identical to "superManager", so that no new manager is created
@@ -110,7 +110,7 @@ namespace FWO.DeviceAutoDiscovery
 
                                         if (cpDev.CpDevType != "checkpoint-host")   // leave out the management host?!
                                         {
-                                            Device dev = new Device
+                                            Device dev = new()
                                             {
                                                 Name = cpDev.Name,
                                                 LocalRulebase = cpDev.LocalLayerName,

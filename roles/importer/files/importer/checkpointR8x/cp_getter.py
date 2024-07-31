@@ -224,7 +224,7 @@ def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=None
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
 
     # adding inline and domain layers (if they exist)
-    add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules)    
+    add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules, nativeConfig=nativeConfig)    
 
     return current_layer_json
 
@@ -235,7 +235,7 @@ def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type=
         for chunk in rulebase['layerchunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
-                    add_inline_layers(rules_chunk, api_v_url, sid, show_params_rules)
+                    add_inline_layers(rules_chunk, api_v_url, sid, show_params_rules, nativeConfig=nativeConfig)
     else:
         if 'rulebase' in rulebase:
             rulebase_idx = 0
@@ -265,7 +265,7 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
 
         for ruleField in ['original-source', 'original-destination', 'original-service', 'translated-source',
                           'translated-destination', 'translated-service', 'action', 'track', 'install-on', 'time']:
-            resolveRefListFromObjectDictionary(rulebase, ruleField, sid=sid, base_url=api_v_url,  nativeConfig=nativeConfig)
+            resolveRefListFromObjectDictionary(rulebase, ruleField, sid=sid, base_url=api_v_url, nativeConfig=nativeConfig)
 
         nat_rules['nat_rule_chunks'].append(rulebase)
         if 'total' in rulebase:
@@ -284,7 +284,7 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
 
 
 # insert domain rule layer after rule_idx within top_ruleset
-def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, placeholder_uid):
+def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, placeholder_uid, nativeConfig={}):
     logger = getFwoLogger()
     # serialize domain rule chunks
     domain_rules_serialized = []
@@ -321,8 +321,8 @@ def findElementByUid(array, uid):
 
 
 def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_url='', rule4debug={}):
-    matchedObj = findElementByUid(objDict, id)
 
+    matchedObj = findElementByUid(objDict, id)
 
     if matchedObj is None: # object not in dict - neet to fetch it from API
         logger.warning(f"did not find object with uid {id} in object dictionary")

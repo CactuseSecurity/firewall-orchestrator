@@ -42,7 +42,7 @@ user_scope = ['user_obj_' + s1 for s1 in user_obj_types]
 def has_config_changed(full_config, mgm_details, force=False):
     # dummy - may be filled with real check later on
     return True
-
+ 
 
 def get_config(config2import, full_config, current_import_id, mgm_details, limit=100, force=False, jwt=''):
     logger = getFwoLogger()

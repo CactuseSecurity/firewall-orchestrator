@@ -78,7 +78,10 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                     if 'uid-in-updatable-objects-repository' in obj:
                         obj_type = 'group'
                         obj['name'] = obj['name-in-updatable-objects-repository']
-                        obj['uid'] = obj['uid-in-updatable-objects-repository']
+                        if 'uid' in obj:
+                            obj['uid'] = obj['uid']
+                        else:
+                            obj['uid'] = obj['name-in-updatable-objects-repository']
                         obj['color'] = 'black'
                     # TODO: handle exclusion groups, access-roles correctly
                     if obj_type in ['updatable-object', 'access-role', 'group-with-exclusion', 'security-zone', 'dns-domain']:
@@ -104,9 +107,11 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                         obj_type = 'host'
                     # adding the object:
                     if not 'comments' in obj or obj['comments'] == '':
-                        obj['comments'] = None
+                        comments = None
+                    else:
+                        comments = obj['comments']
                     nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
-                                        'obj_comment': obj['comments'],
+                                        'obj_comment': comments,
                                         'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
                                         'obj_member_refs': member_refs, 'obj_member_names': member_names}])
 

@@ -241,6 +241,12 @@ class FwConfigManagerList():
     def addManager(self, manager):
         self.ManagerSet.append(manager)
 
+    def getFirstManager(self):
+        if len(self.ManagerSet)>0:
+            return self.ManagerSet[0]
+        else:
+            return None
+
     def getDevUidFromRulebaseName(rb_name: str) -> str:
         return rb_name
 

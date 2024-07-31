@@ -1,4 +1,6 @@
 details_level = "standard"
+details_level_objects = "standard"
+details_level_group_objects = "full"
 use_object_dictionary = True
 with_hits = True
 
@@ -27,6 +29,8 @@ svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObj
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
 api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names to look at during import
+
+obj_group_types = ['groups', 'groups-with-exclusion', 'updatable-objects'] + group_svc_obj_types
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',

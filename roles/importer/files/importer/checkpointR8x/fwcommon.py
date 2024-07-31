@@ -64,7 +64,7 @@ def get_config(full_config: json, importState: ImportState) -> tuple[int, FwConf
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
-        result_get_objects = get_objects (full_config, importState.FullMgmDetails, base_url, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level, test_version='off')
+        result_get_objects = get_objects (full_config, importState.FullMgmDetails, base_url, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
         if result_get_objects>0:
             return result_get_objects
         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
@@ -262,18 +262,22 @@ def getRules (config_json, mgm_details, v_url, sid, force=False, config_filename
     
 
 def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filename=None,
-    limit=150, details_level=cp_const.details_level, test_version='off', debug_level=0, ssl_verification=True):
+    limit=150, details_level=cp_const.details_level_objects, test_version='off', debug_level=0, ssl_verification=True):
 
     logger = getFwoLogger()
 
     config_json["object_tables"] = []
-    show_params_objs = {'limit':limit,'details-level': cp_const.details_level }
+    show_params_objs = {'limit':limit,'details-level': details_level }
 
     # getting Original (NAT) object (both for networks and services)
     origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url)['object_chunks'][0]
     anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url)['object_chunks'][0]
 
     for obj_type in cp_const.api_obj_types:
+        if obj_type in cp_const.obj_group_types:
+            show_params_objs.update({'details-level': cp_const.details_level_group_objects})
+        else:
+            show_params_objs.update({'details-level': cp_const.details_level_objects})
         object_table = { "object_type": obj_type, "object_chunks": [] }
         current=0
         total=current+1

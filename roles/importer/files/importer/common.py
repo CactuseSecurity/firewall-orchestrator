@@ -14,10 +14,10 @@ from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name
 import fwo_globals
 import jsonpickle
 from fwo_exception import FwoApiLoginFailed, FwLoginFailed, ImportRecursionLimitReached
-from fwo_base import stringIsUri
+from fwo_base import stringIsUri, calcManagerUidHash
 import fwo_file_import
 from fwoBaseImport import FwoConfig, ImportState
-from fwconfig import ConfFormat, ConfigAction, FwConfigManagerList, FwConfigNormalized
+from fwconfig import ConfFormat, ConfigAction, ConfigAction, FwConfigManagerList, FwConfigNormalized, FwConfigManager
 
 
 """  
@@ -58,6 +58,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
         if clearManagementData:
             logger.info('this import run will reset the configuration of this management to "empty"')
+            configNormalized = FwConfigManagerList()
+            configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails)))
+            configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, [], [], [], [], []))
         else:
             # configObj = FwConfig()            
             if in_file is None: # if the host name is an URI, do not connect to an API but simply read the config from this URI
@@ -85,7 +88,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 for managerSet in configNormalized.ManagerSet:
                     for config in managerSet.Configs:
                         configChunk = config.toJsonLegacy(withAction=False)
-                        importState.setChangeCounter (importState.ErrorCount + fwo_api.import_json_config(importState, configChunk))
+                        importState.setChangeCounter (importState.ErrorCount + fwo_api.import_json_config(importState, configChunk)) # IMPORT TO FWO API HERE
                         fwo_api.update_hit_counter(importState, config)
                 # currently assuming only one chunk
                 # initiateImportStart(importState)

@@ -5,7 +5,7 @@ from typing import List, Dict
     the configuraton of a firewall orchestrator itself
     as read from the global config file including FWO URI
 """
-class FwoConfig():
+class FworchConfig():
     FwoApiUri: str
     FwoUserMgmtApiUri: str
     ApiFetchSize: int
@@ -46,9 +46,12 @@ class ManagementDetails():
     ImporterHostname: str
     DeviceTypeName: str
     DeviceTypeVersion: str
+    Port: int
+    ImportUser: str
+    Secret: str
 
     def __init__(self, hostname: str, id: int, importDisabled: bool, devices: Dict, 
-                 importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str):
+                 importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, port: int = 443, secret: str = '', importUser: str = ''):
         self.Hostname = hostname
         self.Id = id
         self.ImportDisabled = importDisabled
@@ -57,6 +60,9 @@ class ManagementDetails():
         self.Name = name
         self.DeviceTypeName = deviceTypeName
         self.DeviceTypeVersion = deviceTypeVersion
+        self.Port = port
+        self.Secret = secret
+        self.ImportUser = importUser
 
     @classmethod
     def fromJson(cls, json_dict: Dict):
@@ -68,7 +74,11 @@ class ManagementDetails():
         Name = json_dict['name']
         DeviceTypeName = json_dict['deviceType']['name']
         DeviceTypeVersion = json_dict['deviceType']['version']
-        return cls(Hostname, Id, ImportDisabled, Devices, ImporterHostname, Name, DeviceTypeName, DeviceTypeVersion)
+        Port = json_dict['port']
+        ImportUser = json_dict['import_credential']['user']
+        Secret = json_dict['import_credential']['secret']
+
+        return cls(Hostname, Id, ImportDisabled, Devices, ImporterHostname, Name, DeviceTypeName, DeviceTypeVersion, port=Port, importUser=ImportUser, secret=Secret)
 
     def __str__(self):
         return f"{self.Hostname}({self.Id})"
@@ -83,8 +93,8 @@ class ImportState():
     DebugLevel: int
     Config2import: dict
     ConfigChangedSinceLastImport: bool
-    FwoConfig: dict
-    MgmDetails: dict
+    FwoConfig: FworchConfig
+    MgmDetails: ManagementDetails
     FullMgmDetails: dict
     ImportId: int
     Jwt: str

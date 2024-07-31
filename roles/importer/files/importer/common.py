@@ -16,7 +16,7 @@ import jsonpickle
 from fwo_exception import FwoApiLoginFailed, FwLoginFailed, ImportRecursionLimitReached
 from fwo_base import stringIsUri, calcManagerUidHash
 import fwo_file_import
-from fwoBaseImport import FwoConfig, ImportState
+from fwoBaseImport import FworchConfig, ImportState
 from fwconfig import ConfFormat, ConfigAction, ConfigAction, FwConfigManagerList, FwConfigNormalized, FwConfigManager
 
 
@@ -155,7 +155,7 @@ def initializeImport(mgmId, debugLevel=0, suppressCertWarnings=False, sslVerific
     check_input_parameters(mgmId)
 
 
-    fwoConfig = FwoConfig.fromJson(readConfig(fwo_config_filename))
+    fwoConfig = FworchConfig.fromJson(readConfig(fwo_config_filename))
     # read importer password from file
     with open(importer_pwd_file, 'r') as file:
         importerPwd = file.read().replace('\n', '')

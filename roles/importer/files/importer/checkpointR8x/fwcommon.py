@@ -274,7 +274,7 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
     anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url)['object_chunks'][0]
 
     for obj_type in cp_const.api_obj_types:
-        if obj_type in cp_const.obj_group_types:
+        if obj_type in cp_const.obj_types_full_fetch_needed:
             show_params_objs.update({'details-level': cp_const.details_level_group_objects})
         else:
             show_params_objs.update({'details-level': cp_const.details_level_objects})

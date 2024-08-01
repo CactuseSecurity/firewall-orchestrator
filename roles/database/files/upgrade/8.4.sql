@@ -319,4 +319,20 @@ TODO:
 - allow conversion from new to old format (would lose information when working with rulebases)
 - allow conversion from old to new format (only for simple setups with 1:1 gw to rulebase matches
 
+Cleanups (after cp importer works with all config variants):
+- re-add users (cp),check ida rules - do we have networks here?
+- re-add config splits
+- update all importers:
+   - fortimanager
+   - azure
+   - cisco firepower
+   - Palo
+   - NSX
+   - Azure
+   - legacy?
+     - netscreen?!
+     - barracuda
+
+can we get everything working with old config format? no!
+
 */

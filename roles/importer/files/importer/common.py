@@ -12,7 +12,6 @@ from fwo_config import readConfig
 from fwo_const import fw_module_name, full_config_size_limit
 from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name, import_tmp_path
 import fwo_globals
-import jsonpickle
 from fwo_exception import FwoApiLoginFailed, FwLoginFailed, ImportRecursionLimitReached
 from fwo_base import stringIsUri, calcManagerUidHash
 import fwo_file_import

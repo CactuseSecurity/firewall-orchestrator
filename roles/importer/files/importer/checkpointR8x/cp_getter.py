@@ -279,6 +279,8 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
             if 'to' in rulebase:
                 current=rulebase['to']
             else:
+                current = total # assuming we do not have any NAT rules, so skipping this step
+                # logger.warning ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
     return nat_rules
 

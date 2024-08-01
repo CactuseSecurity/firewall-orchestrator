@@ -189,7 +189,7 @@ def get_rules (config_json, mgm_details, v_url, sid, force=False, config_filenam
         # getting NAT rules - need package name for nat rule retrieval
         # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
         if device['package_name'] != None and device['package_name'] != '':
-            show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary,'details-level':details_level, 'package': device['package_name'], 'show-hits': cp_const.with_hits }
+            show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary,'details-level':details_level, 'package': device['package_name'] } #  'show-hits': cp_const.with_hits
             if debug_level>3:
                 logger.debug ( "getting nat rules for package: " + device['package_name'] )
             nat_rules = cp_getter.get_nat_rules_from_api_as_dict (v_url, sid, show_params_rules, nativeConfig=config_json)

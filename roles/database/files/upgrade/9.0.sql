@@ -1,8 +1,8 @@
 
-
 -- turning all CIDR objects into ranges
 -- see https://github.com/CactuseSecurity/firewall-orchestrator/issues/2238
 -- defining helper functions:
+
 CREATE OR REPLACE FUNCTION get_first_ip_of_cidr (ip CIDR)
 	RETURNS CIDR
 	LANGUAGE 'plpgsql' IMMUTABLE COST 1
@@ -72,73 +72,7 @@ ALTER TABLE owner_network DROP CONSTRAINT IF EXISTS owner_network_ip_end_is_host
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_is_host CHECK (is_single_ip(ip));
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_end_is_host CHECK (is_single_ip(ip_end));
 
-
--- TODO:
--- add install on column to the following reports:
---   - recert
---   - change (all 3)
---   - statistics (optional: only count rules per gw which are active on gw)
--- convert import to fill rule2gateway table
--- adjust report tests (add column)
--- import install on information (need to find out, where it is encoded) from 
--- - fortimanger - simply add name of current gw?
--- - fortios - simply add name of current gw?
--- - others? - simply add name of current gw?
-
-/*
-    ----------- generic config starts here --------------------
-
--- this table contains JSON field names contained in generic.configItem.configLine 
-Create table generic.deviceTypeKeyConfig
-(
-	id SERIAL,
-	deviceType INTEGER NOT NULL,	-- type of the device this applies to
-	orderKey VARCHAR,				-- key name that allows for ordering config items
-	lastUsedKey VARCHAR,			-- field containing info when the config item was last used
-									--   values must be convertible to a date 
-	lastUsedKeyFormat VARCHAR,		-- format of the last used value (linux, time stamp, ...)
-	ownerKey VARCHAR,				-- field containing info who owns the config item
-									-- 	must be mappable to owner via ext_id or name 
-	reportableFields VARCHAR[]		-- fields relevant for reporting (in given order)
-);
-
-Create table generic.device
-(
-	id SERIAL,
-	deviceName VARCHAR NOT NULL,	-- name of the device a config line applies to
-	deviceType INTEGER				-- points to public.stm_dev_typ, we need device types for each generic device
-);
-
-Create table generic.import
-(
-	id BIGSERIAL,
-	importTime TIMESTAMP,		-- time of an import
-	deviceId INTEGER NOT NULL,	-- if of the device a config applies to
-	config JSONB NOT NULL		-- this contains a full config of a device
-								-- must contain an entry of the form:
-								-- { 'configItems': [<configItem>, ... ] }
-);
-
--- from here we dissect the config into config items (i.e. rules)
-Create table generic.configItem
-(
-	id BIGSERIAL,
-	importId BIGINT NOT NULL,	-- refers to generic.import and contains time of the import as well as the device id
-	configLine JSONB NOT NULL	-- this contains a single "firewall rule", "proxy rule", ...
-);
-*/
-
--- TODO: 	decide on TIMESTAMP WITH TIMEZONE?
---			write importer for generic config - do we need diffs or can we maybe calculate these on demand?
---			add indices
---			decide if we really want to keep redundant full config in generic.import.config
---			need to visualize the data as tables in Blazor as a report and in a recert page
-
---			fix breaking changes for all other fw platforms but checkpoint
---			where to add gateways to FwConfig for routing and interfaces infos?
-
 ALTER table "import_config" DROP COLUMN IF EXISTS "chunk_number";
-
 
 DROP TRIGGER IF EXISTS gw_route_add ON gw_route CASCADE;
 CREATE TRIGGER gw_route_add BEFORE INSERT ON gw_route FOR EACH ROW EXECUTE PROCEDURE gw_route_add();
@@ -302,15 +236,37 @@ ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NO
 -- ALTER TABLE "rule" DROP COLUMN IF EXISTS "dev_id"; -- final step when the new structure works
 -- ALTER TABLE "import_rule" DROP COLUMN IF EXISTS "rulebase_name";
 
+-- permanent table for storing latest config to calc diffs
+CREATE TABLE IF NOT EXISTS "latest_config" (
+    "import_id" bigint NOT NULL,
+    "mgm_id" integer NOT NULL,
+    "config" jsonb NOT NULL,
+    PRIMARY KEY ("import_id")
+);
 
-/*
-    TODO: add fwo version to demo config files on fwodemo to ensure all versions can be served
+ALTER TABLE "latest_config" DROP CONSTRAINT IF EXISTS "unique_latest_config_mgm_id" CASCADE;
+Alter table "latest_config" add CONSTRAINT unique_latest_config_mgm_id UNIQUE ("mgm_id");
 
-    importer cp
-        get changes:
-        {'uid': 'cf8c7582-fd95-464c-81a0-7297df3c5ad9', 'type': 'access-rule', 'domain': {'uid': '41e821a0-3720-11e3-aa6e-0800200c9fde', 'name': 'SMC User', 'domain-type': 'domain'}, 'position': 7, 'track': {'type': {...}, 'per-session': False, 'per-connection': False, 'accounting': False, 'enable-firewall-session': False, 'alert': 'none'}, 'layer': '0f45100c-e4ea-4dc1-bf22-74d9d98a4811', 'source': [{...}], 'source-negate': False, 'destination': [{...}], 'destination-negate': False, 'service': [{...}], 'service-negate': False, 'service-resource': '', 'vpn': [{...}], 'action': {'uid': '6c488338-8eec-4103-ad21-cd461ac2c472', 'name': 'Accept', 'type': 'RulebaseAction', 'domain': {...}, 'color': 'none', 'meta-info': {...}, 'tags': [...], 'icon': 'Actions/actionsAccept', 'comments': 'Accept', 'display-name': 'Accept', 'customFields': None}, 'action-settings': {'enable-identity-captive-portal': False}, 'content': [{...}], 'content-negate': False, 'content-direction': 'any', 'time': [{...}], 'custom-fields': {'field-1': '', 'field-2': '', 'field-3': ''}, 'meta-info': {'lock': 'unlocked', 'validation-state': 'ok', 'last-modify-time': {...}, 'last-modifier': 'tim-admin', 'creation-time': {...}, 'creator': 'tim-admin'}, 'comments': '', 'enabled': True, 'install-on': [{...}], 'available-actions': {'clone': 'not_supported'}, 'tags': []}
 
-TODO:
+/*  TODOs 
+    
+- with each major version released:
+    add fwo version to demo config files on fwodemo to ensure all versions can be served
+
+- add install on column to the following reports:
+    - recert
+    - change (all 3)
+    - statistics (optional: only count rules per gw which are active on gw)
+
+ - adjust report tests (add column)
+ import install on information (need to find out, where it is encoded) from 
+ - fortimanger - simply add name of current gw?
+ - fortios - simply add name of current gw?
+ - others? - simply add name of current gw?
+
+importer cp get changes:
+    {'uid': 'cf8c7582-fd95-464c-81a0-7297df3c5ad9', 'type': 'access-rule', 'domain': {'uid': '41e821a0-3720-11e3-aa6e-0800200c9fde', 'name': 'SMC User', 'domain-type': 'domain'}, 'position': 7, 'track': {'type': {...}, 'per-session': False, 'per-connection': False, 'accounting': False, 'enable-firewall-session': False, 'alert': 'none'}, 'layer': '0f45100c-e4ea-4dc1-bf22-74d9d98a4811', 'source': [{...}], 'source-negate': False, 'destination': [{...}], 'destination-negate': False, 'service': [{...}], 'service-negate': False, 'service-resource': '', 'vpn': [{...}], 'action': {'uid': '6c488338-8eec-4103-ad21-cd461ac2c472', 'name': 'Accept', 'type': 'RulebaseAction', 'domain': {...}, 'color': 'none', 'meta-info': {...}, 'tags': [...], 'icon': 'Actions/actionsAccept', 'comments': 'Accept', 'display-name': 'Accept', 'customFields': None}, 'action-settings': {'enable-identity-captive-portal': False}, 'content': [{...}], 'content-negate': False, 'content-direction': 'any', 'time': [{...}], 'custom-fields': {'field-1': '', 'field-2': '', 'field-3': ''}, 'meta-info': {'lock': 'unlocked', 'validation-state': 'ok', 'last-modify-time': {...}, 'last-modifier': 'tim-admin', 'creation-time': {...}, 'creator': 'tim-admin'}, 'comments': '', 'enabled': True, 'install-on': [{...}], 'available-actions': {'clone': 'not_supported'}, 'tags': []}
+
 - change (cp) importer to read rulebases and mappings from rulebase to device
   - each rule is only stored once
   - each rulebase is only stored once
@@ -321,6 +277,8 @@ TODO:
 
 Cleanups (after cp importer works with all config variants):
 - re-add users (cp),check ida rules - do we have networks here?
+        #parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
+        --> replace by api call?
 - re-add config splits
 - update all importers:
    - fortimanager

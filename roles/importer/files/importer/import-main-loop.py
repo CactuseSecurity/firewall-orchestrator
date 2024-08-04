@@ -10,7 +10,7 @@ import time
 import json
 import threading
 import requests, warnings
-import fwo_api# common  # from current working dir
+import fwo_api
 from common import import_management
 from fwo_log import getFwoLogger, LogLock
 import fwo_globals, fwo_config
@@ -96,16 +96,19 @@ if __name__ == '__main__':
     jwt = ""
     mgm_ids = []
 
-    # read fwo config (API URLs)
-    try: 
-        with open(fwo_config_filename, "r") as fwo_config:
-            fwo_config = json.loads(fwo_config.read())
-        user_management_api_base_url = fwo_config['middleware_uri']
-        fwo_api_base_url = fwo_config['api_uri']
-    except:
-        logger.error("import-main-loop - error while reading FWO config file")        
-        raise
-
+    # # read fwo config (API URLs)
+    # try: 
+    #     with open(fwo_config_filename, "r") as fwo_config:
+    #         fwo_config = json.loads(fwo_config.read())
+    #     user_management_api_base_url = fwo_config['middleware_uri']
+    #     fwo_api_base_url = fwo_config['api_uri']
+    #     fwo_major_version = fwo_config['api_uri']
+    # except:
+    #     logger.error("import-main-loop - error while reading FWO config file")        
+    #     raise
+    fwo_api_base_url = fwo_config['fwo_api_base_url']
+    fwo_major_version = fwo_config['fwo_major_version']
+    user_management_api_base_url = fwo_config['user_management_api_base_url']
     mgm_details = {}
     killer = GracefulKiller()
     while not killer.kill_now:
@@ -176,7 +179,7 @@ if __name__ == '__main__':
                             if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
                                 logger.debug("import-main-loop: starting import of mgm_id=" + id)
                                 try:
-                                    import_result = import_management(mgmId=id, debug_level_in=debug_level, 
+                                    import_result = import_management(mgmId=id, debug_level_in=debug_level, version=fwo_config['fwo_major_version'],
                                         clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit))
                                 except (FwoApiFailedLockImport, FwLoginFailed):
                                     pass # minor errors for a single mgm, go to next one

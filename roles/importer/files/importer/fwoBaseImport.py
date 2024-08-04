@@ -1,5 +1,13 @@
 import time
 from typing import List, Dict
+import requests, requests.packages
+
+from fwo_log import getFwoLogger
+from fwo_config import readConfig
+from fwo_const import fwo_config_filename, importer_user_name
+import fwo_api
+from fwo_exception import FwoApiLoginFailed
+import fwo_globals
 
 """
     the configuraton of a firewall orchestrator itself
@@ -11,7 +19,7 @@ class FworchConfig():
     ApiFetchSize: int
     ImporterPassword: str
     
-    def __init__(self, fwoApiUri, fwoUserMgmtApiUri, apiFetchSize=500):
+    def __init__(self, fwoApiUri, fwoUserMgmtApiUri, importerPwd, apiFetchSize=500):
         if fwoApiUri is not None:
             self.FwoApiUri = fwoApiUri
         else:
@@ -20,16 +28,19 @@ class FworchConfig():
             self.FwoUserMgmtApiUri = fwoUserMgmtApiUri
         else:
             self.FwoUserMgmtApiUri = None
-
-        self.ImporterPassword = None
+        self.ImporterPassword = importerPwd
         self.ApiFetchSize = apiFetchSize
 
     @classmethod
     def fromJson(cls, json_dict):
         fwoApiUri = json_dict['fwo_api_base_url']
         fwoUserMgmtApiUri = json_dict['user_management_api_base_url']
+        if 'importerPassword' in json_dict:
+            fwoImporterPwd = json_dict['importerPassword']
+        else:
+            fwoImporterPwd = None
         
-        return cls(fwoApiUri, fwoUserMgmtApiUri)
+        return cls(fwoApiUri, fwoUserMgmtApiUri, fwoImporterPwd)
 
     def __str__(self):
         return f"{self.FwoApiUri}, {self.FwoUserMgmtApi}, {self.ApiFetchSize}"
@@ -100,9 +111,10 @@ class ImportState():
     Jwt: str
     ImportFileName: str
     ForceImport: str
+    ImportVersion: int
 
 
-    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force):
+    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8):
         self.ErrorCount = 0
         self.ChangeCount = 0
         self.ErrorString = ''
@@ -117,6 +129,7 @@ class ImportState():
         self.Jwt = jwt
         self.ImportFileName = None
         self.ForceImport = force
+        self.ImportVersion = int(version)
 
     def __str__(self):
         return f"{str(self.ManagementDetails)}({self.age})"
@@ -135,4 +148,52 @@ class ImportState():
 
     def setErrorString(self, errorStr):
         self.ErrorString = errorStr
+
+    @classmethod
+    def initializeImport(cls, mgmId, debugLevel=0, suppressCertWarnings=False, sslVerification=False, force=False, version=8):
+
+        def check_input_parameters(mgmId):
+            if mgmId is None:
+                raise BaseException("parameter mgm_id is mandatory")
+
+        logger = getFwoLogger()
+        check_input_parameters(mgmId)
+
+        fwoConfig = FworchConfig.fromJson(readConfig(fwo_config_filename))
+
+        # authenticate to get JWT
+        try:
+            jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
+        except FwoApiLoginFailed as e:
+            logger.error(e.message)
+            return e.message
+        except:
+            return "unspecified error during FWO API login"
+
+        # set global https connection values
+        fwo_globals.setGlobalValues (suppress_cert_warnings_in=suppressCertWarnings, verify_certs_in=sslVerification, debug_level_in=debugLevel)
+        if fwo_globals.verify_certs is None:    # not defined via parameter
+            fwo_globals.verify_certs = fwo_api.get_config_value(fwoConfig.FwoApiUri, jwt, key='importCheckCertificates')=='True'
+        if fwo_globals.suppress_cert_warnings is None:    # not defined via parameter
+            fwo_globals.suppress_cert_warnings = fwo_api.get_config_value(fwoConfig.FwoApiUri, jwt, key='importSuppressCertificateWarnings')=='True'
+        if fwo_globals.suppress_cert_warnings: # not defined via parameter
+            requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only    
+
+        try: # get mgm_details (fw-type, port, ip, user credentials):
+            mgmDetails = fwo_api.get_mgm_details(fwoConfig.FwoApiUri, jwt, {"mgmId": int(mgmId)}, debugLevel) 
+        except:
+            logger.error("import_management - error while getting fw management details for mgm=" + str(mgmId) )
+            raise
+
+        # return ImportState (int(debugLevel), True, fwoConfig, mgmDetails) 
+        return ImportState (
+            debugLevel = int(debugLevel),
+            configChangedSinceLastImport = True,
+            fwoConfig = fwoConfig,
+            mgmDetails = mgmDetails,
+            jwt = jwt,
+            force = force,
+            version = version
+        ) 
+    
 

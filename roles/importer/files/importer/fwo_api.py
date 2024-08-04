@@ -360,7 +360,7 @@ def import_json_config(importState, config, startImport=True):
         else:
             changes_in_import_control = import_result['data']['insert_import_config']['affected_rows']
     except:
-        logger.exception("failed to write importable config for mgm id " + str(importState.MgmDetails.Id))
+        logger.exception(f"failed to write normalized config for mgm id {str(importState.MgmDetails.Id)}: {str(traceback.format_exc())}")
         return 1 # error
     
     if changes_in_import_control==1:

@@ -19,6 +19,7 @@ from fwo_api import setAlert, create_data_issue
 from fwoBaseImport import ImportState, ManagementDetails
 from fwconfig import FwConfigManager, ConfFormat, ConfigAction, FwConfigManagerList, FwConfigNormalized
 from fwo_base import stringIsUri, calcManagerUidHash
+import fwo_const
 
 
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp',
@@ -49,7 +50,7 @@ def has_config_changed(full_config, mgm_details, force=False):
 def get_config(full_config: json, importState: ImportState) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
 # def get_config(config2import, full_config, current_import_id, mgm_details, limit=100, force=False, jwt=''):
     logger = getFwoLogger()
-    config2import = {}
+    config2import = fwo_const.emptyNormalizedFwConfigJsonDict
     if full_config == {}:   # no native config was passed in, so getting it from FortiManager
         parsing_config_only = False
     else:
@@ -98,18 +99,6 @@ def get_config(full_config: json, importState: ImportState) -> tuple[int, FwConf
     # fOS_rule.normalize_nat_rules(
     #     full_config, config2import, current_import_id, jwt=jwt)
     # fOS_network.remove_nat_ip_entries(config2import)
-
-    # make sure all keys are present:
-    if not 'network_objects' in config2import:
-        config2import.update({'network_objects': []})
-    if not 'service_objects' in config2import:
-        config2import.update({'service_objects': []})
-    if not 'users' in config2import:
-        config2import.update({'users': []})
-    if not 'zone_objects' in config2import:
-        config2import.update({'zone_objects': []})
-    if not 'rules' in config2import:
-        config2import.update({'rules': []})
 
     # put dicts into object of class FwConfigManager
     normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 

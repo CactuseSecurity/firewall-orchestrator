@@ -37,3 +37,12 @@ max_objs_per_chunk = 1000
 # with open(fwo_config_filename, "r") as fwo_config:
 #     fwo_config = json.loads(fwo_config.read())
 # fwo_api_base_url = fwo_config['api_uri']
+
+emptyNormalizedFwConfigJsonDict = {
+    'network_objects': [],
+    'service_objects': [],
+    'users': [],
+    'zone_objects': [],
+    'rules': [],
+    'gateways': []
+}

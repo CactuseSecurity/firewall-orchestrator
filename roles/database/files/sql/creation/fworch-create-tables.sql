@@ -622,6 +622,13 @@ CREATE TABLE "import_full_config" (
     PRIMARY KEY ("import_id")
 );
 
+CREATE TABLE IF NOT EXISTS "latest_config" (
+    "import_id" bigint NOT NULL,
+    "mgm_id" integer NOT NULL,
+    "config" jsonb NOT NULL,
+    PRIMARY KEY ("import_id")
+);
+
 -- temporary import tables -------------------------------------
 
 Create table "import_service"

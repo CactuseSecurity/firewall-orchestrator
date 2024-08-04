@@ -1,201 +1,34 @@
 import json
 import jsonpickle
 from typing import List
-from enum import Enum, auto
+import time
+import traceback
 
 import fwo_globals
 from fwo_log import getFwoLogger
 from fwo_data_networking import InterfaceSerializable, RouteSerializable
 from fwo_base import split_list, calcManagerUidHash
-from fwo_const import max_objs_per_chunk
+from fwo_const import max_objs_per_chunk, import_tmp_path
+
 from fwoBaseImport import ImportState, ManagementDetails
+from fwconfig_base import EnumEncoder, ConfigAction, ConfFormat, NetworkObject, Gateway, Policy
+from fwconfig_normalized import FwConfig, FwConfigNormalized
+from fwo_api_import import importLatestConfig, deleteLatestConfig
 
-
-class ConfigAction(Enum):
-    INSERT = auto()
-    UPDATE = auto()
-    DELETE = auto()
-
-
-class ConfFormat(Enum):
-    NORMALIZED = auto()
-    
-    CHECKPOINT = auto()
-    FORTINET = auto()
-    PALOALTO = auto()
-    CISCOFIREPOWER = auto()
-
-    NORMALIZED_LEGACY = auto()
-
-    CHECKPOINT_LEGACY = auto()
-    FORTINET_LEGACY = auto()
-    PALOALTO_LEGACY = auto()
-    CISCOFIREPOWER_LEGACY = auto()
-
-
-"""
-    the configuraton of a firewall management to import
-    could be normalized or native config
-    management could be standard of super manager (MDS, fortimanager)
-"""
-class FwConfig():
-    ConfigFormat: ConfFormat
-    Config: dict
-
-    def __init__(self, configFormat: ConfFormat=ConfFormat.NORMALIZED, config={}):
-        self.ConfigFormat = configFormat
-        self.Config = config
-
-    @classmethod
-    def fromJson(cls, jsonDict):
-        ConfigFormat = jsonDict['config-format']
-        Config = jsonDict['config']
-        return cls(ConfigFormat, Config)
-
-    def __str__(self):
-        return f"{self.ConfigType}({str(self.Config)})"
-
-
-class NetworkObject():
-
-    def __init__(self, Uid: str, Name: str, Ip: str, IpEnd: str, Color: str = 'black'):
-        self.Uid = Uid
-        self.Name = Name
-        self.Ip = Ip
-        self.IpEnd = IpEnd
-        self.Color = Color
- 
-    @classmethod
-    def fromJson(cls, jsonDict):
-        return cls(jsonDict['uid'], 
-                   jsonDict['name'], 
-                   jsonDict['ip'],
-                   jsonDict['ip_end'],
-                   jsonDict['color'])
-
-# 'policy':
-#     {
-#         'policy_name': 'pol1',
-#         'policy_uid': 'a32bc348234-23432a',
-#         'enforcing_gateway_uids':  [ ... ], // how to define order of policies? rule_order_num?
-#         'rules': [ { ... }, { ... }, ... ]
-#     }
-class Policy():
-    Uid: str
-    Name: str
-    EnforcingGatewayUids: List[str]
-    Rules: List[dict]
-
-    def __init__(self, Uid: str, Name: str, EnforcingGatewayUids: str=[], Rules: str=[]):
-        self.Name = Uid
-        self.Uid = Name
-        self.EnforcingGatewayUids = EnforcingGatewayUids
-        self.Rules = Rules
- 
-"""
-    the normalized configuraton of a firewall management to import
-    this applies to a single management which might be either a global or a stand-alone management
-
-    FwConfigNormalized:
-    {
-        'action': 'INSERT|UPDATE|DELETE',
-        'network_objects': [ ... ],
-        'service_objects': [ ... ],
-        'users': [...],
-        'zone_objects': [ ... ],
-        'policies': [
-            {
-                'policy_name': 'pol1',
-                'policy_uid': 'a32bc348234-23432a',
-                'enforcing_gateway_uids':  [ ... ], // how to define order of policies? rule_order_num?
-                'rules': [ { ... }, { ... }, ... ]
-            }
-        ]
-    }
-"""
-class FwConfigNormalized(FwConfig):
-    Action: ConfigAction
-    # Networks: List[NetworkObject]
-    Networks: List[dict]
-    Services: List[dict]
-    Users: List[dict]
-    Zones: List[dict]
-    Policies: dict
-    Routing: List[dict]
-    Interfaces: List[dict]
-
-    def __init__(self, action: ConfigAction, networks, services, users, zones, policies, routing=[], interfaces=[], format=ConfFormat.NORMALIZED_LEGACY):
-        super().__init__(format)
-        self.IsSuperManagerConfig = False
-        self.Action = action
-        self.Networks = networks
-        self.Services = services
-        self.Users = users
-        self.Zones = zones
-        self.Policies = policies
-        self.Routing = routing
-        self.Interfaces = interfaces
-
-    @classmethod
-    def fromJson(cls, jsonDict):
-        if 'routing' not in jsonDict:
-            jsonDict.update({'routing': []})
-        if 'interfaces' not in jsonDict:
-            jsonDict.update({'interfaces': []})
-        # default action (backward compatibility) is INSERT
-        if 'action' not in jsonDict:
-            jsonDict.update({'action': ConfigAction.INSERT})
-        return cls(jsonDict['action'], 
-                   jsonDict['network_objects'], 
-                   jsonDict['service_objects'],
-                   jsonDict['users'],
-                   jsonDict['zone_objects'], 
-                   jsonDict['policies'],
-                   jsonDict['routing'],
-                   jsonDict['interfaces']
-                   )
-
-    def __str__(self):
-        return f"{self.Action}({str(self.Networks)})"
-
-    def toJsonLegacy(self, withAction=True):
-        config = {
-            'network_objects': self.Networks,
-            'service_objects': self.Services,
-            'users': self.Users,
-            'zone_objects': self.Zones,
-            'rules': self.Policies,
-            'routing': self.Routing,
-            'interfaces': self.Interfaces
-        }
-
-        if withAction:
-            config.update({'action': self.Action})
-
-        return config
-    
-    def toJson(self):
-        # json.load(self.serialize(withAction=True))
-        return self.toJsonLegacy(withAction=False)
-
-"""
-    the normalized configuration of a firewall management to import
-    this set of configs contains the full configuration of either a single manager or a super manager
-
-    FwConfigManager:
-    {
-        'manager_uid': '33478afe-399378acd', // each manager only occurs once
-        'is_global': False, // if True: rest of config exists in all dependant_managers (objects) and enforcing_gateways (rules) underneath
-        'dependant_manager_uids': [ ... ], // empty if not global, all of them should be contained in the same import
-        'configs': [ <FWConfigNormalized> ]
-    }
-"""
 class FwConfigManager():
-    def __init__(self, ManagerUid: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[FwConfigNormalized]=[]):
+    ManagerUid: str
+    ManagerName: str
+    IsGlobal: bool
+    DependantManagerUids: List[str]
+    Configs: List[dict]
+
+
+    def __init__(self, ManagerUid: str, ManagerName: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[FwConfigNormalized]=[]):
         """
             mandatory parameter: ManagerUid, 
         """
         self.ManagerUid = ManagerUid
+        self.ManagerName = ManagerName
         self.IsGlobal = IsGlobal
         self.DependantManagerUids = DependantManagerUids
         self.Configs = Configs
@@ -203,10 +36,11 @@ class FwConfigManager():
     @classmethod
     def fromJson(cls, jsonDict):
         ManagerUid = jsonDict['manager_uid']
+        ManagerName = jsonDict['mgm_name']
         IsGlobal = jsonDict['is_global']
         DependantManagerUids = jsonDict['dependant_manager_uids']
         Configs = jsonDict['configs']
-        return cls(ManagerUid, IsGlobal, DependantManagerUids, Configs)
+        return cls(ManagerUid, ManagerName, IsGlobal, DependantManagerUids, Configs)
 
     def __str__(self):
         return f"{self.ManagerUid}({str(self.Configs)})"
@@ -230,6 +64,31 @@ class FwConfigManagerList():
     
     def toJsonStringFull(self):
         return jsonpickle.encode(self, indent=2)
+
+    def toJsonString(self, prettyPrint=False):
+        if prettyPrint:
+            return json.dumps(self.toJson(), indent=2, cls=EnumEncoder)
+        else:
+            return json.dumps(self.toJson(), cls=EnumEncoder)
+
+    def toJson(self):
+        mgrSet = []
+        for mgr in self.ManagerSet:
+            configsJson =  {}
+            for config in mgr.Configs:
+                configsJson.update(config.toJson())
+            mgrSet.append( { 
+                'mgmUid': mgr.ManagerUid,
+                'mgmName': mgr.ManagerName,
+                'IsGlobal': mgr.IsGlobal,
+                'Configs': configsJson,
+                'DependantManagerUids': mgr.DependantManagerUids
+            })
+
+        return {
+            'ConfigFormat': self.ConfigFormat,
+            'managers': mgrSet
+        } 
 
     def toJsonStringLegacy(self):
         configOut = {}
@@ -295,6 +154,32 @@ class FwConfigManagerList():
             logger = getFwoLogger()
             logger.error(f"found malformed legacy config: {str(legacyConfig)}")
         pass
+
+    def storeConfig(self, importState):
+        self.writeNormalizedConfigToFile(importState)
+        errorsFound = deleteLatestConfig(importState)
+        if errorsFound:
+            getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {importState.ImportId}")
+        errorsFound = importLatestConfig(importState, self.toJsonString(prettyPrint=False))
+        if errorsFound:
+            getFwoLogger().warning(f"error while writing latest config for mgm_id: {importState.ImportId}")
+
+    def writeNormalizedConfigToFile(self, importState):
+        if not self == {}:
+            logger = getFwoLogger()
+            debug_start_time = int(time.time())
+            try:
+                if fwo_globals.debug_level>5:
+                    normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
+                    with open(normalized_config_filename, "w") as json_data:
+                        json_data.write(self.toJsonString(prettyPrint=True))
+            except:
+                logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
+                raise
+
+            time_write_debug_json = int(time.time()) - debug_start_time
+            logger.debug(f"import_management - writing native config json files duration {str(time_write_debug_json)}s")
+
 
 # split the config into chunks of max size "max_objs_per_chunk" to avoid 
 # timeout of import while writing data to import table

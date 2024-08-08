@@ -106,7 +106,7 @@ def get_config(full_config: json, importState: ImportState) -> tuple[int, FwConf
                             config2import['service_objects'],
                             config2import['users'],
                             config2import['zone_objects'],
-                            config2import['rules']
+                            config2import['rules'], stripFields=False
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails), 
                               IsGlobal=False, 

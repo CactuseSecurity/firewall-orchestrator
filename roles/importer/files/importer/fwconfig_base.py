@@ -3,6 +3,8 @@ from typing import List
 from enum import Enum, auto
 
 from fwo_log import getFwoLogger
+from fwoBaseImport import ImportState, ManagementDetails
+from fwo_base import calcManagerUidHash
 
 
 class EnumEncoder(json.JSONEncoder):
@@ -33,9 +35,6 @@ class ConfFormat(Enum):
     FORTINET_LEGACY = auto()
     PALOALTO_LEGACY = auto()
     CISCOFIREPOWER_LEGACY = auto()
-
-    # def toJson(self):
-    #     json.dumps(self, cls=ConfFormatEncoder)
 
 
 """
@@ -118,6 +117,13 @@ class Gateway():
             'EnforcedPolicyUids': self.EnforcedPolicyUids,
             'EnforcedNatPolicyUids': self.EnforcedNatPolicyUids
         }
+    
+    @classmethod
+    def buildGatewayList(cls, mgmDetails: dict) -> List['Gateway']:
+        gws = []
+        for gw in mgmDetails['devices']:
+            gws.append(Gateway(gw['name'], f"{gw['name']}/{calcManagerUidHash(mgmDetails)}"))
+        return gws
 
 """
 'policy':
@@ -133,18 +139,24 @@ class Policy():
     EnforcingGatewayUids: List[str]
     Rules: List[dict]
 
-    def __init__(self, Uid: str, Name: str, EnforcingGatewayUids: str=[], Rules: str=[]):
+    def __init__(self, Uid: str, Name: str, Rules: str=[]):
         self.Name = Uid
         self.Uid = Name
-        # self.EnforcingGatewayUids = EnforcingGatewayUids
         self.Rules = Rules
 
     def toJson(self):
         return {
             'name': self.Name,
             'uid': self.Uid,
-            'Rules': self.Rules 
+            'Rules': self.Rules
         }
                 
     def toJsonLegacy(self):
-        return self.Rules
+        rules = []
+        for ruleUid in self.Rules:
+            rules.append(self.Rules[ruleUid])
+        return {
+            'name': self.Name,
+            'uid': self.Uid,
+            'Rules': rules
+        }

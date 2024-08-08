@@ -26,6 +26,9 @@ def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
     # when we read from a normalized config file, it contains non-matching dev_ids in gw_ tables
     def replace_device_id(config, mgm_details):
         logger = getFwoLogger()
+
+        if isinstance(config, FwConfig):
+            config = config.Config
         if 'routing' in config or 'interfaces' in config:
             if len(mgm_details['devices'])>1:
                 logger.warning('importing from config file with more than one device - just picking the first device at random')
@@ -86,8 +89,13 @@ def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
                 replace_import_id(config.Config, importState.ImportId)
     else:   # assuming legacy normalized config
         replace_device_id(config, importState.MgmDetails)
-        if importState.ImportFileName is not None and 'network_objects' in config:
-            # we have read normalized config from file
-            replace_import_id(config, importState.ImportId)
+        if isinstance(config, FwConfig):
+            if importState.ImportFileName is not None and 'network_objects' in config.Config:
+                # we have read normalized config from file
+                replace_import_id(config.Config, importState.ImportId)
+        else:
+            if importState.ImportFileName is not None and 'network_objects' in config:
+                # we have read normalized config from file
+                replace_import_id(config, importState.ImportId)
 
     return config

@@ -61,42 +61,75 @@ class FwConfig():
 class FwConfigNormalized(FwConfig):
     Action: ConfigAction
     # Networks: List[NetworkObject]
-    Networks: List[dict]
-    Services: List[dict]
-    Users: List[dict]
-    Zones: List[dict]
+    Networks: dict
+    Services: dict
+    Users: dict
+    Zones: dict
     Policies: dict
     Gateways: List[Gateway]
 
     # def __init__(self, action: ConfigAction, networks, services, users, zones, policies, gateways, format=ConfFormat.NORMALIZED_LEGACY):
-    def __init__(self, action: ConfigAction, networks, services, users, zones, policies, gateways, format=ConfFormat.NORMALIZED_LEGACY):
+    def __init__(self, action: ConfigAction, networks, services, users, zones, policies, gateways, format=ConfFormat.NORMALIZED_LEGACY, stripFields=True):
         super().__init__(format)
         self.IsSuperManagerConfig = False
         self.Action = action
-        self.Networks = networks
-        self.Services = services
-        self.Users = users
-        self.Zones = zones
-        self.Policies = policies
-        self.Gateways = gateways
+        for policyElement in policies:
+            if isinstance(policyElement, dict):    # old format
+                formatOld = True
+                break
+            elif isinstance(policyElement, str):   # found new format
+                policies[policyElement].Rules = FwConfigNormalized.convertListToDict(policies[policyElement].Rules, 'rule_uid')
+            else:
+                logger = getFwoLogger()
+                logger.warning("found unknown policy format")
+
+        if formatOld:                 # found old config format, do not adjust config
+            self.Networks = networks
+            self.Services = services
+            self.Users = users
+            self.Zones = zones
+            self.Policies = policies
+            self.Gateways = gateways
+        else:
+            self.Networks = FwConfigNormalized.convertListToDict(networks, 'obj_uid')
+            self.Services = FwConfigNormalized.convertListToDict(services, 'svc_uid')
+            self.Users = FwConfigNormalized.convertListToDict(users, 'user_uid')
+            self.Zones = FwConfigNormalized.convertListToDict(zones, 'zone_name')
+            self.Policies = policies
+            self.Gateways = gateways
+            if stripFields:
+                self.stripUnusedElements()
+
+
+    # @classmethod
+    # def fromJson(cls, jsonDict):
+    #     if 'routing' not in jsonDict:
+    #         jsonDict.update({'routing': []})
+    #     if 'interfaces' not in jsonDict:
+    #         jsonDict.update({'interfaces': []})
+    #     # default action (backward compatibility) is INSERT
+    #     if 'action' not in jsonDict:
+    #         jsonDict.update({'action': ConfigAction.INSERT})
+    #     return cls(jsonDict['action'], 
+    #                FwConfigNormalized.convertListToDict(jsonDict['network_objects'], 'obj_uid'), 
+    #                FwConfigNormalized.convertListToDict(jsonDict['service_objects'], 'svc_uid'),
+    #                FwConfigNormalized.convertListToDict(jsonDict['users'], 'user_id'),
+    #                FwConfigNormalized.convertListToDict(jsonDict['zone_objects'], 'zone_name'), 
+    #                jsonDict['policies'],
+    #                jsonDict['gateways']
+    #                )
 
     @classmethod
-    def fromJson(cls, jsonDict):
-        if 'routing' not in jsonDict:
-            jsonDict.update({'routing': []})
-        if 'interfaces' not in jsonDict:
-            jsonDict.update({'interfaces': []})
-        # default action (backward compatibility) is INSERT
-        if 'action' not in jsonDict:
-            jsonDict.update({'action': ConfigAction.INSERT})
-        return cls(jsonDict['action'], 
-                   jsonDict['network_objects'], 
-                   jsonDict['service_objects'],
-                   jsonDict['users'],
-                   jsonDict['zone_objects'], 
-                   jsonDict['policies'],
-                   jsonDict['gateways']
-                   )
+    def convertListToDict(cls, listIn: List, idField: str) -> dict:
+        logger = getFwoLogger()
+        result = {}
+        for item in listIn:
+            if idField in item:
+                key = item[idField]
+                result[key] = item
+            else:
+                logger.error(f"dict {str(item)} does not contain id field {idField}")
+        return result # { listIn[idField]: listIn for listIn in listIn }
 
     def __str__(self):
         return f"{self.Action}({str(self.Networks)})"
@@ -104,11 +137,17 @@ class FwConfigNormalized(FwConfig):
     def toJsonLegacy(self, withAction=True):
         rules = []
         gws = []
-        for policyUid in self.Policies:
-            rules += self.Policies[policyUid].toJsonLegacy()
-        for gw in self.Gateways:
-            gws.append(gw.toJson())
-            
+        if self.ConfigFormat == ConfFormat.NORMALIZED:
+            for policyUid in self.Policies:
+                rules += self.Policies[policyUid].toJsonLegacy()
+            for gw in self.Gateways:
+                gws.append(gw.toJson())
+        elif self.ConfigFormat == ConfFormat.NORMALIZED_LEGACY:
+            rules = self.Policies
+        else:
+            logger = getFwoLogger()
+            logger.error("found no suitable config format")
+            raise
         config = {
             'network_objects': self.Networks,
             'service_objects': self.Services,
@@ -126,20 +165,47 @@ class FwConfigNormalized(FwConfig):
     def toJsonString(self, prettyPrint=False):
         json.dumps(self.toJson(prettyPrint=prettyPrint))
 
-    def toJson(self, prettyPrint=False):
-        gws = []
-        for gw in self.Gateways:
-            gws.append(gw.toJson())
-
-        policies = []
+    def stripUnusedElements(self):
         for policyName in self.Policies:
             deleteDictElements(self.Policies[policyName].Rules, ['control_id', 'rulebase_name'])
-            policies.append(self.Policies[policyName].toJson())
-        
-        deleteDictElements(self.Networks, ['control_id'])
-        deleteDictElements(self.Services, ['control_id'])
-        deleteDictElements(self.Users, ['control_id'])
-        deleteDictElements(self.Zones, ['control_id'])
+
+        if isinstance(self.Networks, List): 
+            deleteDictElements(self.Networks, ['control_id'])
+        if isinstance(self.Services, List): 
+            deleteDictElements(self.Services, ['control_id'])
+        if isinstance(self.Users, List): 
+            deleteDictElements(self.Users, ['control_id'])
+        if isinstance(self.Zones, List): 
+            deleteDictElements(self.Zones, ['control_id'])
+
+    def toJson(self, prettyPrint=False):
+        gws = []
+        logger = getFwoLogger()
+
+        policiesJson = {} 
+
+        if self.ConfigFormat == ConfFormat.NORMALIZED:
+
+            for gw in self.Gateways:
+                gws.append(gw.toJson())
+
+            for polName in self.Policies: 
+                if isinstance(self.Policies[polName], Policy):
+                    policiesJson.update ( { polName: self.Policies[polName].toJson() } )
+                else:
+                    logger.warning("should never occur")
+                    policiesJson.update ( { polName: self.Policies[polName] } )
+
+        # elif self.ConfigFormat == ConfFormat.NORMALIZED:
+        #     for policyUid in self.Policies:
+        #         policiesJson += self.Policies[policyUid].toJsonLegacy()
+        #     for gw in self.Gateways:
+        #         gws.append(gw.toJson())
+        elif self.ConfigFormat == ConfFormat.NORMALIZED_LEGACY:
+            policiesJson = self.Policies
+        else:
+            logger.error("found no suitable config format")
+            raise
 
         config = {
             'action': self.Action,
@@ -147,7 +213,7 @@ class FwConfigNormalized(FwConfig):
             'service_objects': self.Services,
             'users': self.Users,
             'zone_objects': self.Zones,
-            'policies': policies,
+            'policies': policiesJson,
             'gateways': gws
         }
         return config
@@ -222,11 +288,22 @@ class FwConfigManager():
 #             except AttributeError as e:
 #                 logger.warning(f"trying to remote attributes that does not exist: {e}")
 
-def deleteDictElements(dictList: List[object], attrNames: List[str]):
+
+# dictIn has the form:
+# {
+#    "x_uid": {
+#         "field1": "value1"
+#     },
+#    "y_uid": {
+#         "field1": "value1"
+#     }
+# }
+#
+def deleteDictElements(dictIn: dict, attrNames: List[str]):
     logger = getFwoLogger()
-    for d in dictList:
+    for dName in dictIn:
         for attr in attrNames:
             try:
-                del d[attr]
+                del dictIn[dName][attr]
             except KeyError as e:
                 logger.warning(f"trying to remove element from dict that does not exist: {e}")

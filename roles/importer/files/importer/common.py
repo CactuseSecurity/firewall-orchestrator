@@ -16,7 +16,8 @@ from fwo_exception import FwoApiLoginFailed, FwLoginFailed, ImportRecursionLimit
 from fwo_base import stringIsUri, calcManagerUidHash
 import fwo_file_import
 from fwoBaseImport import FworchConfig, ImportState
-from fwconfig import ConfFormat, ConfigAction, ConfigAction, FwConfigManagerList, FwConfigNormalized, FwConfigManager
+from fwconfig import FwConfig, ConfFormat, ConfigAction, ConfigAction, FwConfigManagerList, FwConfigNormalized, FwConfigManager
+from fwconfig_base import Gateway
 
 
 """  
@@ -43,7 +44,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         logger.info("import_management - import disabled for mgm " + str(mgmId))
     else:
         Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
-        # gateways = importState.buildGatewayList()
+        gateways = Gateway.buildGatewayList(importState.FullMgmDetails)
 
         # only run if this is the correct import module
         if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
@@ -57,7 +58,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         if clearManagementData:
             logger.info('this import run will reset the configuration of this management to "empty"')
             configNormalized = FwConfigManagerList()
-            configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails)))
+            configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails), importState.MgmDetails.Name))
             configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, [], [], [], [], []))
         else:
             # configObj = FwConfig()            
@@ -68,11 +69,26 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 importState.setImportFileName(in_file)
             if importState.ImportFileName is not None:
                 configFromFile = fwo_file_import.readJsonConfigFromFile(importState)
-                ### just parsing the config, note: we need to run get_config_from_api here to do this
-                if isinstance(configFromFile, FwConfigManagerList):
-                    config_changed_since_last_import, configNormalized = get_config_from_api(importState, configFromFile.Config)
-                else: 
-                    config_changed_since_last_import, configNormalized = get_config_from_api(importState, configFromFile)
+                if isinstance(configFromFile, FwConfig):
+                    if configFromFile.ConfigFormat == 'NORMALIZED_LEGACY':
+                        configNormalized = FwConfigManagerList(ConfigFormat=configFromFile.ConfigFormat)
+                        configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails), importState.MgmDetails.Name))
+                        configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, 
+                                                                                        configFromFile.Config['network_objects'],
+                                                                                        configFromFile.Config['service_objects'],
+                                                                                        configFromFile.Config['user_objects'],
+                                                                                        configFromFile.Config['zone_objects'],
+                                                                                        configFromFile.Config['rules'],
+                                                                                        gateways
+                                                                                        ))
+                    elif configFromFile.ConfigFormat == 'NORMALIZED':
+                        # ideally just import from json
+                        configNormalized = FwConfigManagerList.fromJson(configFromFile)
+                else: ### just parsing the native config, note: we need to run get_config_from_api here to do this
+                    if isinstance(configFromFile, FwConfigManagerList):
+                        config_changed_since_last_import, configNormalized = get_config_from_api(importState, configFromFile.Config)
+                    else: 
+                        config_changed_since_last_import, configNormalized = get_config_from_api(importState, configFromFile)
             else:
                 ### geting config from firewall manager ######################
                 config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
@@ -105,6 +121,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 raise
             logger.debug(f"writing config to API and stored procedure import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
 
+            # TODO: move the following error handling to function
             error_from_imp_control = "assuming error"
             try: # checking for errors during stored_procedure db imort in import_control table
                 error_from_imp_control = fwo_api.get_error_string_from_imp_control(importState, {"importId": importState.ImportId})
@@ -205,16 +222,16 @@ def get_config_from_api(importState, configNative, import_tmp_path=import_tmp_pa
 
 
 def writeNativeConfigToFile(importState, configNative):
-    logger = getFwoLogger()
-    debug_start_time = int(time.time())
-    try:
-        if fwo_globals.debug_level>6:
-            full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
-            with open(full_native_config_filename, "w") as json_data:
-                json_data.write(json.dumps(configNative, indent=2))
-    except:
-        logger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
-        raise
+    if fwo_globals.debug_level>6:
+        logger = getFwoLogger()
+        debug_start_time = int(time.time())
+        try:
+                full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
+                with open(full_native_config_filename, "w") as json_data:
+                    json_data.write(json.dumps(configNative, indent=2))
+        except:
+            logger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
+            raise
 
-    time_write_debug_json = int(time.time()) - debug_start_time
-    logger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")
+        time_write_debug_json = int(time.time()) - debug_start_time
+        logger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")

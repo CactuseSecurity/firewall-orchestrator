@@ -181,7 +181,8 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
                             normalizedConfig['service_objects'],
                             normalizedConfig['users'],
                             normalizedConfig['zone_objects'],
-                            normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],
+                            # decide between old (rules) and new (policies) format
+                            normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
                             normalizedConfig['gateways']
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),

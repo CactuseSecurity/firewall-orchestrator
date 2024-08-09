@@ -73,6 +73,8 @@ class FwConfigNormalized(FwConfig):
         super().__init__(format)
         self.IsSuperManagerConfig = False
         self.Action = action
+        formatOld = False
+
         for policyElement in policies:
             if isinstance(policyElement, dict):    # old format
                 formatOld = True

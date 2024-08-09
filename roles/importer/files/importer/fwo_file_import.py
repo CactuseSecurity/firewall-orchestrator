@@ -20,32 +20,32 @@ def replace_import_id(config, current_import_id):
             pass
 
 
-def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
+# when we read from a normalized config file, it contains non-matching dev_ids in gw_ tables
+def replace_device_id(config, mgm_details):
     logger = getFwoLogger()
 
-    # when we read from a normalized config file, it contains non-matching dev_ids in gw_ tables
-    def replace_device_id(config, mgm_details):
-        logger = getFwoLogger()
+    if isinstance(config, FwConfig):
+        config = config.Config
+    if 'routing' in config or 'interfaces' in config:
+        if len(mgm_details['devices'])>1:
+            logger.warning('importing from config file with more than one device - just picking the first device at random')
+        if len(mgm_details['devices'])>=1:
+            # just picking the first device
+            dev_id = mgm_details['devices'][0]['id']
+            if 'routing' in config:
+                i=0
+                while i<len(config['routing']):
+                    config['routing'][i]['routing_device'] = dev_id
+                    i += 1
+            if 'interfaces' in config:
+                i=0
+                while i<len(config['interfaces']):
+                    config['interfaces'][i]['routing_device'] = dev_id
+                    i += 1    
 
-        if isinstance(config, FwConfig):
-            config = config.Config
-        if 'routing' in config or 'interfaces' in config:
-            if len(mgm_details['devices'])>1:
-                logger.warning('importing from config file with more than one device - just picking the first device at random')
-            if len(mgm_details['devices'])>=1:
-                # just picking the first device
-                dev_id = mgm_details['devices'][0]['id']
-                if 'routing' in config:
-                    i=0
-                    while i<len(config['routing']):
-                        config['routing'][i]['routing_device'] = dev_id
-                        i += 1
-                if 'interfaces' in config:
-                    i=0
-                    while i<len(config['interfaces']):
-                        config['interfaces'][i]['routing_device'] = dev_id
-                        i += 1    
 
+def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
+    logger = getFwoLogger()
 
     try:
         if importState.ImportFileName is not None:
@@ -60,6 +60,25 @@ def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
                     filename = importState.ImportFileName[7:]
                 with open(filename, 'r') as json_file:
                     configJson = json.load(json_file)
+
+            # now try to convert to config object
+            try:
+                config = FwConfig.fromJson(configJson)
+            except Exception:
+                logger.info("assuming legacy normalized config")
+                config =  {
+                    "config-format": "NORMALIZED_LEGACY",
+                    "config": configJson
+                }
+                try:
+                    config = FwConfig.fromJson(config)
+                except Exception:
+                    # might also want to guess native configs after this?
+                    importState.setErrorString(f"Could not understand config file format: {filename}")
+                    importState.setErrorCounter(importState.ErrorCount+1)
+                    complete_import(importState)
+                    raise importState.ErrorString from None
+
     except requests.exceptions.RequestException:
         try:
             # check if response "r" is defined:
@@ -71,30 +90,9 @@ def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
         complete_import(importState)
         raise ConfigFileNotFound(importState.ErrorString) from None
     except Exception: 
-        # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
         importState.setErrorString("Could not read config file {filename}".format(filename=filename))
         importState.setErrorCounter(importState.ErrorCount+1)
-        # complete_import(importState)
-        # raise ConfigFileNotFound(importState.ErrorString) from None
         logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
-
-    # now try to convert to config object
-    try:
-        config = FwConfig.fromJson(configJson)
-    except Exception:
-        logger.info("assuming legacy normalized config")
-        config =  {
-            "config-format": "NORMALIZED_LEGACY",
-            "config": configJson
-        }
-        try:
-            config = FwConfig.fromJson(config)
-        except Exception:
-            # might also want to guess native configs after this?
-            importState.setErrorString(f"Could not understand config file format: {filename}")
-            importState.setErrorCounter(importState.ErrorCount+1)
-            complete_import(importState)
-            raise importState.ErrorString from None
 
     if (isinstance(config, FwConfigManagerList)):
         replace_device_id(config.Config, importState.MgmDetails)

@@ -74,23 +74,21 @@ def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
                     config = FwConfig.fromJson(config)
                 except Exception:
                     # might also want to guess native configs after this?
-                    importState.setErrorString(f"Could not understand config file format: {filename}")
+                    importState.setErrorString(f"Could not understand config file format in file {importState.ImportFileName}")
                     importState.setErrorCounter(importState.ErrorCount+1)
                     complete_import(importState)
                     raise importState.ErrorString from None
-
     except requests.exceptions.RequestException:
         try:
-            # check if response "r" is defined:
-            r
-            importState.setErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {filename}')
+            r # check if response "r" is defined
+            importState.setErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {importState.ImportFileName}')
         except NameError:
-            importState.setErrorString('got error while trying to read config file from URL {filename}'.format(filename=filename))
+            importState.setErrorString(f'got error while trying to read config file from URL {importState.ImportFileName}')
         importState.setErrorCounter(importState.ErrorCount+1)
         complete_import(importState)
         raise ConfigFileNotFound(importState.ErrorString) from None
     except Exception: 
-        importState.setErrorString("Could not read config file {filename}".format(filename=filename))
+        importState.setErrorString(f"Could not read config file {importState.ImportFileName}")
         importState.setErrorCounter(importState.ErrorCount+1)
         logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
 

@@ -55,19 +55,16 @@ def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
                 session.verify=fwo_globals.verify_certs
                 r = session.get(importState.ImportFileName, )
                 r.raise_for_status()
-                config = json.loads(r.content)
             else:   # reading from local file
                 if importState.ImportFileName.startswith('file://'):   # remove file uri identifier
                     filename = importState.ImportFileName[7:]
                 with open(filename, 'r') as json_file:
                     configJson = json.load(json_file)
-                    config = FwConfig.fromJson(configJson)
     except requests.exceptions.RequestException:
         try:
             # check if response "r" is defined:
             r
-            
-            importState.setErrorString('got HTTP status code{code} while trying to read config file from URL {filename}'.format(code=str(r.status_code), filename=filename))
+            importState.setErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {filename}')
         except NameError:
             importState.setErrorString('got error while trying to read config file from URL {filename}'.format(filename=filename))
         importState.setErrorCounter(importState.ErrorCount+1)
@@ -77,9 +74,27 @@ def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
         # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
         importState.setErrorString("Could not read config file {filename}".format(filename=filename))
         importState.setErrorCounter(importState.ErrorCount+1)
-        complete_import(importState)
+        # complete_import(importState)
         # raise ConfigFileNotFound(importState.ErrorString) from None
         logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
+
+    # now try to convert to config object
+    try:
+        config = FwConfig.fromJson(configJson)
+    except Exception:
+        logger.info("assuming legacy normalized config")
+        config =  {
+            "config-format": "NORMALIZED_LEGACY",
+            "config": configJson
+        }
+        try:
+            config = FwConfig.fromJson(config)
+        except Exception:
+            # might also want to guess native configs after this?
+            importState.setErrorString(f"Could not understand config file format: {filename}")
+            importState.setErrorCounter(importState.ErrorCount+1)
+            complete_import(importState)
+            raise importState.ErrorString from None
 
     if (isinstance(config, FwConfigManagerList)):
         replace_device_id(config.Config, importState.MgmDetails)

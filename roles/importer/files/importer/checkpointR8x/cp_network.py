@@ -71,6 +71,11 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                         obj_type = 'group'
                         # TODO: handle exclusion groups correctly
 
+                    if obj_type == 'security-zone':
+                        first_ip = '0.0.0.0/32'
+                        last_ip = '255.255.255.255/32'
+                        obj_type = 'network'
+
                     if obj_type == 'group':
                         first_ip = None
                         last_ip = None

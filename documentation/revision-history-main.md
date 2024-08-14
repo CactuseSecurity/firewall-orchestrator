@@ -391,3 +391,7 @@ Maintenance release
 - owner-filtering for new report type
 - new setting for email recipients
 - owner-import custom script improvements#
+
+# 8.3.1 - 14.08.24 MAIN
+Hotfix:
+- in CheckPoint importer: fix missing group members

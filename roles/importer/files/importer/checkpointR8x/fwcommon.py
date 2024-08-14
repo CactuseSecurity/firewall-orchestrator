@@ -181,6 +181,10 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
     show_params_objs = {'limit':limit,'details-level': cp_const.details_level}
 
     for obj_type in cp_const.api_obj_types:
+        if obj_type in cp_const.obj_types_full_fetch_needed:
+            show_params_objs.update({'details-level': cp_const.details_level_group_objects})
+        else:
+            show_params_objs.update({'details-level': cp_const.details_level_objects})
         object_table = { "object_type": obj_type, "object_chunks": [] }
         current=0
         total=current+1

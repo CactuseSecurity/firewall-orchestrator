@@ -128,6 +128,14 @@ def enrich_config (config, mgm_details, limit=150, details_level=cp_const.detail
                         'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
                     config['object_tables'].append(json_obj)
+
+                elif (obj['type'] in ['Internet', 'security-zone']):
+                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',
+                        } ] } ] }
+                    config['object_tables'].append(json_obj)
                 elif (obj['type'] == 'access-role'):
                     pass # ignorning user objects
                 else:

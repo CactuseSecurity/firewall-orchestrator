@@ -8872,6 +8872,47 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "obj_create",
+                      "obj_id",
+                      "obj_last_seen",
+                      "active",
+                      "initial_config",
+                      "obj_nat",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
+                      "obj_sys_contact",
+                      "obj_sys_location",
+                      "obj_sys_name",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -9157,6 +9198,57 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "obj_create",
+                      "obj_id",
+                      "obj_last_seen",
+                      "active",
+                      "initial_config",
+                      "obj_nat",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
+                      "obj_sys_contact",
+                      "obj_sys_location",
+                      "obj_sys_name",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -15093,6 +15185,51 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "deleted",
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -15399,6 +15536,61 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "deleted",
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

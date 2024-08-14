@@ -10,9 +10,10 @@ import cp_const, cp_network, cp_service
 import cp_getter
 from fwo_exception import FwLoginFailed, FwLogoutFailed
 from cp_user import parse_user_objects_from_rulebase
-from fwconfig import FwConfigManager, ConfFormat, ConfigAction, FwConfigManagerList, FwConfigNormalized
+from fwconfig_base import calcManagerUidHash
+from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
 from fwoBaseImport import ImportState
-from fwo_base import calcManagerUidHash
+from fwo_base import ConfFormat, ConfigAction
 import fwo_const
 
 
@@ -177,13 +178,13 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
     
     # put dicts into object of class FwConfigManager
     normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 
-                            normalizedConfig['network_objects'],
-                            normalizedConfig['service_objects'],
-                            normalizedConfig['users'],
-                            normalizedConfig['zone_objects'],
+                            network_objects=normalizedConfig['network_objects'],
+                            service_objects=normalizedConfig['service_objects'],
+                            users=normalizedConfig['users'],
+                            zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
-                            normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
-                            normalizedConfig['gateways']
+                            rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
+                            gateways=normalizedConfig['gateways']
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
                               ManagerName=importState.MgmDetails.Name,

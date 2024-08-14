@@ -51,7 +51,7 @@ def login(user, password, api_host, api_port, domain):
         payload.update({'domain': domain})
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     if int(fwo_globals.debug_level)>2:
-        logger.debug("auto-discover - login to url " + base_url + " with user " + user)
+        logger.debug("login - login to url " + base_url + " with user " + user)
     response = cp_api_call(base_url, 'login', payload, '')
     if "sid" not in response:
         exception_text = "\ngetter ERROR: did not receive a sid during login, " + \

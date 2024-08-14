@@ -1,41 +1,22 @@
 import json
 from typing import List
-from enum import Enum, auto
+from enum import Enum
+import hashlib
 
-from fwo_log import getFwoLogger
-from fwoBaseImport import ImportState, ManagementDetails
-from fwo_base import calcManagerUidHash
+from fwo_base import ConfFormat, ConfigAction
 
 
-class EnumEncoder(json.JSONEncoder):
+class FwoEncoder(json.JSONEncoder):
+
     def default(self, obj):
+
         if isinstance(obj, ConfigAction) or isinstance(obj, ConfFormat):
-            return obj.name 
+            return obj.name
+        
+        if isinstance(obj, Policy):
+            return obj.toJson()
+        
         return json.JSONEncoder.default(self, obj)
-
-class ConfigAction(Enum):
-    INSERT = auto()
-    UPDATE = auto()
-    DELETE = auto()
-
-    # def toJson(self):
-    #     json.dumps(self, cls=ConfigActionEncoder)
-
-class ConfFormat(Enum):
-    NORMALIZED = auto()
-    
-    CHECKPOINT = auto()
-    FORTINET = auto()
-    PALOALTO = auto()
-    CISCOFIREPOWER = auto()
-
-    NORMALIZED_LEGACY = auto()
-
-    CHECKPOINT_LEGACY = auto()
-    FORTINET_LEGACY = auto()
-    PALOALTO_LEGACY = auto()
-    CISCOFIREPOWER_LEGACY = auto()
-
 
 """
     the configuraton of a firewall management to import
@@ -52,13 +33,17 @@ class FwConfig():
 
     @classmethod
     def fromJson(cls, jsonDict):
-        ConfigFormat = jsonDict['config-format']
+        ConfigFormat = jsonDict['ConfigFormat']
         Config = jsonDict['config']
         return cls(ConfigFormat, Config)
 
     def __str__(self):
         return f"{self.ConfigType}({str(self.Config)})"
 
+    def IsLegacy(self):
+        return self.ConfigFormat in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
+                                    ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
+                                    ConfFormat.PALOALTO_LEGACY]
 
 class NetworkObject():
 
@@ -136,7 +121,7 @@ class Gateway():
 class Policy():
     Uid: str
     Name: str
-    EnforcingGatewayUids: List[str]
+    # EnforcingGatewayUids: List[str]
     Rules: List[dict]
 
     def __init__(self, Uid: str, Name: str, Rules: str=[]):
@@ -160,3 +145,20 @@ class Policy():
             'uid': self.Uid,
             'Rules': rules
         }
+
+
+def calcManagerUidHash(mgm_details):
+    combination = f"""
+        {replaceNoneWithEmpty(mgm_details['hostname'])}
+        {replaceNoneWithEmpty(mgm_details['port'])}
+        {replaceNoneWithEmpty(mgm_details['domainUid'])}
+        {replaceNoneWithEmpty(mgm_details['configPath'])}
+    """
+    return hashlib.sha256(combination.encode()).hexdigest()
+
+
+def replaceNoneWithEmpty(s):
+    if s is None or s == '':
+        return '<EMPTY>'
+    else:
+        return str(s)

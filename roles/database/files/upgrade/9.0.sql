@@ -231,11 +231,6 @@ Alter table "rulebase_on_gateway" add CONSTRAINT unique_rulebase_on_gateway_dev_
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
 
--- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_installon"; -- here we would need to rebuild views
--- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_ruleid"; -- here we would need to rebuild views
--- ALTER TABLE "rule" DROP COLUMN IF EXISTS "dev_id"; -- final step when the new structure works
--- ALTER TABLE "import_rule" DROP COLUMN IF EXISTS "rulebase_name";
-
 -- permanent table for storing latest config to calc diffs
 CREATE TABLE IF NOT EXISTS "latest_config" (
     "import_id" bigint NOT NULL,
@@ -247,6 +242,19 @@ CREATE TABLE IF NOT EXISTS "latest_config" (
 ALTER TABLE "latest_config" DROP CONSTRAINT IF EXISTS "unique_latest_config_mgm_id" CASCADE;
 Alter table "latest_config" add CONSTRAINT unique_latest_config_mgm_id UNIQUE ("mgm_id");
 
+-- reverse last_seen / deleted logic for objects
+ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "objgrp" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "objgrp_flat" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "svcgrp" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "svcgrp_flat" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "zone" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "rule_from" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "rule_to" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
 
 /*  TODOs 
     
@@ -280,6 +288,11 @@ Cleanups (after cp importer works with all config variants):
         #parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
         --> replace by api call?
 - re-add config splits
+- add the following functions to all modules:
+    - getNativeConfig
+    - normalizeConfig
+    - getNormalizedConfig (a combination of the two above)
+- re-add global / domain policies
 - update all importers:
    - fortimanager
    - azure
@@ -292,5 +305,26 @@ Cleanups (after cp importer works with all config variants):
      - barracuda
 
 can we get everything working with old config format? no!
+
+
+TODOs after full importer migration
+
+-- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_installon"; -- here we would need to rebuild views
+-- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_ruleid"; -- here we would need to rebuild views
+-- ALTER TABLE "rule" DROP COLUMN IF EXISTS "dev_id"; -- final step when the new structure works
+-- ALTER TABLE "import_rule" DROP COLUMN IF EXISTS "rulebase_name";
+
+ALTER TABLE "object" DROP COLUMN IF EXISTS "obj_last_seen";
+ALTER TABLE "objgrp" DROP COLUMN IF EXISTS "objgrp_last_seen";
+ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "objgrp_flat_last_seen";
+ALTER TABLE "service" DROP COLUMN IF EXISTS "svc_last_seen";
+ALTER TABLE "svcgrp" DROP COLUMN IF EXISTS "svcgrp_last_seen";
+ALTER TABLE "svcgrp_flat" DROP COLUMN IF EXISTS "svcgrp_flat_last_seen";
+ALTER TABLE "zone" DROP COLUMN IF EXISTS "zone_last_seen";
+ALTER TABLE "usr" DROP COLUMN IF EXISTS "user_last_seen";
+ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_last_seen";
+ALTER TABLE "rule_from" DROP COLUMN IF EXISTS "rf_last_seen";
+ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "rt_last_seen";
+ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "rs_last_seen";
 
 */

@@ -2,6 +2,7 @@ import traceback
 import sys, time
 import json, requests, requests.packages
 from socket import gethostname
+from typing import List
 import importlib.util
 from fwo_const import importer_base_dir
 from pathlib import Path
@@ -13,11 +14,12 @@ from fwo_const import fw_module_name, full_config_size_limit
 from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name, import_tmp_path
 import fwo_globals
 from fwo_exception import FwoApiLoginFailed, FwLoginFailed, ImportRecursionLimitReached
-from fwo_base import stringIsUri, calcManagerUidHash
+from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
 from fwoBaseImport import FworchConfig, ImportState
-from fwconfig import FwConfig, ConfFormat, ConfigAction, ConfigAction, FwConfigManagerList, FwConfigNormalized, FwConfigManager
-from fwconfig_base import Gateway
+from fwconfig import FwConfig, FwConfigManagerList, FwConfigNormalized, FwConfigManager
+from fwconfig_base import Gateway, calcManagerUidHash
+from fwconfig_import import FwConfigImport
 
 
 """  
@@ -61,65 +63,49 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails), importState.MgmDetails.Name))
             configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, [], [], [], [], []))
         else:
-            # configObj = FwConfig()            
-            if in_file is None: # if the host name is an URI, do not connect to an API but simply read the config from this URI
-                if stringIsUri(importState.MgmDetails.Hostname):
-                    importState.setImportFileName(importState.MgmDetails.Hostname)
+            if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
+                ### geting config from file ######################
+                config_changed_since_last_import, configNormalized = \
+                    importFromFile(importState, in_file, gateways)
             else:
-                importState.setImportFileName(in_file)
-            if importState.ImportFileName is not None:
-                configFromFile = fwo_file_import.readJsonConfigFromFile(importState)
-                if isinstance(configFromFile, FwConfig):
-                    if configFromFile.ConfigFormat == 'NORMALIZED_LEGACY':
-                        configNormalized = FwConfigManagerList(ConfigFormat=configFromFile.ConfigFormat)
-                        configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails), importState.MgmDetails.Name))
-                        configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, 
-                                                                                        configFromFile.Config['network_objects'],
-                                                                                        configFromFile.Config['service_objects'],
-                                                                                        configFromFile.Config['user_objects'],
-                                                                                        configFromFile.Config['zone_objects'],
-                                                                                        configFromFile.Config['rules'],
-                                                                                        gateways
-                                                                                        ))
-                    elif configFromFile.ConfigFormat == 'NORMALIZED':
-                        # ideally just import from json
-                        configNormalized = FwConfigManagerList.fromJson(configFromFile)
-                else: ### just parsing the native config, note: we need to run get_config_from_api here to do this
-                    if isinstance(configFromFile, FwConfigManagerList):
-                        config_changed_since_last_import, configNormalized = get_config_from_api(importState, configFromFile.Config)
-                    else: 
-                        config_changed_since_last_import, configNormalized = get_config_from_api(importState, configFromFile)
-            else:
-                ### geting config from firewall manager ######################
+                ### geting config from firewall manager API ######
                 config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
+                if importState.ImportVersion>8:
+                    configNormalized.ConfigFormat = ConfFormat.NORMALIZED
 
         time_get_config = int(time.time()) - importState.StartTime
         logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
+        errorCount=0
+        changeCount=0
         if config_changed_since_last_import or importState.ForceImport:
             try: # now we import the config via API chunk by chunk:
                 # for config_chunk in split_config(importState, configNormalized):
+                configNormalized.storeFullNormalizedConfigToFile(importState) # write full config to file (for debugging)
+
                 for managerSet in configNormalized.ManagerSet:
                     for config in managerSet.Configs:
-                        configChunk = config.toJsonLegacy(withAction=False)
-                        errorCount = 0
+                        if config !=  {}:
+                            if importState.ImportVersion>8:
+                                configImporter = FwConfigImport(importState, config)
+                                errorCount, changeCount = configImporter.importConfig()
+                                configImporter.storeConfigToApi() # to file (for debugging) and to database
+                            else:
+                                configChunk = config.toJsonLegacy(withAction=False)
+                                # if configChunk == {}:
+                                #     importState.setErrorCounter (importState.ErrorCount + errorCount)
+                                errorCount = fwo_api.import_json_config(importState, configChunk)
 
-                         # IMPORT TO FWO API HERE
-                        if importState.ImportVersion>8:
-                            errorCount = config.importConfig(importState)
-                            config.saveLastConfig() # used to calculate diffs in next import
-                        else:
-                            errorCount = fwo_api.import_json_config(importState, configChunk)
-
-                        importState.setChangeCounter (importState.ErrorCount + errorCount)
-                        fwo_api.update_hit_counter(importState, config)
+                            importState.setErrorCounter (importState.ErrorCount + errorCount)
+                            importState.setChangeCounter (importState.ChangeCount + changeCount)
+                            fwo_api.update_hit_counter(importState, config)
 
                 # currently assuming only one chunk
                 # initiateImportStart(importState)
             except:
                 logger.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
                 raise
-            logger.debug(f"writing config to API and stored procedure import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
+            logger.debug(f"full import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
 
             # TODO: move the following error handling to function
             error_from_imp_control = "assuming error"
@@ -144,7 +130,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         else: # if no changes were found, we skip everything else without errors
             pass
         
-        configNormalized.storeConfig(importState) # to file (debugging), to database
         importState.setErrorCounter(fwo_api.complete_import(importState))
         
     return importState.ErrorCount
@@ -167,6 +152,50 @@ def initiateImportStart(importState):
         importState.ErrorCount + fwo_api.import_json_config(importState, 
                                     emptyDummyConfig.toJsonLegacy(withAction=False), 
                                     startImport=True))
+
+
+def importFromFile(importState: ImportState, fileName: str = None, gateways: List[Gateway] = []):
+
+    config_changed_since_last_import = True
+    
+    # set file name in importState
+    if fileName == '': 
+        # if the host name is an URI, do not connect to an API but simply read the config from this URI
+        if stringIsUri(importState.MgmDetails.Hostname):
+            importState.setImportFileName(importState.MgmDetails.Hostname)
+    else:
+        importState.setImportFileName(fileName)
+
+    configFromFile = fwo_file_import.readJsonConfigFromFile(importState)
+
+    if configFromFile.IsLegacy():
+        if isinstance(configFromFile, FwConfig):
+            if configFromFile.ConfigFormat == 'NORMALIZED_LEGACY':
+                configNormalized = FwConfigManagerList(ConfigFormat=configFromFile.ConfigFormat)
+                configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails), importState.MgmDetails.Name))
+                configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, 
+                                                                                configFromFile.Config['network_objects'],
+                                                                                configFromFile.Config['service_objects'],
+                                                                                configFromFile.Config['user_objects'],
+                                                                                configFromFile.Config['zone_objects'],
+                                                                                configFromFile.Config['rules'],
+                                                                                gateways
+                                                                                ))
+            elif configFromFile.ConfigFormat == 'NORMALIZED':
+                # ideally just import from json
+                configNormalized = FwConfigManagerList.fromJson(configFromFile)
+        else: ### just parsing the native config, note: we need to run get_config_from_api here to do this
+            if isinstance(configFromFile, FwConfigManagerList):
+                for mgr in configFromFile.ManagerSet:
+                    for conf in mgr.Configs:
+                        # need to decide how to deal with the multiple results of this loop here!
+                        config_changed_since_last_import, configNormalized = get_config_from_api(importState, conf)
+            else: 
+                config_changed_since_last_import, configNormalized = get_config_from_api(importState, configFromFile)
+    else:
+        configNormalized = configFromFile
+
+    return config_changed_since_last_import, configNormalized
 
 
 def get_config_from_api(importState, configNative, import_tmp_path=import_tmp_path, limit=150) -> FwConfigManagerList:

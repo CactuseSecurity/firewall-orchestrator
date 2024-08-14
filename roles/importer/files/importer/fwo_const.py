@@ -24,7 +24,7 @@ import_tmp_path = base_dir + '/tmp/import'
 fwo_config_filename = base_dir + '/etc/fworch.json'
 max_recursion_level = 25 # do not call a function recursively more than this
 default_section_header_text = 'section without name'
-# possible config-format values: normalized|checkpoint|fortimanager|fortioOS|azure|ciscoFirePower
+# possible ConfigFormat values: normalized|checkpoint|fortimanager|fortioOS|azure|ciscoFirePower
 # legacy: barracuda|junos|netscreen
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?

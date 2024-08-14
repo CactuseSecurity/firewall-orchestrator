@@ -1,29 +1,31 @@
 import json
 import jsonpickle
-from typing import List
+from typing import List, Any, get_type_hints
 import time
 import traceback
 
 import fwo_globals
 from fwo_log import getFwoLogger
 from fwo_data_networking import InterfaceSerializable, RouteSerializable
-from fwo_base import split_list, calcManagerUidHash
+from fwo_base import split_list, serializeDictToClassRecursively, deserializeClassToDictRecursively
 from fwo_const import max_objs_per_chunk, import_tmp_path
 
 from fwoBaseImport import ImportState, ManagementDetails
-from fwconfig_base import EnumEncoder, ConfigAction, ConfFormat, NetworkObject, Gateway, Policy
 from fwconfig_normalized import FwConfig, FwConfigNormalized
-from fwo_api_import import importLatestConfig, deleteLatestConfig
+from fwo_base import ConfFormat
+from fwconfig_base import calcManagerUidHash, FwoEncoder
 
 class FwConfigManager():
     ManagerUid: str
     ManagerName: str
     IsGlobal: bool
     DependantManagerUids: List[str]
-    Configs: List[dict]
+    Configs: List[FwConfigNormalized]
+    # Configs: List[dict]
 
 
-    def __init__(self, ManagerUid: str, ManagerName: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[FwConfigNormalized]=[]):
+    # def __init__(self, ManagerUid: str, ManagerName: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[FwConfigNormalized]=[]):
+    def __init__(self, ManagerUid: str, ManagerName: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[dict]=[]):
         """
             mandatory parameter: ManagerUid, 
         """
@@ -61,41 +63,70 @@ class FwConfigManagerList():
 
     def __str__(self):
         return f"{str(self.ManagerSet)})"
-    
-    def toJsonStringFull(self):
-        return jsonpickle.encode(self, indent=2)
-
-    def toJsonString(self, prettyPrint=False):
-        if prettyPrint:
-            return json.dumps(self.toJson(), indent=2, cls=EnumEncoder)
-        else:
-            return json.dumps(self.toJson(), cls=EnumEncoder)
 
     def toJson(self):
-        mgrSet = []
-        for mgr in self.ManagerSet:
-            configsJson =  {}
-            for config in mgr.Configs:
-                configsJson.update(config.toJson())
-            mgrSet.append( { 
-                'mgmUid': mgr.ManagerUid,
-                'mgmName': mgr.ManagerName,
-                'IsGlobal': mgr.IsGlobal,
-                'Configs': configsJson,
-                'DependantManagerUids': mgr.DependantManagerUids
-            })
+        return deserializeClassToDictRecursively(self)
 
-        return {
-            'ConfigFormat': self.ConfigFormat,
-            'managers': mgrSet
-        } 
+    def toJsonString(self, prettyPrint=False):
+        jsonDict = self.toJson()
+        if prettyPrint:
+            return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
+        else:
+            return json.dumps(jsonDict)
 
-    def toJsonStringLegacy(self):
-        configOut = {}
-        for mgr in self.ManagerSet:
-            for config in mgr.Configs:
-                configOut.update(config.toJsonLegacy(withAction=False))
-        return json.dumps(configOut, indent=2)
+
+# to be re-written:
+    def toJsonLegacy(self):
+        return deserializeClassToDictRecursively(self)
+
+# to be re-written:
+    def toJsonStringLegacy(self, prettyPrint=False):
+        jsonDict = self.toJson()
+        if prettyPrint:
+            return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
+        else:
+            return json.dumps(jsonDict, cls=FwoEncoder)
+
+
+    # def toJsonStringFull(self):
+    #     return jsonpickle.encode(self, indent=2)
+
+    # def toJsonString(self, prettyPrint=False):
+    #     if prettyPrint:
+    #         return json.dumps(deserializeClassToDictRecursively(self), indent=2, cls=FwoEncoder)
+    #         # return json.dumps(self.toJson(), indent=2, cls=EnumEncoder)
+    #     else:
+    #         return json.dumps(self.toJson(), cls=FwoEncoder)
+
+    # def toJson(self):
+    #     mgrSet = []
+    #     for mgr in self.ManagerSet:
+    #         configsJson =  {}
+    #         for config in mgr.Configs:
+    #             configsJson.update(config.toJson())
+    #         mgrSet.append( { 
+    #             'ManagerUid': mgr.ManagerUid,
+    #             'ManagerName': mgr.ManagerName,
+    #             'IsGlobal': mgr.IsGlobal,
+    #             'Configs': configsJson,
+    #             'DependantManagerUids': mgr.DependantManagerUids
+    #         })
+
+    #     return {
+    #         'ConfigFormat': self.ConfigFormat,
+    #         'ManagerSet': mgrSet
+    #     } 
+
+    # def toJsonStringLegacy(self, prettyPrint=True):
+    #     configOut = {}
+    #     for mgr in self.ManagerSet:
+    #         for config in mgr.Configs:
+    #             configOut.update(config.toJsonLegacy(withAction=False))
+
+    #     if prettyPrint:
+    #         return json.dumps(configOut, indent=2)
+    #     else:
+    #         return json.dumps(configOut)
 
     def addManager(self, manager):
         self.ManagerSet.append(manager)
@@ -106,40 +137,48 @@ class FwConfigManagerList():
         else:
             return None
 
+    @classmethod
     def getDevUidFromRulebaseName(rb_name: str) -> str:
         return rb_name
 
+    @classmethod
     def getPolicyUidFromRulebaseName(rb_name: str) -> str:
         return rb_name
+    
+    @classmethod
+    def ConvertFromLegacyNormalizedConfig(cls, legacyConfig: dict, mgmDetails: ManagementDetails) -> 'FwConfigManagerList':
+        if 'ConfigFormat' in legacyConfig and legacyConfig['ConfigFormat'] == 'NORMALIZED':
+            # mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.FullMgmDetails),
+            #                       IsGlobal=False,
+            #                       DependantManagerUids = [],
+            #                       Configs=[])
+            legacyConfig['ManagerSet'][0]['Configs']= [ FwConfigNormalized.fromJson(legacyConfig) ]
+            # policies = {}
+            # rulebase_names = []
 
-    def convertFromLegacyNormalizedConfig(self, legacyConfig: dict, mgmDetails: ManagementDetails) -> None:
-        if 'networkobjects' in legacyConfig:
-            mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.FullMgmDetails),
-                                  IsGlobal=False,
-                                  DependantManagerUids = [],
-                                  Configs=[])
-            convertedConfig = FwConfigNormalized(action=ConfigAction.INSERT,
-                                                 networks=legacyConfig['network_objects'],
-                                                 users=legacyConfig['users'],
-                                                 services=legacyConfig['network_services'])
-            policies = {}
-            rulebase_names = []
-
-            # now we need to convert rulebases, routing and interfaces to match the device structure
-            for rule in legacyConfig['rules']:
-                rb_name = rule['rulebase_name']
-                policyUid = self.getPolicyUidFromRulebaseName(rb_name)
-                if rb_name not in rulebase_names:   # add new policy
-                    rulebase_names.append(rb_name)
-                    policy = Policy(Uid=rb_name, Name=rb_name, EnforcingGatewayUids=[self.getDevUidFromRulebaseName()], Rules=[])
-                    policies.update( { policyUid: policy } )
-                policies[policyUid].Rules.append(rule)
-            mgr.Configs.append(convertedConfig)
-            self.addManager(mgr)
+            # # now we need to convert rulebases, routing and interfaces to match the device structure
+            # for rule in legacyConfig['rules']:
+            #     rb_name = rule['rulebase_name']
+            #     policyUid = cls.getPolicyUidFromRulebaseName(rb_name)
+            #     if rb_name not in rulebase_names:   # add new policy
+            #         rulebase_names.append(rb_name)
+            #         policy = Policy(Uid=rb_name, Name=rb_name, EnforcingGatewayUids=[cls.getDevUidFromRulebaseName()], Rules=[])
+            #         policies.update( { policyUid: policy } )
+            #     policies[policyUid].Rules.append(rule)
+            # mgr.Configs.append(convertedConfig)
+            return FwConfigManagerList.FromJson(legacyConfig)
         else:
             logger = getFwoLogger()
-            logger.error(f"found malformed legacy config: {str(legacyConfig)}")
-        pass
+            logger.error(f"found malformed legacy config: {str(legacyConfig)[:200]}")
+
+    @classmethod
+    def FromJson(cls, jsonIn):
+        return serializeDictToClassRecursively(jsonIn, cls)
+
+    def IsLegacy(self):
+        return self.ConfigFormat in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
+                                    ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
+                                    ConfFormat.PALOALTO_LEGACY]
 
     def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: ManagementDetails):
         if 'networkobjects' in legacyConfig:
@@ -155,31 +194,23 @@ class FwConfigManagerList():
             logger.error(f"found malformed legacy config: {str(legacyConfig)}")
         pass
 
-    def storeConfig(self, importState):
-        self.writeNormalizedConfigToFile(importState)
-        errorsFound = deleteLatestConfig(importState)
-        if errorsFound:
-            getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {importState.ImportId}")
-        errorsFound = importLatestConfig(importState, self.toJsonString(prettyPrint=False))
-        if errorsFound:
-            getFwoLogger().warning(f"error while writing latest config for mgm_id: {importState.ImportId}")
-
-    def writeNormalizedConfigToFile(self, importState):
-        if not self == {}:
-            logger = getFwoLogger()
-            debug_start_time = int(time.time())
-            try:
-                if fwo_globals.debug_level>5:
-                    normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
-                    with open(normalized_config_filename, "w") as json_data:
+    def storeFullNormalizedConfigToFile(self, importState: ImportState):
+        logger = getFwoLogger()
+        debug_start_time = int(time.time())
+        try:
+            if fwo_globals.debug_level>5:
+                normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
+                with open(normalized_config_filename, "w") as json_data:
+                    if importState.ImportVersion>8:
                         json_data.write(self.toJsonString(prettyPrint=True))
-            except:
-                logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
-                raise
+                    else:
+                        json_data.write(self.toJsonStringLegacy(prettyPrint=True))
+        except:
+            logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
+            raise
 
-            time_write_debug_json = int(time.time()) - debug_start_time
-            logger.debug(f"import_management - writing native config json files duration {str(time_write_debug_json)}s")
-
+        time_write_debug_json = int(time.time()) - debug_start_time
+        logger.debug(f"import_management - writing normalized config json files duration {str(time_write_debug_json)}s")
 
 # split the config into chunks of max size "max_objs_per_chunk" to avoid 
 # timeout of import while writing data to import table

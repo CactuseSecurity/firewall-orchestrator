@@ -7,7 +7,7 @@ import fwo_globals
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
 from fwo_exception import ImportRecursionLimitReached
-from fwconfig import Policy
+from fwconfig_base import Policy
 
 uid_to_name_map = {}
 

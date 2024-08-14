@@ -385,7 +385,7 @@ def update_hit_counter(importState, normalizedConfig):
         mutation updateRuleLastHit($mgmId:Int!) {
             update_rule_metadata_many(updates: [
     """
-    for rule in normalizedConfig.Policies:
+    for rule in normalizedConfig.rules:
         if 'last_hit' in rule and rule['last_hit'] is not None:
             found_hits = True
             update_expr = '{{ where: {{ device: {{ mgm_id:{{_eq:$mgmId}} }} rule_uid: {{ _eq: "{rule_uid}" }} }}, _set: {{ rule_last_hit: "{last_hit}" }} }}, '.format(rule_uid=rule["rule_uid"], last_hit=rule['last_hit'])
@@ -407,7 +407,7 @@ def update_hit_counter(importState, normalizedConfig):
         
         return 0
     else:
-        if len(normalizedConfig.Policies)>0:
+        if len(normalizedConfig.rules)>0:
             logger.debug("found only rules without hit information for mgm_id " + str(importState.MgmDetails.Id))
             return 1
     # else:

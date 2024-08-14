@@ -1,10 +1,40 @@
 import json
 from copy import deepcopy
 import re
+from enum import Enum
 import hashlib
 import fwo_globals
 from fwo_const import max_objs_per_chunk, csv_delimiter, apostrophe, line_delimiter
 from fwo_log import getFwoLogger, getFwoAlertLogger
+from typing import List, Any, get_type_hints
+
+
+class ConfigAction(Enum):
+    INSERT = 'INSERT'
+    UPDATE = 'UPDATE'
+    DELETE = 'DELETE'
+
+class ConfFormat(Enum):
+    # NORMALIZED = auto()
+    NORMALIZED = 'NORMALIZED'
+    
+    CHECKPOINT = 'CHECKPOINT'
+    FORTINET = 'FORTINET'
+    PALOALTO = 'PALOALTO'
+    CISCOFIREPOWER = 'CISCOFIREPOWER'
+
+    NORMALIZED_LEGACY = 'NORMALIZED_LEGACY'
+
+    CHECKPOINT_LEGACY = 'CHECKPOINT_LEGACY'
+    FORTINET_LEGACY = 'FORTINET_LEGACY'
+    PALOALTO_LEGACY = 'PALOALTO_LEGACY'
+    CISCOFIREPOWER_LEGACY = 'CISCOFIREPOWER_LEGACY'
+
+    @classmethod
+    def IsLegacyConfigFormat(confFormatString):
+        return ConfFormat(confFormatString) in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
+                                    ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
+                                    ConfFormat.PALOALTO_LEGACY]
 
 
 def split_list(list_in, max_list_length):
@@ -104,18 +134,113 @@ def stringIsUri(s):
     return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s)
 
 
-def replaceNoneWithEmpty(s):
-    if s is None or s == '':
-        return '<EMPTY>'
+def serializeDictToClass(data: dict, cls):
+    # Unpack the dictionary into keyword arguments
+    return cls(**data)
+
+
+def serializeDictToClassRecursively(data: dict, cls: Any) -> Any:
+    try:
+        init_args = {}
+        type_hints = get_type_hints(cls)
+
+        if type_hints == {}:
+            raise ValueError(f"no type hints found, assuming dict '{str(cls)}")
+
+        for field, field_type in type_hints.items():
+
+            if field in data:
+                value = data[field]
+
+                # Handle list types
+                if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+                    inner_type = field_type.__args__[0]
+                    if isinstance(value, list):
+                        init_args[field] = [
+                            serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item
+                            for item in value
+                        ]
+                    else:
+                        raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
+
+                # Handle dictionary (nested objects)
+                elif isinstance(value, dict):
+                    init_args[field] = serializeDictToClassRecursively(value, field_type)
+
+                # Handle Enum types
+                elif isinstance(field_type, type) and issubclass(field_type, Enum):
+                    init_args[field] = field_type[value]
+
+                # Direct assignment for basic types
+                else:
+                    init_args[field] = value
+
+        # Create an instance of the class with the collected arguments
+        return cls(**init_args)
+
+    except (TypeError, ValueError, KeyError) as e:
+        # If an error occurs, return the original dictionary as is
+        return data
+
+
+def oldSerializeDictToClassRecursively(data: dict, cls: Any) -> Any:
+    # Create an empty dictionary to store keyword arguments
+    init_args = {}
+
+    # Get the class's type hints (this is a safer way to access annotations)
+    type_hints = get_type_hints(cls)
+
+    # Iterate over the class fields
+    for field, field_type in type_hints.items():
+        if field in data:
+            if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+                # Handle list types
+                inner_type = field_type.__args__[0]
+                init_args[field] = [
+                    serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item
+                    for item in data[field]
+                ]
+            elif isinstance(data[field], dict):
+                # Recursively convert nested dictionaries into the appropriate class
+                init_args[field] = serializeDictToClassRecursively(data[field], field_type)
+            else:
+                # Directly assign the value if it's not a dict
+                init_args[field] = data[field]
+
+    # Create an instance of the class with the collected arguments
+    return cls(**init_args)
+
+
+def deserializeClassToDictRecursively(obj: Any, seen=None) -> Any:
+    if seen is None:
+        seen = set()
+
+    # Handle simple immutable types directly (int, float, bool, str) and None
+    if obj is None or isinstance(obj, (int, float, bool, str, ConfFormat, ConfigAction)):
+        return obj
+
+    # Check for circular references
+    if id(obj) in seen:
+        return f"<Circular reference to {obj.__class__.__name__}>"
+    
+    seen.add(id(obj))
+
+    if isinstance(obj, list):
+        # If the object is a list, deserialize each item
+        return [deserializeClassToDictRecursively(item, seen) for item in obj]
+    elif isinstance(obj, dict):
+        # If the object is a dictionary, deserialize each key-value pair
+        return {key: deserializeClassToDictRecursively(value, seen) for key, value in obj.items()}
+    elif isinstance(obj, Enum):
+        # If the object is an Enum, convert it to its value
+        return obj.value
+    elif hasattr(obj, '__dict__'):
+        # If the object is a class instance, deserialize its attributes
+        return {
+            key: deserializeClassToDictRecursively(value, seen)
+            for key, value in obj.__dict__.items()
+            if not callable(value) and not key.startswith('__')
+        }
     else:
-        return str(s)
-
-
-def calcManagerUidHash(mgm_details):
-    combination = f"""
-        {replaceNoneWithEmpty(mgm_details['hostname'])}
-        {replaceNoneWithEmpty(mgm_details['port'])}
-        {replaceNoneWithEmpty(mgm_details['domainUid'])}
-        {replaceNoneWithEmpty(mgm_details['configPath'])}
-    """
-    return hashlib.sha256(combination.encode()).hexdigest()
+        # For other types, return the value as is
+        return obj

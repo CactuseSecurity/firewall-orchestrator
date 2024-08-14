@@ -13,12 +13,10 @@ from fwo_log import getFwoLogger
 # from fOS_gw_networking import getInterfacesAndRouting, normalize_network_data
 from fwo_data_networking import get_ip_of_interface_obj
 
-from fwo_const import list_delimiter, nat_postfix, fwo_config_filename
-from fwo_config import readConfig
-from fwo_api import setAlert, create_data_issue
 from fwoBaseImport import ImportState, ManagementDetails
-from fwconfig import FwConfigManager, ConfFormat, ConfigAction, FwConfigManagerList, FwConfigNormalized
-from fwo_base import stringIsUri, calcManagerUidHash
+from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
+from fwo_base import calcManagerUidHash, ConfigAction
+
 import fwo_const
 
 

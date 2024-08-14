@@ -101,13 +101,15 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m52",
+                "-m26",
                 "-d6",
                 "-f",
                 "-s",
                 //"-ifile:///home/tim/tmp/k1/cp-native-new.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_nor.json",
-                "-ifile:///home/tim/Downloads/b1_imp_norm_old.json",
+                // "-ifile:///home/tim/Downloads/b1_imp_norm_old.json",
+                "-ifile:///home/tim/tmp/mgm_id_26_1.json",
+                // "-ifile:///home/tim/tmp/mgm_id_26_2.json",
                 //"-l66",
                 // "-c",
                 // "-l500",

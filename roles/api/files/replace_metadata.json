@@ -13119,18 +13119,6 @@
                   }
                 },
                 {
-                  "name": "rulebase_on_gateways",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "layer_guard_rule",
-                      "table": {
-                        "name": "rulebase_on_gateway",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {

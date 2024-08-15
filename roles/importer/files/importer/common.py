@@ -38,10 +38,21 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
     logger = getFwoLogger()
     config_changed_since_last_import = True
+
     importState = ImportState.initializeImport(mgmId, debugLevel=debug_level_in, force=force, version=version)
+    # configImporter = FwConfigImport(importState, {})    # initialize importer (needed for clearing old imports)
+
     if type(importState) is str:
         logger.error("error while getting import state")
         return 1
+    importState.setPastImportInfos()    # last full import, data retention, ...
+    if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
+        # run clear import; this makes sure the following import is a full one
+        import_management(mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in, 
+            limit=limit, force=True, clearManagementData=True, suppress_cert_warnings_in=suppress_cert_warnings_in,
+            in_file=in_file, version=version)
+        importState.IsFullImport = True # the now following import is a full one
+
     if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
         logger.info("import_management - import disabled for mgm " + str(mgmId))
     else:
@@ -88,7 +99,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         if config !=  {}:
                             if importState.ImportVersion>8:
                                 configImporter = FwConfigImport(importState, config)
-                                errorCount, changeCount = configImporter.importConfig()
+                                configImporter.importConfig()
+                                importState.setErrorCounter(configImporter.ImportDetails.ErrorCount+importState.ErrorCount)
+                                importState.setChangeCounter(configImporter.ImportDetails.ChangeCount+importState.ChangeCount)
                                 configImporter.storeConfigToApi() # to file (for debugging) and to database
                             else:
                                 configChunk = config.toJsonLegacy(withAction=False)
@@ -119,19 +132,23 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 importState.setErrorString(importState.ErrorString + str(error_from_imp_control))
             # todo: if no objects found at all: at least throw a warning
 
-            try: # get change count from db
-                # temporarily only count rule changes until change report also includes other changes
-                # change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
-                change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId)
-                importState.setChangeCounter(change_count)
-            except:
-                logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
-                raise
+            # try: # get change count from db
+            #     # temporarily only count rule changes until change report also includes other changes
+            #     # change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
+            #     # change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId)
+            #     change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId)
+            # except:
+            #     logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
+            #     raise
         else: # if no changes were found, we skip everything else without errors
             pass
         
         importState.setErrorCounter(fwo_api.complete_import(importState))
-        
+
+    if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
+        # delete all imports of the current management before the last but one full import
+        configImporter.deleteOldImports()
+       
     return importState.ErrorCount
 
 

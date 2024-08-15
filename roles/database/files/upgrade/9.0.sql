@@ -242,19 +242,38 @@ CREATE TABLE IF NOT EXISTS "latest_config" (
 ALTER TABLE "latest_config" DROP CONSTRAINT IF EXISTS "unique_latest_config_mgm_id" CASCADE;
 Alter table "latest_config" add CONSTRAINT unique_latest_config_mgm_id UNIQUE ("mgm_id");
 
--- reverse last_seen / deleted logic for objects
-ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "objgrp" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "objgrp_flat" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "svcgrp" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "svcgrp_flat" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "zone" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "rule_from" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "rule_to" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
-ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "deleted" BIGINT;
+-- reverse last_seen / removed logic for objects
+ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "objgrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "objgrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "svcgrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "svcgrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "zone" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "usergrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "usergrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rule_from" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rule_to" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+
+-- ALTER TABLE "object" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "objgrp" DROP COLUMN IF  EXISTS "deleted" ;
+-- ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "service" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "svcgrp" DROP COLUMN IF  EXISTS "deleted" ;
+-- ALTER TABLE "svcgrp_flat" DROP  COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "zone" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "usr" DROP COLUMN IF EXISTS  "deleted" ;
+-- ALTER TABLE "usergrp" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "usergrp_flat" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "rule" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "rule_from" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "deleted" ;
+
+ALTER table "import_control" ADD COLUMN IF NOT EXISTS "is_full_import" BOOLEAN DEFAULT FALSE;
 
 /*  TODOs 
     

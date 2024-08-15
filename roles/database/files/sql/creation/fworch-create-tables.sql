@@ -123,6 +123,7 @@ Create table "object"
 	"obj_sys_readcom" Varchar,
 	"obj_sys_writecom" Varchar,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
 	"obj_create" BIGINT NOT NULL,
 	"obj_last_seen" BIGINT NOT NULL,
  primary key ("obj_id")
@@ -133,6 +134,7 @@ Create table "objgrp"
 	"objgrp_id" BIGINT NOT NULL,
 	"objgrp_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
@@ -148,6 +150,7 @@ Create table "rule"
 	"parent_rule_id" BIGINT,
 	"parent_rule_type" smallint,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
 	"rule_num" Integer NOT NULL,
 	"rule_num_numeric" NUMERIC(16, 8),
 	"rule_ruleid" Varchar,
@@ -247,6 +250,7 @@ Create table "rule_from"
 	"user_id" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT,
 	"rf_create" BIGINT NOT NULL,
 	"rf_last_seen" BIGINT NOT NULL
 );
@@ -259,6 +263,7 @@ Create table "rule_service"
 	"rs_create" BIGINT NOT NULL,
 	"rs_last_seen" BIGINT NOT NULL,
 	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT,
  primary key ("rule_id","svc_id")
 );
 
@@ -272,6 +277,7 @@ Create table "rule_to"
 	"rt_create" BIGINT NOT NULL,
 	"rt_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
 	"negated" Boolean NOT NULL Default FALSE
 );
 
@@ -308,6 +314,7 @@ Create table "service"
 	"svc_sync_delay_start" Integer,
 	"active" Boolean NOT NULL Default TRUE,
 	"last_change_admin" Integer,
+	"removed" BIGINT,
 	"svc_create" BIGINT NOT NULL,
 	"svc_last_seen" BIGINT NOT NULL,
  primary key ("svc_id")
@@ -319,6 +326,7 @@ Create table "svcgrp"
 	"svcgrp_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("svcgrp_id","svcgrp_member_id")
@@ -329,6 +337,7 @@ Create table "zone"
 	"zone_id" SERIAL,
 	"zone_create" BIGINT NOT NULL,
 	"zone_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"mgm_id" Integer NOT NULL,
 	"zone_name" Varchar NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
@@ -353,6 +362,7 @@ Create table "usr"
 	"time_restrict" Text,
 	"user_create" BIGINT NOT NULL,
 	"user_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"user_comment" Text,
 	"user_uid" Text,
 	"user_firstname" Varchar,
@@ -367,6 +377,7 @@ Create table "usergrp"
 	"usergrp_member_id" BIGINT,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
  primary key ("usergrp_id","usergrp_member_id")
 );
@@ -378,6 +389,7 @@ Create table "usergrp_flat"
 	"usergrp_flat_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("usergrp_flat_id","usergrp_flat_member_id")
 );
 
@@ -388,6 +400,7 @@ Create table "objgrp_flat"
 	"active" Boolean NOT NULL Default TRUE,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"negated" Boolean NOT NULL Default FALSE
 );
 
@@ -398,6 +411,7 @@ Create table "svcgrp_flat"
 	"import_created" Integer NOT NULL,
 	"import_last_seen" Integer NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
 	"negated" Boolean NOT NULL Default FALSE
 );
 
@@ -601,6 +615,7 @@ Create table "import_control"
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
+	"is_full_import" BOOLEAN DEFAULT FALSE,
  primary key ("control_id")
 );
 

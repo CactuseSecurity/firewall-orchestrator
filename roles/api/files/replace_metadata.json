@@ -6035,18 +6035,21 @@
                     "check": {},
                     "columns": [
                       "control_id",
-                      "start_time",
-                      "stop_time",
-                      "is_initial_import",
-                      "delimiter_group",
-                      "delimiter_zone",
-                      "delimiter_user",
-                      "delimiter_list",
-                      "mgm_id",
-                      "last_change_in_config",
-                      "successful_import",
                       "changes_found",
-                      "import_errors"
+                      "is_full_import",
+                      "is_initial_import",
+                      "notification_done",
+                      "successful_import",
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "security_relevant_changes_counter",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
                     ]
                   }
                 }
@@ -6100,21 +6103,22 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "changes_found",
                       "control_id",
+                      "changes_found",
+                      "is_full_import",
+                      "is_initial_import",
+                      "notification_done",
+                      "successful_import",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
                       "import_errors",
-                      "is_initial_import",
-                      "last_change_in_config",
                       "mgm_id",
-                      "notification_done",
                       "security_relevant_changes_counter",
+                      "last_change_in_config",
                       "start_time",
-                      "stop_time",
-                      "successful_import"
+                      "stop_time"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6249,21 +6253,22 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "changes_found",
                       "control_id",
+                      "changes_found",
+                      "is_full_import",
+                      "is_initial_import",
+                      "notification_done",
+                      "successful_import",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
                       "import_errors",
-                      "is_initial_import",
-                      "last_change_in_config",
                       "mgm_id",
-                      "notification_done",
                       "security_relevant_changes_counter",
+                      "last_change_in_config",
                       "start_time",
-                      "stop_time",
-                      "successful_import"
+                      "stop_time"
                     ],
                     "filter": {},
                     "check": {}
@@ -8881,6 +8886,7 @@
                       "obj_create",
                       "obj_id",
                       "obj_last_seen",
+                      "removed",
                       "active",
                       "initial_config",
                       "obj_nat",
@@ -8991,6 +8997,46 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "obj_create",
+                      "obj_id",
+                      "obj_last_seen",
+                      "removed",
+                      "active",
+                      "initial_config",
+                      "obj_nat",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
+                      "obj_sys_contact",
+                      "obj_sys_location",
+                      "obj_sys_name",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "middleware-server",
@@ -9208,6 +9254,7 @@
                       "obj_create",
                       "obj_id",
                       "obj_last_seen",
+                      "removed",
                       "active",
                       "initial_config",
                       "obj_nat",
@@ -9283,6 +9330,24 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_id",
+                      "objgrp_member_id",
+                      "removed",
+                      "active",
+                      "negated"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -9312,6 +9377,22 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_id",
+                      "objgrp_member_id",
+                      "removed",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",
@@ -9371,6 +9452,34 @@
                     ],
                     "filter": {}
                   }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_id",
+                      "objgrp_member_id",
+                      "removed",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -9405,6 +9514,24 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_flat_id",
+                      "objgrp_flat_member_id",
+                      "removed",
+                      "active",
+                      "negated"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -9434,6 +9561,22 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_flat_id",
+                      "objgrp_flat_member_id",
+                      "removed",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",
@@ -9493,6 +9636,34 @@
                     ],
                     "filter": {}
                   }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_flat_id",
+                      "objgrp_flat_member_id",
+                      "removed",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -12948,6 +13119,18 @@
                   }
                 },
                 {
+                  "name": "rulebase_on_gateways",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "layer_guard_rule",
+                      "table": {
+                        "name": "rulebase_on_gateway",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -15191,7 +15374,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "deleted",
+                      "removed",
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
@@ -15314,6 +15497,49 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed",
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "middleware-server",
@@ -15543,7 +15769,7 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "deleted",
+                      "removed",
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
@@ -15945,7 +16171,12 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "color_rgb",
+                      "color_name",
+                      "color_id",
+                      "color_comment"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -16420,7 +16651,11 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "ip_proto_name",
+                      "ip_proto_id",
+                      "ip_proto_comment"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -16564,7 +16799,11 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "obj_typ_name",
+                      "obj_typ_id",
+                      "obj_typ_comment"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -16674,7 +16913,11 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "svc_typ_name",
+                      "svc_typ_id",
+                      "svc_typ_comment"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -17043,6 +17286,24 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "removed",
+                      "svcgrp_id",
+                      "svcgrp_member_id",
+                      "active",
+                      "negated"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -17072,6 +17333,22 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "removed",
+                      "svcgrp_id",
+                      "svcgrp_member_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",
@@ -17131,6 +17408,34 @@
                     ],
                     "filter": {}
                   }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "removed",
+                      "svcgrp_id",
+                      "svcgrp_member_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -17165,6 +17470,24 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "removed",
+                      "active",
+                      "negated",
+                      "import_created",
+                      "import_last_seen",
+                      "svcgrp_flat_id",
+                      "svcgrp_flat_member_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -17194,6 +17517,22 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed",
+                      "active",
+                      "negated",
+                      "import_created",
+                      "import_last_seen",
+                      "svcgrp_flat_id",
+                      "svcgrp_flat_member_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",
@@ -17253,6 +17592,34 @@
                     ],
                     "filter": {}
                   }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed",
+                      "active",
+                      "negated",
+                      "import_created",
+                      "import_last_seen",
+                      "svcgrp_flat_id",
+                      "svcgrp_flat_member_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

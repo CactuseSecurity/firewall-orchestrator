@@ -230,9 +230,15 @@ def setImportLock(importState) -> None:
         try: # set import lock
             url = importState.FwoConfig.FwoApiUri
             mgmId = int(importState.MgmDetails.Id)
-            # importState.setImportId(lock_import(url, importState.Jwt, {"mgmId": mgmId }))
-            lock_mutation = "mutation lockImport($mgmId: Int!) { insert_import_control(objects: {mgm_id: $mgmId}) { returning { control_id } } }"
-            lock_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, lock_mutation, query_variables={"mgmId": mgmId }, role='importer')
+            lock_mutation = """
+                mutation lockImport($mgmId: Int!, $isFullImport: Boolean) { 
+                    insert_import_control(objects: {mgm_id: $mgmId, is_full_import: $isFullImport}) 
+                    { returning { control_id } } 
+                }
+                """
+            lock_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, lock_mutation, 
+                               query_variables={"mgmId": mgmId, "isFullImport": importState.IsFullImport },
+                               role='importer')
             if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
                 importState.setImportId(lock_result['data']['insert_import_control']['returning'][0]['control_id'])
             else:
@@ -686,3 +692,31 @@ def complete_import(importState):
     logger.info(import_result)
 
     return importState.ErrorCount
+
+def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):
+    mgm_query = """
+        query getLastImportDetails($mgmId: Int!) {
+            config(where: {config_key: {_eq: "dataRetentionTime"}, config_user: {_eq: 0}}) {
+                retentionInDays: config_value
+            }
+            import_control(where: {mgm_id: {_eq: $mgmId}, _or: [{is_initial_import: {_eq: true}}, {is_full_import: {_eq: true}}]}, order_by: {control_id: desc}, limit: 1) {
+                control_id
+                start_time
+            }
+        }
+    """
+
+    try:
+        pastDetails = call(fwo_api_base_url, jwt, mgm_query, query_variables=queryVariables, role='importer')
+        retentionInDays = pastDetails['data']['config'][0]['retentionInDays']
+        if len(pastDetails['data']['import_control'])>0:
+            lastFullImportId = pastDetails['data']['import_control'][0]['control_id']
+            lastFullImportDate = pastDetails['data']['import_control'][0]['start_time']
+        else: # no matching imports found
+            lastFullImportId = None
+            lastFullImportDate = None
+    except:
+        logger = getFwoLogger()
+        logger.error(f"error while getting past import details for mgm {str(queryVariables)}")
+
+    return int(retentionInDays), lastFullImportId, lastFullImportDate

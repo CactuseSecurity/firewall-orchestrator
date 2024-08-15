@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from typing import List, Dict
 import requests, requests.packages
 
@@ -112,9 +113,12 @@ class ImportState():
     ImportFileName: str
     ForceImport: str
     ImportVersion: int
+    DataRetentionDays: int
+    DaysSinceLastFullImport: int
+    LastFullImportId: int
+    IsFullImport: bool
 
-
-    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8):
+    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False):
         self.ErrorCount = 0
         self.ChangeCount = 0
         self.ErrorString = ''
@@ -130,6 +134,7 @@ class ImportState():
         self.ImportFileName = None
         self.ForceImport = force
         self.ImportVersion = int(version)
+        self.IsFullImport = isFullImport
 
     def __str__(self):
         return f"{str(self.ManagementDetails)}({self.age})"
@@ -194,6 +199,24 @@ class ImportState():
             jwt = jwt,
             force = force,
             version = version
-        ) 
-    
+        )
 
+    def setPastImportInfos(self):
+        
+        logger = getFwoLogger()
+        
+        try: # get past import details (LastFullImport, ...):
+            self.DataRetentionDays, self.LastFullImportId, lastFullImportDate = \
+                fwo_api.getLastImportDetails(self.FwoConfig.FwoApiUri, self.Jwt, {"mgmId": int(self.MgmDetails.Id)}, self.DebugLevel) 
+        except:
+            logger.error(f"import_management - error while getting past import details for mgm={str(self.MgmDetails.Id)}")
+            raise
+
+        if lastFullImportDate is not None:
+            # Convert the string to a datetime object
+            pastDate = datetime.strptime(lastFullImportDate, "%Y-%m-%dT%H:%M:%S.%f")
+            now = datetime.now()
+            difference = now - pastDate
+            self.DaysSinceLastFullImport = difference.days
+        else:
+            self.DaysSinceLastFullImport = 0

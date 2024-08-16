@@ -155,7 +155,8 @@ def readFile(importState: ImportState) -> dict:
         importState.setErrorString(f"Could not read config file {importState.ImportFileName}")
         importState.setErrorCounter(importState.ErrorCount+1)
         logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
-        raise 
+        complete_import(importState)
+        raise Exception(f"Could not read config file {importState.ImportFileName}")
 
     return configJson
 

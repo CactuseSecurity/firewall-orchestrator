@@ -108,13 +108,14 @@
                 //"-ifile:///home/tim/tmp/k1/cp-native-new.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_nor.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_norm_old.json",
-                "-ifile:///home/tim/tmp/mgm_id_26_2.json",
+                //"-ifile:///home/tim/tmp/mgm_id_26_2.json",
                 //"-l66",
                 // "-c",
                 // "-l500",
                 //  41 - lab fortimanager
                 //"-nhttps://fwodemodata.cactus.de/demo07_dummyGw1.json"
-                //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
+                // "-ihttps://fwodemodata.cactus.de/demo11-r82_v9.json",
+                // "-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
                 //"-ihttps://fwodemodata.cactus.de/demo01_fortiMgrLab.json"
                 // "-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
                 //"-ihttps://fwodemodata.cactus.de/big/xxx.json",

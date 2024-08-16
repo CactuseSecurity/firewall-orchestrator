@@ -78,13 +78,15 @@ from fwo_base import serializeDictToClassRecursively
 def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
     configJson = readFile(importState)
     config = None
+    logger = getFwoLogger()
 
     # now try to convert to config object
     try:
         configFwConfigManagerList = serializeDictToClassRecursively(configJson, FwConfigManagerList)
+        if len(configFwConfigManagerList.ManagerSet)==0:
+            logger.warning(f'read a config file without managersets from {importState.ImportFileName}')
         return configFwConfigManagerList
     except: # legacy stuff from here
-        logger = getFwoLogger()
         logger.info(f"could not serialize config {str(traceback.format_exc())}")
         if 'ConfigFormat' in configJson:
             if configJson['ConfigFormat']=='NORMALIZED':
@@ -131,7 +133,10 @@ def readFile(importState: ImportState) -> dict:
                 session.headers = { 'Content-Type': 'application/json' }
                 session.verify=fwo_globals.verify_certs
                 r = session.get(importState.ImportFileName, )
-                r.raise_for_status()
+                if r.ok:
+                    return json.loads(r.text)
+                else:
+                    r.raise_for_status()
             else:   # reading from local file
                 if importState.ImportFileName.startswith('file://'):   # remove file uri identifier
                     filename = importState.ImportFileName[7:]

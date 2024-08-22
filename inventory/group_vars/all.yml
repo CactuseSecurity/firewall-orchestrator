@@ -13,6 +13,7 @@ syslog_host: "{{ groups['logserver'].0 }}"
 fworch_db_host: "{{ groups['databaseserver'].0 }}"
 api_hostname: "{{  groups['apiserver'].0 }}"
 sample_hostname: "{{ groups['sampleserver'].0 }}"
+linux_architecture: amd64
 
 # fworch_db_host_ip: "{{ hostvars[fworch_db_host]['ansible_host'] }}"
 

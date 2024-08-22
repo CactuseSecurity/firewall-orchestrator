@@ -4,7 +4,7 @@
 ----------------------------------------------------
 
 adding cascade on delete constraints for all tables
-loesche alle Daten von Systemen, die zu einem Management gehören, 
+loesche alle Daten von Systemen, die zu einem Management gehoeren, 
 das mit do_not_import=true und hide_in_gui=true markiert ist
 execute: DELETE FROM management where do_not_import and hide_in_gui;
 

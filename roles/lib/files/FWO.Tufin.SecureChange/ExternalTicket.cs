@@ -98,7 +98,7 @@ namespace FWO.Tufin.SecureChange
 									},
 									{
 										"@xsi.type": "checkbox",
-										"name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
+										"name": "Die ben&ouml;tigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
 										"value":  @@COM_DOCUMENTED@@
 									},
 									{
@@ -307,7 +307,7 @@ public class SCTicket : ExternalTicket
 												},
 												{
 													"@xsi.type": "checkbox",
-													"name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
+													"name": "Die ben&ouml;tigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
 													"value": false
 												},
 												{

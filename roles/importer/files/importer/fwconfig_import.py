@@ -4,9 +4,12 @@ import traceback
 
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
+from fwconfig_base import ConfigAction, Policy
 from fwconfig_normalized import FwConfigNormalized
 from fwconfig_import_object import FwConfigImportObject
 from fwconfig_import_rule import FwConfigImportRule
+import fwo_const
+
 
 """
 Class hierachy:
@@ -36,68 +39,25 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         FwConfigImportRule.__init__(self, importState, config)
         
     def importConfig(self):
-
         self.fillGateways(self.ImportDetails)
-
         # assuming we always get the full config (only inserts) from API
-        # 
-        if self.isInitialImport():
-            self.addObjects()
-            self.addRules()
-        else:
-            previousConfig = self.getPreviousConfig()
-            self.updateDiffs(previousConfig)
-            
-            # build references from gateways to rulebases 
-            # deal with networking later
-
+        previousConfig = self.getPreviousConfig()
+        # calculate differences and write them to the database via API
+        self.updateDiffs(previousConfig)
+        # TODO: deal with networking later
         return 
 
-    def updateDiffs(self, previousConfig: FwConfigNormalized):
+    def updateDiffs(self, previousConfig: dict):
+        prevConfigDict = json.loads(previousConfig)
 
-        prevConfig = json.loads(previousConfig)
+        objectErrorCount, objectChangeCount = self.updateObjectDiffs(prevConfigDict)
+        ruleErrorCount, ruleChangeCount = self.updateRuleDiffs(prevConfigDict)
 
-        # calculate network object diffs
-        previousNwObjects = prevConfig['network_objects']
-        deletedNwobjUids = previousNwObjects.keys() - self.network_objects.keys()
-        newNwobjUids = self.network_objects.keys() - previousNwObjects.keys()
-        nwobjUidsInBoth = self.network_objects.keys() & previousNwObjects.keys()
-        changedNwobjUids = []
-        for nwObjUid in nwobjUidsInBoth:
-            if previousNwObjects[nwObjUid] != self.network_objects[nwObjUid]:
-                changedNwobjUids.append(nwObjUid)
-
-        # calculate service object diffs
-        previousSvcObjects = prevConfig['service_objects']
-        deletedSvcObjUids = previousSvcObjects.keys() - self.service_objects.keys()
-        newSvcObjUids = self.service_objects.keys() - previousSvcObjects.keys()
-        svcObjUidsInBoth = self.service_objects.keys() & previousSvcObjects.keys()
-        changedSvcObjUids = []
-        for uid in svcObjUidsInBoth:
-            if previousSvcObjects[uid] != self.service_objects[uid]:
-                changedSvcObjUids.append(uid)
-
-        errorCount, numberOfAddedObjects, newNwObjIds, newNwSvcids = self.addNewObjects(newNwobjUids, newSvcObjUids)
-        self.addNwObjGroupMemberships(newNwObjIds)
-        # TODO:         self.addSvcObjGroupMemberships(newSvcObjIds)
-
-        errorCount, numberOfDeletedObjects, removedNwObjIds, removedNwSvcids = self.markObjectsRemoved(deletedNwobjUids, deletedSvcObjUids)
-        # these objects have really been deleted so there should be no refs to them anywhere! verify this
-
-        # TODO: deal with object changes (e.g. group with added member)
-        # for nwobjUid in nwobjUidsInBoth:
-        #     if self.network_objects[nwobjUid] != prevConfig[nwobjUid]:
-        #         self.updateNetworkObject(nwobjUid)
-        # TODO: update all references to objects marked as removed
-
-        # TODO: calculate user diffs
-        # TODO: calculate zone diffs
         # TODO: write changes to changelog_xxx tables
 
-        # calculate rule diffs
-
-        self.ImportDetails.setErrorCounter(errorCount)
-        self.ImportDetails.setChangeCounter(numberOfAddedObjects + numberOfDeletedObjects)
+        # update error and change counters
+        self.ImportDetails.setErrorCounter(self.ImportDetails.ErrorCount + objectErrorCount + ruleErrorCount)
+        self.ImportDetails.setChangeCounter(self.ImportDetails.ChangeCount + objectChangeCount + ruleChangeCount)
         return 
 
     def importLatestConfig(self, config):
@@ -205,3 +165,182 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
             # setAlert(url, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=str(mgmId), severity=1, role='importer', \
             #     description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=importState.MgmDetails)
             # raise FwoApiFailedDeleteOldImports("fwo_api: failed to get import lock for management id " + str(mgmId)) from None
+
+    # pre-flight checks
+    def checkConfigConsistency(self):
+        issues = {}
+        issues.update(self.checkNetworkObjectConsistency())
+        issues.update(self.checkServiceObjectConsistency())
+        issues.update(self.checkUserObjectConsistency())
+        issues.update(self.checkZoneObjectConsistency())
+        issues.update(self.checkRuleConsistency())
+        return issues
+
+    def checkNetworkObjectConsistency(self):
+        issues = {}
+        # check if all uid refs are valid
+        allUsedObjRefs = []
+        # add all new obj refs from all rules
+        for policyId in self.rules:
+            ## TODO: clean this up! policy should be detected in json.loads
+            if isinstance(self.rules[policyId], Policy):
+                for ruleId in self.rules[policyId].Rules:
+                    allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_src_refs'].split(fwo_const.list_delimiter)
+                    allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_dst_refs'].split(fwo_const.list_delimiter)
+            else:
+                for ruleId in self.rules[policyId]['Rules']:
+                    allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_src_refs'].split(fwo_const.list_delimiter)
+                    allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_dst_refs'].split(fwo_const.list_delimiter)
+
+        # add all nw obj refs from groups
+        for objId in self.network_objects:
+            if self.network_objects[objId]['obj_typ']=='group':
+                if 'obj_member_refs' in self.network_objects[objId] and self.network_objects[objId]['obj_member_refs'] is not None:
+                    allUsedObjRefs += self.network_objects[objId]['obj_member_refs'].split(fwo_const.list_delimiter)
+
+            # TODO: also check color
+
+        # now make list unique and get all refs not contained in network_objects
+        allUsedObjRefsUnique = list(set(allUsedObjRefs))
+        unresolvableNwObRefs = allUsedObjRefsUnique - self.network_objects.keys()
+        if len(unresolvableNwObRefs)>0:
+            issues.update({'unresolvableNwObRefs': list(unresolvableNwObRefs)})
+
+        # check that all obj_typ exist 
+        allUsedObjTypes = set()
+        for objId in self.network_objects:
+            allUsedObjTypes.add(self.network_objects[objId]['obj_typ'])
+        allUsedObjTypes = list(set(allUsedObjTypes))
+        missingNwObjTypes = allUsedObjTypes - self.NetworkObjectTypeMap.keys()
+        if len(missingNwObjTypes)>0:
+            issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
+
+        return issues
+    
+    def checkServiceObjectConsistency(self):
+        issues = {}
+        # check if all uid refs are valid
+        allUsedObjRefs = []
+        # add all new obj refs from all rules
+        for policyId in self.rules:
+            ## TODO: clean this up! policy should be detected in json.loads
+            if isinstance(self.rules[policyId], Policy):
+                for ruleId in self.rules[policyId].Rules:
+                    allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_svc_refs'].split(fwo_const.list_delimiter)
+            else:
+                for ruleId in self.rules[policyId]['Rules']:
+                    allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_svc_refs'].split(fwo_const.list_delimiter)
+
+        # add all svc obj refs from groups
+        for objId in self.service_objects:
+            if self.service_objects[objId]['svc_typ']=='group':
+                if 'svc_member_refs' in self.service_objects[objId] and self.service_objects[objId]['svc_member_refs'] is not None:
+                    allUsedObjRefs += self.service_objects[objId]['svc_member_refs'].split(fwo_const.list_delimiter)
+
+        # now make list unique and get all refs not contained in service_objects
+        allUsedObjRefsUnique = list(set(allUsedObjRefs))
+        unresolvableObRefs = allUsedObjRefsUnique - self.service_objects.keys()
+        if len(unresolvableObRefs)>0:
+            issues.update({'unresolvableSvcObRefs': list(unresolvableObRefs)})
+
+        # check that all obj_typ exist 
+        allUsedObjTypes = set()
+        for objId in self.service_objects:
+            allUsedObjTypes.add(self.service_objects[objId]['svc_typ'])
+        allUsedObjTypes = list(set(allUsedObjTypes))
+        missingObjTypes = allUsedObjTypes - self.ServiceObjectTypeMap.keys()
+        if len(missingObjTypes)>0:
+            issues.update({'unresolvableSvcObjTypes': list(missingObjTypes)})
+
+        return issues
+    
+    def checkUserObjectConsistency(self):
+
+        def collectUsersFromRule(listOfElements):
+            userRefs = []
+            for el in listOfElements:
+                splitResult = el.split(fwo_const.user_delimiter)
+                if len(splitResult)==2:
+                    allUsedObjRefs.append(splitResult[0])
+            return userRefs
+
+        issues = {}
+        # check if all uid refs are valid
+        allUsedObjRefs = []
+        # add all user refs from all rules
+        for policyId in self.rules:
+            ## TODO: clean this up! policy should be detected in json.loads
+            if isinstance(self.rules[policyId], Policy):
+                for ruleId in self.rules[policyId].Rules:
+                    if fwo_const.user_delimiter in self.rules[policyId].Rules[ruleId]['rule_src_refs']:
+                        allUsedObjRefs += collectUsersFromRule(self.rules[policyId].Rules[ruleId]['rule_src_refs'].split(fwo_const.list_delimiter))
+                        allUsedObjRefs += collectUsersFromRule(self.rules[policyId].Rules[ruleId]['rule_dst_refs'].split(fwo_const.list_delimiter))
+            else:
+                for ruleId in self.rules[policyId]['Rules']:
+                    if fwo_const.user_delimiter in self.rules[policyId]['Rules'][ruleId]['rule_src_refs']:
+                        allUsedObjRefs += collectUsersFromRule(self.rules[policyId]['Rules'][ruleId]['rule_src_refs'].split(fwo_const.list_delimiter))
+                        allUsedObjRefs += collectUsersFromRule(self.rules[policyId]['Rules'][ruleId]['rule_dst_refs'].split(fwo_const.list_delimiter))
+
+        # add all user obj refs from groups
+        for objId in self.users:
+            if self.users[objId]['user_typ']=='group':
+                if 'user_member_refs' in self.users[objId] and self.users[objId]['user_member_refs'] is not None:
+                    allUsedObjRefs += self.users[objId]['user_member_refs'].split(fwo_const.list_delimiter)
+
+        # now make list unique and get all refs not contained in users
+        allUsedObjRefsUnique = list(set(allUsedObjRefs))
+        unresolvableObRefs = allUsedObjRefsUnique - self.users.keys()
+        if len(unresolvableObRefs)>0:
+            issues.update({'unresolvableUserObRefs': list(unresolvableObRefs)})
+
+        # check that all obj_typ exist 
+        allUsedObjTypes = set()
+        for objId in self.users:
+            allUsedObjTypes.add(self.users[objId]['user_typ'])
+        allUsedObjTypes = list(set(allUsedObjTypes))    # make list unique
+        missingObjTypes = allUsedObjTypes - self.UserObjectTypeMap.keys()
+        if len(missingObjTypes)>0:
+            issues.update({'unresolvableUserObjTypes': list(missingObjTypes)})
+
+        return issues
+    
+    def checkZoneObjectConsistency(self):
+        issues = {}
+        # check if all uid refs are valid
+        allUsedObjRefs = []
+        # add all zone refs from all rules
+        for policyId in self.rules:
+            ## TODO: clean this up! policy should be detected in json.loads
+            if isinstance(self.rules[policyId], Policy):
+                for ruleId in self.rules[policyId].Rules:
+                    if 'rule_src_zone' in self.rules[policyId].Rules[ruleId] and \
+                        self.rules[policyId].Rules[ruleId]['rule_src_zone'] is not None:
+                        allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_src_zone']
+                    if 'rule_dst_zone' in self.rules[policyId].Rules[ruleId] and \
+                        self.rules[policyId].Rules[ruleId]['rule_dst_zone'] is not None:
+                        allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_dst_zone']
+            else:
+                for ruleId in self.rules[policyId]['Rules']:
+                    if 'rule_src_zone' in self.rules[policyId]['Rules'][ruleId] and \
+                        self.rules[policyId]['Rules'][ruleId]['rule_src_zone'] is not None:
+                        allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_src_zone']
+                    if 'rule_dst_zone' in self.rules[policyId]['Rules'][ruleId] and \
+                        self.rules[policyId]['Rules'][ruleId]['rule_dst_zone'] is not None:
+                        allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_dst_zone']
+
+        # we currently do not have zone groups - skipping group ref handling
+
+        # now make list unique and get all refs not contained in zone_objects
+        allUsedObjRefsUnique = list(set(allUsedObjRefs))
+        unresolvableObRefs = allUsedObjRefsUnique - self.zone_objects.keys()
+        if len(unresolvableObRefs)>0:
+            issues.update({'unresolvableZoneObRefs': list(unresolvableObRefs)})
+
+        # we currently do not have zone types - skipping type handling
+
+        return issues
+    
+    # e.g. check rule to rule refs
+    def checkRuleConsistency(self):
+        issues = {}
+        return issues

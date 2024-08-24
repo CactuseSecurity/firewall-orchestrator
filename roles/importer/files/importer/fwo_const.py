@@ -12,6 +12,7 @@ full_config_size_limit = 5000000 # native configs greater than 5 MB will not be 
 csv_delimiter = '%'
 list_delimiter = '|'
 line_delimiter = "\n"
+user_delimiter = "@"
 apostrophe = "\""
 section_header_uids=[]
 nat_postfix = '_NatNwObj'

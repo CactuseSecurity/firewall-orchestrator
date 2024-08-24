@@ -30,7 +30,7 @@ class ConfFormat(Enum):
     PALOALTO_LEGACY = 'PALOALTO_LEGACY'
     CISCOFIREPOWER_LEGACY = 'CISCOFIREPOWER_LEGACY'
 
-    @classmethod
+    @staticmethod
     def IsLegacyConfigFormat(confFormatString):
         return ConfFormat(confFormatString) in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
                                     ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 

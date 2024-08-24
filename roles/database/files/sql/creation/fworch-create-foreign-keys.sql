@@ -143,6 +143,9 @@ Alter table "rule_to" add  foreign key ("rt_last_seen") references "import_contr
 Alter table "rule_to" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_to" add constraint rule_to_user_id_usr_user_id FOREIGN KEY ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
 
+Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+
 Alter table "rule_user_resolved" add foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
 Alter table "rule_user_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_user_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;

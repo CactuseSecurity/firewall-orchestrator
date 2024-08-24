@@ -87,8 +87,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         time_get_config = int(time.time()) - importState.StartTime
         logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
-        errorCount=0
-        changeCount=0
         if config_changed_since_last_import or importState.ForceImport:
             try: # now we import the config via API chunk by chunk:
                 # for config_chunk in split_config(importState, configNormalized):
@@ -99,18 +97,21 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         if config !=  {}:
                             if importState.ImportVersion>8:
                                 configImporter = FwConfigImport(importState, config)
-                                configImporter.importConfig()
-                                importState.setErrorCounter(configImporter.ImportDetails.ErrorCount+importState.ErrorCount)
-                                importState.setChangeCounter(configImporter.ImportDetails.ChangeCount+importState.ChangeCount)
-                                configImporter.storeConfigToApi() # to file (for debugging) and to database
+                                issues = configImporter.checkConfigConsistency()
+                                if issues == {}:
+                                    configImporter.importConfig()
+                                    # importState.setErrorCounter(configImporter.ImportDetails.ErrorCount+importState.ErrorCount)
+                                    # importState.setChangeCounter(configImporter.ImportDetails.ChangeCount+importState.ChangeCount)
+                                    configImporter.storeConfigToApi() # to file (for debugging) and to database
+                                else:
+                                    logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
+                                    importState.setErrorCounter (importState.ErrorCount + 1)
                             else:
                                 configChunk = config.toJsonLegacy(withAction=False)
                                 # if configChunk == {}:
                                 #     importState.setErrorCounter (importState.ErrorCount + errorCount)
-                                errorCount = fwo_api.import_json_config(importState, configChunk)
+                                importState.setErrorCounter (importState.ErrorCount + fwo_api.import_json_config(importState, configChunk))
 
-                            importState.setErrorCounter (importState.ErrorCount + errorCount)
-                            importState.setChangeCounter (importState.ChangeCount + changeCount)
                             fwo_api.update_hit_counter(importState, config)
 
                 # currently assuming only one chunk

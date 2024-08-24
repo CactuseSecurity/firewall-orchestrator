@@ -13095,6 +13095,18 @@
                   }
                 },
                 {
+                  "name": "rule_to_rulebases",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_id",
+                      "table": {
+                        "name": "rule_to_rulebase",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_tos",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -13113,6 +13125,18 @@
                       "column": "rule_id",
                       "table": {
                         "name": "rule_user_resolved",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebase_on_gateways",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "layer_guard_rule",
+                      "table": {
+                        "name": "rulebase_on_gateway",
                         "schema": "public"
                       }
                     }
@@ -13173,6 +13197,59 @@
                     },
                     "session_argument": "hasura_session"
                   }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "parent_rule_id",
+                      "removed",
+                      "rule_create",
+                      "rule_id",
+                      "rule_last_seen",
+                      "xlate_rule",
+                      "access_rule",
+                      "active",
+                      "enforced_on_gateway",
+                      "is_global",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_implied",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "rule_installon",
+                      "rule_name",
+                      "rule_ruleid",
+                      "rule_time",
+                      "action_id",
+                      "dev_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "rule_from_zone",
+                      "rule_num",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_custom_fields",
+                      "rule_num_numeric",
+                      "parent_rule_type",
+                      "rule_action",
+                      "rule_comment",
+                      "rule_dst",
+                      "rule_dst_refs",
+                      "rule_head_text",
+                      "rule_src",
+                      "rule_src_refs",
+                      "rule_svc",
+                      "rule_svc_refs",
+                      "rule_track",
+                      "rule_uid"
+                    ]
+                  },
+                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -13277,6 +13354,60 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "parent_rule_id",
+                      "removed",
+                      "rule_create",
+                      "rule_id",
+                      "rule_last_seen",
+                      "xlate_rule",
+                      "access_rule",
+                      "active",
+                      "enforced_on_gateway",
+                      "is_global",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_implied",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "rule_installon",
+                      "rule_name",
+                      "rule_ruleid",
+                      "rule_time",
+                      "action_id",
+                      "dev_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "rule_from_zone",
+                      "rule_num",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_custom_fields",
+                      "rule_num_numeric",
+                      "parent_rule_type",
+                      "rule_action",
+                      "rule_comment",
+                      "rule_dst",
+                      "rule_dst_refs",
+                      "rule_head_text",
+                      "rule_src",
+                      "rule_src_refs",
+                      "rule_svc",
+                      "rule_svc_refs",
+                      "rule_track",
+                      "rule_uid"
+                    ],
+                    "computed_fields": [
+                      "rule_relevant_for_tenant"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "middleware-server",
@@ -13586,6 +13717,29 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed",
+                      "rule_last_seen"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -14897,6 +15051,73 @@
             },
             {
               "table": {
+                "name": "rule_to_rulebase",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_id"
+                  }
+                },
+                {
+                  "name": "rulebase",
+                  "using": {
+                    "foreign_key_constraint_on": "rulebase_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "created",
+                      "deleted",
+                      "rule_id",
+                      "rulebase_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "deleted",
+                      "rule_id",
+                      "rulebase_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "deleted",
+                      "rule_id",
+                      "rulebase_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "rule_user_resolved",
                 "schema": "public"
               },
@@ -15027,6 +15248,18 @@
                 }
               ],
               "array_relationships": [
+                {
+                  "name": "rule_to_rulebases",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rulebase_id",
+                      "table": {
+                        "name": "rule_to_rulebase",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "rulebase_on_gateways",
                   "using": {
@@ -15896,7 +16129,10 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "action_name",
+                      "action_id"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -17060,7 +17296,10 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "track_name",
+                      "track_id"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -17183,7 +17422,10 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "usr_typ_name",
+                      "usr_typ_id"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }

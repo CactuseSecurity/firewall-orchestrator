@@ -191,7 +191,7 @@ class ImportState():
             raise
 
         # return ImportState (int(debugLevel), True, fwoConfig, mgmDetails) 
-        return ImportState (
+        return cls (
             debugLevel = int(debugLevel),
             configChangedSinceLastImport = True,
             fwoConfig = fwoConfig,

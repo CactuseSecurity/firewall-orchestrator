@@ -137,11 +137,11 @@ class FwConfigManagerList():
         else:
             return None
 
-    @classmethod
+    @staticmethod
     def getDevUidFromRulebaseName(rb_name: str) -> str:
         return rb_name
 
-    @classmethod
+    @staticmethod
     def getPolicyUidFromRulebaseName(rb_name: str) -> str:
         return rb_name
     

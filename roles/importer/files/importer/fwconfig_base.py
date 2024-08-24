@@ -103,8 +103,8 @@ class Gateway():
             'EnforcedNatPolicyUids': self.EnforcedNatPolicyUids
         }
     
-    @classmethod
-    def buildGatewayList(cls, mgmDetails: dict) -> List['Gateway']:
+    @staticmethod
+    def buildGatewayList(mgmDetails: dict) -> List['Gateway']:
         gws = []
         for gw in mgmDetails['devices']:
             gws.append(Gateway(gw['name'], f"{gw['name']}/{calcManagerUidHash(mgmDetails)}"))

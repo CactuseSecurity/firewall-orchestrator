@@ -20,20 +20,6 @@ class FwConfig():
 
     def __init__(self, configFormat: ConfFormat=ConfFormat.NORMALIZED, config={}):
         self.ConfigFormat = configFormat
-       # self.Config = config
-
-    # #@classmethod
-    # def fromJson(cls, jsonDict):
-    #     configFormatString = jsonDict['ConfigFormat']
-    #     if configFormatString == 'NORMALIZED':
-    #         # serialize everything into config
-    #         Config = jsonDict['ManagerSet']
-    #     else:
-    #         Config = jsonDict['config']
-    #     return cls(stringToEnum(ConfFormat, configFormatString), Config)
-
-    # def __str__(self):
-    #     return f"{self.ConfigType}({str(self.Config)})"
 
 # Function to convert a string to an Enum
 def stringToEnum(enum_class, string_value):
@@ -145,27 +131,8 @@ class FwConfigNormalized(FwConfig):
                     self.stripUnusedElements()
                 self.ConfigFormat = ConfFormat.NORMALIZED
 
-
-    # @classmethod
-    # def fromJson(cls, jsonDict):
-    #     if 'routing' not in jsonDict:
-    #         jsonDict.update({'routing': []})
-    #     if 'interfaces' not in jsonDict:
-    #         jsonDict.update({'interfaces': []})
-    #     # default action (backward compatibility) is INSERT
-    #     if 'action' not in jsonDict:
-    #         jsonDict.update({'action': ConfigAction.INSERT})
-    #     return cls(jsonDict['action'], 
-    #                FwConfigNormalized.convertListToDict(jsonDict['network_objects'], 'obj_uid'), 
-    #                FwConfigNormalized.convertListToDict(jsonDict['service_objects'], 'svc_uid'),
-    #                FwConfigNormalized.convertListToDict(jsonDict['users'], 'user_id'),
-    #                FwConfigNormalized.convertListToDict(jsonDict['zone_objects'], 'zone_name'), 
-    #                jsonDict['policies'],
-    #                jsonDict['gateways']
-    #                )
-
-    @classmethod
-    def convertListToDict(cls, listIn: List, idField: str) -> dict:
+    @staticmethod
+    def convertListToDict(listIn: List, idField: str) -> dict:
         logger = getFwoLogger()
         result = {}
         for item in listIn:
@@ -228,8 +195,8 @@ class FwConfigNormalized(FwConfig):
         FwConfigNormalized.deleteControlIdFromDictList(self.users)
         FwConfigNormalized.deleteControlIdFromDictList(self.zone_objects)
 
-    @classmethod
-    def deleteControlIdFromDictList(cls, dictListInOut: dict):
+    @staticmethod
+    def deleteControlIdFromDictList(dictListInOut: dict):
         if isinstance(dictListInOut, List): 
             deleteListDictElements(dictListInOut, ['control_id'])
         elif isinstance(dictListInOut, dict): 
@@ -279,8 +246,8 @@ class FwConfigNormalized(FwConfig):
     def split(self):
         return [self]   # for now not implemented
 
-    @classmethod
-    def join(cls, configList):
+    @staticmethod
+    def join(configList):
         resultingConfig = FwConfigNormalized()
         for conf in configList:
             resultingConfig.addElements(conf)

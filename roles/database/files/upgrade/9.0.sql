@@ -169,7 +169,7 @@ Create Table IF NOT EXISTS "rule_enforced_on_gateway"
 	"rule_id" Integer NOT NULL,
 	"dev_id" Integer,  --  NULL if rule is available for all gateways of its management
 	"created" BIGINT,
-	"deleted" BIGINT
+	"removed" BIGINT
 );
 
 ALTER TABLE "rule_enforced_on_gateway"
@@ -198,7 +198,7 @@ Create table IF NOT EXISTS "rulebase"
 	"mgm_id" Integer NOT NULL,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"created" BIGINT,
-	"deleted" BIGINT
+	"removed" BIGINT
 );
 
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "fk_rulebase_mgm_id" CASCADE;
@@ -230,6 +230,27 @@ Alter table "rulebase_on_gateway" add CONSTRAINT unique_rulebase_on_gateway_dev_
 
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
+
+Create Table IF NOT EXISTS "rule_to_rulebase" 
+(
+	"rule_id" BIGINT NOT NULL,
+	"rulebase_id" Integer NOT NULL,
+	"created" BIGINT,
+	"removed" BIGINT,
+    primary key ("rule_id", "rulebase_id")
+);
+
+-- ALTER TABLE "rule_to_rulebase" ADD PRIMARY KEY IF NOT EXISTS ("rule_id, "rulebase_id");
+
+
+ALTER TABLE "rule_to_rulebase" DROP CONSTRAINT IF EXISTS "fk_rule_to_rulebase_rule_id" CASCADE;
+Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+
+ALTER TABLE "rule_to_rulebase" DROP CONSTRAINT IF EXISTS "fk_rule_to_rulebase_rulebase_id" CASCADE;
+Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+
+-- ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "unique_rule_rule_uid_rule_create" CASCADE;
+-- Alter table "rule" add CONSTRAINT "unique_rule_rule_uid_rule_create" UNIQUE ("rule_uid", "rule_create");
 
 -- permanent table for storing latest config to calc diffs
 CREATE TABLE IF NOT EXISTS "latest_config" (
@@ -275,8 +296,25 @@ ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
 ALTER table "import_control" ADD COLUMN IF NOT EXISTS "is_full_import" BOOLEAN DEFAULT FALSE;
 
+
+CREATE OR REPLACE FUNCTION get_next_rule_number_after_uid(mgmId int, current_rule_uid text)
+RETURNS NUMERIC AS $$
+  SELECT r.rule_num_numeric as ruleNumber
+  FROM rule r
+  WHERE r.mgm_id = mgmId and active
+    AND r.rule_num_numeric > (
+      SELECT rule_num_numeric 
+      FROM rule 
+      WHERE rule_uid = current_rule_uid AND mgm_id = mgmId AND active
+      LIMIT 1
+    )
+  ORDER BY r.rule_num_numeric ASC
+  LIMIT 1;
+$$ LANGUAGE sql;
+
 /*  TODOs 
     
+- make sure that xlate rules get unique UIDs
 - with each major version released:
     add fwo version to demo config files on fwodemo to ensure all versions can be served
 

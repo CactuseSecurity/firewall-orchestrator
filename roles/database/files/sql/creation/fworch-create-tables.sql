@@ -280,6 +280,15 @@ Create table "rule_to"
 	"removed" BIGINT,
 	"negated" Boolean NOT NULL Default FALSE
 );
+ 
+Create Table IF NOT EXISTS "rule_to_rulebase" 
+(
+	"rule_id" BIGINT NOT NULL,
+	"rulebase_id" Integer NOT NULL,
+	"created" BIGINT,
+	"deleted" BIGINT,
+    primary key ("rule_id", "rulebase_id")
+);
 
 Create table "service"
 (

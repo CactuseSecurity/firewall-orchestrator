@@ -75,7 +75,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task<bool> PromoteTicket(FwoOwner owner, long ticketId, ExtStates extState, string comment = "")
+        public async Task<bool> PromoteNewInterfaceImplTask(FwoOwner owner, long ticketId, ExtStates extState, string comment = "")
         {
             ExtStateHandler extStateHandler = new(apiConnection);
             await extStateHandler.Init();

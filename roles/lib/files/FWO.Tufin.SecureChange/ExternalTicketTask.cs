@@ -3,7 +3,7 @@ using FWO.Api.Data;
 namespace FWO.Tufin.SecureChange
 {
 
-	public class ExternalAccessRequestTicketTask : RequestReqTask
+	public class ExternalAccessRequestTicketTask : WfReqTask
 	{
 		private ModellingConnection Connection = new();
 

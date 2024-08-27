@@ -11,7 +11,7 @@ namespace FWO.Api.Data
         rule
     }
 
-    public class RequestElementBase
+    public class WfElementBase
     {
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string? IpString { get; set; }
@@ -41,10 +41,10 @@ namespace FWO.Api.Data
         public string? RuleUid { get; set; }
 
 
-        public RequestElementBase()
+        public WfElementBase()
         { }
 
-        public RequestElementBase(RequestElementBase element)
+        public WfElementBase(WfElementBase element)
         {
             IpString = element.IpString;
             Port = element.Port;

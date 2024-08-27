@@ -3,19 +3,19 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestTicket : RequestTicketBase
+    public class WfTicket : WfTicketBase
     {
         [JsonProperty("reqtasks"), JsonPropertyName("reqtasks")]
-        public List<RequestReqTask> Tasks { get; set; } = new ();
+        public List<WfReqTask> Tasks { get; set; } = new ();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<RequestCommentDataHelper> Comments { get; set; } = new ();
+        public List<WfCommentDataHelper> Comments { get; set; } = new ();
 
 
-        public RequestTicket()
+        public WfTicket()
         {}
 
-        public RequestTicket(RequestTicket ticket) : base(ticket)
+        public WfTicket(WfTicket ticket) : base(ticket)
         {
             Tasks = ticket.Tasks;
             Comments = ticket.Comments;
@@ -46,9 +46,9 @@ namespace FWO.Api.Data
 
         public void UpdateCidrStringsInTaskElements()
         {
-            foreach (RequestReqTask reqtask in Tasks)
+            foreach (WfReqTask reqtask in Tasks)
             {
-                foreach(RequestReqElement elem in reqtask.Elements)
+                foreach(WfReqElement elem in reqtask.Elements)
                 {
                     elem.IpString = elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString : null ;
                 }
@@ -57,18 +57,18 @@ namespace FWO.Api.Data
 
         public void UpdateCidrsInTaskElements()
         {
-            foreach (RequestReqTask reqtask in Tasks)
+            foreach (WfReqTask reqtask in Tasks)
             {
-                foreach(RequestReqElement elem in reqtask.Elements)
+                foreach(WfReqElement elem in reqtask.Elements)
                 {
                     if (elem.IpString != null)
                     {
                         elem.Cidr = new Cidr(elem.IpString);
                     }
                 }
-                foreach(RequestImplTask implTask in reqtask.ImplementationTasks)
+                foreach(WfImplTask implTask in reqtask.ImplementationTasks)
                 {
-                    foreach(RequestImplElement elem in implTask.ImplElements)
+                    foreach(WfImplElement elem in implTask.ImplElements)
                     {
                         if (elem.IpString != null)
                         {

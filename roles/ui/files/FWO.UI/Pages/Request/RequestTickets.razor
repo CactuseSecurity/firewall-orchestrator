@@ -18,7 +18,7 @@
 
 @if(InitComplete)
 {
-    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" ReqHandler="reqHandler" ResetParent="Reset"/>
+    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" WfHandler="wfHandler" ResetParent="Reset"/>
 }
 else
 {
@@ -38,8 +38,8 @@ else
     [Parameter]
     public string? TicketId { get; set; }
 
-    private RequestHandler reqHandler = new ();
-    private RequestStateDict states = new ();
+    private WfHandler wfHandler = new ();
+    private WfStateDict states = new ();
     private List<int> OwnerIds = new ();
     private bool InitComplete = false;
 
@@ -55,7 +55,7 @@ else
             {
                 OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
             await Reset();
             await HandleTicketId();
             InitComplete = true;
@@ -70,7 +70,7 @@ else
     {
         if(long.TryParse(TicketId, out long ticketId))
         {
-            string newPhase = await reqHandler.HandleExtTicketId(WorkflowPhases.request, ticketId);
+            string newPhase = await wfHandler.HandleExtTicketId(WorkflowPhases.request, ticketId);
             if(newPhase != "")
             {
                 NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
@@ -82,8 +82,8 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await reqHandler.Init(OwnerIds);
+            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            await wfHandler.Init(OwnerIds);
         }
         catch (Exception exception)
         {

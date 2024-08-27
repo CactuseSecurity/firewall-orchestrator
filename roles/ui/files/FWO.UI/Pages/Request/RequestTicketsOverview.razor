@@ -17,7 +17,7 @@
 
 @if(InitComplete)
 {
-    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" ReqHandler="reqHandler" ResetParent="Reset"/>
+    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" WfHandler="wfHandler" ResetParent="Reset"/>
 }
 else
 {
@@ -34,8 +34,8 @@ else
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private RequestHandler reqHandler = new ();
-    private RequestStateDict states = new ();
+    private WfHandler wfHandler = new ();
+    private WfStateDict states = new ();
     private List<int> OwnerIds = new ();
     private bool InitComplete = false;
 
@@ -51,7 +51,7 @@ else
             {
                 OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
             await Reset();
             InitComplete = true;
         }
@@ -65,19 +65,19 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = true;
+            wfHandler.ReadOnlyMode = true;
             if(userConfig.ReqOwnerBased)
             {
-                await reqHandler.Init(OwnerIds, true, true);
+                await wfHandler.Init(OwnerIds, true, true);
             }
             else
             {
-                await reqHandler.Init(OwnerIds, true);
+                await wfHandler.Init(OwnerIds, true);
                 
                 // Todo: put filtering into graphql query
                 if(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) && !(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)))
                 {
-                    reqHandler.FilterForRequester();
+                    wfHandler.FilterForRequester();
                 }
             }
         }

@@ -428,7 +428,7 @@
                             await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
-                                    Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
+                                    Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.OrderedRulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
                                     if (ruleUpdated != null)
                                     {
                                         ruleUpdated.DeviceName = rule.DeviceName;

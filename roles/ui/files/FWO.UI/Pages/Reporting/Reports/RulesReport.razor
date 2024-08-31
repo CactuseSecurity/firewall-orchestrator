@@ -7,7 +7,7 @@
 
 @foreach (var management in Managements)
 {
-    @if (management.Devices.Where(device => device.Rules != null && device.Rules.Count() > 0).Count() > 0)
+    @if (management.ContainsRules())
     {
         management.AssignRuleNumbers();
 
@@ -15,12 +15,12 @@
 
             @foreach (var device in management.Devices)
             {
-                @if (device.Rules != null && device.Rules.Length > 0 && ruleDisplay != null)
+                @if (device.ContainsRules() && ruleDisplay != null)
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" class="vheight75" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
                             RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
-                            style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
+                            style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.OrderedRulebases[0].Rulebase.Rules" ShowSearchBar="false"
                             PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
                             @ref="reportTable">
 

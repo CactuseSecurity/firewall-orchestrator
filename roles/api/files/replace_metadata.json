@@ -13096,6 +13096,12 @@
                   }
                 },
                 {
+                  "name": "rulebase",
+                  "using": {
+                    "foreign_key_constraint_on": "rulebase_id"
+                  }
+                },
+                {
                   "name": "stm_action",
                   "using": {
                     "foreign_key_constraint_on": "action_id"
@@ -13206,18 +13212,6 @@
                       "column": "rule_id",
                       "table": {
                         "name": "rule_svc_resolved",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rule_to_rulebases",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_id",
-                      "table": {
-                        "name": "rule_to_rulebase",
                         "schema": "public"
                       }
                     }
@@ -15490,73 +15484,6 @@
             },
             {
               "table": {
-                "name": "rule_to_rulebase",
-                "schema": "public"
-              },
-              "object_relationships": [
-                {
-                  "name": "rule",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_id"
-                  }
-                },
-                {
-                  "name": "rulebase",
-                  "using": {
-                    "foreign_key_constraint_on": "rulebase_id"
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "importer",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "created",
-                      "deleted",
-                      "rule_id",
-                      "rulebase_id"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "importer",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "deleted",
-                      "rule_id",
-                      "rulebase_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                }
-              ],
-              "update_permissions": [
-                {
-                  "role": "importer",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "deleted",
-                      "rule_id",
-                      "rulebase_id"
-                    ],
-                    "filter": {},
-                    "check": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
                 "name": "rule_user_resolved",
                 "schema": "public"
               },
@@ -15745,24 +15672,24 @@
               ],
               "array_relationships": [
                 {
-                  "name": "rule_to_rulebases",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rulebase_id",
-                      "table": {
-                        "name": "rule_to_rulebase",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rulebase_on_gateways",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "rulebase_id",
                       "table": {
                         "name": "rulebase_on_gateway",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rules",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rulebase_id",
+                      "table": {
+                        "name": "rule",
                         "schema": "public"
                       }
                     }
@@ -15776,7 +15703,7 @@
                     "check": {},
                     "columns": [
                       "created",
-                      "deleted",
+                      "removed",
                       "is_global",
                       "name",
                       "id",
@@ -15792,7 +15719,7 @@
                   "permission": {
                     "columns": [
                       "created",
-                      "deleted",
+                      "removed",
                       "is_global",
                       "name",
                       "id",
@@ -15810,7 +15737,7 @@
                   "permission": {
                     "columns": [
                       "created",
-                      "deleted",
+                      "removed",
                       "is_global",
                       "name",
                       "id",
@@ -15845,6 +15772,12 @@
                   }
                 },
                 {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "layer_guard_rule"
+                  }
+                },
+                {
                   "name": "rulebase",
                   "using": {
                     "foreign_key_constraint_on": "rulebase_id"
@@ -15857,6 +15790,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "layer_guard_rule",
                       "dev_id",
                       "order_no",
                       "rulebase_id"
@@ -15870,6 +15804,7 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "layer_guard_rule",
                       "dev_id",
                       "order_no",
                       "rulebase_id"

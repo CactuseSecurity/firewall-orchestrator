@@ -57,7 +57,7 @@ namespace FWO.Api.Data
 
         public RequestReqElement ToReqElement(ElemFieldType field)
         {
-            RequestReqElement element = new RequestReqElement()
+            RequestReqElement element = new()
             {
                 Id = ElemId,
                 TaskId = TaskId,
@@ -70,7 +70,7 @@ namespace FWO.Api.Data
 
         public RequestImplElement ToImplElement(ElemFieldType field)
         {
-            RequestImplElement element = new RequestImplElement()
+            RequestImplElement element = new()
             {
                 Id = ElemId,
                 ImplTaskId = TaskId,

@@ -62,13 +62,16 @@ namespace FWO.Report
             {
                 foreach(var dev in mgmt.Devices)
                 {
-                    if(dev.Rules != null && dev.Rules.Length > 0)
+                    foreach (var rulebase in dev.OrderedRulebases) 
                     {
-                        return false;
-                    }
-                    if(dev.RuleChanges != null && dev.RuleChanges.Length > 0)
-                    {
-                        return false;
+                        if(rulebase.Rulebase.Rules != null && rulebase.Rulebase.Rules.Length > 0)
+                        {
+                            return false;
+                        }
+                        if(dev.RuleChanges != null && dev.RuleChanges.Length > 0)
+                        {
+                            return false;
+                        }
                     }
                 }
             }

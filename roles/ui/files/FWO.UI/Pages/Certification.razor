@@ -322,9 +322,12 @@
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
-                    foreach (var rule in device.Rules!)
+                    foreach (var rb in device.OrderedRulebases)
                     {
-                        rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                        foreach (var rule in rb.Rulebase.Rules!)
+                        {
+                            rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                        }
                     }
                 }
             }
@@ -387,14 +390,17 @@
         {
             foreach (var device in management.Devices)
             {
-                if(device.Rules != null)
+                if(device.ContainsRules())
                 {
-                    foreach (var rule in device.Rules)
+                    foreach (var rb in device.OrderedRulebases)
                     {
-                        if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
+                        foreach (var rule in rb.Rulebase.Rules)
                         {
-                            rule.DeviceId = device.Id;
-                            Certifications.Add(rule);
+                            if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
+                            {
+                                rule.DeviceId = device.Id;
+                                Certifications.Add(rule);
+                            }
                         }
                     }
                 }

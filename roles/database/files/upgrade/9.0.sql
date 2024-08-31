@@ -201,6 +201,8 @@ Create table IF NOT EXISTS "rulebase"
 	"removed" BIGINT
 );
 
+-- ALTER TABLE rulebase RENAME COLUMN deleted to removed;
+
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "fk_rulebase_mgm_id" CASCADE;
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 
@@ -499,6 +501,14 @@ $function$;
 SELECT 1 FROM migrateToRulebases();
 
 /*  TODOs 
+
+Rename table rulebase_on_gateways to gateway_rulebase to get correct plural gateway_rulebases in hasura
+
+REPORTING:
+    - RulesReportRazor line 23: deal with multiple ordered rulebases (later)
+        style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
+    - ObjectGroup.Razor line 431:
+        Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.OrderedRulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
     
 - make sure that xlate rules get unique UIDs
 - with each major version released:

@@ -18,7 +18,14 @@ namespace FWO.Report.Filter
         public string SvcObjWhereStatement { get; set; } = "";
         public string UserObjWhereStatement { get; set; } = "";
         public string ConnectionWhereStatement { get; set; } = "";
-        public string OpenRulesTable { get; set; } = "rules(";
+        public string OpenRulesTable { get; set; } = $@"
+                                        rulebase_on_gateways(order_by: {{order_no: asc}}) {{
+                                            rulebase_id
+                                            order_no
+                                            rulebase {{
+                                                id
+                                                name
+                                                rules(";
         public string OpenChangeLogRulesTable { get; set; } = "changelog_rules(";
         public List<string> QueryParameters { get; set; } =
         [
@@ -124,8 +131,9 @@ namespace FWO.Report.Filter
                                     {{
                                         mgm_id: mgm_id
                                         {((ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules ? "rule_metadatum { rule_last_hit }" : "")}
-                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
-                                    }} 
+                                         ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                        }} }}
+                                    }}
                                 }}
                             }} 
                         }}

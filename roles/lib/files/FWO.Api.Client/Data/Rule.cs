@@ -89,6 +89,8 @@ namespace FWO.Api.Data
         [JsonProperty("rule_custom_fields"), JsonPropertyName("rule_custom_fields")]
         public string CustomFields { get; set; } = "";
 
+        [JsonProperty("rulebase_id"), JsonPropertyName("rulebase_id")]
+        public int RulebaseId { get; set; }
 
         public int DisplayOrderNumber { get; set; }
         public bool Certified { get; set; }

@@ -118,7 +118,7 @@ class ImportState():
     LastFullImportId: int
     IsFullImport: bool
 
-    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False):
+    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False, isClearingImport=False):
         self.ErrorCount = 0
         self.ChangeCount = 0
         self.ErrorString = ''
@@ -135,6 +135,7 @@ class ImportState():
         self.ForceImport = force
         self.ImportVersion = int(version)
         self.IsFullImport = isFullImport
+        self.IsClearingImport = isClearingImport
 
     def __str__(self):
         return f"{str(self.ManagementDetails)}({self.age})"
@@ -155,7 +156,10 @@ class ImportState():
         self.ErrorString = errorStr
 
     @classmethod
-    def initializeImport(cls, mgmId, debugLevel=0, suppressCertWarnings=False, sslVerification=False, force=False, version=8):
+    def initializeImport(cls, mgmId, debugLevel=0, suppressCertWarnings=False, 
+                         sslVerification=False, force=False, version=8,
+                         isClearingImport=False, isFullImport=False
+                         ):
 
         def check_input_parameters(mgmId):
             if mgmId is None:
@@ -198,7 +202,9 @@ class ImportState():
             mgmDetails = mgmDetails,
             jwt = jwt,
             force = force,
-            version = version
+            version = version,
+            isClearingImport=isClearingImport,
+            isFullImport=isFullImport
         )
 
     def setPastImportInfos(self):

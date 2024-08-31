@@ -184,7 +184,8 @@ Create table "rule"
 	"nat_rule" BOOLEAN Default FALSE,
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
- primary key ("rule_id")
+	"rulebase_id" Integer NOT NULL,
+	primary key ("rule_id")
 );
 
 -- rule_metadata contains rule related data that does not change when the rule itself is changed
@@ -415,10 +416,10 @@ Create table "objgrp_flat"
 
 Create table "svcgrp_flat"
 (
-	"svcgrp_flat_id" Integer NOT NULL,
-	"svcgrp_flat_member_id" Integer NOT NULL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
+	"svcgrp_flat_id" BIGINT NOT NULL,
+	"svcgrp_flat_member_id" BIGINT NOT NULL,
+	"import_created" BIGINT NOT NULL,
+	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"removed" BIGINT,
 	"negated" Boolean NOT NULL Default FALSE

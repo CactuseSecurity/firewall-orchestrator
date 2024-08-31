@@ -4,6 +4,7 @@ import json
 import traceback
 
 import fwo_globals
+#from fwo_globals import verify_certs, suppress_cert_warnings, debug_level
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
 from fwconfig_normalized import FwConfigNormalized
@@ -50,7 +51,7 @@ class FwConfigImportBase(FwConfigNormalized):
                 r = session.post(self.FwoApiUrl, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
                 r.raise_for_status()
             except requests.exceptions.RequestException:
-                logger.error(self.showApiCallInfo(self.FwoApiUrl, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+                logger.error(self.showImportApiCallInfo(full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
                 if r != None:
                     if r.status_code == 503:
                         raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
@@ -59,19 +60,19 @@ class FwConfigImportBase(FwConfigNormalized):
                 else:
                     raise
             if int(fwo_globals.debug_level) > 8:
-                logger.debug (self.showApiCallInfo(self.FwoApiUrl, full_query, request_headers, type='debug'))
+                logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug'))
             if r != None:
                 return r.json()
             else:
                 return None
 
-    def showApiCallInfo(self, query, headers, type='debug'):
+    def showImportApiCallInfo(self, query, headers, typ='debug'):
         max_query_size_to_display = 1000
         query_string = json.dumps(query, indent=2)
         header_string = json.dumps(headers, indent=2)
         query_size = len(query_string)
 
-        if type=='error':
+        if typ=='error':
             result = "error while sending api_call to url "
         else:
             result = "successful FWO API call to url "        

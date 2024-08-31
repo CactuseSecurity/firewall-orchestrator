@@ -195,9 +195,57 @@ public class SCTicket : ExternalTicket
 		// send API call
 		return await restClient.ExecuteAsync<int>(request);
 	}
-	/*
 
-		Create Ticket Sample Call
+
+	/*
+		Create Ticket for creating network groups
+
+		curl --request POST \
+			--insecure \
+			--url https://tufin-stest.xxx.de/securechangeworkflow/api/securechange/tickets.json \
+			--header 'Authorization: Basic xxx' \
+			--header 'Content-Type: application/json' \
+			--data '{
+			"ticket": {
+				"subject": "Neue automatische Gruppenerstellung",
+				"priority": "Normal",
+				"domain_name": "",
+				"workflow": {
+					"name": "Automatische Gruppenerstellung"
+				},
+				"steps": {
+					"step": [
+						{
+							"name": "Submit Request",
+							"tasks": {
+								"task": {
+									"fields": {
+										"field": {
+											"@xsi.type": "multi_group_change",
+											"name": "Modify network object group",
+											"group_change": {
+												"name": "test-group-change-ticket-1",
+												"management_id": 1,
+												"management_name": mgmt_name,
+												"members": {
+													"member": []
+												},
+												"change_action": "CREATE"
+											}
+										}
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		}'
+
+
+		####################################################### 
+
+		Create Access Request Ticket Sample Call
 
 		curl --request POST \
 			--insecure \

@@ -53,8 +53,6 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         objectErrorCount, objectChangeCount = self.updateObjectDiffs(prevConfigDict)
         ruleErrorCount, ruleChangeCount = self.updateRuleDiffs(prevConfigDict)
 
-        # TODO: write changes to changelog_xxx tables
-
         # update error and change counters
         self.ImportDetails.setErrorCounter(self.ImportDetails.ErrorCount + objectErrorCount + ruleErrorCount)
         self.ImportDetails.setChangeCounter(self.ImportDetails.ChangeCount + objectChangeCount + ruleChangeCount)

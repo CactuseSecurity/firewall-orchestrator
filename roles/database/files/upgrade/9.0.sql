@@ -231,23 +231,23 @@ Alter table "rulebase_on_gateway" add CONSTRAINT unique_rulebase_on_gateway_dev_
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
 
-Create Table IF NOT EXISTS "rule_to_rulebase" 
-(
-	"rule_id" BIGINT NOT NULL,
-	"rulebase_id" Integer NOT NULL,
-	"created" BIGINT,
-	"removed" BIGINT,
-    primary key ("rule_id", "rulebase_id")
-);
+-- Create Table IF NOT EXISTS "rule_to_rulebase" 
+-- (
+-- 	"rule_id" BIGINT NOT NULL,
+-- 	"rulebase_id" Integer NOT NULL,
+-- 	"created" BIGINT,
+-- 	"removed" BIGINT,
+--     primary key ("rule_id", "rulebase_id")
+-- );
 
 -- ALTER TABLE "rule_to_rulebase" ADD PRIMARY KEY IF NOT EXISTS ("rule_id, "rulebase_id");
 
 
-ALTER TABLE "rule_to_rulebase" DROP CONSTRAINT IF EXISTS "fk_rule_to_rulebase_rule_id" CASCADE;
-Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+-- ALTER TABLE "rule_to_rulebase" DROP CONSTRAINT IF EXISTS "fk_rule_to_rulebase_rule_id" CASCADE;
+-- Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 
-ALTER TABLE "rule_to_rulebase" DROP CONSTRAINT IF EXISTS "fk_rule_to_rulebase_rulebase_id" CASCADE;
-Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+-- ALTER TABLE "rule_to_rulebase" DROP CONSTRAINT IF EXISTS "fk_rule_to_rulebase_rulebase_id" CASCADE;
+-- Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 
 -- ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "unique_rule_rule_uid_rule_create" CASCADE;
 -- Alter table "rule" add CONSTRAINT "unique_rule_rule_uid_rule_create" UNIQUE ("rule_uid", "rule_create");
@@ -296,7 +296,6 @@ ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
 ALTER table "import_control" ADD COLUMN IF NOT EXISTS "is_full_import" BOOLEAN DEFAULT FALSE;
 
-
 CREATE OR REPLACE FUNCTION get_next_rule_number_after_uid(mgmId int, current_rule_uid text)
 RETURNS NUMERIC AS $$
   SELECT r.rule_num_numeric as ruleNumber
@@ -311,6 +310,193 @@ RETURNS NUMERIC AS $$
   ORDER BY r.rule_num_numeric ASC
   LIMIT 1;
 $$ LANGUAGE sql;
+
+
+ALTER table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_id" TYPE BIGINT;
+ALTER table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_member_id" TYPE BIGINT;
+ALTER table "svcgrp_flat" ALTER COLUMN "import_created" TYPE BIGINT;
+ALTER table "svcgrp_flat" ALTER COLUMN "import_last_seen" TYPE BIGINT;
+
+
+drop Table IF EXISTS "rule_to_rulebase";
+alter table "rule" add column if not exists "rulebase_id" Integer; -- NOT NULL;
+ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
+Alter table "rule" add CONSTRAINT fk_rule_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+
+/*
+    migration plan:
+    1) create rulebases without rules (derive from device table)
+    2) set rule.rulebase_id to reference the correct rulebase
+    3) set not null constratint for rule.rulebase_id
+    4) do we really dare to delete duplicate rules here? yes, we should.
+    5) after upgrade start import
+
+    -- TODO: deal with global policies --> move them to the global mgm_id
+*/
+
+CREATE OR REPLACE FUNCTION deleteDuplicateRulebases() RETURNS VOID
+    LANGUAGE plpgsql
+    VOLATILE
+AS $function$
+    BEGIN
+        -- TODO: make sure that we have at least one rulebase for each device
+        DELETE FROM rule WHERE rulebase_id IS NULL;
+    END;
+$function$;
+
+CREATE OR REPLACE FUNCTION addRuleEnforcedOnGatewayEntries() RETURNS VOID
+    LANGUAGE plpgsql
+    VOLATILE
+AS $function$
+    DECLARE
+        r_rulebase RECORD;
+        r_rule RECORD;
+        r_dev_null RECORD;
+        i_dev_id INTEGER;
+        a_all_dev_ids_of_rulebase INTEGER[];
+        a_target_gateways VARCHAR[];
+        v_gw_name VARCHAR;
+    BEGIN
+        FOR r_rulebase IN 
+            SELECT * FROM rulebase
+        LOOP
+            -- collect all device ids for this rulebase
+            SELECT ARRAY(
+                SELECT dev_id FROM rulebase_on_gateway 
+                WHERE rulebase_id=r_rulebase.id
+            ) INTO a_all_dev_ids_of_rulebase;
+
+            FOR r_rule IN 
+                SELECT rule_installon, rule_id FROM rule
+            LOOP
+                -- depending on install_on field:
+                --     add enry for all gateways of the management
+                --     or just add specific gateway entries
+                IF r_rule.rule_installon='Policy Targets' THEN
+                    -- need to find out other platforms equivivalent keywords
+                    FOREACH i_dev_id IN ARRAY a_all_dev_ids_of_rulebase 
+                    LOOP
+                        INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created) 
+                        VALUES (r_rule.rule_id, i_dev_id, 1); -- TODO: importId 1 is not clean here!
+                    END LOOP;
+                ELSE
+                    -- need to deal with entries separately - split rule_installon field by '|'
+                    SELECT ARRAY(
+                        SELECT string_to_array(r_rule.rule_installon, '|')
+                    ) INTO a_target_gateways;
+                    FOREACH v_gw_name IN ARRAY a_target_gateways 
+                    LOOP
+                        -- get dev_id for gw_name
+                        SELECT INTO i_dev_id dev_id FROM device WHERE dev_name=v_gw_name;
+                        IF FOUND THEN
+                            INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created) 
+                            VALUES (r_rule.rule_id, i_dev_id, 1); -- TODO: importId 1 is not clean here!
+                        ELSE
+                            -- decide what to do with misses
+                        END IF;
+                    END LOOP;
+                END IF;
+            END LOOP;
+        END LOOP;
+    END;
+$function$;
+
+CREATE OR REPLACE FUNCTION addRulebaseOnGatewayEntries() RETURNS VOID
+    LANGUAGE plpgsql
+    VOLATILE
+AS $function$
+    DECLARE
+        r_dev RECORD;
+        r_dev_null RECORD;
+        i_rulebase_id INTEGER;
+    BEGIN
+        FOR r_dev IN 
+            SELECT * FROM device
+        LOOP
+            -- local rulebase:
+            -- find the id of the matching rulebase
+            SELECT INTO i_rulebase_id id FROM rulebase WHERE name=r_dev.local_rulebase_name AND mgm_id=r_dev.mgm_id;
+            -- check if rulebase_on_gateway already exists
+            SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
+            IF NOT FOUND THEN
+                INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
+                VALUES (r_dev.dev_id, i_rulebase_id, 0); -- when migrating, there cannot be more than one rb per device
+            END IF;
+
+            -- global rulebase:
+            -- find the id of the matching rulebase
+            IF r_dev.global_rulebase_name IS NOT NULL THEN
+                SELECT INTO i_rulebase_id id FROM rulebase WHERE name=r_dev.global_rulebase_name AND mgm_id=r_dev.mgm_id;
+                -- check if rulebase_on_gateway already exists
+                SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
+                IF NOT FOUND THEN
+                    INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
+                    VALUES (r_dev.dev_id, i_rulebase_id, 1); -- when migrating, the global rulebase must be the second one
+                END IF;
+            END IF;
+        END LOOP;
+    END;
+$function$;
+
+-- in this migration, in scenarios where a rulebase is used on more than one gateway, 
+-- only the rules of the first gw get a rulebase_id, the others (copies) will be deleted
+CREATE OR REPLACE FUNCTION migrateToRulebases() RETURNS VOID
+    LANGUAGE plpgsql
+    VOLATILE
+AS $function$
+    DECLARE
+        r_dev RECORD;
+        r_dev_null RECORD;
+        i_new_rulebase_id INTEGER;
+    BEGIN
+        FOR r_dev IN 
+            SELECT * FROM device
+        LOOP
+            -- if rulebase does not exist yet: insert it
+            SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.local_rulebase_name;
+            IF NOT FOUND THEN
+                -- first create rulebase entries
+                INSERT INTO rulebase (name, mgm_id, is_global, created) 
+                VALUES (r_dev.local_rulebase_name, r_dev.mgm_id, FALSE, 1) 
+                RETURNING id INTO i_new_rulebase_id;
+                -- now update references in all rules to the newly created rulebase
+                UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE dev_id=r_dev.dev_id;
+            END IF;
+
+            SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.global_rulebase_name;
+            IF NOT FOUND AND r_dev.global_rulebase_name IS NOT NULL THEN
+                INSERT INTO rulebase (name, mgm_id, is_global, created) 
+                VALUES (r_dev.global_rulebase_name, r_dev.mgm_id, TRUE, 1) 
+                RETURNING id INTO i_new_rulebase_id;
+                -- now update references in all rules to the newly created rulebase
+                UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE dev_id=r_dev.dev_id;
+                -- add entries in rule_enforced_on_gateway
+            END IF;
+        END LOOP;
+
+        PERFORM addRulebaseOnGatewayEntries();
+        -- danger zone: delete all rules that have no rulebase_id
+        -- the deletion might take some time
+        PERFORM deleteDuplicateRulebases();
+
+        -- add entries in rule_enforced_on_gateway
+        PERFORM addRuleEnforcedOnGatewayEntries();
+
+        -- now we can add the "not null" constraint for rule.rulebase_id
+        IF EXISTS (
+            SELECT 1 
+            FROM information_schema.columns
+            WHERE table_name = 'rule' 
+            AND column_name = 'rulebase_id'
+            AND is_nullable = 'YES'
+        ) THEN
+            ALTER TABLE rule
+            ALTER COLUMN rulebase_id SET NOT NULL;
+        END IF;
+    END;
+$function$;
+
+SELECT 1 FROM migrateToRulebases();
 
 /*  TODOs 
     

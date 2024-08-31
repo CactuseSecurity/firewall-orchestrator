@@ -17,13 +17,13 @@ from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFa
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
 
-def showApiCallInfo(url, query, headers, type='debug'):
+def showApiCallInfo(url, query, headers, typ='debug'):
     max_query_size_to_display = 1000
     query_string = json.dumps(query, indent=2)
     header_string = json.dumps(headers, indent=2)
     query_size = len(query_string)
 
-    if type=='error':
+    if typ=='error':
         result = "error while sending api_call to url "
     else:
         result = "successful FWO API call to url "        
@@ -54,7 +54,7 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
             r.raise_for_status()
         except requests.exceptions.RequestException:
-            logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+            logger.error(showApiCallInfo(full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
             if r != None:
                 if r.status_code == 503:
                     raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
@@ -63,7 +63,7 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             else:
                 raise
         if int(fwo_globals.debug_level) > 8:
-            logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
+            logger.debug (showApiCallInfo(full_query, request_headers, typ='debug'))
         if show_progress:
             pass
             # print('.', end='', flush=True)

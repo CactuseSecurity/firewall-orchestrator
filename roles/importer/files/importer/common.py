@@ -39,7 +39,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     logger = getFwoLogger()
     config_changed_since_last_import = True
 
-    importState = ImportState.initializeImport(mgmId, debugLevel=debug_level_in, force=force, version=version)
+    importState = ImportState.initializeImport(mgmId, debugLevel=debug_level_in, 
+                                               force=force, version=version, 
+                                               isClearingImport=clearManagementData, isFullImport=False)
     # configImporter = FwConfigImport(importState, {})    # initialize importer (needed for clearing old imports)
 
     if type(importState) is str:
@@ -73,6 +75,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             configNormalized = FwConfigManagerList()
             configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails), importState.MgmDetails.Name))
             configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, [], [], [], [], []))
+            importState.IsClearingImport = True # the now following import is a full one
         else:
             if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
                 ### geting config from file ######################

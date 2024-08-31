@@ -1,5 +1,6 @@
 from typing import List
 import traceback
+import time
 
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
@@ -27,23 +28,28 @@ class FwConfigImportObject(FwConfigImportBase):
         deletedNwobjUids = previousNwObjects.keys() - self.network_objects.keys()
         newNwobjUids = self.network_objects.keys() - previousNwObjects.keys()
         nwobjUidsInBoth = self.network_objects.keys() & previousNwObjects.keys()
-        changedNwobjUids = []
-        for nwObjUid in nwobjUidsInBoth:
-            if previousNwObjects[nwObjUid] != self.network_objects[nwObjUid]:
-                changedNwobjUids.append(nwObjUid)
+
+        # decide if it is prudent to mix changed, deleted and added rules here:
+        # for nwObjUid in nwobjUidsInBoth:
+        #     if previousNwObjects[nwObjUid] != self.network_objects[nwObjUid]:
+        #         newNwobjUids.append(nwObjUid)
+        #         deletedNwobjUids.append(nwObjUid)
 
         # calculate service object diffs
         previousSvcObjects = prevConfig['service_objects']
         deletedSvcObjUids = previousSvcObjects.keys() - self.service_objects.keys()
         newSvcObjUids = self.service_objects.keys() - previousSvcObjects.keys()
         svcObjUidsInBoth = self.service_objects.keys() & previousSvcObjects.keys()
-        changedSvcObjUids = []
+
         for uid in svcObjUidsInBoth:
             if previousSvcObjects[uid] != self.service_objects[uid]:
-                changedSvcObjUids.append(uid)
+                newSvcObjUids.append(uid)
+                deletedSvcObjUids.append(uid)
+
+        # TODO: deal with object changes (e.g. group with added member)
 
         # add newly created objects
-        errorCountAdd, numberOfAddedObjects, newNwObjIds, newNwSvcids = self.addNewObjects(newNwobjUids, newSvcObjUids)
+        errorCountAdd, numberOfAddedObjects, newNwObjIds, newNwSvcIds = self.addNewObjects(newNwobjUids, newSvcObjUids)
 
         # update group memberships
         self.addNwObjGroupMemberships(newNwObjIds)
@@ -53,17 +59,16 @@ class FwConfigImportObject(FwConfigImportBase):
         errorCountRemove, numberOfDeletedObjects, removedNwObjIds, removedNwSvcids = self.markObjectsRemoved(deletedNwobjUids, deletedSvcObjUids)
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
-        # TODO: deal with object changes (e.g. group with added member)
-        for nwobjUid in nwobjUidsInBoth:
-            if self.network_objects[nwobjUid] != prevConfig['network_objects'][nwobjUid]:
-                pass  # TODO: self.updateNetworkObject(nwobjUid)
-        
-        # TODO: update all references to objects marked as removed
+        # update all references to objects marked as removed
+        self.markObjectRefsRemoved(removedNwObjIds, removedNwSvcids)
+
         # TODO: calculate user diffs
         # TODO: calculate zone diffs
 
-        return errorCountAdd + errorCountRemove, numberOfDeletedObjects + numberOfAddedObjects
+        # TODO: write changes to changelog_xxx tables
+        self.addChangelogObjects(newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcids)
 
+        return errorCountAdd + errorCountRemove, numberOfDeletedObjects + numberOfAddedObjects
 
     def addNewObjects(self, newNwObjectUids, newSvcObjectUids):
         logger = getFwoLogger()
@@ -88,10 +93,6 @@ class FwConfigImportObject(FwConfigImportBase):
             'newSvcObjects': self.prepareNewSvcObjects(newSvcObjectUids)
         }
         
-        # examples: 
-        # {'obj_uid': 'd379bf1c-7e14-46f4-8a8c-9c19020c8ff2', 'obj_name': 'testHost_7.7.7.7', 'obj_comment': None, 'obj_ip': '7.7.7.7/32', 'obj_ip_end': '7.7.7.7/32', 'obj_member_refs': None, 'obj_member_names': None, 'mgm_id': 26, 'obj_created': 33690, 'obj_last_seen': 33690, 'obj_color_id': None, 'obj_typ_id': 1}
-        # {"svc_uid": "d379bf1c-7e14-46f4-8a8c-9c19020c8ff2", "svc_name": "ntp-dienst", "svc_comment": null, "ip_proto_id": "17", "svc_port": 123, "svc_member_refs": null, "svc_member_names": null, "mgm_id": 26, "svc_create": 33690, "svc_last_seen": 33690, "svc_color_id": null, "svc_typ_id": 1 }
-
         try:
             import_result = self.call(import_mutation, queryVariables=queryVariables)
             if 'errors' in import_result:
@@ -323,19 +324,18 @@ class FwConfigImportObject(FwConfigImportBase):
         logger = getFwoLogger()
         errors = 0
         changes = 0
+        removedNwObjIds = []
+        removedNwSvcIds = []
+        
         removeMutation = """
             mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!) {
-                update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId}) {
+                update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
                     affected_rows
-                    returning {
-                    obj_id
-                    }
+                    returning { obj_id }
                 }
-                update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId}) {
+                update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
                     affected_rows
-                    returning {
-                    svc_id
-                    }
+                    returning { svc_id }
                 }
             }
         """
@@ -362,8 +362,80 @@ class FwConfigImportObject(FwConfigImportBase):
         
         return errors, changes, removedNwObjIds, removedNwSvcIds
 
+    # objects are not delelted but marked as removed
+    # also the 
+    def markObjectRefsRemoved(self, removedNwObjectIds, removedSvcObjectIds):
+        logger = getFwoLogger()
+        errors = 0
+        changes = 0
+        removedNwObjIds = []
+        removedNwSvcIds = []
+        removeMutation = """
+            mutation updateObjects($importId: bigint!, $removedNwObjectIds: [bigint!]!, $removedSvcObjectIds: [bigint!]!) {
+                update_objgrp(where: {objgrp_member_id: {_in: $removedNwObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                    affected_rows
+                }
+                update_svcgrp(where: {svcgrp_member_id: {_in: $removedSvcObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                    affected_rows
+                }
+                update_objgrp_flat(where: {objgrp_flat_member_id: {_in: $removedNwObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                    affected_rows
+                }
+                update_svcgrp_flat(where: {svcgrp_flat_member_id: {_in: $removedSvcObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                    affected_rows
+                }
+                update_rule_from(where: {obj_id: {_in: $removedNwObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                    affected_rows
+                }
+                update_rule_to(where: {obj_id: {_in: $removedNwObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                    affected_rows
+                }
+                update_rule_service(where: {svc_id: {_in: $removedSvcObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                    affected_rows
+                }
+                update_rule_nwobj_resolved(where: {obj_id: {_in: $removedNwObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId}) {
+                    affected_rows
+                }
+                update_rule_svc_resolved(where: {svc_id: {_in: $removedSvcObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId}) {
+                    affected_rows
+                }
+            }
+        """
+        queryVariables = {
+            'importId': self.ImportDetails.ImportId,
+            'removedNwObjectIds': list(removedNwObjectIds), #convert set to list
+            'removedSvcObjectIds': list(removedSvcObjectIds) #convert set to list
+        }
+        
+        try:
+            removeResult = self.call(removeMutation, queryVariables=queryVariables)
+            if 'errors' in removeResult:
+                logger.exception(f"error while marking objects as removed: {str(removeResult['errors'])}")
+                errors = 1
+            else:
+                changes = int(removeResult['data']['update_objgrp']['affected_rows']) + \
+                    int(removeResult['data']['update_svcgrp']['affected_rows']) + \
+                    int(removeResult['data']['update_objgrp_flat']['affected_rows']) + \
+                    int(removeResult['data']['update_svcgrp_flat']['affected_rows']) + \
+                    int(removeResult['data']['update_rule_from']['affected_rows']) + \
+                    int(removeResult['data']['update_rule_to']['affected_rows']) + \
+                    int(removeResult['data']['update_rule_service']['affected_rows']) + \
+                    int(removeResult['data']['update_rule_nwobj_resolved']['affected_rows']) + \
+                    int(removeResult['data']['update_rule_svc_resolved']['affected_rows'])
+                    
+        except:
+            logger.exception(f"fatal error while marking objects as removed: {str(traceback.format_exc())}")
+            errors = 1
+        
+        return errors, changes, removedNwObjIds, removedNwSvcIds
+
     def lookupObjType(self, objTypeString):
         return self.NetworkObjectTypeMap.get(objTypeString, None)
+
+    def lookupObjIdToUidAndPolicyName(self, objId: int):
+        return str(objId) # mock
+        # CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.local_rulebase_name) AS VARCHAR) AS unique_name,
+        # return self.NetworkObjectIdMap.get(objId, None)
 
     def lookupColor(self, colorString):
         return self.ColorMap.get(colorString, None)
@@ -375,3 +447,64 @@ class FwConfigImportObject(FwConfigImportBase):
             return protoString  # already an int, do nothing
         else:
             return self.ProtocolMap.get(protoString.lower(), None)
+
+    def prepareChangelogObjects(self, nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved):
+        """
+            insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');
+            insert into stm_change_type (change_type_id,change_type_name) VALUES (2,'initial import');
+            insert into stm_change_type (change_type_id,change_type_name) VALUES (3,'in operation');
+        """
+        # TODO: deal with object changes where we need old and new obj id
+
+        nwObjs = []
+        svcObjs = []
+        importTime = time.time()
+        changeTyp = 3  # standard
+        if self.ImportDetails.IsFullImport or self.ImportDetails.IsClearingImport:
+            changeTyp = 2   # to be ignored in change reports
+        for id in nwObjIdsAdded:
+            uniqueName = self.lookupObjIdToUidAndPolicyName(id)
+            nwObjs.append({
+                "new_obj_id": id,
+                "control_id": self.ImportDetails.ImportId,
+                "change_action": "I",
+                "mgm_id": self.ImportDetails.MgmDetails.Id,
+                "change_type_id": changeTyp,
+                # "security_relevant": secRelevant, # assuming everything is security relevant for now
+                "change_time": importTime,
+                "unique_name": uniqueName
+            })
+        return nwObjs, svcObjs
+
+    def addChangelogObjects(self, nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved):
+        logger = getFwoLogger()
+        errors = 0
+
+        nwObjsChanged, svcObjsChanged = self.prepareChangelogObjects(nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved)
+
+        changelogMutation = """
+            mutation updateObjChangelogs($nwObjChanges: [changelog_object_insert_input!]!, $svcObjChanges: [changelog_service_insert_input!]!) {
+                insert_changelog_object(objects: $nwObjChanges) {
+                    affected_rows
+                }
+                insert_changelog_service(objects: $svcObjChanges) {
+                    affected_rows
+                }
+            }
+        """
+        queryVariables = {
+            'nwObjChanges': nwObjsChanged, 
+            'svcObjChanges': svcObjsChanged
+        }
+
+        if len(nwObjsChanged) + len(svcObjsChanged)>0:
+            try:
+                changelogResult = self.call(changelogMutation, queryVariables=queryVariables)
+                if 'errors' in changelogResult:
+                    logger.exception(f"error while adding changelog entries for objects: {str(changelogResult['errors'])}")
+                    errors = 1
+            except:
+                logger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
+                errors = 1
+        
+        return errors

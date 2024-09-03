@@ -31,7 +31,7 @@ namespace FWO.Api.Data
         OnAssignment = 15
     }
 
-    public class RequestStateAction
+    public class WfStateAction
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -43,7 +43,7 @@ namespace FWO.Api.Data
         public string ActionType { get; set; } = StateActionTypes.DoNothing.ToString();
 
         [JsonProperty("scope"), JsonPropertyName("scope")]
-        public string Scope { get; set; } = RequestObjectScopes.None.ToString();
+        public string Scope { get; set; } = WfObjectScopes.None.ToString();
 
         [JsonProperty("task_type"), JsonPropertyName("task_type")]
         public string TaskType { get; set; } = "";
@@ -61,7 +61,7 @@ namespace FWO.Api.Data
         public string ExternalParams { get; set; } = "";
 
 
-        public RequestStateAction()
+        public WfStateAction()
         { }
 
         public static bool IsReadonlyType(string actionTypeString)
@@ -79,9 +79,9 @@ namespace FWO.Api.Data
         }
     }
 
-    public class RequestStateActionDataHelper
+    public class WfStateActionDataHelper
     {
         [JsonProperty("action"), JsonPropertyName("action")]
-        public RequestStateAction Action { get; set; } = new RequestStateAction();
+        public WfStateAction Action { get; set; } = new WfStateAction();
     }
 }

@@ -10,8 +10,8 @@
         @if (Display)
         {
             <div class="m-2 vheight75">
-                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestExtState" Items="allExtStates" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="RequestExtState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfExtState" Items="allExtStates" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="WfExtState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExtState(context)">
@@ -19,9 +19,9 @@
                             </div>
                         </Template>
                     </Column>
-                    <Column TableItem="RequestExtState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" />
-                    <Column TableItem="RequestExtState" Title="@(userConfig.GetText("external_state_name"))" Field="@(x => x.Name)" Sortable="true" Filterable="false" />
-                    <Column TableItem="RequestExtState" Title="@(userConfig.GetText("internal_state_name"))" Field="@(x => x.Name)" Sortable="true" Filterable="false" >
+                    <Column TableItem="WfExtState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" />
+                    <Column TableItem="WfExtState" Title="@(userConfig.GetText("external_state_name"))" Field="@(x => x.Name)" Sortable="true" Filterable="false" />
+                    <Column TableItem="WfExtState" Title="@(userConfig.GetText("internal_state_name"))" Field="@(x => x.Name)" Sortable="true" Filterable="false" >
                         <Template>
                             @(States.FirstOrDefault(x => x.Id == context.StateId)?.Name)
                         </Template>
@@ -42,7 +42,7 @@
         @if (SelectStateMode)
         {
             <div class="col-sm-9">
-                <Dropdown ElementType="RequestState" @bind-SelectedElement="selectedState" ElementToString="@(s => s.Name)" Elements="States" Nullable="true">
+                <Dropdown ElementType="WfState" @bind-SelectedElement="selectedState" ElementToString="@(s => s.Name)" Elements="States" Nullable="true">
                     <ElementTemplate Context="state">
                         @state.Name
                     </ElementTemplate>
@@ -77,14 +77,14 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public List<RequestState> States { get; set; } = [];
+    public List<WfState> States { get; set; } = [];
 
 
-    private List<RequestExtState> allExtStates = [];
-    private RequestExtState actExtState = new();
+    private List<WfExtState> allExtStates = [];
+    private WfExtState actExtState = new();
     private bool SelectStateMode = false;
-    private RequestState? incomingState;
-    private RequestState? selectedState;
+    private WfState? incomingState;
+    private WfState? selectedState;
 
 
     protected override async Task OnInitializedAsync()
@@ -96,7 +96,7 @@
     {
         try
         {
-            allExtStates = await apiConnection.SendQueryAsync<List<RequestExtState>>(RequestQueries.getExtStates);
+            allExtStates = await apiConnection.SendQueryAsync<List<WfExtState>>(RequestQueries.getExtStates);
             foreach(var extState in Enum.GetNames(typeof(ExtStates)))
             {
                 if(allExtStates.FirstOrDefault(x => x.Name == extState) == null)
@@ -112,7 +112,7 @@
         }
     }
 
-    private void EditExtState(RequestExtState extState)
+    private void EditExtState(WfExtState extState)
     {
         actExtState = extState;
         incomingState = States.FirstOrDefault(s => s.Id == extState.StateId);

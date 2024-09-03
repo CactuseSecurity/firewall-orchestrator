@@ -18,17 +18,17 @@
 
 @if(InitComplete)
 {
-    <ImplOptSelection SelectOwner="SelectOwner" SelectDevice="SelectDevice" Owners="Owners" ReqHandler="reqHandler" />
+    <ImplOptSelection SelectOwner="SelectOwner" SelectDevice="SelectDevice" Owners="Owners" WfHandler="wfHandler" />
 
     @if(DisplayTickets)
     {
-        <DisplayTicketTable Phase="WorkflowPhases.implementation" States="states" ReqHandler="reqHandler" 
+        <DisplayTicketTable Phase="WorkflowPhases.implementation" States="states" WfHandler="wfHandler" 
             ResetParent="Reset" StartImplPhase="StartImplementTask"/>
     }
     else
     {
-        <DisplayImplTaskTable Phase="WorkflowPhases.implementation" States="states" ReqHandler="reqHandler" 
-            ResetParent="Select" AllImplTasks="reqHandler.AllVisibleImplTasks" ImplTaskView="true" StartImplPhase="StartImplementTask"/>
+        <DisplayImplTaskTable Phase="WorkflowPhases.implementation" States="states" WfHandler="wfHandler" 
+            ResetParent="Select" AllImplTasks="wfHandler.AllVisibleImplTasks" ImplTaskView="true" StartImplPhase="StartImplementTask"/>
     }
 }
 else
@@ -49,8 +49,8 @@ else
     [Parameter]
     public string? TicketId { get; set; }
 
-    private RequestHandler reqHandler = new ();
-    private RequestStateDict states = new ();
+    private WfHandler wfHandler = new ();
+    private WfStateDict states = new ();
     private List<FwoOwner> Owners = new();
     private bool InitComplete = false;
 
@@ -70,14 +70,14 @@ else
             {
                 Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
             }
-            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.implementation){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.implementation){};
             await Reset();
             await HandleTicketId();
             await Select();
-            reqHandler.SetContinueEnv(ObjAction.implement);
-            if(reqHandler.ActTicket.Tasks.Count >= 1 && reqHandler.ActTicket.Tasks.First().ImplementationTasks.Count >= 1)
+            wfHandler.SetContinueEnv(ObjAction.implement);
+            if(wfHandler.ActTicket.Tasks.Count >= 1 && wfHandler.ActTicket.Tasks.First().ImplementationTasks.Count >= 1)
             {
-                await reqHandler.ContinueImplPhase(reqHandler.ActTicket.Tasks.First().ImplementationTasks.First());
+                await wfHandler.ContinueImplPhase(wfHandler.ActTicket.Tasks.First().ImplementationTasks.First());
             }
             InitComplete = true;
         }
@@ -91,7 +91,7 @@ else
     {
         if(long.TryParse(TicketId, out long ticketId))
         {
-            string newPhase = await reqHandler.HandleExtTicketId(WorkflowPhases.implementation, ticketId);
+            string newPhase = await wfHandler.HandleExtTicketId(WorkflowPhases.implementation, ticketId);
             if(newPhase != "")
             {
                 NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
@@ -116,7 +116,7 @@ else
         try
         {
             selectedOwnerOpt = newOwnerOpt;
-            DisplayTickets = reqHandler.SelectOwnerImplTasks(selectedOwnerOpt);
+            DisplayTickets = wfHandler.SelectOwnerImplTasks(selectedOwnerOpt);
             await Reset();
             StateHasChanged();
         }
@@ -131,7 +131,7 @@ else
         try
         {
             selectedDeviceOpt = newDeviceOpt;
-            DisplayTickets = reqHandler.SelectDeviceImplTasks(selectedDeviceOpt);
+            DisplayTickets = wfHandler.SelectDeviceImplTasks(selectedDeviceOpt);
             await Reset();
             StateHasChanged();
         }
@@ -145,8 +145,8 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Implementer) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await reqHandler.Init(Owners.ConvertAll(x => x.Id));
+            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Implementer) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            await wfHandler.Init(Owners.ConvertAll(x => x.Id));
         }
         catch (Exception exception)
         {
@@ -154,13 +154,13 @@ else
         }
     }
     
-    private async Task StartImplementTask(RequestImplTask implTask)
+    private async Task StartImplementTask(WfImplTask implTask)
     {
         try
         {
             implTask.Start = DateTime.Now;
             implTask.Stop = null;
-            await reqHandler.StartWorkOnImplTask(implTask, ObjAction.implement);
+            await wfHandler.StartWorkOnImplTask(implTask, ObjAction.implement);
         }
         catch (Exception exception)
         {

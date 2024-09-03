@@ -389,7 +389,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
-            if(ReportType == ReportType.UnusedRules) // || ReportType == ReportType.AppRules)
+            if(ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
             {
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
@@ -446,7 +446,7 @@ namespace FWO.Report
                             report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                             report.AppendLine("</tr>");
                         }
-                        else
+                        if(ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
                         {
                             report.AppendLine("<tr>");
                             report.AppendLine($"<td class=\"bg-gray\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");

@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public enum RequestObjectScopes
+    public enum WfObjectScopes
     {
         None = 0,
         Ticket = 1,
@@ -12,7 +12,7 @@ namespace FWO.Api.Data
         Approval = 4
     }
 
-    public class RequestStatefulObject
+    public class WfStatefulObject
     {
         [JsonProperty("state_id"), JsonPropertyName("state_id")]
         public int StateId 
@@ -71,10 +71,10 @@ namespace FWO.Api.Data
             stateChanged = false;
         }
 
-        public RequestStatefulObject()
+        public WfStatefulObject()
         { }
 
-        public RequestStatefulObject(RequestStatefulObject obj)
+        public WfStatefulObject(WfStatefulObject obj)
         {
             stateId = obj.stateId;
             oldStateId = obj.oldStateId;

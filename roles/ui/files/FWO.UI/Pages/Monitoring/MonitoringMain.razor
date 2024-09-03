@@ -92,48 +92,55 @@
     }
 </AuthorizeView>
 
-<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
-<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await Refresh();}"/>
-<ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await Refresh();}"/>
+<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await RefreshAlerts();}"/>
+<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await RefreshAlerts();}"/>
+<ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await RefreshAlerts();}"/>
 <ConfirmDelete @bind-Display="RemoveSampleDataMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@userConfig.GetText("U7003")"/>
 <InProgress Display="workInProgress"/>
 
 @code
 {
     [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<Alert> alertEntrys = new List<Alert>();
-    private List<ActionItem> actActions = new List<ActionItem>();
-    private List<Management> managements = new List<Management>();
+    private List<Alert> alertEntrys = [];
+    private List<ActionItem> actActions = [];
+    private List<Management> managements = [];
     private bool AutoDiscoverMode = false;
     private int actMgmtId = 0;
     private ImportControl[]? LastIncompleteImport { get; set; }
     private bool RollbackMode = false;
-    private ImportStatus actStatus = new ImportStatus();
+    private ImportStatus actStatus = new();
     private bool DetailsMode = false;
     private bool RemoveSampleDataMode = false;
-    private Alert actAlert = new Alert();
+    private Alert actAlert = new();
     private bool workInProgress = false;
     private bool InitComplete = false;
+    private int deletedSampleManagements;
+    private int deletedSampleCredentials;
+    private int deletedSampleUsers;
+    private int deletedSampleTenants;
+    private int deletedSampleGroups;
+    private int deletedSampleOwners;
  
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-            jwt.Validate();
-            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin) || jwt.ContainsAllowedRole(Roles.Auditor))
+            if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin))
             {
-                if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                {
-                    managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
-                }
-                else
-                {
-                    managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
-                }
-                await Refresh();
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin]);
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
+                await RefreshAlerts();
+            }
+            else if(authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+            {
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Auditor]);
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+                await RefreshAlerts();
             }
             InitComplete = true;
         }
@@ -143,7 +150,7 @@
         }
     }
 
-    private async Task Refresh()
+    private async Task RefreshAlerts()
     {
         try
         {
@@ -227,131 +234,16 @@
             RemoveSampleDataMode = false;
             workInProgress = true;
 
-            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-            jwt.Validate();
-
-            List<Management> managements = new List<Management>();
-            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
-            else
-                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
-
-            int deletedSampleManagements = 0;
-            foreach (var management in managements)
-            {
-                if (management.Name.EndsWith("_demo"))
-                {
-                    if (await DeleteManagement(management))
-                    {
-                        deletedSampleManagements++;
-                    }
-                }
-            }
-
-            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
-            int deletedSampleCredentials = 0;
-            foreach (var credential in credentials)
-            {
-                if (credential.Name.EndsWith("_demo"))
-                {
-                    if (await DeleteCredential(credential))
-                    {
-                        deletedSampleCredentials++;
-                    }
-                }
-            }
-
-            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
-            int deletedSampleUsers = 0;
-            foreach (var user in users)
-            {
-                if (user.Name.EndsWith("_demo"))
-                {
-                    if (await DeleteUser(user))
-                    {
-                        deletedSampleUsers++;
-                    }
-                }
-            }
-
-            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
-            int deletedSampleTenants = 0;
-            foreach (var tenant in tenants)
-            {
-                if (tenant.Name.EndsWith("_demo"))
-                {
-                    if (await DeleteTenant(tenant))
-                    {
-                        deletedSampleTenants++;
-                    }
-                }
-            }
-
-            int deletedSampleGroups = 0;
-            RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerResponse.StatusCode == HttpStatusCode.OK && middlewareServerResponse.Data != null)
-            {
-                foreach (var ldapUserGroup in middlewareServerResponse.Data)
-                {
-                    string groupName = (new DistName(ldapUserGroup.GroupDn)).Group;
-                    if (groupName.EndsWith("_demo"))
-                    {
-                        if (await DeleteGroup(groupName))
-                        {
-                            deletedSampleGroups++;
-                        }
-                    }
-                }
-            }
-
-            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-            int deletedSampleOwners = 0;
-            foreach (var owner in owners)
-            {
-                if (owner.Name.EndsWith("_demo"))
-                {
-                    if (await DeleteOwner(owner))
-                    {
-                        deletedSampleOwners++;
-                    }
-                }
-            }
+            await DeleteManagements();
+            await DeleteCredentials();
+            await DeleteUsers();
+            await DeleteTenants();
+            await DeleteGroups();
+            await DeleteOwners();
 
             await Acknowledge(actAlert);
-
-            string text = "";
-            if(deletedSampleManagements > 0)
-            {
-                text += $"{deletedSampleManagements} " + userConfig.GetText("managements");
-            }
-            if(deletedSampleCredentials > 0)
-            {
-                text += $"{deletedSampleCredentials} " + userConfig.GetText("credentials");
-            }
-            if(deletedSampleUsers > 0)
-            {
-                text += $" {deletedSampleUsers} " + userConfig.GetText("users");
-            }
-            if(deletedSampleTenants > 0)
-            {
-                text += $" {deletedSampleTenants} " + userConfig.GetText("tenants");
-            }
-            if(deletedSampleGroups > 0)
-            {
-                text += $" {deletedSampleGroups} " + userConfig.GetText("groups");
-            }
-            if(deletedSampleOwners > 0)
-            {
-                text += $" {deletedSampleOwners} " + userConfig.GetText("owners");
-            }
-
-            if(text == "")
-            {
-                text += userConfig.GetText("nothing");
-            }
-            text += " " + userConfig.GetText("deleted");
+            DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), ConstructMessage(), false);
             workInProgress = false;
-            DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), text, false);
         }
         catch (Exception exception)
         {
@@ -360,6 +252,33 @@
         }
     }
     
+    private async Task DeleteManagements()
+    {
+        // Todo: refresh necessary?
+        if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin))
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin]);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
+        }
+        else if(authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Auditor]);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+        }
+
+        deletedSampleManagements = 0;
+        foreach (var management in managements)
+        {
+            if (management.Name.EndsWith("_demo"))
+            {
+                if (await DeleteManagement(management))
+                {
+                    deletedSampleManagements++;
+                }
+            }
+        }
+    }
+
     private async Task<bool> DeleteManagement(Management management)
     {
         try
@@ -378,6 +297,22 @@
         return false;
     }
 
+    private async Task DeleteCredentials()
+    {
+        List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+        deletedSampleCredentials = 0;
+        foreach (var credential in credentials)
+        {
+            if (credential.Name.EndsWith("_demo"))
+            {
+                if (await DeleteCredential(credential))
+                {
+                    deletedSampleCredentials++;
+                }
+            }
+        }
+    }
+
     private async Task<bool> DeleteCredential(ImportCredential credential)
     {
         try
@@ -394,6 +329,22 @@
             DisplayMessageInUi(exception, userConfig.GetText("delete_credential"), "", true);
         }
         return false;
+    }
+
+    private async Task DeleteUsers()
+    {
+        List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
+        deletedSampleUsers = 0;
+        foreach (var user in users)
+        {
+            if (user.Name.EndsWith("_demo"))
+            {
+                if (await DeleteUser(user))
+                {
+                    deletedSampleUsers++;
+                }
+            }
+        }
     }
 
     private async Task<bool> DeleteUser(UiUser user)
@@ -422,6 +373,22 @@
         return false;
     }
 
+    private async Task DeleteTenants()
+    {
+        List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
+        deletedSampleTenants = 0;
+        foreach (var tenant in tenants)
+        {
+            if (tenant.Name.EndsWith("_demo"))
+            {
+                if (await DeleteTenant(tenant))
+                {
+                    deletedSampleTenants++;
+                }
+            }
+        }
+    }
+
     private async Task<bool> DeleteTenant(Tenant tenant)
     {
         try
@@ -442,6 +409,26 @@
             DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), "", true);
         }
         return false;
+    }
+
+    private async Task DeleteGroups()
+    {
+        deletedSampleGroups = 0;
+        RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
+        if (middlewareServerResponse.StatusCode == HttpStatusCode.OK && middlewareServerResponse.Data != null)
+        {
+            foreach (var ldapUserGroup in middlewareServerResponse.Data)
+            {
+                string groupName = (new DistName(ldapUserGroup.GroupDn)).Group;
+                if (groupName.EndsWith("_demo"))
+                {
+                    if (await DeleteGroup(groupName))
+                    {
+                        deletedSampleGroups++;
+                    }
+                }
+            }
+        }
     }
 
     private async Task<bool> DeleteGroup(string groupName)
@@ -466,6 +453,22 @@
         return false;
     }
 
+    private async Task DeleteOwners()
+    {
+        List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+        deletedSampleOwners = 0;
+        foreach (var owner in owners)
+        {
+            if (owner.Name.EndsWith("_demo"))
+            {
+                if (await DeleteOwner(owner))
+                {
+                    deletedSampleOwners++;
+                }
+            }
+        }
+    }
+
     private async Task<bool> DeleteOwner(FwoOwner owner)
     {
         try
@@ -482,6 +485,42 @@
             DisplayMessageInUi(exception, userConfig.GetText("delete_owner"), "", true);
         }
         return false;
+    }
+
+    private string ConstructMessage()
+    {
+        string text = "";
+        if(deletedSampleManagements > 0)
+        {
+            text += $"{deletedSampleManagements} " + userConfig.GetText("managements");
+        }
+        if(deletedSampleCredentials > 0)
+        {
+            text += $"{deletedSampleCredentials} " + userConfig.GetText("credentials");
+        }
+        if(deletedSampleUsers > 0)
+        {
+            text += $" {deletedSampleUsers} " + userConfig.GetText("users");
+        }
+        if(deletedSampleTenants > 0)
+        {
+            text += $" {deletedSampleTenants} " + userConfig.GetText("tenants");
+        }
+        if(deletedSampleGroups > 0)
+        {
+            text += $" {deletedSampleGroups} " + userConfig.GetText("groups");
+        }
+        if(deletedSampleOwners > 0)
+        {
+            text += $" {deletedSampleOwners} " + userConfig.GetText("owners");
+        }
+
+        if(text == "")
+        {
+            text += userConfig.GetText("nothing");
+        }
+        text += " " + userConfig.GetText("deleted");
+        return text;
     }
 
     private void Cancel()

@@ -46,7 +46,7 @@
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public RequestReqTask ReqTask { get; set; } = new ();
+    public WfReqTask ReqTask { get; set; } = new ();
 
     private List<Device> deviceList = new ();
 

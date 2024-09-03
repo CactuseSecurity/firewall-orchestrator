@@ -239,12 +239,12 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestState> states = [];
+    private List<WfState> states = [];
     private List<int> stateIds = [];
     private Dictionary<int,string> stateNames = [];
     private List<int> actToStateIds = [];
-    private List<RequestState> availableStates = [];
-    private RequestStateDict statesDict = new ();
+    private List<WfState> availableStates = [];
+    private WfStateDict statesDict = new ();
 
     private GlobalStateMatrix actStateMatrix = new ();
 
@@ -272,7 +272,7 @@ else
     {
         try
         {
-            states = await apiConnection.SendQueryAsync<List<RequestState>>(RequestQueries.getStates);
+            states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             foreach(var state in states)
             {
                 stateIds.Add(state.Id);

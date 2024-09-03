@@ -144,7 +144,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5438"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketPriority")):</label>
             <div class="col-sm-4">
-                <Dropdown ElementType="RequestPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="PrioList">
+                <Dropdown ElementType="WfPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="PrioList">
                     <ElementTemplate Context="prio">
                         @prio.Name
                     </ElementTemplate>
@@ -154,7 +154,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5439"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleInitState")):</label>
             <div class="col-sm-4">
-                <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
+                <Dropdown ElementType="WfState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
                     <ElementTemplate Context="state">
                         @state.Name
                     </ElementTemplate>
@@ -226,12 +226,12 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private List<RequestPriority> PrioList = new List<RequestPriority>();
+    private List<WfPriority> PrioList = new List<WfPriority>();
     private RecertCheckParams recCheckParams = new RecertCheckParams();
-    private List<RequestState> states = new List<RequestState>();
+    private List<WfState> states = new List<WfState>();
     private DayOfWeek? selectedDayOfWeek;
-    private RequestPriority? selectedPriority;
-    private RequestState? selectedState;
+    private WfPriority? selectedPriority;
+    private WfState? selectedState;
     private bool recertCalcInProgress = false;
     private RecertRefresh recertRefresh;
 
@@ -241,9 +241,9 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             recertRefresh = new RecertRefresh(apiConnection);
-            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
             recCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(userConfig.RecCheckParams) ?? throw new Exception("Config data could not be parsed.");
-            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            states = await apiConnection.SendQueryAsync<List<WfState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
             selectedDayOfWeek = (DayOfWeek?)recCheckParams.RecertCheckWeekday;
             selectedPriority = PrioList.FirstOrDefault(p => p.NumPrio == configData.RecDeleteRuleTicketPriority);
             selectedState = states.FirstOrDefault(s => s.Id == configData.RecDeleteRuleInitState);

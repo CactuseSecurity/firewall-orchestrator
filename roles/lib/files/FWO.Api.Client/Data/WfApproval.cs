@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestApproval : RequestApprovalBase
+    public class WfApproval : WfApprovalBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -12,13 +12,13 @@ namespace FWO.Api.Data
         public long TaskId { get; set; }
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<RequestCommentDataHelper> Comments { get; set; } = new ();
+        public List<WfCommentDataHelper> Comments { get; set; } = new ();
 
 
-        public RequestApproval()
+        public WfApproval()
         { }
 
-        public RequestApproval(RequestApproval approval) : base(approval)
+        public WfApproval(WfApproval approval) : base(approval)
         {
             Id = approval.Id;
             TaskId = approval.TaskId;

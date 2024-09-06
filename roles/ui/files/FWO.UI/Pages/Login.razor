@@ -20,14 +20,16 @@
 @inject CircuitHandler circuitHandler
 
 @if (showLoginForm)
-{
-    <div class="center-div">
-        <div>
-            <br><br>
-            <img src="images/FWO_logo.png">
-            <br><br>
-            @* <h2 class="text-center"> @(userConfig.GetText("login")) </h2> *@
-            <div class="shadow-sm card p-3" style="width: 250px;">
+{    
+    <div class="row text-center">
+        <div class="col">
+
+        </div>
+        <div class="col">
+        <img src="images/FWO_logo.png">
+        <br><br>            
+        @* <h2 class="text-center"> @(userConfig.GetText("login")) </h2> *@
+            <div class="shadow-sm card p-3">
                 <form class="d-flex flex-column">
                     <div class="form-group">
                         <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput" @ref="usernameInput">
@@ -48,10 +50,25 @@
                     {
                         <label class="m-2">@errorMessage</label>
                     }
-                </form>
+                </form>  
+            </div>
+        </div> 
+        <div class="col"></div>       
+    </div>
+    @if(ShowLoginNotificationMessage)
+    {
+        <div class="row mt-4">            
+            <div class="col">
+            </div>
+            <div class="col">
+                <div class="alert alert-primary" role="alert">
+                    <span>@LoginNotificationMessage</span>
+                </div>
+            </div>
+            <div class="col">
             </div>
         </div>
-    </div>
+    }  
 }
 
 @if (showPasswordChangeForm)
@@ -106,6 +123,9 @@
     private string newPassword1 = "";
     private string newPassword2 = "";
     private string chgPwErrorMessage = "";
+
+    private string? LoginNotificationMessage { get; set; } = "Hier könnte ihr Nachricht stehen!";
+    private bool ShowLoginNotificationMessage { get; set; } = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

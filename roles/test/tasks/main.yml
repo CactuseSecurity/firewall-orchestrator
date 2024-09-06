@@ -63,7 +63,7 @@
 
 - name: auth testing
   import_tasks: test-auth.yml
-  when: "'middlewareserver' in group_names and not run_on_github|bool"
+  when: "'middlewareserver' in group_names"
 
 - name: api testing
   import_tasks: test-api.yml

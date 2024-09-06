@@ -1,74 +1,130 @@
-  - block: 
+- name: uninstall product
+  include_tasks: uninstall.yml
+  when: "installation_mode == 'uninstall'"
 
-    - name: assert ansible version gt 2.13
-      fail:
-        msg: Ansible 2.13 or above is required
-      when: ansible_version.full is version('2.13', '<')
+# only when not uninstalling ...
+- block:
 
+  # check installation mode
+  - name: assert ansible version gt 2.12
+    fail:
+      msg: Ansible 2.13 or above is required
+    when: ansible_version.full is version('2.13', '<')
 
-    - name: check for existing main config file {{ fworch_conf_file }}
-      stat:
-        path: "{{ fworch_conf_file }}"
-      register: already_installed
+  - name: check for existing main config file {{ fworch_conf_file }}
+    stat:
+      path: "{{ fworch_conf_file }}"
+    register: already_installed
 
-    - set_fact:
-        already_installed: "{{ already_installed.stat.exists }}"
-    
-    - debug:
-        msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
-    
-    - name: fail if unknown installation_mode is set
-      fail:
-        msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
-      when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
+  - set_fact:
+      already_installed: "{{ already_installed.stat.exists }}"
+  
+  - debug:
+      msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
+  
+  - name: fail if unknown installation_mode is set
+    fail:
+      msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
+    when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
 
-    - name: fail if already installed and installation_mode is new
-      fail:
-        msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
-      when: already_installed|bool and installation_mode == "new"
+  - name: fail if already installed and installation_mode is new
+    fail:
+      msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
+    when: already_installed|bool and installation_mode == "new"
 
-    - name: fail if not already installed and installation_mode is upgrade
-      fail:
-        msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
-      when: not already_installed and installation_mode == "upgrade"
+  - name: fail if not already installed and installation_mode is upgrade
+    fail:
+      msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
+    when: not already_installed and installation_mode == "upgrade"
 
 
     # when upgrading check if we are not attempting a downgrade
-    - block:
-      - name: fetch remote config file
-        fetch:
-          src: "{{ fworch_conf_file }}"
-          dest: "temp_remote_config_file.json"
-          flat: true
+  - block:
+    
+    - name: fetch remote config file
+      fetch:
+        src: "{{ fworch_conf_file }}"
+        dest: "temp_remote_config_file.json"
+        flat: true
 
-      - name: read config file of currently installed product
-        include_vars: 
-          file: "temp_remote_config_file.json"
-          name: config
-        
-      - name: get version of currently installed product
-        set_fact: 
-          old_version: "{{ config.product_version }}"
+    - name: read config file of currently installed product
+      include_vars: 
+        file: "temp_remote_config_file.json"
+        name: config
       
-      - name: abort in case of downgrade
-        fail:
-          msg: "your are attempting to downgrade the product from {{ old_version }} to {{ product_version }}, which is not supported"
-        when: old_version>product_version
+    - name: get version of currently installed product
+      set_fact: 
+        old_version: "{{ config.product_version }}"
+    
+    - name: abort in case of downgrade
+      fail:
+        msg: "your are attempting to downgrade the product from {{ old_version }} to {{ product_version }}, which is not supported"
+      when: old_version>product_version
 
-      when: already_installed and installation_mode == "upgrade"
+    when: already_installed and installation_mode == "upgrade"
+
+  - name: create group {{ fworch_group }}
+    group:
+      name: "{{ fworch_user }}"
+      gid: "{{ user_id }}"
+      state: present
+    become: true
+    
+  - name: add user {{ fworch_user }}
+    user:
+      name: "{{ fworch_user }}"
+      comment: "{{ product_name }} User"
+      uid: "{{ user_id }}"
+      home: "{{ fworch_home }}"
+      shell: /bin/bash
+      group: "{{ fworch_group }}"
+      generate_ssh_key: true
+      ssh_key_bits: 4096
+      ssh_key_file: .ssh/id_rsa
+    become: true
+
+  - name: replace fwo web sites with maintenance site
+    include_tasks: maintenance-site.yml
+    when: "installation_mode == 'upgrade' and inventory_hostname in groups['frontends']"
+
+  - name: stop importer service before making any changes
+    systemd:
+      name: "{{ item }}"
+      state: stopped
+    become: true
+    when: "inventory_hostname in groups['importers'] and installation_mode == 'upgrade'"
+    loop:
+      - "{{ product_name }}-importer-legacy"
+      - "{{ product_name }}-importer-api"
+
+  - name: stop importer service before making any changes
+    systemd:
+      name: "{{ item }}"
+      state: stopped
+    become: true
+    ignore_errors: true # might not have been installed yet in case of early fail installs
+    when: "inventory_hostname in groups['importers'] and installation_mode == 'uninstall'"
+    loop:
+      - "{{ product_name }}-importer-legacy"
+      - "{{ product_name }}-importer-api"
 
 
-    - name: update operating system package cache .deb based
-      apt:
-        update_cache: true
-      when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+  - name: update operating system package cache .deb based
+    apt:
+      update_cache: true
+    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
 
-    - name: check for existing upgradable packages
-      command: apt list --upgradable
-      register: upgradable_packages
-      when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+  - name: check for existing upgradable packages
+    command: apt list --upgradable
+    register: upgradable_packages
+    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+
+  - block:
+    - debug:
+        msg: "current number of upgradable packages: {{ upgradable_packages.stdout_lines|length-1 }}"
 
     - block:
+<<<<<<< HEAD
       - debug:
           msg: "current number of upgradable packages: {{ upgradable_packages.stdout_lines|length-1 }}"
 
@@ -240,6 +296,155 @@
     - name: include upgrade script
       import_tasks: run-upgrades.yml
       when: "installation_mode == 'upgrade'"
+=======
+        - name: disable apache2 maintenance web site
+          command: "a2dissite {{ product_name }}-maintenance"
+          ignore_errors: true
 
+        - name: enable {{ product_name }} web site
+          command: "a2ensite {{ product_name }}-ui"
+          ignore_errors: true
+
+        - name: restart apache without maintenance site
+          service:
+            name: "{{ webserver_package_name }}"
+            state: restarted  
+      when: installation_mode == "upgrade"    
+
+    - name: assert there are no upgradable packages. upgrades must be run interactively outside the FWORCH installer
+      fail:
+        msg:
+          - There are upgradable OS packages available, please run OS upgrade before running FWORCH installer. 
+          - Use "-e force_install=true" to overwrite this check and install anyway at your own risk.
+    when: |
+      not force_install|bool and
+      (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian") and
+      upgradable_packages.stdout_lines|length > 1
+
+  - name: update operating system packages .rpm based (untested)
+    yum:
+      upgrade: dist
+    when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
+
+  - name: install packages rsync, acl (for non-root user in ansible)
+    package:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - rsync
+      - acl
+
+  - name: create var lock directory
+    file:
+      path: "{{ fworch_log_lock_dir }}"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0775"
+
+  - name: install rsyslog
+    import_tasks: install_syslog.yml
+    when: "install_syslog | bool"
+
+  - name: create base {{ fworch_home }} directory
+    file:
+      path: "{{ fworch_home }}"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0775"
+
+  - name: copy fworch scripts directory
+    copy:
+      src: scripts
+      dest: "{{ fworch_home }}"
+      mode: "0755"
+      owner: "{{ fworch_user}}"
+      group: "{{ fworch_user}}"
     become: true
-    
+>>>>>>> 7db2fffdd628cb5c3b311f3eb83068fa4c37034a
+
+  - name: add proxy setting to fworch users .profile and .bashrc
+    blockinfile:
+      path: "{{ fworch_home }}/{{ item }}"
+      create: true
+      mode: "0644"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      block: |
+        http_proxy={{ http_proxy }}
+        https_proxy={{ http_proxy }}
+    loop:
+      - .bashrc
+      - .profile
+
+  - name: create etc dir
+    file:
+      path: "{{ fworch_home }}/etc"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: '0755'
+
+  - name: create dir for passwords
+    file:
+      path: "{{ fworch_home }}/etc/secrets"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+      # group: "{{ postgres_group }}" # group does not exist yet during install, created in role database
+      mode: '0750'
+    when: "installation_mode == 'new'"
+
+  - name: generate main key
+    set_fact:
+      main_key: "{{ randomly_generated_pwd }}"  # 32 bytes
+      main_key_file: "{{ fworch_secrets_dir }}/main_key"
+    when: testkeys is not defined or testkeys|bool is false
+
+  - name: set static main key for test purposes only
+    set_fact:
+      main_key: "{{ api_hasura_admin_test_password }}..{{ api_hasura_admin_test_password }}.." # to have 32 bytes
+      main_key_file: "{{ fworch_secrets_dir }}/main_key"
+    when: testkeys is defined and testkeys|bool
+
+  - name: Check if main key file exists
+    stat:
+      path: "{{ main_key_file }}"
+    register: stat_result
+
+  - name: write main key to secrets directory
+    copy:
+      content: "{{ main_key }}\n"
+      dest: "{{ main_key_file }}"
+      mode: '0640'
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+    become: true
+    when: not stat_result.stat.exists
+
+  - set_fact:
+      wsgi_package_name: "{{ wsgi_package_name }}-py3"
+    when: | 
+      (ansible_facts['distribution_release']|lower == debian_testing_release_name)
+      or 
+      (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version']|int is version('10', '>'))
+      or 
+      (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))
+
+  - name: copy iso.conf to target for legacy importer support only
+    template:
+      src: iso.conf.j2
+      dest: "{{ fworch_home }}/etc/iso.conf"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+
+  - name: include fworch.yaml config file creator
+    import_tasks: conf_file_creator.yml
+
+  - name: include upgrade script
+    import_tasks: run-upgrades.yml
+    when: "installation_mode == 'upgrade'"
+
+  become: true
+  when: "installation_mode != 'uninstall'"

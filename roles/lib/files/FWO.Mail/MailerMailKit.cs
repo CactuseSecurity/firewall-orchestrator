@@ -4,6 +4,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using Microsoft.AspNetCore.Http;
+using FWO.Encryption;
 
 namespace FWO.Mail
 {
@@ -199,7 +200,17 @@ namespace FWO.Mail
                 }
                 if (emailConn.User != null && emailConn.User != "")
                 {
-                    await smtp.AuthenticateAsync(emailConn.User, emailConn.Password, ct);
+                    string mainKey = AesEnc.GetMainKey();
+                    string decryptedSecret = emailConn.Password;
+                    try
+                    {
+                        decryptedSecret = AesEnc.Decrypt(emailConn.Password, mainKey);
+                    }
+                    catch (Exception)
+                    {
+                    }
+
+                    await smtp.AuthenticateAsync(emailConn.User, decryptedSecret, ct);
                 }
                 await smtp.SendAsync(mail, ct);
                 await smtp.DisconnectAsync(true, ct);

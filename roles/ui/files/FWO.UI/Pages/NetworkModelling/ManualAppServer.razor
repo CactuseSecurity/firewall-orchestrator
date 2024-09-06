@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api
 @using FWO.Ui.Display
+@using System.Text.Json
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -40,10 +41,15 @@
                             @((MarkupString)context.DisplayHtml())
                         </Template>
                     </Column>
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("type"))" Field="@(x => x.CustomType)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(appServerTypes.FirstOrDefault(a => a.Id == context.CustomType)?.Name)
+                        </Template>
+                    </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(GlobalConfig.ShowBool(context.InUse))
+                            @(GlobalFunc.ShowBool(context.InUse))
                         </Template>
                     </Column>
                     <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -55,7 +61,7 @@
         <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
     </Footer>
 </PopUp>
-<EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" AppServerHandler="appServerListHandler.AppServerHandler" AddMode="appServerListHandler.AddAppServerMode"/>
+<EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" @bind-AppServerHandler="appServerListHandler.AppServerHandler"/>
 <ConfirmDelete @bind-Display="appServerListHandler.DeleteAppServerMode" PerformAction="async () => {await appServerListHandler.DeleteAppServer(); StateHasChanged();}"
     Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message"/>
 <Confirm @bind-Display="appServerListHandler.ReactivateAppServerMode" PerformAction="async () => {await appServerListHandler.ReactivateAppServer(); StateHasChanged();}"
@@ -78,15 +84,20 @@
     public FwoOwner Application { get; set; } = new();
 
     private ModellingAppServerListHandler? appServerListHandler;
+    private List<AppServerType> appServerTypes = new();
     private bool workInProgress = false;
     private bool firstTry = true;
 
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {
             appServerListHandler = new ModellingAppServerListHandler(apiConnection, userConfig, DisplayMessageInUi);
+            if(userConfig.ModAppServerTypes != "")
+            {
+                appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
+            }
         }
         catch (Exception exception)
         {
@@ -96,7 +107,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Display && firstTry)
+        if (Display && firstTry && appServerListHandler != null)
         {
             workInProgress = true;
             await appServerListHandler.Init(Application);

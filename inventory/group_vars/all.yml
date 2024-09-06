@@ -1,5 +1,5 @@
 ### general settings
-product_version: "8.0.3"
+product_version: "8.3.1"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -22,7 +22,6 @@ sample_hostname: "{{ groups['sampleserver'].0 }}"
 #   upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api
 installation_mode: new
 install_syslog: true
-run_on_github: false
 add_demo_data: true
 api_docu: false
 force_install: false
@@ -109,7 +108,7 @@ importer_password_file_on_installer: etc/importer.pwd
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
-dotnet_version: "6.0"
+dotnet_version: "8.0"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
 debug_level: "1"

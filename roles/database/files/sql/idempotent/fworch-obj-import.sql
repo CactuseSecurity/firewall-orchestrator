@@ -159,7 +159,7 @@ BEGIN
 
 	-- make sure we are only dealing with ranges - starting from FWORCH v7.3
 	IF NOT is_single_ip(to_import.obj_ip) OR to_import.obj_ip_end IS NULL THEN
-		to_import.obj_ip_end := get_last_ip_of_cidr(to_import.obj_ip); -- order is important here: end before start!
+		to_import.obj_ip_end := get_last_ip_of_cidr(to_import.obj_ip); -- order is important here: end before start, because of constraints
 		to_import.obj_ip := get_first_ip_of_cidr(to_import.obj_ip);
 	END IF;
 	-- assuming that if obj_ip_end is set, we already have a range
@@ -199,6 +199,7 @@ BEGIN
 	IF (b_change OR b_insert) THEN
 		PERFORM error_handling(v_change_id, to_import.obj_name);
 		i_admin_id := get_admin_id_from_name(to_import.last_change_admin);
+
 	    INSERT INTO object
     	   (mgm_id,obj_name,obj_ip,obj_ip_end,zone_id,obj_typ_id,obj_comment,obj_member_names,obj_member_refs,obj_location,
     	   	obj_color_id,obj_uid,last_change_admin,obj_last_seen,obj_create)

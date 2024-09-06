@@ -193,3 +193,32 @@ bugfix release:
 - add custom (user-defined) fields to import
   - cp only so far, other fw types missing
   - user-defined fields are not part of reports yet
+
+# 8.1.1 - 15.04.2024 DEVELOP
+- interface request workflow first version
+
+# 8.1.2 - 22.04.2024 DEVELOP
+- encrypt emailPassword in config
+- fix demo managements (change import from deactivated to activated - does not affect test managements)
+- upgrade to dotnet 8.0
+- adding all imported modelling users to uiuser
+
+# 8.2.1 - 03.05.2024 DEVELOP
+- fix misleading login error message when authorisation is missing
+
+# 8.2.2 - 14.05.2024 DEVELOP
+- fix email credential decryption
+- start of Tufin SecureChange integration
+
+# 8.2.3 - 26.05.2024 DEVELOP
+- remove cascading delete for used interfaces 
+- new properties field in connections
+
+# 8.2.4 - 19.06.2024 DEVELOP
+- owner-filtering for new report type
+- new setting for email recipients
+
+# 8.3.1 - 08.07.2024 DEVELOP
+- workflow: external state handling
+- fix config value
+- remove uniqueness of owner names

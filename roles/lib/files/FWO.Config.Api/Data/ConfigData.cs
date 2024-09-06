@@ -7,267 +7,312 @@ using FWO.Mail;
 
 namespace FWO.Config.Api.Data
 {
-    [AttributeUsage(AttributeTargets.Property)]
-    public class UserConfigDataAttribute : Attribute { }
+	[AttributeUsage(AttributeTargets.Property)]
+	public class UserConfigDataAttribute : Attribute { }
 
-    public class ConfigData : ICloneable
-    {
-        public readonly bool Editable;
+	public class ConfigData : ICloneable
+	{
+		public readonly bool Editable;
 
-        [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
-        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;
+		[JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
+		public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;
 
-        [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout")]
-        public int SessionTimeout { get; set; } = 720;
+		[JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout")]
+		public int SessionTimeout { get; set; } = 720;
 
-        [JsonProperty("sessionTimeoutNoticePeriod"), JsonPropertyName("sessionTimeoutNoticePeriod")]
-        public int SessionTimeoutNoticePeriod { get; set; } = 60;
+		[JsonProperty("sessionTimeoutNoticePeriod"), JsonPropertyName("sessionTimeoutNoticePeriod")]
+		public int SessionTimeoutNoticePeriod { get; set; } = 60;
 
-        //        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
-        //        public int MaxMessages { get; set; } = 3;
+		[JsonProperty("uiHostName"), JsonPropertyName("uiHostName")]
+		public string UiHostName { get; set; } = "http://localhost:5000";
 
-        [JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
-        public int ElementsPerFetch { get; set; } = 100;
+		//        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
+		//        public int MaxMessages { get; set; } = 3;
 
-        [JsonProperty("maxInitialFetchesRightSidebar"), JsonPropertyName("maxInitialFetchesRightSidebar")]
-        public int MaxInitialFetchesRightSidebar { get; set; } = 10;
+		[JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
+		public int ElementsPerFetch { get; set; } = 100;
 
-        [JsonProperty("autoFillRightSidebar"), JsonPropertyName("autoFillRightSidebar")]
-        public bool AutoFillRightSidebar { get; set; } = false;
+		[JsonProperty("maxInitialFetchesRightSidebar"), JsonPropertyName("maxInitialFetchesRightSidebar")]
+		public int MaxInitialFetchesRightSidebar { get; set; } = 10;
 
-        [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance")]
-        public int UnusedTolerance { get; set; } = 400;
+		[JsonProperty("autoFillRightSidebar"), JsonPropertyName("autoFillRightSidebar")]
+		public bool AutoFillRightSidebar { get; set; } = false;
 
-        [JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance")]
-        public int CreationTolerance { get; set; } = 90;
+		[JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance")]
+		public int UnusedTolerance { get; set; } = 400;
 
-        [JsonProperty("dataRetentionTime"), JsonPropertyName("dataRetentionTime")]
-        public int DataRetentionTime { get; set; } = 731;
+		[JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance")]
+		public int CreationTolerance { get; set; } = 90;
 
-        [JsonProperty("importSleepTime"), JsonPropertyName("importSleepTime")]
-        public int ImportSleepTime { get; set; } = 40;
+		[JsonProperty("dataRetentionTime"), JsonPropertyName("dataRetentionTime")]
+		public int DataRetentionTime { get; set; } = 731;
 
-        [JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
-        public bool ImportCheckCertificates { get; set; } = false;
+		[JsonProperty("importSleepTime"), JsonPropertyName("importSleepTime")]
+		public int ImportSleepTime { get; set; } = 40;
 
-        [JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
-        public bool ImportSuppressCertificateWarnings { get; set; } = true;
+		[JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
+		public bool ImportCheckCertificates { get; set; } = false;
 
-        [JsonProperty("autoDiscoverSleepTime"), JsonPropertyName("autoDiscoverSleepTime")]
-        public int AutoDiscoverSleepTime { get; set; } = 24;
+		[JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
+		public bool ImportSuppressCertificateWarnings { get; set; } = true;
 
-        [JsonProperty("autoDiscoverStartAt"), JsonPropertyName("autoDiscoverStartAt")]
-        public DateTime AutoDiscoverStartAt { get; set; } = new DateTime();
+		[JsonProperty("autoDiscoverSleepTime"), JsonPropertyName("autoDiscoverSleepTime")]
+		public int AutoDiscoverSleepTime { get; set; } = 24;
 
-        [JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
-        public int FwApiElementsPerFetch { get; set; } = 150;
+		[JsonProperty("autoDiscoverStartAt"), JsonPropertyName("autoDiscoverStartAt")]
+		public DateTime AutoDiscoverStartAt { get; set; } = new DateTime();
 
-        [JsonProperty("impChangeNotifyRecipients"), JsonPropertyName("impChangeNotifyRecipients")]
-        public string ImpChangeNotifyRecipients { get; set; } = "";
+		[JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
+		public int FwApiElementsPerFetch { get; set; } = 150;
 
-        [JsonProperty("impChangeNotifySubject"), JsonPropertyName("impChangeNotifySubject")]
-        public string ImpChangeNotifySubject { get; set; } = "";
+		[JsonProperty("impChangeNotifyRecipients"), JsonPropertyName("impChangeNotifyRecipients")]
+		public string ImpChangeNotifyRecipients { get; set; } = "";
 
-        [JsonProperty("impChangeNotifyBody"), JsonPropertyName("impChangeNotifyBody")]
-        public string ImpChangeNotifyBody { get; set; } = "";
+		[JsonProperty("impChangeNotifySubject"), JsonPropertyName("impChangeNotifySubject")]
+		public string ImpChangeNotifySubject { get; set; } = "";
 
-        [JsonProperty("impChangeNotifyActive"), JsonPropertyName("impChangeNotifyActive")]
-        public bool ImpChangeNotifyActive { get; set; } = false;
+		[JsonProperty("impChangeNotifyBody"), JsonPropertyName("impChangeNotifyBody")]
+		public string ImpChangeNotifyBody { get; set; } = "";
 
-        [JsonProperty("impChangeNotifyType"), JsonPropertyName("impChangeNotifyType")]
-        public int ImpChangeNotifyType { get; set; }
+		[JsonProperty("impChangeNotifyActive"), JsonPropertyName("impChangeNotifyActive")]
+		public bool ImpChangeNotifyActive { get; set; } = false;
 
-        [JsonProperty("impChangeNotifySleepTime"), JsonPropertyName("impChangeNotifySleepTime")]
-        public int ImpChangeNotifySleepTime { get; set; } = 60;
+		[JsonProperty("impChangeNotifyType"), JsonPropertyName("impChangeNotifyType")]
+		public int ImpChangeNotifyType { get; set; }
 
-        [JsonProperty("impChangeNotifyStartAt"), JsonPropertyName("impChangeNotifyStartAt")]
-        public DateTime ImpChangeNotifyStartAt { get; set; } = new DateTime();
+		[JsonProperty("impChangeNotifySleepTime"), JsonPropertyName("impChangeNotifySleepTime")]
+		public int ImpChangeNotifySleepTime { get; set; } = 60;
 
+		[JsonProperty("impChangeNotifyStartAt"), JsonPropertyName("impChangeNotifyStartAt")]
+		public DateTime ImpChangeNotifyStartAt { get; set; } = new DateTime();
 
-        [JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
-        public int RecertificationPeriod { get; set; } = 365;
 
-        [JsonProperty("recertificationNoticePeriod"), JsonPropertyName("recertificationNoticePeriod")]
-        public int RecertificationNoticePeriod { get; set; } = 30;
+		[JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
+		public int RecertificationPeriod { get; set; } = 365;
 
-        [JsonProperty("recertificationDisplayPeriod"), JsonPropertyName("recertificationDisplayPeriod")]
-        public int RecertificationDisplayPeriod { get; set; } = 30;
+		[JsonProperty("recertificationNoticePeriod"), JsonPropertyName("recertificationNoticePeriod")]
+		public int RecertificationNoticePeriod { get; set; } = 30;
 
-        [JsonProperty("ruleRemovalGracePeriod"), JsonPropertyName("ruleRemovalGracePeriod")]
-        public int RuleRemovalGracePeriod { get; set; } = 60;
+		[JsonProperty("recertificationDisplayPeriod"), JsonPropertyName("recertificationDisplayPeriod")]
+		public int RecertificationDisplayPeriod { get; set; } = 30;
 
-        [JsonProperty("commentRequired"), JsonPropertyName("commentRequired")]
-        public bool CommentRequired { get; set; } = false;
+		[JsonProperty("ruleRemovalGracePeriod"), JsonPropertyName("ruleRemovalGracePeriod")]
+		public int RuleRemovalGracePeriod { get; set; } = 60;
 
-        [JsonProperty("recAutocreateDeleteTicket"), JsonPropertyName("recAutocreateDeleteTicket")]
-        public bool RecAutoCreateDeleteTicket { get; set; } = false;
+		[JsonProperty("commentRequired"), JsonPropertyName("commentRequired")]
+		public bool CommentRequired { get; set; } = false;
 
-        [JsonProperty("recDeleteRuleTicketTitle"), JsonPropertyName("recDeleteRuleTicketTitle")]
-        public string RecDeleteRuleTicketTitle { get; set; } = "";
+		[JsonProperty("recAutocreateDeleteTicket"), JsonPropertyName("recAutocreateDeleteTicket")]
+		public bool RecAutoCreateDeleteTicket { get; set; } = false;
 
-        [JsonProperty("recDeleteRuleTicketReason"), JsonPropertyName("recDeleteRuleTicketReason")]
-        public string RecDeleteRuleTicketReason { get; set; } = "";
+		[JsonProperty("recDeleteRuleTicketTitle"), JsonPropertyName("recDeleteRuleTicketTitle")]
+		public string RecDeleteRuleTicketTitle { get; set; } = "";
 
-        [JsonProperty("recDeleteRuleReqTaskTitle"), JsonPropertyName("recDeleteRuleReqTaskTitle")]
-        public string RecDeleteRuleReqTaskTitle { get; set; } = "";
+		[JsonProperty("recDeleteRuleTicketReason"), JsonPropertyName("recDeleteRuleTicketReason")]
+		public string RecDeleteRuleTicketReason { get; set; } = "";
 
-        [JsonProperty("recDeleteRuleReqTaskReason"), JsonPropertyName("recDeleteRuleReqTaskReason")]
-        public string RecDeleteRuleReqTaskReason { get; set; } = "";
+		[JsonProperty("recDeleteRuleReqTaskTitle"), JsonPropertyName("recDeleteRuleReqTaskTitle")]
+		public string RecDeleteRuleReqTaskTitle { get; set; } = "";
 
-        [JsonProperty("recDeleteRuleTicketPriority"), JsonPropertyName("recDeleteRuleTicketPriority")]
-        public int RecDeleteRuleTicketPriority { get; set; } = 3;
+		[JsonProperty("recDeleteRuleReqTaskReason"), JsonPropertyName("recDeleteRuleReqTaskReason")]
+		public string RecDeleteRuleReqTaskReason { get; set; } = "";
 
-        [JsonProperty("recDeleteRuleInitState"), JsonPropertyName("recDeleteRuleInitState")]
-        public int RecDeleteRuleInitState { get; set; } = 0;
+		[JsonProperty("recDeleteRuleTicketPriority"), JsonPropertyName("recDeleteRuleTicketPriority")]
+		public int RecDeleteRuleTicketPriority { get; set; } = 3;
 
-        [JsonProperty("recCheckActive"), JsonPropertyName("recCheckActive")]
-        public bool RecCheckActive { get; set; } = false;
+		[JsonProperty("recDeleteRuleInitState"), JsonPropertyName("recDeleteRuleInitState")]
+		public int RecDeleteRuleInitState { get; set; } = 0;
 
-        [JsonProperty("recCheckParams"), JsonPropertyName("recCheckParams")]
-        public string RecCheckParams { get; set; } = System.Text.Json.JsonSerializer.Serialize(new RecertCheckParams());
+		[JsonProperty("recCheckActive"), JsonPropertyName("recCheckActive")]
+		public bool RecCheckActive { get; set; } = false;
 
-        [JsonProperty("recCheckEmailSubject"), JsonPropertyName("recCheckEmailSubject")]
-        public string RecCheckEmailSubject { get; set; } = "";
+		[JsonProperty("recCheckParams"), JsonPropertyName("recCheckParams")]
+		public string RecCheckParams { get; set; } = System.Text.Json.JsonSerializer.Serialize(new RecertCheckParams());
 
-        [JsonProperty("recCheckEmailUpcomingText"), JsonPropertyName("recCheckEmailUpcomingText")]
-        public string RecCheckEmailUpcomingText { get; set; } = "";
+		[JsonProperty("recCheckEmailSubject"), JsonPropertyName("recCheckEmailSubject")]
+		public string RecCheckEmailSubject { get; set; } = "";
 
-        [JsonProperty("recCheckEmailOverdueText"), JsonPropertyName("recCheckEmailOverdueText")]
-        public string RecCheckEmailOverdueText { get; set; } = "";
+		[JsonProperty("recCheckEmailUpcomingText"), JsonPropertyName("recCheckEmailUpcomingText")]
+		public string RecCheckEmailUpcomingText { get; set; } = "";
 
-        [JsonProperty("recRefreshStartup"), JsonPropertyName("recRefreshStartup")]
-        public bool RecRefreshStartup { get; set; } = false;
+		[JsonProperty("recCheckEmailOverdueText"), JsonPropertyName("recCheckEmailOverdueText")]
+		public string RecCheckEmailOverdueText { get; set; } = "";
 
-        [JsonProperty("recRefreshDaily"), JsonPropertyName("recRefreshDaily")]
-        public bool RecRefreshDaily { get; set; } = false;
+		[JsonProperty("recRefreshStartup"), JsonPropertyName("recRefreshStartup")]
+		public bool RecRefreshStartup { get; set; } = false;
 
-        [JsonProperty("pwMinLength"), JsonPropertyName("pwMinLength")]
-        public int PwMinLength { get; set; } = 10;
+		[JsonProperty("recRefreshDaily"), JsonPropertyName("recRefreshDaily")]
+		public bool RecRefreshDaily { get; set; } = false;
 
-        [JsonProperty("pwUpperCaseRequired"), JsonPropertyName("pwUpperCaseRequired")]
-        public bool PwUpperCaseRequired { get; set; } = false;
+		[JsonProperty("pwMinLength"), JsonPropertyName("pwMinLength")]
+		public int PwMinLength { get; set; } = 10;
 
-        [JsonProperty("pwLowerCaseRequired"), JsonPropertyName("pwLowerCaseRequired")]
-        public bool PwLowerCaseRequired { get; set; } = false;
+		[JsonProperty("pwUpperCaseRequired"), JsonPropertyName("pwUpperCaseRequired")]
+		public bool PwUpperCaseRequired { get; set; } = false;
 
-        [JsonProperty("pwNumberRequired"), JsonPropertyName("pwNumberRequired")]
-        public bool PwNumberRequired { get; set; } = false;
+		[JsonProperty("pwLowerCaseRequired"), JsonPropertyName("pwLowerCaseRequired")]
+		public bool PwLowerCaseRequired { get; set; } = false;
 
-        [JsonProperty("pwSpecialCharactersRequired"), JsonPropertyName("pwSpecialCharactersRequired")]
-        public bool PwSpecialCharactersRequired { get; set; } = false;
+		[JsonProperty("pwNumberRequired"), JsonPropertyName("pwNumberRequired")]
+		public bool PwNumberRequired { get; set; } = false;
 
-        [JsonProperty("emailServerAddress"), JsonPropertyName("emailServerAddress")]
-        public string EmailServerAddress { get; set; } = "";
+		[JsonProperty("pwSpecialCharactersRequired"), JsonPropertyName("pwSpecialCharactersRequired")]
+		public bool PwSpecialCharactersRequired { get; set; } = false;
 
-        [JsonProperty("emailPort"), JsonPropertyName("emailPort")]
-        public int EmailPort { get; set; }
+		[JsonProperty("emailServerAddress"), JsonPropertyName("emailServerAddress")]
+		public string EmailServerAddress { get; set; } = "";
 
-        [JsonProperty("emailTls"), JsonPropertyName("emailTls")]
-        public EmailEncryptionMethod EmailTls { get; set; } = EmailEncryptionMethod.None;
+		[JsonProperty("emailPort"), JsonPropertyName("emailPort")]
+		public int EmailPort { get; set; }
 
-        [JsonProperty("emailUser"), JsonPropertyName("emailUser")]
-        public string EmailUser { get; set; } = "";
+		[JsonProperty("emailTls"), JsonPropertyName("emailTls")]
+		public EmailEncryptionMethod EmailTls { get; set; } = EmailEncryptionMethod.None;
 
-        [JsonProperty("emailPassword"), JsonPropertyName("emailPassword")]
-        public string EmailPassword { get; set; } = "";
+		[JsonProperty("emailUser"), JsonPropertyName("emailUser")]
+		public string EmailUser { get; set; } = "";
 
-        [JsonProperty("emailSenderAddress"), JsonPropertyName("emailSenderAddress")]
-        public string EmailSenderAddress { get; set; } = "";
+		[JsonProperty("emailPassword"), JsonPropertyName("emailPassword")]
+		public string EmailPassword { get; set; } = "";
 
-        [JsonProperty("minCollapseAllDevices"), JsonPropertyName("minCollapseAllDevices"), UserConfigData]
-        public int MinCollapseAllDevices { get; set; } = 15;
+		[JsonProperty("emailSenderAddress"), JsonPropertyName("emailSenderAddress")]
+		public string EmailSenderAddress { get; set; } = "";
 
-        [JsonProperty("messageViewTime"), JsonPropertyName("messageViewTime"), UserConfigData]
-        public int MessageViewTime { get; set; } = 7;
+		[JsonProperty("useDummyEmailAddress"), JsonPropertyName("useDummyEmailAddress")]
+		public bool UseDummyEmailAddress { get; set; } = false;
 
-        [JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
-        public DateTime DailyCheckStartAt { get; set; } = new DateTime();
+		[JsonProperty("dummyEmailAddress"), JsonPropertyName("dummyEmailAddress")]
+		public string DummyEmailAddress { get; set; } = "";
 
-        [JsonProperty("maxImportDuration"), JsonPropertyName("maxImportDuration")]
-        public int MaxImportDuration { get; set; } = 4;
+		[JsonProperty("minCollapseAllDevices"), JsonPropertyName("minCollapseAllDevices"), UserConfigData]
+		public int MinCollapseAllDevices { get; set; } = 15;
 
-        [JsonProperty("maxImportInterval"), JsonPropertyName("maxImportInterval")]
-        public int MaxImportInterval { get; set; } = 12;
+		[JsonProperty("messageViewTime"), JsonPropertyName("messageViewTime"), UserConfigData]
+		public int MessageViewTime { get; set; } = 7;
 
-        [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
-        public string ReqAvailableTaskTypes { get; set; } = "";
+		[JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
+		public DateTime DailyCheckStartAt { get; set; } = new DateTime();
 
-        [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
-        public bool ReqAllowObjectSearch { get; set; } = false;
+		[JsonProperty("maxImportDuration"), JsonPropertyName("maxImportDuration")]
+		public int MaxImportDuration { get; set; } = 4;
 
-        [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
-        public bool AllowManualOwnerAdmin { get; set; } = false;
+		[JsonProperty("maxImportInterval"), JsonPropertyName("maxImportInterval")]
+		public int MaxImportInterval { get; set; } = 12;
 
-        [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
-        public string ReqPriorities { get; set; } = "";
+		[JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
+		public string ReqAvailableTaskTypes { get; set; } = "";
 
-        [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
-        public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
+		[JsonProperty("reqOwnerBased"), JsonPropertyName("reqOwnerBased")]
+		public bool ReqOwnerBased { get; set; } = false;
 
-        [JsonProperty("reqActivatePathAnalysis"), JsonPropertyName("reqActivatePathAnalysis")]
-        public bool ReqActivatePathAnalysis { get; set; } = true;
+		[JsonProperty("reqReducedView"), JsonPropertyName("reqReducedView")]
+		public bool ReqReducedView { get; set; } = false;
 
-        [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
-        public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
+		[JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
+		public bool ReqAllowObjectSearch { get; set; } = false;
 
+		[JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
+		public bool AllowManualOwnerAdmin { get; set; } = false;
 
-        [JsonProperty("allowServerInConn"), JsonPropertyName("allowServerInConn")]
-        public bool AllowServerInConn { get; set; } = true;
+		[JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
+		public string ReqPriorities { get; set; } = "";
 
-        [JsonProperty("allowServiceInConn"), JsonPropertyName("allowServiceInConn")]
-        public bool AllowServiceInConn { get; set; } = true;
+		[JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
+		public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
 
-        [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
-        public int OverviewDisplayLines { get; set; } = 3;
+		[JsonProperty("reqActivatePathAnalysis"), JsonPropertyName("reqActivatePathAnalysis")]
+		public bool ReqActivatePathAnalysis { get; set; } = true;
 
-        [JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
-        public bool ReducedProtocolSet { get; set; } = true;
+		[JsonProperty("reqShowCompliance"), JsonPropertyName("reqShowCompliance")]
+		public bool ReqShowCompliance { get; set; } = false;
 
-        [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
-        public string ImportAppDataPath { get; set; } = "";
+		[JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
+		public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
 
-        [JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
-        public int ImportAppDataSleepTime { get; set; } = 24;
 
-        [JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
-        public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
+		[JsonProperty("allowServerInConn"), JsonPropertyName("allowServerInConn")]
+		public bool AllowServerInConn { get; set; } = true;
 
-        [JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
-        public string ImportSubnetDataPath { get; set; } = "";
+		[JsonProperty("allowServiceInConn"), JsonPropertyName("allowServiceInConn")]
+		public bool AllowServiceInConn { get; set; } = true;
 
-        [JsonProperty("importSubnetDataSleepTime"), JsonPropertyName("importSubnetDataSleepTime")]
-        public int ImportSubnetDataSleepTime { get; set; } = 24;
+		[JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
+		public int OverviewDisplayLines { get; set; } = 3;
 
-        [JsonProperty("importSubnetDataStartAt"), JsonPropertyName("importSubnetDataStartAt")]
-        public DateTime ImportSubnetDataStartAt { get; set; } = new DateTime();
+		[JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
+		public bool ReducedProtocolSet { get; set; } = true;
 
-        [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
-        public string ModNamingConvention { get; set; } = "";
+		[JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
+		public string ImportAppDataPath { get; set; } = "";
 
-        [JsonProperty("modIconify"), JsonPropertyName("modIconify")]
-        public bool ModIconify { get; set; } = true;
+		[JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
+		public int ImportAppDataSleepTime { get; set; } = 24;
 
-        [JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
-        public string ModCommonAreas { get; set; } = "";
+		[JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
+		public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
 
+		[JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
+		public string ImportSubnetDataPath { get; set; } = "";
 
-        public ConfigData(bool editable = false)
-        {
-            Editable = editable;
-        }
+		[JsonProperty("importSubnetDataSleepTime"), JsonPropertyName("importSubnetDataSleepTime")]
+		public int ImportSubnetDataSleepTime { get; set; } = 24;
 
-        public object Clone()
-        {
-            // Watch out for references they need to be deep cloned (currently none)
-            ConfigData configData = (ConfigData)MemberwiseClone();
-            return configData;
-        }
+		[JsonProperty("importSubnetDataStartAt"), JsonPropertyName("importSubnetDataStartAt")]
+		public DateTime ImportSubnetDataStartAt { get; set; } = new DateTime();
 
-        public object CloneEditable()
-        {
-            object clone = Clone();
-            typeof(ConfigData).GetProperty("Editable")?.SetValue(clone, true);
-            return clone;
-        }
-    }
+		[JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
+		public string ModNamingConvention { get; set; } = "";
+
+		[JsonProperty("modIconify"), JsonPropertyName("modIconify")]
+		public bool ModIconify { get; set; } = true;
+
+		[JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
+		public string ModCommonAreas { get; set; } = "";
+
+		[JsonProperty("modAppServerTypes"), JsonPropertyName("modAppServerTypes")]
+		public string ModAppServerTypes { get; set; } = "";
+
+		[JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
+		public string ModReqInterfaceName { get; set; } = "";
+
+		[JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
+		public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.OwnerGroupOnly;
+
+		[JsonProperty("modReqEmailRequesterInCc"), JsonPropertyName("modReqEmailRequesterInCc")]
+		public bool ModReqEmailRequesterInCc { get; set; } = true;
+
+		[JsonProperty("modReqEmailSubject"), JsonPropertyName("modReqEmailSubject")]
+		public string ModReqEmailSubject { get; set; } = "";
+
+		[JsonProperty("modReqEmailBody"), JsonPropertyName("modReqEmailBody")]
+		public string ModReqEmailBody { get; set; } = "";
+
+		[JsonProperty("modReqTicketTitle"), JsonPropertyName("modReqTicketTitle")]
+		public string ModReqTicketTitle { get; set; } = "";
+
+		[JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
+		public string ModReqTaskTitle { get; set; } = "";
+
+
+		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
+		public string ExtTicketSystems { get; set; } = "";
+
+		public ConfigData(bool editable = false)
+		{
+			Editable = editable;
+		}
+
+		public object Clone()
+		{
+			// Watch out for references they need to be deep cloned (currently none)
+			ConfigData configData = (ConfigData)MemberwiseClone();
+			return configData;
+		}
+
+		public object CloneEditable()
+		{
+			object clone = Clone();
+			typeof(ConfigData).GetProperty("Editable")?.SetValue(clone, true);
+			return clone;
+		}
+	}
 }

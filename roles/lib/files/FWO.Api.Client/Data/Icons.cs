@@ -9,6 +9,7 @@ namespace FWO.Api.Data
         public const string Requirement = "oi oi-eye";
         public const string Security = "oi oi-shield";
         public const string FurtherReading = "oi oi-external-link";
+        public const string Clipboard = "oi oi-clipboard";
 
         // Actions
         public const string Add = "oi oi-plus";
@@ -27,6 +28,7 @@ namespace FWO.Api.Data
         public const string CollapseDown = "oi oi-collapse-down";
         public const string CollapseLeft = "oi oi-collapse-left";
         public const string CollapseRight = "oi oi-collapse-right";
+        public const string Share = "oi oi-fork"; // oi-share-boxed? oi-share?
 
         // Object types: General
         public const string Ldap = "oi oi-key";
@@ -54,6 +56,7 @@ namespace FWO.Api.Data
         public const string AppRole = "oi oi-list-rich";
         public const string NwGroup = "oi oi-folder";
         public const string Connection = "oi oi-transfer";
+        public const string Interface = "oi oi-target";
 
         // Modules
         public const string Reporting = "oi oi-spreadsheet";
@@ -85,6 +88,7 @@ namespace FWO.Api.Data
         public const string Matrix = "oi oi-grid-four-up";
         public const string Action = "oi oi-arrow-right";
         public const string Phase = "oi oi-loop-square";
+        public const string Assign = "oi oi-arrow-thick-right"; // "oi-arrow-circle-right" ?
         
         // Monitoring
         public const string Alarm = "oi oi-bell";

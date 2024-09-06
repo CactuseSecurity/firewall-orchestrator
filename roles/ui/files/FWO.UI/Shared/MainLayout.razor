@@ -171,7 +171,7 @@
         try
         {
             RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Authenticate(userConfig.User.Name,
-            password, apiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
+                password, apiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK) 
             { 
                 showReloginDialog = false;

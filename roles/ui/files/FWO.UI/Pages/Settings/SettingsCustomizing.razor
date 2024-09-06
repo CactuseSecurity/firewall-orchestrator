@@ -38,25 +38,44 @@
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
             <div class="col-sm-9">
                 <div class="m-2 vheight75">
-                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestPriority" Items="prioList" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="RequestPriority" Title="@(userConfig.GetText("numeric_prio"))" Field="@(x => x.NumPrio)" Sortable="true" Filterable="true" />
-                        <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfPriority" Items="prioList" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="WfPriority" Title="@(userConfig.GetText("numeric_prio"))" Field="@(x => x.NumPrio)" Sortable="true" Filterable="true" />
+                        <Column Context="prio" TableItem="WfPriority" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
                             <Template>
                                 <input type="string" @bind="prio.Name">
                             </Template>
                         </Column>
-                        <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("ticket_deadline"))" Field="@(x => x.TicketDeadline)" Sortable="true" Filterable="true" >
+                        <Column Context="prio" TableItem="WfPriority" Title="@(userConfig.GetText("ticket_deadline"))" Field="@(x => x.TicketDeadline)" Sortable="true" Filterable="true" >
                             <Template>
                                 <input type="number" min="0" @bind="prio.TicketDeadline">
                             </Template>
                         </Column>
-                        <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("approval_deadline_days"))" Field="@(x => x.ApprovalDeadline)" Sortable="true" Filterable="true" >
+                        <Column Context="prio" TableItem="WfPriority" Title="@(userConfig.GetText("approval_deadline_days"))" Field="@(x => x.ApprovalDeadline)" Sortable="true" Filterable="true" >
                             <Template>
                                 <input type="number" min="0" @bind="prio.ApprovalDeadline">
                             </Template>
                         </Column>
                     </Table>
                 </div>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5568"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqOwnerBased")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" @bind="configData!.ReqOwnerBased">
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5570"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqReducedView")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" @bind="configData!.ReqReducedView">
+            </div>
+        </div>
+
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5569"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqShowCompliance")):</label>
+            <div class="col-sm-2">
+                <input type="checkbox" @bind="configData!.ReqShowCompliance">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5564"))">
@@ -98,7 +117,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
+        <span class="sr-only">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -112,10 +131,10 @@ else
     private ConfigData? configData;
     private bool InitComplete = false;
 
-    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
-    private Dictionary<TaskType, bool> taskTypesActiveDict = new Dictionary<TaskType, bool>();
+    private List<TaskType> availableTaskTypes { get; set; } = [];
+    private Dictionary<TaskType, bool> taskTypesActiveDict = [];
 
-    private List<RequestPriority> prioList = new List<RequestPriority>();
+    private List<WfPriority> prioList = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,12 +142,12 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(configData.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
-            taskTypesActiveDict = new Dictionary<TaskType, bool>();
+            taskTypesActiveDict = [];
             foreach(TaskType type in Enum.GetValues(typeof(TaskType)))
             {
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
             }
-            prioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(configData.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+            prioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(configData.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
             InitComplete = true;
         }
         catch (Exception exception)

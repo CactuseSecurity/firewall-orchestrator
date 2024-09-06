@@ -249,6 +249,8 @@ ALTER TABLE request.impltask_comment ADD CONSTRAINT request_impltask_comment_com
 --- state_action ---
 ALTER TABLE request.state_action ADD CONSTRAINT request_state_action_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.state_action ADD CONSTRAINT request_state_action_action_foreign_key FOREIGN KEY (action_id) REFERENCES request.action(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- ext_state ---
+ALTER TABLE request.ext_state ADD CONSTRAINT request_ext_state_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.implelement ---
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_request_implelement_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.implelement(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -267,6 +269,7 @@ ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_object_foreign_key 
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
 --- recertification ---
 ALTER TABLE recertification ADD CONSTRAINT recertification_rule_metadata_foreign_key FOREIGN KEY (rule_metadata_id) REFERENCES rule_metadata(rule_metadata_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE recertification ADD CONSTRAINT recertification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -284,7 +287,7 @@ ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT compliance_to_n
 -- modelling
 ALTER TABLE modelling.nwgroup ADD CONSTRAINT modelling_nwgroup_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.connection ADD CONSTRAINT modelling_connection_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE modelling.connection ADD CONSTRAINT modelling_connection_used_interface_foreign_key FOREIGN KEY (used_interface_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE modelling.connection ADD CONSTRAINT modelling_connection_used_interface_foreign_key FOREIGN KEY (used_interface_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT;
 ALTER TABLE modelling.nwobject_nwgroup ADD CONSTRAINT modelling_nwobject_nwgroup_nwobject_foreign_key FOREIGN KEY (nwobject_id) REFERENCES owner_network(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.nwobject_nwgroup ADD CONSTRAINT modelling_nwobject_nwgroup_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES modelling.nwgroup(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.nwgroup_connection ADD CONSTRAINT modelling_nwgroup_connection_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES modelling.nwgroup(id) ON UPDATE RESTRICT ON DELETE CASCADE;

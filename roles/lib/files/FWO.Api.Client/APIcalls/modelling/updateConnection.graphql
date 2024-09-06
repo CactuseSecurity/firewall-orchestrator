@@ -2,20 +2,28 @@ mutation updateConnection(
   $id: Int!
   $name: String
   $appId: Int
+  $proposedAppId: Int
   $reason: String
   $isInterface: Boolean
   $usedInterfaceId: Int
+  $isRequested: Boolean
+  $isPublished: Boolean
   $commonSvc: Boolean
+  $connProp: String
   ) {
   update_modelling_connection_by_pk(
     pk_columns: { id: $id }
     _set: {
       name: $name
       app_id: $appId
+      proposed_app_id: $proposedAppId
       reason: $reason
       is_interface: $isInterface
       used_interface_id: $usedInterfaceId
+      is_requested: $isRequested
+      is_published: $isPublished
       common_service: $commonSvc
+      conn_prop: $connProp
   }) {
     UpdatedId: id
   }

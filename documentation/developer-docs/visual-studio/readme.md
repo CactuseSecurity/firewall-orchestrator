@@ -12,7 +12,7 @@ Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
  
 ## Add VS Code Extensions from Marketplace
 recommended:
-- C#
+- C# --> make sure to activate OmniSharp Support in settings
 - Razor+
 - Debugger for Firefox
 - GitHub Pull Requests and Issues, see <https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-pull-request-github>
@@ -107,7 +107,7 @@ or alternatively add the following to csproj file:
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

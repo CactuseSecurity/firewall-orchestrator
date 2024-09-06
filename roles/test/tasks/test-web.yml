@@ -25,22 +25,10 @@
   delay: 5 # Every 5 seconds
   when: "'middlewareserver' in group_names"
 
-- debug:
-    var: web_call_result
-  when: "'middlewareserver' in group_names"
-
-#- name: show middleware webserver test results
-#  fail:
-#    msg: "url: {{ item.url }}, status: {{ item.status }}"
-#  loop: "{{ web_call_result.results | from_yaml | list }}"
-#  when: "'middlewareserver' in group_names and item.status!=200"
-
-##############################
-#TASK [test : show middleware webserver test results] ***************************
-#fatal: [localhost]: FAILED! => 
-#  msg: '''dict object'' has no attribute ''results''. ''dict object'' has no attribute ''results'''
-
-
+- name: show middleware webserver test results
+  fail:
+    msg: "url: {{ web_call_result.url }}, status: {{ web_call_result.status }}"
+  when: "'middlewareserver' in group_names and web_call_result.status!=200"
   
 - name: test api web server availability
   uri:
@@ -59,15 +47,10 @@
   delay: 5 # Every 5 seconds
   when: "'apiserver' in group_names"
 
-- debug:
-    var: web_call_result
-  when: "'apiserver' in group_names"
-
-#- name: show api webserver test results
-#  fail:
-#    msg: "url: {{ item.url }}, status: {{ item.status }}"
-#  loop: "{{ web_call_result.results | from_yaml | list }}"
-#  when: "'apiserver' in group_names and item.status!=200"
+- name: show api webserver test results
+  fail:
+    msg: "url: {{ web_call_result.url }}, status: {{ web_call_result.status }}"
+  when: "'apiserver' in group_names and web_call_result.status!=200"
 
 - name: test ui web server availability
   uri:
@@ -86,12 +69,10 @@
   delay: 5 # Every 5 seconds
   when: "'frontends' in group_names"
 
-- debug:
-    var: web_call_result
-  when: "'frontends' in group_names"
+  #########################
+  # ui_hostname ist einfach 'ui-srv' aus hosts. Funktioniert das ohne IP Adresse?
 
-#- name: show ui webserver test results
-#  fail:
-#    msg: "url: {{ item.url }}, status: {{ item.status }}"
-#  loop: "{{ web_call_result.results | from_yaml | list }}"
-#  when: "'frontends' in group_names and item.status!=200"
+- name: show ui webserver test results
+  fail:
+    msg: "url: {{ web_call_result.url }}, status: {{ web_call_result.status }}"
+  when: "'frontends' in group_names and web_call_result.status!=200"

@@ -7,6 +7,7 @@
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
 <div class="input-group">
@@ -63,7 +64,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
+        <span class="sr-only">@(userConfig.GetText("loading"))</span>
     </div>
 }
 

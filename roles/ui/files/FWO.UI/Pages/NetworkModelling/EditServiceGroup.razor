@@ -6,7 +6,7 @@
 
 @if (Display)
 {
-    <PopUp Title="@(SvcGroupHandler.ReadOnly ? "" : (AddMode ? userConfig.GetText("add_service_group") : userConfig.GetText("edit_service_group")))"
+    <PopUp Title="@(SvcGroupHandler.ReadOnly ? "" : (SvcGroupHandler.AddMode ? userConfig.GetText("add_service_group") : userConfig.GetText("edit_service_group")))"
             Size="@(SvcGroupHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
@@ -48,7 +48,7 @@
                             {
                                 foreach(var svc in ModellingServiceWrapper.Resolve(SvcGroupHandler.ActServiceGroup.Services))
                                 {
-                                    <div class="mh-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)svc.DisplayWithIcon())</div>
+                                    <div class="mh-13 col-sm-11 mt-1 border bg-transparent">@((MarkupString)svc.DisplayWithIcon())</div>
                                 }
                             }
                             else
@@ -67,7 +67,7 @@
                                 </div>  
                             }                          
                         </div>
-                        @if(!AddMode)
+                        @if(!SvcGroupHandler.AddMode)
                         {
                             <label class="col-sm-12 mt-2 small">@(userConfig.GetText("created_by")): @(SvcGroupHandler.ActServiceGroup.Creator), @(userConfig.GetText("creation_date")): @(SvcGroupHandler.ActServiceGroup.CreationDate)</label>
                         }
@@ -87,7 +87,7 @@
                     {
                         <AuthorizeView Roles="@(AsAdmin? Roles.Admin : Roles.Modeller)">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {workInProgress = true; if(await SvcGroupHandler.Save()) Close(); else workInProgress = false;}">@(userConfig.GetText("save"))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -124,15 +124,23 @@
     public EventCallback<ModellingServiceGroupHandler> SvcGroupHandlerChanged { get; set; }
 
     [Parameter]
-    public bool AddMode { get; set; } = false;
-
-    [Parameter]
     public bool AsAdmin { get; set; } = false;
 
     private ModellingDnDContainer Container { get; set; } = new();
-    int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth + 300;
+    int sidebarLeftWidth = GlobalConst.kObjLibraryWidth;
     private bool workInProgress = false;
+    private bool firstTry = true;
+    private ModellingServiceGroup unchangedServiceGroup = new();
 
+
+    protected override void OnParametersSet()
+    {
+        if(Display && firstTry)
+        {
+            firstTry = false;
+            unchangedServiceGroup = new(SvcGroupHandler.ActServiceGroup);
+        }
+    }
 
     private void HandleSvcDrop()
     {
@@ -143,10 +151,29 @@
         Container.Clear();
     }
 
+    private async Task Save()
+    {
+        workInProgress = true;
+        if(await SvcGroupHandler.Save())
+        {
+            if(unchangedServiceGroup.Name != SvcGroupHandler.ActServiceGroup.Name)
+            {
+                await SvcGroupHandler.RefreshParent();
+            }
+            unchangedServiceGroup = new(SvcGroupHandler.ActServiceGroup);
+            Close();
+        }
+        else
+        {
+            workInProgress = false;
+        }
+    }
+
     private void Close()
     {
         SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);
         workInProgress = false;
+        firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

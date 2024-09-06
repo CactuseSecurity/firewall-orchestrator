@@ -74,6 +74,7 @@ namespace FWO.Report
         <h2>##Title##</h2>
         <p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>
         <p>##GeneratedOn##: ##Date## (UTC)</p>
+        <p>##OwnerFilters##</p>
         <p>##OtherFilters##</p>
         <p>##Filter##</p>
         <hr>
@@ -139,17 +140,19 @@ namespace FWO.Report
                 ReportType.Recertification => new ReportRules(query, userConfig, repType),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),
+                ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }
 
         public static string ConstructLink(string type, string symbol, long id, string name, OutputLocation location, string reportId, string style)
         {
-            string link = location == OutputLocation.export ? $"#" : $"{location}/generation#goto-report-{reportId}-";
+            string page = location == OutputLocation.report ? PageName.ReportGeneration : PageName.Certification;
+            string link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
             return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
-        protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)
+        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
@@ -174,13 +177,18 @@ namespace FWO.Report
                     HtmlTemplate = HtmlTemplate.Replace("<p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>", "");
                 }
 
+                if (ownerFilter != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##OwnerFilters##</p>", "");
+                }
+
                 if(deviceFilter != null)
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
-                }
-                else if (ownerFilter != null)
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
                 }
                 else
                 {
@@ -200,7 +208,7 @@ namespace FWO.Report
             }
             catch(Exception)
             {
-                return timestring != null ? timestring : "";
+                return timestring ?? "";
             }
         }
 
@@ -208,9 +216,11 @@ namespace FWO.Report
         {
             // HTML
             if (string.IsNullOrEmpty(htmlExport))
+            {
                 htmlExport = ExportToHtml();
+            }
 
-            GlobalSettings globalSettings = new GlobalSettings
+            GlobalSettings globalSettings = new ()
             {
                 ColorMode = ColorMode.Color,
                 Orientation = Orientation.Landscape,
@@ -232,7 +242,7 @@ namespace FWO.Report
                 globalSettings.PaperSize = paperKind;
             }
 
-            HtmlToPdfDocument doc = new HtmlToPdfDocument()
+            HtmlToPdfDocument doc = new ()
             {
                 GlobalSettings = globalSettings,
                 Objects =
@@ -252,30 +262,21 @@ namespace FWO.Report
 
         public static string GetIconClass(ObjCategory? objCategory, string? objType)
         {
-            switch (objType)
+            return objType switch
             {
-                case ObjectType.Group when objCategory == ObjCategory.user:
-                    return Icons.UserGroup;
-                case ObjectType.Group:
-                    return Icons.ObjGroup;
-                case ObjectType.Host:
-                    return Icons.Host;
-                case ObjectType.Network:
-                    return Icons.Network;
-                case ObjectType.IPRange:
-                    return Icons.Range;
-                default:
-                    switch (objCategory)
-                    {
-                        case ObjCategory.nobj:
-                            return Icons.NwObject;
-                        case ObjCategory.nsrv:
-                            return Icons.Service;
-                        case ObjCategory.user:
-                            return Icons.User;
-                    }
-                    return "";
-            }
+                ObjectType.Group when objCategory == ObjCategory.user => Icons.UserGroup,
+                ObjectType.Group => Icons.ObjGroup,
+                ObjectType.Host => Icons.Host,
+                ObjectType.Network => Icons.Network,
+                ObjectType.IPRange => Icons.Range,
+                _ => objCategory switch
+                {
+                    ObjCategory.nobj => Icons.NwObject,
+                    ObjCategory.nsrv => Icons.Service,
+                    ObjCategory.user => Icons.User,
+                    _ => "",
+                },
+            };
         }
     }
 }

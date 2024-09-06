@@ -42,13 +42,13 @@ namespace FWO.Api.Data
         public int Create { get; set; }
 
         [JsonProperty("svc_create_time"), JsonPropertyName("svc_create_time")]
-        public TimeWrapper CreateTime { get; set; } = new TimeWrapper(){};
+        public TimeWrapper CreateTime { get; set; } = new();
 
         [JsonProperty("svc_last_seen"), JsonPropertyName("svc_last_seen")]
         public int LastSeen { get; set; }
 
         [JsonProperty("service_type"), JsonPropertyName("service_type")]
-        public NetworkServiceType Type { get; set; } = new NetworkServiceType(){};
+        public NetworkServiceType Type { get; set; } = new();
 
         [JsonProperty("svc_comment"), JsonPropertyName("svc_comment")]
         public string Comment { get; set; } = "";
@@ -60,7 +60,7 @@ namespace FWO.Api.Data
         public int? ProtoId { get; set; }
 
         [JsonProperty("protocol_name"), JsonPropertyName("protocol_name")]
-        public NetworkProtocol Protocol { get; set; } = new NetworkProtocol(){};
+        public NetworkProtocol Protocol { get; set; } = new();
 
         [JsonProperty("svc_member_names"), JsonPropertyName("svc_member_names")]
         public string MemberNames { get; set; } = "";
@@ -69,10 +69,10 @@ namespace FWO.Api.Data
         public string MemberRefs { get; set; } = "";
 
         [JsonProperty("svcgrps"), JsonPropertyName("svcgrps")]
-        public Group<NetworkService>[] ServiceGroups { get; set; } = new Group<NetworkService>[]{};
+        public Group<NetworkService>[] ServiceGroups { get; set; } = [];
 
         [JsonProperty("svcgrp_flats"), JsonPropertyName("svcgrp_flats")]
-        public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; } = new GroupFlat<NetworkService>[]{};
+        public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; } = [];
 
         public long Number;
 

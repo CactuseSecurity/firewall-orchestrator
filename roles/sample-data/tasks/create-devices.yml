@@ -9,6 +9,15 @@
   set_fact:
     credential_id: -1
 
+- name: set do_not_import
+  set_fact:
+    do_not_import: false
+
+- name: set do_not_import to false for all tests to prevent lock due to simultaneous import attempts
+  set_fact:
+    do_not_import: true
+  when: sample_role_purpose is match('test')
+
 - name: pick the correct credential id
   set_fact:
     credential_id: 0
@@ -23,7 +32,7 @@
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_fortigate_name }}') THEN 
           insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-          VALUES (24,'{{ sample_fortigate_name }}',{{ credential_id }},'{{ demo_fos_uri }}',false,'{{ importer_hostname }}'); 
+          VALUES (24,'{{ sample_fortigate_name }}',{{ credential_id }},'{{ demo_fos_uri }}',{{ do_not_import }},'{{ importer_hostname }}'); 
           END IF; END $do$ 
 
     - name: insert sample fortiOS gateway
@@ -49,7 +58,7 @@
             IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
               insert into management 
                 (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-                VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ demo_cpr8x_uri }}',false,'{{ importer_hostname }}'); 
+                VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ demo_cpr8x_uri }}',{{ do_not_import }},'{{ importer_hostname }}'); 
             END IF;
           END $do$ 
 
@@ -75,7 +84,7 @@
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
           insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-          VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ sample_checkpoint_uri }}',false,'dummy importer hostname'); 
+          VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ sample_checkpoint_uri }}',{{ do_not_import }},'dummy importer hostname'); 
           END IF; END $do$ 
 
     - name: insert test check point R8x gateway {{ sample_checkpoint_name }}

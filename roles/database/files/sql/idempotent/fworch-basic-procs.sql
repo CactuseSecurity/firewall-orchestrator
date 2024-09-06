@@ -370,19 +370,7 @@ CREATE OR REPLACE FUNCTION remove_spaces (varchar)
     AS $$
 DECLARE
     s ALIAS FOR $1;
-    --    res		VARCHAR;
-    --    test	VARCHAR;
-    --    left	VARCHAR;
-    --    right	VARCHAR;
-    --    pos		integer;
 BEGIN
-    --	res := s;
-    --	test := substring(s, '^.*?([' || E'\t' || ' ]).*?$');
-    --	if test IS NOT NULL AND char_length(test)>0 THEN
-    --		left := substring(s, '^(.*?)[ ' || E'\t' || '].*?$');
-    --		right := substring(s, '^.*?[ ' || E'\t' || '](.*?)$');
-    --		res := left || remove_spaces(right);
-    --	END IF;
     RETURN btrim(s);
 END;
 $$

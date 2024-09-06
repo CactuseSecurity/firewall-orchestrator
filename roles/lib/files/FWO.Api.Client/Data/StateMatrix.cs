@@ -1,5 +1,4 @@
 ﻿using FWO.Api.Client.Queries;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json; 
@@ -20,10 +19,10 @@ namespace FWO.Api.Client
     public class StateMatrix
     {
         [JsonProperty("matrix"), JsonPropertyName("matrix")]
-        public Dictionary<int, List<int>> Matrix { get; set; } = new Dictionary<int, List<int>>();
+        public Dictionary<int, List<int>> Matrix { get; set; } = [];
 
         [JsonProperty("derived_states"), JsonPropertyName("derived_states")]
-        public Dictionary<int, int> DerivedStates { get; set; } = new Dictionary<int, int>();
+        public Dictionary<int, int> DerivedStates { get; set; } = [];
 
         [JsonProperty("lowest_input_state"), JsonPropertyName("lowest_input_state")]
         public int LowestInputState { get; set; }
@@ -37,13 +36,13 @@ namespace FWO.Api.Client
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
 
-        public Dictionary<WorkflowPhases, bool> PhaseActive = new Dictionary<WorkflowPhases, bool>();
+        public Dictionary<WorkflowPhases, bool> PhaseActive = [];
         public bool IsLastActivePhase = true;
         public int MinImplTasksNeeded;
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, TaskType taskType = TaskType.master)
         {
-            GlobalStateMatrix glbStateMatrix = new GlobalStateMatrix();
+            GlobalStateMatrix glbStateMatrix = new ();
             await glbStateMatrix.Init(apiConnection, taskType);
             Matrix = glbStateMatrix.GlobalMatrix[phase].Matrix;
             DerivedStates = glbStateMatrix.GlobalMatrix[phase].DerivedStates;
@@ -62,14 +61,22 @@ namespace FWO.Api.Client
             MinImplTasksNeeded = glbStateMatrix.GlobalMatrix[WorkflowPhases.implementation].LowestInputState;
         }
 
+        public bool getNextActivePhase(ref WorkflowPhases phase)
+        {
+            foreach (var tmpPhase in PhaseActive)
+            {
+                if (tmpPhase.Key > phase && tmpPhase.Value)
+                {
+                    phase = tmpPhase.Key;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public List<int> getAllowedTransitions(int stateIn)
         {
-            List<int> statesOut = new List<int>();
-            if(Matrix.ContainsKey(stateIn))
-            {
-                statesOut = Matrix[stateIn];
-            }
-            return statesOut;
+            return Matrix.TryGetValue(stateIn, out List<int>? value) ? value : [];
         }
 
         public int getDerivedStateFromSubStates(List<int> statesIn)
@@ -78,7 +85,7 @@ namespace FWO.Api.Client
             {
                 return 0;
             }
-            int stateOut = 0;
+            int stateOut;
             int backAssignedState = LowestInputState;
             int initState = 0;
             int inWorkState = LowestEndState;
@@ -148,10 +155,11 @@ namespace FWO.Api.Client
             return stateOut;
         }
     }
+
     public class GlobalStateMatrix
     {
         [JsonProperty("config_value"), JsonPropertyName("config_value")]
-        public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = new Dictionary<WorkflowPhases, StateMatrix>();
+        public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = [];
 
 
         public async Task Init(ApiConnection apiConnection, TaskType taskType = TaskType.master, bool reset = false)
@@ -166,6 +174,7 @@ namespace FWO.Api.Client
                 TaskType.group_create => "reqGrpCreStateMatrix",
                 TaskType.group_modify => "reqGrpModStateMatrix",
                 TaskType.group_delete => "reqGrpDelStateMatrix",
+                TaskType.new_interface => "reqNewIntStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
             };
 
@@ -188,11 +197,11 @@ namespace FWO.Api.Client
 
     public class StateMatrixDict
     {
-        public Dictionary<string, StateMatrix> Matrices { get; set; } = new Dictionary<string, StateMatrix>();
+        public Dictionary<string, StateMatrix> Matrices { get; set; } = [];
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
         {
-            Matrices = new Dictionary<string, StateMatrix>();
+            Matrices = [];
             foreach(TaskType taskType in Enum.GetValues(typeof(TaskType)))
             {
                 Matrices.Add(taskType.ToString(), new StateMatrix());

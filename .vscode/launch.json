@@ -2,12 +2,31 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": ".NET Core SSH Attach ubu20",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickRemoteProcess}",
+            "pipeTransport": {
+                "pipeProgram": "ssh",
+                "pipeArgs": [ "-T", "-p 22006", "tim@localhost" ],
+                "debuggerPath": "~/vsdbg-root/vsdbg",
+                "pipeCwd": "${workspaceRoot}",
+                "quoteArgs": true
+            },
+            "sourceFileMap": {
+                "/home/tim/firewall-orchestrator/roles": "${workspaceRoot}"
+            },
+            "logging": {
+              "logging.diagnosticsLog.protocolMessages": true
+            }
+        },
+        {
             "name": "c#-MiddlewareServer",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_middleware",
             "enableStepFiltering": false,
-            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net6.0/FWO.Middleware.Server.dll",
+            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net8.0/FWO.Middleware.Server.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
             "console": "internalConsole",
@@ -27,7 +46,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",
-            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net6.0/FWO.Ui.dll",
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net8.0/FWO.Ui.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
             "stopAtEntry": false,
@@ -82,7 +101,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m5",
+                "-m23",
                 "-d1",
                 "-f",
                 "-s",
@@ -101,7 +120,7 @@
             "name": "py-customize-FWO-sample",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/scripts/customizing/customizeFwoSampleScript.py",
+            "program": "${workspaceFolder}/scripts/customizing/customizing.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"

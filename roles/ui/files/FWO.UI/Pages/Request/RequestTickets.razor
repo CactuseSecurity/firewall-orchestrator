@@ -3,24 +3,27 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Middleware.Client
 
-@page "/request/tickets"
+@page "/request/tickets/{ticketId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
+@inject MiddlewareClient middlewareClient
 
 <h3>@(userConfig.GetText("create_ticket"))</h3>
 <hr />
 
 @if(InitComplete)
 {
-    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" ReqHandler="reqHandler" ResetParent="Reset"/>
+    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" WfHandler="wfHandler" ResetParent="Reset"/>
 }
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
+        <span class="sr-only">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -31,9 +34,13 @@ else
     
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
-        
-    private RequestHandler reqHandler = new RequestHandler();
-    private RequestStateDict states = new RequestStateDict();
+
+    [Parameter]
+    public string? TicketId { get; set; }
+
+    private WfHandler wfHandler = new ();
+    private WfStateDict states = new ();
+    private List<int> OwnerIds = new ();
     private bool InitComplete = false;
 
 
@@ -44,8 +51,13 @@ else
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Requester, Roles.Auditor });
             await states.Init(apiConnection);
 
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
+            if(userConfig.ReqOwnerBased)
+            {
+                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+            }
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
             await Reset();
+            await HandleTicketId();
             InitComplete = true;
         }
         catch (Exception exception)
@@ -54,12 +66,24 @@ else
         }
     }
 
+    private async Task HandleTicketId()
+    {
+        if(long.TryParse(TicketId, out long ticketId))
+        {
+            string newPhase = await wfHandler.HandleExtTicketId(WorkflowPhases.request, ticketId);
+            if(newPhase != "")
+            {
+                NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
+            }
+        }
+    }
+
     private async Task Reset()
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await reqHandler.Init();
+            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            await wfHandler.Init(OwnerIds);
         }
         catch (Exception exception)
         {

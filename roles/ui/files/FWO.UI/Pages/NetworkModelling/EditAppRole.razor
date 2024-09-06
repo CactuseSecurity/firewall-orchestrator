@@ -6,7 +6,7 @@
 
 @if (Display)
 {
-    <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
+    <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
             Size="@(AppRoleHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
@@ -23,13 +23,13 @@
                         {
                             <div class="form-group row">
                                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
-                                @if(AddMode && !AppRoleHandler.ReadOnly)
+                                @if(AppRoleHandler.AddMode && !AppRoleHandler.ReadOnly)
                                 {
                                     <div class="col-sm-8">
-                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display())" 
+                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))" 
                                                 SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
                                             <ElementTemplate Context="area">
-                                                @((MarkupString)area.DisplayHtml())
+                                                @((MarkupString)DisplayAreaWithObjectCount(area))
                                             </ElementTemplate>
                                         </Dropdown>
                                     </div>
@@ -86,7 +86,7 @@
                             {
                                 foreach(var appserver in ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers))
                                 {
-                                    <div class="mh-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)appserver.DisplayWithIcon())</div>
+                                    <div class="mh-13 col-sm-11 mt-1 border bg-transparent">@((MarkupString)appserver.DisplayWithIcon())</div>
                                 }
                             }
                             else
@@ -105,7 +105,7 @@
                                 </div>
                             }
                         </div>
-                        @if(!AddMode)
+                        @if(!AppRoleHandler.AddMode)
                         {
                             <label class="col-sm-12 small mt-2">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
                         }
@@ -123,7 +123,7 @@
                 {
                     @if(AppRoleHandler.IsOwner)
                     {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => {if(await AppRoleHandler.Save()) Close();}">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     }
                     else
                     {
@@ -140,6 +140,9 @@
 @code
 {
     [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
@@ -155,13 +158,14 @@
     public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
 
     [Parameter]
-    public bool AddMode { get; set; } = false;
+    public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
 
 
     private ModellingDnDContainer Container { get; set; } = new();
-    int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth + 300;
+    int sidebarLeftWidth = GlobalConst.kObjLibraryWidth;
 
     private List<ModellingNetworkArea> areas = new();
+    private ModellingAppRole unchangedAppRole = new();
     private bool firstTry = true;
     private bool workInProgress = false;
 
@@ -169,7 +173,9 @@
     {
         try
         {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
             areas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
+            apiConnection.SwitchBack();
             // todo: select relevant areas for owner?
         }
         catch (Exception exception)
@@ -191,28 +197,57 @@
                 }
                 else
                 {
+                    foreach(var area in areas)
+                    {
+                        AppRoleHandler.CountMembers(area);
+                    }
+                    CustomSortAreas();
                     ModellingNetworkArea? existArea = areas.FirstOrDefault(a => a.IdString == AppRoleHandler.ActAppRole.Area?.IdString);
                     if(existArea != null)
                     {
                         AppRoleHandler.ActAppRole.Area = existArea;
                     }
-                    await OnSelectedAreaChanged(AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
+                    await OnSelectedAreaChanged(AppRoleHandler.AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
                 }
             }
             else
             {
                 AppRoleHandler.AppServersInArea = AppRoleHandler.AvailableAppServers.Where(x => !x.IsDeleted).ToList();
             }
+            unchangedAppRole = new(AppRoleHandler.ActAppRole);
         }
     }
 
-    private async Task HandleServerDrop()
+    private string DisplayAreaWithObjectCount(ModellingNetworkArea area)
+    {
+        return $"<span class=\"{(area.MemberCount == 0 ? "text-secondary" : "")}\">{area.DisplayHtml() + DisplayObjectCount(area)}</span>";
+    }
+
+    private string DisplayObjectCount(ModellingNetworkArea area)
+    {
+        return $": {area.MemberCount.ToString()} {userConfig.GetText("objects")}";
+    }
+
+    private void HandleServerDrop()
     {
         if(Container.AppServerElements.Count > 0)
         {
             AppRoleHandler.AppServerToAppRole(Container.AppServerElements);
         }
         Container.Clear();
+    }
+
+    private async Task Save()
+    {
+        if(await AppRoleHandler.Save())
+        {
+            if(unchangedAppRole.Name != AppRoleHandler.ActAppRole.Name || unchangedAppRole.IdString != AppRoleHandler.ActAppRole.IdString)
+            {
+                await RefreshParent();
+            }
+            unchangedAppRole = new(AppRoleHandler.ActAppRole);
+            Close();
+        }
     }
 
     private void Close()
@@ -237,5 +272,10 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
+    }
+
+    private void CustomSortAreas()
+    {
+        areas.Sort((ModellingNetworkArea a, ModellingNetworkArea b) => a?.CompareTo(b) ?? -1);
     }
 }

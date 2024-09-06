@@ -14,39 +14,41 @@
         @if (Display)
         {
             <div class="m-2">
-                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                @if((context.ApproverDn == null || context.ApproverDn == "") && !ReqHandler.AddTicketMode && !ReqHandler.ReadOnlyMode)
+                                @if((context.ApproverDn == null || context.ApproverDn == "") && !WfHandler.AddTicketMode && !WfHandler.ReadOnlyMode)
                                 {
-                                    <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">@(userConfig.GetText("add_comment"))</button>
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 }
                             </div>
                         </Template>
                     </Column>                    
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("opened"))" Field="@(x => x.DateOpened)" Sortable="true" Filterable="true" />
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
+                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("opened"))" Field="@(x => x.DateOpened)" Sortable="true" Filterable="true" />
+                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
+                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
                         <Template>
                             @(new DistName(context.AssignedGroup).UserName)
                         </Template>
                     </Column>
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approved"))" Field="@(x => x.ApprovalDate)" Sortable="true" Filterable="true" />
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approver"))" Field="@(x => x.ApproverDn)" Sortable="true" Filterable="true" >
+                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("approved"))" Field="@(x => x.ApprovalDate)" Sortable="true" Filterable="true" />
+                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("approver"))" Field="@(x => x.ApproverDn)" Sortable="true" Filterable="true" >
                         <Template>
                             @(new DistName(context.ApproverDn).UserName)
                         </Template>
                     </Column>
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
+                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
                         <Template>
                             @(States.Name[context.StateId])
                         </Template>
                     </Column>
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(context.getAllComments())
+                            @(context.GetAllComments())
                         </Template>
                     </Column>
                 </Table>
@@ -60,8 +62,8 @@
     </Footer>
 </PopUp>
 
-<AssignObject @bind-Display="ReqHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="ReqHandler.ActApproval" Assign="ReqHandler.AssignApprovalGroup" ObjectName="" RoleList="validRoles"/>
-<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
+<AssignObject @bind-Display="WfHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="WfHandler.ActApproval" Assign="WfHandler.AssignApprovalGroup" ObjectName="" RoleList="validRoles"/>
+<CommentObject @bind-Display="WfHandler.DisplayApprovalCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
 
 @code
 {
@@ -75,18 +77,18 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public WfHandler WfHandler { get; set; } = new ();
 
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
+    public List<WfApproval> Approvals { get; set; } = new ();
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public WfStateDict States { get; set; } = new ();
 
-    static List<string> validRoles = new List<string>(){Roles.Approver};
+    static List<string> validRoles = new (){Roles.Approver};
 
 
     private async Task Close()
@@ -97,22 +99,22 @@
 
     private async Task Reset()
     {
-        ReqHandler.ResetApprovalActions();
+        WfHandler.ResetApprovalActions();
         StateHasChanged();
     }
 
-    private async Task AssignApproval(RequestApproval approval)
+    private async Task AssignApproval(WfApproval approval)
     {
-        await ReqHandler.SelectApprovalPopUp(approval, ObjAction.displayAssign);
+        await WfHandler.SelectApprovalPopUp(approval, ObjAction.displayAssign);
     }
 
-    private async Task InitAddComment(RequestApproval approval)
+    private async Task InitAddComment(WfApproval approval)
     {
-        await ReqHandler.SelectApprovalPopUp(approval, ObjAction.displayComment);
+        await WfHandler.SelectApprovalPopUp(approval, ObjAction.displayComment);
     }
     private async Task ConfAddComment(string commentText)
     {
-        await ReqHandler.ConfAddCommentToApproval(commentText);
+        await WfHandler.ConfAddCommentToApproval(commentText);
         StateHasChanged();
     }
 

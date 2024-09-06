@@ -19,13 +19,23 @@
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("requests"))</h5>
                 </li>
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                     <li class="nav-item px-2">
                         <NavLink class="nav-link" href="request/ticketsoverview">
                             <span class="@Icons.Tickets"></span> @(userConfig.GetText("tickets"))
                         </NavLink>
                     </li>
                 </AuthorizeView>
+                @if(!userConfig.ReqReducedView)
+                {
+                    <AuthorizeView Roles="@($"{Roles.Requester}")">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="request/ticketsoverview">
+                                <span class="@Icons.Tickets"></span> @(userConfig.GetText("tickets"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.request])
                 {
                     <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Auditor}")">
@@ -83,7 +93,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
+        <span class="sr-only">@(userConfig.GetText("loading"))</span>
     </div>
 }
     

@@ -1,6 +1,7 @@
 @using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.Middleware.Client
 
@@ -48,7 +49,7 @@
         </Column>
         <Column TableItem="Device" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
-                @(GlobalConfig.ShowBool(!context.ImportDisabled))
+                @(GlobalFunc.ShowBool(!context.ImportDisabled))
             </Template>
         </Column>
     </Table>
@@ -190,31 +191,31 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
-    private List<Device> devices = new List<Device>();
-    private List<DeviceType> deviceTypes = new List<DeviceType>();
+    private List<Device> devices = [];
+    private List<DeviceType> deviceTypes = [];
     private IEnumerable<DeviceType> matchingDeviceTypes = new List<DeviceType>();
-    private List<Management> managements = new List<Management>();
+    private List<Management> managements = [];
 
     private bool EditMode = false;
     private bool DeleteMode = false;
     private bool AddMode = false;
 
-    private Device actDevice = new Device();
+    private Device actDevice = new();
     private bool workInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
-            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(DeviceQueries.getDeviceTypeDetails);
 
             JwtReader jwt = new JwtReader(userConfig.User.Jwt);
             jwt.Validate();
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             else
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
         }
         catch (Exception exception)
         {
@@ -255,7 +256,7 @@
             workInProgress = true;
             StateHasChanged();
             var Variables = new { id = actDevice.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteDevice, Variables)).DeletedId;
             if (delId == actDevice.Id)
             {
                 devices.Remove(actDevice);
@@ -273,7 +274,7 @@
     private void Add()
     {
         AddMode = true;
-        Device newDevice = new Device()
+        Device newDevice = new()
         {
             DeviceType = deviceTypes.First(),
             Management = new Management { Id = managements.First().Id, DeviceType = deviceTypes.First() }
@@ -284,7 +285,7 @@
     private void Clone(Device device)
     {
         AddMode = true;
-        Device newDevice = new Device(device);
+        Device newDevice = new(device);
         newDevice.Id = 0;
         Edit(newDevice);
     }
@@ -314,7 +315,7 @@
                         hideInUi = actDevice.HideInUi,
                         comment = actDevice.Comment
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newDevice, Variables)).ReturnIds;
                     if (returnIds == null)
                     {
                         DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
@@ -344,7 +345,7 @@
                         hideInUi = actDevice.HideInUi,
                         comment = actDevice.Comment
                     };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.updateDevice, Variables)).UpdatedId;
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateDevice, Variables)).UpdatedId;
                     EditMode = (udId == actDevice.Id ? false : true);
                     devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
                 }
@@ -376,8 +377,8 @@
     {
         try
         {
-            var Variables = new { tenantId = 1, deviceId = deviceId };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addDeviceToTenant, Variables);
+            var Variables = new { tenantId = GlobalConst.kTenant0Id, deviceId = deviceId };
+            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addDeviceToTenant, Variables);
         }
         catch (System.Exception exception)
         {

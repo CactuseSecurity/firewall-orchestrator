@@ -32,19 +32,19 @@ namespace FWO.Api.Data
         [JsonProperty("tenant_to_managements"), JsonPropertyName("tenant_to_managements")]
         public TenantManagement[] TenantManagements { get; set; }
 
-        public int[] VisibleGatewayIds { get; set; } = Array.Empty<int>();
-        public int[] VisibleManagementIds { get; set; } = Array.Empty<int>();
+        public int[] VisibleGatewayIds { get; set; } = [];
+        public int[] VisibleManagementIds { get; set; } = [];
 
-        public TenantViewManagement[] TenantVisibleManagements { get; set; } = Array.Empty<TenantViewManagement>();
-        public TenantViewGateway[] TenantVisibleGateways { get; set; } = Array.Empty<TenantViewGateway>();
+        public TenantViewManagement[] TenantVisibleManagements { get; set; } = [];
+        public TenantViewGateway[] TenantVisibleGateways { get; set; } = [];
 
 
         public Tenant()
         {
-            TenantGateways = new TenantGateway[]{};
-            TenantManagements = new TenantManagement[]{};
-            VisibleGatewayIds = new int[]{};
-            VisibleManagementIds = new int[]{};
+            TenantGateways = [];
+            TenantManagements = [];
+            VisibleGatewayIds = [];
+            VisibleManagementIds = [];
         }
 
         public Tenant(Tenant tenant)
@@ -61,13 +61,13 @@ namespace FWO.Api.Data
             {
                 foreach (TenantGateway gateway in tenant.TenantGateways)
                     {
-                        VisibleGatewayIds = VisibleGatewayIds.Concat(new int[] { gateway.VisibleGateway.Id }).ToArray();
+                        VisibleGatewayIds = VisibleGatewayIds.Concat([gateway.VisibleGateway.Id]).ToArray();
                     }
             }
             else
             {
-                TenantGateways = new TenantGateway[]{};
-                VisibleGatewayIds = new int[]{};
+                TenantGateways = [];
+                VisibleGatewayIds = [];
             }
         }
 
@@ -78,7 +78,7 @@ namespace FWO.Api.Data
             Comment = tenantGetParameters.Comment;
             Project = tenantGetParameters.Project;
             ViewAllDevices = tenantGetParameters.ViewAllDevices;
-            List<TenantViewGateway> deviceList = new List<TenantViewGateway>();
+            List<TenantViewGateway> deviceList = [];
 
             foreach(int id in VisibleGatewayIds)
             {
@@ -99,19 +99,19 @@ namespace FWO.Api.Data
 
         public TenantGetReturnParameters ToApiParams()
         {
-            TenantGetReturnParameters tenantGetParams = new TenantGetReturnParameters
+            TenantGetReturnParameters tenantGetParams = new()
             {
                 Id = this.Id,
                 Name = this.Name,
                 Comment = this.Comment,
                 Project = this.Project,
                 ViewAllDevices = this.ViewAllDevices,
-                VisibleGateways = new List<TenantViewGateway>(),
-                VisibleManagements = new List<TenantViewManagement>(),
-                SharedGateways = new List<TenantViewGateway>(),
-                UnfilteredGateways = new List<TenantViewGateway>(),
-                SharedManagements = new List<TenantViewManagement>(),
-                UnfilteredManagements = new List<TenantViewManagement>()
+                VisibleGateways = [],
+                VisibleManagements = [],
+                SharedGateways = [],
+                UnfilteredGateways = [],
+                SharedManagements = [],
+                UnfilteredManagements = []
             };
 
             if (TenantGateways != null)
@@ -150,7 +150,7 @@ namespace FWO.Api.Data
 
         public TenantEditParameters ToApiUpdateParams()
         {
-            TenantEditParameters tenantUpdateParams = new TenantEditParameters
+            TenantEditParameters tenantUpdateParams = new()
             {
                 Id = this.Id,
                 Comment = this.Comment,
@@ -160,9 +160,9 @@ namespace FWO.Api.Data
             return tenantUpdateParams;
         }
 
-        public static async Task<Tenant?> getSingleTenant(ApiConnection conn, int tenantId)
+        public static async Task<Tenant?> GetSingleTenant(ApiConnection conn, int tenantId)
         {
-            Tenant[] tenants = Array.Empty<Tenant>(); 
+            Tenant[] tenants = []; 
             tenants = await conn.SendQueryAsync<Tenant[]>(AuthQueries.getTenants, new { tenant_id = tenantId });
             if (tenants.Length > 0)
             {

@@ -59,7 +59,7 @@
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("owner_group"))" Field="@(x => x.OwnerGroup)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.OwnerGroup))
+                @(GlobalFunc.ShowBool(context.OwnerGroup))
             </Template>
         </Column>
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("users"))" Field="@(x => x.Users)" Sortable="false" Filterable="false">
@@ -90,7 +90,7 @@
                         }
                         else
                         {
-                            @(GlobalConfig.ShowBool(actGroup.OwnerGroup))
+                            @(GlobalFunc.ShowBool(actGroup.OwnerGroup))
                         }
                     </div>
                 </div>
@@ -140,15 +140,15 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
-    private List<UserGroup> groups = new List<UserGroup>();
-    private List<UserGroup> sampleGroups = new List<UserGroup>();
-    private List<Role> roles = new List<Role>();
-    private List<Role> availableRoles = new List<Role>();
-    private List<Role> ownerGroupRoles = new List<Role>();
+    private List<UserGroup> groups = new ();
+    private List<UserGroup> sampleGroups = new ();
+    private List<Role> roles = new ();
+    private List<Role> availableRoles = new ();
+    private List<Role> ownerGroupRoles = new ();
     private Role? selectedRole;
     private bool showSampleRemoveButton = false;
 
-    private UserGroup actGroup = new UserGroup();
+    private UserGroup actGroup = new ();
     private string newGroupName = "";
 
     private bool AddGroupMode = false;

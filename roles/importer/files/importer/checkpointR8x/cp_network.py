@@ -4,6 +4,7 @@ import cp_const
 from fwo_const import list_delimiter
 import fwo_alert, fwo_api
 import ipaddress 
+import traceback
 
 
 def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, debug_level=0):
@@ -17,6 +18,9 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
         nw_obj.update({'control_id': import_id})
         if nw_obj['obj_typ'] == 'interoperable-device':
             nw_obj.update({'obj_typ': 'external-gateway'})
+        if nw_obj['obj_typ'] == 'CpmiVoipSipDomain':
+            logger.info(f"found VOIP object - tranforming to empty group")
+            nw_obj.update({'obj_typ': 'group'})
         # set a dummy IP address for objects without IP addreses
         if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
             logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
@@ -37,6 +41,10 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
         for chunk in object_table['object_chunks']:
             if 'objects' in chunk:
                 for obj in chunk['objects']:
+
+                    if 'uid' in obj and obj['uid']=='e9ba0c50-ddd7-4aa8-9df6-1c4045ba10bb':
+                        logger.debug(f"found SIP nw object with uid {obj['uid']} in object dictionary")
+                
                     ip_addr = ''
                     member_refs = None
                     member_names = None
@@ -50,27 +58,31 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                             obj['members'] = None
                         
                     ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
-                    first_ip = ip_addr
-                    last_ip = None
+
+                    ipArray = cidrToRange(ip_addr)
+                    
+#                    first_ip, last_ip = get_first_and_last_ip(ip_addr)
+
+                    if len(ipArray)==2:
+                        first_ip = ipArray[0]
+                        last_ip  = ipArray[1]
+                    elif len(ipArray)==1:
+                        first_ip = ipArray[0]
+                        last_ip  = None
+                    else:
+                        logger.warning("found strange ip: " + ip_addr)
+
                     obj_type = 'undef'
                     if 'type' in obj:
                         obj_type = obj['type']
-                    elif 'uid-in-updatable-objects-repository' in obj:
+                    if 'uid-in-updatable-objects-repository' in obj:
                         obj_type = 'group'
                         obj['name'] = obj['name-in-updatable-objects-repository']
                         obj['uid'] = obj['uid-in-updatable-objects-repository']
                         obj['color'] = 'black'
-                    if obj_type == 'dns-domain':
-                        first_ip = None
-                        last_ip = None
+                    # TODO: handle exclusion groups, access-roles correctly
+                    if obj_type in ['updatable-object', 'access-role', 'group-with-exclusion', 'security-zone', 'dns-domain']:
                         obj_type = 'group'
-
-                    if obj_type == 'group-with-exclusion':
-                        first_ip = None
-                        last_ip = None
-                        obj_type = 'group'
-                        # TODO: handle exclusion groups correctly
-
                     if obj_type == 'group':
                         first_ip = None
                         last_ip = None
@@ -87,8 +99,7 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                                         obj['name'] + "' without hyphen: " + ip_addr)
                     elif obj_type in cp_const.cp_specific_object_types:
                         if debug_level > 5:
-                            logger.debug("parse_network::collect_nw_objects - rewriting non-standard cp-host-type '" +
-                                        obj['name'] + "' with object type '" + obj_type + "' to host")
+                            logger.debug(f"rewriting non-standard cp-host-type '{obj['name']}' with object type '{obj_type}' to host")
                             logger.debug("obj_dump:" + json.dumps(obj, indent=3))
                         obj_type = 'host'
                     # adding the object:
@@ -165,3 +176,71 @@ def get_ip_of_obj(obj, mgm_id=None):
             description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
         ip_addr = '0.0.0.0/32'  # setting syntactically correct dummy ip
     return ip_addr
+
+
+def makeHost(ipIn):
+    ip_obj = ipaddress.ip_address(ipIn)
+    
+    # If it's a valid address, append the appropriate CIDR notation
+    if isinstance(ip_obj, ipaddress.IPv4Address):
+        return f"{ipIn}/32"
+    elif isinstance(ip_obj, ipaddress.IPv6Address):
+        return f"{ipIn}/128"
+
+# def get_first_and_last_ip(cidr_notation):
+#     # Create an ip_network object
+#     network = ipaddress.ip_network(cidr_notation, strict=False)
+    
+#     # Get the first IP address in the network
+#     first_ip = makeHost(network.network_address)
+    
+#     # Get the last IP address in the network
+#     last_ip = makeHost(network.broadcast_address)
+    
+#     return first_ip, last_ip
+
+
+def cidrToRange(ip):
+    logger = getFwoLogger()
+
+    if isinstance(ip, str):
+        if ip.startswith('5002:abcd:1234:2800'):
+            logger.debug("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! found test ip " + ip)
+
+        # dealing with ranges:
+        if '-' in ip:
+            return '-'.split(ip)
+
+        ipVersion = validIPAddress(ip)
+        if ipVersion=='Invalid':
+            logger.warning("error while decoding ip '" + ip + "'")
+            return [ip]
+        elif ipVersion=='IPv4':
+            net = ipaddress.IPv4Network(ip)
+        elif ipVersion=='IPv6':
+            net = ipaddress.IPv6Network(ip)    
+        return [makeHost(str(net.network_address)), makeHost(str(net.broadcast_address))]
+            
+    return [ip]
+
+
+def validIPAddress(IP: str) -> str: 
+    try: 
+        t = type(ipaddress.ip_address(IP))
+        if t is ipaddress.IPv4Address:
+            return "IPv4"
+        elif t is ipaddress.IPv6Address:
+            return "IPv6"
+        else:
+            return 'Invalid'
+    except:
+        try:
+            t = type(ipaddress.ip_network(IP))
+            if t is ipaddress.IPv4Network:
+                return "IPv4"
+            elif t is ipaddress.IPv6Network:
+                return "IPv6"
+            else:
+                return 'Invalid'        
+        except:
+            return "Invalid"

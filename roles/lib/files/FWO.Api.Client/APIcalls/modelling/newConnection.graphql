@@ -1,20 +1,28 @@
 mutation newConnection(
   $name: String
   $appId: Int
+  $proposedAppId: Int
   $reason: String
   $isInterface: Boolean
   $usedInterfaceId: Int
+  $isRequested: Boolean
+  $ticketId: bigint
   $creator: String
   $commonSvc: Boolean
+  $connProp: String
   ) {
   insert_modelling_connection(objects: {
     name: $name
     app_id: $appId
+    proposed_app_id: $proposedAppId
     reason: $reason
     is_interface: $isInterface
     used_interface_id: $usedInterfaceId
+    is_requested: $isRequested
+    ticket_id: $ticketId
     creator: $creator
     common_service: $commonSvc
+    conn_prop: $connProp
   }) {
     returning {
       newId: id

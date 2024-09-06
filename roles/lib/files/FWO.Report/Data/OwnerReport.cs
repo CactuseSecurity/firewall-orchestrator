@@ -1,21 +1,26 @@
-﻿using FWO.GlobalConstants;
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
 
 namespace FWO.Report
 {
     public class OwnerReport
     {
         public string Name = "";
-        public List<ModellingConnection> Connections { get; set; } = new ();
-        public List<ModellingConnection> RegularConnections { get; set; } = new ();
-        public List<ModellingConnection> Interfaces { get; set; } = new ();
-        public List<ModellingConnection> CommonServices { get; set; } = new ();
+        public List<ModellingConnection> Connections { get; set; } = [];
+        public List<ModellingConnection> RegularConnections { get; set; } = [];
+        public List<ModellingConnection> Interfaces { get; set; } = [];
+        public List<ModellingConnection> CommonServices { get; set; } = [];
 
-        public List<NetworkObject> AllObjects = new();
-        public List<NetworkService> AllServices = new();
+        public List<NetworkObject> AllObjects = [];
+        public List<NetworkService> AllServices = [];
+        private readonly long DummyARid = -1;
 
         public OwnerReport()
         {}
+
+        public OwnerReport(long dummyARid)
+        {
+            DummyARid = dummyARid;
+        }
 
         public OwnerReport(OwnerReport report)
         {
@@ -57,7 +62,7 @@ namespace FWO.Report
 
         public List<ModellingAppServer> GetAllAppServers()
         {
-            List<ModellingAppServer> allAppServers = new();
+            List<ModellingAppServer> allAppServers = [];
             foreach(var conn in Connections)
             {
                 allAppServers = allAppServers.Union(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList()).ToList();
@@ -68,27 +73,46 @@ namespace FWO.Report
 
         public List<NetworkObject> GetAllNetworkObjects(bool resolved = false)
         {
-            List<NetworkObject> allObjects = new();
+            List<NetworkObject> allObjects = [];
             foreach(var conn in Connections)
             {
-                List<NetworkObject> objList = new();
+                List<NetworkObject> objList = [];
                 GetObjectsFromAR(conn.SourceAppRoles, ref objList, resolved);
                 GetObjectsFromAR(conn.DestinationAppRoles, ref objList, resolved);
+                GetObjectsFromNwGroups(conn.SourceNwGroups, ref objList, resolved);
+                GetObjectsFromNwGroups(conn.DestinationNwGroups, ref objList, resolved);
                 allObjects = allObjects.Union(objList).ToList();
             }
-            allObjects = allObjects.Union(Array.ConvertAll(GetAllAppServers().ToArray(), x => ModellingAppServer.ToNetworkObject(x)).ToList()).ToList();
+            allObjects = allObjects.Union(GetAllAppServers().ConvertAll(ModellingAppServer.ToNetworkObject)).ToList();
             return allObjects;
         }
 
-        private static void GetObjectsFromAR(List<ModellingAppRoleWrapper> appRoles, ref List<NetworkObject> objectList, bool resolved = false)
+        private static void GetObjectsFromNwGroups(List<ModellingNwGroupWrapper> nwGroups, ref List<NetworkObject> objectList, bool resolved = false)
         {
-            foreach (var objGrp in appRoles)
+            foreach (var nwGrpWrapper in nwGroups)
             {
-                objectList.Add(objGrp.Content.ToNetworkObjectGroup());
+                objectList.Add(nwGrpWrapper.Content.ToNetworkObjectGroup());
                 if(resolved)
                 {
-                    NetworkObject objectGroup = objGrp.Content.ToNetworkObjectGroup();
-                    foreach(var obj in objectGroup.ObjectGroups)
+                    foreach(var obj in nwGrpWrapper.Content.ToNetworkObjectGroup().ObjectGroups)
+                    {
+                        if(obj.Object != null)
+                        {
+                            objectList.Add(obj.Object);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void GetObjectsFromAR(List<ModellingAppRoleWrapper> appRoles, ref List<NetworkObject> objectList, bool resolved = false)
+        {
+            foreach (var aRWrapper in appRoles.Where(a => a.Content.Id != DummyARid))
+            {
+                objectList.Add(aRWrapper.Content.ToNetworkObjectGroup());
+                if(resolved)
+                {
+                    foreach(var obj in aRWrapper.Content.ToNetworkObjectGroup().ObjectGroups)
                     {
                         if(obj.Object != null)
                         {
@@ -101,10 +125,10 @@ namespace FWO.Report
 
         public List<NetworkService> GetAllServices(bool resolved = false)
         {
-            List<NetworkService> allServices = new();
+            List<NetworkService> allServices = [];
             foreach(var conn in Connections)
             {
-                List<NetworkService> svcList = new();
+                List<NetworkService> svcList = [];
                 foreach (var svcGrp in conn.ServiceGroups)
                 {
                     NetworkService serviceGroup = svcGrp.Content.ToNetworkServiceGroup();
@@ -172,7 +196,7 @@ namespace FWO.Report
             return names;
         }
 
-        private void SetSvcNumbers(ref List<NetworkService> svcList)
+        private static void SetSvcNumbers(ref List<NetworkService> svcList)
         {
             long number = 1;
             foreach(var svc in svcList)
@@ -181,7 +205,7 @@ namespace FWO.Report
             }
         }
 
-        private void SetObjectNumbers(ref List<NetworkObject> objList)
+        private static void SetObjectNumbers(ref List<NetworkObject> objList)
         {
             long number = 1;
             foreach(var obj in objList)

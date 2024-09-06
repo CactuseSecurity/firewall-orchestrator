@@ -14,6 +14,18 @@ namespace FWO.Api.Data
         public string TooltipText = "";
         public long Number;
 
+
+        public ModellingObject()
+        {}
+
+        public ModellingObject(ModellingObject modellingObject)
+        {
+            Name = modellingObject.Name;
+            AppId = modellingObject.AppId;
+            TooltipText = modellingObject.TooltipText;
+            Number = modellingObject.Number;
+        }
+
         public virtual string Display()
         {
             return Name;

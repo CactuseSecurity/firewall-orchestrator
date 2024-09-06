@@ -1,0 +1,41 @@
+﻿@using FWO.Config.Api
+@using FWO.Api.Data
+
+@inject UserConfig userConfig
+
+<div class="form-group row">
+    <label class="col-form-label col-sm-3">@(userConfig.GetText("application")):</label>&nbsp;
+    @if(Apps.Count == 1)
+    {
+        <label class="col-form-label text-primary col-sm-8">@((MarkupString)ModellingHandlerBase.DisplayApp(userConfig, SelectedOwner))</label>
+    }
+    else
+    {
+        <div class="col-sm-8">
+            <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display(userConfig.GetText("common_service")))"
+                    SelectedElement="SelectedOwner" SelectedElementChanged="SelectedOwnerChanged" Elements="Apps" Nullable="Nullable">
+                <ElementTemplate Context="app">
+                    @((MarkupString)(WithConnectionStatus ? ModellingHandlerBase.DisplayApp(userConfig, app) : app.Display(userConfig.GetText("common_service"))))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    }
+</div>
+
+@code
+{
+    [Parameter]
+    public FwoOwner SelectedOwner { get; set; } = new ();
+
+    [Parameter]
+    public EventCallback<FwoOwner> SelectedOwnerChanged { get; set; }
+
+    [Parameter]
+    public List<FwoOwner> Apps { get; set; } = new ();
+
+    [Parameter]
+    public bool WithConnectionStatus { get; set; } = true;
+
+    [Parameter]
+    public bool Nullable { get; set; } = false;
+}

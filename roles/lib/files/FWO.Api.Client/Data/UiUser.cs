@@ -20,6 +20,12 @@ namespace FWO.Api.Data
         [JsonProperty("uiuser_email"), JsonPropertyName("uiuser_email")]
         public string? Email { get; set; }
 
+        [JsonProperty("uiuser_first_name"), JsonPropertyName("uiuser_first_name")]
+        public string? Firstname { get; set; }
+
+        [JsonProperty("uiuser_last_name"), JsonPropertyName("uiuser_last_name")]
+        public string? Lastname { get; set; }
+
         [JsonProperty("tenant"), JsonPropertyName("tenant")]
         public Tenant? Tenant { get; set;}
 
@@ -36,18 +42,18 @@ namespace FWO.Api.Data
         public bool PasswordMustBeChanged { get; set; }
 
         [JsonProperty("ldap_connection"), JsonPropertyName("ldap_connection")]
-        public UiLdapConnection LdapConnection { get; set;} = new UiLdapConnection();
+        public UiLdapConnection LdapConnection { get; set;} = new ();
 
         public string Jwt { get; set; } = "";
-        public List<string> Roles { get; set; } = new();
-        public List<string> Groups { get; set; } = new();
-        public List<int> Ownerships { get; set; } = new();
+        public List<string> Roles { get; set; } = [];
+        public List<string> Groups { get; set; } = [];
+        public List<int> Ownerships { get; set; } = [];
 
 
         public UiUser()
         {
-            Tenant = new Tenant();
-            LdapConnection = new UiLdapConnection();
+            Tenant = new ();
+            LdapConnection = new ();
         }
         
         public UiUser(UiUser user)
@@ -60,6 +66,8 @@ namespace FWO.Api.Data
                 Tenant = new Tenant(user.Tenant);
             }
             Password = user.Password;
+            Firstname = user.Firstname;
+            Lastname = user.Lastname;
             Email = user.Email;
             Language = user.Language;
             Groups = user.Groups;
@@ -77,18 +85,20 @@ namespace FWO.Api.Data
             DbId = userGetReturnParameters.UserId;
             Dn = userGetReturnParameters.UserDn;
             Email = userGetReturnParameters.Email;
+            Firstname = userGetReturnParameters.Firstname;
+            Lastname = userGetReturnParameters.Lastname;
             if (userGetReturnParameters.TenantId != 0)
             {
-                Tenant = new Tenant(){Id = userGetReturnParameters.TenantId};
+                Tenant = new (){Id = userGetReturnParameters.TenantId};
             }
             Language = userGetReturnParameters.Language;
             LastLogin = userGetReturnParameters.LastLogin;
             LastPasswordChange = userGetReturnParameters.LastPasswordChange;
             PasswordMustBeChanged = userGetReturnParameters.PwChangeRequired;
-            LdapConnection = new UiLdapConnection(){Id = userGetReturnParameters.LdapId};
+            LdapConnection = new (){Id = userGetReturnParameters.LdapId};
         }
 
-        public bool isInternal()
+        public bool IsInternal()
         {
             return new DistName(Dn).IsInternal();
         }
@@ -98,6 +108,8 @@ namespace FWO.Api.Data
             bool shortened = false;
             Name = Sanitizer.SanitizeLdapNameMand(Name, ref shortened);
             Email = Sanitizer.SanitizeOpt(Email, ref shortened);
+            Firstname = Sanitizer.SanitizeOpt(Firstname, ref shortened);
+            Lastname = Sanitizer.SanitizeOpt(Lastname, ref shortened);
             Password = Sanitizer.SanitizePasswMand(Password, ref shortened);
             return shortened;
         }
@@ -110,6 +122,8 @@ namespace FWO.Api.Data
                 UserId = this.DbId,
                 UserDn = this.Dn,
                 Email = this.Email,
+                Firstname = this.Firstname,
+                Lastname = this.Lastname,
                 TenantId = this.Tenant != null ? this.Tenant.Id : 0,
                 Language = this.Language,
                 LastLogin = this.LastLogin,

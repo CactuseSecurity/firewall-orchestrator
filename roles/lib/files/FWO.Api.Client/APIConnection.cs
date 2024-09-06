@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FWO.Api.Client
+﻿namespace FWO.Api.Client
 {
     public abstract class ApiConnection : IDisposable
     {
@@ -12,7 +6,7 @@ namespace FWO.Api.Client
 
         public event EventHandler<string>? OnAuthHeaderChanged;
 
-        protected List<ApiSubscription> subscriptions = new List<ApiSubscription>();
+        protected List<ApiSubscription> subscriptions = [];
 
         protected void InvokeOnAuthHeaderChanged(object? sender, string newAuthHeader)
         {
@@ -29,12 +23,8 @@ namespace FWO.Api.Client
 
         public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null);
 
-        public abstract GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null);
-
-        protected virtual void AddSubscription(ApiSubscription subscription)
-        {
-            subscriptions.Add(subscription);
-        }
+        public abstract GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, 
+            GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null);
 
         protected abstract void Dispose(bool disposing);
 

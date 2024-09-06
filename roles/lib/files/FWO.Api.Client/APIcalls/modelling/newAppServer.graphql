@@ -4,6 +4,7 @@ mutation newAppServer(
   $ip: cidr
   $ipEnd: cidr
   $importSource: String
+  $customType: Int
   ) {
   insert_owner_network(objects: {
     name: $name
@@ -13,6 +14,7 @@ mutation newAppServer(
     import_source: $importSource
     is_deleted: false
     nw_type: 10
+    custom_type: $customType
   }) {
     returning {
       newId: id

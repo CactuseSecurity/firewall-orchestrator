@@ -1,4 +1,4 @@
-﻿@using NetTools;
+﻿@using NetTools
 
 @page "/compliance/zones/checks"
 
@@ -16,13 +16,13 @@
 			<IpAddressInput @bind-IpRange="sourceIpRange" />
 		</div>
 	</div>
-	<div class="form-group row">
+	<div class="form-group row mt-2">
 		<label class="col-sm-1 col-form-label">@userConfig.GetText("destination")</label>
 		<div class="col-sm-11">
 			<IpAddressInput @bind-IpRange="destinationIpRange" />
 		</div>
 	</div>
-	<div class="form-group row">
+	<div class="form-group row mt-2">
 		<div class="col-sm-1">
 			<button type="button" @onclick="CheckIpRangeInputCompliance" class="btn btn-primary">@userConfig.GetText("check")</button>
 		</div>
@@ -68,7 +68,7 @@
 	IPAddressRange? destinationIpRange;
 	bool displayOutput = false;
 	bool compliant = false;
-	List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = new List<(ComplianceNetworkZone, ComplianceNetworkZone)>();
+	List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];
 
 	private void CheckIpRangeInputCompliance()
 	{
@@ -87,8 +87,8 @@
 
 	private bool CheckRuleCompliance(Rule rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
 	{
-		List<IPAddressRange> froms = new List<IPAddressRange>();
-		List<IPAddressRange> tos = new List<IPAddressRange>();
+		List<IPAddressRange> froms = [];
+		List<IPAddressRange> tos = [];
 
 		foreach (NetworkLocation networkLocation in rule.Froms)
 		{
@@ -112,7 +112,7 @@
 		// Determine all macthing destination zones
 		List<ComplianceNetworkZone> destinationZones = DetermineZones(destination);
 
-		forbiddenCommunication = new List<(ComplianceNetworkZone, ComplianceNetworkZone)>();
+		forbiddenCommunication = [];
 
 		foreach (ComplianceNetworkZone sourceZone in sourceZones)
 		{
@@ -131,7 +131,7 @@
 
 	private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges)
 	{
-		List<ComplianceNetworkZone> result = new List<ComplianceNetworkZone>();
+		List<ComplianceNetworkZone> result = [];
 		List<List<IPAddressRange>> unseenIpAddressRanges = new List<List<IPAddressRange>>();
 
 		for (int i = 0; i < ranges.Count; i++)
@@ -168,7 +168,7 @@
 
 	private List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
 	{
-		List<IPAddressRange> ranges = new List<IPAddressRange>();
+		List<IPAddressRange> ranges = [];
 
 		if (networkObject.Type == new NetworkObjectType() { Name = ObjectType.IPRange })
 		{

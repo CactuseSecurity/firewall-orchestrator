@@ -1,5 +1,6 @@
 ﻿using FWO.Logging;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
@@ -13,8 +14,8 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class AreaSubnetDataImport : DataImportBase
     {
-        private List<ModellingImportAreaData> importedAreas = new();
-        private List<ModellingNetworkArea> existingAreas = new();
+        private List<ModellingImportAreaData> importedAreas = [];
+        private List<ModellingNetworkArea> existingAreas = [];
 
 
         /// <summary>
@@ -44,7 +45,7 @@ namespace FWO.Middleware.Server
                 if(importedNwData != null && importedNwData.Areas != null)
                 {
                     importedAreas = importedNwData.Areas;
-                    existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(Api.Client.Queries.ModellingQueries.getAreas);
+                    existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getAreas);
                     foreach(var incomingArea in importedAreas)
                     {
                         if(await SaveArea(incomingArea))
@@ -115,7 +116,7 @@ namespace FWO.Middleware.Server
                 idString = incomingArea.IdString,
                 creator = GlobalConst.kImportAreaSubnetData
             };
-            ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newArea, AreaVar)).ReturnIds;
+            ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newArea, AreaVar)).ReturnIds;
             if (areaIds != null)
             {
                 foreach(var subnet in incomingArea.Subnets)
@@ -127,7 +128,7 @@ namespace FWO.Middleware.Server
                         ipEnd = subnet.IpEnd != "" ? subnet.IpEnd : subnet.Ip,
                         importSource = GlobalConst.kImportAreaSubnetData
                     };
-                    ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
+                    ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
                     if (subnetIds != null)
                     {
                         var Vars = new
@@ -135,7 +136,7 @@ namespace FWO.Middleware.Server
                             nwObjectId = subnetIds[0].NewId,
                             nwGroupId = areaIds[0].NewId
                         };
-                        await apiConnection.SendQueryAsync<ReturnId>(Api.Client.Queries.ModellingQueries.addNwObjectToNwGroup, Vars);
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
                     }
                 }
             }
@@ -143,13 +144,18 @@ namespace FWO.Middleware.Server
 
         private async Task UpdateArea(ModellingImportAreaData incomingArea, ModellingNetworkArea existingArea)
         {
+            if(existingArea.IsDeleted)
+            {
+                await ReactivateArea(existingArea);
+            }
             List<ModellingImportAreaSubnets> subnetsToAdd = new (incomingArea.Subnets);
             List<NetworkSubnetWrapper> subnetsToDelete = new (existingArea.Subnets);
             foreach(var existingSubnet in existingArea.Subnets)
             {
                 foreach(var incomingSubnet in incomingArea.Subnets)
                 {
-                    if(incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip && incomingSubnet.IpEnd == existingSubnet.Content.IpEnd)
+                    if(incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip && 
+                        (incomingSubnet.IpEnd == existingSubnet.Content.IpEnd) || (incomingSubnet.IpEnd == "" && existingSubnet.Content.Ip == existingSubnet.Content.IpEnd))
                     {
                         subnetsToAdd.Remove(incomingSubnet);
                         subnetsToDelete.Remove(existingSubnet);
@@ -158,7 +164,7 @@ namespace FWO.Middleware.Server
             }
             foreach(var subnet in subnetsToDelete)
             {
-                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.OwnerQueries.deleteAreaSubnet, new { id = subnet.Content.Id });
+                await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.deleteAreaSubnet, new { id = subnet.Content.Id });
             }
             foreach(var subnet in subnetsToAdd)
             {
@@ -169,7 +175,7 @@ namespace FWO.Middleware.Server
                     ipEnd = subnet.IpEnd != "" ? subnet.IpEnd : subnet.Ip,
                     importSource = GlobalConst.kImportAreaSubnetData
                 };
-                ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
+                ReturnId[]? subnetIds= (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
                 if (subnetIds != null)
                 {
                     var Vars = new
@@ -177,7 +183,7 @@ namespace FWO.Middleware.Server
                         nwObjectId = subnetIds[0].NewId,
                         nwGroupId = existingArea.Id,
                     };
-                    await apiConnection.SendQueryAsync<ReturnId>(Api.Client.Queries.ModellingQueries.addNwObjectToNwGroup, Vars);
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
                 }
             }
         }
@@ -188,12 +194,12 @@ namespace FWO.Middleware.Server
             {
                 // if(await CheckAreaInUse(area))
                 // {
-                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.setAreaDeletedState, new { id = area.Id , deleted = true});
-                await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.removeSelectedNwGroupObjectFromAllApps, new { nwGroupId = area.Id }); 
+                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAreaDeletedState, new { id = area.Id , deleted = true});
+                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.removeSelectedNwGroupObjectFromAllApps, new { nwGroupId = area.Id }); 
                 // }
                 // else
                 // {
-                //     await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.ModellingQueries.deleteNwGroup, new { id = area.Id });
+                //     await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.deleteNwGroup, new { id = area.Id });
                 // }
             }
             catch (Exception exc)
@@ -202,6 +208,18 @@ namespace FWO.Middleware.Server
                 return false;
             }
             return true;
+        }
+
+        private async Task ReactivateArea(ModellingNetworkArea area)
+        {
+            try
+            {
+                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAreaDeletedState, new { id = area.Id , deleted = false});
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Reactivate Area", $"Area {area.Name}({area.IdString}) could not be reactivated.", exc);
+            }
         }
 
         // private async Task<bool> CheckAreaInUse(ModellingNetworkArea area)

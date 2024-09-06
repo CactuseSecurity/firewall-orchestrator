@@ -1,5 +1,4 @@
 ﻿using FWO.Config.Api;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -17,20 +16,27 @@ namespace FWO.Ui.Services
         protected readonly UserConfig userConfig;
         protected Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+        public List<ModellingAppServer> AvailableAppServers { get; set; } = [];
+        public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = [];
+        public List<ModellingService> AvailableServices { get; set; } = [];
+        public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = [];
+
+        public bool ReadOnly = false;
         public bool IsOwner { get; set; } = true;
         public string Message { get; set; } = "";
         public bool DeleteAllowed { get; set; } = true;
-        public List<ModellingService> SvcToAdd { get; set; } = new();
+        public List<ModellingService> SvcToAdd { get; set; } = [];
         private ModellingService actService = new();
 
         public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool readOnly = false, bool isOwner = true)
         {
             this.apiConnection = apiConnection;
             this.userConfig = userConfig;
             Application = application;
             AddMode = addMode;
             DisplayMessageInUi = displayMessageInUi;
+            ReadOnly = readOnly;
             IsOwner = isOwner;
         }
         
@@ -46,6 +52,28 @@ namespace FWO.Ui.Services
             string iconTextPart = iconText != "" ? " <span class=\"stdtext\">" + userConfig.GetText(iconText) + "</span>" : "";
             string objIconToDisplay = objIcon != "" ? $" <span class=\"{objIcon}\"/>" : "";
             return (MarkupString)(userConfig.ModIconify ? iconToDisplay + iconTextPart + objIconToDisplay : userConfig.GetText(text));
+        }
+
+        public string DisplayApp(FwoOwner app)
+        {
+            return DisplayApp(userConfig, app);
+        }
+
+        public static string DisplayApp(UserConfig userConfig, FwoOwner app)
+        {
+            string tooltip = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9004")}\"")
+                : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9003")}\"";
+            string textToDisplay = (app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "*") : "!") + app.Display(userConfig.GetText("common_service"));
+            string textClass = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "text-success") : "text-danger";
+            return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
+        }
+
+        public static string DisplayReqInt(UserConfig userConfig, long? ticketId, bool otherOwner, bool rejected = false)
+        {
+            string tooltipKey = rejected ? "C9011": otherOwner ? "C9007" : "C9008";
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(tooltipKey)}\"";
+            string content = $"{userConfig.GetText(rejected ? "InterfaceRejected" : "interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
+            return $"<span class=\"{(rejected ? "text-danger" : "text-warning")}\" {tooltip}><i>{content}</i></span>";
         }
 
         protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text, int? applicationId)
@@ -153,24 +181,41 @@ namespace FWO.Ui.Services
                     List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
                     if(interf.Count > 0)
                     {
-                        interfaceName = interf[0].Name ?? "";
-                        if(interf[0].SourceFilled())
+                        conn.SrcFromInterface = interf[0].SourceFilled();
+                        conn.DstFromInterface = interf[0].DestinationFilled();
+                        if(interf[0].IsRequested)
                         {
-                            conn.SrcFromInterface = true;
-                            conn.SourceAppServers = interf[0].SourceAppServers;
-                            conn.SourceAppRoles = interf[0].SourceAppRoles;
-                            conn.SourceNwGroups = interf[0].SourceNwGroups;
+                            conn.InterfaceIsRequested = true;
+                            conn.InterfaceIsRejected = interf[0].GetBoolProperty(ConState.Rejected.ToString());
+                            conn.TicketId = interf[0].TicketId;
                         }
-                        if(interf[0].DestinationFilled())
+                        else
                         {
-                            conn.DstFromInterface = true;
-                            conn.DestinationAppServers = interf[0].DestinationAppServers;
-                            conn.DestinationAppRoles = interf[0].DestinationAppRoles;
-                            conn.DestinationNwGroups = interf[0].DestinationNwGroups;
+                            interfaceName = interf[0].Name ?? "";
+                            if(interf[0].SourceFilled())
+                            {
+                                conn.SourceAppServers = interf[0].SourceAppServers;
+                                conn.SourceAppRoles = interf[0].SourceAppRoles;
+                                conn.SourceNwGroups = interf[0].SourceNwGroups;
+                            }
+                            if(interf[0].DestinationFilled())
+                            {
+                                conn.DestinationAppServers = interf[0].DestinationAppServers;
+                                conn.DestinationAppRoles = interf[0].DestinationAppRoles;
+                                conn.DestinationNwGroups = interf[0].DestinationNwGroups;
+                            }
+                            conn.Services = interf[0].Services;
+                            conn.ServiceGroups = interf[0].ServiceGroups;
                         }
-                        conn.Services = interf[0].Services;
-                        conn.ServiceGroups = interf[0].ServiceGroups;
-                    }  
+                        if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
+                        {
+                            conn.AddProperty(ConState.InterfaceRejected.ToString());
+                        }
+                        else if(interf[0].GetBoolProperty(ConState.Requested.ToString()))
+                        {
+                            conn.AddProperty(ConState.InterfaceRequested.ToString());
+                        }
+                    }
                 }
             }
             catch (Exception exception)
@@ -200,6 +245,24 @@ namespace FWO.Ui.Services
             return null;
         }
 
+        protected async Task<bool> CheckInterfaceInUse(ModellingConnection conn)
+        {
+            try
+            {
+                List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = conn.Id });
+                if (foundConnections.Count == 0)
+                {
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
+                return true;
+            }
+        }
+
         protected async Task<bool> CheckAppServerInUse(ModellingAppServer appServer)
         {
             try
@@ -223,9 +286,9 @@ namespace FWO.Ui.Services
         }
 
         public static async Task<List<FwoOwner>> GetOwnApps(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig,
-            ApiConnection apiConnection, Action<Exception?, string, string, bool> DisplayMessageInUi)
+            ApiConnection apiConnection, Action<Exception?, string, string, bool> DisplayMessageInUi, bool withConn = false)
         {
-            List<FwoOwner> apps = new();
+            List<FwoOwner> apps = [];
             try
             {
                 if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
@@ -235,7 +298,14 @@ namespace FWO.Ui.Services
                 else
                 {
                     UpdateOwnerships(authenticationStateTask,userConfig); // qad: userConfig may not be properly filled
-                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
+                    if(withConn)
+                    {
+                        apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwnersWithConn, new { appIds = userConfig.User.Ownerships.ToArray() });
+                    }
+                    else
+                    {
+                        apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
+                    }
                 }
             }
             catch (Exception exception)
@@ -250,7 +320,7 @@ namespace FWO.Ui.Services
             string? ownerString = authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners")?.Value;
             if(ownerString != null)
             {
-                string[] separatingStrings = { ",", "{", "}" };
+                string[] separatingStrings = [",", "{", "}"];
                 string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
             }

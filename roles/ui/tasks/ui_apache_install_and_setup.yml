@@ -7,6 +7,15 @@
         - "{{ wsgi_package_name }}"
       environment: "{{ proxy_env }}"
 
+    - name: enable apache modules proxy proxy_http ssl
+      apache2_module: state=present name={{ item }}
+      loop:
+        - rewrite
+        - proxy
+        - proxy_http
+        - ssl
+        - proxy_wstunnel
+
     - name: create apache certificates
       include_role:
         name: openssl-cert
@@ -29,15 +38,6 @@
         dest: "/etc/ssl/certs/"
         remote_src: true
       when: installation_mode == "new"
-
-    - name: enable apache modules proxy proxy_http ssl
-      apache2_module: state=present name={{ item }}
-      loop:
-        - rewrite
-        - proxy
-        - proxy_http
-        - ssl
-        - proxy_wstunnel
 
     - name: copy ui httpd config file to ui target
       template:

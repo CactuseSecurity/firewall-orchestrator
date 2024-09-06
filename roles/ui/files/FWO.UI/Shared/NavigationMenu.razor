@@ -2,102 +2,110 @@
 @using FWO.Config.Api.Data
 @using FWO.GlobalConstants
 @using FWO.Api.Data
+@using FWO.Api.Client
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject ApiConnection apiConnection
 @inject IJSRuntime jsRuntime
 @inject NavigationManager navigationManager
 
-<nav class="navbar navbar-expand-xl navbar-dark bg-blue shadow w-100">
-    <a class="navbar-brand pad-10" href="#">
-        <img src="/images/FWO_logo_navbar.png">&nbsp;@userConfig.GetText("fworch_long")&nbsp;v@(globalConfig.productVersion)
-    </a>
+@if(InitComplete)
+{
+    <nav class="navbar navbar-expand-xl navbar-dark bg-blue shadow w-100">
+        <a class="navbar-brand pad-10" href="#">
+            <img src="/images/FWO_logo_navbar.png">&nbsp;@userConfig.GetText("fworch_long")&nbsp;v@(globalConfig.ProductVersion)
+        </a>
 
-    <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
-        <span class="navbar-toggler-icon"></span>
-    </button>
+        <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-    <div class="navbar-collapse me-auto nav-main-left @NavMenuCollapseClass">
-        <ul class="navbar-nav me-auto">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
-                <li class="nav-item px-2">
-                    <a href="/report/generation" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
-                        <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
-                    </a>
-                </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}, {Roles.Auditor}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="@firstPage">
-                        <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="/certification">
-                        <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="/networkmodelling">
-                        <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="/network_analysis">
-                        <span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.Auditor}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.ReporterViewAll}")">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="/compliance/zones/matrix">
-                        <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-        </ul>
-        <div class="nav-right">
-            <ul class="navbar-nav">
-                <li class="nav-item px-2">
-                    @* d-flex align-items-center *@
-                    <NavLink class="nav-link" href="/monitoring">
-                        <span class="@Icons.Monitoring">
-                            @if (ShowAlert)
-                            {
-                                <span class="@Icons.Alarm" style="color: red; margin-left: 5px; width: 15px; height: 10px;"></span>
-                            }
-                        </span>
-                        @(userConfig.GetText("monitoring"))
-                    </NavLink>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="/settings">
-                        <span class="@Icons.Settings"></span> @(userConfig.GetText("settings"))
-                    </NavLink>
-                </li>
-                <li class="nav-item px-2">
-                    <HelpLink> @userConfig.GetText("help")</HelpLink>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="/settings/user">
-                        <span class="@Icons.User"></span> @(userConfig.User.Name.ToUpper())
-                    </NavLink>
-                </li>
+        <div class="navbar-collapse me-auto nav-main-left @NavMenuCollapseClass">
+            <ul class="navbar-nav me-auto">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
+                    <li class="nav-item px-2">
+                        <a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
+                            <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
+                        </a>
+                    </li>
+                </AuthorizeView>
+                <AuthorizeView Roles="@($"{Roles.Admin}, {WorkflowRoles()}, {Roles.FwAdmin}, {Roles.Auditor}")">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="@firstWorkflowPage">
+                            <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="@("/" + PageName.Certification)">
+                            <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="/networkmodelling">
+                            <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="/network_analysis">
+                            <span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+                <AuthorizeView Roles="@($"{ComplianceRoles()}")">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="/compliance/zones/matrix">
+                            <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
             </ul>
+            <div class="nav-right">
+                <ul class="navbar-nav">
+                    <li class="nav-item px-2">
+                        @* d-flex align-items-center *@
+                        <NavLink class="nav-link" href="/monitoring">
+                            <span class="@Icons.Monitoring">
+                                @if (ShowAlert)
+                                {
+                                    <span class="@Icons.Alarm" style="color: red; margin-left: 5px; width: 15px; height: 10px;"></span>
+                                }
+                            </span>
+                            @(userConfig.GetText("monitoring"))
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="/settings">
+                            <span class="@Icons.Settings"></span> @(userConfig.GetText("settings"))
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <HelpLink> @userConfig.GetText("help")</HelpLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="/settings/user">
+                            <span class="@Icons.User"></span> @(userConfig.User.Name.ToUpper())
+                        </NavLink>
+                    </li>
+                </ul>
+            </div>
         </div>
-    </div>
-</nav>
+    </nav>
+}
 
 @code
 {
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public bool ShowAlert { get; set; }
@@ -109,37 +117,50 @@
 
     string NavMenuCollapseClass => (collapseNavMenu ? " collapse" : "");
 
-    string firstPage = "";
+    string firstWorkflowPage = "";
+    private StateMatrix stateMatrix = new StateMatrix();
+    private bool InitComplete = false;
 
-    protected override void OnInitialized()
+
+    protected override async Task OnInitializedAsync()
     {
         userConfig.OnChange += OnChange;
-        if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || 
-            authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+        try
         {
-            firstPage = "/request/ticketsoverview";
+            await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+
+            if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || 
+                authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
+                authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+            {
+                firstWorkflowPage = "/request/ticketsoverview";
+            }
+            else if(stateMatrix.PhaseActive[WorkflowPhases.request] && authenticationStateTask!.Result.User.IsInRole(Roles.Requester))
+            {
+                firstWorkflowPage = "/request/tickets";
+            }
+            else if(stateMatrix.PhaseActive[WorkflowPhases.approval] && authenticationStateTask!.Result.User.IsInRole(Roles.Approver))
+            {
+                firstWorkflowPage = "/request/approvals";
+            }
+            else if(stateMatrix.PhaseActive[WorkflowPhases.planning] && authenticationStateTask!.Result.User.IsInRole(Roles.Planner))
+            {
+                firstWorkflowPage = "/request/plannings";
+            }
+            else if(stateMatrix.PhaseActive[WorkflowPhases.implementation] && authenticationStateTask!.Result.User.IsInRole(Roles.Implementer))
+            {
+                firstWorkflowPage = "/request/implementations";
+            }
+            else if(stateMatrix.PhaseActive[WorkflowPhases.review] && authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer))
+            {
+                firstWorkflowPage = "/request/reviews";
+            }
         }
-        else if(authenticationStateTask!.Result.User.IsInRole(Roles.Requester))
+        catch(Exception exception)
         {
-            firstPage = "/request/tickets";
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
-        else if(authenticationStateTask!.Result.User.IsInRole(Roles.Approver))
-        {
-            firstPage = "/request/approvals";
-        }
-        else if(authenticationStateTask!.Result.User.IsInRole(Roles.Planner))
-        {
-            firstPage = "/request/plannings";
-        }
-        else if(authenticationStateTask!.Result.User.IsInRole(Roles.Implementer))
-        {
-            firstPage = "/request/implementations";
-        }
-        else
-        {
-            firstPage = "/request/reviews";
-        }
+        InitComplete = true;
     }
 
     void ToggleNavMenu()
@@ -150,5 +171,16 @@
     private void OnChange(Config _, ConfigItem[] __)
     {
         Task.Run(async() => await InvokeAsync(StateHasChanged));
+    }
+
+    private string WorkflowRoles()
+    {
+        return $"{Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}";
+    }
+
+    private string ComplianceRoles()
+    {
+        string workflowRoles = userConfig.ReqShowCompliance ? ", " + WorkflowRoles() : "";
+        return $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.ReporterViewAll}, {Roles.Reporter}, {Roles.Auditor}{workflowRoles}";
     }
 }

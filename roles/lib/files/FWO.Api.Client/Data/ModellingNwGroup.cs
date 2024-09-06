@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using FWO.GlobalConstants;
 
 namespace FWO.Api.Data
 {
@@ -17,6 +18,16 @@ namespace FWO.Api.Data
         public ModellingManagedIdString ManagedIdString { get; set; } = new ();
 
 
+        public ModellingNwGroup()
+        {}
+
+        public ModellingNwGroup(ModellingNwGroup nwGroup) : base(nwGroup)
+        {
+            GroupType = nwGroup.GroupType;
+            IdString = nwGroup.IdString;
+            ManagedIdString = nwGroup.ManagedIdString;
+        }
+
         public override string Display()
         {
             return base.Display() + " (" + IdString + ")";
@@ -32,19 +43,29 @@ namespace FWO.Api.Data
             return $"<span class=\"{Icons.NwGroup}\"></span> " + DisplayHtml();
         }
 
+        public virtual NetworkObject ToNetworkObjectGroup()
+        {
+            return new()
+            {
+                Id = Id,
+                Number = Number,
+                Name = Display(),
+                Type = new NetworkObjectType(){ Name = ObjectType.Group }
+            };
+        }
+
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
             ManagedIdString.FreePart = Sanitizer.SanitizeMand(ManagedIdString.FreePart, ref shortened);
             return shortened;
         }
-
     }
     
     public class ModellingNwGroupWrapper
     {
         [JsonProperty("nwgroup"), JsonPropertyName("nwgroup")]
-        public ModellingNwGroup Content { get; set; } = new();
+        public virtual ModellingNwGroup Content { get; set; } = new();
 
         public static ModellingNwGroup[] Resolve(List<ModellingNwGroupWrapper> wrappedList)
         {

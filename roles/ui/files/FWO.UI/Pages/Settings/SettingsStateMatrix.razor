@@ -230,7 +230,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
+        <span class="sr-only">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -239,25 +239,25 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestState> states = new List<RequestState>();
-    private List<int> stateIds = new List<int>();
-    private Dictionary<int,string> stateNames = new Dictionary<int,string>();
-    private List<int> actToStateIds = new List<int>();
-    private List<RequestState> availableStates = new List<RequestState>();
-    private RequestStateDict statesDict = new RequestStateDict();
+    private List<WfState> states = [];
+    private List<int> stateIds = [];
+    private Dictionary<int,string> stateNames = [];
+    private List<int> actToStateIds = [];
+    private List<WfState> availableStates = [];
+    private WfStateDict statesDict = new ();
 
-    private GlobalStateMatrix actStateMatrix = new GlobalStateMatrix();
+    private GlobalStateMatrix actStateMatrix = new ();
 
     private int actStateId = 0;
     private int stateIdToAdd = 0;
-    private WorkflowPhases actPhase = new WorkflowPhases();
+    private WorkflowPhases actPhase = new ();
 
     private bool SelectStateMode = false;
     private bool SaveMatrixMode = false;
     private bool ResetMatrixMode = false;
     private bool EditTargetStatesMode = false;
     private TaskType actTaskType = TaskType.master;
-    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
+    private List<TaskType> availableTaskTypes { get; set; } = [];
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
@@ -272,13 +272,13 @@ else
     {
         try
         {
-            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             foreach(var state in states)
             {
                 stateIds.Add(state.Id);
                 stateNames.Add(state.Id,state.Name);
             }
-            statesDict = new RequestStateDict();
+            statesDict = new ();
             await statesDict.Init(apiConnection);
         }
         catch (Exception exception)
@@ -301,7 +301,7 @@ else
 
     public string TargetStateList(List<int> statesIn)
     {
-        List<string> statesOut = new List<string>();
+        List<string> statesOut = [];
         foreach(int state in statesIn)
         {
             statesOut.Add(statesDict.Name[state]);
@@ -312,7 +312,7 @@ else
     private void AddStateToPhase(WorkflowPhases phase)
     {
         actPhase = phase;
-        availableStates = new List<RequestState>();
+        availableStates = [];
         foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix.ContainsKey(x.Id)))
         {
             availableStates.Add(state);
@@ -345,7 +345,7 @@ else
     
     private void AddStateToTargetStates()
     {
-        availableStates = new List<RequestState>();
+        availableStates = [];
         foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId].Contains(x.Id)))
         {
             availableStates.Add(state);
@@ -396,6 +396,7 @@ else
                 TaskType.group_create => "reqGrpCreStateMatrix",
                 TaskType.group_modify => "reqGrpModStateMatrix",
                 TaskType.group_delete => "reqGrpDelStateMatrix",
+                TaskType.new_interface => "reqNewIntStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + actTaskType.ToString()),
             };
 

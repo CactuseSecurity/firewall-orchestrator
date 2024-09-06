@@ -16,7 +16,8 @@
             Assign = 4,
             Unassign = 5,
             MarkDeleted = 6,
-            Reactivate = 7
+            Reactivate = 7,
+            Replace = 8
         }
 
         public enum ModObjectType
@@ -60,6 +61,11 @@
                     return false;
             }
         }
+    }
 
+    public class AppServerType
+    {
+        public int Id { get; set; } = 0;
+        public string Name { get; set; } = "";
     }
 }

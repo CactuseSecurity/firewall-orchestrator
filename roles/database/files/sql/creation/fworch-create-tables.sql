@@ -1032,7 +1032,7 @@ Create table "config"
 create table owner
 (
     id SERIAL PRIMARY KEY,
-    name Varchar UNIQUE NOT NULL,
+    name Varchar NOT NULL,
     dn Varchar NOT NULL,
     group_dn Varchar NOT NULL,
     is_default boolean default false,
@@ -1058,7 +1058,8 @@ create table owner_network
     ip_proto_id int,
 	nw_type int,
 	import_source Varchar default 'manual', 
-	is_deleted boolean default false
+	is_deleted boolean default false,
+	custom_type int
 );
 
 create table reqtask_owner
@@ -1120,7 +1121,8 @@ create table request.reqtask
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	devices varchar
+	devices varchar,
+	additional_info varchar
 );
 
 create table request.reqelement 
@@ -1216,6 +1218,13 @@ create table request.state
 (
     id Integer NOT NULL UNIQUE PRIMARY KEY,
     name Varchar NOT NULL
+);
+
+create table request.ext_state
+(
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL,
+	state_id Integer
 );
 
 create table request.action
@@ -1326,13 +1335,18 @@ create table modelling.connection
 (
  	id SERIAL PRIMARY KEY,
 	app_id int,
+	proposed_app_id int,
 	name Varchar,
 	reason Text,
 	is_interface boolean default false,
 	used_interface_id int,
+	is_requested boolean default false,
+	ticket_id bigint,
 	common_service boolean default false,
+	is_published boolean default false,
 	creator Varchar,
-	creation_date timestamp default now()
+	creation_date timestamp default now(),
+	conn_prop Varchar
 );
 
 create table modelling.selected_objects

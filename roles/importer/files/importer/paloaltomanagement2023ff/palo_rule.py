@@ -141,4 +141,6 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     rule_number += 1
                     rules.append(rule)
 
+    if 'rules' not in config2import:
+        config2import.update({'rules': []})
     config2import['rules'] += rules

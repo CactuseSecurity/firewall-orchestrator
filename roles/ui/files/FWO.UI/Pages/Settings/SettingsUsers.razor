@@ -3,6 +3,7 @@
 @using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Middleware.Client
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
@@ -46,12 +47,12 @@
             <Template>
                 <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5271"))">
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
-                    @if(context.isInternal())
+                    @if(context.IsInternal())
                     {
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
                     }
                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
-                    @if(context.isInternal())
+                    @if(context.IsInternal())
                     {
                         <button type="button" class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">@(userConfig.GetText("reset_password"))</button>
                     }
@@ -69,7 +70,7 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true">
             <Template>
                 <div data-toggle="tooltip" title="@(userConfig.PureLine("H5273"))">
-                    @(context.Tenant != null ? (context.Tenant.Id == 1 && context.LdapConnection.GlobalTenantName != null && 
+                    @(context.Tenant != null ? (context.Tenant.Id == GlobalConst.kTenant0Id && context.LdapConnection.GlobalTenantName != null && 
                         context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
                 </div>
             </Template>       
@@ -93,7 +94,7 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
             <Template>
                 <div data-toggle="tooltip" title="@(userConfig.PureLine("H5278"))">
-                    @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+                    @(GlobalFunc.ShowBool(context.PasswordMustBeChanged))
                 </div>
             </Template>
         </Column>
@@ -165,6 +166,18 @@
                         </div>
                     </div>
                 }
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5281"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("firstname")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Firstname" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5282"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("lastname")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actUser.Lastname" />
+                    </div>
+                </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5274"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
                     <div class="col-sm-8">
@@ -266,18 +279,18 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
-    private List<UiLdapConnection> writableLdaps = new List<UiLdapConnection>();
-    UiLdapConnection internalLdap = new UiLdapConnection();
+    private List<UiLdapConnection> connectedLdaps = [];
+    private List<UiLdapConnection> writableLdaps = [];
+    UiLdapConnection internalLdap = new();
 
-    private List<UiUser> ldapUsers = new List<UiUser>();
-    private List<UiUser> uiUsers = new List<UiUser>();
-    private List<UiUser> sampleUsers = new List<UiUser>();
-    private List<Tenant> tenants = new List<Tenant>();
-    private List<Tenant> availableTenants = new List<Tenant>();
-    private List<UserGroup> groups = new List<UserGroup>();
-    private List<Role> roles = new List<Role>();
-    private List<Role> availableRoles = new List<Role>();
+    private List<UiUser> ldapUsers = [];
+    private List<UiUser> uiUsers = [];
+    private List<UiUser> sampleUsers = [];
+    private List<Tenant> tenants = [];
+    private List<Tenant> availableTenants = [];
+    private List<UserGroup> groups = [];
+    private List<Role> roles = [];
+    private List<Role> availableRoles = [];
 
     private bool EditMode = false;
     private bool DeleteMode = false;
@@ -287,8 +300,8 @@
     private bool showSampleRemoveButton = false;
     private bool ResetPasswordMode = false;
 
-    private UiUser newUser = new UiUser();
-    private UiUser actUser = new UiUser();
+    private UiUser newUser = new();
+    private UiUser actUser = new();
     private UiLdapConnection? selectedLdap;
     private Tenant? selectedTenant;
     private Role? selectedRole;
@@ -308,12 +321,12 @@
     {
         try
         {
-            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getLdapConnections);
             writableLdaps = connectedLdaps.FindAll(x => x.IsWritable());
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? throw new Exception(userConfig.GetText("E5207"));
 
             // Get the tenants
-            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
 
             // Get users from uiusers table
             RestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
@@ -323,11 +336,11 @@
             }
             else
             {
-                uiUsers = new List<UiUser>();
-                sampleUsers = new List<UiUser>();
+                uiUsers = [];
+                sampleUsers = [];
                 foreach (UserGetReturnParameters apiUser in middlewareServerResponse.Data)
                 {
-                    UiUser user = new UiUser(apiUser);
+                    UiUser user = new(apiUser);
                     user.LdapConnection = connectedLdaps.FirstOrDefault(x => x.Id == user.LdapConnection.Id) ?? throw new ArgumentNullException(nameof(user.LdapConnection.Id));
                     if(user.Tenant != null)
                     {
@@ -348,7 +361,7 @@
 
     private void AnalyseSampleUsers()
     {
-        sampleUsers = new List<UiUser>();
+        sampleUsers = [];
         foreach (var user in uiUsers)
         {
             if (user.Name.EndsWith("_demo"))
@@ -378,7 +391,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Groups = new List<string>();
+                user.Groups = new ();
                 foreach (var group in groups)
                 {
                     if (group.Users != null && group.Users.Exists(x => x.Dn == user.Dn))
@@ -400,7 +413,7 @@
         {
             foreach (var user in uiUsers)
             {
-                user.Roles = new List<string>();
+                user.Roles = new ();
                 foreach (var role in roles)
                 {
                     if (role.Users != null && role.Users.Exists(x => x.Dn == user.Dn))
@@ -444,6 +457,16 @@
                         relatedUiUser.Email = ldapUser.Email;
                         await updateUserInDb(relatedUiUser);
                     }
+                    if (relatedUiUser.Firstname != ldapUser.Firstname)
+                    {
+                        relatedUiUser.Firstname = ldapUser.Firstname;
+                        await updateUserInDb(relatedUiUser);
+                    }
+                    if (relatedUiUser.Lastname != ldapUser.Lastname)
+                    {
+                        relatedUiUser.Lastname = ldapUser.Lastname;
+                        await updateUserInDb(relatedUiUser);
+                    }
                 }
                 else
                 {
@@ -483,10 +506,12 @@
                         Dn = user.UserDn, 
                         Name = distname.UserName, 
                         Email = user.Email, 
+                        Firstname = user.Firstname, 
+                        Lastname = user.Lastname, 
                         PasswordMustBeChanged = false,
                         LdapConnection = internalLdap
                     };
-                    string tenantName = distname.getTenant(internalLdap.TenantLevel);
+                    string tenantName = distname.GetTenantNameViaLdapTenantLevel(internalLdap.TenantLevel);
                     if (tenantName != "")
                     {
                         newUser.Tenant = new Tenant(){ Name = tenantName };
@@ -536,9 +561,11 @@
             var Variables = new
             {
                 id = user.DbId,
-                email = user.Email
+                email = user.Email,
+                uiuser_first_name = user.Firstname,
+                uiuser_last_name = user.Lastname
             };
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserEmail, Variables);
+            await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserEmail, Variables);
         }
         catch (Exception exception)
         {
@@ -561,11 +588,13 @@
                 uuid = user.Dn,
                 uiuser_username = user.Name,
                 email = user.Email,
+                uiuser_first_name = user.Firstname,
+                uiuser_last_name = user.Lastname,
                 tenant = (user.Tenant != null ? user.Tenant.Id : (int?)null),
                 passwordMustBeChanged = user.PasswordMustBeChanged,
                 ldapConnectionId = user.LdapConnection.Id
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addUser, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
             if(returnIds != null)
             {
                 user.DbId = returnIds[0].NewId;
@@ -582,7 +611,7 @@
         try
         {
             selectedLdap = newLdap;
-            availableTenants = new List<Tenant>();
+            availableTenants = [];
             if(selectedLdap != null)
             {
                 if (selectedLdap.TenantId != null && selectedLdap.TenantId != 0)
@@ -616,9 +645,9 @@
             SetAvailableTenants(selectedLdap);
             selectedTenant = availableTenants.FirstOrDefault();
             selectedGroup = null;
-            newUser.Groups = new List<string>();
+            newUser.Groups = [];
             selectedRole = null;
-            newUser.Roles = new List<string>();
+            newUser.Roles = [];
             Edit(newUser);
         }
         catch (Exception exception)
@@ -634,6 +663,9 @@
             AddMode = true;
             newUser = new UiUser(user);
             newUser.Password = "";
+            newUser.Firstname = user.Firstname;
+            newUser.Lastname = user.Lastname;
+            newUser.Email = user.Email;
             selectedLdap = (newUser.LdapConnection != null ? newUser.LdapConnection : writableLdaps.FirstOrDefault());
             SetAvailableTenants(selectedLdap);
             selectedTenant = newUser.Tenant;
@@ -656,7 +688,7 @@
         {
             actUser.LdapConnection = new UiLdapConnection();
         }
-        if (actUser.Tenant != null && actUser.Tenant.Id == 1 && actUser.LdapConnection.GlobalTenantName != null && actUser.LdapConnection.GlobalTenantName != "")
+        if (actUser.Tenant != null && actUser.Tenant.Id == GlobalConst.kTenant0Id && actUser.LdapConnection.GlobalTenantName != null && actUser.LdapConnection.GlobalTenantName != "")
         {
             actUser.Tenant.Name = actUser.LdapConnection.GlobalTenantName;
         }
@@ -671,15 +703,15 @@
             user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
             // todo: further dn specification maybe in ldapconnection?
             user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
-                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == 1 && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
+                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == GlobalConst.kTenant0Id && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
         }
-        user.Groups = new List<string>();
+        user.Groups = [];
         if(selectedGroup != null)
         {
             user.Groups.Add(selectedGroup.Name);
         }
         user.PasswordMustBeChanged = true;
-        user.Roles = new List<string>();
+        user.Roles = [];
         if(selectedRole != null)
         {
             user.Roles.Add(selectedRole.Name);
@@ -708,6 +740,8 @@
                     UserAddParameters parameters = new UserAddParameters
                     {
                         Email = actUser.Email, 
+                        Firstname = actUser.Firstname, 
+                        Lastname = actUser.Lastname, 
                         LdapId = actUser.LdapConnection.Id, 
                         Password = actUser.Password, 
                         UserDn = actUser.Dn,
@@ -732,7 +766,7 @@
             }
             else
             {
-                // Update existing user in ldap --> currently only email
+                // Update existing user in ldap --> currently only email; TODO: add first and last name
                 UserEditParameters parameters = new UserEditParameters {Email = actUser.Email, LdapId = actUser.LdapConnection.Id, UserId = actUser.DbId };
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
@@ -839,7 +873,7 @@
             else
             {
                 deleteMessage = userConfig.GetText("U5201") + actUser.Name + "?";
-                if (!actUser.isInternal())
+                if (!actUser.IsInternal())
                 {
                     deleteMessage += userConfig.GetText("U5202");
                 }
@@ -885,7 +919,7 @@
         try
         {
             var Variables = new { id = user.DbId };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteUser, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.deleteUser, Variables)).DeletedId;
             if (delId == user.DbId)
             {
                 uiUsers.Remove(user);

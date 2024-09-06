@@ -4,6 +4,7 @@ mutation updateAppServer(
   $appId: Int
   $ip: cidr
   $importSource: String
+  $customType: Int
   ) {
   update_owner_network_by_pk(
     pk_columns: { id: $id }
@@ -14,6 +15,7 @@ mutation updateAppServer(
       ip_end: $ip
       import_source: $importSource
       is_deleted: false
+      custom_type: $customType
   }) {
     UpdatedId: id
   }

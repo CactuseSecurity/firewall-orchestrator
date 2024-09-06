@@ -22,7 +22,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
             <div class="col-sm-2">
-                <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
+                <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.UiLanguages">
                     <ElementTemplate Context="language">
                         @(userConfig.GetText(language.Name))
                     </ElementTemplate>
@@ -51,6 +51,12 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
             <div class="col-sm-2">
                 <input type="number" min="0" @bind="configData!.MessageViewTime">
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5425"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("uiHostName")):</label>
+            <div class="col-sm-4">
+                <input type="text" class="col-sm-12" @bind="configData!.UiHostName" />
             </div>
         </div>
         <hr />
@@ -173,7 +179,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
+        <span class="sr-only">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -194,7 +200,7 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
+            selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
             startDate = startTime = configData.AutoDiscoverStartAt;
         }
         catch (Exception exception)

@@ -58,14 +58,26 @@
     [Parameter]
     public int Width { get; set; }
 
+    [Parameter]
+    public bool StartCollapsed { get; set; } = false;
+
     private bool Collapsed = false;
 
     private double resizeStartX;
 
-    private int WidthBeforeMinimize;
+    private int WidthBeforeMinimize = GlobalConst.kGlobLibraryWidth;
 
     private string minMaxButtonSymbol = Icons.CollapseRight;
     private string overflowSidebar = "auto";
+
+    private bool firstTry = true;
+    protected override void OnParametersSet()
+    {
+        if(firstTry && !Collapsed && StartCollapsed)
+        {
+            ToggleCollapse(true);
+        }
+    }
 
     private void ResizeStart(DragEventArgs dragArgs)
     {
@@ -104,8 +116,10 @@
             if (collapse)
             {
                 minMaxButtonSymbol = Icons.CollapseLeft;
-
-                WidthBeforeMinimize = Width;
+                if (Width > 0)
+                {
+                    WidthBeforeMinimize = Width;
+                }
                 Width = 0;
                 WidthChanged.InvokeAsync(Width);
             }

@@ -48,7 +48,7 @@ namespace FWO.Middleware.Server
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             DailyCheckScheduleTimer.Stop();
-            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
+            globalConfig.SubscriptionUpdateHandler(config.ToArray());
             DailyCheckTimer.Interval = DailyCheckSleepTime;
             StartScheduleTimer();
         }

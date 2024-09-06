@@ -1,15 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MailKit" Version="4.0.0" />
-    <PackageReference Include="MimeKit" Version="4.0.0" />
+    <PackageReference Include="MailKit" Version="4.7.1.1" />
+    <PackageReference Include="MimeKit" Version="4.7.1" />
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FWO.Encryption\FWO.Encryption.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,5 @@
 ﻿@using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 @using System.Text.Json
@@ -56,6 +57,29 @@
             </div>
         </div>
         <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5627"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("app_server_types"):</label>
+            <div class="col-sm-6">
+                <div class="row">
+                    <label class="col-form-label col-sm-2">@userConfig.GetText("default_app_server_type"):</label>
+                    <input type="text" class="col-sm-10" @bind="appServerDefaultTypeName" />
+                </div>
+                <EditList ElementType="AppServerType" Elements="appServerTypes.Where(x => x.Id != 0).ToArray()" ElementsToAdd="appServerTypesToAdd" ElementsToDelete="appServerTypesToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-2 border bg-transparent">@context.Id</div>
+                            <div class="col-sm-10 border bg-transparent">@context.Name</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <input type="number" class="col-sm-2" @bind="actAppServerType.Id" />
+                    <input type="text" class="col-sm-8" @bind="actAppServerType.Name" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddAppServerType" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                </div>
+            </div>
+        </div>
+        <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5620"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("common_areas"):</label>
             <div class="col-sm-6">
@@ -84,7 +108,7 @@
                 </EditList>
                 <div class="row col-sm-12 mt-1">
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="SearchArea" @onclick:preventDefault>
-                        @(ModellingHandlerBase.DisplayButton(userConfig, "add_common_area", Icons.Add))</button>
+                        @(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
         </div>
@@ -161,7 +185,42 @@
             <input type="time" step="60" class="col-sm-2" @bind="subnetDataTime" />
             <input type="date" class="col-sm-2" @bind="subnetDataDate" />
         </div>
+        <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5622"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqInterfaceName")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqInterfaceName" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
+            <div class="col-sm-3">
+                <Dropdown @bind-SelectedElement="configData!.ModReqEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="selectableRecipientOptions" >
+                    <ElementTemplate Context="opt">
+                        @(userConfig.GetText(opt.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+            <label class="col-form-label col-sm-2">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
+            <div class="col-sm-1">
+                <input type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqEmailSubject" />
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5624"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailBody")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModReqEmailBody"></textarea>
+        </div>
     </form>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqTicketTitle" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
+        </div>
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
@@ -177,7 +236,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
+        <span class="sr-only">@(userConfig.GetText("loading"))</span>
     </div>
 }
 <PredefServices @bind-Display="predefServices"/>
@@ -190,15 +249,22 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private List<string> appDataPaths = new();
-    private List<string> PathsToAdd = new();
-    private List<string> PathsToDelete = new();
+    private List<string> appDataPaths = [];
+    private List<string> PathsToAdd = [];
+    private List<string> PathsToDelete = [];
     private string actPath = "";
-    private List<ModellingNwGroup> allAreas = new();
-    private List<ModellingNwGroupWrapper> pureAreaList = new();
-    private List<CommonAreaConfig> commAreaConfigItems = new();
-    private List<CommonArea> commonAreas = new();
-    private List<CommonArea> AreasToDelete = new();
+    
+    private List<AppServerType> appServerTypes = [];
+    private List<AppServerType> appServerTypesToAdd = [];
+    private List<AppServerType> appServerTypesToDelete = [];
+    private AppServerType actAppServerType = new();
+    private string appServerDefaultTypeName = "";
+    
+    private List<ModellingNwGroup> allAreas = [];
+    private List<ModellingNwGroupWrapper> pureAreaList = [];
+    private List<CommonAreaConfig> commAreaConfigItems = [];
+    private List<CommonArea> commonAreas = [];
+    private List<CommonArea> AreasToDelete = [];
     private bool predefServices = false;
     private bool searchArea = false;
     private ModellingNamingConvention namingConvention = new();
@@ -206,6 +272,8 @@ else
     private DateTime appDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly, 
+        EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible ];
 
     protected override async Task OnInitializedAsync()
     {
@@ -214,7 +282,16 @@ else
             configData = await globalConfig.GetEditableConfig();
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? new();
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
-            allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
+            if(configData.ModAppServerTypes != "")
+            {
+                appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(configData.ModAppServerTypes) ?? new();
+                if(appServerTypes.Count > 0)
+                {
+                    appServerDefaultTypeName = appServerTypes.FirstOrDefault(x => x.Id == 0)?.Name ?? "";
+                }
+            }
+            allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects,
+                new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
             RefreshAreas();
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
@@ -258,6 +335,17 @@ else
         }
     }
 
+    private void AddAppServerType()
+    {
+        if(actAppServerType.Id > 0 && actAppServerType.Name != "" 
+            && (appServerTypesToAdd.FirstOrDefault(a => a.Id == actAppServerType.Id) == null)
+            && (appServerTypes.FirstOrDefault(a => a.Id == actAppServerType.Id) == null))
+        {
+            appServerTypesToAdd.Add(actAppServerType);
+            actAppServerType = new();
+        }
+    }
+
     private void PredefServices()
     {
         predefServices = true;
@@ -277,9 +365,11 @@ else
                 PrepareConfigData();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
 
-                PathsToDelete = new();
-                PathsToAdd = new();
-                AreasToDelete = new();
+                PathsToDelete = [];
+                PathsToAdd = [];
+                AreasToDelete = [];
+                appServerTypesToAdd = [];
+                appServerTypesToDelete = [];
                 RefreshAreas();
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
@@ -296,6 +386,16 @@ else
 
     private void PrepareConfigData()
     {
+        PrepareAppDataPaths();
+        configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
+        PrepareAppServerTypes();
+        PrepareCommonAreas();
+        configData.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
+        configData.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+    }
+
+    private void PrepareAppDataPaths()
+    {
         foreach(var path in PathsToDelete)
         {
             appDataPaths.Remove(path);
@@ -305,7 +405,10 @@ else
             appDataPaths.Add(path);
         }
         configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
-        configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
+    }
+
+    private void PrepareCommonAreas()
+    {
         commAreaConfigItems = commonAreas.ConvertAll(x => x.ToConfigItem());
         foreach(var area in AreasToDelete)
         {
@@ -316,7 +419,27 @@ else
             }
         }
         configData.ModCommonAreas = JsonSerializer.Serialize(commAreaConfigItems);
-        configData.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
-        configData.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+    }
+
+    private void PrepareAppServerTypes()
+    {
+        AppServerType? defaultType = appServerTypes.FirstOrDefault(x => x.Id == 0);
+        if(defaultType != null)
+        {
+            defaultType.Name = appServerDefaultTypeName;
+        }
+        else
+        {
+            appServerTypes.Add(new (){ Id = 0, Name = appServerDefaultTypeName });
+        }
+        foreach(var appServerType in appServerTypesToDelete)
+        {
+            appServerTypes.Remove(appServerType);
+        }
+        foreach(var appServerType in appServerTypesToAdd)
+        {
+            appServerTypes.Add(appServerType);
+        }
+        configData.ModAppServerTypes = JsonSerializer.Serialize(appServerTypes);
     }
 }

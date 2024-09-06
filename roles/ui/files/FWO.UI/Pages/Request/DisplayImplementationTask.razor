@@ -1,18 +1,20 @@
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Ui.Pages.NetworkModelling
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("implementation") + ": " + ReqHandler.ActImplTask.Title)" Show="@ReqHandler.DisplayImplTaskMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("implementation") + ": " + WfHandler.ActImplTask.Title)" Show="@WfHandler.DisplayImplTaskMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
-        @if (ReqHandler.DisplayImplTaskMode)
+        @if (WfHandler.DisplayImplTaskMode)
         {
             <form>
                 <div class="form-group row">
@@ -20,15 +22,15 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@States.Name[ReqHandler.ActImplTask.StateId]</label>
+                                <label class="col-sm-12 h-100 border bg-secondary">@States.Name[WfHandler.ActImplTask.StateId]</label>
                             </div>
                         </div>
                     </div>
                     <div class="col-sm-3">
                         <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("implementer")):</label>
-                            <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActImplTask.CurrentHandler?.Name</label>
+                            <label class="col-sm-5 col-form-label col-form-label-sm">@(userConfig.GetText("implementer")):</label>
+                            <div class="col-sm-7">
+                                <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActImplTask.CurrentHandler?.Name</label>
                             </div>
                         </div>
                     </div>
@@ -36,7 +38,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("assigned")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@(new DistName(ReqHandler.ActImplTask.AssignedGroup).UserName)</label>
+                                <label class="col-sm-12 h-100 border bg-secondary">@(new DistName(WfHandler.ActImplTask.AssignedGroup).UserName)</label>
                             </div>
                         </div>
                     </div>
@@ -46,19 +48,19 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(ReqHandler.ActImplTask.TaskType))</label>
+                                <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(WfHandler.ActImplTask.TaskType))</label>
                             </div>
                         </div>
                     </div>
-                    @if(ReqHandler.ActImplTask.TaskType == TaskType.access.ToString() || ReqHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
+                    @if(WfHandler.ActImplTask.TaskType == TaskType.access.ToString() || WfHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
                                 <div class="col-sm-8">
-                                    @if (ReqHandler.EditImplTaskMode)
+                                    @if (WfHandler.EditImplTaskMode)
                                     {
-                                        <Dropdown ElementType="Device" @bind-SelectedElement="actDevice" ElementToString="@(d => d.Name)" Elements="ReqHandler.Devices">
+                                        <Dropdown ElementType="Device" @bind-SelectedElement="actDevice" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices">
                                             <ElementTemplate Context="device">
                                                 @device.Name
                                             </ElementTemplate>
@@ -72,25 +74,68 @@
                             </div>
                         </div>
                     }
+                    else if(WfHandler.ActImplTask.TaskType == TaskType.new_interface.ToString())
+                    {
+                        <div class="col-sm-8">
+                            <div class="form-group row">
+                                @if (WfHandler.ImplementImplTaskMode)
+                                {
+                                    <div class="col-sm-9">
+                                        <SelectOwner @bind-SelectedOwner="actOwner" Apps="WfHandler.AllOwners" WithConnectionStatus="false" />
+                                    </div>
+                                    @if(actOwner != oldOwner)
+                                    {
+                                        <div class="col-sm-1">
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="RequestAssignOwner">
+                                                @(ModellingHandlerBase.DisplayButton(userConfig, "assign_owner", Icons.Assign))</button>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    @if(WfHandler.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
+                                    {
+                                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                        <label class="col-sm-8 border bg-secondary">@actOwner?.Display()</label>
+                                    }
+                                    else
+                                    {
+                                        <div class="col-sm-6">
+                                            <div class="form-group row">
+                                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                                <label class="col-sm-8 border bg-secondary">@actOwner?.Display()</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group row">
+                                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("requesting_owner")):</label>
+                                                <label class="col-sm-8 border bg-secondary">@WfHandler.GetRequestingOwner()</label>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
-                @if(ReqHandler.ActImplTask.TaskType == TaskType.generic.ToString())
+                @if(WfHandler.ActImplTask.TaskType == TaskType.generic.ToString())
                 {
                     <div class="form-group row mt-2">
                         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
                         <div class="col-sm-11">
-                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="true" >@ReqHandler.ActImplTask.FreeText</textarea>
+                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="true" >@WfHandler.ActImplTask.FreeText</textarea>
                         </div>
                     </div>
                 }
 
-                @if(ReqHandler.ActImplTask.TaskType == TaskType.access.ToString())
+                @if(WfHandler.ActImplTask.TaskType == TaskType.access.ToString())
                 {
                     <div class="form-group row mt-2">
                         <div class="col-sm-3">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
                                 <div class="col-sm-8">
-                                    @if (ReqHandler.EditImplTaskMode)
+                                    @if (WfHandler.EditImplTaskMode)
                                     {
                                         <Dropdown ElementType="RuleAction" @bind-SelectedElement="actRuleAction" ElementToString="@(a => a.Name)" Elements="ruleActions">
                                             <ElementTemplate Context="action">
@@ -109,7 +154,7 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("track"))*:</label>
                                 <div class="col-sm-8">
-                                    @if (ReqHandler.EditImplTaskMode)
+                                    @if (WfHandler.EditImplTaskMode)
                                     {
                                         <Dropdown ElementType="Tracking" @bind-SelectedElement="actTracking" ElementToString="@(t => t.Name)" Elements="trackings">
                                             <ElementTemplate Context="track">
@@ -128,13 +173,13 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
                                 <div class="col-sm-8">
-                                    @if (ReqHandler.EditImplTaskMode)
+                                    @if (WfHandler.EditImplTaskMode)
                                     {
-                                        <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.TargetBeginDate" />
+                                        <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActImplTask.TargetBeginDate" />
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActImplTask.TargetBeginDate?.ToString("d")</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActImplTask.TargetBeginDate?.ToString("d")</label>
                                     }
                                 </div>
                             </div>
@@ -143,54 +188,57 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
                                 <div class="col-sm-8">
-                                    @if (ReqHandler.EditImplTaskMode)
+                                    @if (WfHandler.EditImplTaskMode)
                                     {
-                                        <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.TargetEndDate" />
+                                        <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActImplTask.TargetEndDate" />
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActImplTask.TargetEndDate?.ToString("d")</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActImplTask.TargetEndDate?.ToString("d")</label>
                                     }
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
-                        TaskId="ReqHandler.ActImplTask.Id" EditMode ="ReqHandler.EditImplTaskMode"></DisplayAccessElements>
+                    <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
+                        Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
+                        Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+                        TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
-                else if(ReqHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
+                else if(WfHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
                 {
-                    <DisplayRules @bind-Rules="actRules" TaskId="ReqHandler.ActImplTask.Id" EditMode="ReqHandler.EditImplTaskMode" />
+                    <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
                 <div class="form-group row mt-2">
                     <div class="col-sm-1">
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
-                        @if(ReqHandler.ImplementImplTaskMode)
+                        @if(WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode)
                         {
-                            <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
+                            <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
+                                @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                         }
                     </div>
                     <div class="col-sm-11">
                         <textarea rows="3" type="text" class="form-control form-control-sm" readonly="true">@allComments</textarea>
                     </div>
                 </div>
-                @if(ReqHandler.ImplementImplTaskMode)
-                {
-                    <div class="col-sm-12 mt-2">
-                        <div class="form-group row justify-content-center">
-                            @foreach(var action in offeredActions)
+                <div class="col-sm-12 mt-2">
+                    <div class="btn-group">
+                        @foreach(var action in offeredActions)
+                        {
+                            @if(WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode || WfStateAction.IsReadonlyType(action.ActionType))
                             {
-                                <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                                <button type="button" class="btn btn-sm btn-dark ml-13" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
-                        </div>
+                        }
                     </div>
-                }
+                </div>
             </form>
         }
     </Body>
     <Footer>
         <div class="btn-group">
-            @if (ReqHandler.EditImplTaskMode)
+            @if (WfHandler.EditImplTaskMode)
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
                     <Authorized>
@@ -201,7 +249,7 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            else if (ReqHandler.ImplementImplTaskMode)
+            else if ((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                     <Authorized>
@@ -212,56 +260,91 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            @if((WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
+            {
+                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+            }
         </div>
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
-<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfAddComment"/>
+@if(IncludePopups)
+{
+    <PromoteObject @bind-Promote="WfHandler.DisplayPromoteImplTaskMode" CloseParent="Close" CancelParent="CancelPromote" ObjectName="@WfHandler.ActImplTask.Title"
+        Save="ConfPromoteImplTask" StatefulObject="WfHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
+    <CommentObject @bind-Display="WfHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@WfHandler.ActImplTask.Title" Save="ConfAddComment"/>
+    <Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
+        Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
+    <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+}
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
+    public WfHandler WfHandler { get; set; } = new ();
     
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+    public StateMatrix StateMatrix { get; set; } = new ();
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+    public WfStateDict States { get; set; } = new ();
+
+    [Parameter]
+    public bool IncludePopups { get; set; } = true;
 
 
-    private List<RuleAction> ruleActions = new List<RuleAction>();
-    private List<Tracking> trackings = new List<Tracking>();
+    private List<RuleAction> ruleActions = [];
+    private List<Tracking> trackings = [];
     
-    private List<NwObjectElement> actSources = new List<NwObjectElement>();
-    private List<NwObjectElement> actDestinations = new List<NwObjectElement>();
-    private List<NwServiceElement> actServices = new List<NwServiceElement>();
-    private List<NwRuleElement> actRules = new List<NwRuleElement>();
+    private List<NwObjectElement> actSources = [];
+    private List<NwObjectElement> actDestinations = [];
+    private List<NwServiceElement> actServices = [];
+    private List<NwRuleElement> actRules = [];
+
+    private List<NwObjectElement> sourcesToAdd = [];
+    private List<NwObjectElement> sourcesToDelete = [];
+    private List<NwObjectElement> destinationsToAdd = [];
+    private List<NwObjectElement> destinationsToDelete = [];
+    private List<NwServiceElement> servicesToAdd = [];
+    private List<NwServiceElement> servicesToDelete = [];
+
     private Device? actDevice;
     private RuleAction? actRuleAction;
     private Tracking? actTracking;
+    private FwoOwner? actOwner;
+    private FwoOwner? oldOwner;
+    private bool newOwnerAssigned = false;
+    private bool firstParamSet = false;
 
-    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+    private List<WfStateAction> offeredActions = new ();
     private string allComments = "";
+    private string message = "";
+    private bool assignOwnerMode = false;
 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
-            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
+            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
+            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
+            firstParamSet = true;
         }
         catch (Exception exception)
         {
@@ -273,14 +356,21 @@
     {
         try
         {
-            if (ReqHandler.DisplayImplTaskMode)
+            if (WfHandler.DisplayImplTaskMode && firstParamSet)
             {
+                firstParamSet = false;
                 InitElements();
                 await InitComments();
-                offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask, ReqHandler.Phase);
-                actDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.DeviceId);
-                actRuleAction = ruleActions.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.RuleAction);
-                actTracking = trackings.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.Tracking);
+                if(IncludePopups)
+                {
+                    offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActImplTask, WfObjectScopes.ImplementationTask, WfHandler.Phase);
+                }
+                actDevice = WfHandler.Devices.FirstOrDefault(x => x.Id == WfHandler.ActImplTask.DeviceId);
+                actRuleAction = ruleActions.FirstOrDefault(x => x.Id == WfHandler.ActImplTask.RuleAction);
+                actTracking = trackings.FirstOrDefault(x => x.Id == WfHandler.ActImplTask.Tracking);
+                actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
+                oldOwner = actOwner;
+                newOwnerAssigned = false;
             }
         }
         catch (Exception exception)
@@ -291,73 +381,126 @@
 
     private void InitElements()
     {
-        actSources = ReqHandler.ActImplTask.getNwObjectElements(ElemFieldType.source);
-        actDestinations = ReqHandler.ActImplTask.getNwObjectElements(ElemFieldType.destination);
-        actServices = ReqHandler.ActImplTask.getServiceElements();
-        actRules = ReqHandler.ActImplTask.getRuleElements();
+        actSources = WfHandler.ActImplTask.GetNwObjectElements(ElemFieldType.source);
+        actDestinations = WfHandler.ActImplTask.GetNwObjectElements(ElemFieldType.destination);
+        actServices = WfHandler.ActImplTask.GetServiceElements();
+        actRules = WfHandler.ActImplTask.GetRuleElements();
     }
 
     private async Task InitComments()
     {
-        allComments = ReqHandler.ActImplTask.getAllComments();
+        allComments = WfHandler.ActImplTask.GetAllComments();
+        WfHandler.DisplayImplTaskCommentMode = false;
     }
 
     private async Task Close()
     {
         await ResetParent();
+        WfHandler.DisplayPromoteImplTaskMode = false;
+        WfHandler.DisplayImplTaskMode = false;
+        firstParamSet = true;
     }
 
-    private async Task PerformAction(RequestStateAction action)
+    private async Task CancelPromote()
     {
-        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask);
+        WfHandler.DisplayPromoteImplTaskMode = false;
+    }
+
+    private async Task PerformAction(WfStateAction action)
+    {
+        await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActImplTask, WfObjectScopes.ImplementationTask, actOwner, WfHandler.ActReqTask.TicketId);
+    }
+
+    private void RequestAssignOwner()
+    {
+        message = userConfig.GetText("U8004");
+        assignOwnerMode = true;
+    }
+
+    private async Task AssignOwner()
+    {
+        SetChangedOwner();
+        await WfHandler.ChangeOwner();
+        actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
+        newOwnerAssigned = true;
+        assignOwnerMode = false;
     }
 
     private void InitAddComment()
     {
-        ReqHandler.SetImplTaskPopUpOpt(ObjAction.displayComment);
+        WfHandler.SetImplTaskPopUpOpt(ObjAction.displayComment);
     }
 
     private async Task ConfAddComment(string commentText)
     {
-        await ReqHandler.ConfAddCommentToImplTask(commentText);
+        await WfHandler.ConfAddCommentToImplTask(commentText);
         await InitComments();
         StateHasChanged();
     }
 
     private void UpdateElements()
     {
-        foreach(var oldElem in ReqHandler.ActImplTask.ImplElements.Where(x => x.Id > 0 && (x.Field == ElemFieldType.source.ToString() || 
-            x.Field == ElemFieldType.destination.ToString() || x.Field == ElemFieldType.service.ToString() || x.Field == ElemFieldType.rule.ToString())))
+        foreach(var src in sourcesToDelete)
         {
-            if(actSources.FirstOrDefault(x => x.ElemId == oldElem.Id) == null && 
-                actDestinations.FirstOrDefault(x => x.ElemId == oldElem.Id) == null && 
-                actServices.FirstOrDefault(x => x.ElemId == oldElem.Id) == null &&
-                actRules.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            actSources.Remove(src);
+            WfImplElement? oldElem = WfHandler.ActImplTask.ImplElements.FirstOrDefault(x => x.Id == src.ElemId);
+            if(oldElem != null)
             {
-                ReqHandler.ActImplTask.RemovedElements.Add(oldElem);
+                WfHandler.ActImplTask.RemovedElements.Add(oldElem);
+                WfHandler.ActImplTask.ImplElements.Remove(oldElem);
             }
         }
+        foreach(var dst in destinationsToDelete)
+        {
+            actDestinations.Remove(dst);
+            WfImplElement? oldElem = WfHandler.ActImplTask.ImplElements.FirstOrDefault(x => x.Id == dst.ElemId);
+            if(oldElem != null)
+            {
+                WfHandler.ActImplTask.RemovedElements.Add(oldElem);
+                WfHandler.ActImplTask.ImplElements.Remove(oldElem);
+            }
+        }
+        foreach(var svc in servicesToDelete)
+        {
+            actServices.Remove(svc);
+            WfImplElement? oldElem = WfHandler.ActImplTask.ImplElements.FirstOrDefault(x => x.Id == svc.ElemId);
+            if(oldElem != null)
+            {
+                WfHandler.ActImplTask.RemovedElements.Add(oldElem);
+                WfHandler.ActImplTask.ImplElements.Remove(oldElem);
+            }
+        }
+        foreach(var src in sourcesToAdd)
+        {
+            src.TaskId = WfHandler.ActImplTask.Id;
+            actSources.Add(src);
+            WfHandler.ActImplTask.ImplElements.Add(src.ToImplElement(ElemFieldType.source));
+        }
+        foreach(var dst in destinationsToAdd)
+        {
+            dst.TaskId = WfHandler.ActImplTask.Id;
+            actDestinations.Add(dst);
+            WfHandler.ActImplTask.ImplElements.Add(dst.ToImplElement(ElemFieldType.destination));
+        }
+        foreach(var svc in servicesToAdd)
+        {
+            svc.TaskId = WfHandler.ActImplTask.Id;
+            actServices.Add(svc);
+            WfHandler.ActImplTask.ImplElements.Add(svc.ToImplElement());
+        }
+        sourcesToDelete = [];
+        destinationsToDelete = [];
+        servicesToDelete = [];
+        sourcesToAdd = [];
+        destinationsToAdd = [];
+        servicesToAdd = [];
 
-        ReqHandler.ActImplTask.ImplElements.RemoveAll(x => (x.Field == ElemFieldType.source.ToString() || 
-            x.Field == ElemFieldType.destination.ToString() || x.Field == ElemFieldType.service.ToString() || x.Field == ElemFieldType.rule.ToString()));
-
-        foreach(var source in actSources)
-        {
-            ReqHandler.ActImplTask.ImplElements.Add(source.ToImplElement(ElemFieldType.source));
-        }
-        foreach(var destination in actDestinations)
-        {
-            ReqHandler.ActImplTask.ImplElements.Add(destination.ToImplElement(ElemFieldType.destination));
-        }
-        foreach(var service in actServices)
-        {
-            ReqHandler.ActImplTask.ImplElements.Add(service.ToImplElement());
-        }
+        WfHandler.ActImplTask.ImplElements.RemoveAll(x => x.Field == ElemFieldType.rule.ToString());
         foreach(var rule in actRules)
         {
-            RequestImplElement implElem = rule.ToImplElement();
-            implElem.ImplAction = ReqHandler.ActImplTask.ImplAction;
-            ReqHandler.ActImplTask.ImplElements.Add(implElem);
+            WfImplElement implElem = rule.ToImplElement();
+            implElem.ImplAction = WfHandler.ActImplTask.ImplAction;
+            WfHandler.ActImplTask.ImplElements.Add(implElem);
         }
     }
 
@@ -365,27 +508,28 @@
     {
         try
         {
-            if (ReqHandler.ActImplTask.Sanitize())
+            if (WfHandler.ActImplTask.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
-            ReqHandler.ActImplTask.DeviceId = actDevice?.Id;
-            ReqHandler.ActImplTask.RuleAction = actRuleAction?.Id;
-            ReqHandler.ActImplTask.Tracking = actTracking?.Id;
-            if(ReqHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
+            WfHandler.ActImplTask.DeviceId = actDevice?.Id;
+            WfHandler.ActImplTask.RuleAction = actRuleAction?.Id;
+            WfHandler.ActImplTask.Tracking = actTracking?.Id;
+            if(WfHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
             {
-                ReqHandler.ActImplTask.ImplAction = RequestAction.delete.ToString();
+                WfHandler.ActImplTask.ImplAction = RequestAction.delete.ToString();
             }
+            SetChangedOwner();
             UpdateElements();
             if (CheckImplTaskValues())
             {
-                if (ReqHandler.AddImplTaskMode)
+                if (WfHandler.AddImplTaskMode)
                 {
-                    await ReqHandler.AddImplTask();
+                    await WfHandler.AddImplTask();
                 }
                 else
                 {
-                    await ReqHandler.ChangeImplTask();
+                    await WfHandler.ChangeImplTask();
                 }
                 await Close();
             } 
@@ -396,9 +540,24 @@
         }
     }
 
+    private void SetChangedOwner()
+    {
+        if(actOwner != oldOwner)
+        {
+            if(oldOwner != null)
+            {
+                WfHandler.ActReqTask.RemovedOwners.Add(oldOwner);
+            }
+            if(actOwner != null)
+            {
+                WfHandler.ActReqTask.NewOwners.Add(actOwner);
+            }
+        }
+    }
+
     private bool CheckImplTaskValues()
     {
-        foreach (var implElem in ReqHandler.ActImplTask.ImplElements)
+        foreach (var implElem in WfHandler.ActImplTask.ImplElements)
         {
             if (implElem.Field == ElemFieldType.service.ToString() && implElem.ServiceId == null)
             {
@@ -414,11 +573,11 @@
 
     private void InitPromoteImplTask()
     {
-        ReqHandler.SetImplTaskPopUpOpt(ObjAction.displayPromote);
+        WfHandler.SetImplTaskPopUpOpt(ObjAction.displayPromote);
     }
 
-    private async Task ConfPromoteImplTask(RequestStatefulObject implTask)
+    private async Task ConfPromoteImplTask(WfStatefulObject implTask)
     {
-        await ReqHandler.PromoteImplTask(implTask);
+        await WfHandler.PromoteImplTask(implTask);
     }
 }

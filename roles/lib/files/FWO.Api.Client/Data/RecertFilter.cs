@@ -2,7 +2,7 @@ namespace FWO.Api.Data
 {
     public class RecertFilter
     {
-        public List<int> RecertOwnerList {get; set;} = new ();
+        public List<int> RecertOwnerList {get; set;} = [];
         public bool RecertShowAnyMatch {get; set;} = false;
         public int RecertificationDisplayPeriod = 0;
 
@@ -14,7 +14,6 @@ namespace FWO.Api.Data
             RecertOwnerList = new(recertFilter.RecertOwnerList);
             RecertShowAnyMatch = recertFilter.RecertShowAnyMatch;
             RecertificationDisplayPeriod = recertFilter.RecertificationDisplayPeriod;
-
         }
     }
 }

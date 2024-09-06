@@ -132,8 +132,3 @@
     name: "{{ webserver_package_name }}"
     state: restarted
   become: true
-
-##################
-#TASK [finalize : restart apache without maintenance site] **********************
-#fatal: [ui-srv]: FAILED! => changed=false 
-#  msg: 'Could not find the requested service apache2: host'

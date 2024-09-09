@@ -59,6 +59,13 @@
                 <input type="text" class="col-sm-12" @bind="configData!.UiHostName" />
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H9054"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("welcomeMessage")):</label>
+            <div class="col-sm-4">
+                <textarea type="text" rows="10" @bind="configData!.WelcomeMessage" class="col-sm-12" placeholder="@(userConfig.GetText("welcomeMessage"))" />
+                @* <input type="text" class="col-sm-12" @bind="configData!.WelcomeMessage" /> *@
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>

@@ -44,7 +44,7 @@
                     }
                     else
                     {
-                        <div class="spinner-border text-primary align-self-center mt-3 mb-3" role="status"></div>
+                        <div class="spinner-border text-primary align-self-center mt-3" role="status"></div>
                     }
                     @if(!string.IsNullOrEmpty(errorMessage))
                     {
@@ -55,14 +55,14 @@
         </div> 
         <div class="col"></div>       
     </div>
-    @if(ShowLoginNotificationMessage)
+    @if(ShowWelcomeMessage)
     {
         <div class="row mt-4">            
             <div class="col">
             </div>
             <div class="col">
                 <div class="alert alert-primary" role="alert">
-                    <span>@LoginNotificationMessage</span>
+                    <span>@globalConfig.WelcomeMessage</span>
                 </div>
             </div>
             <div class="col">
@@ -124,8 +124,7 @@
     private string newPassword2 = "";
     private string chgPwErrorMessage = "";
 
-    private string? LoginNotificationMessage { get; set; } = "Hier könnte ihr Nachricht stehen!";
-    private bool ShowLoginNotificationMessage { get; set; } = true;
+    private bool ShowWelcomeMessage { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -147,6 +146,9 @@
                 }
                 catch (Exception ex) { Log.WriteError("Session Restore", "Session restore unsuccessful.", ex); }
             }
+              
+            if(!string.IsNullOrWhiteSpace(globalConfig.WelcomeMessage))
+                ShowWelcomeMessage = true;
 
             // else no reconnect / reconnect unsuccessful
             showLoginForm = true;

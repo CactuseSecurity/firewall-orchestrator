@@ -9,3 +9,8 @@
 
 ## Components
 - Organize files and components in a folder structure like this. This makes it easy to find the code related to a page, without having to browse the entire file explorer. Try, as much as possible, to respect the SOLID principles. Mainly by creating autonomous and extensible components: inject the smallest possible service or parameter, manage all the possibilities offered by the component. For example, a data modification page should display the data, check their values and save the data at the end of the process.
+
+## UI
+# Responsiveness
+- Use the bootstrap grid and it's column classes to have easy and responsive design. [Bootstrap](https://getbootstrap.com/docs/5.3/layout/columns/)
+- Decide if you want to develop mobile or desktop design first and test respectively.

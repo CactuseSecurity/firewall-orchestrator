@@ -22,12 +22,10 @@
 @if (showLoginForm)
 {    
     <div class="row text-center">
-        <div class="col">
-
-        </div>
-        <div class="col">
-        <img src="images/FWO_logo.png">
-        <br><br>            
+        <div class="col-lg-4 col-md-3 col-sm-2 col-xs-2"></div>
+        <div class="col-lg-4 col-md-6 col-sm-8 col-xs-8">
+            <img src="images/FWO_logo.png">
+            <br><br>            
         @* <h2 class="text-center"> @(userConfig.GetText("login")) </h2> *@
             <div class="shadow-sm card p-3">
                 <form class="d-flex flex-column">
@@ -53,7 +51,7 @@
                 </form>  
             </div>
         </div> 
-        <div class="col"></div>       
+        <div class="col-lg-4 col-md-3 col-sm-2 col-xs-2"></div>       
     </div>
     @if(ShowWelcomeMessage)
     {

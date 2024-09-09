@@ -17,7 +17,7 @@
 @if(InitComplete)
 {
     <div class="vheight75">
-        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="10">
             <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)"  Sortable="true" Filterable="true"/>
             <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)"  Sortable="true" Filterable="true"/>
             <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>

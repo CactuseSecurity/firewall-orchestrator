@@ -73,7 +73,7 @@ else
     {
         if(long.TryParse(TicketId, out long ticketId))
         {
-            string newPhase = await wfHandler.HandleExtTicketId(WorkflowPhases.approval, ticketId);
+            string newPhase = await wfHandler.HandleInjectedTicketId(WorkflowPhases.approval, ticketId);
             if(newPhase != "")
             {
                 NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");

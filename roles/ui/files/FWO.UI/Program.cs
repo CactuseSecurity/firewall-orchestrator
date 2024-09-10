@@ -10,11 +10,16 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
 using System.Diagnostics;
+using PuppeteerSharp;
 
 
 // Implicitly call static constructor so background lock process is started
 // (static constructor is only called after class is used in any way)
 Log.WriteInfo("Startup", "Starting FWO UI Server...");
+
+Log.WriteInfo("Startup", "Downloading headless Browser...");
+BrowserFetcher? browserFetcher = new();
+await browserFetcher.DownloadAsync();    
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseWebRoot("wwwroot").UseStaticWebAssets();

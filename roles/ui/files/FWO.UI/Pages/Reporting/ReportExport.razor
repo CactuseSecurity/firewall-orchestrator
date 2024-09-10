@@ -4,6 +4,10 @@
 @using WkHtmlToPdfDotNet
 @using System.Linq
 @using FWO.Report.Filter
+@using PuppeteerSharp
+@using PuppeteerSharp.Media
+@using System.IO
+
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -159,15 +163,9 @@
                     }
 
                     if (ExportPdf)
-                    {
-                        try
-                        {
-                            reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf(SelectedPaperKind, PaperSizeWidth, PaperSizeHeight));                    
-                        }
-                        catch (KeyNotFoundException)
-                        {
-                            throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
-                        }
+                    {                        
+                        string html = ReportToExport.ExportToHtml();
+                        reportExportFile.Pdf = await CreatePDFViaPuppeteer(html);                       
                     }
 
                     if (ExportCsv)
@@ -210,5 +208,31 @@
         {
             DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
         }
+    }
+
+    private async Task<string?> CreatePDFViaPuppeteer(string html)
+    {
+        using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        {
+            Headless = true
+        });
+
+        try 
+        {  
+            using IPage page = await browser.NewPageAsync();
+            await page.SetContentAsync(html);
+
+            PdfOptions pdfOptions = new PdfOptions() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" }};
+            byte[] pdfData = await page.PdfDataAsync(pdfOptions);
+
+            return Convert.ToBase64String(pdfData);
+        }catch(Exception)
+        {
+            throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+            return default;
+        }finally
+        {
+            await browser.CloseAsync();
+        }    
     }
 }

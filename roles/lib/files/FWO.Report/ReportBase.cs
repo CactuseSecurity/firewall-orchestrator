@@ -5,6 +5,8 @@ using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
 using WkHtmlToPdfDotNet;
+using PuppeteerSharp.Media;
+using PuppeteerSharp;
 
 namespace FWO.Report
 {
@@ -258,6 +260,34 @@ namespace FWO.Report
             };
 
             return converter.Convert(doc);
+        }
+
+        public virtual async Task<string?> CreatePDFViaPuppeteer(string html)
+        {
+            using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            {
+                Headless = true
+            });
+
+            try
+            {
+                using IPage page = await browser.NewPageAsync();
+                await page.SetContentAsync(html);
+
+                PdfOptions pdfOptions = new PdfOptions() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[] pdfData = await page.PdfDataAsync(pdfOptions);
+
+                return Convert.ToBase64String(pdfData);
+            }
+            catch (Exception)
+            {
+                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                return default;
+            }
+            finally
+            {
+                await browser.CloseAsync();
+            }
         }
 
         public static string GetIconClass(ObjCategory? objCategory, string? objType)

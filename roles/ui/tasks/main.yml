@@ -33,14 +33,23 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
 
-    #todo: are permissions ok?
-    - name: copy ui files to frontend target
+    - name: copy ui files to frontend target (localhost)
+      synchronize:
+        src: "FWO.UI"
+        dest: "{{ ui_dir }}"
+        rsync_opts:
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
+      tags: [ 'test' ]
+      when: inventory_hostname == 'localhost'
+
+    - name: copy ui files to frontend target (remote)
       copy:
         src: "FWO.UI"
         dest: "{{ ui_dir }}"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
       tags: [ 'test' ]
+      when: inventory_hostname != 'localhost'
 
   become: true
 

@@ -69,9 +69,6 @@
   delay: 5 # Every 5 seconds
   when: "'frontends' in group_names"
 
-  #########################
-  # ui_hostname ist einfach 'ui-srv' aus hosts. Funktioniert das ohne IP Adresse?
-
 - name: show ui webserver test results
   fail:
     msg: "url: {{ web_call_result.url }}, status: {{ web_call_result.status }}"

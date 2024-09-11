@@ -84,18 +84,16 @@
     paths: /etc/cron.d
     patterns: "{{ product_name }}_sample_data_*"
   register: files_to_delete
-  when: demo_data_present.query_result == []
   become: true
-  when: "'sampleserver' in group_names"
+  when: "demo_data_present.query_result == [] and 'sampleserver' in group_names"
 
 - name: delete cron jobs in case of missing demo data
   file:
     path: "{{ item.path }}"
     state: absent
   with_items: "{{ files_to_delete.files }}"
-  when: demo_data_present.query_result == []
   become: true
-  when: "'sampleserver' in group_names"
+  when: "demo_data_present.query_result == [] and 'sampleserver' in group_names"
 
 - name: remove temp importer_password from install host
   file:

@@ -1,7 +1,7 @@
 ﻿using RestSharp;
 using RestSharp.Serializers.SystemTextJson;
 using System.Text.Json;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -258,7 +258,7 @@ namespace FWO.Rest.Client
         public int Oid { get; set; }
 
         [JsonProperty("dev"), JsonPropertyName("dev")]
-        public string DeviceName { get; set; } = "";
+        public string RulebaseName { get; set; } = "";
 
         [JsonProperty("vdom"), JsonPropertyName("vdom")]
         public string VdomName { get; set; } = "";

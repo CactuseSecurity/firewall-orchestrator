@@ -1,4 +1,4 @@
-namespace FWO.GlobalConstants
+namespace FWO.Basics
 {
 	/// <summary>
 	/// Global string constants used e.g. as database keys etc.
@@ -62,11 +62,4 @@ namespace FWO.GlobalConstants
         public const string Rpc = "rpc";
     }
 
-	public class GlobalFunc
-	{
-		public static string ShowBool(bool boolVal)
-        {
-            return boolVal ? "\u2714" : "\u2716";
-        }
-	}
 }

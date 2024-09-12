@@ -2,7 +2,7 @@
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client.Queries
 @using FWO.Ui.Data
@@ -154,18 +154,19 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
+@*
     <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
         @bind-SelectedRules="selectedItemsRuleReportTable" 
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
         SelectedReportType = "actReportFilters.ReportType"/>
     <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
+*@
 }
 
 @* ==== POPUPS ==== *@
 <ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="actReportFilters.ReportType"@bind-ActTimeFilter="actReportFilters.TimeFilter"
     @bind-SavedTimeFilter="actReportFilters.SavedTimeFilter" DisplayTime="actReportFilters.SetDisplayedTimeSelection"/>
-<ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/>
-
+@* <ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/> *@
 
 @code
 {
@@ -182,7 +183,7 @@
     private bool processing = false;
     private CancellationTokenSource tokenSource = new();
 
-    private List<Rule> selectedItemsRuleReportTable = [];
+    private List<RuleMetadata> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
 
     private List<ModellingAppHandler> appHandlers = [];
@@ -529,7 +530,7 @@
                     rulesFound = true;
                     foreach (var rb in device.OrderedRulebases)
                     {
-                        foreach (var rule in rb.Rulebase.Rules!)
+                        foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules!)
                         {
                             rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
                         }

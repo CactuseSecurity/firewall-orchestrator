@@ -661,18 +661,18 @@ def complete_import(importState):
 
     # try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
     #     if delete_json_config_in_import_table(importState, {"importId": importState.ImportId})<0:
-    #         importState.setErrorCounter(importState.ErrorCount + 1)
+    #         importState.increaseErrorCounterByOne()
     # except:
     #     logger.error("import_management - unspecified error cleaning up import_config: " + str(traceback.format_exc()))
 
     try: # CLEANUP: delete data of this import from import_object/rule/service/user tables
         if delete_import_object_tables(importState, {"importId": importState.ImportId})<0:
-            importState.setErrorCounter(importState.ErrorCount + 1)
+            importState.increaseErrorCounterByOne()
     except:
         logger.error("import_management - unspecified error cleaning up import_ object tables: " + str(traceback.format_exc()))
 
     try: # finalize import by unlocking it
-        importState.setErrorCounter(importState.ErrorCount + unlock_import(importState))
+        importState.increaseErrorCounter(unlock_import(importState))
     except:
         logger.error("import_management - unspecified error while unlocking import: " + str(traceback.format_exc()))
 

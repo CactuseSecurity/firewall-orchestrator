@@ -82,7 +82,6 @@ Alter table "report_template" add foreign key ("report_template_owner") referenc
 Alter table "report_template_viewable_by_user" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
 Alter table "report_template_viewable_by_user" add foreign key ("uiuser_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("action_id") references "stm_action" ("action_id") on update restrict on delete cascade;
-Alter table "rule" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("last_change_admin") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("rule_create") references "import_control" ("control_id") on update restrict on delete cascade;
@@ -99,6 +98,8 @@ ALTER TABLE "rule"
 Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
   foreign key ("dev_id", "rule_uid") references "rule_metadata" ("dev_id", "rule_uid") on update restrict on delete cascade;
 Alter table "rule" add CONSTRAINT fk_rule_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+Alter table "rule" add constraint "rule_metadata_rulebase_id_rule_uid_f_key"
+  foreign key ("rulebase_id", "rule_uid") references "rule_metadata" ("rulebase_id", "rule_uid") on update restrict on delete cascade;
 
 Alter table "rule_from" add  foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("rf_create") references "import_control" ("control_id") on update restrict on delete cascade;
@@ -112,6 +113,8 @@ Alter table "rule_metadata" add constraint "rule_metadata_rule_last_certifier_ui
   foreign key ("rule_last_certifier") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "rule_metadata" add constraint "rule_metadata_rule_owner_uiuser_uiuser_id_f_key"
   foreign key ("rule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+Alter table "rule_metadata" add constraint "rule_metadata_rulebase_id_f_key"
+  foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_rule_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_device_dev_id foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
@@ -143,9 +146,6 @@ Alter table "rule_to" add  foreign key ("rt_create") references "import_control"
 Alter table "rule_to" add  foreign key ("rt_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_to" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_to" add constraint rule_to_user_id_usr_user_id FOREIGN KEY ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
-
-Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
-Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 
 Alter table "rule_user_resolved" add foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
 Alter table "rule_user_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;

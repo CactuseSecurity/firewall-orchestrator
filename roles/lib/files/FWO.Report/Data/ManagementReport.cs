@@ -100,7 +100,7 @@ namespace FWO.Report
             }
         }
 
-        public string NameAndDeviceNames(string separator = ", ")
+        public string NameAndRulebaseNames(string separator = ", ")
         {
             return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
         }

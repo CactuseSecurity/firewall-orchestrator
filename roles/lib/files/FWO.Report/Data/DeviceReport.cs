@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using Org.BouncyCastle.Crypto.Engines;
 
@@ -43,33 +43,30 @@ namespace FWO.Report
         {
             if (OrderedRulebases != null)
             {
-                int ruleNumber = 1;
-
                 foreach (RulebaseOnGateway rulebase in OrderedRulebases)
                 {
-                    // if (string.IsNullOrEmpty(rulebase.SectionHeader)) // Not a section header
-                    // {
-                    //     rulebase.DisplayOrderNumber = ruleNumber++;
-                    // }
+                    int ruleNumber = 1; // each rulebase will now start with number 1
+                    foreach (Rule rule in rulebase.Rulebase.RuleMetadata[0].Rules) // only on rule per rule_metadata
+                    {
+                        if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
+                        {
+                            rule.DisplayOrderNumber = ruleNumber++;
+                        }
+                    }
                 }
             }
         }
 
-        // public bool GatewayHasRules()
-        // {
-        //     // dev.Rules != null && dev.Rules.Length > 0
-        //     return true;
-        // }
-        // public bool ManagementHasRules()
-        // {
-        //     // Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)
-        //     return true;
-        // }        
-
         public bool ContainsRules()
         {
-            return OrderedRulebases != null && OrderedRulebases.Length > 0;
-            // TODO: not only return if there are rulebases, but if there are any rules in them
+            foreach (var rb in OrderedRulebases)
+            {
+                if (rb.Rulebase.RuleMetadata[0].Rules.Length>0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -91,9 +88,9 @@ namespace FWO.Report
                         {
                             for (int rb = 0; rb < devices[i].OrderedRulebases.Length && rb < devicesToMerge[i].OrderedRulebases.Length; rb++)
                             {
-                                if (devices[i].OrderedRulebases[rb].Rulebase.Rules != null && devicesToMerge[i].OrderedRulebases[rb] != null && devicesToMerge[i].OrderedRulebases[rb]?.Rulebase.Rules.Length > 0)
+                                if (devices[i].OrderedRulebases[rb].Rulebase.RuleMetadata[0].Rules != null && devicesToMerge[i].OrderedRulebases[rb] != null && devicesToMerge[i].OrderedRulebases[rb]?.Rulebase.RuleMetadata[0].Rules.Length > 0)
                                 {
-                                    devices[i].OrderedRulebases[rb].Rulebase.Rules = devices[i].OrderedRulebases[rb]?.Rulebase.Rules?.Concat(devicesToMerge[i].OrderedRulebases[rb].Rulebase.Rules!).ToArray();
+                                    devices[i].OrderedRulebases[rb].Rulebase.RuleMetadata[0].Rules = devices[i].OrderedRulebases[rb]?.Rulebase.RuleMetadata[0].Rules?.Concat(devicesToMerge[i].OrderedRulebases[rb].Rulebase.RuleMetadata[0].Rules!).ToArray();
                                     newObjects = true;
                                 }
                             }

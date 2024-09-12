@@ -4579,18 +4579,6 @@
                   }
                 },
                 {
-                  "name": "rules",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "dev_id",
-                      "table": {
-                        "name": "rule",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules_with_owner",
                   "using": {
                     "manual_configuration": {
@@ -13038,12 +13026,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "device",
-                  "using": {
-                    "foreign_key_constraint_on": "dev_id"
-                  }
-                },
-                {
                   "name": "importControlByRuleLastSeen",
                   "using": {
                     "foreign_key_constraint_on": "rule_last_seen"
@@ -13316,48 +13298,49 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "parent_rule_id",
-                      "removed",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
                       "access_rule",
+                      "action_id",
                       "active",
+                      "dev_id",
                       "enforced_on_gateway",
                       "is_global",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
                       "last_change_admin",
                       "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "track_id",
-                      "rule_custom_fields",
-                      "rule_num_numeric",
+                      "nat_rule",
+                      "parent_rule_id",
                       "parent_rule_type",
+                      "removed",
                       "rule_action",
                       "rule_comment",
+                      "rule_create",
+                      "rule_custom_fields",
+                      "rule_disabled",
                       "rule_dst",
+                      "rule_dst_neg",
                       "rule_dst_refs",
+                      "rule_from_zone",
                       "rule_head_text",
+                      "rule_id",
+                      "rule_implied",
+                      "rule_installon",
+                      "rule_last_seen",
+                      "rule_name",
+                      "rule_num",
+                      "rule_num_numeric",
+                      "rule_ruleid",
                       "rule_src",
+                      "rule_src_neg",
                       "rule_src_refs",
                       "rule_svc",
+                      "rule_svc_neg",
                       "rule_svc_refs",
+                      "rule_time",
+                      "rule_to_zone",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rulebase_id",
+                      "track_id",
+                      "xlate_rule"
                     ]
                   },
                   "comment": ""
@@ -13494,6 +13477,7 @@
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
+                      "rulebase_id",
                       "rule_from_zone",
                       "rule_num",
                       "rule_to_zone",
@@ -14227,6 +14211,12 @@
                   }
                 },
                 {
+                  "name": "rulebase",
+                  "using": {
+                    "foreign_key_constraint_on": "rulebase_id"
+                  }
+                },
+                {
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "rule_owner"
@@ -14269,8 +14259,8 @@
                   "using": {
                     "manual_configuration": {
                       "column_mapping": {
-                        "dev_id": "dev_id",
-                        "rule_uid": "rule_uid"
+                        "rule_uid": "rule_uid",
+                        "rulebase_id": "rulebase_id"
                       },
                       "insertion_order": null,
                       "remote_table": {
@@ -15672,6 +15662,18 @@
               ],
               "array_relationships": [
                 {
+                  "name": "rule_metadata",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rulebase_id",
+                      "table": {
+                        "name": "rule_metadata",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rulebase_on_gateways",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -15692,6 +15694,17 @@
                         "name": "rule",
                         "schema": "public"
                       }
+                    }
+                  }
+                }
+              ],
+              "computed_fields": [
+                {
+                  "name": "get_rules_for_owner",
+                  "definition": {
+                    "function": {
+                      "name": "get_rulebase_for_owner",
+                      "schema": "public"
                     }
                   }
                 }
@@ -25583,6 +25596,12 @@
             {
               "function": {
                 "name": "devices_in_path",
+                "schema": "public"
+              }
+            },
+            {
+              "function": {
+                "name": "get_rules_for_owner",
                 "schema": "public"
               }
             },

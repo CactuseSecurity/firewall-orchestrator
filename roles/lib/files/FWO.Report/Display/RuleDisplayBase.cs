@@ -1,36 +1,31 @@
 ﻿using System.Text;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
-    public class RuleDisplayBase
+    public class RuleDisplayBase(UserConfig userConfig)
     {
-        protected UserConfig userConfig;
+        protected UserConfig userConfig = userConfig;
 
-        public RuleDisplayBase(UserConfig userConfig)
-        {
-            this.userConfig = userConfig;
-        }
-
-        public string DisplayNumber(Rule rule)
+        public static string DisplayNumber(Rule rule)
         {
             return rule.DisplayOrderNumber.ToString();
         }
 
-        public string DisplayName(Rule rule)
+        public static string DisplayName(Rule rule)
         {
             return rule.Name ?? "";
         }
 
-        public string DisplaySourceZone(Rule rule)
+        public static string DisplaySourceZone(Rule rule)
         {
             return rule.SourceZone != null ? rule.SourceZone.Name : "";
         }
 
-        public string DisplayDestinationZone(Rule rule)
+        public static string DisplayDestinationZone(Rule rule)
         {
             return rule.DestinationZone != null ? rule.DestinationZone.Name : "";
         }

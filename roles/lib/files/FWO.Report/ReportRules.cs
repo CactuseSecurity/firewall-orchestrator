@@ -1,4 +1,4 @@
-﻿using FWO.GlobalConstants;
+﻿using FWO.Basics;
 using FWO.Api.Data;
 using System.Text;
 using FWO.Api.Client;
@@ -9,6 +9,7 @@ using FWO.Logging;
 using FWO.Config.Api;
 using System.Text.Json;
 using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
 
 namespace FWO.Report
 {
@@ -179,7 +180,7 @@ namespace FWO.Report
                     deviceCounter++;
                     foreach (var rb in device.OrderedRulebases)
                     {
-                        ruleCounter += rb.Rulebase.Rules!.Length;
+                        ruleCounter += rb.Rulebase.RuleMetadata[0].Rules!.Length;
                     }
                 }
             }
@@ -192,11 +193,17 @@ namespace FWO.Report
             {
                 foreach (var dev in mgt.Devices.Where(d => d.ContainsRules()))
                 {
-                    foreach (var rb in dev.OrderedRulebases)
+                    foreach (var orderedRulebase in dev.OrderedRulebases)
                     {
-                        foreach (Rule rule in rb.Rulebase.Rules)
+                        foreach (RuleMetadata metaRule in orderedRulebase.Rulebase.RuleMetadata)
                         {
-                            mgt.ReportedRuleIds.Add(rule.Id);
+                            if (metaRule.Rules.Length>0)
+                            {
+                                foreach (Rule rule in metaRule.Rules)
+                                {
+                                    mgt.ReportedRuleIds.Add(rule.Id);
+                                }
+                            }
                         }
                     }
                 }
@@ -223,7 +230,7 @@ namespace FWO.Report
                         {
                             foreach (var rb in gateway.OrderedRulebases)
                             {
-                                foreach (var rule in rb.Rulebase.Rules)
+                                foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
                                 {
                                     if (string.IsNullOrEmpty(rule.SectionHeader))
                                     {
@@ -298,7 +305,7 @@ namespace FWO.Report
                         report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
                         foreach (var rb in gateway.OrderedRulebases)
                         {
-                            foreach (var rule in rb.Rulebase.Rules)
+                            foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
                             {
                                 report.Append('{');
                                 if (string.IsNullOrEmpty(rule.SectionHeader))
@@ -416,42 +423,44 @@ namespace FWO.Report
                 appendRuleHeadlineHtml(ref report);
                 foreach (var rulebase in device.OrderedRulebases!)
                 {
-                    foreach (var rule in rulebase.Rulebase.Rules) 
+                    foreach (var rule in rulebase.Rulebase.RuleMetadata[0].Rules) 
                     {
                         if (string.IsNullOrEmpty(rule.SectionHeader))
                         {
                             report.AppendLine("<tr>");
-                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayNumber(rule)}</td>");
+                            report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
                             if(ReportType == ReportType.Recertification)
                             {
-                                report.AppendLine($"<td>{ruleDisplayHtml.DisplayNextRecert(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplayHtml.DisplayOwner(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplayHtml.DisplayRecertIpMatches(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayHtml.DisplayNextRecert(rule.Metadata)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayHtml.DisplayOwner(rule.Metadata)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayHtml.DisplayRecertIpMatches(rule.Metadata)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
                             }
                             if(ReportType == ReportType.UnusedRules) // || ReportType == ReportType.AppRules)
                             {
-                                report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
                             }
-                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayName(rule)}</td>");
-                            report.AppendLine($"<td>{ruleDisplayHtml.DisplaySourceZone(rule)}</td>");
+                            report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
+                            report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestinationZone(rule)}</td>");
+                            report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType)}</td>");
                             report.AppendLine($"<td>{RuleDisplayBase.DisplayAction(rule)}</td>");
                             report.AppendLine($"<td>{RuleDisplayBase.DisplayTrack(rule)}</td>");
-                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
+                            report.AppendLine($"<td>{RuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
                             report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
                             report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                             report.AppendLine("</tr>");
                         }
-                        if(ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
+                        else 
                         {
-                            report.AppendLine("<tr>");
-                            report.AppendLine($"<td class=\"bg-gray\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
-                            report.AppendLine("</tr>");
+                            report.AppendLine(RuleDisplayHtml.DisplaySectionHeader(rule, ColumnCount));
                         }
+                        // if(ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
+                        // {  // Why do we do this here?
+                        //     report.AppendLine(RuleDisplayHtml.DisplaySectionHeader(rule, ColumnCount));
+                        // }
                     }
                 }
                 report.AppendLine("</table>");

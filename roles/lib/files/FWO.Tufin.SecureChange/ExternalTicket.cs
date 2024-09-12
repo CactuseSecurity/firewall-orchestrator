@@ -81,7 +81,7 @@ namespace FWO.Tufin.SecureChange
 										"name": "Grund für den Antrag",
 										"read_only": false,
 										"text": "@@REASON@@"
-									},
+									},xv86w6u
 									{
 										"@xsi.type": "drop_down_list",
 										"name": "Regel Log aktivieren?",
@@ -199,6 +199,17 @@ public class SCTicket : ExternalTicket
 
 	/*
 		Create Ticket for creating network groups
+
+		parameters:
+		- management_id: we need to get all management ids from tufin st?
+		- 
+
+		workflow:
+		- get all management ids (from sc or do we need to access sc as well?)
+		- loop over all managements
+		  - create group modify ticket with all groups of the app (first: adds only)
+		  - store ticket ids for checking status
+		  - check status and wait for status "closed"
 
 		curl --request POST \
 			--insecure \

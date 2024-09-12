@@ -2,11 +2,12 @@ import json
 from copy import deepcopy
 import re
 from enum import Enum
-import hashlib
+from typing import List, Any, get_type_hints
+import ipaddress 
+
 import fwo_globals
 from fwo_const import max_objs_per_chunk, csv_delimiter, apostrophe, line_delimiter
 from fwo_log import getFwoLogger, getFwoAlertLogger
-from typing import List, Any, get_type_hints
 
 
 class ConfigAction(Enum):
@@ -244,3 +245,57 @@ def deserializeClassToDictRecursively(obj: Any, seen=None) -> Any:
     else:
         # For other types, return the value as is
         return obj
+
+
+def cidrToRange(ip):
+    logger = getFwoLogger()
+
+    if isinstance(ip, str):
+        # dealing with ranges:
+        if '-' in ip:
+            return '-'.split(ip)
+
+        ipVersion = validIPAddress(ip)
+        if ipVersion=='Invalid':
+            logger.warning("error while decoding ip '" + ip + "'")
+            return [ip]
+        elif ipVersion=='IPv4':
+            net = ipaddress.IPv4Network(ip)
+        elif ipVersion=='IPv6':
+            net = ipaddress.IPv6Network(ip)    
+        return [str(net.network_address), str(net.broadcast_address)]
+            
+    return [ip]
+
+
+def validIPAddress(IP: str) -> str: 
+    try: 
+        t = type(ipaddress.ip_address(IP))
+        if t is ipaddress.IPv4Address:
+            return "IPv4"
+        elif t is ipaddress.IPv6Address:
+            return "IPv6"
+        else:
+            return 'Invalid'
+    except:
+        try:
+            t = type(ipaddress.ip_network(IP))
+            if t is ipaddress.IPv4Network:
+                return "IPv4"
+            elif t is ipaddress.IPv6Network:
+                return "IPv6"
+            else:
+                return 'Invalid'        
+        except:
+            return "Invalid"
+
+
+def validate_ip_address(address):
+    try:
+        # ipaddress.ip_address(address)
+        ipaddress.ip_network(address)
+        return True
+        # print("IP address {} is valid. The object returned is {}".format(address, ip))
+    except ValueError:
+        return False
+        # print("IP address {} is not valid".format(address)) 

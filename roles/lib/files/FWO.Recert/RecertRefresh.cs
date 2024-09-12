@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;

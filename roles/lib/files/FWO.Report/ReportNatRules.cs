@@ -1,4 +1,4 @@
-﻿using FWO.GlobalConstants;
+﻿using FWO.Basics;
 using System.Text;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
@@ -26,7 +26,7 @@ namespace FWO.Report
                 {
                     foreach (var rb in device.OrderedRulebases)
                     {
-                        if (rb.Rulebase.Rules != null && rb.Rulebase.Rules.Length > 0)
+                        if (rb.Rulebase.RuleMetadata[0].Rules != null && rb.Rulebase.RuleMetadata[0].Rules.Length > 0)
                         {
                             report.AppendLine($"<h4>{device.Name}</h4>");
                             report.AppendLine("<table>");
@@ -46,22 +46,22 @@ namespace FWO.Report
                             report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                             report.AppendLine("</tr>");
 
-                            foreach (var rule in rb.Rulebase.Rules)
+                            foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
                             {
                                 if (string.IsNullOrEmpty(rule.SectionHeader))
                                 {
                                     report.AppendLine("<tr>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
+                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
+                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
+                                    report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
+                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, OutputLocation.export)}</td>");
+                                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
                                     report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
                                     report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                                     report.AppendLine("</tr>");

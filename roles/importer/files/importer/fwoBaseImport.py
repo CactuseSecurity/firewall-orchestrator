@@ -149,11 +149,17 @@ class ImportState():
     def setChangeCounter(self, changeNo):
         self.ChangeCount = changeNo
 
-    def setErrorCounter(self, errorNo):
-        self.ErrorCount = errorNo
+    def increaseErrorCounter(self, errorNo):
+        self.ErrorCount = self.ErrorCount + errorNo
 
-    def setErrorString(self, errorStr):
-        self.ErrorString = errorStr
+    def increaseErrorCounterByOne(self):
+        self.increaseErrorCounter(1)
+
+    def appendErrorString(self, errorStr):
+        if len(self.ErrorString)>0:
+            self.ErrorString = f"{self.ErrorString}; {errorStr}"
+        else:
+            self.ErrorString = errorStr
 
     @classmethod
     def initializeImport(cls, mgmId, debugLevel=0, suppressCertWarnings=False, 

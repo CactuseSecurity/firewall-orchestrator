@@ -233,24 +233,6 @@ Alter table "rulebase_on_gateway" add CONSTRAINT unique_rulebase_on_gateway_dev_
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
 
--- Create Table IF NOT EXISTS "rule_to_rulebase" 
--- (
--- 	"rule_id" BIGINT NOT NULL,
--- 	"rulebase_id" Integer NOT NULL,
--- 	"created" BIGINT,
--- 	"removed" BIGINT,
---     primary key ("rule_id", "rulebase_id")
--- );
-
--- ALTER TABLE "rule_to_rulebase" ADD PRIMARY KEY IF NOT EXISTS ("rule_id, "rulebase_id");
-
-
--- ALTER TABLE "rule_to_rulebase" DROP CONSTRAINT IF EXISTS "fk_rule_to_rulebase_rule_id" CASCADE;
--- Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
-
--- ALTER TABLE "rule_to_rulebase" DROP CONSTRAINT IF EXISTS "fk_rule_to_rulebase_rulebase_id" CASCADE;
--- Alter table "rule_to_rulebase" add CONSTRAINT fk_rule_to_rulebase_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
-
 -- ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "unique_rule_rule_uid_rule_create" CASCADE;
 -- Alter table "rule" add CONSTRAINT "unique_rule_rule_uid_rule_create" UNIQUE ("rule_uid", "rule_create");
 
@@ -319,8 +301,6 @@ ALTER table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_member_id" TYPE BIGINT;
 ALTER table "svcgrp_flat" ALTER COLUMN "import_created" TYPE BIGINT;
 ALTER table "svcgrp_flat" ALTER COLUMN "import_last_seen" TYPE BIGINT;
 
-
-drop Table IF EXISTS "rule_to_rulebase";
 alter table "rule" add column if not exists "rulebase_id" Integer; -- NOT NULL;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
 Alter table "rule" add CONSTRAINT fk_rule_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
@@ -403,6 +383,33 @@ AS $function$
     END;
 $function$;
 
+CREATE OR REPLACE FUNCTION addMetadataRulebaseEntries() RETURNS VOID
+    LANGUAGE plpgsql
+    VOLATILE
+AS $function$
+    DECLARE
+        r_dev RECORD;
+    BEGIN
+        FOR r_dev IN 
+            -- TODO: deal with global rulebases here
+            SELECT d.dev_id, rb.id as rulebase_id FROM device d LEFT JOIN rulebase rb ON (d.local_rulebase_name=rb.name)
+        LOOP
+            UPDATE rule_metadata SET rulebase_id=r_dev.rulebase_id WHERE rule_metadata.dev_id=r_dev.dev_id;
+        END LOOP;
+        -- now we can add the "not null" constraint for rule_metadata.rulebase_id
+        IF EXISTS (
+            SELECT 1 
+            FROM information_schema.columns
+            WHERE table_name = 'rule_metadata' 
+            AND column_name = 'rulebase_id'
+            AND is_nullable = 'YES'
+        ) THEN
+            ALTER TABLE rule_metadata
+            ALTER COLUMN rulebase_id SET NOT NULL;
+        END IF;
+    END;
+$function$;
+
 CREATE OR REPLACE FUNCTION addRulebaseOnGatewayEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
@@ -419,10 +426,12 @@ AS $function$
             -- find the id of the matching rulebase
             SELECT INTO i_rulebase_id id FROM rulebase WHERE name=r_dev.local_rulebase_name AND mgm_id=r_dev.mgm_id;
             -- check if rulebase_on_gateway already exists
-            SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
-            IF NOT FOUND THEN
-                INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
-                VALUES (r_dev.dev_id, i_rulebase_id, 0); -- when migrating, there cannot be more than one rb per device
+            IF i_rulebase_id IS NOT NULL THEN
+                SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
+                IF NOT FOUND THEN
+                    INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
+                    VALUES (r_dev.dev_id, i_rulebase_id, 0); -- when migrating, there cannot be more than one rb per device
+                END IF;
             END IF;
 
             -- global rulebase:
@@ -430,19 +439,19 @@ AS $function$
             IF r_dev.global_rulebase_name IS NOT NULL THEN
                 SELECT INTO i_rulebase_id id FROM rulebase WHERE name=r_dev.global_rulebase_name AND mgm_id=r_dev.mgm_id;
                 -- check if rulebase_on_gateway already exists
-                SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
-                IF NOT FOUND THEN
-                    INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
-                    VALUES (r_dev.dev_id, i_rulebase_id, 1); -- when migrating, the global rulebase must be the second one
+                IF i_rulebase_id IS NOT NULL THEN
+                    SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
+                    IF NOT FOUND THEN
+                        INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
+                        VALUES (r_dev.dev_id, i_rulebase_id, 1); -- when migrating, the global rulebase must be the second one
+                    END IF;
                 END IF;
             END IF;
         END LOOP;
     END;
 $function$;
 
--- in this migration, in scenarios where a rulebase is used on more than one gateway, 
--- only the rules of the first gw get a rulebase_id, the others (copies) will be deleted
-CREATE OR REPLACE FUNCTION migrateToRulebases() RETURNS VOID
+CREATE OR REPLACE FUNCTION addRulebaseEntriesAndItsRuleRefs() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
 AS $function$
@@ -451,6 +460,7 @@ AS $function$
         r_dev_null RECORD;
         i_new_rulebase_id INTEGER;
     BEGIN
+
         FOR r_dev IN 
             SELECT * FROM device
         LOOP
@@ -476,14 +486,6 @@ AS $function$
             END IF;
         END LOOP;
 
-        PERFORM addRulebaseOnGatewayEntries();
-        -- danger zone: delete all rules that have no rulebase_id
-        -- the deletion might take some time
-        PERFORM deleteDuplicateRulebases();
-
-        -- add entries in rule_enforced_on_gateway
-        PERFORM addRuleEnforcedOnGatewayEntries();
-
         -- now we can add the "not null" constraint for rule.rulebase_id
         IF EXISTS (
             SELECT 1 
@@ -498,7 +500,68 @@ AS $function$
     END;
 $function$;
 
+-- in this migration, in scenarios where a rulebase is used on more than one gateway, 
+-- only the rules of the first gw get a rulebase_id, the others (copies) will be deleted
+CREATE OR REPLACE FUNCTION migrateToRulebases() RETURNS VOID
+    LANGUAGE plpgsql
+    VOLATILE
+AS $function$
+    BEGIN
+
+        PERFORM addRulebaseEntriesAndItsRuleRefs();
+        PERFORM addRulebaseOnGatewayEntries();
+        -- danger zone: delete all rules that have no rulebase_id
+        -- the deletion might take some time
+        PERFORM deleteDuplicateRulebases();
+        PERFORM addMetadataRulebaseEntries();
+
+        -- add entries in rule_enforced_on_gateway
+        PERFORM addRuleEnforcedOnGatewayEntries();
+    END;
+$function$;
+
 SELECT 1 FROM migrateToRulebases();
+
+-- rewrite get_rulebase_for_owner to work with rulebase instead of device
+CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
+ RETURNS SETOF rule
+ LANGUAGE plpgsql
+ STABLE
+AS $function$
+    BEGIN
+        RETURN QUERY
+        SELECT r.* FROM rule r
+            LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
+            LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
+            LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+            LEFT JOIN owner_network ON
+            (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, ip, ip_end, rf.negated != r.rule_src_neg))
+        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
+        UNION
+        SELECT r.* FROM rule r
+            LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+            LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
+            LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+            LEFT JOIN owner_network ON
+            (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, ip, ip_end, rt.negated != r.rule_dst_neg))
+        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
+        ORDER BY rule_name;
+    END;
+$function$
+
+-- drop only after migration!
+alter table rule drop constraint if exists rule_dev_id_fkey;
+
+Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
+
+ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
+Alter table "rule_metadata" add constraint "rule_metadata_rulebase_id_f_key"
+  foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_alt_key" CASCADE;
+Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id","rulebase_id");
+
+
+-- TODO: fill all rulebase_id s and then add not null constraint
 
 /*  TODOs 
 
@@ -509,7 +572,47 @@ REPORTING:
         style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
     - ObjectGroup.Razor line 431:
         Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.OrderedRulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
-    
+    - Statistics Report #rules per device are 0 (device report is null)
+    - recertification: without rule.dev_id we have lost all rule information in report!!!
+      - certification information should be aimed at a rule on a gateway
+      - this might lead to a rulebase which is enforced on multiple gateways to be changed only in
+        the rule_enforced_on_gateway field
+      - how do we get the link between rule_metadata (cert) and the actual rule details?
+        --> can we add a fk from rule_metadatum to rulebase to fix this?
+            query rulesReport($limit: Int, $offset: Int, $mgmId: [Int!], $relevantImportId: bigint, $cut: timestamp, $tolerance: timestamp) {
+            management(where: {hide_in_gui: {_eq: false}, mgm_id: {_in: $mgmId}, stm_dev_typ: {dev_typ_is_multi_mgmt: {_eq: false}, is_pure_routing_device: {_eq: false}}}, order_by: {mgm_name: asc}) {
+                id: mgm_id
+                name: mgm_name
+                devices(where: {hide_in_gui: {_eq: false}}) {
+                id: dev_id
+                rule_metadata {
+                    rule_last_hit
+                    rule_uid
+                    dev_id
+                    # here we do not have any rule details 
+                }
+                name: dev_name
+                rulebase_on_gateways(order_by: {order_no: asc}) {
+                    rulebase_id
+                    order_no
+                    rulebase {
+                    id
+                    name
+                    rules {
+                        mgm_id: mgm_id
+                        rule_metadatum {
+                            # here, the rule_metadata is always empty! 
+                            rule_last_hit
+                        }
+                        ...ruleOverview
+                    }
+                    }
+                }
+                }
+            }
+            }
+    - need to enhance certifications (add dev_id?)
+
 - make sure that xlate rules get unique UIDs
 - with each major version released:
     add fwo version to demo config files on fwodemo to ensure all versions can be served
@@ -559,6 +662,13 @@ Cleanups (after cp importer works with all config variants):
 
 can we get everything working with old config format? no!
 
+optimization: add mgm_id to all tables like objgrp, ...
+
+disabled in UI:
+    recertification.razor
+    in report.razor:
+    - RSB 
+    - TicketCreate Komponente
 
 TODOs after full importer migration
 

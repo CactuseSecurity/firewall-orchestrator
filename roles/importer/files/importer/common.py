@@ -102,18 +102,21 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                 configImporter = FwConfigImport(importState, config)
                                 issues = configImporter.checkConfigConsistency()
                                 if issues == {}:
-                                    configImporter.importConfig()
-                                    # importState.setErrorCounter(configImporter.ImportDetails.ErrorCount+importState.ErrorCount)
-                                    # importState.setChangeCounter(configImporter.ImportDetails.ChangeCount+importState.ChangeCount)
-                                    configImporter.storeConfigToApi() # to file (for debugging) and to database
+                                    try:
+                                        configImporter.importConfig()
+                                    except:
+                                        importState.increaseErrorCounterByOne()
+                                    if importState.ErrorCount>0:
+                                        importState.increaseErrorCounter(fwo_api.complete_import(importState))
+                                        configImporter.rollbackCurrentImport()
+                                    else:
+                                        configImporter.storeConfigToApi() # to file (for debugging) and to database
                                 else:
                                     logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
-                                    importState.setErrorCounter (importState.ErrorCount + 1)
+                                    importState.increaseErrorCounterByOne()
                             else:
                                 configChunk = config.toJsonLegacy(withAction=False)
-                                # if configChunk == {}:
-                                #     importState.setErrorCounter (importState.ErrorCount + errorCount)
-                                importState.setErrorCounter (importState.ErrorCount + fwo_api.import_json_config(importState, configChunk))
+                                importState.increaseErrorCounter(fwo_api.import_json_config(importState, configChunk))
 
                             fwo_api.update_hit_counter(importState, config)
 
@@ -132,8 +135,8 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 logger.error("import_management - unspecified error while getting error string: " + str(traceback.format_exc()))
 
             if error_from_imp_control != None and error_from_imp_control != [{'import_errors': None}]:
-                importState.setErrorCounter(importState.ErrorCount + 1)
-                importState.setErrorString(importState.ErrorString + str(error_from_imp_control))
+                importState.increaseErrorCounterByOne()
+                importState.appendErrorString(str(error_from_imp_control))
             # todo: if no objects found at all: at least throw a warning
 
             # try: # get change count from db
@@ -147,7 +150,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         else: # if no changes were found, we skip everything else without errors
             pass
         
-        importState.setErrorCounter(fwo_api.complete_import(importState))
+        importState.increaseErrorCounter(fwo_api.complete_import(importState))
 
     if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
         # delete all imports of the current management before the last but one full import

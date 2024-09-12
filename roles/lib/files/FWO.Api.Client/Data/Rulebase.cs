@@ -23,8 +23,11 @@ namespace FWO.Api.Data
         [JsonProperty("removed"), JsonPropertyName("removed")]
         public long Removed { get; set; }
 
-        [JsonProperty("rules"), JsonPropertyName("rules")]
-        public Rule[] Rules { get; set; } = [];
+        [JsonProperty("rule_metadata"), JsonPropertyName("rule_metadata")]
+        public RuleMetadata[] RuleMetadata { get; set; } = [];
+
+        // [JsonProperty("rules"), JsonPropertyName("rules")]
+        // public Rule[] Rules { get; set; } = [];
 
     }
 }

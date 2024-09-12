@@ -18,14 +18,15 @@ namespace FWO.Report.Filter
         public string SvcObjWhereStatement { get; set; } = "";
         public string UserObjWhereStatement { get; set; } = "";
         public string ConnectionWhereStatement { get; set; } = "";
-        public string OpenRulesTable { get; set; } = $@"
-                                        rulebase_on_gateways(order_by: {{order_no: asc}}) {{
-                                            rulebase_id
-                                            order_no
-                                            rulebase {{
-                                                id
-                                                name
-                                                rules(";
+        // public string OpenRulesTable { get; set; } = $@"
+        //                                 rulebase_on_gateways(order_by: {{order_no: asc}}) {{
+        //                                     rulebase_id
+        //                                     order_no
+        //                                     rulebase {{
+        //                                         id
+        //                                         name
+        //                                         rules(";
+        public string OpenRulesTable { get; set; } = $@" rules(";
         public string OpenChangeLogRulesTable { get; set; } = "changelog_rules(";
         public List<string> QueryParameters { get; set; } =
         [
@@ -41,8 +42,8 @@ namespace FWO.Report.Filter
 
         public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
-        public static string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
-        public static string dateFormat = "yyyy-MM-dd";
+        public const string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
+        public const string dateFormat = "yyyy-MM-dd";
 
 
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
@@ -70,13 +71,15 @@ namespace FWO.Report.Filter
                                      stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
                                      }} order_by: {{ mgm_name: asc }}";
 
-            string devWhereString = $@"where: {{ hide_in_gui: {{_eq: false }},
-                                    stm_dev_typ: {{is_pure_routing_device:{{_eq:false}} }}
-                                    }} order_by: {{ dev_name: asc }}";
-
+            string devWhereString = GetDevWhereFilter(ref query, filter.ReportParams.DeviceFilter);
+            string metaDataWhereString = ""; // default for rules reports
             string limitOffsetString = $@"limit: $limit 
                                        offset: $offset ";
 
+            if ( (ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules)
+            {
+                metaDataWhereString = "{_or: [{_and: [{rule_last_hit: {_is_null: false}}, {rule_last_hit: {_lte: $cut}}]}, {_and: [{rule_last_hit: {_is_null: true}}, {rule_created: {_lte: $tolerance}}]}]}";
+            }
             if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {
                 filter.Detailed = true;
@@ -100,7 +103,11 @@ namespace FWO.Report.Filter
                                 {{
                                     name: dev_name
                                     id: dev_id
-                                    rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
+                                    rulebase_on_gateways {{
+                                        rulebase {{
+                                            rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
+                                        }}
+                                    }}
                                 }}
                             }}
                         }}
@@ -124,15 +131,27 @@ namespace FWO.Report.Filter
                                 {{
                                     id: dev_id
                                     name: dev_name
-                                    {query.OpenRulesTable}
-                                        {limitOffsetString}
-                                        where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }} 
-                                        order_by: {{ rule_num_numeric: asc }} )
-                                    {{
-                                        mgm_id: mgm_id
-                                        {((ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules ? "rule_metadatum { rule_last_hit }" : "")}
-                                         ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
-                                        }} }}
+
+                                    rulebase_on_gateways(order_by: {{order_no: asc}}) {{
+                                            rulebase_id
+                                            order_no
+                                            rulebase {{
+                                            id
+                                            name
+                                            rule_metadata  (where:{{ {metaDataWhereString} }}) {{
+                                                rule_uid
+                                                dev_id
+                                                rule_last_hit
+                                                {query.OpenRulesTable}
+                                                    {limitOffsetString}
+                                                    where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }} 
+                                                    order_by: {{ rule_num_numeric: asc }} )
+                                                    {{
+                                                        mgm_id: mgm_id
+                                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                                }}
+                                            }}
+                                        }}
                                     }}
                                 }}
                             }} 
@@ -165,7 +184,7 @@ namespace FWO.Report.Filter
                                     {{
                                         mgm_id: mgm_id
                                         ...ruleOpenCertOverview
-                                    }}
+                                    }} }} }}
                                 }}
                             }}
                         }}
@@ -238,6 +257,7 @@ namespace FWO.Report.Filter
                                             mgm_id: mgm_id
                                             ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
                                         }} 
+                                    }} }}
                                 }}
                             }} 
                         }}
@@ -306,7 +326,7 @@ namespace FWO.Report.Filter
             SetTenantFilter(ref query, reportParams);
             if (((ReportType)reportParams.ReportParams.ReportType).IsDeviceRelatedReport())
             {
-                SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
+                // SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
                 SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
             }
             if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification)
@@ -327,31 +347,49 @@ namespace FWO.Report.Filter
             }
         }
 
-        private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
+        private static string GetDevWhereFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
-            bool first = true;
-            if (deviceFilter != null)
+            string devWhereStatement = $@"where: {{ hide_in_gui: {{_eq: false }}, _or: [";
+            query.RelevantManagementIds = deviceFilter.getSelectedManagements();
+            foreach (ManagementSelect mgmt in deviceFilter.Managements)
             {
-                query.RelevantManagementIds = deviceFilter.getSelectedManagements();
-                query.RuleWhereStatement += "{_or: [{";
-                foreach (ManagementSelect mgmt in deviceFilter.Managements)
+                foreach (DeviceSelect dev in mgmt.Devices)
                 {
-                    foreach (DeviceSelect dev in mgmt.Devices)
+                    if (dev.Selected == true)
                     {
-                        if (dev.Selected == true)
-                        {
-                            if (first == false)
-                            {
-                                query.RuleWhereStatement += "}, {";
-                            }
-                            query.RuleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
-                            first = false;
-                        }
+                        devWhereStatement += $@" {{ dev_id: {{_eq:{dev.Id} }} }} ";
                     }
                 }
-                query.RuleWhereStatement += "}]}, ";
             }
+            devWhereStatement += "]} ";
+            return devWhereStatement;
         }
+
+        // private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
+        // {
+        //     bool first = true;
+        //     if (deviceFilter != null)
+        //     {
+        //         query.RelevantManagementIds = deviceFilter.getSelectedManagements();
+        //         query.RuleWhereStatement += "{_or: [{";
+        //         foreach (ManagementSelect mgmt in deviceFilter.Managements)
+        //         {
+        //             foreach (DeviceSelect dev in mgmt.Devices)
+        //             {
+        //                 if (dev.Selected == true)
+        //                 {
+        //                     if (first == false)
+        //                     {
+        //                         query.RuleWhereStatement += "}, {";
+        //                     }
+        //                     // query.RuleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
+        //                     first = false;
+        //                 }
+        //             }
+        //         }
+        //         query.RuleWhereStatement += "}]}, ";
+        //     }
+        // }
 
         private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType, RecertFilter recertFilter)
         {
@@ -514,7 +552,15 @@ namespace FWO.Report.Filter
             if (modellingFilter != null)
             {
                 // currently overruling tenant filter!!
-                query.OpenRulesTable = $"rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id}}}, ";
+                // query.OpenRulesTable = $"rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
+                query.OpenRulesTable =  $@"
+                                        rulebase_on_gateways(order_by: {{order_no: asc}}) {{
+                                            rulebase_id
+                                            order_no
+                                            rulebase {{
+                                                id
+                                                name
+                                                rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
                 query.SelectedOwner = modellingFilter.SelectedOwner;
             }
         }
@@ -549,7 +595,7 @@ namespace FWO.Report.Filter
             if (filter.ReportParams.TenantFilter.IsActive)
             {
                 int tenant_id = filter.ReportParams.TenantFilter.TenantId;
-                query.OpenRulesTable = $"rules: get_rules_for_tenant(args: {{tenant: {tenant_id}}}, ";
+                query.OpenRulesTable = $"rules: get_rules_for_tenant(args: {{tenant: {tenant_id }}}, ";
                 query.OpenChangeLogRulesTable = $"changelog_rules: get_changelog_rules_for_tenant(args: {{tenant: {tenant_id}}}, ";
             }
         }

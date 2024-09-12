@@ -145,15 +145,15 @@ def readFile(importState: ImportState) -> dict:
     except requests.exceptions.RequestException:
         try:
             r # check if response "r" is defined
-            importState.setErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {importState.ImportFileName}')
+            importState.appendErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {importState.ImportFileName}')
         except NameError:
-            importState.setErrorString(f'got error while trying to read config file from URL {importState.ImportFileName}')
-        importState.setErrorCounter(importState.ErrorCount+1)
+            importState.appendErrorString(f'got error while trying to read config file from URL {importState.ImportFileName}')
+        importState.increaseErrorCounterByOne()
         complete_import(importState)
         raise ConfigFileNotFound(importState.ErrorString) from None
     except Exception: 
-        importState.setErrorString(f"Could not read config file {importState.ImportFileName}")
-        importState.setErrorCounter(importState.ErrorCount+1)
+        importState.appendErrorString(f"Could not read config file {importState.ImportFileName}")
+        importState.increaseErrorCounterByOne()
         logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
         complete_import(importState)
         raise Exception(f"Could not read config file {importState.ImportFileName}")
@@ -163,8 +163,8 @@ def readFile(importState: ImportState) -> dict:
 
 def handleErrorOnConfigFileSerialization(importState: ImportState, exception: Exception):
     logger = getFwoLogger()
-    importState.setErrorString(f"Could not understand config file format in file {importState.ImportFileName}")
-    importState.setErrorCounter(importState.ErrorCount+1)
+    importState.appendErrorString(f"Could not understand config file format in file {importState.ImportFileName}")
+    importState.increaseErrorCounterByOne()
     complete_import(importState)
     logger.error(f"unspecified error while trying to serialize config file {importState.ImportFileName}: {str(traceback.format_exc())}")
     raise exception

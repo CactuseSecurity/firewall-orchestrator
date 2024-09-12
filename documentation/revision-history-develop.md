@@ -223,6 +223,9 @@ bugfix release:
 - fix config value
 - remove uniqueness of owner names
 
+# 8.3.2 - 09.09.2024 DEVELOP
+- Added welcome message and settings
+
 # 9.0 - 31.07.2024 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

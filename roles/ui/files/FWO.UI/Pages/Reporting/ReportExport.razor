@@ -163,7 +163,7 @@
                     if (ExportPdf)
                     {                        
                         string html = ReportToExport.ExportToHtml();
-                        reportExportFile.Pdf = await ReportToExport.CreatePDFViaPuppeteer(html);                       
+                        reportExportFile.Pdf = await ReportToExport.ToPdf(html);                       
                     }
 
                     if (ExportCsv)

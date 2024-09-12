@@ -4,7 +4,6 @@ using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
-using WkHtmlToPdfDotNet;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
 
@@ -90,9 +89,7 @@ namespace FWO.Report
         public ReportData ReportData = new();
 
         protected string htmlExport = "";
-
-        // Pdf converter
-        protected static readonly SynchronizedConverter converter = new (new PdfTools());
+               
         public bool GotObjectsInReport { get; protected set; } = false;
 
 
@@ -214,55 +211,7 @@ namespace FWO.Report
             }
         }
 
-        public virtual byte[] ToPdf(PaperKind paperKind, int width = -1, int height = -1)
-        {
-            // HTML
-            if (string.IsNullOrEmpty(htmlExport))
-            {
-                htmlExport = ExportToHtml();
-            }
-
-            GlobalSettings globalSettings = new ()
-            {
-                ColorMode = ColorMode.Color,
-                Orientation = Orientation.Landscape,
-            };
-
-            if (paperKind == PaperKind.Custom)
-            {
-                if (width > 0 && height > 0)
-                {
-                    globalSettings.PaperSize = new PechkinPaperSize(width + "mm", height + "mm");
-                }
-                else
-                {
-                    throw new Exception("Custom paper size: width or height <= 0");
-                }
-            }
-            else
-            {
-                globalSettings.PaperSize = paperKind;
-            }
-
-            HtmlToPdfDocument doc = new ()
-            {
-                GlobalSettings = globalSettings,
-                Objects =
-                {
-                    new ObjectSettings()
-                    {
-                        PagesCount = true,
-                        HtmlContent = htmlExport,
-                        WebSettings = { DefaultEncoding = "utf-8" },
-                        HeaderSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 }
-                    }
-                }
-            };
-
-            return converter.Convert(doc);
-        }
-
-        public virtual async Task<string?> CreatePDFViaPuppeteer(string html)
+        private static async Task<string?> CreatePDFViaPuppeteer(string html, PaperFormat format)
         {
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
@@ -274,7 +223,7 @@ namespace FWO.Report
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
 
-                PdfOptions pdfOptions = new PdfOptions() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                PdfOptions pdfOptions = new PdfOptions() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = format, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[] pdfData = await page.PdfDataAsync(pdfOptions);
 
                 return Convert.ToBase64String(pdfData);
@@ -282,12 +231,26 @@ namespace FWO.Report
             catch (Exception)
             {
                 throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
-                return default;
             }
             finally
             {
                 await browser.CloseAsync();
             }
+        }
+
+        public virtual async Task<string?> ToPdf(string html, PaperFormat format)
+        {
+            return await CreatePDFViaPuppeteer(html, format);
+        }
+
+        public virtual async Task<string?> ToPdf(string html)
+        {
+            return await CreatePDFViaPuppeteer(html, PaperFormat.A4);
+        }
+
+        public virtual async Task<string?> ToPdf(PaperFormat format)
+        {
+            return await CreatePDFViaPuppeteer(htmlExport, format);
         }
 
         public static string GetIconClass(ObjCategory? objCategory, string? objType)

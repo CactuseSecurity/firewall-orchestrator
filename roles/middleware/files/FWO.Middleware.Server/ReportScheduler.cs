@@ -272,7 +272,7 @@ namespace FWO.Middleware.Server
                         break;
 
                     case GlobalConst.kPdf:
-                        reportFile.Pdf = await report.ToPdf(PaperFormat.A4);
+                        reportFile.Pdf = await report.ToPdf(Report.PaperFormat.A4);
                         break;
 
                     case GlobalConst.kJson:

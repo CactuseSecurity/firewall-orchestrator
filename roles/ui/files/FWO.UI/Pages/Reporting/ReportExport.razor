@@ -1,6 +1,7 @@
 ﻿@using System.Text
 @using FWO.Report
 @using FWO.Config.Api
+@using System.Reflection
 @using WkHtmlToPdfDotNet
 @using System.Linq
 @using FWO.Report.Filter
@@ -10,8 +11,10 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<button type="button" class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else { 
-                                                      DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
+<button type="button" class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else {
+                                                      DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>
+    @userConfig.GetText("export_report")
+</button>
 
 <PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" Size=PopupSize.Small OnClose="() => ShowExportDialog = false">
     <Body>
@@ -35,20 +38,20 @@
                             {
                                 <div>
                                     @(userConfig.GetText("page_format")):
-                                    <Dropdown @bind-SelectedElement="SelectedPaperKind" Elements="Enum.GetValues<PaperKind>().Cast<PaperKind>()"></Dropdown>
-                                    @if (SelectedPaperKind == PaperKind.Custom)
+                                    <Dropdown @bind-SelectedElement="SelectedPaperFormat" Elements="Enum.GetValues<PaperFormat>()"></Dropdown>
+                                    @if (SelectedPaperFormat == PaperFormat.Custom)
                                     {
                                         <div class="input-group input-group-sm mb-2 mt-2">
-                                          <div class="input-group-prepend">
-                                            <span class="input-group-text">@(userConfig.GetText("width"))</span>
-                                          </div>
-                                          <input  @bind="PaperSizeWidth" min="1" max="1000000" type="number" class="form-control">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">@(userConfig.GetText("width"))</span>
+                                            </div>
+                                            <input @bind="PaperSizeWidth" min="1" max="1000000" type="number" class="form-control">
                                         </div>
                                         <div class="input-group input-group-sm mb-1">
-                                          <div class="input-group-prepend">
-                                            <span class="input-group-text">@(userConfig.GetText("height"))</span>
-                                          </div>
-                                          <input @bind="PaperSizeHeight" min="1" max="1000000" type="number" class="form-control">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">@(userConfig.GetText("height"))</span>
+                                            </div>
+                                            <input @bind="PaperSizeHeight" min="1" max="1000000" type="number" class="form-control">
                                         </div>
                                     }
                                 </div>
@@ -65,7 +68,7 @@
                             {
                                 <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
                             }
-                            else 
+                            else
                             {
                                 ExportCsv = false;
                                 <input disabled class="form-check-input" type="checkbox" id="reportExportCsv">
@@ -94,11 +97,13 @@
         </div>
     </Body>
     <Footer>
-        @if (!Exporting) {
+        @if (!Exporting)
+        {
             <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; Exporting = false; }">@(userConfig.GetText("export"))</button>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">@(userConfig.GetText("cancel"))</button>
         }
-        else {
+        else
+        {
             <div class="spinner-border" role="status">
                 <span class="visually-hidden">Exporting...</span>
             </div>
@@ -107,7 +112,7 @@
 </PopUp>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("export_report_download"))" ReportFile="reportExportFile"
-    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
+                     Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
 
 @code
 {
@@ -123,7 +128,7 @@
     private bool ExportCsv = false;
     private bool ExportArchive = false;
     private ReportFile reportExportFile = new ReportFile();
-    private PaperKind SelectedPaperKind = PaperKind.A4;
+    private PaperFormat SelectedPaperFormat = PaperFormat.A4;
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
@@ -132,6 +137,8 @@
 
     private int PaperSizeWidth = 0;
     private int PaperSizeHeight = 0;
+
+
 
     private bool csvAvailable()
     {
@@ -161,9 +168,12 @@
                     }
 
                     if (ExportPdf)
-                    {                        
+                    {
+                        ReportToExport.CustomHeight = PaperSizeHeight;
+                        ReportToExport.CustomWidth = PaperSizeWidth;
+
                         string html = ReportToExport.ExportToHtml();
-                        reportExportFile.Pdf = await ReportToExport.ToPdf(html);                       
+                        reportExportFile.Pdf = await ReportToExport.ToPdf(html, SelectedPaperFormat);
                     }
 
                     if (ExportCsv)

@@ -15,6 +15,10 @@ namespace FWO.Test
         [Parallelizable]
         public async Task GeneratePdf()
         {
+            Log.WriteInfo("Startup", "Downloading headless Browser...");
+            BrowserFetcher? browserFetcher = new();
+            await browserFetcher.DownloadAsync();
+
             Log.WriteInfo("Test Log", "starting PDF generation");
             // HTML
             string html = "<html> <body> <h1>test<h1> test </body> </html>";

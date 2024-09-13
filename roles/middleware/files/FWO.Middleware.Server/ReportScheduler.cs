@@ -8,7 +8,6 @@ using FWO.Middleware.Controllers;
 using FWO.Report;
 using FWO.Report.Filter;
 using System.Timers;
-using WkHtmlToPdfDotNet;
 using FWO.Config.File;
 using PuppeteerSharp.Media;
 

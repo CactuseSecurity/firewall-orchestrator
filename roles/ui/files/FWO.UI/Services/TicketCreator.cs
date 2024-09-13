@@ -27,6 +27,45 @@ namespace FWO.Ui.Services
             this.apiConnection = apiConnection;
         }
 
+        public async Task<WfTicket> CreateTicket(FwoOwner owner, List<WfReqTask> reqTasks, string title, string reason = "")
+        {
+            await wfHandler.Init([owner.Id]);
+            stateId = wfHandler.MasterStateMatrix.LowestEndState;
+            wfHandler.SelectTicket(new WfTicket()
+                {
+                    StateId = stateId,
+                    Title = title,
+                    Requester = userConfig.User,
+                    Reason = reason
+                },
+                ObjAction.add);
+            foreach(var reqTask in reqTasks)
+            {
+                wfHandler.SelectReqTask(new WfReqTask()
+                    {
+                        StateId = stateId,
+                        Title = reqTask.Title,
+                        TaskType = reqTask.TaskType,
+                        Owners = [new() { Owner = owner }],
+                        Reason = reqTask.Reason,
+                        Elements = reqTask.Elements,
+                        AdditionalInfo = reqTask.AdditionalInfo
+                    },
+                    ObjAction.add);
+                await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = wfHandler.MasterStateMatrix.LowestEndState}));
+                wfHandler.ActTicket.Tasks.Add(wfHandler.ActReqTask);
+            }
+            wfHandler.AddTicketMode = true;
+            long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
+            return wfHandler.ActTicket;
+        }
+
+        public async Task<WfTicket?> GetTicket(FwoOwner owner, long ticketId)
+        {
+            await wfHandler.Init([owner.Id]);
+            return await wfHandler.ResolveTicket(ticketId);
+        }
+
         public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, FwoOwner requestingOwner, string reason = "")
         {
             await wfHandler.Init([owner.Id]);

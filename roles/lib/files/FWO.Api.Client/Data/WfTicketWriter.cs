@@ -3,18 +3,18 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestTicketWriter
+    public class WfTicketWriter
     {
 
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<RequestReqTaskWriter> Tasks { get; set; } = new ();
+        public List<WfReqTaskWriter> Tasks { get; set; } = new ();
 
 
-        public RequestTicketWriter(RequestTicket ticket)
+        public WfTicketWriter(WfTicket ticket)
         {
             foreach(var reqtask in ticket.Tasks)
             {
-                Tasks.Add(new RequestReqTaskWriter(reqtask));
+                Tasks.Add(new WfReqTaskWriter(reqtask));
             }
         }
     }

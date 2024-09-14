@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestTicketBase: RequestStatefulObject
+    public class WfTicketBase: WfStatefulObject
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -45,10 +45,10 @@ namespace FWO.Api.Data
         public int? Priority { get; set; }
 
 
-        public RequestTicketBase()
+        public WfTicketBase()
         { }
 
-        public RequestTicketBase(RequestTicketBase ticket) : base(ticket)
+        public WfTicketBase(WfTicketBase ticket) : base(ticket)
         {
             Id = ticket.Id;
             Title = ticket.Title;

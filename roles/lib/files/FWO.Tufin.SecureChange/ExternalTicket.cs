@@ -8,7 +8,7 @@ using FWO.Logging;
 
 namespace FWO.Tufin.SecureChange
 {
-	abstract public class ExternalTicket : RequestTicket
+	abstract public class ExternalTicket : WfTicket
 
 	{
 		public List<ExternalAccessRequestTicketTask> TicketTasks = [];

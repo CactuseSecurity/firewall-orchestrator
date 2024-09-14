@@ -222,3 +222,6 @@ bugfix release:
 - workflow: external state handling
 - fix config value
 - remove uniqueness of owner names
+
+# 8.3.2 - 09.09.2024 DEVELOP
+- Added welcome message and settings

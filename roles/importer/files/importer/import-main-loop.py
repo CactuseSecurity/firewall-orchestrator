@@ -176,7 +176,7 @@ if __name__ == '__main__':
                             if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
                                 logger.debug("import-main-loop: starting import of mgm_id=" + id)
                                 try:
-                                    import_result = import_management(mgm_id=id, debug_level_in=debug_level, 
+                                    import_result = import_management(mgmId=id, debug_level_in=debug_level, 
                                         clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit))
                                 except (FwoApiFailedLockImport, FwLoginFailed):
                                     pass # minor errors for a single mgm, go to next one

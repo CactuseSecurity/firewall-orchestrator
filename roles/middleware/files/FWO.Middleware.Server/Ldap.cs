@@ -153,7 +153,7 @@ namespace FWO.Middleware.Server
                 List<LdapEntry> possibleUserEntries = [];
 
                 // If dn was already provided
-                if (!user.Dn.IsNullOrEmpty())
+                if (!string.IsNullOrEmpty(user.Dn))
                 {
                     // Try to read user entry directly
                     LdapEntry? userEntry = connection.Read(user.Dn);

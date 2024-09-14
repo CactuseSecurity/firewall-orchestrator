@@ -144,7 +144,7 @@ public class SCTicket : ExternalTicket
 		string taskText = "";
 
 		// set templates from config
-		if (!tufinSystem.TicketTemplate.IsNullOrEmpty() && !tufinSystem.TasksTemplate.IsNullOrEmpty())
+		if (!string.IsNullOrEmpty(tufinSystem.TicketTemplate) && !string.IsNullOrEmpty(tufinSystem.TasksTemplate))
 		{
 			TicketTemplate = tufinSystem.TicketTemplate;
 			TasksTemplate = tufinSystem.TasksTemplate;

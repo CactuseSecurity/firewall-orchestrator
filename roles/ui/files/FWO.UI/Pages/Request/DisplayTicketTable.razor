@@ -10,8 +10,8 @@
     <button type="button" class="btn btn-success m-2" @onclick="AddTicket">@(ModellingHandlerBase.DisplayButton(userConfig, "add_new_request", Icons.Add))</button>
 }
 
-<div class="m-2 vheight75"> 
-    <Table class="table table-bordered th-bg-secondary th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfTicket" Items="WfHandler.TicketList" PageSize="0" ColumnReorder="true">
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary th-bg-secondary sticky-header bs-overflow" TableItem="WfTicket" Items="WfHandler.TicketList" PageSize="0" ColumnReorder="true">
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">

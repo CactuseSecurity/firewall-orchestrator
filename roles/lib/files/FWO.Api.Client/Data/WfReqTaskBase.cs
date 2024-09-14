@@ -16,6 +16,7 @@ namespace FWO.Api.Data
     {
         public const string ConnId = "ConnId";
         public const string ReqOwner = "ReqOwner";
+        public const string GrpName = "GrpName";
     }
 
     public class WfReqTaskBase : WfTaskBase

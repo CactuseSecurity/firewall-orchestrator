@@ -1,0 +1,18 @@
+﻿@inject UserConfig UserConfig
+
+<div class="d-inline float-end mb-2">
+    <label for="pagesize" class="d-inline">@UserConfig.GetText("PagerPagesize")</label>
+    <input id="pagesize" type="text" class="d-inline border-2" @bind="PageSize" />
+    <button type="button" class="btn btn-sm btn-primary d-inline" @onclick="SubmitPageSize">@UserConfig.GetText("PagerSubmit")</button>
+</div>
+
+@code {
+    [Parameter] public int PageSize { get; set; }
+    [Parameter] public EventCallback<int> PageSizeCallback { get; set; }
+
+    private async Task SubmitPageSize()
+    {
+        await PageSizeCallback.InvokeAsync(PageSize);
+    }
+
+}

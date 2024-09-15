@@ -32,7 +32,7 @@
         else
         {
             <div class="vheight75">  
-                        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
+                <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
                 <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="PageSize">
                     <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>

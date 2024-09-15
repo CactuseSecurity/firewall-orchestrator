@@ -1,5 +1,6 @@
 ﻿@using System.Text
 @using FWO.Config.Api
+@using FWO.Ui.Shared
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -11,8 +12,9 @@
 
 @if(InitComplete)
 {
-    <div class="vheight75">      
-        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="10">
+    <div class="vheight75">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="PageSize">
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" Sortable="true" Filterable="true"/>
@@ -48,6 +50,7 @@ else
     private List<LogEntry> logEntrys = new List<LogEntry>();
     private bool InitComplete = false;
 
+    private int PageSize { get; set; } = 10;
 
     protected override async Task OnInitializedAsync()
     {
@@ -62,5 +65,8 @@ else
         }
     }
 
-
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
+    }
 }

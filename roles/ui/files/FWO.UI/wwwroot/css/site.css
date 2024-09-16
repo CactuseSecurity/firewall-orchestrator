@@ -477,3 +477,7 @@ thead {
     color: black !important;
     background-color: #a4d7f5;
 }
+
+div.table-responsive {
+    overflow-x: visible !important;
+}

@@ -161,6 +161,17 @@
                             }
                         }
                     }
+                    else if(actTaskType == TaskType.group_create)
+                    {
+                        <div class="col-sm-7">
+                            <div class="form-group row">
+                                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                                <div class="col-sm-11">
+                                    <input type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditReqTaskMode)" @bind="actGrpName" />
+                                </div>
+                            </div>
+                        </div>
+                    }
                 </div>
                 @if(actTaskType == TaskType.generic)
                 {
@@ -262,6 +273,26 @@
                 {
                     <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode" />
                 }
+                else if(actTaskType == TaskType.group_create)
+                {
+                    <div class="col-sm-4 mt-2">
+                        @if (WfHandler.EditReqTaskMode)
+                        {
+                            <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false"/>
+                        }
+                        else
+                        {
+                            <div class="list-group">
+                                @foreach(var source in actSources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
+                                {
+                                    <div class="list-group-item border bg-secondary">
+                                        <label>@source.Cidr.CidrString</label>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
 
                 @if(!WfHandler.EditReqTaskMode)
                 {
@@ -271,7 +302,7 @@
                             @if(WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode)
                             {
                                 <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
+                                    @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                             }
                         </div>
                         <div class="col-sm-11">
@@ -412,6 +443,7 @@
     private Tracking? actTracking;
     private FwoOwner? actOwner;
     private FwoOwner? oldOwner;
+    private string? actGrpName;
     private bool firstParamSet = false;
 
 
@@ -452,6 +484,7 @@
                     {
                         oldOwner = actOwner;
                     }
+                    actGrpName = WfHandler.GetAddInfoValue(AdditionalInfoKeys.GrpName);
                 }
                 firstParamSet = false;
              }
@@ -656,6 +689,12 @@
             {
                 WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
             }
+            else if(actTaskType == TaskType.group_create)
+            {
+                Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, actGrpName} };
+                WfHandler.ActReqTask.AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+            }
+
             UpdateElements();
             if (await CheckTaskValues())
             {
@@ -726,6 +765,14 @@
                     DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E8013") + elem.RuleUid, true);
                     return false;
                 }
+            }
+        }
+        else if (actTaskType == TaskType.group_create)
+        {
+            if (actGrpName == null || actGrpName == "" || actSources.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+                return false;
             }
         }
         return true;

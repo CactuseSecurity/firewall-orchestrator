@@ -224,7 +224,7 @@ def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=None
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
 
     # adding inline and domain layers (if they exist)
-    add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules)    
+    add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules, nativeConfig=nativeConfig)
 
     return current_layer_json
 
@@ -235,7 +235,7 @@ def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type=
         for chunk in rulebase['layerchunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
-                    add_inline_layers(rules_chunk, api_v_url, sid, show_params_rules)
+                    add_inline_layers(rules_chunk, api_v_url, sid, show_params_rules, nativeConfig=nativeConfig)
     else:
         if 'rulebase' in rulebase:
             rulebase_idx = 0

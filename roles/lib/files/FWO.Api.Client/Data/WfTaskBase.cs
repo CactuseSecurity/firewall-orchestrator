@@ -23,7 +23,7 @@ namespace FWO.Api.Data
         modify
     }
 
-    public class RequestTaskBase : RequestStatefulObject
+    public class WfTaskBase : WfStatefulObject
     {
         [JsonProperty("title"), JsonPropertyName("title")]
         public string Title { get; set; } = "";
@@ -65,10 +65,10 @@ namespace FWO.Api.Data
         public DateTime? TargetEndDate { get; set; }
 
 
-        public RequestTaskBase()
+        public WfTaskBase()
         { }
 
-        public RequestTaskBase(RequestTaskBase reqtask) : base(reqtask)
+        public WfTaskBase(WfTaskBase reqtask) : base(reqtask)
         {
             Title = reqtask.Title;
             TaskNumber = reqtask.TaskNumber;

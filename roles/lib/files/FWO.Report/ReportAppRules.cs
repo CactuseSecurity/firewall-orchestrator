@@ -132,6 +132,7 @@ namespace FWO.Report
                             {
                                 relevantObjects.Add(obj);
                                 found = true;
+                                break;
                             }
                         }
                     }
@@ -220,6 +221,7 @@ namespace FWO.Report
                     }
                 }
             }
+            mgt.RelevantObjectIds = mgt.RelevantObjectIds.Distinct().ToList();
             mgt.HighlightedObjectIds = mgt.HighlightedObjectIds.Distinct().ToList();
         }
 

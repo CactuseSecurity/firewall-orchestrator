@@ -7,7 +7,7 @@ namespace FWO.Ui.Services
     public class ExtStateHandler
     {
         private readonly ApiConnection apiConnection;
-        private List<RequestExtState> extStates = [];
+        private List<WfExtState> extStates = [];
 
         public ExtStateHandler(ApiConnection apiConnection)
         {
@@ -16,7 +16,7 @@ namespace FWO.Ui.Services
 
         public async Task Init()
         {
-            extStates = await apiConnection.SendQueryAsync<List<RequestExtState>>(RequestQueries.getExtStates);
+            extStates = await apiConnection.SendQueryAsync<List<WfExtState>>(RequestQueries.getExtStates);
         }
 
         public int? GetInternalStateId(ExtStates extState)

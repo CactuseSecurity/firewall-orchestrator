@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestCommentBase
+    public class WfCommentBase
     {
         [JsonProperty("ref_id"), JsonPropertyName("ref_id")]
         public long? RefId { get; set; }
@@ -21,10 +21,10 @@ namespace FWO.Api.Data
         public string CommentText { get; set; } = "";
 
 
-        public RequestCommentBase()
+        public WfCommentBase()
         { }
 
-        public RequestCommentBase(RequestCommentBase comment)
+        public WfCommentBase(WfCommentBase comment)
         {
             RefId = comment.RefId;
             Scope = comment.Scope;

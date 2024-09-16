@@ -27,8 +27,8 @@
         @onclick="AddAction">@(userConfig.GetText("add_action"))</button>
     <br><br>
     <div class="m-2 vheight75">
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestStateAction" Items="actions" PageSize="0" ColumnReorder="true">
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfStateAction" Items="actions" PageSize="0" ColumnReorder="true">
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditAction(context)">@(userConfig.GetText("edit"))</button>
@@ -36,35 +36,35 @@
                     </div>
                 </Template>
             </Column>
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("action_type"))" Field="@(x => x.ActionType)" Sortable="true" Filterable="true" >
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("action_type"))" Field="@(x => x.ActionType)" Sortable="true" Filterable="true" >
                 <Template>
                     @(context.ActionType != "" ? userConfig.GetText(context.ActionType) : "")
                 </Template>
             </Column>
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("scope"))" Field="@(x => x.Scope)" Sortable="true" Filterable="true" >
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("scope"))" Field="@(x => x.Scope)" Sortable="true" Filterable="true" >
                 <Template>
                     @(context.Scope != "" ? userConfig.GetText(context.Scope) : "")
                 </Template>
             </Column>
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.TaskType)" Sortable="true" Filterable="true" >
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.TaskType)" Sortable="true" Filterable="true" >
                 <Template>
                     @(context.TaskType != "" ? userConfig.GetText(context.TaskType) : "")
                 </Template>
             </Column>
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("phase"))" Field="@(x => x.Phase)" Sortable="true" Filterable="true" >
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("phase"))" Field="@(x => x.Phase)" Sortable="true" Filterable="true" >
                 <Template>
                     @(context.Phase != "" ? userConfig.GetText(context.Phase) : "")
                 </Template>
             </Column>
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("event"))" Field="@(x => x.Event)" Sortable="true" Filterable="true" >
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("event"))" Field="@(x => x.Event)" Sortable="true" Filterable="true" >
                 <Template>
                     @(context.Event != null && context.Event != "" ? userConfig.GetText(context.Event) : "")
                 </Template>
             </Column>
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("button_text"))" Field="@(x => x.ButtonText)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("external_params"))" Field="@(x => x.ExternalParams)" Sortable="true" Filterable="true" />
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("button_text"))" Field="@(x => x.ButtonText)" Sortable="true" Filterable="true" />
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("external_params"))" Field="@(x => x.ExternalParams)" Sortable="true" Filterable="true" />
         </Table>
     </div>
 
@@ -139,7 +139,7 @@
                         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5515"))">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
                             <div class="col-sm-8">
-                                <Dropdown ElementType="string" @bind-SelectedElement="actAction.Scope" ElementToString="@(s => userConfig.GetText(s))" Elements="Enum.GetNames(typeof(RequestObjectScopes))" >
+                                <Dropdown ElementType="string" @bind-SelectedElement="actAction.Scope" ElementToString="@(s => userConfig.GetText(s))" Elements="Enum.GetNames(typeof(WfObjectScopes))" >
                                     <ElementTemplate Context="scope">
                                         @(userConfig.GetText(scope))
                                     </ElementTemplate>
@@ -147,7 +147,7 @@
                             </div>
                         </div>
                     </div>
-                    @if(actAction.Scope == RequestObjectScopes.RequestTask.ToString() || actAction.Scope == RequestObjectScopes.ImplementationTask.ToString())
+                    @if(actAction.Scope == WfObjectScopes.RequestTask.ToString() || actAction.Scope == WfObjectScopes.ImplementationTask.ToString())
                     {
                         <div class="col-sm-4">
                             <div class="form-group row">
@@ -172,7 +172,7 @@
                                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5522"))">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
                                     <div class="col-sm-8">
-                                        <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedToState" Elements="statesPlus">
+                                        <Dropdown ElementType="WfState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedToState" Elements="statesPlus">
                                             <ElementTemplate Context="state">
                                                 @state.Name
                                             </ElementTemplate>
@@ -186,7 +186,7 @@
                                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state"))*:</label>
                                     <div class="col-sm-8">
-                                        <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
+                                        <Dropdown ElementType="WfState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
                                             <ElementTemplate Context="state">
                                                 @state.Name
                                             </ElementTemplate>
@@ -308,7 +308,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -317,13 +317,13 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestStateAction> actions = [];
-    private List<RequestState> states = [];
-    private List<RequestState> statesPlus = [];
+    private List<WfStateAction> actions = [];
+    private List<WfState> states = [];
+    private List<WfState> statesPlus = [];
     private List<UiUser> userAndGroupList = [];
     private List<TaskType> availableTaskTypes { get; set; } = [];
 
-    private RequestStateAction actAction = new ();
+    private WfStateAction actAction = new ();
     private ApprovalParams actApprovalParams = new ();
     private int toState = -1;
     private string message = "";
@@ -331,9 +331,9 @@ else
     private EmailActionParams actEmailActionParams = new ();
     private string? selectedPhase;
     private TaskType? selectedTaskType;
-    private RequestState selectedState = new ();
-    private static RequestState AutomaticState = new (){ Id = -1, Name = "automatic" };
-    private RequestState selectedToState = AutomaticState;
+    private WfState selectedState = new ();
+    private static WfState AutomaticState = new (){ Id = -1, Name = "automatic" };
+    private WfState selectedToState = AutomaticState;
     private UiUser? selectedUserGroup;
 
     private bool EditActionMode = false;
@@ -351,9 +351,9 @@ else
     {
         try
         {
-            actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(RequestQueries.getActions);
-            states = await apiConnection.SendQueryAsync<List<RequestState>>(RequestQueries.getStates);
-            statesPlus = new List<RequestState>(states);
+            actions = await apiConnection.SendQueryAsync<List<WfStateAction>>(RequestQueries.getActions);
+            states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+            statesPlus = new List<WfState>(states);
             statesPlus.Add(AutomaticState);
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
             userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Roles.Approver);
@@ -367,10 +367,10 @@ else
     private void AddAction()
     {
         AddActionMode = true;
-        EditAction(new RequestStateAction());
+        EditAction(new WfStateAction());
     }
 
-    private void EditAction(RequestStateAction action)
+    private void EditAction(WfStateAction action)
     {
         actAction = action;
         selectedPhase = actAction.Phase != "" ? actAction.Phase : null;
@@ -407,7 +407,7 @@ else
                     break;
             }
         }
-        selectedState = states.FirstOrDefault(x => x.Id == actApprovalParams.StateId) ?? new RequestState();
+        selectedState = states.FirstOrDefault(x => x.Id == actApprovalParams.StateId) ?? new WfState();
         selectedToState = statesPlus.FirstOrDefault(x => x.Id == toState) ?? AutomaticState;
         selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == actApprovalParams.ApproverGroup);
         EditActionMode = true;
@@ -507,7 +507,7 @@ else
         DeleteActionMode = false;
     }
 
-    private void RequestDeleteAction(RequestStateAction action)
+    private void RequestDeleteAction(WfStateAction action)
     {
         actAction = action;
         DeleteActionMode = true;

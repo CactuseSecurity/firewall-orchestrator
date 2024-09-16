@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestReqElement : RequestElementBase
+    public class WfReqElement : WfElementBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -19,10 +19,10 @@ namespace FWO.Api.Data
 
         public Cidr Cidr { get; set; } = new Cidr();
 
-        public RequestReqElement()
+        public WfReqElement()
         {}
 
-        public RequestReqElement(RequestReqElement element) : base (element)
+        public WfReqElement(WfReqElement element) : base (element)
         {
             Id = element.Id;
             TaskId = element.TaskId;

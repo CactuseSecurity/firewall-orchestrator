@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestReqTask : RequestReqTaskBase
+    public class WfReqTask : WfReqTaskBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -12,28 +12,28 @@ namespace FWO.Api.Data
         public long TicketId { get; set; }
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
-        public List<RequestReqElement> Elements { get; set; } = new ();
+        public List<WfReqElement> Elements { get; set; } = new ();
 
         [JsonProperty("implementation_tasks"), JsonPropertyName("implementation_tasks")]
-        public List<RequestImplTask> ImplementationTasks { get; set; } = new ();
+        public List<WfImplTask> ImplementationTasks { get; set; } = new ();
 
         [JsonProperty("request_approvals"), JsonPropertyName("request_approvals")]
-        public List<RequestApproval> Approvals { get; set; } = new ();
+        public List<WfApproval> Approvals { get; set; } = new ();
 
         [JsonProperty("owners"), JsonPropertyName("owners")]
         public List<FwoOwnerDataHelper> Owners { get; set; } = new ();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<RequestCommentDataHelper> Comments { get; set; } = new ();
+        public List<WfCommentDataHelper> Comments { get; set; } = new ();
 
-        public List<RequestReqElement> RemovedElements { get; set; } = new ();
+        public List<WfReqElement> RemovedElements { get; set; } = new ();
         public List<FwoOwner> NewOwners { get; set; } = new ();
         public List<FwoOwner> RemovedOwners { get; set; } = new ();
 
-        public RequestReqTask()
+        public WfReqTask()
         { }
 
-        public RequestReqTask(RequestReqTask reqtask) : base(reqtask)
+        public WfReqTask(WfReqTask reqtask) : base(reqtask)
         {
             Id = reqtask.Id;
             TicketId = reqtask.TicketId;

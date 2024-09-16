@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestState
+    public class WfState
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -14,12 +14,12 @@ namespace FWO.Api.Data
         public string Name { get; set; } = "";
 
         [JsonProperty("actions"), JsonPropertyName("actions")]
-        public List<RequestStateActionDataHelper> Actions { get; set; } = new ();
+        public List<WfStateActionDataHelper> Actions { get; set; } = new ();
 
 
-        public RequestState(){}
+        public WfState(){}
 
-        public RequestState(RequestState state)
+        public WfState(WfState state)
         {
             Id = state.Id;
             Name = state.Name;
@@ -37,13 +37,13 @@ namespace FWO.Api.Data
         }
     }
 
-    public class RequestStateDict
+    public class WfStateDict
     {
         public Dictionary<int, string> Name = new ();
 
         public async Task Init(ApiConnection apiConnection)
         {
-            List<RequestState> states = await apiConnection.SendQueryAsync<List<RequestState>>(Client.Queries.RequestQueries.getStates);
+            List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(Client.Queries.RequestQueries.getStates);
             Name = new ();
             foreach(var state in states)
             {

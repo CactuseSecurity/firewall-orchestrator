@@ -3,6 +3,7 @@ using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Middleware.Client;
+using FWO.Logging;
 
 namespace FWO.Ui.Services
 {
@@ -226,7 +227,7 @@ namespace FWO.Ui.Services
             return AllTicketList.FirstOrDefault(x => x.Id == ticketId);
         }
 
-        public async Task<string> HandleExtTicketId(WorkflowPhases phase, long ticketId)
+        public async Task<string> HandleInjectedTicketId(WorkflowPhases phase, long ticketId)
         {
             WfTicket? ticket = await ResolveTicket(ticketId);
             if(ticket != null)
@@ -655,7 +656,15 @@ namespace FWO.Ui.Services
         {
             if(ActReqTask.AdditionalInfo != null && ActReqTask.AdditionalInfo != "")
             {
-                return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(ActReqTask.AdditionalInfo);
+                try
+                {
+                    return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(ActReqTask.AdditionalInfo);
+                }
+                catch(Exception)
+                {
+                    Log.WriteInfo("Get Additional Info","Could not deserialize. No valid content.");
+                    return null;
+                }
             }
             return null;
         }

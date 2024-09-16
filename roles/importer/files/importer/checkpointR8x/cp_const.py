@@ -28,7 +28,9 @@ group_svc_obj_types = ['service-groups', 'application-site-categories', 'applica
 svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObject' ]
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
-api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names to look at during import
+simple_user_obj_types = ['users']
+
+api_obj_types = nw_obj_table_names + svc_obj_table_names + simple_user_obj_types # all obj table names to look at during import
 
 obj_types_full_fetch_needed = ['groups', 'groups-with-exclusion', 'updatable-objects'] + group_svc_obj_types
 

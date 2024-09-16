@@ -171,15 +171,10 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             rule_time = list_delimiter.join(timeObjects.values())   # only considering the first time object
 
             # starting with the non-chunk objects
-            if 'name' in nativeRule and nativeRule['name'] != '':
-                rule_name = nativeRule['name']
-            else:
-                rule_name = None
+            rule_name = nativeRule.get('name', None)
 
             # new in v8.0.3:
-            rule_custom_fields = None
-            if 'custom-fields' in nativeRule:
-                rule_custom_fields = nativeRule['custom-fields']
+            rule_custom_fields = nativeRule.get('custom-fields', None)
 
             if 'meta-info' in nativeRule and 'last-modifier' in nativeRule['meta-info']:
                 rule_last_change_admin = nativeRule['meta-info']['last-modifier']
@@ -197,17 +192,10 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
                 parent_rule_uid = None
 
             # new in v5.5.1:
-            if 'rule_type' in nativeRule:
-                rule_type = nativeRule['rule_type']
-            else:
-                rule_type = 'access'
+            rule_type = nativeRule.get('rule_type', 'access')
 
-            if 'comments' in nativeRule:
-                if nativeRule['comments'] == '':
-                    comments = None
-                else:
-                    comments = nativeRule['comments']
-            else:
+            comments = nativeRule.get('comments', None)
+            if comments == '':
                 comments = None
 
             if 'hits' in nativeRule and 'last-date' in nativeRule['hits'] and 'iso-8601' in nativeRule['hits']['last-date']:

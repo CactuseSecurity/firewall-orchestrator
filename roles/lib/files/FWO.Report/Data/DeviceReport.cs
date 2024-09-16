@@ -46,11 +46,11 @@ namespace FWO.Report
                 foreach (RulebaseOnGateway rulebase in OrderedRulebases)
                 {
                     int ruleNumber = 1; // each rulebase will now start with number 1
-                    foreach (Rule rule in rulebase.Rulebase.RuleMetadata[0].Rules) // only on rule per rule_metadata
+                    foreach (RuleMetadata rule in rulebase.Rulebase.RuleMetadata) // only on rule per rule_metadata
                     {
-                        if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
+                        if (string.IsNullOrEmpty(rule.Rules[0].SectionHeader)) // Not a section header
                         {
-                            rule.DisplayOrderNumber = ruleNumber++;
+                            rule.Rules[0].DisplayOrderNumber = ruleNumber++;
                         }
                     }
                 }

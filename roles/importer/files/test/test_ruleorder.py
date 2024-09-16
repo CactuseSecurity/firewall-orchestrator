@@ -15,6 +15,7 @@ from fwoBaseImport import ImportState
 from fwo_base import ConfigAction
 from fwconfig_base import FwConfig
 from fwo_globals import setGlobalValues
+from fwo_const import dummy_ip
 
 
 

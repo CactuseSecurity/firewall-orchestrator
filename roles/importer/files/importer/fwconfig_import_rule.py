@@ -28,18 +28,25 @@ class FwConfigImportRule(FwConfigImportBase):
 
         if previousRules == []:
             previousRules = {}
+
+        # TODO: make sure self.rules[x].Rules is always serialized correctly
+        # currently we have a dict for file imports and a Policy object for direct API imports!
         for rulebaseId in prevConfig['rules']:
             if rulebaseId in self.rules:
-                deletedRuleUids.update({ rulebaseId: previousRules[rulebaseId]['Rules'].keys() - self.rules[rulebaseId]['Rules'].keys() })
-                newRuleUids.update({ rulebaseId: list(self.rules[rulebaseId]['Rules'].keys() - previousRules[rulebaseId]['Rules'].keys()) })
-                ruleUidsInBoth.update({ rulebaseId: self.rules[rulebaseId]['Rules'].keys() & previousRules[rulebaseId]['Rules'].keys() })
+                # deletedRuleUids.update({ rulebaseId: previousRules[rulebaseId]['Rules'].keys() - self.rules[rulebaseId]['Rules'].keys() })
+                # newRuleUids.update({ rulebaseId: list(self.rules[rulebaseId]['Rules'].keys() - previousRules[rulebaseId]['Rules'].keys()) })
+                # ruleUidsInBoth.update({ rulebaseId: self.rules[rulebaseId]['Rules'].keys() & previousRules[rulebaseId]['Rules'].keys() })
+                deletedRuleUids.update({ rulebaseId: previousRules[rulebaseId]['Rules'].keys() - self.rules[rulebaseId].Rules.keys() })
+                newRuleUids.update({ rulebaseId: list(self.rules[rulebaseId].Rules.keys() - previousRules[rulebaseId]['Rules'].keys()) })
+                ruleUidsInBoth.update({ rulebaseId: self.rules[rulebaseId].Rules.keys() & previousRules[rulebaseId]['Rules'].keys() })
             else:
-                logger.info(f"previous rulebase does has been deleted: {rulebaseId}")
+                logger.info(f"previous rulebase has been deleted: {rulebaseId}")
                 deletedRuleUids.update({ rulebaseId: previousRules[rulebaseId]['Rules'].keys() })
 
         # now deal with new rulebases (not contained in previous config)
         for rulebaseId in self.rules - previousRules.keys():
-            newRuleUids.update({ rulebaseId: list(self.rules[rulebaseId]['Rules'].keys()) })
+            # newRuleUids.update({ rulebaseId: list(self.rules[rulebaseId]['Rules'].keys()) })
+            newRuleUids.update({ rulebaseId: list(self.rules[rulebaseId].Rules.keys()) })
 
         # find changed rules
         # TODO: need to ignore last_hit! 
@@ -71,7 +78,8 @@ class FwConfigImportRule(FwConfigImportBase):
 
     def ruleChanged(self, rulebaseId, ruleUid, prevConfig):
         # TODO: need to ignore rule_num, last_hit, ...?
-        return prevConfig['rules'][rulebaseId]['Rules'][ruleUid] != self.rules[rulebaseId]['Rules'][ruleUid]
+        return prevConfig['rules'][rulebaseId]['Rules'][ruleUid] != self.rules[rulebaseId].Rules[ruleUid]
+        # return prevConfig['rules'][rulebaseId]['Rules'][ruleUid] != self.rules[rulebaseId]['Rules'][ruleUid]
 
     # assuming input of form:
     # {'rule-uid1': {'rule_num': 17', ... }, 'rule-uid2': {'rule_num': 8, ...}, ... }
@@ -95,7 +103,11 @@ class FwConfigImportRule(FwConfigImportBase):
         return changes
 
 
-    # adds rule_num_numeric to all new rules in current rulebases
+    # TODO: rework this as we get errors:
+    # File "/home/tim/dev/firewall-orchestrator/roles/importer/files/importer/fwconfig_import_rule.py", line 148, in setNewRulesNumbering
+    #     new_order_number = current_db_list[db_index-1][1] + order_number_increment
+
+    # update attribute rule_num_numeric of all new rules in current rulebases
     def setNewRulesNumbering(self, previousRules):
 
         # first deal with new rulebases
@@ -103,7 +115,8 @@ class FwConfigImportRule(FwConfigImportBase):
             if newRbName not in previousRules:
                 # if rulebase is new, simply for all rules: set rule_num_numeric to 1000*rule_num
                 for ruleUid in self.rules[newRbName]['Rules']:
-                    self.rules[newRbName]['Rules'][ruleUid].update({'rule_num_numeric': self.rules[newRbName]['Rules'][ruleUid]['rule_num']*1000.0})
+                    self.rules[newRbName].Rules[ruleUid].update({'rule_num_numeric': self.rules[newRbName].Rules[ruleUid]['rule_num']*1000.0})
+                    # self.rules[newRbName]['Rules'][ruleUid].update({'rule_num_numeric': self.rules[newRbName]['Rules'][ruleUid]['rule_num']*1000.0})
         
         # now handle new rules in existing rulebases
         for rulebaseName in previousRules:
@@ -112,7 +125,8 @@ class FwConfigImportRule(FwConfigImportBase):
             previousUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(previousRules[rulebaseName]['Rules'])
 
             if rulebaseName in self.rules:  # ignore rulebases that have been deleted
-                currentUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(self.rules[rulebaseName]['Rules'])
+                currentUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(self.rules[rulebaseName].Rules)
+                # currentUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(self.rules[rulebaseName]['Rules'])
 
                 # Calculate the rules differences
                 changes = FwConfigImportRule.listDiff(previousUidList, currentUidList)

@@ -21770,6 +21770,24 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "removed",
+                      "zone_create",
+                      "zone_last_seen",
+                      "active",
+                      "zone_name",
+                      "mgm_id",
+                      "zone_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -21800,6 +21818,23 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed",
+                      "zone_create",
+                      "zone_last_seen",
+                      "active",
+                      "zone_name",
+                      "mgm_id",
+                      "zone_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "middleware-server",
@@ -21887,6 +21922,34 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed",
+                      "zone_create",
+                      "zone_last_seen",
+                      "active",
+                      "zone_name",
+                      "mgm_id",
+                      "zone_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

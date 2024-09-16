@@ -1,6 +1,6 @@
 from typing import List
 import traceback
-import time
+import time, datetime
 
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
@@ -30,10 +30,10 @@ class FwConfigImportObject(FwConfigImportBase):
         nwobjUidsInBoth = self.network_objects.keys() & previousNwObjects.keys()
 
         # decide if it is prudent to mix changed, deleted and added rules here:
-        # for nwObjUid in nwobjUidsInBoth:
-        #     if previousNwObjects[nwObjUid] != self.network_objects[nwObjUid]:
-        #         newNwobjUids.append(nwObjUid)
-        #         deletedNwobjUids.append(nwObjUid)
+        for nwObjUid in nwobjUidsInBoth:
+            if previousNwObjects[nwObjUid] != self.network_objects[nwObjUid]:
+                newNwobjUids.add(nwObjUid)
+                deletedNwobjUids.add(nwObjUid)
 
         # calculate service object diffs
         previousSvcObjects = prevConfig['service_objects']
@@ -49,48 +49,71 @@ class FwConfigImportObject(FwConfigImportBase):
         # TODO: deal with object changes (e.g. group with added member)
 
         # add newly created objects
-        errorCountAdd, numberOfAddedObjects, newNwObjIds, newNwSvcIds = self.addNewObjects(newNwobjUids, newSvcObjUids)
+        errorCountUpdate, numberOfModifiedObjects, newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds = \
+            self.updateObjectsViaApi(newNwobjUids, newSvcObjUids, deletedNwobjUids, deletedSvcObjUids)
 
         # update group memberships
         self.addNwObjGroupMemberships(newNwObjIds)
         # TODO: self.addSvcObjGroupMemberships(newSvcObjIds)
         # TODO: self.addUserObjGroupMemberships(newUserObjIds)
 
-        errorCountRemove, numberOfDeletedObjects, removedNwObjIds, removedNwSvcids = self.markObjectsRemoved(deletedNwobjUids, deletedSvcObjUids)
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
         # update all references to objects marked as removed
-        self.markObjectRefsRemoved(removedNwObjIds, removedNwSvcids)
+        self.markObjectRefsRemoved(removedNwObjIds, removedNwSvcIds)
 
         # TODO: calculate user diffs
         # TODO: calculate zone diffs
 
         # TODO: write changes to changelog_xxx tables
-        self.addChangelogObjects(newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcids)
+        self.addChangelogObjects(newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds)
 
-        return errorCountAdd + errorCountRemove, numberOfDeletedObjects + numberOfAddedObjects
+        return errorCountUpdate, numberOfModifiedObjects
 
-    def addNewObjects(self, newNwObjectUids, newSvcObjectUids):
+    def updateObjectsViaApi(self, newNwObjectUids, newSvcObjectUids, removedNwObjectUids, removedSvcObjectUids):
+        # here we also mark old objects removed before adding the new versions
         logger = getFwoLogger()
         errors = 0
         changes = 0
         newNwObjIds = []
         newNwSvcIds = []
         import_mutation = """
-            mutation insertObjects($newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
+            mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
+                update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                    affected_rows
+                    returning {
+                        obj_id
+                    }
+                }
+                update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                    affected_rows
+                    returning {
+                        svc_id
+                    }
+                }
                 insert_object(objects: $newNwObjects) {
                     affected_rows
-                    returning { obj_id obj_member_refs }
+                    returning {
+                        obj_id
+                        obj_member_refs
+                    }
                 }
                 insert_service(objects: $newSvcObjects) {
                     affected_rows
-                    returning { svc_id svc_member_refs }
+                    returning {
+                        svc_id
+                        svc_member_refs
+                    }
                 }
             }
         """
-        queryVariables = { 
+        queryVariables = {
+            'mgmId': self.ImportDetails.MgmDetails.Id,
+            'importId': self.ImportDetails.ImportId,
             'newNwObjects': self.prepareNewNwObjects(newNwObjectUids),
-            'newSvcObjects': self.prepareNewSvcObjects(newSvcObjectUids)
+            'newSvcObjects': self.prepareNewSvcObjects(newSvcObjectUids),
+            'removedNwObjectUids': list(removedNwObjectUids),
+            'removedSvcObjectUids': list(removedSvcObjectUids)
         }
         
         try:
@@ -100,14 +123,17 @@ class FwConfigImportObject(FwConfigImportBase):
                 errors = 1
             else:
                 changes = int(import_result['data']['insert_object']['affected_rows']) + \
-                    int(import_result['data']['insert_service']['affected_rows'])
+                    int(import_result['data']['insert_service']['affected_rows']) + \
+                    int(import_result['data']['update_object']['affected_rows']) + \
+                    int(import_result['data']['update_service']['affected_rows'])
                 newNwObjIds = import_result['data']['insert_object']['returning']
                 newNwSvcIds = import_result['data']['insert_service']['returning']
+                removedNwObjIds = import_result['data']['update_object']['returning']
+                removedNwSvcIds = import_result['data']['update_service']['returning']
         except:
-            logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
+            logger.exception(f"failed to update objects: {str(traceback.format_exc())}")
             errors = 1
-        
-        return errors, changes, newNwObjIds, newNwSvcIds
+        return errors, changes, newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds
     
     def GetNetworkObjTypeMap(self):
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
@@ -299,7 +325,7 @@ class FwConfigImportObject(FwConfigImportBase):
                 color = self.lookupColor(color)
             objtype = newEnrichedSvcObj.pop('svc_typ', None)     # get and remove
             if objtype != None:
-                objtype = self.lookupObjType(objtype)
+                objtype = self.lookupSvcType(objtype)
             protoId = newEnrichedSvcObj.pop('ip_proto', None)     # get and remove
             if protoId != None:
                 protoId = self.lookupProtoNameToId(protoId)
@@ -318,52 +344,50 @@ class FwConfigImportObject(FwConfigImportBase):
             newObjs.append(newEnrichedSvcObj)
         return newObjs
 
-    # objects are not delelted but marked as removed
-    # also the 
-    def markObjectsRemoved(self, removedNwObjectUids, removedSvcObjectUids):
-        logger = getFwoLogger()
-        errors = 0
-        changes = 0
-        removedNwObjIds = []
-        removedNwSvcIds = []
+    # # objects are not deleted but marked as removed
+    # def markObjectsRemoved(self, removedNwObjectUids, removedSvcObjectUids):
+    #     logger = getFwoLogger()
+    #     errors = 0
+    #     changes = 0
+    #     removedNwObjIds = []
+    #     removedNwSvcIds = []
         
-        removeMutation = """
-            mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!) {
-                update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
-                    affected_rows
-                    returning { obj_id }
-                }
-                update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
-                    affected_rows
-                    returning { svc_id }
-                }
-            }
-        """
-        queryVariables = {
-            'mgmId': self.ImportDetails.MgmDetails.Id,
-            'importId': self.ImportDetails.ImportId,
-            'removedNwObjectUids': list(removedNwObjectUids), #convert set to list
-            'removedSvcObjectUids': list(removedSvcObjectUids) #convert set to list
-        }
+    #     removeMutation = """
+    #         mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!) {
+    #             update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+    #                 affected_rows
+    #                 returning { obj_id }
+    #             }
+    #             update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+    #                 affected_rows
+    #                 returning { svc_id }
+    #             }
+    #         }
+    #     """
+    #     queryVariables = {
+    #         'mgmId': self.ImportDetails.MgmDetails.Id,
+    #         'importId': self.ImportDetails.ImportId,
+    #         'removedNwObjectUids': list(removedNwObjectUids), #convert set to list
+    #         'removedSvcObjectUids': list(removedSvcObjectUids) #convert set to list
+    #     }
         
-        try:
-            removeResult = self.call(removeMutation, queryVariables=queryVariables)
-            if 'errors' in removeResult:
-                logger.exception(f"error while marking objects as removed: {str(removeResult['errors'])}")
-                errors = 1
-            else:
-                changes = int(removeResult['data']['update_object']['affected_rows']) + \
-                    int(removeResult['data']['update_service']['affected_rows'])
-                removedNwObjIds = removeResult['data']['update_object']['returning']
-                removedNwSvcIds = removeResult['data']['update_service']['returning']
-        except:
-            logger.exception(f"fatal error while marking objects as removed: {str(traceback.format_exc())}")
-            errors = 1
+    #     try:
+    #         removeResult = self.call(removeMutation, queryVariables=queryVariables)
+    #         if 'errors' in removeResult:
+    #             logger.exception(f"error while marking objects as removed: {str(removeResult['errors'])}")
+    #             errors = 1
+    #         else:
+    #             changes = int(removeResult['data']['update_object']['affected_rows']) + \
+    #                 int(removeResult['data']['update_service']['affected_rows'])
+    #             removedNwObjIds = removeResult['data']['update_object']['returning']
+    #             removedNwSvcIds = removeResult['data']['update_service']['returning']
+    #     except:
+    #         logger.exception(f"fatal error while marking objects as removed: {str(traceback.format_exc())}")
+    #         errors = 1
         
-        return errors, changes, removedNwObjIds, removedNwSvcIds
+    #     return errors, changes, removedNwObjIds, removedNwSvcIds
 
-    # objects are not delelted but marked as removed
-    # also the 
+    # object refs are not deleted but marked as removed
     def markObjectRefsRemoved(self, removedNwObjectIds, removedSvcObjectIds):
         logger = getFwoLogger()
         errors = 0
@@ -401,10 +425,18 @@ class FwConfigImportObject(FwConfigImportBase):
                 }
             }
         """
+
+        plainRemovedNwObjIds = []
+        for obj in removedNwObjectIds:
+            plainRemovedNwObjIds.append(obj['obj_id'])
+        plainRemovedSvcObjIds = []
+        for obj in removedSvcObjectIds:
+            plainRemovedSvcObjIds.append(obj['svc_id'])
+
         queryVariables = {
             'importId': self.ImportDetails.ImportId,
-            'removedNwObjectIds': list(removedNwObjectIds), #convert set to list
-            'removedSvcObjectIds': list(removedSvcObjectIds) #convert set to list
+            'removedNwObjectIds': plainRemovedNwObjIds,
+            'removedSvcObjectIds': plainRemovedSvcObjIds
         }
         
         try:
@@ -430,7 +462,12 @@ class FwConfigImportObject(FwConfigImportBase):
         return errors, changes, removedNwObjIds, removedNwSvcIds
 
     def lookupObjType(self, objTypeString):
+        # TODO: might check for miss here as this is a mandatory field!
         return self.NetworkObjectTypeMap.get(objTypeString, None)
+
+    def lookupSvcType(self, svcTypeString):
+        # TODO: might check for miss here as this is a mandatory field!
+        return self.ServiceObjectTypeMap.get(svcTypeString, None)
 
     def lookupObjIdToUidAndPolicyName(self, objId: int):
         return str(objId) # mock
@@ -458,14 +495,14 @@ class FwConfigImportObject(FwConfigImportBase):
 
         nwObjs = []
         svcObjs = []
-        importTime = time.time()
+        importTime = datetime.datetime.now().isoformat()
         changeTyp = 3  # standard
         if self.ImportDetails.IsFullImport or self.ImportDetails.IsClearingImport:
             changeTyp = 2   # to be ignored in change reports
-        for id in nwObjIdsAdded:
-            uniqueName = self.lookupObjIdToUidAndPolicyName(id)
+        for obj in nwObjIdsAdded:
+            uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
             nwObjs.append({
-                "new_obj_id": id,
+                "new_obj_id": obj['obj_id'],
                 "control_id": self.ImportDetails.ImportId,
                 "change_action": "I",
                 "mgm_id": self.ImportDetails.MgmDetails.Id,

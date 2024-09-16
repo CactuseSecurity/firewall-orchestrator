@@ -105,6 +105,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                     try:
                                         configImporter.importConfig()
                                     except:
+                                        logger.error("importConfig - unspecified error: " + str(traceback.format_exc()))
                                         importState.increaseErrorCounterByOne()
                                     if importState.ErrorCount>0:
                                         importState.increaseErrorCounter(fwo_api.complete_import(importState))

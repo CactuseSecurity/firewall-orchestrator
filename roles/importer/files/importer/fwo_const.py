@@ -15,6 +15,7 @@ line_delimiter = "\n"
 user_delimiter = "@"
 apostrophe = "\""
 section_header_uids=[]
+dummy_ip = '0.0.0.0/32'
 nat_postfix = '_NatNwObj'
 fwo_api_http_import_timeout = 14400 # 4 hours
 importer_user_name = 'importer'  # todo: move to config file?

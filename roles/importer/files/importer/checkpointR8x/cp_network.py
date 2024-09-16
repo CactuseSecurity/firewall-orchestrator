@@ -4,7 +4,7 @@ import cp_const
 from fwo_const import list_delimiter
 import fwo_alert, fwo_api
 import ipaddress 
-import traceback
+import fwo_const
 
 
 def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, debug_level=0):
@@ -24,7 +24,8 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
         # set a dummy IP address for objects without IP addreses
         if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
             logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
-            nw_obj.update({'obj_ip': '0.0.0.0/32'})
+            nw_obj.update({'obj_ip': fwo_const.dummy_ip})
+            nw_obj.update({'obj_ip_end': fwo_const.dummy_ip})
 
     for idx in range(0, len(nw_objects)-1):
         if nw_objects[idx]['obj_typ'] == 'group':
@@ -179,7 +180,7 @@ def get_ip_of_obj(obj, mgm_id=None):
         alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") is not a valid ip address (" + str(ip_addr) + ")"
         fwo_api.setAlert(alerter['fwo_api_base_url'], alerter['jwt'], title="import error", severity=2, role='importer', \
             description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
-        ip_addr = '0.0.0.0/32'  # setting syntactically correct dummy ip
+        ip_addr = fwo_const.dummy_ip  # setting syntactically correct dummy ip
     return ip_addr
 
 

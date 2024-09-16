@@ -214,6 +214,18 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         if len(missingNwObjTypes)>0:
             issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
 
+
+        # check if there are any objects with obj_typ<>group and empty ip addresses (breaking constraint)
+        nonGroupNwObjWithMissingIps = []
+        for objId in self.network_objects:
+            if self.network_objects[objId]['obj_typ']!='group':
+                ip1 = self.network_objects[objId].get('obj_ip', None)
+                ip2 = self.network_objects[objId].get('obj_ip_end', None)
+                if ip1==None or ip2==None:
+                    nonGroupNwObjWithMissingIps.append(self.network_objects[objId])
+        if len(nonGroupNwObjWithMissingIps)>0:
+            issues.update({'non-group network object with undefined IP addresse(s)': list(nonGroupNwObjWithMissingIps)})
+
         return issues
     
     def checkServiceObjectConsistency(self):

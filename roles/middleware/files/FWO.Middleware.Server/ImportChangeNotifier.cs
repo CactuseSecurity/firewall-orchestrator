@@ -11,7 +11,7 @@ using FWO.Report.Filter;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization; 
 using System.Text.RegularExpressions;
-using WkHtmlToPdfDotNet;
+using PuppeteerSharp.Media;
 
 namespace FWO.Middleware.Server
 {
@@ -175,11 +175,14 @@ namespace FWO.Middleware.Server
 			EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
 				globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
 			MailKitMailer mailer = new(emailConnection);
-			await mailer.SendAsync(PrepareEmail(), emailConnection, new CancellationToken(),
+
+			MailData? mail = await PrepareEmail();
+
+            await mailer.SendAsync(mail, emailConnection, new CancellationToken(),
 				globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody);
 		}
 
-		private MailData PrepareEmail()
+		private async Task<MailData> PrepareEmail()
 		{
 			string subject = globalConfig.ImpChangeNotifySubject;
 			string body = CreateBody();
@@ -192,7 +195,12 @@ namespace FWO.Middleware.Server
 						body += changeReport?.ExportToHtml();
 						break;
 					case (int)ImpChangeNotificationType.PdfAsAttachment:
-						attachment = CreateAttachment(Convert.ToBase64String(changeReport?.ToPdf(PaperKind.A4) ?? throw new Exception("No Pdf generated.")), GlobalConst.kPdf);
+						string? pdfData = await changeReport.ToPdf(Report.PaperFormat.A4);
+
+						if (string.IsNullOrWhiteSpace(pdfData))
+							throw new Exception("No Pdf generated.");
+
+                        attachment = CreateAttachment(pdfData, GlobalConst.kPdf);
 						break;
 					case (int)ImpChangeNotificationType.HtmlAsAttachment:
 						attachment = CreateAttachment(changeReport?.ExportToHtml(), GlobalConst.kHtml);

@@ -4,14 +4,16 @@ using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
-using WkHtmlToPdfDotNet;
+using PuppeteerSharp.Media;
+using PuppeteerSharp;
+using System.Reflection;
 
 namespace FWO.Report
 {
     public enum RsbTab
     {
-        all = 10, 
-        report = 20, 
+        all = 10,
+        report = 20,
         rule = 30,
 
         usedObj = 40,
@@ -21,8 +23,8 @@ namespace FWO.Report
     public enum ObjCategory
     {
         all = 0,
-        nobj = 1, 
-        nsrv = 2, 
+        nobj = 1,
+        nsrv = 2,
         user = 3
     }
 
@@ -42,7 +44,7 @@ namespace FWO.Report
 
     public abstract class ReportBase
     {
-        protected StringBuilder HtmlTemplate = new ($@"
+        protected StringBuilder HtmlTemplate = new($@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -86,11 +88,11 @@ namespace FWO.Report
         protected UserConfig userConfig;
         public ReportType ReportType;
         public ReportData ReportData = new();
+        public int CustomWidth = 0;
+        public int CustomHeight = 0;
 
         protected string htmlExport = "";
 
-        // Pdf converter
-        protected static readonly SynchronizedConverter converter = new (new PdfTools());
         public bool GotObjectsInReport { get; protected set; } = false;
 
 
@@ -160,14 +162,14 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                if(ReportType.IsChangeReport())
+                if (ReportType.IsChangeReport())
                 {
                     string timeRange = $"{userConfig.GetText("change_time")}: " +
                         $"{userConfig.GetText("from")}: {ToUtcString(Query.QueryVariables["start"]?.ToString())}, " +
                         $"{userConfig.GetText("until")}: {ToUtcString(Query.QueryVariables["stop"]?.ToString())}";
                     HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
                 }
-                else if(ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
+                else if (ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
                     HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
@@ -186,7 +188,7 @@ namespace FWO.Report
                     HtmlTemplate = HtmlTemplate.Replace("<p>##OwnerFilters##</p>", "");
                 }
 
-                if(deviceFilter != null)
+                if (deviceFilter != null)
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
                 }
@@ -206,58 +208,74 @@ namespace FWO.Report
             {
                 return timestring != null ? DateTime.Parse(timestring).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK") : "";
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return timestring ?? "";
             }
         }
 
-        public virtual byte[] ToPdf(PaperKind paperKind, int width = -1, int height = -1)
+        private async Task<string?> CreatePDFViaPuppeteer(string html, PaperFormat format)
         {
-            // HTML
-            if (string.IsNullOrEmpty(htmlExport))
+            using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                htmlExport = ExportToHtml();
+                Headless = true
+            });
+
+            try
+            {
+                using IPage page = await browser.NewPageAsync();
+                await page.SetContentAsync(html);
+
+                PuppeteerSharp.Media.PaperFormat? pupformat =  GetPuppeteerPaperFormat(format)  ?? throw new Exception();
+
+                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[] pdfData = await page.PdfDataAsync(pdfOptions);
+
+                return Convert.ToBase64String(pdfData);
             }
-
-            GlobalSettings globalSettings = new ()
+            catch (Exception)
             {
-                ColorMode = ColorMode.Color,
-                Orientation = Orientation.Landscape,
-            };
-
-            if (paperKind == PaperKind.Custom)
-            {
-                if (width > 0 && height > 0)
-                {
-                    globalSettings.PaperSize = new PechkinPaperSize(width + "mm", height + "mm");
-                }
-                else
-                {
-                    throw new Exception("Custom paper size: width or height <= 0");
-                }
+                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
             }
-            else
+            finally
             {
-                globalSettings.PaperSize = paperKind;
+                await browser.CloseAsync();
             }
+        }
 
-            HtmlToPdfDocument doc = new ()
-            {
-                GlobalSettings = globalSettings,
-                Objects =
-                {
-                    new ObjectSettings()
-                    {
-                        PagesCount = true,
-                        HtmlContent = htmlExport,
-                        WebSettings = { DefaultEncoding = "utf-8" },
-                        HeaderSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 }
-                    }
-                }
-            };
+        private PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
+        {
+            if (format == PaperFormat.Custom)
+                return new PuppeteerSharp.Media.PaperFormat(CustomWidth, CustomHeight);
 
-            return converter.Convert(doc);
+            PropertyInfo[] propertyInfos = typeof(PuppeteerSharp.Media.PaperFormat).GetProperties(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic);
+
+            PropertyInfo? prop = propertyInfos.SingleOrDefault(_ => _.Name == format.ToString());
+
+            if (prop == null)
+                return default;
+
+            PuppeteerSharp.Media.PaperFormat? propFormat = (PuppeteerSharp.Media.PaperFormat)prop.GetValue(null);
+
+            if (propFormat is null)
+                return default;
+
+            return propFormat;
+        }
+
+        public virtual async Task<string?> ToPdf(string html, PaperFormat format)
+        {
+            return await CreatePDFViaPuppeteer(html, format);
+        }
+
+        public virtual async Task<string?> ToPdf(string html)
+        {
+            return await CreatePDFViaPuppeteer(html, PaperFormat.A4);
+        }
+
+        public virtual async Task<string?> ToPdf(PaperFormat format)
+        {
+            return await CreatePDFViaPuppeteer(htmlExport, format);
         }
 
         public static string GetIconClass(ObjCategory? objCategory, string? objType)

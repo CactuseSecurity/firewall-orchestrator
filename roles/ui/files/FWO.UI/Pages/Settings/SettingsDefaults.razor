@@ -59,6 +59,13 @@
                 <input type="text" class="col-sm-12" @bind="configData!.UiHostName" />
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H9054"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("welcomeMessage")):</label>
+            <div class="col-sm-4">
+                <textarea type="text" rows="10" @bind="@configData!.WelcomeMessage" class="col-sm-12" placeholder="@(userConfig.GetText("welcomeMessage"))" />
+                @* <input type="text" class="col-sm-12" @bind="configData!.WelcomeMessage" /> *@
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
@@ -179,7 +186,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -215,6 +222,7 @@ else
         {
             if (configData != null)
             {
+                configData.WelcomeMessage = SanitizeHtml(configData!.WelcomeMessage);
                 configData.DefaultLanguage = selectedLanguage.Name;
                 configData.AutoDiscoverStartAt = startDate.Date.Add(startTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
@@ -230,4 +238,6 @@ else
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
     }
+
+    private static string SanitizeHtml(string input) => System.Web.HttpUtility.HtmlEncode(input).Replace("\n", "<br>");
 }

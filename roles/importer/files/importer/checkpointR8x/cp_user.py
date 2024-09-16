@@ -3,7 +3,7 @@ from fwo_log import getFwoLogger
 import json
 # from checkpointR8x.cp_getter import ParseUidToName
 
-def collect_users_from_rule(rule, users, objDict):
+def collect_users_from_rule(rule, users): #, objDict):
     if 'rule-number' in rule:  # standard rule
         logger = getFwoLogger()
         if 'type' in rule and rule['type'] != 'place-holder':
@@ -17,7 +17,7 @@ def collect_users_from_rule(rule, users, objDict):
                             user_name = src['name']
                             user_uid = src['uid']
                             user_typ = 'group'
-                            user_comment = src['comments']
+                            user_comment = src.get('comments', None)
                             user_color = src['color']
                             if 'users' in src:
                                 user_typ = 'simple'
@@ -25,10 +25,10 @@ def collect_users_from_rule(rule, users, objDict):
                             user_str = src["name"]
                             user_ar = user_str.split('@')
                             user_name = user_ar[0]
-                            user_uid = src["userGroup"]
+                            user_uid = src.get('userGroup', None)
                             user_typ = 'group'
-                            user_comment = src['comments']
-                            user_color = src['color']
+                            user_comment = src.get('comments', None)
+                            user_color = src.get('color', None)
                         else:
                             break
                         if user_comment == '':
@@ -60,4 +60,15 @@ def collect_users_from_rulebase(rulebase, users):
 def parse_user_objects_from_rulebase(rulebase, users, import_id):
     collect_users_from_rulebase(rulebase, users)
     for user_name in users.keys():
+        # TODO: get user info via API
+        userUid = getUserUidFromCpApi(user_name)
+        # finally add the import id
         users[user_name]['control_id'] = import_id
+
+
+
+def getUserUidFromCpApi (userName):
+    # show-object with UID
+    # dummy implementation returning the name as uid
+    return userName
+

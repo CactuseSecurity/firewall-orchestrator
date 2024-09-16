@@ -12,9 +12,9 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("request") + ": " + WfHandler.ActTicket.Title)" Show="@WfHandler.DisplayTicketMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
-        @if (ReqHandler.DisplayTicketMode)
+        @if (WfHandler.DisplayTicketMode)
         {
             <form>
                 <div class="form-group row">
@@ -22,13 +22,13 @@
                         <div class="form-group row">
                             <label for="ticketId" class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                             <div class="col-sm-6">
-                                <label class="col-sm-12 border bg-secondary">@ReqHandler.ActTicket.Id</label>
+                                <label class="col-sm-12 border bg-secondary">@WfHandler.ActTicket.Id</label>
                             </div>
                         </div>
                     </div>
                     <label for="ticketTitle" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                     <div class="col-sm-9">
-                        <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Title" />
+                        <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditTicketMode)" @bind="WfHandler.ActTicket.Title" />
                     </div>
                 </div>
                 <div class="form-group row mt-2">
@@ -36,7 +36,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 border bg-secondary">@States.Name[ReqHandler.ActTicket.StateId]</label>
+                                <label class="col-sm-12 border bg-secondary">@States.Name[WfHandler.ActTicket.StateId]</label>
                             </div>
                         </div>
                     </div>
@@ -44,7 +44,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 border bg-secondary">@ReqHandler.ActTicket.Requester?.Name</label>
+                                <label class="col-sm-12 border bg-secondary">@WfHandler.ActTicket.Requester?.Name</label>
                             </div>
                         </div>
                     </div>
@@ -52,9 +52,9 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("priority")):</label>
                             <div class="col-sm-8">
-                                @if (ReqHandler.EditTicketMode)
+                                @if (WfHandler.EditTicketMode)
                                 {
-                                    <Dropdown ElementType="RequestPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="ReqHandler.PrioList" Nullable="true">
+                                    <Dropdown ElementType="WfPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="WfHandler.PrioList" Nullable="true">
                                         <ElementTemplate Context="prio">
                                             @prio.Name
                                         </ElementTemplate>
@@ -71,13 +71,13 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
                             <div class="col-sm-8">
-                                @if (ReqHandler.EditTicketMode)
+                                @if (WfHandler.EditTicketMode)
                                 {
-                                    <input type="date" class="col-sm-12 form-control form-control-sm" @bind="ReqHandler.ActTicket.Deadline" />
+                                    <input type="date" class="col-sm-12 form-control form-control-sm" @bind="WfHandler.ActTicket.Deadline" />
                                 }
                                 else
                                 {
-                                    <label class="col-sm-12 border bg-secondary">@(ReqHandler.ActTicket.Deadline != null ? ((DateTime)ReqHandler.ActTicket.Deadline).ToShortDateString() : "-")</label>
+                                    <label class="col-sm-12 border bg-secondary">@(WfHandler.ActTicket.Deadline != null ? ((DateTime)WfHandler.ActTicket.Deadline).ToShortDateString() : "-")</label>
                                 }
                             </div>
                         </div>
@@ -86,14 +86,14 @@
                 <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">
-                        <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Reason"/>   
+                        <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditTicketMode)" @bind="WfHandler.ActTicket.Reason"/>   
                     </div>
                 </div>
                 <div class="col-sm-12 mt-2">
                     <div class="btn-group">
                         @foreach(var action in offeredActions)
                         {
-                            @if(!ReqHandler.ReadOnlyMode || RequestStateAction.IsReadonlyType(action.ActionType))
+                            @if(!WfHandler.ReadOnlyMode || WfStateAction.IsReadonlyType(action.ActionType))
                             {
                                 <button type="button" class="btn btn-sm btn-dark ml-13" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
@@ -107,21 +107,21 @@
                     <h5>@(userConfig.GetText("tasks"))</h5>
 
                     <DisplayReqTaskTable Phase="Phase" States="States" 
-                        ReqHandler="ReqHandler" ResetParent="Reset" StartPhase="StartPhase"/>
+                        WfHandler="WfHandler" ResetParent="Reset" StartPhase="StartPhase"/>
                 }
                 else
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
-                    <DisplayImplTaskTable Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
-                        AllImplTasks="ReqHandler.AllTicketImplTasks" StartImplPhase="StartImplPhase"/>
+                    <DisplayImplTaskTable Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" 
+                        AllImplTasks="WfHandler.AllTicketImplTasks" StartImplPhase="StartImplPhase"/>
                 }
             </form>
         }
     </Body>
     <Footer>
         <div class="btn-group">
-            @if(ReqHandler.EditTicketMode)
+            @if(WfHandler.EditTicketMode)
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
                     <Authorized>
@@ -143,7 +143,7 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            @if(ReqHandler.EditTicketMode || CheckPromoteTicket())
+            @if(WfHandler.EditTicketMode || CheckPromoteTicket())
             {
                 <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelEdit">@(userConfig.GetText("cancel"))</button>
             }
@@ -170,8 +170,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="WfHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.SaveTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.PromoteTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
 
 
 @code
@@ -183,31 +183,31 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new ();
+    public WfStateDict States { get; set; } = new ();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new ();
+    public WfHandler WfHandler { get; set; } = new ();
     
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestReqTask, Task> StartPhase { get; set; } = DefaultInit.DoNothing;
+    public Func<WfReqTask, Task> StartPhase { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
+    public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
     private List<int> possibleStates = new ();
-    private List<RequestStateAction> offeredActions = new ();
+    private List<WfStateAction> offeredActions = new ();
     private bool ConfirmCancelMode = false;
-    private RequestPriority? selectedPriority;
+    private WfPriority? selectedPriority;
     private bool firstParamSet = true;
     
 
     protected override async Task OnParametersSetAsync()
     {
-        if(firstParamSet && ReqHandler.DisplayTicketMode)
+        if(firstParamSet && WfHandler.DisplayTicketMode)
         {
             firstParamSet = false;
             await Reset();
@@ -221,8 +221,8 @@
 
     private async Task Cancel()
     {
-        ReqHandler.DisplaySaveTicketMode = false;
-        ReqHandler.DisplayPromoteTicketMode = false;
+        WfHandler.DisplaySaveTicketMode = false;
+        WfHandler.DisplayPromoteTicketMode = false;
     }
 
     private async Task Reset()
@@ -230,8 +230,8 @@
         try
         {
             Log.WriteDebug("DisplayTicket", "Reset");
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
-            selectedPriority = ReqHandler.PrioList.FirstOrDefault(p => p.NumPrio == ReqHandler.ActTicket.Priority);
+            offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActTicket, WfObjectScopes.Ticket, WfHandler.Phase);
+            selectedPriority = WfHandler.PrioList.FirstOrDefault(p => p.NumPrio == WfHandler.ActTicket.Priority);
             StateHasChanged();
         }
         catch (Exception exception)
@@ -242,7 +242,7 @@
 
     private async Task CancelEdit()
     {
-        if(ReqHandler.EditTicketMode && ReqHandler.ActTicket.Id == 0 && ReqHandler.ActTicket.Tasks.Count > 0)
+        if(WfHandler.EditTicketMode && WfHandler.ActTicket.Id == 0 && WfHandler.ActTicket.Tasks.Count > 0)
         {
             ConfirmCancelMode = true;
         }
@@ -258,27 +258,27 @@
         await Close();
     }
 
-    private async Task PerformAction(RequestStateAction action)
+    private async Task PerformAction(WfStateAction action)
     {
-        await ReqHandler.ActionHandler.PerformAction(action, ReqHandler.ActTicket, RequestObjectScopes.Ticket, null, ReqHandler.ActTicket.Id);
+        await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
         await ResetParent();
     }
 
     private bool CheckPromoteTicket()
     {
-        if (ReqHandler.ActTicket.StateId < ReqHandler.MasterStateMatrix.LowestStartedState || ReqHandler.ActTicket.StateId >= ReqHandler.MasterStateMatrix.LowestEndState)
+        if (WfHandler.ActTicket.StateId < WfHandler.MasterStateMatrix.LowestStartedState || WfHandler.ActTicket.StateId >= WfHandler.MasterStateMatrix.LowestEndState)
         {
             return false;
         }
-        if(ReqHandler.ActTicket.Tasks.Count > 0)
+        if(WfHandler.ActTicket.Tasks.Count > 0)
         {
             List<int> taskStates = new ();
-            foreach (RequestReqTask reqTask in ReqHandler.ActTicket.Tasks)
+            foreach (WfReqTask reqTask in WfHandler.ActTicket.Tasks)
             {
                 taskStates.Add(reqTask.StateId);
             }
-            int newState = ReqHandler.MasterStateMatrix.getDerivedStateFromSubStates(taskStates);
-            if(newState == ReqHandler.ActTicket.StateId)
+            int newState = WfHandler.MasterStateMatrix.getDerivedStateFromSubStates(taskStates);
+            if(newState == WfHandler.ActTicket.StateId)
             {
                 return false;
             }
@@ -286,8 +286,8 @@
         }
         else
         {
-            possibleStates = ReqHandler.MasterStateMatrix.getAllowedTransitions(ReqHandler.ActTicket.StateId);
-            if(possibleStates.Count == 1 && possibleStates[0] == ReqHandler.ActTicket.StateId)
+            possibleStates = WfHandler.MasterStateMatrix.getAllowedTransitions(WfHandler.ActTicket.StateId);
+            if(possibleStates.Count == 1 && possibleStates[0] == WfHandler.ActTicket.StateId)
             {
                 return false;
             }
@@ -297,29 +297,29 @@
 
     private void InitPromoteTicket()
     {
-        ReqHandler.SetTicketPopUpOpt(ObjAction.displayPromote);
+        WfHandler.SetTicketPopUpOpt(ObjAction.displayPromote);
     }
 
     private async Task InitSaveTicket()
     {
         if (CheckTicketValues())
         {
-            ReqHandler.ActTicket.Priority = selectedPriority?.NumPrio ?? null;
-            if(ReqHandler.ActTicket.Tasks.Count == 0)
+            WfHandler.ActTicket.Priority = selectedPriority?.NumPrio ?? null;
+            if(WfHandler.ActTicket.Tasks.Count == 0)
             {
-                await ReqHandler.SaveTicket(ReqHandler.ActTicket);
+                await WfHandler.SaveTicket(WfHandler.ActTicket);
                 await Close();
             }
             else
             {
-                ReqHandler.SetTicketPopUpOpt(ObjAction.displaySaveTicket);
+                WfHandler.SetTicketPopUpOpt(ObjAction.displaySaveTicket);
             }
         }
     }
 
     private bool CheckTicketValues()
     {
-        if (ReqHandler.ActTicket.Title == null || ReqHandler.ActTicket.Title == "")
+        if (WfHandler.ActTicket.Title == null || WfHandler.ActTicket.Title == "")
         {
             DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
             return false;

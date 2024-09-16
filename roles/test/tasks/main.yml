@@ -56,18 +56,22 @@
 
 - name: database testing
   import_tasks: test-database.yml
+  when: "'databaseserver' in group_names"
 
 - name: create config with test user creds
   import_tasks: write-config-test-user-creds.yml
 
 - name: auth testing
   import_tasks: test-auth.yml
+  when: "'middlewareserver' in group_names"
 
 - name: api testing
   import_tasks: test-api.yml
-
+  when: "'apiserver' in group_names"
+  
 - name: csharp testing
   import_tasks: test-csharp.yml
+  when: "'frontends' in group_names"
 
 - name: imorter testing
   import_tasks: test-importer.yml

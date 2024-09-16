@@ -16,9 +16,10 @@ namespace FWO.Api.Data
     {
         public const string ConnId = "ConnId";
         public const string ReqOwner = "ReqOwner";
+        public const string GrpName = "GrpName";
     }
 
-    public class RequestReqTaskBase : RequestTaskBase
+    public class WfReqTaskBase : WfTaskBase
     {
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
@@ -48,10 +49,10 @@ namespace FWO.Api.Data
         private List<int> deviceList { get; set; } = new ();
 
 
-        public RequestReqTaskBase()
+        public WfReqTaskBase()
         { }
 
-        public RequestReqTaskBase(RequestReqTaskBase reqtask) : base(reqtask)
+        public WfReqTaskBase(WfReqTaskBase reqtask) : base(reqtask)
         {
             RequestAction = reqtask.RequestAction;
             Reason = reqtask.Reason;

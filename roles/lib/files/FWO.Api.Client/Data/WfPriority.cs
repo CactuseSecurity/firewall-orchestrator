@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestPriority
+    public class WfPriority
     {
         [JsonProperty("numeric_prio"), JsonPropertyName("numeric_prio")]
         public int NumPrio { get; set; }

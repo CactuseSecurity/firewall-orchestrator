@@ -11,7 +11,7 @@ namespace FWO.Api.Data
         Rejected
     }
 
-    public class RequestExtState
+    public class WfExtState
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int? Id { get; set; }

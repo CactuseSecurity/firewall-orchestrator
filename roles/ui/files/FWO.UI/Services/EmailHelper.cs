@@ -60,14 +60,14 @@ namespace FWO.Ui.Services
             return await SendEmail(GetRecipients(userConfig.ModReqEmailReceiver, null, owner, null), subject, body, requester);
         }
 
-        public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, RequestStatefulObject statefulObject, FwoOwner? owner)
+        public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, WfStatefulObject statefulObject, FwoOwner? owner)
         {
             List<string> tos = GetRecipients(emailActionParams.RecipientTo, statefulObject, owner, ScopedUserTo);
             List<string>? ccs = emailActionParams.RecipientCC != null ? GetRecipients((EmailRecipientOption)emailActionParams.RecipientCC, statefulObject, owner, ScopedUserCc) : null;
             return await SendEmail(tos, emailActionParams.Subject, emailActionParams.Body, ccs);
         }
 
-        public async Task<bool> SendUserEmailFromAction(EmailActionParams emailActionParams, RequestStatefulObject statefulObject, string userGrpDn)
+        public async Task<bool> SendUserEmailFromAction(EmailActionParams emailActionParams, WfStatefulObject statefulObject, string userGrpDn)
         {
             return await SendEmail(CollectEmailAddressesFromUserOrGroup(userGrpDn), emailActionParams.Subject, emailActionParams.Body);
         }
@@ -82,7 +82,7 @@ namespace FWO.Ui.Services
             return await mailer.SendAsync(new MailData(tos, subject, body, null, null, null, null, null, ccs), emailConnection, new CancellationToken(), true);
         }
 
-        private List<string> GetRecipients(EmailRecipientOption recipientOption, RequestStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)
+        private List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)
         {
             List<string> recipients = [];
             switch(recipientOption)

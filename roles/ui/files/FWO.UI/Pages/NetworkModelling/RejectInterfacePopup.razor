@@ -101,7 +101,7 @@
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Implementer, Roles.Planner, Roles.Approver, Roles.Requester, Roles.Admin, Roles.Auditor]);
             TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
-            if(await ticketCreator.PromoteTicket(ConnHandler.ActConn.App, (long)ConnHandler.ActConn.TicketId, ExtStates.Rejected, Reason))
+            if(await ticketCreator.PromoteNewInterfaceImplTask(ConnHandler.ActConn.App, (long)ConnHandler.ActConn.TicketId, ExtStates.Rejected, Reason))
             {
                 DisplayMessageInUi(null, userConfig.GetText("reject_interface"), userConfig.GetText("U9018"), false);
             }

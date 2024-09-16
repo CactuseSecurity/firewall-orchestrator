@@ -1831,6 +1831,8 @@ INSERT INTO txt VALUES ('sessionTimeoutNoticePeriod', 'German','Benachrichtigung
 INSERT INTO txt VALUES ('sessionTimeoutNoticePeriod', 'English','Warning before session timeout (in minutes)');
 INSERT INTO txt VALUES ('uiHostName',           'German', 	'Hostname der UI');
 INSERT INTO txt VALUES ('uiHostName',           'English', 	'UI Hostname');
+INSERT INTO txt VALUES ('welcomeMessage',       'German', 	'Willkommensnachricht');
+INSERT INTO txt VALUES ('welcomeMessage',       'English', 	'Welcome Message');
 INSERT INTO txt VALUES ('maxMessages',          'German', 	'Max Anzahl Nachrichten');
 INSERT INTO txt VALUES ('maxMessages',          'English', 	'Max number of messages');
 INSERT INTO txt VALUES ('messageViewTime',      'German', 	'Nachrichten-Anzeigedauer (in Sekunden)');
@@ -6219,3 +6221,6 @@ INSERT INTO txt VALUES ('H9053', 'English', 'The assigned modeller can reject th
         <li>If configured by the administrator (<a href="/help/workflow/actions">Actions</a>), the interface can also be rejected inside the workflow request.</li>
     </ul>
 ');
+
+INSERT INTO txt VALUES ('H9054', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
+INSERT INTO txt VALUES ('H9054', 'English', 'Message that is displayed on Login Page.');

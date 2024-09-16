@@ -20,14 +20,14 @@
 @inject CircuitHandler circuitHandler
 
 @if (showLoginForm)
-{
-    <div class="center-div">
-        <div>
-            <br><br>
+{    
+    <div class="row text-center">
+        <div class="col-lg-4 col-md-3 col-sm-2"></div>
+        <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
             <img src="images/FWO_logo.png">
-            <br><br>
-            @* <h2 class="text-center"> @(userConfig.GetText("login")) </h2> *@
-            <div class="shadow-sm card p-3" style="width: 250px;">
+            <br><br>            
+        @* <h2 class="text-center"> @(userConfig.GetText("login")) </h2> *@
+            <div class="shadow-sm card p-3">
                 <form class="d-flex flex-column">
                     <div class="form-group">
                         <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput" @ref="usernameInput">
@@ -42,16 +42,31 @@
                     }
                     else
                     {
-                        <div class="spinner-border text-primary align-self-center mt-3 mb-3" role="status"></div>
+                        <div class="spinner-border text-primary align-self-center mt-3" role="status"></div>
                     }
                     @if(!string.IsNullOrEmpty(errorMessage))
                     {
                         <label class="m-2">@errorMessage</label>
                     }
-                </form>
+                </form>  
+            </div>
+        </div> 
+        <div class="col-lg-4 col-md-3 col-sm-2"></div>       
+    </div>
+    @if(ShowWelcomeMessage)
+    {
+        <div class="row mt-4">            
+            <div class="col-lg-4 col-md-3 col-sm-2">
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
+                <div class="alert alert-primary" role="alert">
+                    <span>@((MarkupString)@globalConfig.WelcomeMessage)</span>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-3 col-sm-2">
             </div>
         </div>
-    </div>
+    }  
 }
 
 @if (showPasswordChangeForm)
@@ -107,6 +122,8 @@
     private string newPassword2 = "";
     private string chgPwErrorMessage = "";
 
+    private bool ShowWelcomeMessage { get; set; }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         //ApiConnection.Dispose();
@@ -127,6 +144,9 @@
                 }
                 catch (Exception ex) { Log.WriteError("Session Restore", "Session restore unsuccessful.", ex); }
             }
+              
+            if(!string.IsNullOrWhiteSpace(globalConfig.WelcomeMessage))
+                ShowWelcomeMessage = true;
 
             // else no reconnect / reconnect unsuccessful
             showLoginForm = true;

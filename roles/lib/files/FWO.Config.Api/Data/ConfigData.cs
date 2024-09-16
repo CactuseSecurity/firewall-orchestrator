@@ -26,6 +26,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("uiHostName"), JsonPropertyName("uiHostName")]
 		public string UiHostName { get; set; } = "http://localhost:5000";
 
+		[JsonProperty("welcomeMessage"), JsonPropertyName("welcomeMessage")]
+		public string WelcomeMessage { get; set; } = "";
+
 		//        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
 		//        public int MaxMessages { get; set; } = 3;
 

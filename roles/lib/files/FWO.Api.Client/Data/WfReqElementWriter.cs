@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestReqElementWriter : RequestElementBase
+    public class WfReqElementWriter : WfElementBase
     {
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
@@ -11,10 +11,10 @@ namespace FWO.Api.Data
         [JsonProperty("device_id"), JsonPropertyName("device_id")]
         public int? DeviceId { get; set; }
 
-        public RequestReqElementWriter()
+        public WfReqElementWriter()
         {}
 
-        public RequestReqElementWriter(RequestReqElement element) : base(element)
+        public WfReqElementWriter(WfReqElement element) : base(element)
         { 
             RequestAction = element.RequestAction;
             DeviceId = element.DeviceId;

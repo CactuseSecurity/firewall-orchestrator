@@ -9,9 +9,9 @@
         public long? ServiceId { get; set; }
 
 
-        public RequestReqElement ToReqElement()
+        public WfReqElement ToReqElement()
         {
-            RequestReqElement element = new ()
+            WfReqElement element = new ()
             {
                 Id = ElemId,
                 TaskId = TaskId,
@@ -23,9 +23,9 @@
             return element;
         }
 
-        public RequestImplElement ToImplElement()
+        public WfImplElement ToImplElement()
         {
-            RequestImplElement element = new ()
+            WfImplElement element = new ()
             {
                 Id = ElemId,
                 ImplTaskId = TaskId,

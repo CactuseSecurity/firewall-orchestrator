@@ -3,31 +3,31 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestComment : RequestCommentBase
+    public class WfComment : WfCommentBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
 
-        public RequestComment()
+        public WfComment()
         { }
 
-        public RequestComment(RequestComment comment) : base(comment)
+        public WfComment(WfComment comment) : base(comment)
         {
             Id = comment.Id;
         }
     }
 
-    public class RequestCommentDataHelper
+    public class WfCommentDataHelper
     {
         [JsonProperty("comment"), JsonPropertyName("comment")]
-        public RequestComment Comment { get; set; } = new ();
+        public WfComment Comment { get; set; } = new ();
 
 
-        public RequestCommentDataHelper()
+        public WfCommentDataHelper()
         {}
 
-        public RequestCommentDataHelper(RequestComment comment)
+        public WfCommentDataHelper(WfComment comment)
         {
             Comment = comment;
         }

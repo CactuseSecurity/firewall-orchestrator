@@ -305,6 +305,11 @@ alter table "rule" add column if not exists "rulebase_id" Integer; -- NOT NULL;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
 Alter table "rule" add CONSTRAINT fk_rule_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 
+Alter Table "rule_metadata" DROP Constraint "rule_metadata_alt_key";
+Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid", "dev_id", "rulebase_id");
+
+-- TODO got an issue here: most metadata refers to the rule(_uid) but some relate to a specific device (last_hit)
+
 /*
     migration plan:
     1) create rulebases without rules (derive from device table)

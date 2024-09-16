@@ -15,9 +15,20 @@ namespace FWO.Test
         [Parallelizable]
         public async Task GeneratePdf()
         {
-            Log.WriteInfo("Startup", "Downloading headless Browser...");
-            BrowserFetcher? browserFetcher = new();
-            await browserFetcher.DownloadAsync();
+            Log.WriteInfo("Test Log", "Downloading headless Browser...");
+
+            OperatingSystem? os = Environment.OSVersion;
+
+            Log.WriteInfo("Test Log", $"OS: {os}");
+
+            if (os.Platform == PlatformID.Win32NT)
+            {
+                await DownloadForWindows();
+            }
+            else if(os.Platform == PlatformID.Unix)
+            {
+                await DownloadForUnixTestsystem();
+            }
 
             Log.WriteInfo("Test Log", "starting PDF generation");
             // HTML
@@ -52,10 +63,40 @@ namespace FWO.Test
             ClassicAssert.Greater(new FileInfo(filePath).Length, 5000);
         }
 
+        private async Task DownloadForWindows()
+        {
+            BrowserFetcher? browserFetcher = new();
+            await browserFetcher.DownloadAsync();
+        }
+
+        private async Task DownloadForUnixTestsystem()
+        {
+            string uri = "https://storage.googleapis.com/chrome-for-testing-public/128.0.6613.119/linux64/chrome-linux64.zip";
+            string outputPath = "chrome-linux64.zip";
+
+            if (!Uri.TryCreate(uri, UriKind.Absolute, out var uriResult))
+                throw new InvalidOperationException("URI is invalid.");
+
+            if (File.Exists(outputPath))
+                File.Delete(outputPath);
+
+            using HttpClient httpClient = new();
+
+            using HttpResponseMessage response = await httpClient.GetAsync(uriResult, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+
+            using FileStream? fileStream = File.Create(outputPath);
+            using Stream? httpStream = await response.Content.ReadAsStreamAsync();
+            await httpStream.CopyToAsync(fileStream);
+        }
+
         [OneTimeTearDown]
         public void OnFinished()
         {
             File.Delete("test.pdf");
+            File.Delete("chrome-linux64.zip");
+            File.Delete("chrome-win32.zip");
+            File.Delete("chrome-win64.zip");
         }
     }
 }

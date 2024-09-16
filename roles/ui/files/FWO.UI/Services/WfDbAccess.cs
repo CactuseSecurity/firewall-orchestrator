@@ -5,7 +5,7 @@ using FWO.Api.Client.Queries;
 
 namespace FWO.Ui.Services
 {
-    public class RequestDbAccess
+    public class WfDbAccess
     {
         private Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         private readonly UserConfig UserConfig;
@@ -13,7 +13,7 @@ namespace FWO.Ui.Services
         private readonly ActionHandler ActionHandler;
 
 
-        public RequestDbAccess(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, ApiConnection apiConnection, ActionHandler actionHandler)
+        public WfDbAccess(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, ApiConnection apiConnection, ActionHandler actionHandler)
         {
             DisplayMessageInUi = displayMessageInUi;
             UserConfig = userConfig;
@@ -21,9 +21,9 @@ namespace FWO.Ui.Services
             ActionHandler = actionHandler;
         }
 
-        public async Task<List<RequestTicket>> FetchTickets(StateMatrix stateMatrix, List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
+        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
         {
-            List<RequestTicket> tickets = [];
+            List<WfTicket> tickets = [];
             try
             {
                 // todo: filter own approvals, plannings...
@@ -31,7 +31,7 @@ namespace FWO.Ui.Services
                 int toState = allStates ? 999 : stateMatrix.LowestEndState;
 
                 var Variables = new { fromState, toState };
-                tickets = await ApiConnection.SendQueryAsync<List<RequestTicket>>(RequestQueries.getTickets, Variables);
+                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getTickets, Variables);
                 if(UserConfig.ReqOwnerBased && ! ignoreOwners)
                 {
                     tickets = FilterWrongOwnersOut(tickets, ownerIds);
@@ -48,9 +48,9 @@ namespace FWO.Ui.Services
             return tickets;
         }
 
-        private static List<RequestTicket> FilterWrongOwnersOut(List<RequestTicket> ticketsIn, List<int> ownerIds)
+        private static List<WfTicket> FilterWrongOwnersOut(List<WfTicket> ticketsIn, List<int> ownerIds)
         {
-            List<RequestTicket> ticketsOut = [];
+            List<WfTicket> ticketsOut = [];
             foreach(var ticket in ticketsIn)
             {
                 if(ticket.Tasks.FirstOrDefault(ta => ta.TaskType != TaskType.new_interface.ToString()) != null
@@ -73,13 +73,13 @@ namespace FWO.Ui.Services
             return ticketsOut;
         }
 
-        public async Task<RequestTicket> GetTicket(int id)
+        public async Task<WfTicket> GetTicket(int id)
         {
-            RequestTicket ticket = new ();
+            WfTicket ticket = new ();
             try
             {
                 var Variables = new { id };
-                ticket = await ApiConnection.SendQueryAsync<RequestTicket>(RequestQueries.getTicketById, Variables);
+                ticket = await ApiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, Variables);
                 ticket.UpdateCidrsInTaskElements();
             }
             catch (Exception exception)
@@ -91,7 +91,7 @@ namespace FWO.Ui.Services
 
         // Tickets
 
-        public async Task<RequestTicket> AddTicketToDb(RequestTicket ticket)
+        public async Task<WfTicket> AddTicketToDb(WfTicket ticket)
         {
             try
             {
@@ -104,7 +104,7 @@ namespace FWO.Ui.Services
                     requesterId = ticket.Requester?.DbId,
                     deadline = ticket.Deadline,
                     priority = ticket.Priority,
-                    requestTasks = new RequestTicketWriter(ticket)
+                    requestTasks = new WfTicketWriter(ticket)
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newTicket, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -114,7 +114,7 @@ namespace FWO.Ui.Services
                 else
                 {
                     ticket = await GetTicket(returnIds[0].NewId);
-                    await ActionHandler.DoStateChangeActions(ticket, RequestObjectScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -124,7 +124,7 @@ namespace FWO.Ui.Services
             return ticket;
         }
 
-        public async Task<RequestTicket> UpdateTicketInDb(RequestTicket ticket)
+        public async Task<WfTicket> UpdateTicketInDb(WfTicket ticket)
         {
             try
             {
@@ -144,7 +144,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, RequestObjectScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -156,7 +156,7 @@ namespace FWO.Ui.Services
 
         // Request Tasks
 
-        public async Task<int> AddReqTaskToDb(RequestReqTask reqtask)
+        public async Task<int> AddReqTaskToDb(WfReqTask reqtask)
         {
             int returnId = 0;
             try
@@ -200,7 +200,7 @@ namespace FWO.Ui.Services
                     {
                         await AssignOwnerInDb(returnId, owner.Owner.Id);
                     }
-                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                    await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
             }
             catch (Exception exception)
@@ -210,7 +210,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateReqTaskInDb(RequestReqTask reqtask)
+        public async Task UpdateReqTaskInDb(WfReqTask reqtask)
         {
             try
             {
@@ -240,7 +240,7 @@ namespace FWO.Ui.Services
                 {
                     await UpdateReqElementsInDb(reqtask);
                     await UpdateOwnersInDb(reqtask);
-                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                    await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
             }
             catch (Exception exception)
@@ -249,7 +249,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateReqTaskAdditionalInfo(RequestReqTask reqtask)
+        public async Task UpdateReqTaskAdditionalInfo(WfReqTask reqtask)
         {
             try
             {
@@ -270,7 +270,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteReqTaskFromDb(RequestReqTask reqtask)
+        public async Task DeleteReqTaskFromDb(WfReqTask reqtask)
         {
             try
             {
@@ -288,7 +288,7 @@ namespace FWO.Ui.Services
 
         // Request Elements
 
-        private async Task UpdateReqElementsInDb(RequestReqTask reqtask)
+        private async Task UpdateReqElementsInDb(WfReqTask reqtask)
         {
             try
             {
@@ -316,7 +316,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        private async Task<int> AddReqElementToDb(RequestReqElement element)
+        private async Task<int> AddReqElementToDb(WfReqElement element)
         {
             int returnId = 0;
             try
@@ -353,7 +353,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        private async Task UpdateReqElementInDb(RequestReqElement element)
+        private async Task UpdateReqElementInDb(WfReqElement element)
         {
             try
             {
@@ -403,7 +403,7 @@ namespace FWO.Ui.Services
 
         // Approvals
 
-        public async Task<int> AddApprovalToDb(RequestApproval approval)
+        public async Task<int> AddApprovalToDb(WfApproval approval)
         {
             int returnId = 0;
             try
@@ -426,7 +426,7 @@ namespace FWO.Ui.Services
                 {
                     returnId = returnIds[0].NewId;
                     approval.Id = returnId;
-                    await ActionHandler.DoStateChangeActions(approval, RequestObjectScopes.Approval);
+                    await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
                 }
             }
             catch (Exception exception)
@@ -436,7 +436,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateApprovalInDb(RequestApproval approval)
+        public async Task UpdateApprovalInDb(WfApproval approval)
         {
             try
             {
@@ -455,7 +455,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(approval, RequestObjectScopes.Approval);
+                    await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
                 }
             }
             catch (Exception exception)
@@ -466,7 +466,7 @@ namespace FWO.Ui.Services
 
         // implementation tasks
 
-        public async Task<int> AddImplTaskToDb(RequestImplTask impltask)
+        public async Task<int> AddImplTaskToDb(WfImplTask impltask)
         {
             int returnId = 0;
             try
@@ -509,7 +509,7 @@ namespace FWO.Ui.Services
                             await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
                         }
                     }
-                    await ActionHandler.DoStateChangeActions(impltask, RequestObjectScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -519,7 +519,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateImplTaskInDb(RequestImplTask impltask, RequestReqTask reqtask)
+        public async Task UpdateImplTaskInDb(WfImplTask impltask, WfReqTask reqtask)
         {
             try
             {
@@ -549,7 +549,7 @@ namespace FWO.Ui.Services
                 {
                     await UpdateImplElementsInDb(impltask);
                     await UpdateOwnersInDb(reqtask);
-                    await ActionHandler.DoStateChangeActions(impltask, RequestObjectScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -558,7 +558,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteImplTaskFromDb(RequestImplTask impltask)
+        public async Task DeleteImplTaskFromDb(WfImplTask impltask)
         {
             try
             {
@@ -577,7 +577,7 @@ namespace FWO.Ui.Services
 
         // implementation elements
 
-        private async Task UpdateImplElementsInDb(RequestImplTask impltask)
+        private async Task UpdateImplElementsInDb(WfImplTask impltask)
         {
             try
             {
@@ -605,7 +605,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        private async Task<int> AddImplElementToDb(RequestImplElement element)
+        private async Task<int> AddImplElementToDb(WfImplElement element)
         {
             int returnId = 0;
             try
@@ -641,7 +641,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        private async Task UpdateImplElementInDb(RequestImplElement element)
+        private async Task UpdateImplElementInDb(WfImplElement element)
         {
             try
             {
@@ -691,7 +691,7 @@ namespace FWO.Ui.Services
 
         // Comments
 
-        public async Task<int> AddCommentToDb(RequestComment comment)
+        public async Task<int> AddCommentToDb(WfComment comment)
         {
             int returnId = 0;
             try
@@ -792,7 +792,7 @@ namespace FWO.Ui.Services
 
         // Owners
 
-        public async Task UpdateOwnersInDb(RequestReqTask reqtask)
+        public async Task UpdateOwnersInDb(WfReqTask reqtask)
         {
             try
             {
@@ -856,7 +856,7 @@ namespace FWO.Ui.Services
 
         // State changes
 
-        public async Task UpdateTicketStateInDb(RequestTicket ticket)
+        public async Task UpdateTicketStateInDb(WfTicket ticket)
         {
             try
             {
@@ -875,7 +875,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, RequestObjectScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -884,7 +884,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(RequestReqTask reqtask)
+        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask)
         {
             try
             {
@@ -905,7 +905,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                    await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
             }
             catch (Exception exception)
@@ -914,7 +914,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateImplTaskStateInDb(RequestImplTask impltask)
+        public async Task UpdateImplTaskStateInDb(WfImplTask impltask)
         {
             try
             {
@@ -935,7 +935,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(impltask, RequestObjectScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)

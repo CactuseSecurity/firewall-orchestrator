@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestImplTask: RequestTaskBase
+    public class WfImplTask: WfTaskBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -18,20 +18,20 @@ namespace FWO.Api.Data
         public string ImplAction { get; set; } = RequestAction.create.ToString();
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
-        public List<RequestImplElement> ImplElements { get; set; } = new ();
+        public List<WfImplElement> ImplElements { get; set; } = new ();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<RequestCommentDataHelper> Comments { get; set; } = new ();
+        public List<WfCommentDataHelper> Comments { get; set; } = new ();
 
 
-        public List<RequestImplElement> RemovedElements { get; set; } = new ();
+        public List<WfImplElement> RemovedElements { get; set; } = new ();
         public long TicketId { get; set; }
 
 
-        public RequestImplTask()
+        public WfImplTask()
         {}
 
-        public RequestImplTask(RequestImplTask implTask): base(implTask)
+        public WfImplTask(WfImplTask implTask): base(implTask)
         {
             Id = implTask.Id;
             ReqTaskId = implTask.ReqTaskId;
@@ -43,7 +43,7 @@ namespace FWO.Api.Data
        }
 
 
-        public RequestImplTask(RequestReqTask reqtask, bool copyComments = true)
+        public WfImplTask(WfReqTask reqtask, bool copyComments = true)
         {
             Id = 0;
             Title = reqtask.Title;
@@ -73,17 +73,17 @@ namespace FWO.Api.Data
                 {
                     DeviceId = reqtask.Elements[0].DeviceId;
                 }
-                ImplElements = new List<RequestImplElement>();
-                foreach(RequestReqElement element in reqtask.Elements)
+                ImplElements = new List<WfImplElement>();
+                foreach(WfReqElement element in reqtask.Elements)
                 {
-                    ImplElements.Add(new RequestImplElement(element));
+                    ImplElements.Add(new WfImplElement(element));
                 }
             }
             if(copyComments)
             {
                 foreach(var comm in reqtask.Comments)
                 {
-                    comm.Comment.Scope = RequestObjectScopes.ImplementationTask.ToString();
+                    comm.Comment.Scope = WfObjectScopes.ImplementationTask.ToString();
                     Comments.Add(comm);
                 }
             }

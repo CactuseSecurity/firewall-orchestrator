@@ -25,7 +25,7 @@ namespace FWO.Ui.Services
 
     public class PathAnalysis
     {
-        private List<RequestState> states = new List<RequestState>();
+        private List<WfState> states = new List<WfState>();
         private ApiConnection apiConnection;
 
         public PathAnalysis(ApiConnection apiConnection)
@@ -46,7 +46,7 @@ namespace FWO.Ui.Services
             return string.Join(", ", devNames);
         }
 
-        public async Task<List<Device>> getAllDevices(List<RequestReqElement> elements)
+        public async Task<List<Device>> getAllDevices(List<WfReqElement> elements)
         {
             List<Device> DevList = new List<Device>();
 
@@ -72,7 +72,7 @@ namespace FWO.Ui.Services
             return DevList;
         }
 
-        private List<KeyValuePair<string, string>> analyseElements(List<RequestReqElement> elements)
+        private List<KeyValuePair<string, string>> analyseElements(List<WfReqElement> elements)
         {
             List<KeyValuePair<string, string>> elementPairs = new List<KeyValuePair<string, string>>();
             List<string> sources = new List<string>();

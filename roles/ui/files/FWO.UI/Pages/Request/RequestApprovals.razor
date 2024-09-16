@@ -18,13 +18,13 @@
 
 @if(InitComplete)
 {
-    <DisplayTicketTable Phase="WorkflowPhases.approval" States="states" ReqHandler="reqHandler" 
+    <DisplayTicketTable Phase="WorkflowPhases.approval" States="states" WfHandler="wfHandler" 
         ResetParent="Reset" StartPhase="StartApproveTask"/>
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+   <div class="spinner-border" role="status">
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -39,8 +39,8 @@ else
     [Parameter]
     public string? TicketId { get; set; }
 
-    private RequestHandler reqHandler = new ();
-    private RequestStateDict states = new ();
+    private WfHandler wfHandler = new ();
+    private WfStateDict states = new ();
     private List<int> OwnerIds = new ();
     private bool InitComplete = false;
 
@@ -56,10 +56,10 @@ else
             {
                 OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.approval){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.approval){};
             await Reset();
             await HandleTicketId();
-            reqHandler.SetContinueEnv(ObjAction.approve);
+            wfHandler.SetContinueEnv(ObjAction.approve);
 
             InitComplete = true;
         }
@@ -73,7 +73,7 @@ else
     {
         if(long.TryParse(TicketId, out long ticketId))
         {
-            string newPhase = await reqHandler.HandleExtTicketId(WorkflowPhases.approval, ticketId);
+            string newPhase = await wfHandler.HandleInjectedTicketId(WorkflowPhases.approval, ticketId);
             if(newPhase != "")
             {
                 NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
@@ -85,8 +85,8 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Approver) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await reqHandler.Init(OwnerIds);
+            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Approver) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            await wfHandler.Init(OwnerIds);
         }
         catch (Exception exception)
         {
@@ -94,11 +94,11 @@ else
         }
     }
 
-    public async Task StartApproveTask(RequestReqTask reqTask)
+    public async Task StartApproveTask(WfReqTask reqTask)
     {
         try
         {
-            await reqHandler.StartWorkOnReqTask(reqTask, ObjAction.approve);
+            await wfHandler.StartWorkOnReqTask(reqTask, ObjAction.approve);
         }
         catch (Exception exception)
         {

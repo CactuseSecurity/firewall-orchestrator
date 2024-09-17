@@ -40,6 +40,7 @@ namespace FWO.Test
 
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
+                Args = [" args: ['--no-sandbox', '--disable-setuid-sandbox']"],
                 Headless = true
             });
 

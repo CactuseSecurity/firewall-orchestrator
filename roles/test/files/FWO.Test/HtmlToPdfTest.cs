@@ -29,16 +29,17 @@ namespace FWO.Test
             // HTML
             string html = "<html> <body> <h1>test<h1> test </body> </html>";
 
-            IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
-            {
-                Args = [" args: ['--no-sandbox'", "--disable-setuid-sandbox]"],
-                Headless = true
-            });
-
             string filePath = "pdffile.pdf";
+            IBrowser? browser = default;
 
             try
             {
+                browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                {
+                    Args = ["args: --no-sandbox", "--disable-setuid-sandbox"],
+                    Headless = true
+                });
+
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
 
@@ -52,7 +53,8 @@ namespace FWO.Test
             }
             finally
             {
-                await browser.CloseAsync();
+                if (browser is not null)
+                    await browser.CloseAsync();
             }
 
             Assert.That(filePath, Does.Exist);

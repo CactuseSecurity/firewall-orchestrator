@@ -40,6 +40,7 @@ namespace FWO.GlobalConstants
 		
 		public const string kStyleHighlighted = "color:red;";
 
+		public const string FworchUnixBrowserBinPath = "~/usr/local/fworch/";
 	}
 
 	public struct PageName

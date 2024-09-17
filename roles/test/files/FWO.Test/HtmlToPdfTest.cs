@@ -3,6 +3,8 @@ using NUnit.Framework.Legacy;
 using FWO.Logging;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
+using System.IO.Compression;
+using System.Diagnostics;
 
 namespace FWO.Test
 {
@@ -20,17 +22,15 @@ namespace FWO.Test
             OperatingSystem? os = Environment.OSVersion;
 
             Log.WriteInfo("Test Log", $"OS: {os}");
-            
-            await DownloadForWindows();
 
-            //if (os.Platform == PlatformID.Win32NT)
-            //{
-            //    await DownloadForWindows();
-            //}
-            //else if(os.Platform == PlatformID.Unix)
-            //{
-            //    await DownloadForUnixTestsystem();
-            //}
+            if (os.Platform == PlatformID.Win32NT)
+            {
+                await DownloadForWindows();
+            }
+            else if(os.Platform == PlatformID.Unix)
+            {
+                await DownloadForUnixTestsystem();
+            }
 
             Log.WriteInfo("Test Log", "starting PDF generation");
             // HTML
@@ -90,6 +90,27 @@ namespace FWO.Test
             using FileStream? fileStream = File.Create(outputPath);
             using Stream? httpStream = await response.Content.ReadAsStreamAsync();
             await httpStream.CopyToAsync(fileStream);
+            fileStream.Close();
+            await fileStream.DisposeAsync();
+
+            string path = Path.Combine(GlobalConstants.GlobalConst.FworchUnixBrowserBinPath, outputPath.Replace(".zip", ""));
+           
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+
+            if (File.Exists(path))
+                File.Delete(path);
+
+            try
+            {
+                ZipFile.ExtractToDirectory(outputPath,  path);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteInfo("Test Log", ex.ToString());               
+                throw;
+            }
+           
         }
 
         [OneTimeTearDown]

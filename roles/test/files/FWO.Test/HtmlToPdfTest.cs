@@ -20,15 +20,17 @@ namespace FWO.Test
             OperatingSystem? os = Environment.OSVersion;
 
             Log.WriteInfo("Test Log", $"OS: {os}");
+            
+            await DownloadForWindows();
 
-            if (os.Platform == PlatformID.Win32NT)
-            {
-                await DownloadForWindows();
-            }
-            else if(os.Platform == PlatformID.Unix)
-            {
-                await DownloadForUnixTestsystem();
-            }
+            //if (os.Platform == PlatformID.Win32NT)
+            //{
+            //    await DownloadForWindows();
+            //}
+            //else if(os.Platform == PlatformID.Unix)
+            //{
+            //    await DownloadForUnixTestsystem();
+            //}
 
             Log.WriteInfo("Test Log", "starting PDF generation");
             // HTML

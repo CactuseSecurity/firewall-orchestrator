@@ -25,22 +25,13 @@ namespace FWO.Test
 
             Log.WriteInfo("Test Log", $"OS: {os}");
 
-            if (os.Platform == PlatformID.Win32NT)
-            {
-                await DownloadForWindows();
-            }
-            else if (os.Platform == PlatformID.Unix)
-            {
-                await DownloadForUnixTestsystem();
-            }
-
             Log.WriteInfo("Test Log", "starting PDF generation");
             // HTML
             string html = "<html> <body> <h1>test<h1> test </body> </html>";
 
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                Args = [" args: ['--no-sandbox', '--disable-setuid-sandbox']"],
+                Args = [" args: ['--no-sandbox'", "--disable-setuid-sandbox]"],
                 Headless = true
             });
 
@@ -68,61 +59,6 @@ namespace FWO.Test
             ClassicAssert.Greater(new FileInfo(filePath).Length, 5000);
         }
 
-        private async Task DownloadForWindows()
-        {
-            BrowserFetcher? browserFetcher = new();
-            await browserFetcher.DownloadAsync();
-        }
-
-        private async Task DownloadForUnixTestsystem()
-        {
-            BrowserFetcher? browserFetcher = new(SupportedBrowser.Chromium);
-            var installedBrowser = await browserFetcher.DownloadAsync(BrowserTag.Latest);
-            string path = browserFetcher.GetExecutablePath(installedBrowser.BuildId);          
-
-            Log.WriteInfo("Test Log", $"browser binaries are located at: {path}");
-
-            //string uri = "https://storage.googleapis.com/chrome-for-testing-public/128.0.6613.119/linux32/chrome-linux32.zip";
-            //string outputPath = "chrome-linux64.zip";
-
-            //if (!Uri.TryCreate(uri, UriKind.Absolute, out var uriResult))
-            //    throw new InvalidOperationException("URI is invalid.");
-
-            //if (File.Exists(outputPath))
-            //    File.Delete(outputPath);
-
-            //using HttpClient httpClient = new();
-
-            //using HttpResponseMessage response = await httpClient.GetAsync(uriResult, HttpCompletionOption.ResponseHeadersRead);
-            //response.EnsureSuccessStatusCode();
-
-            //using FileStream? fileStream = File.Create(outputPath);
-            //using Stream? httpStream = await response.Content.ReadAsStreamAsync();
-            //await httpStream.CopyToAsync(fileStream);
-            //fileStream.Close();
-            //await fileStream.DisposeAsync();
-
-            //string path = Path.Combine(GlobalConstants.GlobalConst.FworchUnixBrowserBinPath, outputPath.Replace(".zip", ""));
-
-            //if (Directory.Exists(path))
-            //    Directory.Delete(path, true);
-
-            //if (File.Exists(path))
-            //    File.Delete(path);
-
-            try
-            {
-                //  Log.WriteInfo("Test Log",$"Extracting zip binarie to: {path}");
-                //ZipFile.ExtractToDirectory(outputPath,  path);
-                //Log.WriteInfo("Test Log", $"Binaries extracted...");
-            }
-            catch (Exception ex)
-            {
-                Log.WriteInfo("Test Log", ex.ToString());
-                throw;
-            }
-
-        }
 
         [OneTimeTearDown]
         public void OnFinished()

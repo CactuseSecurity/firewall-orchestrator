@@ -5,6 +5,8 @@ using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using System.IO.Compression;
 using System.Diagnostics;
+using System.IO;
+using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace FWO.Test
 {
@@ -12,7 +14,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class HtmlToPdfTest
     {
-       
+
         [Test]
         [Parallelizable]
         public async Task GeneratePdf()
@@ -27,7 +29,7 @@ namespace FWO.Test
             {
                 await DownloadForWindows();
             }
-            else if(os.Platform == PlatformID.Unix)
+            else if (os.Platform == PlatformID.Unix)
             {
                 await DownloadForUnixTestsystem();
             }
@@ -36,13 +38,13 @@ namespace FWO.Test
             // HTML
             string html = "<html> <body> <h1>test<h1> test </body> </html>";
 
-            using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true
             });
 
             string filePath = "pdffile.pdf";
-            
+
             try
             {
                 using IPage page = await browser.NewPageAsync();
@@ -73,44 +75,52 @@ namespace FWO.Test
 
         private async Task DownloadForUnixTestsystem()
         {
-            string uri = "https://storage.googleapis.com/chrome-for-testing-public/128.0.6613.119/linux64/chrome-linux64.zip";
-            string outputPath = "chrome-linux64.zip";
+            BrowserFetcher? browserFetcher = new(SupportedBrowser.Chromium);
+            var installedBrowser = await browserFetcher.DownloadAsync(BrowserTag.Latest);
+            string path = browserFetcher.GetExecutablePath(installedBrowser.BuildId);          
 
-            if (!Uri.TryCreate(uri, UriKind.Absolute, out var uriResult))
-                throw new InvalidOperationException("URI is invalid.");
+            Log.WriteInfo("Test Log", $"browser binaries are located at: {path}");
 
-            if (File.Exists(outputPath))
-                File.Delete(outputPath);
+            //string uri = "https://storage.googleapis.com/chrome-for-testing-public/128.0.6613.119/linux32/chrome-linux32.zip";
+            //string outputPath = "chrome-linux64.zip";
 
-            using HttpClient httpClient = new();
+            //if (!Uri.TryCreate(uri, UriKind.Absolute, out var uriResult))
+            //    throw new InvalidOperationException("URI is invalid.");
 
-            using HttpResponseMessage response = await httpClient.GetAsync(uriResult, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
+            //if (File.Exists(outputPath))
+            //    File.Delete(outputPath);
 
-            using FileStream? fileStream = File.Create(outputPath);
-            using Stream? httpStream = await response.Content.ReadAsStreamAsync();
-            await httpStream.CopyToAsync(fileStream);
-            fileStream.Close();
-            await fileStream.DisposeAsync();
+            //using HttpClient httpClient = new();
 
-            string path = Path.Combine(GlobalConstants.GlobalConst.FworchUnixBrowserBinPath, outputPath.Replace(".zip", ""));
-           
-            if (Directory.Exists(path))
-                Directory.Delete(path, true);
+            //using HttpResponseMessage response = await httpClient.GetAsync(uriResult, HttpCompletionOption.ResponseHeadersRead);
+            //response.EnsureSuccessStatusCode();
 
-            if (File.Exists(path))
-                File.Delete(path);
+            //using FileStream? fileStream = File.Create(outputPath);
+            //using Stream? httpStream = await response.Content.ReadAsStreamAsync();
+            //await httpStream.CopyToAsync(fileStream);
+            //fileStream.Close();
+            //await fileStream.DisposeAsync();
+
+            //string path = Path.Combine(GlobalConstants.GlobalConst.FworchUnixBrowserBinPath, outputPath.Replace(".zip", ""));
+
+            //if (Directory.Exists(path))
+            //    Directory.Delete(path, true);
+
+            //if (File.Exists(path))
+            //    File.Delete(path);
 
             try
             {
-                ZipFile.ExtractToDirectory(outputPath,  path);
+                //  Log.WriteInfo("Test Log",$"Extracting zip binarie to: {path}");
+                //ZipFile.ExtractToDirectory(outputPath,  path);
+                //Log.WriteInfo("Test Log", $"Binaries extracted...");
             }
             catch (Exception ex)
             {
-                Log.WriteInfo("Test Log", ex.ToString());               
+                Log.WriteInfo("Test Log", ex.ToString());
                 throw;
             }
-           
+
         }
 
         [OneTimeTearDown]

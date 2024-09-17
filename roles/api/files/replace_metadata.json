@@ -5126,6 +5126,108 @@
             },
             {
               "table": {
+                "name": "ext_request",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "ticket",
+                  "using": {
+                    "foreign_key_constraint_on": "ticket_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "ext_query_variables",
+                      "ext_request_content",
+                      "ext_request_state",
+                      "ext_request_type",
+                      "ext_ticket_system",
+                      "owner_id",
+                      "task_number"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "ext_query_variables",
+                      "ext_request_content",
+                      "ext_request_state",
+                      "ext_request_type",
+                      "ext_ticket_system",
+                      "owner_id",
+                      "task_number"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "ext_query_variables",
+                      "ext_request_content",
+                      "ext_request_state",
+                      "ext_request_type",
+                      "ext_ticket_system",
+                      "owner_id",
+                      "task_number"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "ext_request_state"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "ext_request_state"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "gw_interface",
                 "schema": "public"
               },
@@ -9319,6 +9421,18 @@
                   }
                 },
                 {
+                  "name": "ext_requests",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "ext_request",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "nwgroups",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9337,6 +9451,18 @@
                       "column": "owner_id",
                       "table": {
                         "name": "owner_network",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "owner_tickets",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "owner_ticket",
                         "schema": "public"
                       }
                     }
@@ -9946,6 +10072,52 @@
                 {
                   "role": "middleware-server",
                   "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "owner_ticket",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "ticket",
+                  "using": {
+                    "foreign_key_constraint_on": "ticket_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "ticket_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "owner_id"
+                    ],
                     "filter": {}
                   },
                   "comment": ""
@@ -21045,6 +21217,30 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -21145,18 +21341,19 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ]
                   }
                 },
@@ -21165,18 +21362,19 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ]
                   }
                 },
@@ -21185,18 +21383,19 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ]
                   }
                 },
@@ -21205,18 +21404,19 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ]
                   }
                 }
@@ -21226,18 +21426,19 @@
                   "role": "approver",
                   "permission": {
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -21246,18 +21447,19 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -21266,18 +21468,19 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -21286,18 +21489,19 @@
                   "role": "implementer",
                   "permission": {
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -21306,18 +21510,19 @@
                   "role": "planner",
                   "permission": {
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -21326,18 +21531,19 @@
                   "role": "requester",
                   "permission": {
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -21346,18 +21552,19 @@
                   "role": "reviewer",
                   "permission": {
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -21368,18 +21575,19 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ],
                     "filter": {},
                     "check": null
@@ -21389,18 +21597,19 @@
                   "role": "planner",
                   "permission": {
                     "columns": [
+                      "field",
+                      "group_name",
                       "id",
+                      "implementation_action",
                       "implementation_task_id",
-                      "network_object_id",
-                      "original_nat_id",
-                      "service_id",
-                      "user_id",
-                      "rule_uid",
                       "ip",
                       "ip_proto_id",
+                      "network_object_id",
+                      "original_nat_id",
                       "port",
-                      "field",
-                      "implementation_action"
+                      "rule_uid",
+                      "service_id",
+                      "user_id"
                     ],
                     "filter": {},
                     "check": null
@@ -22165,19 +22374,20 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "device_id",
+                      "field",
+                      "group_name",
                       "id",
+                      "ip",
+                      "ip_proto_id",
                       "network_object_id",
                       "original_nat_id",
+                      "port",
+                      "request_action",
+                      "rule_uid",
                       "service_id",
                       "task_id",
-                      "user_id",
-                      "rule_uid",
-                      "ip",
-                      "device_id",
-                      "ip_proto_id",
-                      "port",
-                      "field",
-                      "request_action"
+                      "user_id"
                     ]
                   }
                 }
@@ -22187,19 +22397,20 @@
                   "role": "approver",
                   "permission": {
                     "columns": [
+                      "device_id",
+                      "field",
+                      "group_name",
                       "id",
+                      "ip",
+                      "ip_proto_id",
                       "network_object_id",
                       "original_nat_id",
+                      "port",
+                      "request_action",
+                      "rule_uid",
                       "service_id",
                       "task_id",
-                      "user_id",
-                      "rule_uid",
-                      "ip",
-                      "device_id",
-                      "ip_proto_id",
-                      "port",
-                      "field",
-                      "request_action"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -22208,19 +22419,20 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "device_id",
+                      "field",
+                      "group_name",
                       "id",
+                      "ip",
+                      "ip_proto_id",
                       "network_object_id",
                       "original_nat_id",
+                      "port",
+                      "request_action",
+                      "rule_uid",
                       "service_id",
                       "task_id",
-                      "user_id",
-                      "rule_uid",
-                      "ip",
-                      "device_id",
-                      "ip_proto_id",
-                      "port",
-                      "field",
-                      "request_action"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -22229,19 +22441,20 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "device_id",
+                      "field",
+                      "group_name",
                       "id",
+                      "ip",
+                      "ip_proto_id",
                       "network_object_id",
                       "original_nat_id",
+                      "port",
+                      "request_action",
+                      "rule_uid",
                       "service_id",
                       "task_id",
-                      "user_id",
-                      "rule_uid",
-                      "ip",
-                      "device_id",
-                      "ip_proto_id",
-                      "port",
-                      "field",
-                      "request_action"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -22250,19 +22463,20 @@
                   "role": "implementer",
                   "permission": {
                     "columns": [
+                      "device_id",
+                      "field",
+                      "group_name",
                       "id",
+                      "ip",
+                      "ip_proto_id",
                       "network_object_id",
                       "original_nat_id",
+                      "port",
+                      "request_action",
+                      "rule_uid",
                       "service_id",
                       "task_id",
-                      "user_id",
-                      "rule_uid",
-                      "ip",
-                      "device_id",
-                      "ip_proto_id",
-                      "port",
-                      "field",
-                      "request_action"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -22271,19 +22485,20 @@
                   "role": "planner",
                   "permission": {
                     "columns": [
+                      "device_id",
+                      "field",
+                      "group_name",
                       "id",
+                      "ip",
+                      "ip_proto_id",
                       "network_object_id",
                       "original_nat_id",
+                      "port",
+                      "request_action",
+                      "rule_uid",
                       "service_id",
                       "task_id",
-                      "user_id",
-                      "rule_uid",
-                      "ip",
-                      "device_id",
-                      "ip_proto_id",
-                      "port",
-                      "field",
-                      "request_action"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -22292,19 +22507,20 @@
                   "role": "requester",
                   "permission": {
                     "columns": [
+                      "device_id",
+                      "field",
+                      "group_name",
                       "id",
+                      "ip",
+                      "ip_proto_id",
                       "network_object_id",
                       "original_nat_id",
+                      "port",
+                      "request_action",
+                      "rule_uid",
                       "service_id",
                       "task_id",
-                      "user_id",
-                      "rule_uid",
-                      "ip",
-                      "device_id",
-                      "ip_proto_id",
-                      "port",
-                      "field",
-                      "request_action"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -22313,19 +22529,20 @@
                   "role": "reviewer",
                   "permission": {
                     "columns": [
+                      "device_id",
+                      "field",
+                      "group_name",
                       "id",
+                      "ip",
+                      "ip_proto_id",
                       "network_object_id",
                       "original_nat_id",
+                      "port",
+                      "request_action",
+                      "rule_uid",
                       "service_id",
                       "task_id",
-                      "user_id",
-                      "rule_uid",
-                      "ip",
-                      "device_id",
-                      "ip_proto_id",
-                      "port",
-                      "field",
-                      "request_action"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -22336,19 +22553,20 @@
                   "role": "requester",
                   "permission": {
                     "columns": [
+                      "device_id",
+                      "field",
+                      "group_name",
                       "id",
+                      "ip",
+                      "ip_proto_id",
                       "network_object_id",
                       "original_nat_id",
+                      "port",
+                      "request_action",
+                      "rule_uid",
                       "service_id",
                       "task_id",
-                      "user_id",
-                      "rule_uid",
-                      "ip",
-                      "device_id",
-                      "ip_proto_id",
-                      "port",
-                      "field",
-                      "request_action"
+                      "user_id"
                     ],
                     "filter": {},
                     "check": null
@@ -23319,6 +23537,18 @@
                 }
               ],
               "array_relationships": [
+                {
+                  "name": "ext_requests",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ticket_id",
+                      "table": {
+                        "name": "ext_request",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "reqtasks",
                   "using": {

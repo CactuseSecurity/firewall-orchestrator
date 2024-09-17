@@ -73,7 +73,7 @@ namespace FWO.Ui.Services
             return ticketsOut;
         }
 
-        public async Task<WfTicket> GetTicket(int id)
+        public async Task<WfTicket> GetTicket(long id)
         {
             WfTicket ticket = new ();
             try

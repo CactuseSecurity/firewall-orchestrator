@@ -8,7 +8,8 @@ namespace FWO.Api.Data
         source, 
         destination, 
         service,
-        rule
+        rule,
+        group
     }
 
     public class WfElementBase
@@ -40,6 +41,9 @@ namespace FWO.Api.Data
         [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
         public string? RuleUid { get; set; }
 
+        [JsonProperty("group_name"), JsonPropertyName("group_name")]
+        public string? GroupName { get; set; }
+
 
         public WfElementBase()
         { }
@@ -55,6 +59,7 @@ namespace FWO.Api.Data
             UserId = element.UserId;
             OriginalNatId = element.OriginalNatId;
             RuleUid = element.RuleUid;
+            GroupName = element.GroupName;
         }
 
         public virtual bool Sanitize()
@@ -63,6 +68,7 @@ namespace FWO.Api.Data
             IpString = Sanitizer.SanitizeOpt(IpString, ref shortened);
             Field = Sanitizer.SanitizeMand(Field, ref shortened);
             RuleUid = Sanitizer.SanitizeOpt(RuleUid, ref shortened);
+            GroupName = Sanitizer.SanitizeOpt(GroupName, ref shortened);
             return shortened;
         }
     }

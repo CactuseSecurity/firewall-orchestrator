@@ -227,6 +227,11 @@ namespace FWO.Ui.Services
             return AllTicketList.FirstOrDefault(x => x.Id == ticketId);
         }
 
+        public async Task<WfTicket?> GetFullTicket(long ticketId)
+        {
+            return await dbAcc.GetTicket(ticketId);
+        }
+
         public async Task<string> HandleInjectedTicketId(WorkflowPhases phase, long ticketId)
         {
             WfTicket? ticket = await ResolveTicket(ticketId);

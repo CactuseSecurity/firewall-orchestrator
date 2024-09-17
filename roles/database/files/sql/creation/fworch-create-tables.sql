@@ -1088,6 +1088,25 @@ create table recertification
 	next_recert_date Timestamp
 );
 
+create table owner_ticket
+(
+    owner_id int,
+    ticket_id bigint
+);
+
+create table ext_request
+(
+	id BIGSERIAL PRIMARY KEY,
+    owner_id int,
+    ticket_id bigint,
+	task_number int,
+	ext_ticket_system varchar,
+	ext_request_type varchar,
+	ext_request_content varchar,
+	ext_query_variables varchar,
+	ext_request_state varchar
+);
+
 -- workflow -------------------------------------------------------
 
 -- create schema
@@ -1139,7 +1158,8 @@ create table request.reqelement
     user_id bigint,
     original_nat_id bigint,
 	device_id int,
-	rule_uid varchar
+	rule_uid varchar,
+	group_name varchar
 );
 
 create table request.approval 
@@ -1259,7 +1279,8 @@ create table request.implelement
     field rule_field_enum NOT NULL,
     user_id bigint,
     original_nat_id bigint,
-	rule_uid varchar
+	rule_uid varchar,
+	group_name varchar
 );
 
 create table request.impltask

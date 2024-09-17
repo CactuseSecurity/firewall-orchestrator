@@ -23,5 +23,10 @@ namespace FWO.Ui.Services
         {
             return extStates.FirstOrDefault(e => e.Name == extState.ToString())?.StateId;
         }
+
+        public int? GetInternalStateId(string extState)
+        {
+            return extStates.FirstOrDefault(e => e.Name == extState)?.StateId;
+        }
     }
 }

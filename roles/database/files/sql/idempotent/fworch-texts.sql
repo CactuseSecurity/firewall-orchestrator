@@ -1865,12 +1865,16 @@ INSERT INTO txt VALUES ('impChangeNotifyBody',      'German', 	'Text der &Auml;n
 INSERT INTO txt VALUES ('impChangeNotifyBody',      'English', 	'Body of change notification emails');
 INSERT INTO txt VALUES ('impChangeNotifyActive',    'German', 	'&Auml;nderungsbenachrichtigung aktiv?');
 INSERT INTO txt VALUES ('impChangeNotifyActive',    'English', 	'Change notification active?');
-INSERT INTO txt VALUES ('impChangeNotifyType','German', 	'&Auml;nderungsbenachrichtigungstyp');
-INSERT INTO txt VALUES ('impChangeNotifyType','English', 	'Change notification type');
+INSERT INTO txt VALUES ('impChangeNotifyType',  'German', 	'&Auml;nderungsbenachrichtigungstyp');
+INSERT INTO txt VALUES ('impChangeNotifyType',  'English', 	'Change notification type');
 INSERT INTO txt VALUES ('impChangeNotifySleepTime','German','&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('impChangeNotifySleepTime','English','Change notification sleep time (in seconds)');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenachrichtigungs-Start');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
+INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-Intervall (in Sekunden)');
+INSERT INTO txt VALUES ('externalRequestSleepTime','English','External Request sleep time (in seconds)');
+INSERT INTO txt VALUES ('externalRequestStartAt',  'German','Externer Auftrags-Start');
+INSERT INTO txt VALUES ('externalRequestStartAt',  'English','External Request start at');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start');
@@ -2327,6 +2331,8 @@ INSERT INTO txt VALUES ('imp_change_notification','German', '&Auml;nderungsbenac
 INSERT INTO txt VALUES ('imp_change_notification','English','Import Change Notification');
 INSERT INTO txt VALUES ('credentials',           'German', 	'Login-Daten');
 INSERT INTO txt VALUES ('credentials',           'English', 'Credentials');
+INSERT INTO txt VALUES ('external_request',     'German',   'Externer Auftrag');
+INSERT INTO txt VALUES ('external_request',     'English',  'External Request');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -4454,8 +4460,12 @@ INSERT INTO txt VALUES ('H5425', 'German',  'Hostname der UI: URL der UI, wird z
 INSERT INTO txt VALUES ('H5425', 'English', 'UI Hostname: URL of the UI, needed e.g. for links in email notifications.');
 INSERT INTO txt VALUES ('H5426', 'German',  'Autodiscover-Intervall (in Stunden): legt das Intervall fest, in dem die Autodiscovery durchgef&uuml;hrt werden soll.');
 INSERT INTO txt VALUES ('H5426', 'English', 'Auto-discovery sleep time (in hours): defines the interval in which the autodiscovery should be performed.');
+INSERT INTO txt VALUES ('H5426a', 'German',  'Externes Auftrags-Intervall (in Sekunden): legt das Intervall fest, in dem die externen Auftr&auml;ge durchgef&uuml;hrt werden sollen.');
+INSERT INTO txt VALUES ('H5426a', 'English', 'External Request sleep time (in seconds): defines the interval in which the external requests should be performed.');
 INSERT INTO txt VALUES ('H5427', 'German',  'Autodiscover-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Autodiscovery gerechnet werden.');
 INSERT INTO txt VALUES ('H5427', 'English', 'Auto-discovery start at: defines a referential time from which the autodiscovery intervals are calculated.');
+INSERT INTO txt VALUES ('H5427a', 'German',  'Externer Auftrags-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die externen Auftr&auml;ge gerechnet werden.');
+INSERT INTO txt VALUES ('H5427a', 'English', 'External Request start at: defines a referential time from which the external request intervals are calculated.');
 INSERT INTO txt VALUES ('H5428', 'German',  'Rezert Check - aktiv: aktviere bzw. deaktiviere regelm&auml;&szlig;ige Pr&uuml;fungen zur Versendung von Benachrichtigungs- oder Eskalations-Emails an die Eigent&uuml;mer.');
 INSERT INTO txt VALUES ('H5428', 'English', 'Recert Check - active: enable or disable recurring recertification checks to send out notification or escalation emails to owners.');
 INSERT INTO txt VALUES ('H5429', 'German',  'Rezert Check alle: Abstand der Pr&uuml;fungen f&uuml;r den Versand von Benachrichtigungs- oder Eskalations-Emails an die Eigent&uuml;mer.');

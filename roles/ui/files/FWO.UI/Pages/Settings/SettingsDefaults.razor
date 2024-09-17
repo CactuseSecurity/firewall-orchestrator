@@ -129,8 +129,24 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
             <div class="col-sm-4">
                 <div class="row">
-                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="startTime" />
-                    <input type="date" class="col-sm-5" @bind="startDate" />
+                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="autoDiscStartTime" />
+                    <input type="date" class="col-sm-5" @bind="autoDiscStartDate" />
+                </div>
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5426a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("externalRequestSleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.ExternalRequestSleepTime" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5427a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("externalRequestStartAt")):</label>
+            <div class="col-sm-4">
+                <div class="row">
+                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="extReqStartTime" />
+                    <input type="date" class="col-sm-5" @bind="extReqStartDate" />
                 </div>
             </div>
         </div>
@@ -199,8 +215,10 @@ else
 
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
-    private DateTime startDate = DateTime.Today;
-    private DateTime startTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private DateTime autoDiscStartDate = DateTime.Today;
+    private DateTime autoDiscStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private DateTime extReqStartDate = DateTime.Today;
+    private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
     protected override async Task OnInitializedAsync()
     {
@@ -208,7 +226,8 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
-            startDate = startTime = configData.AutoDiscoverStartAt;
+            autoDiscStartDate = autoDiscStartTime = configData.AutoDiscoverStartAt;
+            extReqStartDate = extReqStartTime = configData.ExternalRequestStartAt;
         }
         catch (Exception exception)
         {
@@ -224,7 +243,8 @@ else
             {
                 configData.WelcomeMessage = SanitizeHtml(configData!.WelcomeMessage);
                 configData.DefaultLanguage = selectedLanguage.Name;
-                configData.AutoDiscoverStartAt = startDate.Date.Add(startTime.TimeOfDay);
+                configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
+                configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

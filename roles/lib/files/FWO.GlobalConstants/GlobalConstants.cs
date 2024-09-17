@@ -32,6 +32,7 @@ namespace FWO.GlobalConstants
 		public const string kManual = "manual";
 		public const string kModellerGroup = "ModellerGroup_";
 		public const string kImportChangeNotify = "importChangeNotify";
+		public const string kExternalRequest = "externalRequest";
 
 		public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
 

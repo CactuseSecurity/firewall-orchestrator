@@ -21,6 +21,7 @@
     @if(appHandler != null && appHandler.overviewConnHandler != null && appSelected)
     {
         <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.overviewConnHandler" OverviewMode="true"/>
+        <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetRegularConnections()"/>
     }
     <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
         <div class="input-group">
@@ -147,6 +148,7 @@ else
     private bool appActive = false;
     private bool showHistory = false;
     private bool shareLink = false;
+    private bool showFwChange = false;
     private int sidebarLeftWidth = GlobalConst.kGlobLibraryWidth;
     private bool firstInit = true;
     
@@ -294,8 +296,11 @@ else
 
     private async Task RequestFwChange()
     {
+        showFwChange = true;
 
-        DisplayMessageInUi(null, "Coming soon", "...", true);
+        return;
+
+        @* DisplayMessageInUi(null, "Coming soon", "...", true);
         return;
 
         // read external ticketing system information from config
@@ -332,7 +337,7 @@ else
             {
                 DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_fail"), userConfig.GetText("E9101"), false);
             }
-        }
+        } *@
 
         // TODO: 
         // create object tickets

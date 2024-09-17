@@ -1,0 +1,12 @@
+mutation updateExtRequestState(
+  $id: bigint!
+  $extRequestState: String!
+  ) {
+  update_ext_request_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      ext_request_state: $extRequestState
+  }) {
+    UpdatedId: id
+  }
+}

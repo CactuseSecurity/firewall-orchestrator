@@ -561,7 +561,7 @@
         {
             if (implElem.Field == ElemFieldType.service.ToString() && implElem.ServiceId == null)
             {
-                if (implElem.Port < 1 || implElem.Port > 65535)
+                if (implElem.Port < 1 || implElem.Port > GlobalConst.kMaxPortNumber)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
                     return false;

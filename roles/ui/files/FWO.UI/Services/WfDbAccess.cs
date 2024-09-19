@@ -326,7 +326,9 @@ namespace FWO.Ui.Services
                     requestAction = element.RequestAction,
                     taskId = element.TaskId,
                     ip = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
+                    ipEnd = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null,
                     port = element.Port,
+                    portEnd = element.PortEnd,
                     proto = element.ProtoId,
                     networkObjId = element.NetworkId,
                     serviceId = element.ServiceId,
@@ -334,7 +336,8 @@ namespace FWO.Ui.Services
                     userId = element.UserId,
                     originalNatId = element.OriginalNatId,
                     deviceId = element.DeviceId,
-                    ruleUid = element.RuleUid
+                    ruleUid = element.RuleUid,
+                    groupName = element.GroupName
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newRequestElement, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -363,7 +366,9 @@ namespace FWO.Ui.Services
                     requestAction = element.RequestAction,
                     taskId = element.TaskId,
                     ip = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
+                    ipEnd = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null,
                     port = element.Port,
+                    portEnd = element.PortEnd,
                     proto = element.ProtoId,
                     networkObjId = element.NetworkId,
                     serviceId = element.ServiceId,
@@ -371,7 +376,8 @@ namespace FWO.Ui.Services
                     userId = element.UserId,
                     originalNatId = element.OriginalNatId,
                     deviceId = element.DeviceId,
-                    ruleUid = element.RuleUid
+                    ruleUid = element.RuleUid,
+                    groupName = element.GroupName
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestElement, Variables)).UpdatedId;
                 if(udId != element.Id)
@@ -615,14 +621,17 @@ namespace FWO.Ui.Services
                     implementationAction = element.ImplAction,
                     implTaskId = element.ImplTaskId,
                     ip = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
+                    ipEnd = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null,
                     port = element.Port,
+                    portEnd = element.PortEnd,
                     proto = element.ProtoId,
                     networkObjId = element.NetworkId,
                     serviceId = element.ServiceId,
                     field = element.Field,
                     userId = element.UserId,
                     originalNatId = element.OriginalNatId,
-                    ruleUid = element.RuleUid
+                    ruleUid = element.RuleUid,
+                    groupName = element.GroupName
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newImplementationElement, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -651,14 +660,17 @@ namespace FWO.Ui.Services
                     implementationAction = element.ImplAction,
                     implTaskId = element.ImplTaskId,
                     ip = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
+                    ipEnd = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null,
                     port = element.Port,
+                    portEnd = element.PortEnd,
                     proto = element.ProtoId,
                     networkObjId = element.NetworkId,
                     serviceId = element.ServiceId,
                     field = element.Field,
                     userId = element.UserId,
                     originalNatId = element.OriginalNatId,
-                    ruleUid = element.RuleUid
+                    ruleUid = element.RuleUid,
+                    groupName = element.GroupName
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationElement, Variables)).UpdatedId;
                 if(udId != element.Id)

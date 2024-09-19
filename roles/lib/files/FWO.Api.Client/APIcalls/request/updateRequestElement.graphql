@@ -3,7 +3,9 @@ mutation updateRequestElement(
   $requestAction: action_enum
   $taskId: bigint!
   $ip: cidr
+  $ipEnd: cidr
   $port: Int
+  $portEnd: Int
   $proto: Int
   $networkObjId: bigint
   $serviceId: bigint
@@ -12,6 +14,7 @@ mutation updateRequestElement(
   $originalNatId: bigint
   $deviceId: Int
   $ruleUid: String
+  $groupName: String
   ) {
   update_request_reqelement_by_pk(
     pk_columns: { id: $id }
@@ -19,7 +22,9 @@ mutation updateRequestElement(
       request_action: $requestAction
       task_id: $taskId
       ip: $ip
+      ip_end: $ipEnd
       port: $port
+      port_end: $portEnd
       ip_proto_id: $proto
       network_object_id: $networkObjId
       service_id: $serviceId
@@ -28,6 +33,7 @@ mutation updateRequestElement(
       original_nat_id: $originalNatId
       device_id: $deviceId
       rule_uid: $ruleUid
+      group_name: $groupName
   }) {
     UpdatedId: id
   }

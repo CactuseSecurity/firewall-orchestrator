@@ -36,7 +36,9 @@ fragment reqTaskDetails on request_reqtask {
     task_id
     request_action
     ip
+    ip_end
     port
+    port_end
     ip_proto_id
     network_object_id
     service_id
@@ -45,6 +47,7 @@ fragment reqTaskDetails on request_reqtask {
     original_nat_id
     device_id
     rule_uid
+    group_name
   }
   implementation_tasks: impltasks {
     ...implTaskDetails

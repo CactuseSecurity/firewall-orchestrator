@@ -2,7 +2,9 @@ mutation newRequestElement(
   $requestAction: action_enum
   $taskId: bigint!
   $ip: cidr
+  $ipEnd: cidr
   $port: Int
+  $portEnd: Int
   $proto: Int
   $networkObjId: bigint
   $serviceId: bigint
@@ -11,12 +13,15 @@ mutation newRequestElement(
   $originalNatId: bigint
   $deviceId: Int
   $ruleUid: String
+  $groupName: String
   ) {
   insert_request_reqelement(objects: {
     request_action: $requestAction
     task_id: $taskId
     ip: $ip
+    ip_end: $ipEnd
     port: $port
+    port_end: $portEnd
     ip_proto_id: $proto
     network_object_id: $networkObjId
     service_id: $serviceId
@@ -25,6 +30,7 @@ mutation newRequestElement(
     original_nat_id: $originalNatId
     device_id: $deviceId
     rule_uid: $ruleUid
+    group_name: $groupName
   }) {
     returning {
       newId: id

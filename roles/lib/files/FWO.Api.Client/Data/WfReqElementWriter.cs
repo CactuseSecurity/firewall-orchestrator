@@ -19,6 +19,7 @@ namespace FWO.Api.Data
             RequestAction = element.RequestAction;
             DeviceId = element.DeviceId;
             IpString = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null;
+            IpEnd = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null;
         }
     }
 }

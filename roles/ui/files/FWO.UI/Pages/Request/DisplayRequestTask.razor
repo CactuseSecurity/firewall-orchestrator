@@ -3,6 +3,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Ui.Display
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -286,7 +287,7 @@
                                 @foreach(var source in actSources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
                                 {
                                     <div class="list-group-item border bg-secondary">
-                                        <label>@source.Cidr.CidrString</label>
+                                        <label>@NwObjDisplay.DisplayIp(source.IpString, source.IpEndString)</label>
                                     </div>
                                 }
                             </div>
@@ -743,7 +744,7 @@
             {
                 if (reqElem.NetworkId == null && reqElem.ServiceId == null)
                 {
-                    if (reqElem.Field == ElemFieldType.service.ToString() && reqElem.Port < 1 || reqElem.Port > 65535)
+                    if (reqElem.Field == ElemFieldType.service.ToString() && reqElem.Port < 1 || reqElem.Port > GlobalConst.kMaxPortNumber)
                     {
                         DisplayMessageInUi(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
                         return false;

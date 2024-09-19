@@ -1,6 +1,8 @@
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
 @using FWO.Config.Api
+@using FWO.Ui.Display
+
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -55,7 +57,7 @@
         </div>
     }
     <div class="form-group row col-sm-12 mh-13">
-        <div class="col-sm-3">
+        <div class="col-sm-4">
             <label class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("source"))*:</label>
             @if (EditMode)
             {
@@ -81,13 +83,13 @@
                     @foreach(var source in Sources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@source.Cidr.CidrString</label>
+                            <label>@NwObjDisplay.DisplayIp(source.IpString, source.IpEndString)</label>
                         </div>
                     }
                 </div>
             }
         </div>
-        <div class="col-sm-3">
+        <div class="col-sm-4">
             <label for="taskDest" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("destination"))*:</label>
             @if (EditMode)
             {
@@ -113,13 +115,13 @@
                     @foreach(var destination in Destinations.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@destination.Cidr.CidrString</label>
+                            <label>@NwObjDisplay.DisplayIp(destination.IpString, destination.IpEndString)</label>
                         </div>
                     }
                 </div>
             }
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-4">
             <label for="taskService" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("service"))*:</label>
             @if (EditMode)
             {
@@ -133,17 +135,14 @@
                 }
                 <EditList ElementType="NwServiceElement" Elements="Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)).ToArray()" ElementsToAdd="ServicesToAdd" ElementsToDelete="ServicesToDelete" StdLayout="false">
                     <Display>
-                        <div class="row">
-                            <div class="col-sm-6 border bg-transparent">@context.Port</div>
-                            <div class="col-sm-6 border bg-transparent">@(ipProtos.FirstOrDefault(p => p.Id == context.ProtoId)?.Name ?? "")</div>
-                        </div>
+                        <div class="border bg-transparent">@DisplayService(context)</div>
                     </Display>
                 </EditList>
                 <div class="row col-sm-12 mt-1">
-                    <label class="col-sm-2">@(userConfig.GetText("port")):</label>
-                    <input type="number" class="col-sm-3" @bind="actPort" />
-                    <label class="col-sm-2">@(userConfig.GetText("protocol")):</label>
-                    <div class="col-sm-4">
+                    <div class="col-sm-6">
+                        <PortRangeInput @bind-Port="actPort" @bind-PortEnd="actPortEnd"/>
+                    </div>
+                    <div class="col-sm-5">
                         <Dropdown ElementType="int" @bind-SelectedElement="actProtoId"
                                 ElementToString="@(protId => ipProtos.FirstOrDefault(x => x.Id == protId)?.Name ?? "")" Elements="ipProtos.ConvertAll(x => x.Id)">
                             <ElementTemplate Context="proto">
@@ -164,8 +163,7 @@
                     @foreach(var service in Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label class="col-sm-5">@service.Port</label> / 
-                            <label class="col-sm-5">@ipProtos.Find(x => x.Id == service.ProtoId)?.Name</label>
+                            <label>@DisplayService(service)</label>
                         </div>
                     }
                 </div>
@@ -242,7 +240,8 @@ else
     private List<NetworkObject> nwObjects = [];
     private List<NetworkService> nwServices = [];
     
-    private int actPort = 0;
+    private int? actPort;
+    private int? actPortEnd;
     private int actProtoId = 0;
 
     private NetworkObject? newSourceNetworkInt = null;
@@ -349,12 +348,25 @@ else
         return ListOut;
     }
 
+    private string DisplayService(NwServiceElement svcElem)
+    {
+        IpProtocol? ipProt = ipProtos.FirstOrDefault(p => p.Id == svcElem.ProtoId);
+        NetworkService svc = new()
+        {
+            DestinationPort = svcElem.Port,
+            DestinationPortEnd = svcElem.PortEnd,
+            Protocol = ipProt != null ? new NetworkProtocol(ipProt) : new NetworkProtocol()
+        };
+        return DisplayBase.DisplayService(svc, true).ToString();
+    }
+
     private void AddService()
     {
-        if (actPort > 0 && actProtoId != 0)
+        if (actPort != null && actPort > 0 && actProtoId != 0)
         {
-            ServicesToAdd.Add(new NwServiceElement(){ Port = actPort, ProtoId = actProtoId, TaskId = TaskId });
-			actPort = 0;
+            ServicesToAdd.Add(new NwServiceElement(){ Port = (int)actPort, PortEnd = actPortEnd, ProtoId = actProtoId, TaskId = TaskId });
+			actPort = null;
+            actPortEnd = null;
             if(ipProtos.Count > 0)
             {
                 actProtoId = ipProtos.First().Id;

@@ -82,6 +82,7 @@ namespace FWO.Api.Data
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
                         Cidr = new Cidr(reqElem.Cidr != null ? reqElem.Cidr.CidrString : ""),
+                        CidrEnd = new Cidr(reqElem.CidrEnd != null ? reqElem.CidrEnd.CidrString : ""),
                         NetworkId = reqElem.NetworkId
                     });
                 }
@@ -101,6 +102,7 @@ namespace FWO.Api.Data
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
                         Port = reqElem.Port ?? 0,
+                        PortEnd = reqElem.PortEnd,
                         ProtoId = reqElem.ProtoId ?? 0,
                         ServiceId = reqElem.ServiceId
                     });

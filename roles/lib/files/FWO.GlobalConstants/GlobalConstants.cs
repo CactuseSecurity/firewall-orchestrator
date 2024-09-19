@@ -17,6 +17,7 @@ namespace FWO.GlobalConstants
 		public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
 		public const int kSidebarRightWidth = 300;
 		public const int kHoursToMilliseconds = 3600000;
+		public const int kMaxPortNumber = 65535;
 
 		public const string kHtml = "html";
 		public const string kPdf = "pdf";

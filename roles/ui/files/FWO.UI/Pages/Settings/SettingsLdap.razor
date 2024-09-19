@@ -459,7 +459,7 @@
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (actLdapConnection.Port < 1 || actLdapConnection.Port > 65535)
+        if (actLdapConnection.Port < 1 || actLdapConnection.Port > GlobalConst.kMaxPortNumber)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5103"), true);
             return false;

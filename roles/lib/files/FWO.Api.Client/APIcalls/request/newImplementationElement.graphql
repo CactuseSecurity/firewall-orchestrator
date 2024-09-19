@@ -2,7 +2,9 @@ mutation newImplementationElement(
   $implementationAction: action_enum
   $implTaskId: bigint!
   $ip: cidr
+  $ipEnd: cidr
   $port: Int
+  $portEnd: Int
   $proto: Int
   $networkObjId: bigint
   $serviceId: bigint
@@ -10,12 +12,15 @@ mutation newImplementationElement(
   $userId: bigint
   $originalNatId: bigint
   $ruleUid: String
+  $groupName: String
   ) {
   insert_request_implelement(objects: {
     implementation_action: $implementationAction
     implementation_task_id: $implTaskId
     ip: $ip
+    ip_end: $ipEnd
     port: $port
+    port_end: $portEnd
     ip_proto_id: $proto
     network_object_id: $networkObjId
     service_id: $serviceId
@@ -23,6 +28,7 @@ mutation newImplementationElement(
     user_id: $userId
     original_nat_id: $originalNatId
     rule_uid: $ruleUid
+    group_name: $groupName
   }) {
     returning {
       newId: id

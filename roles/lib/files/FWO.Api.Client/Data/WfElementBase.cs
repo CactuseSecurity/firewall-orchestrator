@@ -8,8 +8,7 @@ namespace FWO.Api.Data
         source, 
         destination, 
         service,
-        rule,
-        group
+        rule
     }
 
     public class WfElementBase
@@ -17,8 +16,14 @@ namespace FWO.Api.Data
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string? IpString { get; set; }
 
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string? IpEnd { get; set; }
+
         [JsonProperty("port"), JsonPropertyName("port")]
         public int? Port { get; set; }
+
+        [JsonProperty("port_end"), JsonPropertyName("port_end")]
+        public int? PortEnd { get; set; }
 
         [JsonProperty("ip_proto_id"), JsonPropertyName("ip_proto_id")]
         public int? ProtoId { get; set; }
@@ -51,7 +56,9 @@ namespace FWO.Api.Data
         public WfElementBase(WfElementBase element)
         {
             IpString = element.IpString;
+            IpEnd = element.IpEnd;
             Port = element.Port;
+            PortEnd = element.PortEnd;
             ProtoId = element.ProtoId;
             NetworkId = element.NetworkId;
             ServiceId = element.ServiceId;
@@ -66,6 +73,7 @@ namespace FWO.Api.Data
         {
             bool shortened = false;
             IpString = Sanitizer.SanitizeOpt(IpString, ref shortened);
+            IpEnd = Sanitizer.SanitizeOpt(IpEnd, ref shortened);
             Field = Sanitizer.SanitizeMand(Field, ref shortened);
             RuleUid = Sanitizer.SanitizeOpt(RuleUid, ref shortened);
             GroupName = Sanitizer.SanitizeOpt(GroupName, ref shortened);

@@ -63,6 +63,7 @@ namespace FWO.Api.Data
                 TaskId = TaskId,
                 Field = field.ToString(),
                 Cidr = new Cidr(Cidr.CidrString),
+                CidrEnd = new Cidr(CidrEnd.CidrString),
                 NetworkId = NetworkId
             };
             return element;
@@ -76,6 +77,7 @@ namespace FWO.Api.Data
                 ImplTaskId = TaskId,
                 Field = field.ToString(),
                 Cidr = new Cidr(Cidr.CidrString),
+                CidrEnd = new Cidr(CidrEnd.CidrString),
                 NetworkId = NetworkId,
             };
             return element;

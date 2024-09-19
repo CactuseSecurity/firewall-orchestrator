@@ -500,7 +500,7 @@
             DisplayMessageInUi(null, checkCause, userConfig.GetText("E5109"), true);
             return false;
         }
-        if (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Port < 1 || mgm.Port > 65535))
+        if (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Port < 1 || mgm.Port > GlobalConst.kMaxPortNumber))
         {
             DisplayMessageInUi(null, checkCause, userConfig.GetText("E5103"), true);
             return false;

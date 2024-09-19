@@ -18,13 +18,13 @@ namespace FWO.Api.Data
         public string ImplAction { get; set; } = RequestAction.create.ToString();
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
-        public List<WfImplElement> ImplElements { get; set; } = new ();
+        public List<WfImplElement> ImplElements { get; set; } = [];
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<WfCommentDataHelper> Comments { get; set; } = new ();
+        public List<WfCommentDataHelper> Comments { get; set; } = [];
 
 
-        public List<WfImplElement> RemovedElements { get; set; } = new ();
+        public List<WfImplElement> RemovedElements { get; set; } = [];
         public long TicketId { get; set; }
 
 
@@ -97,7 +97,7 @@ namespace FWO.Api.Data
 
         public List<NwObjectElement> GetNwObjectElements(ElemFieldType field)
         {
-            List<NwObjectElement> elements = new ();
+            List<NwObjectElement> elements = [];
             foreach(var implElem in ImplElements)
             {
                 if (implElem.Field == field.ToString())
@@ -116,7 +116,7 @@ namespace FWO.Api.Data
 
         public List<NwServiceElement> GetServiceElements()
         {
-            List<NwServiceElement> elements = new ();
+            List<NwServiceElement> elements = [];
             foreach(var implElem in ImplElements)
             {
                 if (implElem.Field == ElemFieldType.service.ToString())
@@ -126,6 +126,7 @@ namespace FWO.Api.Data
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,
                         Port = implElem.Port ?? 0,
+                        PortEnd = implElem.PortEnd,
                         ProtoId = implElem.ProtoId ?? 0,
                         ServiceId = implElem.ServiceId
                     });
@@ -136,7 +137,7 @@ namespace FWO.Api.Data
 
         public List<NwRuleElement> GetRuleElements()
         {
-            List<NwRuleElement> elements = new ();
+            List<NwRuleElement> elements = [];
             foreach(var implElem in ImplElements)
             {
                 if (implElem.Field == ElemFieldType.rule.ToString())

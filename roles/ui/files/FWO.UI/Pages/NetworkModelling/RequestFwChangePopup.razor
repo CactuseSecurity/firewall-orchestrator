@@ -84,6 +84,7 @@
     private List<WfReqTask> TaskList = [];
     private int taskNumber = 0;
     private List<WfReqElement> elements = [];
+    private List<IpProtocol> ipProtos = [];
     private bool WorkInProgress = false;
     private bool FirstTry = true;
     private bool RequestInProcess = false;
@@ -100,6 +101,7 @@
     {
         extStateHandler = new(apiConnection);
         await extStateHandler.Init();
+        ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -155,36 +157,13 @@
         // later: get rules + compare, bundle requests
         TaskList = [];
         taskNumber = 0;
-        foreach(var conn in Connections)
+        foreach(var conn in Connections.Where(c => !c.IsRequested))
         {
             elements = [];
-            foreach(var srcAppRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
-            {
-                AnalyseAppRole(srcAppRole);
-            }
-            foreach(var dstAppRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
-            {
-                AnalyseAppRole(dstAppRole);
-            }
+            AnalyseAppRoles(conn);
+            AnalyseAppServers(conn);
+            AnalyseServices(conn);
 
-            foreach(var srcAppServer in conn.SourceAppServers)
-            {
-                elements.Add(new()
-                {
-                    RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    IpString = srcAppServer.Content.Ip
-                });
-            }
-            foreach(var dstAppServer in conn.DestinationAppServers)
-            {
-                elements.Add(new()
-                {
-                    RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.destination.ToString(),
-                    IpString = dstAppServer.Content.Ip
-                });
-            }
             if(elements.Count > 0)
             {
                 TaskList.Add(new()
@@ -199,7 +178,19 @@
         }
     }
 
-    private void AnalyseAppRole(ModellingAppRole appRole)
+    private void AnalyseAppRoles(ModellingConnection conn)
+    {
+        foreach(var srcAppRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
+        {
+            AnalyseAppRole(srcAppRole, true);
+        }
+        foreach(var dstAppRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
+        {
+            AnalyseAppRole(dstAppRole);
+        }
+    }
+
+    private void AnalyseAppRole(ModellingAppRole appRole, bool isSource = false)
     {
         if(TaskList.FirstOrDefault(x => x.Title == appRole.Name) == null)
         {
@@ -228,9 +219,59 @@
         elements.Add(new()
         {
             RequestAction = RequestAction.create.ToString(),
-            Field = ElemFieldType.group.ToString(),
+            Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
             GroupName = appRole.Name
         });
+    }
+
+    private void AnalyseAppServers(ModellingConnection conn)
+    {
+        foreach(var srcAppServer in conn.SourceAppServers)
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                IpString = srcAppServer.Content.Ip
+            });
+        }
+        foreach(var dstAppServer in conn.DestinationAppServers)
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.destination.ToString(),
+                IpString = dstAppServer.Content.Ip
+            });
+        }
+    }
+
+    private void AnalyseServices(ModellingConnection conn)
+    {
+        foreach (var svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
+        {
+            foreach(var svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
+            {
+                elements.Add(new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.service.ToString(),
+                    Port = svc.Port,
+                    ProtoId = svc.ProtoId,
+                    GroupName = svcGrp.Name
+                });
+            }
+        }
+        foreach (var svc in ModellingServiceWrapper.Resolve(conn.Services))
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.service.ToString(),
+                Port = svc.Port,
+                ProtoId = svc.ProtoId,
+            });
+        }
     }
 
     private string DisplyTask(WfReqTask task)
@@ -252,7 +293,7 @@
             List<string> services = [];
             foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
             {
-                services.Add(elem.ProtoId + "/" + elem.Port);
+                services.Add(elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
             }
             List<string> destinations = [];
             foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.destination.ToString()))
@@ -266,16 +307,11 @@
                     destinations.Add(elem.IpString ?? "");
                 }
             }
-            return "Source: " + string.Join(",", sources) + "Service: " + string.Join(",", services) + "Destination: " + string.Join(",", destinations);
+            return "Source: " + string.Join(", ", sources) + ", Service: " + string.Join(", ", services) + ", Destination: " + string.Join(", ", destinations);
         }
         else
         {
-            string group = "";
-            foreach(var grpElem in task.Elements)
-            {
-                group += grpElem.IpString + " ";
-            }
-            return group;
+            return string.Join(", ", task.Elements.ConvertAll(g => g.IpString));
         }
     }
 

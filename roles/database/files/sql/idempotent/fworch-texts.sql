@@ -2177,6 +2177,8 @@ INSERT INTO txt VALUES ('modReqTicketTitle',    'German',   'Titel des Schnittst
 INSERT INTO txt VALUES ('modReqTicketTitle',    'English',  'Title of interface request ticket');
 INSERT INTO txt VALUES ('modReqTaskTitle',      'German',   'Titel des Schnittstellenauftrags');
 INSERT INTO txt VALUES ('modReqTaskTitle',      'English',  'Title of interface request task');
+INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','German','Servicegruppen aufl&ouml;sen');
+INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','English','Resolve service groups');
 INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');

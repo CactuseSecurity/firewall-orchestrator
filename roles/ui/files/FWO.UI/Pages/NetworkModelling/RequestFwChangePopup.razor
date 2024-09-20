@@ -163,13 +163,14 @@
             AnalyseNetworkAreas(conn);
             AnalyseAppRoles(conn);
             AnalyseAppServers(conn);
+            AnalyseServiceGroups(conn);
             AnalyseServices(conn);
 
             if(elements.Count > 0)
             {
                 TaskList.Add(new()
                 {
-                    Title = conn.Name ?? "",
+                    Title = "New Connection: " + conn.Name ?? "",
                     TaskNumber = taskNumber++,
                     TaskType = TaskType.access.ToString(),
                     StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
@@ -215,35 +216,40 @@
 
     private void AnalyseAppRole(ModellingAppRole appRole, bool isSource = false)
     {
-        if(TaskList.FirstOrDefault(x => x.Title == appRole.Name) == null)
+        if(TaskList.FirstOrDefault(x => x.Title == "New AppRole: " + appRole.Display()) == null)
         {
-            List<WfReqElement> groupMembers = [];
-            foreach(var appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
-            {
-                groupMembers.Add(new()
-                {
-                    RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    IpString = appServer.Ip,
-                    GroupName = appRole.Display()
-                });
-            }
-            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Name} };
-            TaskList.Add(new()
-            {
-                Title = appRole.Name,
-                TaskNumber = taskNumber++,
-                TaskType = TaskType.group_create.ToString(),
-                StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
-                Elements = groupMembers,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
-            });
+            RequestNewAppRole(appRole);
         }
         elements.Add(new()
         {
             RequestAction = RequestAction.create.ToString(),
             Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
             GroupName = appRole.Display()
+        });
+    }
+
+    private void RequestNewAppRole(ModellingAppRole appRole)
+    {
+        List<WfReqElement> groupMembers = [];
+        foreach(var appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
+        {
+            groupMembers.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                IpString = appServer.Ip,
+                GroupName = appRole.Display()
+            });
+        }
+        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Display()} };
+        TaskList.Add(new()
+        {
+            Title = "New AppRole: " + appRole.Display(),
+            TaskNumber = taskNumber++,
+            TaskType = TaskType.group_create.ToString(),
+            StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+            Elements = groupMembers,
+            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
         });
     }
 
@@ -269,23 +275,69 @@
         }
     }
 
-    private void AnalyseServices(ModellingConnection conn)
+    private void AnalyseServiceGroups(ModellingConnection conn)
     {
         foreach (var svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
         {
-            foreach(var svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
+            if(userConfig.ModRolloutResolveServiceGroups)
             {
+                foreach(var svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
+                {
+                    elements.Add(new()
+                    {
+                        RequestAction = RequestAction.create.ToString(),
+                        Field = ElemFieldType.service.ToString(),
+                        Port = svc.Port,
+                        PortEnd = svc.PortEnd,
+                        ProtoId = svc.ProtoId
+                    });
+                }
+            }
+            else
+            {
+                if(TaskList.FirstOrDefault(x => x.Title == "New Servicegroup: " + svcGrp.Name) == null)
+                {
+                    RequestNewServiceGroup(svcGrp);
+                }
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.service.ToString(),
-                    Port = svc.Port,
-                    PortEnd = svc.PortEnd,
-                    ProtoId = svc.ProtoId,
                     GroupName = svcGrp.Name
                 });
             }
         }
+    }
+
+    private void RequestNewServiceGroup(ModellingServiceGroup svcGrp)
+    {
+        List<WfReqElement> groupMembers = [];
+        foreach(var svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
+        {
+            groupMembers.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.service.ToString(),
+                Port = svc.Port,
+                PortEnd = svc.PortEnd,
+                ProtoId = svc.ProtoId,
+                GroupName = svcGrp.Name
+            });
+        }
+        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, svcGrp.Name} };
+        TaskList.Add(new()
+        {
+            Title = "New Servicegroup: " + svcGrp.Name,
+            TaskNumber = taskNumber++,
+            TaskType = TaskType.group_create.ToString(),
+            StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+            Elements = groupMembers,
+            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+        });
+    }
+    
+    private void AnalyseServices(ModellingConnection conn)
+    {
         foreach (var svc in ModellingServiceWrapper.Resolve(conn.Services))
         {
             elements.Add(new()
@@ -294,7 +346,7 @@
                 Field = ElemFieldType.service.ToString(),
                 Port = svc.Port,
                 PortEnd = svc.PortEnd,
-                ProtoId = svc.ProtoId,
+                ProtoId = svc.ProtoId
             });
         }
     }
@@ -318,7 +370,14 @@
             List<string> services = [];
             foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
             {
-                services.Add(elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
+                if(elem.GroupName != null)
+                {
+                    services.Add(elem.GroupName);
+                }
+                else
+                {                
+                    services.Add(elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
+                }
             }
             List<string> destinations = [];
             foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.destination.ToString()))
@@ -336,9 +395,16 @@
                 "<br>" + userConfig.GetText("service") + ": " + string.Join(", ", services) +
                 "<br>" + userConfig.GetText("destination") + ": " + string.Join(", ", destinations);
         }
+        else if(task.TaskType == TaskType.group_create.ToString())
+        {
+            // todo: differentiate between appRoles + SvcGrp -> new Task type or new criterion in task?
+            return userConfig.GetText("members") + ": " + 
+            (task.Title.Contains("AppRole") ? string.Join(", ", task.Elements.ConvertAll(g => g.IpString)) :
+            string.Join(", ", task.Elements.ConvertAll(g => g.Port + "/" + ipProtos.Find(x => x.Id == g.ProtoId)?.Name)));
+        }
         else
         {
-            return userConfig.GetText("members") + ": " + string.Join(", ", task.Elements.ConvertAll(g => g.IpString));
+            return "";
         }
     }
 

@@ -95,6 +95,7 @@ insert into config (config_key, config_value, config_user) VALUES ('modReqEmailS
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTicketTitle', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTaskTitle', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRolloutResolveServiceGroups', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIconify', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reducedProtocolSet', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('overviewDisplayLines', '3', 0);

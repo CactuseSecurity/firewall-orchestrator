@@ -301,6 +301,8 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
 		public string ModReqTaskTitle { get; set; } = "";
 
+		[JsonProperty("modRolloutResolveServiceGroups"), JsonPropertyName("modRolloutResolveServiceGroups")]
+		public bool ModRolloutResolveServiceGroups { get; set; } = true;
 
 		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
 		public string ExtTicketSystems { get; set; } = "";

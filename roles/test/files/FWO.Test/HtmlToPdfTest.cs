@@ -46,9 +46,9 @@ namespace FWO.Test
                 await page.PdfAsync(filePath);
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                throw new Exception(ex.ToString());
             }
             finally
             {

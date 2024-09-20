@@ -35,8 +35,7 @@ namespace FWO.Test
             try
             {
                 browser = await Puppeteer.LaunchAsync(new LaunchOptions
-                {
-                    Args = ["args: --no-sandbox", "--disable-setuid-sandbox"],
+                {                 
                     Headless = true
                 });
 

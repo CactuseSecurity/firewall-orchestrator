@@ -57,7 +57,8 @@ namespace FWO.Ui.Services
                 wfHandler.ActTicket.Tasks.Add(wfHandler.ActReqTask);
             }
             wfHandler.AddTicketMode = true;
-            long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
+            wfHandler.ActTicket.UpdateCidrsInTaskElements();
+            await wfHandler.SaveTicket(wfHandler.ActTicket);
             return wfHandler.ActTicket;
         }
 

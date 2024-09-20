@@ -95,7 +95,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                ticket.UpdateCidrStringsInTaskElements();
+                ticket.UpdateIpStringsFromCidrInTaskElements();
                 var Variables = new
                 {
                     title = ticket.Title,

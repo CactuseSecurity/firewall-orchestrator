@@ -44,7 +44,7 @@ namespace FWO.Api.Data
             return numberImplTasks;
         }
 
-        public void UpdateCidrStringsInTaskElements()
+        public void UpdateIpStringsFromCidrInTaskElements()
         {
             foreach (WfReqTask reqtask in Tasks)
             {

@@ -30,7 +30,9 @@
                         </Template>
                     </Column>
                     <DetailTemplate TableItem="WfReqTask">
-                        <Detail Data="@(DisplyTask(context))" />
+                        <Detail Data="@(userConfig.GetText("action") + ": " + context.RequestAction)">
+                            <span>@((MarkupString)@DisplyTask(context))</span>
+                        </Detail>
                     </DetailTemplate>
                 </Table>
             </div>
@@ -78,8 +80,6 @@
     [Parameter]
     public List<ModellingConnection> Connections { get; set; } = [];
 
-    @* [Parameter]
-    public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing; *@
 
     private List<WfReqTask> TaskList = [];
     private int taskNumber = 0;
@@ -160,6 +160,7 @@
         foreach(var conn in Connections.Where(c => !c.IsRequested))
         {
             elements = [];
+            AnalyseNetworkAreas(conn);
             AnalyseAppRoles(conn);
             AnalyseAppServers(conn);
             AnalyseServices(conn);
@@ -175,6 +176,28 @@
                     Elements = elements
                 });
             }
+        }
+    }
+
+    private void AnalyseNetworkAreas(ModellingConnection conn)
+    {
+        foreach(var nwGroup in ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups))
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                GroupName = nwGroup.Display()
+            });
+        }
+        foreach(var nwGroup in ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups))
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.destination.ToString(),
+                GroupName = nwGroup.Display()
+            });
         }
     }
 
@@ -202,7 +225,7 @@
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     IpString = appServer.Ip,
-                    GroupName = appRole.Name
+                    GroupName = appRole.Display()
                 });
             }
             Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Name} };
@@ -220,7 +243,7 @@
         {
             RequestAction = RequestAction.create.ToString(),
             Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
-            GroupName = appRole.Name
+            GroupName = appRole.Display()
         });
     }
 
@@ -257,6 +280,7 @@
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.service.ToString(),
                     Port = svc.Port,
+                    PortEnd = svc.PortEnd,
                     ProtoId = svc.ProtoId,
                     GroupName = svcGrp.Name
                 });
@@ -269,6 +293,7 @@
                 RequestAction = RequestAction.create.ToString(),
                 Field = ElemFieldType.service.ToString(),
                 Port = svc.Port,
+                PortEnd = svc.PortEnd,
                 ProtoId = svc.ProtoId,
             });
         }
@@ -307,11 +332,13 @@
                     destinations.Add(elem.IpString ?? "");
                 }
             }
-            return "Source: " + string.Join(", ", sources) + ", Service: " + string.Join(", ", services) + ", Destination: " + string.Join(", ", destinations);
+            return userConfig.GetText("source") + ": " + string.Join(", ", sources) +
+                "<br>" + userConfig.GetText("service") + ": " + string.Join(", ", services) +
+                "<br>" + userConfig.GetText("destination") + ": " + string.Join(", ", destinations);
         }
         else
         {
-            return string.Join(", ", task.Elements.ConvertAll(g => g.IpString));
+            return userConfig.GetText("members") + ": " + string.Join(", ", task.Elements.ConvertAll(g => g.IpString));
         }
     }
 

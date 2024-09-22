@@ -1193,7 +1193,7 @@ namespace FWO.Ui.Services
                         }
                         break;
                     case AutoCreateImplTaskOptions.enterInReqTask:
-                        foreach(var deviceId in reqTask.getDeviceList())
+                        foreach(var deviceId in reqTask.GetDeviceList())
                         {
                             await createAccessImplTask(reqTask, deviceId);
                         }

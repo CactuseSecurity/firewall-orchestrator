@@ -36,17 +36,17 @@ namespace FWO.Api.Data
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public string SelectedDevices 
         {  
-            get => System.Text.Json.JsonSerializer.Serialize<List<int>>(deviceList) ?? throw new Exception("DeviceList could not be parsed.");
+            get => System.Text.Json.JsonSerializer.Serialize<List<int>>(DeviceList) ?? throw new Exception("DeviceList could not be parsed.");
             set
             {
                 if(value != null && value != "")
                 {
-                    deviceList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(value) ?? throw new Exception("value could not be parsed.");
+                    DeviceList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(value) ?? throw new Exception("value could not be parsed.");
                 }
             }
         }
 
-        private List<int> deviceList { get; set; } = new ();
+        private List<int> DeviceList { get; set; } = [];
 
 
         public WfReqTaskBase()
@@ -61,17 +61,17 @@ namespace FWO.Api.Data
             SelectedDevices = reqtask.SelectedDevices;
         }
 
-        public List<int> getDeviceList()
+        public List<int> GetDeviceList()
         {
-            return deviceList;
+            return DeviceList;
         }
 
         public void SetDeviceList(List<Device> devList)
         {
-            deviceList = new ();
+            DeviceList = [];
             foreach(var dev in devList)
             {
-                deviceList.Add(dev.Id);
+                DeviceList.Add(dev.Id);
             }
         }
 

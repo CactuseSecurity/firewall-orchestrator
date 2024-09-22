@@ -304,6 +304,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modRolloutResolveServiceGroups"), JsonPropertyName("modRolloutResolveServiceGroups")]
 		public bool ModRolloutResolveServiceGroups { get; set; } = true;
 
+		[JsonProperty("modRolloutBundleTasks"), JsonPropertyName("modRolloutBundleTasks")]
+		public bool ModRolloutBundleTasks { get; set; } = false;
+
 		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
 		public string ExtTicketSystems { get; set; } = "";
 

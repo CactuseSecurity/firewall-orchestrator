@@ -1164,6 +1164,8 @@ INSERT INTO txt VALUES ('save_service', 	    'German',	'Dienst speichern');
 INSERT INTO txt VALUES ('save_service', 	    'English',	'Save Service');
 INSERT INTO txt VALUES ('delete_service', 	    'German',	'Dienst l&ouml;schen');
 INSERT INTO txt VALUES ('delete_service', 	    'English',	'Delete Service');
+INSERT INTO txt VALUES ('ext_ticket_system_type','German',	'Typ des externen Ticketing Systems');
+INSERT INTO txt VALUES ('ext_ticket_system_type','English',	'Type of external ticketing system');
 INSERT INTO txt VALUES ('ext_ticket_url', 	    'German',	'URL des externen Ticketing Systems');
 INSERT INTO txt VALUES ('ext_ticket_url', 	    'English',	'URL of external ticketing system');
 INSERT INTO txt VALUES ('ext_ticket_template', 	'German',	'Template Ticket-Text');
@@ -2179,6 +2181,8 @@ INSERT INTO txt VALUES ('modReqTaskTitle',      'German',   'Titel des Schnittst
 INSERT INTO txt VALUES ('modReqTaskTitle',      'English',  'Title of interface request task');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','German','Servicegruppen aufl&ouml;sen');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','English','Resolve service groups');
+INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfassen');
+INSERT INTO txt VALUES ('modRolloutBundleTasks','English',  'Bundle tasks');
 INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
@@ -4849,6 +4853,8 @@ INSERT INTO txt VALUES ('H5595', 'German',  'Template Ticket-Text: Vorlagentext 
 INSERT INTO txt VALUES ('H5595', 'English', 'Template ticket text: template text containing various placeholders indicated by @@PLACEHOLDER@@ which will be substituted for each ticket with the actual ticket data. For a full list of placeholders, see help pages.');
 INSERT INTO txt VALUES ('H5596', 'German',  'Template Aufgabentext: Template pro Verbindung (sollte die folgenden Platzhalter enthalten: @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, ...)');
 INSERT INTO txt VALUES ('H5596', 'English', 'Template task text: Template for each connection (should contain placeholders @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, ...)');
+INSERT INTO txt VALUES ('H5597', 'German',  'Typ des externen Ticketing Systems: Aktuell wird nur TufinSecureChange unterst&uuml;tzt.');
+INSERT INTO txt VALUES ('H5597', 'English', 'Type of external ticketing system: Currently only TufinSecureChange is supported.');
 
 INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die Einstellungen f&uuml;r die Netzwerk-Modellierung verwaltet.
     Dies betrifft Vordefinierte Dienste, Darstellung verschiedener Elemente, Definition von Namenskonventionen sowie Scheduling-Einstellungen f&uuml;r die zu importierenden Objekte:
@@ -4987,6 +4993,10 @@ INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of request emails: Selecti
     the Owner Group, the Owner Main Responsible or both.
     Furtheron it can be determined whether the requester should get the email in Cc (default: yes).
 ');
+INSERT INTO txt VALUES ('H5631', 'German',  'Servicegruppen aufl&ouml;sen: Ersetze beim Erzeugen eines externen Auftrags die Servicegruppen durch die einzelnen Mitglieder.');
+INSERT INTO txt VALUES ('H5631', 'English', 'Resolve service groups: Replace service groups by its members when creating an external request.');
+INSERT INTO txt VALUES ('H5632', 'German',  'Tasks zusammenfassen: Fasse gleichartige Tasks in einem externen Auftrag zusammen.');
+INSERT INTO txt VALUES ('H5632', 'English', 'Bundle tasks: Bundle tasks of same type in one external request.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

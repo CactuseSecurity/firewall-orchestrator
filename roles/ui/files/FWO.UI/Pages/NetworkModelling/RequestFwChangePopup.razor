@@ -424,7 +424,7 @@
                 TaskList = intTicket.Tasks;
                 await SetModellingVersion();
                 await SaveTicketId(intTicket.Id);
-                await CreateExtTicket(intTicket);
+                await CreateExtRequest(intTicket);
             }
         }
         catch (Exception exception)
@@ -458,11 +458,11 @@
         }
     }
 
-    private async Task CreateExtTicket(WfTicket intTicket)
+    private async Task CreateExtRequest(WfTicket intTicket)
     {
         try
         {
-            ExternalTicketCreator extTicketCreator = new(SelectedApp, intTicket, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient);
+            ExternalRequestCreator extTicketCreator = new(SelectedApp, intTicket, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient);
             await extTicketCreator.Run();
         }
         catch (Exception exception)

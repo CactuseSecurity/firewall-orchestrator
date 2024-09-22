@@ -31,6 +31,12 @@
 {
     <form onsubmit="return false">
         <div class="form-group row mt-2">
+             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5597"))">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_type")):</label>
+                <div class="col-sm-4">
+                    <Dropdown ElementType="TicketSystemType" @bind-SelectedElement="extTicketingSystemType" Elements="Enum.GetValues(typeof(TicketSystemType)).Cast<TicketSystemType>()" />
+                </div>
+            </div>
              <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_url")):</label>
                 <div class="col-sm-8">
@@ -80,6 +86,7 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
+    private TicketSystemType extTicketingSystemType = TicketSystemType.Generic;
     private string extTicketingSystemUrl = "";
     private string extTicketingSystemAuth = "";
     private string ticketTemplate = "";
@@ -93,8 +100,9 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             List<ExternalTicketSystem> extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new();
-            if (extTicketSystems.Count()>0)
+            if (extTicketSystems.Count() > 0)
             {
+                extTicketingSystemType = extTicketSystems.First().Type;
                 extTicketingSystemUrl = extTicketSystems.First().Url;
                 extTicketingSystemAuth = extTicketSystems.First().Authorization;
                 ticketTemplate = extTicketSystems.First().TicketTemplate;
@@ -114,7 +122,7 @@ else
             if (configData != null)
             {
                 List<ExternalTicketSystem> currentSystems = new();
-                currentSystems.Add(new ExternalTicketSystem(extTicketingSystemUrl, ticketTemplate, tasksTemplate, extTicketingSystemAuth));
+                currentSystems.Add(new ExternalTicketSystem(extTicketingSystemUrl, ticketTemplate, tasksTemplate, extTicketingSystemAuth){ Type = extTicketingSystemType });
                 configData.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(currentSystems);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("ext_ticket_settings"), userConfig.GetText("U5301"), false);

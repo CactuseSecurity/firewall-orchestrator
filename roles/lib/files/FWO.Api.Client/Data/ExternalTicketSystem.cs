@@ -4,7 +4,6 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data
 {
-	
 	public enum TicketSystemType
 	{
 		Generic,
@@ -52,12 +51,10 @@ namespace FWO.Api.Data
 		public string TasksTemplate { get; set; } = "";
 		
 		public ExternalTicketSystem()
-		
 		{
 		}
 		
 		public ExternalTicketSystem(string url, string ticketTemplate, string tasksTemplate, string auth)
-		
 		{
 			Url = url;
 			TicketTemplate = ticketTemplate;

@@ -526,7 +526,7 @@
         Log.WriteDebug("DisplayRequestTask", "Reset");
         offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActReqTask, WfObjectScopes.RequestTask, WfHandler.Phase);
         selectedDevices = new List<Device>();
-        foreach(int devId in WfHandler.ActReqTask.getDeviceList().ToArray())
+        foreach(int devId in WfHandler.ActReqTask.GetDeviceList().ToArray())
         {
             Device? dev = WfHandler.Devices.FirstOrDefault(x => x.Id == devId);
             if(dev != null)

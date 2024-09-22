@@ -4,27 +4,31 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Middleware.Client;
+using FWO.Tufin.SecureChange;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 
 namespace FWO.Ui.Services
 {
-	public class ExternalTicketCreator
+	public class ExternalRequestCreator
 	{
 		private readonly FwoOwner Owner;
 		private readonly WfTicket InternalTicket;
 		private readonly ApiConnection ApiConnection;
 		private readonly ExtStateHandler extStateHandler;
 		private readonly WfHandler wfHandler;
+		private readonly UserConfig UserConfig;
 		private readonly System.Security.Claims.ClaimsPrincipal AuthUser;
 		private readonly Dictionary<long, GraphQlApiSubscription<List<ExternalRequest>>> extTicketSubscriptions = [];
+		private TicketSystemType extSystemType = TicketSystemType.Generic;
 
-		public ExternalTicketCreator(FwoOwner owner, WfTicket ticket, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient)
+		public ExternalRequestCreator(FwoOwner owner, WfTicket ticket, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient)
 		{
 			Owner = owner;
 			InternalTicket = ticket;
 			ApiConnection = apiConnection;
+			UserConfig = userConfig;
 			AuthUser = authUser;
 			extStateHandler = new(apiConnection);
 			wfHandler = new (LogMessage, userConfig, authUser, apiConnection, middlewareClient, WorkflowPhases.request);
@@ -35,8 +39,15 @@ namespace FWO.Ui.Services
 			try
 			{
             	await extStateHandler.Init();
-				WfReqTask firstTask = InternalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == 0) ?? throw new Exception("No task found.");
-				await CreateExtTicket(firstTask);
+				if(UserConfig.ModRolloutBundleTasks)
+				{
+					// todo: bundle
+				}
+				else
+				{
+					WfReqTask firstTask = InternalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == 0) ?? throw new Exception("No task found.");
+					await CreateExtRequest([firstTask]);
+				}
 			}
 			catch(Exception exception)
 			{
@@ -44,17 +55,17 @@ namespace FWO.Ui.Services
 			}
 		}
 
-		public async Task CreateExtTicket(WfReqTask task)
+		public async Task CreateExtRequest(List<WfReqTask> tasks)
 		{
 			var Variables = new
 			{
 				ownerId = Owner.Id,
   				ticketId = InternalTicket.Id,
-				taskNumber = task.TaskNumber,
-				extTicketSystem = "", // todo
-				extTaskType = "", // todo
-				extTaskContent = "", // todo
-				extQueryVariables = "", // todo
+				taskNumber = tasks.First()?.TaskNumber ?? 0,
+				extTicketSystem = GetExtSystemFromConfig(),
+				extTaskType = "", // todo ??
+				extTaskContent = ConstructContent(tasks),
+				extQueryVariables = "", // todo ??
 				extRequestState = ExtStates.ExtReqInitialized.ToString()
 			};
 			ReturnId[]? reqIds = (await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables)).ReturnIds;
@@ -102,6 +113,27 @@ namespace FWO.Ui.Services
 			}
 		}
 		
+		private string GetExtSystemFromConfig()
+		{
+			List<ExternalTicketSystem> extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? [];
+			if(extTicketSystems.Count > 0)
+			{
+				extSystemType = extTicketSystems.First().Type;
+				return System.Text.Json.JsonSerializer.Serialize(extTicketSystems.First());
+			}
+			throw new Exception("No external ticket system defined.");
+		}
+
+		private string ConstructContent(List<WfReqTask> tasks)
+		{
+			if(extSystemType == TicketSystemType.TufinSecureChange)
+			{
+				SCTicket ticket = new(tasks, "test ticket 1", TicketPriority.High); // todo
+				return System.Text.Json.JsonSerializer.Serialize(ticket);
+			}
+			return "";
+		}
+
 		private async Task UpdateTicket(WfTicket ticket, ExternalRequest extReq)
 		{
 			WfReqTask? updatedTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == extReq.TaskNumber);
@@ -135,10 +167,17 @@ namespace FWO.Ui.Services
 
 		private async Task SendNextRequest(WfTicket ticket, int oldTaskNumber)
 		{
-			WfReqTask? nextTask = InternalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == oldTaskNumber + 1);
-			if(nextTask != null)
+			if(UserConfig.ModRolloutBundleTasks)
 			{
-				await CreateExtTicket(nextTask);
+				// todo: bundle
+			}
+			else
+			{
+				WfReqTask? nextTask = InternalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == oldTaskNumber + 1);
+				if(nextTask != null)
+				{
+					await CreateExtRequest([nextTask]);
+				}
 			}
 		}
 
@@ -147,7 +186,7 @@ namespace FWO.Ui.Services
 			Log.WriteError("External Request Subscription", $"Runs into exception: ", exception);
 		}
 
-		public void Dispose(long id)
+		private void Dispose(long id)
 		{
 			extTicketSubscriptions[id]?.Dispose();
 		}

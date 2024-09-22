@@ -3,6 +3,10 @@ using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Logging;
+using System.Net;
+using RestSharp;
+using FWO.Tufin.SecureChange;
+
 
 namespace FWO.Middleware.Server
 {
@@ -75,8 +79,28 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				// todo: send request
-				await UpdateState(request, ExtStates.ExtReqRequested.ToString());
+				RestResponse<int>? ticketIdResponse = null;
+            	ExternalTicketSystem extTicketSystem = System.Text.Json.JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
+				if(extTicketSystem.Type == TicketSystemType.TufinSecureChange)
+				{
+					SCTicket ticket = System.Text.Json.JsonSerializer.Deserialize<SCTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
+                	ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystem);
+				}
+				if (ticketIdResponse != null)
+				{
+					if (ticketIdResponse.StatusCode == HttpStatusCode.OK)
+					{
+						await UpdateState(request, ExtStates.ExtReqRequested.ToString());
+					}
+					else
+					{
+						Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.ErrorMessage);
+					}
+				}
+				else
+				{
+					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "No ticket sent.");
+				}
 			}
 			catch(Exception exception)
 			{

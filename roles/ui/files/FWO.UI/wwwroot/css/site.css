@@ -478,6 +478,12 @@ thead {
     background-color: #a4d7f5;
 }
 
-div.table-responsive {
-    overflow-x: visible !important;
+.table-responsive:has(.popover, .bs-popover-bottom, .show) div {
+    overflow-x: visible;
+    transform: none !important;
+    inset: unset !important;
+}
+
+.table-responsive:has(.popover, .bs-popover-bottom, .show) {
+    overflow-x: visible;
 }

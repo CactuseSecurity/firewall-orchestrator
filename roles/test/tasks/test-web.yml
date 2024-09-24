@@ -8,9 +8,9 @@
   become: true
   when: "'frontends' in group_names"
 
-- name: test web server availability
+- name: test middleware web server availability
   uri:
-    url: "{{ loop_url }}"
+    url: "{{ middleware_uri }}/swagger/"
     method: GET
     headers:
       Content-Type: html/text
@@ -23,15 +23,53 @@
   until: web_call_result.status == 200
   retries: 10 # 10 * 5 seconds
   delay: 5 # Every 5 seconds
-  loop:
-    - "{{ middleware_uri }}/swagger/"
-    - https://{{ ui_hostname }}/
-    - https://{{ api_network_listening_ip_address }}:9443/api/
-  loop_control:
-    loop_var: loop_url
+  when: "'middlewareserver' in group_names"
 
-- name: show webserver test results
+- name: show middleware webserver test results
   fail:
-    msg: "url: {{ item.url }}, status: {{ item.status }}"
-  loop: "{{ web_call_result.results | from_yaml | list }}"
-  when: item.status!=200
+    msg: "url: {{ web_call_result.url }}, status: {{ web_call_result.status }}"
+  when: "'middlewareserver' in group_names and web_call_result.status!=200"
+  
+- name: test api web server availability
+  uri:
+    url: "https://{{ api_network_listening_ip_address }}:9443/api/"
+    method: GET
+    headers:
+      Content-Type: html/text
+    body:
+    validate_certs: false
+    return_content: true
+  register: web_call_result
+  changed_when: false
+  failed_when: false
+  until: web_call_result.status == 200
+  retries: 10 # 10 * 5 seconds
+  delay: 5 # Every 5 seconds
+  when: "'apiserver' in group_names"
+
+- name: show api webserver test results
+  fail:
+    msg: "url: {{ web_call_result.url }}, status: {{ web_call_result.status }}"
+  when: "'apiserver' in group_names and web_call_result.status!=200"
+
+- name: test ui web server availability
+  uri:
+    url: "https://{{ ui_hostname }}/"
+    method: GET
+    headers:
+      Content-Type: html/text
+    body:
+    validate_certs: false
+    return_content: true
+  register: web_call_result
+  changed_when: false
+  failed_when: false
+  until: web_call_result.status == 200
+  retries: 10 # 10 * 5 seconds
+  delay: 5 # Every 5 seconds
+  when: "'frontends' in group_names"
+
+- name: show ui webserver test results
+  fail:
+    msg: "url: {{ web_call_result.url }}, status: {{ web_call_result.status }}"
+  when: "'frontends' in group_names and web_call_result.status!=200"

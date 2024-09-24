@@ -316,7 +316,7 @@ else
         }
 
         // build ticket
-        SCTicket ticket = new(appHandler.Connections, "test ticket 1", TicketPriority.High);
+        SCTicket ticket = new(appHandler.Connections, "test ticket 1", ExternalTicketPriority.High);
 
         // create external ticket
         if (extTicketSystems.Count() > 0)

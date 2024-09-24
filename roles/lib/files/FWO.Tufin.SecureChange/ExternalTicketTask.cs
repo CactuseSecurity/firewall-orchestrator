@@ -5,7 +5,7 @@ namespace FWO.Tufin.SecureChange
 	public class ExternalAccessRequestTicketTask //: WfReqTask
 	{
 		//private ModellingConnection Connection = new();
-		private readonly WfReqTask ReqTask = new();
+		public readonly WfReqTask ReqTask = new();
 
 		// mockup:
 		private readonly string Action = "Accept";
@@ -15,7 +15,7 @@ namespace FWO.Tufin.SecureChange
 		//private string Reason = "der Grund ..."
 		private readonly string ComDocumented = "false";
 				
-		// private TicketTaskType TaskType = TicketTaskType.AccessRequest;
+		// private ExternalTaskType TaskType = ExternalTaskType.AccessRequest;
 
 		public ExternalAccessRequestTicketTask()
 		{

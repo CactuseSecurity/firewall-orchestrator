@@ -52,7 +52,7 @@
                             </div>
                         </div>
                     </div>
-                    @if(WfHandler.ActImplTask.TaskType == TaskType.access.ToString() || WfHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
+                    @if(WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString() || WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -74,7 +74,7 @@
                             </div>
                         </div>
                     }
-                    else if(WfHandler.ActImplTask.TaskType == TaskType.new_interface.ToString())
+                    else if(WfHandler.ActImplTask.TaskType == WfTaskType.new_interface.ToString())
                     {
                         <div class="col-sm-8">
                             <div class="form-group row">
@@ -118,7 +118,7 @@
                         </div>
                     }
                 </div>
-                @if(WfHandler.ActImplTask.TaskType == TaskType.generic.ToString())
+                @if(WfHandler.ActImplTask.TaskType == WfTaskType.generic.ToString())
                 {
                     <div class="form-group row mt-2">
                         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
@@ -128,7 +128,7 @@
                     </div>
                 }
 
-                @if(WfHandler.ActImplTask.TaskType == TaskType.access.ToString())
+                @if(WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString())
                 {
                     <div class="form-group row mt-2">
                         <div class="col-sm-3">
@@ -205,7 +205,7 @@
                         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
                         TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
-                else if(WfHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
+                else if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
                 {
                     <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
@@ -515,7 +515,7 @@
             WfHandler.ActImplTask.DeviceId = actDevice?.Id;
             WfHandler.ActImplTask.RuleAction = actRuleAction?.Id;
             WfHandler.ActImplTask.Tracking = actTracking?.Id;
-            if(WfHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
+            if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
             {
                 WfHandler.ActImplTask.ImplAction = RequestAction.delete.ToString();
             }

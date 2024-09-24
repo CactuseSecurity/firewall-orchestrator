@@ -4,15 +4,20 @@ using RestSharp.Serializers.NewtonsoftJson;
 using RestSharp.Serializers;
 using Microsoft.IdentityModel.Tokens;
 using FWO.Logging;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
+
 
 namespace FWO.Tufin.SecureChange
 {
 	public class SCTicket : ExternalTicket
 	{
-		private string Subject { get; set; } = "";
+        [JsonProperty("subject"), JsonPropertyName("subject")]
+		public string Subject { get; set; } = "";
+
 		private string OnBehalfUser { get; set; } = "";
 
-		// public SCTicket(List<ModellingConnection> connections, string subject, TicketPriority priority = TicketPriority.Normal)
+		// public SCTicket(List<ModellingConnection> connections, string subject, ExternalTicketPriority priority = ExternalTicketPriority.Normal)
 		// {
 		// 	foreach (ModellingConnection conn in connections)
 		// 	{
@@ -22,14 +27,14 @@ namespace FWO.Tufin.SecureChange
 		// 	Priority = (int) priority;
 		// }
 
-		public SCTicket(List<WfReqTask> tasks, string subject, TicketPriority priority = TicketPriority.Normal)
+		public SCTicket(List<WfReqTask> tasks, string subject, ExternalTicketPriority priority = ExternalTicketPriority.Normal)
 		{
 			foreach (var task in tasks)
 			{
 				TicketTasks.Add(new ExternalAccessRequestTicketTask(task));
 			}
 			Subject = subject;
-			Priority = (int) priority;
+			// Priority = (int) priority;
 		}
 
 		// public void AddTask(ModellingConnection connection)
@@ -43,16 +48,16 @@ namespace FWO.Tufin.SecureChange
 			config.UseSerializer(() => serializer);
 		}
 
-		public async Task<RestResponse<int>> CreateTicketInTufin(ExternalTicketSystem tufinSystem)
+		public async Task<RestResponse<int>> CreateTicketInTufin(ExternalTicketSystem tufinSystem, string taskType)
 		{
 			string ticketText = "";
 			string taskText = "";
 
-			// set templates from config
-			if (!tufinSystem.TicketTemplate.IsNullOrEmpty() && !tufinSystem.TasksTemplate.IsNullOrEmpty())
+			ExternalTicketTemplate? template = tufinSystem.Templates.FirstOrDefault(t => t.TaskType == taskType);			
+			if (template != null)
 			{
-				TicketTemplate = tufinSystem.TicketTemplate;
-				TasksTemplate = tufinSystem.TasksTemplate;
+				TicketTemplate = template.TicketTemplate;
+				TasksTemplate = template.TasksTemplate;
 			}
 
 			// create text for all tasks/connections

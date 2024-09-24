@@ -53,7 +53,7 @@ namespace FWO.Ui.Services
             List<WfTicket> ticketsOut = [];
             foreach(var ticket in ticketsIn)
             {
-                if(ticket.Tasks.FirstOrDefault(ta => ta.TaskType != TaskType.new_interface.ToString()) != null
+                if(ticket.Tasks.FirstOrDefault(ta => ta.TaskType != WfTaskType.new_interface.ToString()) != null
                     || ticket.Tasks.FirstOrDefault(ta => ta.Owners.Count == 0) != null)
                 {
                     ticketsOut.Add(ticket);

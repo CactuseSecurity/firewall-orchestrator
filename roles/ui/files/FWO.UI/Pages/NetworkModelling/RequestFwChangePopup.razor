@@ -172,7 +172,7 @@
                 {
                     Title = "New Connection: " + conn.Name ?? "",
                     TaskNumber = taskNumber++,
-                    TaskType = TaskType.access.ToString(),
+                    TaskType = WfTaskType.access.ToString(),
                     StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
                     Elements = elements
                 });
@@ -246,7 +246,7 @@
         {
             Title = "New AppRole: " + appRole.Display(),
             TaskNumber = taskNumber++,
-            TaskType = TaskType.group_create.ToString(),
+            TaskType = WfTaskType.group_create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
             Elements = groupMembers,
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
@@ -329,7 +329,7 @@
         {
             Title = "New Servicegroup: " + svcGrp.Name,
             TaskNumber = taskNumber++,
-            TaskType = TaskType.group_create.ToString(),
+            TaskType = WfTaskType.group_create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
             Elements = groupMembers,
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
@@ -353,7 +353,7 @@
 
     private string DisplyTask(WfReqTask task)
     {
-        if(task.TaskType == TaskType.access.ToString())
+        if(task.TaskType == WfTaskType.access.ToString())
         {
             List<string> sources = [];
             foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.source.ToString()))
@@ -395,7 +395,7 @@
                 "<br>" + userConfig.GetText("service") + ": " + string.Join(", ", services) +
                 "<br>" + userConfig.GetText("destination") + ": " + string.Join(", ", destinations);
         }
-        else if(task.TaskType == TaskType.group_create.ToString())
+        else if(task.TaskType == WfTaskType.group_create.ToString())
         {
             // todo: differentiate between appRoles + SvcGrp -> new Task type or new criterion in task?
             return userConfig.GetText("members") + ": " + 
@@ -424,7 +424,7 @@
                 TaskList = intTicket.Tasks;
                 await SetModellingVersion();
                 await SaveTicketId(intTicket.Id);
-                await CreateExtRequest(intTicket);
+                await CreateExtRequests(intTicket);
             }
         }
         catch (Exception exception)
@@ -458,7 +458,7 @@
         }
     }
 
-    private async Task CreateExtRequest(WfTicket intTicket)
+    private async Task CreateExtRequests(WfTicket intTicket)
     {
         try
         {

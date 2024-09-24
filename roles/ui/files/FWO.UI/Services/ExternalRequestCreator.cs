@@ -21,7 +21,7 @@ namespace FWO.Ui.Services
 		private readonly UserConfig UserConfig;
 		private readonly System.Security.Claims.ClaimsPrincipal AuthUser;
 		private readonly Dictionary<long, GraphQlApiSubscription<List<ExternalRequest>>> extTicketSubscriptions = [];
-		private TicketSystemType extSystemType = TicketSystemType.Generic;
+		private ExternalTicketSystemType extSystemType = ExternalTicketSystemType.Generic;
 
 		public ExternalRequestCreator(FwoOwner owner, WfTicket ticket, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient)
 		{
@@ -63,7 +63,7 @@ namespace FWO.Ui.Services
   				ticketId = InternalTicket.Id,
 				taskNumber = tasks.First()?.TaskNumber ?? 0,
 				extTicketSystem = GetExtSystemFromConfig(),
-				extTaskType = "", // todo ??
+				extTaskType = GetTaskType(tasks),
 				extTaskContent = ConstructContent(tasks),
 				extQueryVariables = "", // todo ??
 				extRequestState = ExtStates.ExtReqInitialized.ToString()
@@ -112,7 +112,7 @@ namespace FWO.Ui.Services
 				});
 			}
 		}
-		
+
 		private string GetExtSystemFromConfig()
 		{
 			List<ExternalTicketSystem> extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? [];
@@ -124,11 +124,39 @@ namespace FWO.Ui.Services
 			throw new Exception("No external ticket system defined.");
 		}
 
+		private string GetTaskType(List<WfReqTask> tasks)
+		{
+			if(extSystemType == ExternalTicketSystemType.TufinSecureChange)
+			{
+				switch(tasks.First().TaskType)
+				{
+					case nameof(WfTaskType.access):
+						return ExternalTaskType.AccessRequest.ToString();
+					case nameof(WfTaskType.group_create):
+						if(IsNetworkFlavor(tasks.First()))
+						{
+							return ExternalTaskType.NetworkObjectCreate.ToString();
+						}
+						else
+						{
+							return ExternalTaskType.NetworkServiceCreate.ToString();
+						}
+					default: return "";
+				}
+			}
+			return "";
+		}
+
+		private static bool IsNetworkFlavor(WfReqTask task)
+		{
+			return task.Elements.FirstOrDefault(e => e.IpString != null) != null;
+		}
+
 		private string ConstructContent(List<WfReqTask> tasks)
 		{
-			if(extSystemType == TicketSystemType.TufinSecureChange)
+			if(extSystemType == ExternalTicketSystemType.TufinSecureChange)
 			{
-				SCTicket ticket = new(tasks, "test ticket 1", TicketPriority.High); // todo
+				SCTicket ticket = new(tasks, "test ticket 1", ExternalTicketPriority.High); // todo
 				return System.Text.Json.JsonSerializer.Serialize(ticket);
 			}
 			return "";

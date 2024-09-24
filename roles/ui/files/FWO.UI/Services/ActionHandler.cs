@@ -288,7 +288,7 @@ namespace FWO.Ui.Services
             {
                 Log.WriteDebug("DisplayConnection", "Perform Action");
                 await SetScope(statefulObject, scope);
-                WfReqTask? reqTask = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                WfReqTask? reqTask = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
                 if(reqTask != null)
                 {
                     wfHandler.SetReqTaskEnv(reqTask);

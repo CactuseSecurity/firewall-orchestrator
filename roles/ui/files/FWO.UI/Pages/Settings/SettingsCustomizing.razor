@@ -23,9 +23,9 @@
     <form onsubmit="return false">
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5562"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
-            @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
+            @foreach (WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
             {
-                @if(type != TaskType.master)
+                @if(type != WfTaskType.master)
                 {
                     <div class="form-group col-sm-1">
                         <input type="checkbox" @bind="taskTypesActiveDict[type]" />
@@ -131,8 +131,8 @@ else
     private ConfigData? configData;
     private bool InitComplete = false;
 
-    private List<TaskType> availableTaskTypes { get; set; } = [];
-    private Dictionary<TaskType, bool> taskTypesActiveDict = [];
+    private List<WfTaskType> availableTaskTypes { get; set; } = [];
+    private Dictionary<WfTaskType, bool> taskTypesActiveDict = [];
 
     private List<WfPriority> prioList = [];
 
@@ -141,9 +141,9 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(configData.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(configData.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
             taskTypesActiveDict = [];
-            foreach(TaskType type in Enum.GetValues(typeof(TaskType)))
+            foreach(WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
             {
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
             }
@@ -162,8 +162,8 @@ else
         {
             if (configData != null)
             {
-                availableTaskTypes = new List<TaskType>();
-                foreach(TaskType type in taskTypesActiveDict.Keys)
+                availableTaskTypes = new List<WfTaskType>();
+                foreach(WfTaskType type in taskTypesActiveDict.Keys)
                 {
                     if (taskTypesActiveDict[type])
                     {

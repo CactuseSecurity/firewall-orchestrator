@@ -122,7 +122,7 @@ namespace FWO.Ui.Services
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
                     AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                     await stateMatrixDict.Init(Phase, apiConnection);
-                    MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
+                    MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
                     TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, ignoreOwners);
                     PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
                     apiConnection.SwitchBack();
@@ -261,7 +261,7 @@ namespace FWO.Ui.Services
         {
             bool foundNewPhase = false;
             GlobalStateMatrix glbStateMatrix = new ();
-            await glbStateMatrix.Init(apiConnection, TaskType.master);
+            await glbStateMatrix.Init(apiConnection, WfTaskType.master);
             bool cont = true;
             while(cont)
             {
@@ -1174,7 +1174,7 @@ namespace FWO.Ui.Services
         private async Task AutoCreateImplTasks(WfReqTask reqTask)
         {
             WfImplTask newImplTask;
-            if(reqTask.TaskType == TaskType.access.ToString())
+            if(reqTask.TaskType == WfTaskType.access.ToString())
             {
                 switch (userConfig.ReqAutoCreateImplTasks)
                 {

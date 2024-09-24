@@ -69,7 +69,7 @@ namespace FWO.Api.Data
             TicketId = reqtask.TicketId;
             if (reqtask.Elements != null && reqtask.Elements.Count > 0)
             {
-                if(reqtask.TaskType == Data.TaskType.rule_delete.ToString())
+                if(reqtask.TaskType == Data.WfTaskType.rule_delete.ToString())
                 {
                     DeviceId = reqtask.Elements[0].DeviceId;
                 }

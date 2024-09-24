@@ -85,7 +85,7 @@ namespace FWO.Ui.Services
                 {
                     StateId = stateId,
                     Title = userConfig.ModReqTaskTitle,
-                    TaskType = TaskType.new_interface.ToString(),
+                    TaskType = WfTaskType.new_interface.ToString(),
                     Owners = [new() { Owner = owner }],
                     Reason = reason,
                     AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
@@ -108,7 +108,7 @@ namespace FWO.Ui.Services
             WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
             if(ticket != null)
             {
-                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
                 if(reqTask != null)
                 {
                     await wfHandler.SetAddInfoInReqTask(reqTask, AdditionalInfoKeys.ConnId, connId.ToString());
@@ -179,7 +179,7 @@ namespace FWO.Ui.Services
                 {
                     StateId = stateId,
                     Title = taskTitle + " " + ruleUid,
-                    TaskType = TaskType.rule_delete.ToString(),
+                    TaskType = WfTaskType.rule_delete.ToString(),
                     RequestAction = RequestAction.delete.ToString(),
                     Reason = taskReason
                 };
@@ -214,7 +214,7 @@ namespace FWO.Ui.Services
             if(ticket != null)
             {
                 wfHandler.SetTicketEnv(ticket);
-                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
                 if(reqTask != null)
                 {
                     wfHandler.SetReqTaskEnv(reqTask);

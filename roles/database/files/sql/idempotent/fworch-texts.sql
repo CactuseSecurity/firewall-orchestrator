@@ -4855,6 +4855,8 @@ INSERT INTO txt VALUES ('H5596', 'German',  'Template Aufgabentext: Template pro
 INSERT INTO txt VALUES ('H5596', 'English', 'Template task text: Template for each connection (should contain placeholders @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, ...)');
 INSERT INTO txt VALUES ('H5597', 'German',  'Typ des externen Ticketing Systems: Aktuell wird nur TufinSecureChange unterst&uuml;tzt.');
 INSERT INTO txt VALUES ('H5597', 'English', 'Type of external ticketing system: Currently only TufinSecureChange is supported.');
+INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die Einstellungen f&uuml;r die Anbindung an externe Ticket-Systeme verwaltet.');
+INSERT INTO txt VALUES ('H5598', 'English', 'On this page the settings for the connection to external ticket systems are administrated.');
 
 INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die Einstellungen f&uuml;r die Netzwerk-Modellierung verwaltet.
     Dies betrifft Vordefinierte Dienste, Darstellung verschiedener Elemente, Definition von Namenskonventionen sowie Scheduling-Einstellungen f&uuml;r die zu importierenden Objekte:

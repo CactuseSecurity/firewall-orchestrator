@@ -153,8 +153,8 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
                                 <div class="col-sm-8">
-                                    <Dropdown ElementType="TaskType?" @bind-SelectedElement="selectedTaskType" ElementToString="@(t => userConfig.GetText(t?.ToString() ?? "undefined"))" 
-                                            Elements="availableTaskTypes.Where(x => x != TaskType.master).Cast<TaskType?>()" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                                    <Dropdown ElementType="WfTaskType?" @bind-SelectedElement="selectedTaskType" ElementToString="@(t => userConfig.GetText(t?.ToString() ?? "undefined"))" 
+                                            Elements="availableTaskTypes.Where(x => x != WfTaskType.master).Cast<WfTaskType?>()" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
                                         <ElementTemplate Context="type">
                                             @(userConfig.GetText(type?.ToString() ?? "undefined"))
                                         </ElementTemplate>
@@ -321,7 +321,7 @@ else
     private List<WfState> states = [];
     private List<WfState> statesPlus = [];
     private List<UiUser> userAndGroupList = [];
-    private List<TaskType> availableTaskTypes { get; set; } = [];
+    private List<WfTaskType> availableTaskTypes { get; set; } = [];
 
     private WfStateAction actAction = new ();
     private ApprovalParams actApprovalParams = new ();
@@ -330,7 +330,7 @@ else
     private PathAnalysisActionParams actPathAnalysisParams = new ();
     private EmailActionParams actEmailActionParams = new ();
     private string? selectedPhase;
-    private TaskType? selectedTaskType;
+    private WfTaskType? selectedTaskType;
     private WfState selectedState = new ();
     private static WfState AutomaticState = new (){ Id = -1, Name = "automatic" };
     private WfState selectedToState = AutomaticState;
@@ -355,7 +355,7 @@ else
             states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             statesPlus = new List<WfState>(states);
             statesPlus.Add(AutomaticState);
-            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
             userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Roles.Approver);
         }
         catch (Exception exception)
@@ -376,8 +376,8 @@ else
         selectedPhase = actAction.Phase != "" ? actAction.Phase : null;
         if(actAction.TaskType != "")
         {
-            TaskType tmpTaskType;
-            Enum.TryParse<TaskType>(actAction.TaskType, out tmpTaskType);
+            WfTaskType tmpTaskType;
+            Enum.TryParse<WfTaskType>(actAction.TaskType, out tmpTaskType);
             selectedTaskType = tmpTaskType;
         }
         else

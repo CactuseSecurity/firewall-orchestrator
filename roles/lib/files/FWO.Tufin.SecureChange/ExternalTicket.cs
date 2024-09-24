@@ -1,10 +1,13 @@
-using FWO.Api.Data;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Tufin.SecureChange
 {
-	abstract public class ExternalTicket : WfTicket
+	abstract public class ExternalTicket //: WfTicket
 	{
+        [JsonProperty("tasks"), JsonPropertyName("tasks")]
 		public List<ExternalAccessRequestTicketTask> TicketTasks = [];
+
 		protected string OnBehalfOfUser = "";
 		// protected string OnBehalfOfUser = """"requester_id": 55,"""";
 

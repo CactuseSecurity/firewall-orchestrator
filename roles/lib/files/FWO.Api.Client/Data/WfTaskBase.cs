@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public enum TaskType
+    public enum WfTaskType
     {
         master = 0,
         generic = 1,
@@ -32,7 +32,7 @@ namespace FWO.Api.Data
         public int TaskNumber { get; set; }
 
         [JsonProperty("task_type"), JsonPropertyName("task_type")]
-        public string TaskType { get; set; } = FWO.Api.Data.TaskType.access.ToString();
+        public string TaskType { get; set; } = WfTaskType.access.ToString();
 
         [JsonProperty("rule_action"), JsonPropertyName("rule_action")]
         public int? RuleAction { get; set; }

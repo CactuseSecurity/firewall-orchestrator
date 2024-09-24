@@ -67,7 +67,7 @@
                             <div class="col-sm-8">
                                 @if (WfHandler.EditReqTaskMode)
                                 {
-                                    <Dropdown ElementType="TaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes.Where(x => x != TaskType.master)" >
+                                    <Dropdown ElementType="WfTaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes.Where(x => x != WfTaskType.master)" >
                                         <ElementTemplate Context="type">
                                             @(userConfig.GetText(type.ToString()))
                                         </ElementTemplate>
@@ -80,7 +80,7 @@
                             </div>
                         </div>
                     </div>
-                    @if(actTaskType == TaskType.access && !WfHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
+                    @if(actTaskType == WfTaskType.access && !WfHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -102,7 +102,7 @@
                             </div>
                         </div>
                     }
-                    else if(actTaskType == TaskType.rule_delete)
+                    else if(actTaskType == WfTaskType.rule_delete)
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -124,7 +124,7 @@
                             </div>
                         </div>
                     }
-                    else if(actTaskType == TaskType.new_interface)
+                    else if(actTaskType == WfTaskType.new_interface)
                     {
                         @if (WfHandler.EditReqTaskMode)
                         {
@@ -162,7 +162,7 @@
                             }
                         }
                     }
-                    else if(actTaskType == TaskType.group_create)
+                    else if(actTaskType == WfTaskType.group_create)
                     {
                         <div class="col-sm-7">
                             <div class="form-group row">
@@ -174,7 +174,7 @@
                         </div>
                     }
                 </div>
-                @if(actTaskType == TaskType.generic)
+                @if(actTaskType == WfTaskType.generic)
                 {
                     <div class="form-group row mt-2">
                         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
@@ -183,7 +183,7 @@
                         </div>
                     </div>
                 }
-                else if(actTaskType == TaskType.access)
+                else if(actTaskType == WfTaskType.access)
                 {
                     <div class="form-group row mt-2">
                         <div class="col-sm-3">
@@ -263,18 +263,18 @@
                     </div>
                 </div>
 
-                @if(actTaskType == TaskType.access)
+                @if(actTaskType == WfTaskType.access)
                 {
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
                         TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode" />
                 }
-                else if(actTaskType == TaskType.rule_delete)
+                else if(actTaskType == WfTaskType.rule_delete)
                 {
                     <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode" />
                 }
-                else if(actTaskType == TaskType.group_create)
+                else if(actTaskType == WfTaskType.group_create)
                 {
                     <div class="col-sm-4 mt-2">
                         @if (WfHandler.EditReqTaskMode)
@@ -419,7 +419,7 @@
     public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
-    private List<TaskType> availableTaskTypes { get; set; } = [];
+    private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private List<RuleAction> ruleActions = [];
     private List<Tracking> trackings = [];
 
@@ -434,7 +434,7 @@
     private List<NwObjectElement> destinationsToDelete = [];
     private List<NwServiceElement> servicesToAdd = [];
     private List<NwServiceElement> servicesToDelete = [];
-    private TaskType actTaskType = TaskType.access;
+    private WfTaskType actTaskType = WfTaskType.access;
 
     private List<WfStateAction> offeredActions = [];
     private string allComments = "";
@@ -452,8 +452,8 @@
     {
         try
         {
-            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
-            actTaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.Last() : TaskType.access;
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            actTaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.Last() : WfTaskType.access;
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
             InitElements();
@@ -476,12 +476,12 @@
                 await Reset();
                 if(!WfHandler.AddReqTaskMode)
                 {
-                    Enum.TryParse<TaskType>(WfHandler.ActReqTask.TaskType, out actTaskType);
+                    Enum.TryParse<WfTaskType>(WfHandler.ActReqTask.TaskType, out actTaskType);
                     if(!availableTaskTypes.Contains(actTaskType))
                     {
                         DisplayMessageInUi(null, userConfig.GetText("display_task"), userConfig.GetText("E8014"), true);
                     }
-                    if(WfHandler.ActReqTask.TaskType == TaskType.new_interface.ToString() && WfHandler.ActReqTask.Owners.Count > 0)
+                    if(WfHandler.ActReqTask.TaskType == WfTaskType.new_interface.ToString() && WfHandler.ActReqTask.Owners.Count > 0)
                     {
                         oldOwner = actOwner;
                     }
@@ -686,11 +686,11 @@
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
-            if(actTaskType == TaskType.rule_delete)
+            if(actTaskType == WfTaskType.rule_delete)
             {
                 WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
             }
-            else if(actTaskType == TaskType.group_create)
+            else if(actTaskType == WfTaskType.group_create)
             {
                 Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, actGrpName} };
                 WfHandler.ActReqTask.AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
@@ -727,12 +727,12 @@
     private async Task<bool> CheckTaskValues()
     {
         if (WfHandler.ActReqTask.Title == null || WfHandler.ActReqTask.Title == "" || 
-            (actTaskType == TaskType.new_interface && actOwner == null))
+            (actTaskType == WfTaskType.new_interface && actOwner == null))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (actTaskType == TaskType.access)
+        if (actTaskType == WfTaskType.access)
         {
             if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
                 (!WfHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && selectedDevices.Count<Device>() == 0))
@@ -752,7 +752,7 @@
                 }
             }
         }
-        else if (actTaskType == TaskType.rule_delete)
+        else if (actTaskType == WfTaskType.rule_delete)
         {
             if (actRuleDevice == null || actRules.Count == 0)
             {
@@ -768,7 +768,7 @@
                 }
             }
         }
-        else if (actTaskType == TaskType.group_create)
+        else if (actTaskType == WfTaskType.group_create)
         {
             if (actGrpName == null || actGrpName == "" || actSources.Count == 0)
             {

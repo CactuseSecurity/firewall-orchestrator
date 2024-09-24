@@ -81,10 +81,10 @@ namespace FWO.Middleware.Server
 			{
 				RestResponse<int>? ticketIdResponse = null;
             	ExternalTicketSystem extTicketSystem = System.Text.Json.JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
-				if(extTicketSystem.Type == TicketSystemType.TufinSecureChange)
+				if(extTicketSystem.Type == ExternalTicketSystemType.TufinSecureChange)
 				{
 					SCTicket ticket = System.Text.Json.JsonSerializer.Deserialize<SCTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
-                	ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystem);
+                	ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystem, request.ExtRequestType);
 				}
 				if (ticketIdResponse != null)
 				{

@@ -16,7 +16,7 @@
         <div class="btn-group">
             <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">
                 @(ModellingHandlerBase.DisplayButton(userConfig, "create_implementation", Icons.Add))</button>
-            @if(WfHandler.ActReqTask.TaskType == TaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
+            @if(WfHandler.ActReqTask.TaskType == WfTaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
             {
                 <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">
                     @(userConfig.GetText("check_impltasks"))</button>

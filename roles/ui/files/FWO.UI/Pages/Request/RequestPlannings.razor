@@ -24,7 +24,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -73,7 +73,7 @@ else
     {
         if(long.TryParse(TicketId, out long ticketId))
         {
-            string newPhase = await wfHandler.HandleExtTicketId(WorkflowPhases.planning, ticketId);
+            string newPhase = await wfHandler.HandleInjectedTicketId(WorkflowPhases.planning, ticketId);
             if(newPhase != "")
             {
                 NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");

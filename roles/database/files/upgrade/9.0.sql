@@ -308,7 +308,8 @@ Alter table "rule" add CONSTRAINT fk_rule_rulebase_id foreign key ("rulebase_id"
 Alter Table "rule_metadata" DROP Constraint "rule_metadata_alt_key";
 Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid", "dev_id", "rulebase_id");
 
--- TODO got an issue here: most metadata refers to the rule(_uid) but some relate to a specific device (last_hit)
+-- decision: the rule_metadata always refers to the a rule(_uid) on a specific gateway
+--   that means recertifications, last hit info, owner, ... are all linked to a gateway
 
 /*
     migration plan:

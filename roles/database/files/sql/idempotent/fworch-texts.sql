@@ -6260,3 +6260,7 @@ INSERT INTO txt VALUES ('H9053', 'English', 'The assigned modeller can reject th
 
 INSERT INTO txt VALUES ('H9054', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
 INSERT INTO txt VALUES ('H9054', 'English', 'Message that is displayed on Login Page.');
+INSERT INTO txt VALUES ('PagerPagesize',     'German', 	'Seitengröße');
+INSERT INTO txt VALUES ('PagerPagesize',     'English', 'Page size');
+INSERT INTO txt VALUES ('PagerSubmit',       'German', 	'Speichern');
+INSERT INTO txt VALUES ('PagerSubmit',       'English', 'Save');

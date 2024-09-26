@@ -342,7 +342,7 @@
                 }
             }
         </div>
-    </div>
+    </div>    
     <InProgress Display="workInProgress"/>
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
     <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
@@ -463,7 +463,7 @@
             }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler.NwGroupToDestination(Container.NwGroupElements);
+                ConnHandler.NwGroupToDestination(Container.NwGroupElements);                
             }
             if(Container.AppServerElements.Count > 0)
             {

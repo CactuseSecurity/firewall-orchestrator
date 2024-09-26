@@ -70,7 +70,7 @@ namespace FWO.Report.Filter
             string limitOffsetString = $@"limit: $limit 
                                        offset: $offset ";
 
-            if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            if (( (ReportType)filter.ReportParams.ReportType ).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {
                 filter.Detailed = true;
             }
@@ -106,7 +106,7 @@ namespace FWO.Report.Filter
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
                     query.FullQuery = Queries.compact($@"
-                        {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                        {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
                         query rulesReport ({paramString}) 
                         {{ 
                             management({mgmtWhereString}) 
@@ -123,8 +123,8 @@ namespace FWO.Report.Filter
                                         order_by: {{ rule_num_numeric: asc }} )
                                     {{
                                         mgm_id: mgm_id
-                                        {((ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules ? "rule_metadatum { rule_last_hit }" : "")}
-                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                        {( (ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules ? "rule_metadatum { rule_last_hit }" : "" )}
+                                        ...{( filter.Detailed ? "ruleDetails" : "ruleOverview" )}
                                     }} 
                                 }}
                             }} 
@@ -168,7 +168,7 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedChanges:
                 case ReportType.ResolvedChangesTech:
                     query.FullQuery = Queries.compact($@"
-                        {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                        {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
                         query changeReport({paramString}) 
                         {{
                             management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
@@ -196,11 +196,11 @@ namespace FWO.Report.Filter
                                         change_action
                                         old: ruleByOldRuleId {{
                                         mgm_id: mgm_id
-                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                        ...{( filter.Detailed ? "ruleDetails" : "ruleOverview" )}
                                         }}
                                         new: rule {{
                                         mgm_id: mgm_id
-                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                        ...{( filter.Detailed ? "ruleDetails" : "ruleOverview" )}
                                         }}
                                     }}
                                 }}
@@ -211,7 +211,7 @@ namespace FWO.Report.Filter
 
                 case ReportType.NatRules:
                     query.FullQuery = Queries.compact($@"
-                        {(filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+                        {( filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments )}
                         query natRulesReport ({paramString}) 
                         {{ 
                             management({mgmtWhereString}) 
@@ -228,16 +228,16 @@ namespace FWO.Report.Filter
                                         order_by: {{ rule_num_numeric: asc }} )
                                         {{
                                             mgm_id: mgm_id
-                                            ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
+                                            ...{( filter.Detailed ? "natRuleDetails" : "natRuleOverview" )}
                                         }} 
                                 }}
                             }} 
                         }}
                     ");
                     break;
-                    
-                    case ReportType.Connections:
-                    
+
+                case ReportType.Connections:
+
                     query.FullQuery = Queries.compact($@"
                         {ModellingQueries.connectionDetailsFragment}
                         query getConnections ({paramString})
@@ -278,25 +278,28 @@ namespace FWO.Report.Filter
             //     queryVars += $"\"{k}\": {o.ToString()}, ";
             // }
             // Log.WriteDebug("Filter", $"Variables = {queryVars}");
-            
+
+
             return query;
         }
 
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
-            if (((ReportType)reportParams.ReportParams.ReportType).IsRuleReport() || reportParams.ReportParams.ReportType == (int)ReportType.Statistics)
+            if (( (ReportType)reportParams.ReportParams.ReportType ).IsRuleReport() || reportParams.ReportParams.ReportType == (int)ReportType.Statistics)
             {
                 query.QueryParameters.Add("$mgmId: [Int!] ");
             }
 
             // leave out all header texts
             if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Statistics ||
-                (ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification)
+                (ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification ||
+                ( ( (ReportType)reportParams.ReportParams.ReportType ).IsRuleReport() && !string.IsNullOrWhiteSpace(reportParams.Filter) ))
             {
+
                 query.RuleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetTenantFilter(ref query, reportParams);
-            if (((ReportType)reportParams.ReportParams.ReportType).IsDeviceRelatedReport())
+            if (( (ReportType)reportParams.ReportParams.ReportType ).IsDeviceRelatedReport())
             {
                 SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
                 SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
@@ -344,6 +347,7 @@ namespace FWO.Report.Filter
                 query.RuleWhereStatement += "}]}, ";
             }
         }
+
 
         private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType, RecertFilter recertFilter)
         {
@@ -497,7 +501,7 @@ namespace FWO.Report.Filter
             {
                 query.QueryParameters.Add("$ownerWhere: owner_bool_exp");
                 query.QueryVariables["ownerWhere"] = recertFilter.RecertOwnerList.Count > 0 ?
-                    new {id = new {_in = recertFilter.RecertOwnerList}} : new {id = new {}};
+                    new { id = new { _in = recertFilter.RecertOwnerList } } : new { id = new { } };
             }
         }
 

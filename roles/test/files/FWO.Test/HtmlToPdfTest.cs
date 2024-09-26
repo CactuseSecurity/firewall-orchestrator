@@ -3,10 +3,6 @@ using NUnit.Framework.Legacy;
 using FWO.Logging;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
-using System.IO.Compression;
-using System.Diagnostics;
-using System.IO;
-using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace FWO.Test
 {
@@ -30,30 +26,30 @@ namespace FWO.Test
             string html = "<html> <body> <h1>test<h1> test </body> </html>";
 
             string filePath = "pdffile.pdf";
-            IBrowser? browser = default;
+            
+
+            using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            {
+                Headless = true
+            });
 
             try
             {
-                browser = await Puppeteer.LaunchAsync(new LaunchOptions
-                {                 
-                    Headless = true
-                });
-
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
+                
+                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[] pdfData = await page.PdfDataAsync(pdfOptions);
 
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PuppeteerSharp.Media.PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                await page.PdfAsync(filePath);
-
+                //return Convert.ToBase64String(pdfData);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.ToString());
+                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
             }
             finally
             {
-                if (browser is not null)
-                    await browser.CloseAsync();
+                await browser.CloseAsync();
             }
 
             Assert.That(filePath, Does.Exist);

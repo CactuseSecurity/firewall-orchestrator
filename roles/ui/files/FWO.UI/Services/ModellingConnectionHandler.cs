@@ -588,7 +588,7 @@ namespace FWO.Ui.Services
                     }
                     else
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("E_modify_title"), userConfig.GetText("E9015"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("replace_error"), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();
@@ -608,7 +608,7 @@ namespace FWO.Ui.Services
                     }
                     else
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("E_modify_title"), userConfig.GetText("E9015"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("replace_error"), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();

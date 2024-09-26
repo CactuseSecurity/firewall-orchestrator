@@ -17,6 +17,9 @@ namespace FWO.Test
         {
             Log.WriteInfo("Test Log", "Downloading headless Browser...");
 
+            BrowserFetcher? browserFetcher = new();
+            await browserFetcher.DownloadAsync();
+
             OperatingSystem? os = Environment.OSVersion;
 
             Log.WriteInfo("Test Log", $"OS: {os}");
@@ -26,8 +29,7 @@ namespace FWO.Test
             string html = "<html> <body> <h1>test<h1> test </body> </html>";
 
             string filePath = "pdffile.pdf";
-            
-
+                   
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true

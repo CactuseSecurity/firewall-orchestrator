@@ -61,9 +61,11 @@ class ManagementDetails():
     Port: int
     ImportUser: str
     Secret: str
+    IsSuperManager: bool
 
     def __init__(self, hostname: str, id: int, importDisabled: bool, devices: Dict, 
-                 importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, port: int = 443, secret: str = '', importUser: str = ''):
+                 importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, 
+                 port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False):
         self.Hostname = hostname
         self.Id = id
         self.ImportDisabled = importDisabled
@@ -75,6 +77,7 @@ class ManagementDetails():
         self.Port = port
         self.Secret = secret
         self.ImportUser = importUser
+        self.IsSuperManager = isSuperManager
 
     @classmethod
     def fromJson(cls, json_dict: Dict):

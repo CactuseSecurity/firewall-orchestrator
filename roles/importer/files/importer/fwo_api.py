@@ -119,7 +119,11 @@ def set_api_url(base_url, testmode, api_supported, hostname):
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
     mgm_query = """
         query getManagementIds {
-            management(where:{do_not_import:{_eq:false}} order_by: {mgm_name: asc}) { id: mgm_id } } """
+            management(where: {do_not_import: {_eq: false}}, order_by: {is_super_manager: desc}) {
+                id: mgm_id
+            }
+        }
+ """
     return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management']
 
 
@@ -171,6 +175,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                     name: dev_typ_name
                     version: dev_typ_version
                 }
+                isSuperManager: is_super_manager
                 configPath: config_path
                 domainUid: domain_uid
                 cloudSubscriptionId: cloud_subscription_id

@@ -8510,6 +8510,7 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "is_super_manager",
                       "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",

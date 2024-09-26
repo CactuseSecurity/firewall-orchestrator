@@ -107,6 +107,10 @@ class FwConfigImportRule(FwConfigImportBase):
     # File "/home/tim/dev/firewall-orchestrator/roles/importer/files/importer/fwconfig_import_rule.py", line 148, in setNewRulesNumbering
     #     new_order_number = current_db_list[db_index-1][1] + order_number_increment
 
+    # input: 
+    # - list of previously existing rules (in previous successful import) per rulebase
+    # - list of rules to be imported (only the changes - rules to be added) per rulebase
+    # - full database table of current rules of the rulebase at hand
     # update attribute rule_num_numeric of all new rules in current rulebases
     def setNewRulesNumbering(self, previousRules):
 
@@ -152,7 +156,7 @@ class FwConfigImportRule(FwConfigImportBase):
                         if db_index == 0:
                             new_order_number = 0.5 if len(current_db_list) > 0 else 1.0
                         elif db_index >= len(current_db_list):
-                            new_order_number = current_db_list[-1][1] + order_number_increment
+                            new_order_number = current_db_list[db_index-1][1] + order_number_increment
                         else:
                             prev_order_number = current_db_list[db_index-1][1]
                             next_order_number = current_db_list[db_index][1]

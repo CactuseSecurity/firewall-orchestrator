@@ -29,7 +29,10 @@ namespace FWO.Test
             string html = "<html> <body> <h1>test<h1> test </body> </html>";
 
             string filePath = "pdffile.pdf";
-                   
+
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true
@@ -43,7 +46,7 @@ namespace FWO.Test
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[] pdfData = await page.PdfDataAsync(pdfOptions);
 
-                //return Convert.ToBase64String(pdfData);
+                File.WriteAllBytes(filePath, pdfData);
             }
             catch (Exception)
             {

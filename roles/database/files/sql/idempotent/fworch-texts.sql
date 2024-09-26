@@ -1130,7 +1130,7 @@ INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uu
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
-INSERT INTO txt VALUES ('replace_error', 	    'German',	'Fehler beim ersetzen');
+INSERT INTO txt VALUES ('replace_error', 	    'German',	'Fehler beim Ersetzen');
 INSERT INTO txt VALUES ('replace_error', 	    'English',	'Replace error');
 INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
 INSERT INTO txt VALUES ('func_reason', 	        'English',	'Functional Reason');

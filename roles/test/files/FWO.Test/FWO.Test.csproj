@@ -8,11 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.90" />
+    <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.93" />
     <PackageReference Include="NUnit" Version="4.2.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.2" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.1.0" />
   </ItemGroup>
 
   <ItemGroup>

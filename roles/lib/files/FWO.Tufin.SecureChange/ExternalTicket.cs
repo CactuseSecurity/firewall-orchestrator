@@ -196,7 +196,6 @@ public class SCTicket : ExternalTicket
 		return await restClient.ExecuteAsync<int>(request);
 	}
 
-
 	/*
 		Create Ticket for creating network groups
 
@@ -254,9 +253,7 @@ public class SCTicket : ExternalTicket
 		}'
 
 
-		####################################################### 
-
-		Create Access Request Ticket Sample Call
+		Create Ticket for access rule
 
 		curl --request POST \
 			--insecure \

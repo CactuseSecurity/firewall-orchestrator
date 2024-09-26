@@ -179,6 +179,7 @@ else
         lastConn = appHandler?.connHandler?.ActConn;
         restoreTab = true;
         sidebarLeftWidth = appHandler?.overviewConnHandler?.LastWidth ?? GlobalConst.kGlobLibraryWidth;
+        StateHasChanged();
         return true;
     }
 

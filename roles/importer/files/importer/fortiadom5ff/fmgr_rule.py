@@ -1,6 +1,6 @@
 import copy
 import jsonpickle
-from fwo_const import list_delimiter, nat_postfix
+from fwo_const import list_delimiter, nat_postfix, dummy_ip
 from fwo_base import extend_string_list
 from fmgr_service import create_svc_object
 from fmgr_network import create_network_object, get_first_ip_of_destination
@@ -363,7 +363,7 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                     elif type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv4Address:
                         HideNatIp = str(destination_interface_ip) + '/32'
                     else:
-                        HideNatIp = '0.0.0.0/32'
+                        HideNatIp = dummy_ip
                         logger.warning('found invalid HideNatIP ' + str(destination_interface_ip))
                     obj = create_network_object(import_id, obj_name, 'host', HideNatIp, obj_name, 'black', obj_comment, 'global')
                     if obj not in config2import['network_objects']:

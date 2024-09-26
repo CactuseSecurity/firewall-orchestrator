@@ -1,4 +1,4 @@
-using FWO.GlobalConstants;
+using FWO.Basics;
 
 namespace FWO.Api.Data
 {

@@ -98,10 +98,6 @@ def getFwoLogger():
     connection_log = logging.getLogger("urllib3.connectionpool")
     connection_log.setLevel(logging.WARNING)
     connection_log.propagate = True
-
-    if debug_level > 8:
-        logger.debug("debug_level=" + str(debug_level))
-
     return logger
 
 

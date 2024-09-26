@@ -1,4 +1,5 @@
-﻿using FWO.Api.Client;
+﻿using FWO.Basics;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Report.Filter;
@@ -8,15 +9,9 @@ using System.Net;
 
 namespace FWO.Report
 {
-    public class ReportAppRules : ReportRules
+    public class ReportAppRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ModellingFilter modellingFilter) : ReportRules(query, userConfig, reportType)
     {
         private List<IPAddressRange> ownerIps = [];
-        private readonly ModellingFilter modellingFilter;
-
-        public ReportAppRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ModellingFilter modellingFilter) : base(query, userConfig, reportType)
-        {
-            this.modellingFilter = modellingFilter;
-        }
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -49,41 +44,46 @@ namespace FWO.Report
                 foreach(var dev in mgt.Devices)
                 {
                     DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
-                    if(dev.Rules != null)
+                    foreach (var rb in dev.OrderedRulebases)
                     {
-                        relevantDevice.Rules = [];
-                        foreach(var rule in dev.Rules)
+                        if(rb.Rulebase.RuleMetadata[0].Rules != null)
                         {
-                            if(modellingFilter.ShowDropRules || !rule.IsDropRule())
+                            // relevantDevice.Rules = [];
+                            foreach(var rule in rb.Rulebase.RuleMetadata[0].Rules)
                             {
-                                List<NetworkLocation> relevantFroms = [];
-                                List<NetworkLocation> disregardedFroms = [.. rule.Froms];
-                                if(modellingFilter.ShowSourceMatch)
+                                RulebaseOnGateway relevantRulebase = new();
+                                if(modellingFilter.ShowDropRules || !rule.IsDropRule())
                                 {
-                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms);
-                                }
-                                List<NetworkLocation> relevantTos = [];
-                                List<NetworkLocation> disregardedTos = [.. rule.Tos];
-                                if(modellingFilter.ShowDestinationMatch)
-                                {
-                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos);
-                                }
+                                    List<NetworkLocation> relevantFroms = [];
+                                    List<NetworkLocation> disregardedFroms = [.. rule.Froms];
+                                    if(modellingFilter.ShowSourceMatch)
+                                    {
+                                        (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms);
+                                    }
+                                    List<NetworkLocation> relevantTos = [];
+                                    List<NetworkLocation> disregardedTos = [.. rule.Tos];
+                                    if(modellingFilter.ShowDestinationMatch)
+                                    {
+                                        (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos);
+                                    }
 
-                                if(relevantFroms.Count > 0 || relevantTos.Count > 0)
-                                {
-                                    rule.Froms = [.. relevantFroms];
-                                    rule.Tos = [.. relevantTos];
-                                    rule.DisregardedFroms = [.. disregardedFroms];
-                                    rule.DisregardedTos = [.. disregardedTos];
-                                    rule.ShowDisregarded = modellingFilter.ShowFullRules;
-                                    relevantDevice.Rules = [.. relevantDevice.Rules, rule];
-                                    relevantMgt.ReportedRuleIds.Add(rule.Id);
+                                    if(relevantFroms.Count > 0 || relevantTos.Count > 0)
+                                    {
+                                        rule.Froms = [.. relevantFroms];
+                                        rule.Tos = [.. relevantTos];
+                                        rule.DisregardedFroms = [.. disregardedFroms];
+                                        rule.DisregardedTos = [.. disregardedTos];
+                                        rule.ShowDisregarded = modellingFilter.ShowFullRules;
+                                        relevantRulebase.Rulebase.RuleMetadata[0].Rules = [.. relevantRulebase.Rulebase.RuleMetadata[0].Rules, rule];
+                                        relevantMgt.ReportedRuleIds.Add(rule.Id);
+                                        relevantDevice.OrderedRulebases = [.. relevantDevice.OrderedRulebases, relevantRulebase];
+                                    }
                                 }
                             }
-                        }
-                        if(relevantDevice.Rules.Length > 0)
-                        {
-                            relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
+                            if(relevantDevice.ContainsRules())
+                            {
+                                relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
+                            }
                         }
                     }
                 }
@@ -124,7 +124,7 @@ namespace FWO.Report
                 else
                 {
                     bool found = false;
-                    if(obj.Object.Type.Name == GlobalConstants.ObjectType.Group)
+                    if(obj.Object.Type.Name == ObjectType.Group)
                     {
                         foreach(var grpobj in obj.Object.ObjectGroupFlats)
                         {
@@ -170,52 +170,55 @@ namespace FWO.Report
             mgt.HighlightedObjectIds = [];
             foreach(var dev in mgt.Devices)
             {
-                if(dev.Rules != null)
+                foreach (var rb in dev.OrderedRulebases)
                 {
-                    foreach(var rule in dev.Rules)
+                    if(rb.Rulebase.RuleMetadata[0].Rules != null)
                     {
-                        foreach(var from in rule.Froms)
+                        foreach(var rule in rb.Rulebase.RuleMetadata[0].Rules)
                         {
-                            mgt.RelevantObjectIds.Add(from.Object.Id);
-                            mgt.HighlightedObjectIds.Add(from.Object.Id);
-                            if(from.Object.Type.Name == GlobalConstants.ObjectType.Group)
-                            {
-                                foreach(var grpobj in from.Object.ObjectGroupFlats)
-                                {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
-                                    {
-                                        mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
-                                    }
-                                }
-                            }
-                        }
-                        if(rule.Froms.Length == 0)
-                        {
-                            foreach(var from in rule.DisregardedFroms)
+                            foreach(var from in rule.Froms)
                             {
                                 mgt.RelevantObjectIds.Add(from.Object.Id);
-                            }
-                        }
-                        foreach(var to in rule.Tos)
-                        {
-                            mgt.RelevantObjectIds.Add(to.Object.Id);
-                            mgt.HighlightedObjectIds.Add(to.Object.Id);
-                            if(to.Object.Type.Name == GlobalConstants.ObjectType.Group)
-                            {
-                                foreach(var grpobj in to.Object.ObjectGroupFlats)
+                                mgt.HighlightedObjectIds.Add(from.Object.Id);
+                                if(from.Object.Type.Name == ObjectType.Group)
                                 {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    foreach(var grpobj in from.Object.ObjectGroupFlats)
                                     {
-                                        mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                                        if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                        {
+                                            mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                                        }
                                     }
                                 }
                             }
-                        }
-                        if(rule.Tos.Length == 0)
-                        {
-                            foreach(var to in rule.DisregardedTos)
+                            if(rule.Froms.Length == 0)
+                            {
+                                foreach(var from in rule.DisregardedFroms)
+                                {
+                                    mgt.RelevantObjectIds.Add(from.Object.Id);
+                                }
+                            }
+                            foreach(var to in rule.Tos)
                             {
                                 mgt.RelevantObjectIds.Add(to.Object.Id);
+                                mgt.HighlightedObjectIds.Add(to.Object.Id);
+                                if(to.Object.Type.Name == ObjectType.Group)
+                                {
+                                    foreach(var grpobj in to.Object.ObjectGroupFlats)
+                                    {
+                                        if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                        {
+                                            mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                                        }
+                                    }
+                                }
+                            }
+                            if(rule.Tos.Length == 0)
+                            {
+                                foreach(var to in rule.DisregardedTos)
+                                {
+                                    mgt.RelevantObjectIds.Add(to.Object.Id);
+                                }
                             }
                         }
                     }
@@ -230,7 +233,7 @@ namespace FWO.Report
             foreach(var obj in mgt.ReportObjects)
             {
                 obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id) || obj.IsAnyObject();
-                if(obj.Type.Name == GlobalConstants.ObjectType.Group)
+                if(obj.Type.Name == ObjectType.Group)
                 {
                     foreach(var grpobj in obj.ObjectGroupFlats)
                     {

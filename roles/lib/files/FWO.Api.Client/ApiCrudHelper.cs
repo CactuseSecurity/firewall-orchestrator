@@ -27,6 +27,27 @@ namespace FWO.Api.Client
         public ReturnId[]? ReturnIds { get; set; }
     }
 
+    public class AggregateCountLastHit
+    // {
+    //     [JsonProperty("device"), JsonPropertyName("device")]
+    //     public List<DeviceLastHit> Devices {get; set;} = [];
+    // }
+    // public class DeviceLastHit
+    {
+        [JsonProperty("rulebase_on_gateways"), JsonPropertyName("rulebase_on_gateways")]
+        public List<RulebaseOnGatewaysLastHit> RulebasesOnGateway {get; set;} = [];
+    }
+    public class RulebaseOnGatewaysLastHit
+    {
+        [JsonProperty("rulebase"), JsonPropertyName("rulebase")]
+        public RulebaseLastHit Rulebase {get; set;} = new RulebaseLastHit();
+    }
+    public class RulebaseLastHit
+    {
+        [JsonProperty("rulesWithHits"), JsonPropertyName("rulesWithHits")]
+        public AggregateCount RulesWithHits {get; set;} = new AggregateCount();
+    }
+
     public class AggregateCount
     {
         [JsonProperty("aggregate"), JsonPropertyName("aggregate")]

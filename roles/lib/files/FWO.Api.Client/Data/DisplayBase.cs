@@ -2,7 +2,7 @@
 using NetTools;
 using FWO.Logging;
 using System.Net;
-using FWO.GlobalConstants;
+using FWO.Basics;
 
 namespace FWO.Api.Data
 {

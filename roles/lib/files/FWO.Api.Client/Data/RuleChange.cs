@@ -17,6 +17,6 @@ namespace FWO.Api.Data
         [JsonProperty("new"), JsonPropertyName("new")]
         public Rule NewRule { get; set; } = new Rule();
 
-        public string DeviceName { get; set; } = "";
+        public string RulebaseName { get; set; } = "";
     }
 }

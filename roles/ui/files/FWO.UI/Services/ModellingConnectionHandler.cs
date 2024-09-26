@@ -1,4 +1,4 @@
-﻿using FWO.GlobalConstants;
+﻿using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Api.Data;

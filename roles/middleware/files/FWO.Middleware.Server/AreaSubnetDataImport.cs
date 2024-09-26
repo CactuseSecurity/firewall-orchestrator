@@ -1,11 +1,11 @@
-﻿using FWO.Logging;
+﻿using FWO.Basics;
+using FWO.Logging;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text.Json;
-
+using Microsoft.IdentityModel.Tokens;
 
 namespace FWO.Middleware.Server
 {
@@ -121,6 +121,12 @@ namespace FWO.Middleware.Server
             {
                 foreach(var subnet in incomingArea.Subnets)
                 {
+
+                    if (subnet.IpEnd.IsNullOrEmpty())
+                    // we found a subnet - converting to range
+                    {
+                        (subnet.Ip, subnet.IpEnd) = IpOperations.CidrToRangeString(subnet.Ip);
+                    }
                     var SubnetVar = new
                     {
                         name = subnet.Name,

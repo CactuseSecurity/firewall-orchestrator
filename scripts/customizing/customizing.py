@@ -114,7 +114,7 @@ def setCustomTxtValues(fwo_api_base_url, jwt, query_variables={}, keyFilter='lim
         
 def setModellingServiceValues(fwo_api_base_url, jwt, query_variables={}, keyFilter='limit'):
     modellingService_mutation = """
-        mutation newService(
+        mutation upsertService(
             $name: String
             $app_id: Int
             $is_global: Boolean
@@ -122,18 +122,24 @@ def setModellingServiceValues(fwo_api_base_url, jwt, query_variables={}, keyFilt
             $port_end: Int
             $proto_id: Int
             ) {
-                insert_modelling_service(objects: {
-                    name: $name
-                    app_id: $app_id
-                    is_global: $is_global
-                    port: $port
-                    port_end: $port_end
-                    proto_id: $proto_id
-            }) {
-                returning {
-                    id
+                insert_modelling_service(
+                    objects: {
+                        name: $name
+                        app_id: $app_id
+                        is_global: $is_global
+                        port: $port
+                        port_end: $port_end
+                        proto_id: $proto_id
+                    }
+                    on_conflict: {
+                        constraint: modelling_service_unique_name,
+                        update_columns: [name, app_id, is_global, port, port_end, proto_id]
+                    }
+                ) {
+                    returning {
+                        id
+                    }
                 }
-            }
         }
     """
 

@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\lib\files\FWO.GlobalConstants\FWO.GlobalConstants.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Basics\FWO.Basics.csproj" />
   </ItemGroup>
 
 </Project>

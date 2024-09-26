@@ -48,7 +48,7 @@ class FwoApiTimeout(Exception):
         self.message = message
         super().__init__(self.message)
 
-class FwoApiTServiceUnavailable(Exception):
+class FwoApiServiceUnavailable(Exception):
     """Raised for 503 http error Serice unavailable"""
 
     def __init__(self, message="FWO API Hasura container died"):

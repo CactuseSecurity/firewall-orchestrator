@@ -100,10 +100,22 @@ namespace FWO.Report
             }
         }
 
-        public string NameAndDeviceNames(string separator = ", ")
+        public string NameAndRulebaseNames(string separator = ", ")
         {
             return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
         }
+        public bool ContainsRules()
+        {
+            foreach (var device in Devices)
+            {
+                if (device.ContainsRules())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
     }
 
     public static class ManagementUtility
@@ -184,5 +196,6 @@ namespace FWO.Report
             }
             return newObjects;
         }
+
     }
 }

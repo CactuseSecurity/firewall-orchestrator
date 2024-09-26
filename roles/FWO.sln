@@ -37,7 +37,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{B48F8BD5
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Encryption", "lib\files\FWO.Encryption\FWO.Encryption.csproj", "{6EBEBF57-3399-4008-BA10-0D21F6827244}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.GlobalConstants", "lib\files\FWO.GlobalConstants\FWO.GlobalConstants.csproj", "{0CBD4CC5-3E39-4134-A0E1-4DB8999619F3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.Basics", "lib\files\FWO.Basics\FWO.Basics.csproj", "{0CBD4CC5-3E39-4134-A0E1-4DB8999619F3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Tufin.SecureChange", "lib\files\FWO.Tufin.SecureChange\FWO.Tufin.SecureChange.csproj", "{17AA0E0C-BB46-42FE-A08C-68539EA7FD53}"
 EndProject

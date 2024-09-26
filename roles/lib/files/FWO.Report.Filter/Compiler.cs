@@ -1,5 +1,5 @@
 using FWO.Report.Filter.Ast;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Logging;
 

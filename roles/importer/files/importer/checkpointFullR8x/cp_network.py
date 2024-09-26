@@ -1,11 +1,11 @@
-from fwo_log import getFwoLogger
 import json
-import cp_const
+import ipaddress 
+
+from fwo_log import getFwoLogger
 from fwo_const import list_delimiter
 import fwo_alert, fwo_api
-import ipaddress 
-import traceback
-
+import cp_const
+from fwo_base import cidrToRange, validate_ip_address, validIPAddress
 
 def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, debug_level=0):
     nw_objects = []
@@ -137,17 +137,6 @@ def add_member_names_for_nw_group(idx, nw_objects):
     nw_objects.insert(idx, group)
 
 
-def validate_ip_address(address):
-    try:
-        # ipaddress.ip_address(address)
-        ipaddress.ip_network(address)
-        return True
-        # print("IP address {} is valid. The object returned is {}".format(address, ip))
-    except ValueError:
-        return False
-        # print("IP address {} is not valid".format(address)) 
-
-
 def get_ip_of_obj(obj, mgm_id=None):
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
@@ -176,49 +165,3 @@ def get_ip_of_obj(obj, mgm_id=None):
             description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
         ip_addr = '0.0.0.0/32'  # setting syntactically correct dummy ip
     return ip_addr
-
-
-def cidrToRange(ip):
-    logger = getFwoLogger()
-
-    if isinstance(ip, str):
-        if ip.startswith('5002:abcd:1234:2800'):
-            logger.debug("found test ip " + ip)
-
-        # dealing with ranges:
-        if '-' in ip:
-            return '-'.split(ip)
-
-        ipVersion = validIPAddress(ip)
-        if ipVersion=='Invalid':
-            logger.warning("error while decoding ip '" + ip + "'")
-            return [ip]
-        elif ipVersion=='IPv4':
-            net = ipaddress.IPv4Network(ip)
-        elif ipVersion=='IPv6':
-            net = ipaddress.IPv6Network(ip)    
-        return [str(net.network_address), str(net.broadcast_address)]
-            
-    return [ip]
-
-
-def validIPAddress(IP: str) -> str: 
-    try: 
-        t = type(ipaddress.ip_address(IP))
-        if t is ipaddress.IPv4Address:
-            return "IPv4"
-        elif t is ipaddress.IPv6Address:
-            return "IPv6"
-        else:
-            return 'Invalid'
-    except:
-        try:
-            t = type(ipaddress.ip_network(IP))
-            if t is ipaddress.IPv4Network:
-                return "IPv4"
-            elif t is ipaddress.IPv6Network:
-                return "IPv6"
-            else:
-                return 'Invalid'        
-        except:
-            return "Invalid"

@@ -63,6 +63,16 @@
 
     when: already_installed and installation_mode == "upgrade"
 
+  - name: set architecture for arm64
+    set_fact:
+      linux_architecture: "arm64"
+    when: ansible_architecture == "aarch64" 
+
+  - name: waiting for user to confirm manual installation of dotnet for ARM
+    pause:
+      prompt: "NOTE: you need to install dotnet yourself for architectures other than x86_64 before running FWO installer, Press ENTER to continue"
+    when: ansible_architecture != "x86_64"
+
   - name: create group {{ fworch_group }}
     group:
       name: "{{ fworch_user }}"

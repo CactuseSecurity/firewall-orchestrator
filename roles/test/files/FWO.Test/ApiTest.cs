@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using FWO.Api.Client;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Config.File;
 using FWO.Middleware.Client;

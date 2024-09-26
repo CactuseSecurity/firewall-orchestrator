@@ -1,13 +1,10 @@
 using RestSharp;
 using System.Text.Json;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Logging;
 using RestSharp.Serializers.NewtonsoftJson;
-using System.Text.Encodings.Web;
-using System.Text;
 using RestSharp.Serializers;
 
 namespace FWO.Rest.Client
@@ -18,7 +15,7 @@ namespace FWO.Rest.Client
 
         public CheckPointClient(Management manager)
         {
-            RestClientOptions restClientOptions = new RestClientOptions();
+            RestClientOptions restClientOptions = new();
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
             restClientOptions.BaseUrl = new Uri("https://" + manager.Hostname + ":" + manager.Port + "/web_api/");
             restClient = new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
@@ -26,7 +23,7 @@ namespace FWO.Rest.Client
 
         private void ConfigureRestClientSerialization(SerializerConfig config)
         {
-            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
+            JsonNetSerializer serializer = new(); // Case insensivitive is enabled by default
             config.UseSerializer(() => serializer);
         } 
 
@@ -66,13 +63,15 @@ namespace FWO.Rest.Client
             RestRequest request = new RestRequest("show-domains", Method.Post);
             request.AddHeader("X-chkp-sid", session);
             request.AddHeader("Content-Type", "application/json");
-            Dictionary<string, string> body = new Dictionary<string, string>();
-            body.Add("details-level", "full");
+            Dictionary<string, string> body = new()
+            {
+                { "details-level", "full" }
+            };
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<CpDomainHelper>(request);
         }
 
-        private static bool containsDomainLayer(List<CpAccessLayer> layers)
+        private static bool ContainsDomainLayer(List<CpAccessLayer> layers)
         {
             foreach (CpAccessLayer layer in layers)
             {
@@ -85,11 +84,13 @@ namespace FWO.Rest.Client
         public async Task<List<CpDevice>> GetGateways(string session, string ManagementType)
         // session id pins this session to a specific domain (if domain was given during login) 
         {
-            RestRequest request = new RestRequest("show-gateways-and-servers", Method.Post);
+            RestRequest request = new("show-gateways-and-servers", Method.Post);
             request.AddHeader("X-chkp-sid", session);
             request.AddHeader("Content-Type", "application/json");
-            Dictionary<string, string> body = new Dictionary<string, string>();
-            body.Add("details-level", "full");
+            Dictionary<string, string> body = new()
+            {
+                { "details-level", "full" }
+            };
             request.AddJsonBody(body);
             Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-gateways-and-servers'");
             List<string> gwTypes = ["simple-gateway", "simple-cluster", "CpmiVsClusterNetobj", "CpmiGatewayPlain", "CpmiGatewayCluster", "CpmiVsxClusterNetobj", "CpmiVsxNetobj"];
@@ -105,12 +106,14 @@ namespace FWO.Rest.Client
                         if (dev.Policy.AccessPolicyInstalled)   // get package info
                         {
                             Log.WriteDebug("Autodiscovery", $"found gateway '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
-                            RestRequest requestPackage = new RestRequest("show-package", Method.Post);
+                            RestRequest requestPackage = new("show-package", Method.Post);
                             requestPackage.AddHeader("X-chkp-sid", session);
                             requestPackage.AddHeader("Content-Type", "application/json");
-                            Dictionary<string, string> packageBody = new Dictionary<string, string>();
-                            packageBody.Add("name", dev.Policy.AccessPolicyName);
-                            packageBody.Add("details-level", "full");
+                            Dictionary<string, string> packageBody = new()
+                            {
+                                { "name", dev.Policy.AccessPolicyName },
+                                { "details-level", "full" }
+                            };
                             requestPackage.AddJsonBody(packageBody);
                             RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
                             if (dev != null && package != null && package.Data != null)
@@ -118,7 +121,7 @@ namespace FWO.Rest.Client
                                 dev.Package = package.Data;
                                 Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev?.Package?.Name}' with {dev?.Package?.CpAccessLayers.Count} layers");
 
-                                extractLayerNames(dev!.Package, dev.Name, ManagementType, out string localLayerName, out string globalLayerName);
+                                ExtractLayerNames(dev!.Package, dev.Name, ManagementType, out string localLayerName, out string globalLayerName);
                                 dev.LocalLayerName = localLayerName;
                                 dev.GlobalLayerName = globalLayerName;
                             }
@@ -129,15 +132,15 @@ namespace FWO.Rest.Client
                 }
                 return devices.Data.DeviceList;
             }
-            return new List<CpDevice>();
+            return [];
         }
 
-        private void extractLayerNames(CpPackage package, string devName, string managementType, out string localLayerName, out string globalLayerName)
+        private static void ExtractLayerNames(CpPackage package, string devName, string managementType, out string localLayerName, out string globalLayerName)
         {
             localLayerName = "";
             globalLayerName = "";
             // getting rid of unneccessary layers (eg. url filtering, application, ...)
-            List<CpAccessLayer> relevantLayers = new List<CpAccessLayer>();
+            List<CpAccessLayer> relevantLayers = [];
             if (package.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
                 relevantLayers.Add(package.CpAccessLayers[0]);
             else if (package.CpAccessLayers.Count > 1)
@@ -168,7 +171,7 @@ namespace FWO.Rest.Client
                     layer.LayerType = "local-layer";
                     Log.WriteDebug("Autodiscovery", $"found stand-alone layer '{layer.Name}'");
                 }
-                else if (containsDomainLayer(package.CpAccessLayers))
+                else if (ContainsDomainLayer(package.CpAccessLayers))
                 {   // this must the be global layer
                     layer.LayerType = "global-layer";
                     globalLayerName = layer.Name;
@@ -207,7 +210,7 @@ namespace FWO.Rest.Client
     public class CpDomainHelper
     {
         [JsonProperty("objects"), JsonPropertyName("objects")]
-        public List<Domain> DomainList { get; set; } = new List<Domain>();
+        public List<Domain> DomainList { get; set; } = [];
 
         [JsonProperty("total"), JsonPropertyName("total")]
         public int Total { get; set; }
@@ -231,7 +234,7 @@ namespace FWO.Rest.Client
     public class CpDeviceHelper
     {
         [JsonProperty("objects"), JsonPropertyName("objects")]
-        public List<CpDevice> DeviceList { get; set; } = new List<CpDevice>();
+        public List<CpDevice> DeviceList { get; set; } = [];
     }
 
     public class CpDevice
@@ -285,7 +288,7 @@ namespace FWO.Rest.Client
         public Domain Domain { get; set; } = new Domain();
 
         [JsonProperty("access-layers"), JsonPropertyName("access-layers")]
-        public List<CpAccessLayer> CpAccessLayers { get; set; } = new List<CpAccessLayer>();
+        public List<CpAccessLayer> CpAccessLayers { get; set; } = [];
     }
 
     public class CpAccessLayer

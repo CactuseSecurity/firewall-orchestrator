@@ -10,14 +10,33 @@ namespace FWO.Test
     [Parallelizable]
     internal class HtmlToPdfTest
     {
-
+        private const string FilePath = "pdffile.pdf";
+        private readonly List<string> BrowserDirNames = ["Chrome", "ChromeHeadlessShell", "Firefox"];
         [Test]
         [Parallelizable]
         public async Task GeneratePdf()
         {
-            Log.WriteInfo("Test Log", "Downloading headless Browser...");
+            List<string> installedBrowserRootPaths = [];
 
+            Log.WriteInfo("Test Log", "Removing installed browsers...");
             BrowserFetcher? browserFetcher = new();
+
+            foreach (PuppeteerSharp.BrowserData.InstalledBrowser installedBrowser in browserFetcher.GetInstalledBrowsers())
+            {
+              
+                try
+                {
+                    browserFetcher.Uninstall(installedBrowser.BuildId);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Browser couldn't be uninstalled. Try rebooting the system, the browser may be in use. ");
+                }
+                
+            }
+
+
+            Log.WriteInfo("Test Log", "Downloading headless Browser...");
             await browserFetcher.DownloadAsync();
 
             OperatingSystem? os = Environment.OSVersion;
@@ -28,10 +47,10 @@ namespace FWO.Test
             // HTML
             string html = "<html> <body> <h1>test<h1> test </body> </html>";
 
-            string filePath = "pdffile.pdf";
+            
 
-            if (File.Exists(filePath))
-                File.Delete(filePath);
+            if (File.Exists(FilePath))
+                File.Delete(FilePath);
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
@@ -39,36 +58,45 @@ namespace FWO.Test
             });
 
             try
-            {
+            {                
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
                 
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[] pdfData = await page.PdfDataAsync(pdfOptions);
 
-                File.WriteAllBytes(filePath, pdfData);
+                File.WriteAllBytes(FilePath, pdfData);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                throw new Exception(ex.Message);
             }
             finally
             {
                 await browser.CloseAsync();
             }
 
-            Assert.That(filePath, Does.Exist);
-            ClassicAssert.Greater(new FileInfo(filePath).Length, 5000);
+            Assert.That(FilePath, Does.Exist);
+            ClassicAssert.Greater(new FileInfo(FilePath).Length, 5000);
+        }
+
+        private string GetBrowserRootPath(string currentPath, int currDepth, int maxDepth = 4)
+        {
+            string parentName = Directory.GetParent(currentPath).Name;
+            string parentPath = Directory.GetParent(currentPath).FullName;
+
+            if (BrowserDirNames.Any(dirName => dirName == parentName) || currDepth >= maxDepth)
+                return parentPath;
+
+            currDepth++;
+            return GetBrowserRootPath(parentPath, currDepth, maxDepth);
         }
 
 
         [OneTimeTearDown]
         public void OnFinished()
         {
-            File.Delete("test.pdf");
-            File.Delete("chrome-linux64.zip");
-            File.Delete("chrome-win32.zip");
-            File.Delete("chrome-win64.zip");
+            File.Delete(FilePath);
         }
     }
 }

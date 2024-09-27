@@ -1132,6 +1132,8 @@ INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uu
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
+INSERT INTO txt VALUES ('replace_error', 	    'German',	'Fehler beim Ersetzen');
+INSERT INTO txt VALUES ('replace_error', 	    'English',	'Replace error');
 INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
 INSERT INTO txt VALUES ('func_reason', 	        'English',	'Functional Reason');
 INSERT INTO txt VALUES ('to_source', 	        'German',	'Zu Quelle');
@@ -2997,8 +2999,8 @@ INSERT INTO txt VALUES ('E9013', 'German',  'Schnittstelle kann nicht gel&ouml;s
 INSERT INTO txt VALUES ('E9013', 'English', 'Interface cannot be deleted because it is in use: ');
 INSERT INTO txt VALUES ('E9014', 'German',  'Bitte zuerst die gemachten &Auml;nderungen speichern.');
 INSERT INTO txt VALUES ('E9014', 'English', 'Please save changes first.');
-INSERT INTO txt VALUES ('E9015', 'German',  'Schnittstelle kann beantragte nicht ersetzen: Falscher Typ.');
-INSERT INTO txt VALUES ('E9015', 'English', 'Interface cannot replace requested one: Wrong type.');
+INSERT INTO txt VALUES ('E9015', 'German',  'Schnittstelle kann die angeforderte nicht ersetzen: Die Richtungen der Schnittstellen stimmen nicht &uuml;berein (eine ist eine Quellschnittstelle, die andere eine Zielschnittstelle).');
+INSERT INTO txt VALUES ('E9015', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
 INSERT INTO txt VALUES ('E9016', 'German',  'Beantragte Schnittstelle kann nicht gel&ouml;scht werden.');
 INSERT INTO txt VALUES ('E9016', 'English', 'Requested interface cannot be deleted.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');

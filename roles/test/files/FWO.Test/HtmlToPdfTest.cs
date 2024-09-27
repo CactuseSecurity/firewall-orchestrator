@@ -3,6 +3,7 @@ using NUnit.Framework.Legacy;
 using FWO.Logging;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
+using PuppeteerSharp.BrowserData;
 
 namespace FWO.Test
 {
@@ -37,7 +38,12 @@ namespace FWO.Test
 
 
             Log.WriteInfo("Test Log", "Downloading headless Browser...");
-            await browserFetcher.DownloadAsync();
+            InstalledBrowser? installedBrowser = await browserFetcher.DownloadAsync();
+
+            if (installedBrowser.PermissionsFixed == false)
+            {
+                throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
+            }
 
             OperatingSystem? os = Environment.OSVersion;
 

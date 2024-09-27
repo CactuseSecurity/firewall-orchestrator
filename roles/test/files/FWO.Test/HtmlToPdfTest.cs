@@ -57,7 +57,8 @@ namespace FWO.Test
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                Headless = true
+                Headless = true,
+                Args = ["--no-sandbox"]
             });
 
             try

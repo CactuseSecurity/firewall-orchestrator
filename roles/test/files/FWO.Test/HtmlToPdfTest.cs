@@ -56,8 +56,8 @@ namespace FWO.Test
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true,
-                 Browser = SupportedBrowser.Chrome
-                //Args = ["--no-sandbox", "--disable-setuid-sandbox"]
+                 Browser = SupportedBrowser.Chrome,
+                Args = ["--no-sandbox"]//, "--disable-setuid-sandbox"
             });
 
             try

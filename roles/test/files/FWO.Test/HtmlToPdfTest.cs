@@ -36,11 +36,10 @@ namespace FWO.Test
                 
             }
 
-
             Log.WriteInfo("Test Log", "Downloading headless Browser...");
-            InstalledBrowser? installedBrowser = await browserFetcher.DownloadAsync();
+            InstalledBrowser? brw = await browserFetcher.DownloadAsync();
 
-            if (installedBrowser.PermissionsFixed == false)
+            if (brw.PermissionsFixed == false)
             {
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
             }

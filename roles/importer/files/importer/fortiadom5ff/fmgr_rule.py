@@ -55,8 +55,7 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
     options = ['extra info', 'scope member', 'get meta']
     # pkg_name = device['package_name'] pkg_name is not used at all
 
-    # get hitcount task numbers
-    hitcount_task_config = {}
+    # get hitcount task number
     hitcount_payload = {
         "params": [
             {
@@ -67,23 +66,21 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
             }
         ]
     }
-    #todo same for global_pkg_name?
-    fmgr_getter.update_config_with_fortinet_api_call(
-        hitcount_task_config, sid, fm_api_url, "/sys/hitcount", local_pkg_name, payload=hitcount_payload, limit=limit)
+    hitcount_task = fmgr_getter.fortinet_api_call(
+        sid, fm_api_url, "/sys/hitcount", payload=hitcount_payload, method="get")
     
-    # execute hitcount tasks
-    for task in hitcount_task_config[local_pkg_name]['result'][0]['data']:
-        hitcount_payload = {
-            "params": [
-                {
-                    "data": {
-                        "taskid": task['task']
-                    }
+    # execute hitcount task
+    hitcount_payload = {
+        "params": [
+            {
+                "data": {
+                    "taskid": hitcount_task['task']
                 }
-            ]
-        }
-        fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_hitcount'], sid, fm_api_url, "/sys/task/result", local_pkg_name, payload=hitcount_payload, limit=limit)
+            }
+        ]
+    }
+    fmgr_getter.update_config_with_fortinet_api_call(
+        raw_config['rules_hitcount'], sid, fm_api_url, "/sys/task/result", local_pkg_name, payload=hitcount_payload, limit=limit)
 
 
     # get global header rulebase:
@@ -153,7 +150,13 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     rule.update({ 'rule_num': rule_number})
                     if 'name' in rule_orig:
                         rule.update({ 'rule_name': rule_orig['name']})
-                    rule.update({ 'rule_installon': localPkgName })
+                    if 'scope member' in rule:
+                        installon_target = []
+                        for vdom in rule['scope member']:
+                            installon_target.append(vdom['name'] + '_' + vdom['vdom'])
+                            rule.update({ 'rule_installon': '|'.join(installon_target)})
+                    else:
+                        rule.update({ 'rule_installon': localPkgName })
                     rule.update({ 'rule_implied': False })
                     rule.update({ 'rule_time': None })
                     rule.update({ 'rule_type': 'access' })

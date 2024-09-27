@@ -131,7 +131,7 @@ def fortinet_api_call(sid, api_base_url, api_path, payload={}, show_progress=Fal
     if "data" in plain_result:
         result = plain_result["data"]
         if isinstance(result, dict):
-            result = []
+            result = [result]
     else:
         result = []
     return result

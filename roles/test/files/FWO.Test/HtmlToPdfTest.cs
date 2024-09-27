@@ -12,29 +12,27 @@ namespace FWO.Test
     internal class HtmlToPdfTest
     {
         private const string FilePath = "pdffile.pdf";
-        private readonly List<string> BrowserDirNames = ["Chrome", "ChromeHeadlessShell", "Firefox"];
+
         [Test]
         [Parallelizable]
         public async Task GeneratePdf()
         {
-            List<string> installedBrowserRootPaths = [];
-
-            Log.WriteInfo("Test Log", "Removing installed browsers...");
+           // Log.WriteInfo("Test Log", "Removing installed browsers...");
             BrowserFetcher? browserFetcher = new();
 
-            foreach (PuppeteerSharp.BrowserData.InstalledBrowser installedBrowser in browserFetcher.GetInstalledBrowsers())
-            {
+            //foreach (PuppeteerSharp.BrowserData.InstalledBrowser installedBrowser in browserFetcher.GetInstalledBrowsers())
+            //{
               
-                try
-                {
-                    browserFetcher.Uninstall(installedBrowser.BuildId);
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("Browser couldn't be uninstalled. Try rebooting the system, the browser may be in use. ");
-                }
+            //    try
+            //    {
+            //        browserFetcher.Uninstall(installedBrowser.BuildId);
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        throw new Exception("Browser couldn't be uninstalled. Try rebooting the system, the browser may be in use. ");
+            //    }
                 
-            }
+            //}
 
             Log.WriteInfo("Test Log", "Downloading headless Browser...");
             InstalledBrowser? brw = await browserFetcher.DownloadAsync();
@@ -69,6 +67,7 @@ namespace FWO.Test
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[] pdfData = await page.PdfDataAsync(pdfOptions);
 
+                Log.WriteInfo("Test Log", "Writing data to pdf");
                 File.WriteAllBytes(FilePath, pdfData);
             }
             catch (Exception ex)
@@ -83,19 +82,6 @@ namespace FWO.Test
             Assert.That(FilePath, Does.Exist);
             ClassicAssert.Greater(new FileInfo(FilePath).Length, 5000);
         }
-
-        private string GetBrowserRootPath(string currentPath, int currDepth, int maxDepth = 4)
-        {
-            string parentName = Directory.GetParent(currentPath).Name;
-            string parentPath = Directory.GetParent(currentPath).FullName;
-
-            if (BrowserDirNames.Any(dirName => dirName == parentName) || currDepth >= maxDepth)
-                return parentPath;
-
-            currDepth++;
-            return GetBrowserRootPath(parentPath, currDepth, maxDepth);
-        }
-
 
         [OneTimeTearDown]
         public void OnFinished()

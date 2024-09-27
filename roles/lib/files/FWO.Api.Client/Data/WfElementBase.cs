@@ -49,6 +49,9 @@ namespace FWO.Api.Data
         [JsonProperty("group_name"), JsonPropertyName("group_name")]
         public string? GroupName { get; set; }
 
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string? Name { get; set; }
+
 
         public WfElementBase()
         { }
@@ -67,6 +70,7 @@ namespace FWO.Api.Data
             OriginalNatId = element.OriginalNatId;
             RuleUid = element.RuleUid;
             GroupName = element.GroupName;
+            Name = element.Name;
         }
 
         public virtual bool Sanitize()
@@ -77,6 +81,7 @@ namespace FWO.Api.Data
             Field = Sanitizer.SanitizeMand(Field, ref shortened);
             RuleUid = Sanitizer.SanitizeOpt(RuleUid, ref shortened);
             GroupName = Sanitizer.SanitizeOpt(GroupName, ref shortened);
+            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
             return shortened;
         }
     }

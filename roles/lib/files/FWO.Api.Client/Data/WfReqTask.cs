@@ -152,5 +152,10 @@ namespace FWO.Api.Data
             }
             return 0;
         }
+
+        public bool IsNetworkFlavor()
+        {
+            return Elements.FirstOrDefault(e => e.IpString != null) != null;
+        }
     }
 }

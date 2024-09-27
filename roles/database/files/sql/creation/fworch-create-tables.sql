@@ -1161,7 +1161,8 @@ create table request.reqelement
     original_nat_id bigint,
 	device_id int,
 	rule_uid varchar,
-	group_name varchar
+	group_name varchar,
+	name varchar
 );
 
 create table request.approval 
@@ -1284,7 +1285,8 @@ create table request.implelement
     user_id bigint,
     original_nat_id bigint,
 	rule_uid varchar,
-	group_name varchar
+	group_name varchar,
+	name varchar
 );
 
 create table request.impltask

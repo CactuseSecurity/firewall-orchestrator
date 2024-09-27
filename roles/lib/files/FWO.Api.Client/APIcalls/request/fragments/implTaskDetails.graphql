@@ -44,6 +44,7 @@ fragment implTaskDetails on request_impltask {
     original_nat_id
     rule_uid
     group_name
+    name
   }
   comments: impltask_comments {
     comment: comment {

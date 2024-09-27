@@ -13,6 +13,7 @@ mutation newImplementationElement(
   $originalNatId: bigint
   $ruleUid: String
   $groupName: String
+  $name: String
   ) {
   insert_request_implelement(objects: {
     implementation_action: $implementationAction
@@ -29,6 +30,7 @@ mutation newImplementationElement(
     original_nat_id: $originalNatId
     rule_uid: $ruleUid
     group_name: $groupName
+    name: $name
   }) {
     returning {
       newId: id

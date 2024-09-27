@@ -337,7 +337,8 @@ namespace FWO.Ui.Services
                     originalNatId = element.OriginalNatId,
                     deviceId = element.DeviceId,
                     ruleUid = element.RuleUid,
-                    groupName = element.GroupName
+                    groupName = element.GroupName,
+                    name = element.Name
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newRequestElement, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -377,7 +378,8 @@ namespace FWO.Ui.Services
                     originalNatId = element.OriginalNatId,
                     deviceId = element.DeviceId,
                     ruleUid = element.RuleUid,
-                    groupName = element.GroupName
+                    groupName = element.GroupName,
+                    name = element.Name
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestElement, Variables)).UpdatedId;
                 if(udId != element.Id)
@@ -631,7 +633,8 @@ namespace FWO.Ui.Services
                     userId = element.UserId,
                     originalNatId = element.OriginalNatId,
                     ruleUid = element.RuleUid,
-                    groupName = element.GroupName
+                    groupName = element.GroupName,
+                    name = element.Name
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newImplementationElement, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -670,7 +673,8 @@ namespace FWO.Ui.Services
                     userId = element.UserId,
                     originalNatId = element.OriginalNatId,
                     ruleUid = element.RuleUid,
-                    groupName = element.GroupName
+                    groupName = element.GroupName,
+                    name = element.Name
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationElement, Variables)).UpdatedId;
                 if(udId != element.Id)

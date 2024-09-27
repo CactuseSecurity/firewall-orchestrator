@@ -298,47 +298,6 @@ else
     {
         showFwChange = true;
 
-        return;
-
-        @* DisplayMessageInUi(null, "Coming soon", "...", true);
-        return;
-
-        // read external ticketing system information from config
-        List<ExternalTicketSystem> extTicketSystems = [];
-
-        try
-        {
-            extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(userConfig.ExtTicketSystems) ?? new();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
-        }
-
-        // build ticket
-        SCTicket ticket = new(appHandler.Connections, "test ticket 1", ExternalTicketPriority.High);
-
-        // create external ticket
-        if (extTicketSystems.Count() > 0)
-        {
-            try
-            {
-                RestResponse<int> ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystems.First());
-                if (ticketIdResponse.StatusCode != HttpStatusCode.OK)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse.StatusDescription + ", " + ticketIdResponse.ErrorMessage, true);
-                }
-                else
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("ext_ticket_success"), userConfig.GetText("ext_ticket_number") + ": " + ticketIdResponse.Data, true);                    
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_fail"), userConfig.GetText("E9101"), false);
-            }
-        } *@
-
         // TODO: 
         // create object tickets
         // prevent Admins from requesting tickets

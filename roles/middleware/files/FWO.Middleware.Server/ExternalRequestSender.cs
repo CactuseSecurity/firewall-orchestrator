@@ -84,7 +84,7 @@ namespace FWO.Middleware.Server
 				if(extTicketSystem.Type == ExternalTicketSystemType.TufinSecureChange)
 				{
 					SCTicket ticket = System.Text.Json.JsonSerializer.Deserialize<SCTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
-                	ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystem, request.ExtRequestType);
+                	ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystem);
 				}
 				if (ticketIdResponse != null)
 				{

@@ -136,7 +136,7 @@
                         }
                         else
                         {
-                            @if(WfHandler.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
+                            @if(WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
                             {
                                 <div class="col-sm-7">
                                     <div class="form-group row">
@@ -485,7 +485,7 @@
                     {
                         oldOwner = actOwner;
                     }
-                    actGrpName = WfHandler.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+                    actGrpName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
                 }
                 firstParamSet = false;
              }

@@ -6,7 +6,6 @@ namespace FWO.Api.Data
 {
     public class NwObjectElement
     {
-
         [JsonProperty("id"), JsonPropertyName("id")]
         public long ElemId { get; set; }
 
@@ -36,6 +35,8 @@ namespace FWO.Api.Data
 
         public long? NetworkId { get; set; }
 
+        public string GroupName { get; set; } = "";
+
         public NwObjectElement()
         {}
 
@@ -64,7 +65,9 @@ namespace FWO.Api.Data
                 Field = field.ToString(),
                 Cidr = new Cidr(Cidr.CidrString),
                 CidrEnd = new Cidr(CidrEnd.CidrString),
-                NetworkId = NetworkId
+                NetworkId = NetworkId,
+                GroupName = GroupName,
+                Name = Name
             };
             return element;
         }
@@ -79,6 +82,8 @@ namespace FWO.Api.Data
                 Cidr = new Cidr(Cidr.CidrString),
                 CidrEnd = new Cidr(CidrEnd.CidrString),
                 NetworkId = NetworkId,
+                GroupName = GroupName,
+                Name = Name
             };
             return element;
         }

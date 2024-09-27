@@ -600,30 +600,10 @@ namespace FWO.Ui.Services
 
         public string GetRequestingOwner()
         {
-            int? ownerId = GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner);
+            int? ownerId = ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner);
             if(ownerId != null)
             {
                 return AllOwners.FirstOrDefault(x => x.Id == ownerId)?.Display() ?? "";
-            }
-            return "";
-        }
-
-        public int? GetAddInfoIntValue(string key)
-        {
-            if(int.TryParse(GetAddInfoValue(key), out int value))
-            {
-                return value;
-            }
-            return null;
-        }
-
-        public string GetAddInfoValue(string key)
-        {
-            Dictionary<string, string>? addInfo = GetAddInfos();
-            string value = "";
-            if(addInfo != null && addInfo.TryGetValue(key, out value))
-            {
-                return value;
             }
             return "";
         }
@@ -632,46 +612,13 @@ namespace FWO.Ui.Services
         {
             try
             {
-                Dictionary<string, string>? addInfo = GetAddInfos();
-                if(addInfo == null)
-                {
-                    addInfo = new() { {key, newValue} };
-                }
-                else
-                {
-                    if(addInfo.ContainsKey(key))
-                    {
-                        addInfo[key] = newValue;
-                    }
-                    else
-                    {
-                        addInfo.Add(key, newValue);
-                    }
-                }
-                reqTask.AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+                reqTask.SetAddInfo(key, newValue);
                 await dbAcc.UpdateReqTaskAdditionalInfo(reqTask);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("promote_task"), "", true);
             }
-        }
-
-        private Dictionary<string, string>? GetAddInfos()
-        {
-            if(ActReqTask.AdditionalInfo != null && ActReqTask.AdditionalInfo != "")
-            {
-                try
-                {
-                    return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(ActReqTask.AdditionalInfo);
-                }
-                catch(Exception)
-                {
-                    Log.WriteInfo("Get Additional Info","Could not deserialize. No valid content.");
-                    return null;
-                }
-            }
-            return null;
         }
 
         public async Task PromoteReqTask(WfStatefulObject reqTask)

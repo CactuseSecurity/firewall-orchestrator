@@ -2,7 +2,6 @@ using FWO.Api.Data;
 using RestSharp;
 using RestSharp.Serializers.NewtonsoftJson;
 using RestSharp.Serializers;
-using Microsoft.IdentityModel.Tokens;
 using FWO.Logging;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
@@ -10,75 +9,44 @@ using Newtonsoft.Json;
 
 namespace FWO.Tufin.SecureChange
 {
+	public enum SCTaskType
+	{
+		AccessRequest,
+		NetworkObjectCreate,
+		NetworkServiceCreate
+	}
+
+	public enum SCTicketPriority
+	{
+		Low,
+		Normal,
+		High,
+		Critical
+	}
+
 	public class SCTicket : ExternalTicket
 	{
-        [JsonProperty("subject"), JsonPropertyName("subject")]
 		public string Subject { get; set; } = "";
-
 		private string OnBehalfUser { get; set; } = "";
+		private string actTicketTemplate;
 
-		// public SCTicket(List<ModellingConnection> connections, string subject, ExternalTicketPriority priority = ExternalTicketPriority.Normal)
-		// {
-		// 	foreach (ModellingConnection conn in connections)
-		// 	{
-		// 		TicketTasks.Add(new ExternalAccessRequestTicketTask(conn));
-		// 	}
-		// 	Subject = subject;
-		// 	Priority = (int) priority;
-		// }
+		// protected string OnBehalfOfUser = """"requester_id": 55,"""";
 
-		public SCTicket(List<WfReqTask> tasks, string subject, ExternalTicketPriority priority = ExternalTicketPriority.Normal)
+		public SCTicket(ExternalTicketSystem tufinSystem, List<WfReqTask> tasks, string subject, SCTicketPriority priority = SCTicketPriority.Normal)
 		{
-			foreach (var task in tasks)
-			{
-				TicketTasks.Add(new ExternalAccessRequestTicketTask(task));
-			}
+			TicketSystem = tufinSystem;
+			actTicketTemplate = TicketSystem.Templates.FirstOrDefault()?.TicketTemplate ?? "";
+			CreateTicketTasks(tasks);
 			Subject = subject;
-			// Priority = (int) priority;
+			Priority = (int) priority;
+			CreateTicketText();
 		}
 
-		// public void AddTask(ModellingConnection connection)
-		// {
-		// 	TicketTasks.Add(new ExternalAccessRequestTicketTask(connection));
-		// }
-
-		private void ConfigureRestClientSerialization(SerializerConfig config)
+		public async Task<RestResponse<int>> CreateTicketInTufin(ExternalTicketSystem tufinSystem)
 		{
-			JsonNetSerializer serializer = new (); // Case insensivitive is enabled by default
-			config.UseSerializer(() => serializer);
-		}
-
-		public async Task<RestResponse<int>> CreateTicketInTufin(ExternalTicketSystem tufinSystem, string taskType)
-		{
-			string ticketText = "";
-			string taskText = "";
-
-			ExternalTicketTemplate? template = tufinSystem.Templates.FirstOrDefault(t => t.TaskType == taskType);			
-			if (template != null)
-			{
-				TicketTemplate = template.TicketTemplate;
-				TasksTemplate = template.TasksTemplate;
-			}
-
-			// create text for all tasks/connections
-			taskText = string.Join(",", TicketTasks.ConvertAll(t => t.FillTaskTemplate(TasksTemplate)));
-			// foreach (ExternalAccessRequestTicketTask ticketTask in TicketTasks)
-			// {
-			// 	taskText += ticketTask.FillTaskTemplate(TasksTemplate) + ",";
-			// }
-			// taskText = taskText.TrimEnd(',');
-
-			// substitute ticket template data
-			ticketText = TicketTemplate
-				.Replace("@@TICKET_SUBJECT@@", "test ticket create connection1")
-				.Replace("@@PRIORITY@@", "Normal")
-				// .Replace("@@ONBEHALF@@", OnBehalfOfUser)
-				// .Replace("@@WORKFLOW_NAME@@", "workflow_name")
-				.Replace("@@TASKS@@", taskText);
-
 			// build API call
 			RestRequest request = new("tickets.json", Method.Post);
-			request.AddJsonBody(ticketText);
+			request.AddJsonBody(TicketText);
 			request.AddHeader("Content-Type", "application/json");
 			request.AddHeader("Authorization", tufinSystem.Authorization);
 			RestClientOptions restClientOptions = new();
@@ -105,6 +73,78 @@ namespace FWO.Tufin.SecureChange
 
 			// send API call
 			return await restClient.ExecuteAsync<int>(request);
+		}
+		
+		public override string GetTaskType(WfReqTask task)
+		{
+			return GetTaskTypeInt(task).ToString();
+		}
+
+		private static SCTaskType GetTaskTypeInt(WfReqTask task)
+		{
+			switch(task.TaskType)
+			{
+				case nameof(WfTaskType.access):
+					return SCTaskType.AccessRequest;
+				case nameof(WfTaskType.group_create):
+					if(task.IsNetworkFlavor())
+					{
+						return SCTaskType.NetworkObjectCreate;
+					}
+					else
+					{
+						return SCTaskType.NetworkServiceCreate;
+					}
+				default: return SCTaskType.AccessRequest;
+			}
+		}
+
+		private void CreateTicketTasks(List<WfReqTask> tasks)
+		{
+			foreach (var task in tasks)
+			{
+				SCTicketTask? ticketTask = null;
+				SCTaskType taskType = GetTaskTypeInt(task);
+				switch(taskType)
+				{
+					case SCTaskType.AccessRequest:
+						ticketTask = new SCAccessRequestTicketTask(task);
+						break;
+					case SCTaskType.NetworkObjectCreate:
+						ticketTask = new SCNetworkObjectCreateTicketTask(task);
+						break;
+				}
+				if(ticketTask != null)
+				{
+					ExternalTicketTemplate? template = TicketSystem.Templates.FirstOrDefault(t => t.TaskType == taskType.ToString());
+					if(template != null)
+					{
+						ticketTask.FillTaskText(template.TasksTemplate);
+						actTicketTemplate = template.TicketTemplate;
+					}
+					TicketTasks.Add(ticketTask.TaskText);
+				}
+			}
+		}
+
+		private string CreateTicketText()
+		{
+			// create text for all tasks/connections
+			string taskText = string.Join(",", TicketTasks);
+
+			// substitute ticket template data
+			return actTicketTemplate
+				.Replace("@@TICKET_SUBJECT@@", "test ticket create connection1")
+				.Replace("@@PRIORITY@@", "Normal")
+				// .Replace("@@ONBEHALF@@", OnBehalfOfUser)
+				// .Replace("@@WORKFLOW_NAME@@", "workflow_name")
+				.Replace("@@TASKS@@", taskText);
+		}
+
+		private void ConfigureRestClientSerialization(SerializerConfig config)
+		{
+			JsonNetSerializer serializer = new (); // Case insensivitive is enabled by default
+			config.UseSerializer(() => serializer);
 		}
 	}
 }

@@ -48,6 +48,7 @@ fragment reqTaskDetails on request_reqtask {
     device_id
     rule_uid
     group_name
+    name
   }
   implementation_tasks: impltasks {
     ...implTaskDetails

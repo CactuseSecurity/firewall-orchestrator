@@ -11,21 +11,6 @@ namespace FWO.Api.Data
 		AlgoSec,
 		ServiceNow
 	}
-	
-	public enum ExternalTicketPriority
-	{
-		Low,
-		Normal,
-		High,
-		Critical
-	}
-
-	public enum ExternalTaskType
-	{
-		AccessRequest,
-		NetworkObjectCreate,
-		NetworkServiceCreate
-	}
 
 	public class ExternalTicketSystem
 	{

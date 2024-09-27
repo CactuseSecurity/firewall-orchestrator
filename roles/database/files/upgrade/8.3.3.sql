@@ -31,9 +31,11 @@ ALTER TABLE ext_request ADD CONSTRAINT ext_request_ticket_id_foreign_key FOREIGN
 ALTER TABLE request.reqelement ADD COLUMN IF NOT EXISTS group_name varchar;
 ALTER TABLE request.reqelement ADD COLUMN IF NOT EXISTS ip_end cidr;
 ALTER TABLE request.reqelement ADD COLUMN IF NOT EXISTS port_end int;
+ALTER TABLE request.reqelement ADD COLUMN IF NOT EXISTS name varchar;
 ALTER TABLE request.implelement ADD COLUMN IF NOT EXISTS group_name varchar;
 ALTER TABLE request.implelement ADD COLUMN IF NOT EXISTS ip_end cidr;
 ALTER TABLE request.implelement ADD COLUMN IF NOT EXISTS port_end int;
+ALTER TABLE request.implelement ADD COLUMN IF NOT EXISTS name varchar;
 
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestSleepTime', '0', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestStartAt', '00:00:00', 0) ON CONFLICT DO NOTHING;

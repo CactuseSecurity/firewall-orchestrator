@@ -8,6 +8,7 @@
         public int? PortEnd { get; set; }
         public int ProtoId { get; set; }
         public long? ServiceId { get; set; }
+        public string? Name { get; set; }
 
 
         public WfReqElement ToReqElement()
@@ -20,7 +21,8 @@
                 Port = Port,
                 PortEnd = PortEnd,
                 ProtoId = ProtoId,
-                ServiceId = ServiceId
+                ServiceId = ServiceId,
+                Name = Name
             };
             return element;
         }
@@ -35,7 +37,8 @@
                 Port = Port,
                 PortEnd = PortEnd,
                 ProtoId = ProtoId,
-                ServiceId = ServiceId
+                ServiceId = ServiceId,
+                Name = Name
             };
             return element;
         }

@@ -14,6 +14,7 @@ mutation newRequestElement(
   $deviceId: Int
   $ruleUid: String
   $groupName: String
+  $name: String
   ) {
   insert_request_reqelement(objects: {
     request_action: $requestAction
@@ -31,6 +32,7 @@ mutation newRequestElement(
     device_id: $deviceId
     rule_uid: $ruleUid
     group_name: $groupName
+    name: $name
   }) {
     returning {
       newId: id

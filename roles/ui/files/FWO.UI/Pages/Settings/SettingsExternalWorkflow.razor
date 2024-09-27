@@ -11,6 +11,7 @@
 @using FWO.Logging
 @using FWO.Recert
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Tufin.SecureChange
 @using System.Text.Json
 
 @page "/settings/extticketing"
@@ -66,9 +67,10 @@
                 </div>
             </div>
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
+                @{int pos = 0;}
                 @foreach(var template in extTicketingSystemTemplates)
                 {
-                    <Tab Title="@(template.TaskType)" Position=0>
+                    <Tab Title="@(template.TaskType)" Position=pos++>
                         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5595"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_template")):</label>
                             <div class="col-sm-8">
@@ -83,6 +85,26 @@
                         </div>
                     </Tab>
                 }
+                <Tab Title="  +  " Position=pos>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                        <div class="col-sm-4">
+                            <Dropdown ElementType="SCTaskType" @bind-SelectedElement="newTaskType" Elements="Enum.GetValues(typeof(SCTaskType)).Cast<SCTaskType>()" />
+                        </div>
+                    </div>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5595"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_template")):</label>
+                        <div class="col-sm-8">
+                            <textarea rows="10" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("ext_ticket_template_ph")) @bind="newTicketTemplate"></textarea>   
+                        </div>
+                    </div>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_task_template")):</label>
+                        <div class="col-sm-8">
+                            <textarea rows="30" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("ext_task_template_ph")) @bind="newTasksTemplate"></textarea>   
+                        </div>
+                    </div>
+                </Tab>
             </TabSet>
         </div>
     </form>
@@ -116,6 +138,9 @@ else
     private List<ExternalTicketTemplate> extTicketingSystemTemplates = [];
     private DateTime extReqStartDate = DateTime.Today;
     private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private SCTaskType newTaskType = SCTaskType.AccessRequest; // todo: select according to system
+    private string newTicketTemplate = "";
+    private string newTasksTemplate = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -136,7 +161,7 @@ else
                     // backwards compatibility
                     extTicketingSystemTemplates.Add(new()
                     {
-                        TaskType = ExternalTaskType.AccessRequest.ToString(),
+                        TaskType = SCTaskType.AccessRequest.ToString(),
                         TicketTemplate = extTicketSystems.First().TicketTemplate,
                         TasksTemplate = extTicketSystems.First().TasksTemplate
                     });
@@ -162,6 +187,16 @@ else
                 configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
                 List<ExternalTicketSystem> currentSystems = [];
                 // todo: loop over several systems
+                if(newTicketTemplate != "" || newTasksTemplate != "")
+                {
+                    extTicketingSystemTemplates.Add(new()
+                    {
+                        TaskType = newTaskType.ToString(),
+                        TicketTemplate = newTicketTemplate,
+                        TasksTemplate = newTasksTemplate
+                    });
+                }
+                extTicketingSystemTemplates = extTicketingSystemTemplates.Where(t => t.TicketTemplate != "" || t.TasksTemplate != "").ToList();
                 currentSystems.Add(new ExternalTicketSystem()
                 {
                     Type = extTicketingSystemType,

@@ -22,6 +22,8 @@ namespace FWO.Ui.Services
 		private readonly System.Security.Claims.ClaimsPrincipal AuthUser;
 		private readonly Dictionary<long, GraphQlApiSubscription<List<ExternalRequest>>> extTicketSubscriptions = [];
 		private ExternalTicketSystemType extSystemType = ExternalTicketSystemType.Generic;
+		private ExternalTicketSystem actSystem = new();
+		private string actTaskType = "";
 
 		public ExternalRequestCreator(FwoOwner owner, WfTicket ticket, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient)
 		{
@@ -38,6 +40,7 @@ namespace FWO.Ui.Services
 		{
 			try
 			{
+				GetExtSystemFromConfig();
             	await extStateHandler.Init();
 				if(UserConfig.ModRolloutBundleTasks)
 				{
@@ -57,14 +60,15 @@ namespace FWO.Ui.Services
 
 		public async Task CreateExtRequest(List<WfReqTask> tasks)
 		{
+			string taskContent = ConstructContent(tasks);
 			var Variables = new
 			{
 				ownerId = Owner.Id,
   				ticketId = InternalTicket.Id,
 				taskNumber = tasks.First()?.TaskNumber ?? 0,
-				extTicketSystem = GetExtSystemFromConfig(),
-				extTaskType = GetTaskType(tasks),
-				extTaskContent = ConstructContent(tasks),
+				extTicketSystem = System.Text.Json.JsonSerializer.Serialize(actSystem),
+				extTaskType = actTaskType,
+				extTaskContent = taskContent,
 				extQueryVariables = "", // todo ??
 				extRequestState = ExtStates.ExtReqInitialized.ToString()
 			};
@@ -113,50 +117,35 @@ namespace FWO.Ui.Services
 			}
 		}
 
-		private string GetExtSystemFromConfig()
+		private void GetExtSystemFromConfig()
 		{
+			// Todo: logic for multiple systems
 			List<ExternalTicketSystem> extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? [];
 			if(extTicketSystems.Count > 0)
 			{
 				extSystemType = extTicketSystems.First().Type;
-				return System.Text.Json.JsonSerializer.Serialize(extTicketSystems.First());
+				actSystem = extTicketSystems.First();
 			}
-			throw new Exception("No external ticket system defined.");
-		}
-
-		private string GetTaskType(List<WfReqTask> tasks)
-		{
-			if(extSystemType == ExternalTicketSystemType.TufinSecureChange)
+			else
 			{
-				switch(tasks.First().TaskType)
-				{
-					case nameof(WfTaskType.access):
-						return ExternalTaskType.AccessRequest.ToString();
-					case nameof(WfTaskType.group_create):
-						if(IsNetworkFlavor(tasks.First()))
-						{
-							return ExternalTaskType.NetworkObjectCreate.ToString();
-						}
-						else
-						{
-							return ExternalTaskType.NetworkServiceCreate.ToString();
-						}
-					default: return "";
-				}
+				throw new Exception("No external ticket system defined.");
 			}
-			return "";
-		}
-
-		private static bool IsNetworkFlavor(WfReqTask task)
-		{
-			return task.Elements.FirstOrDefault(e => e.IpString != null) != null;
 		}
 
 		private string ConstructContent(List<WfReqTask> tasks)
 		{
+			ExternalTicket? ticket;
 			if(extSystemType == ExternalTicketSystemType.TufinSecureChange)
 			{
-				SCTicket ticket = new(tasks, "test ticket 1", ExternalTicketPriority.High); // todo
+				ticket = new SCTicket(actSystem, tasks, "test ticket 1", SCTicketPriority.High); // todo
+			}
+			else
+			{
+				throw new Exception("Ticket system not supported yet");
+			}
+			if(ticket != null)
+			{
+				actTaskType = ticket.GetTaskType(tasks.First());
 				return System.Text.Json.JsonSerializer.Serialize(ticket);
 			}
 			return "";

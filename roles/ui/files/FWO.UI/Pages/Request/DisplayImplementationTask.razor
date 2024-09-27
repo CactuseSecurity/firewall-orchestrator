@@ -93,7 +93,7 @@
                                 }
                                 else
                                 {
-                                    @if(WfHandler.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
+                                    @if(WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
                                     {
                                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
                                         <label class="col-sm-8 border bg-secondary">@actOwner?.Display()</label>

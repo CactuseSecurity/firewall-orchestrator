@@ -14,6 +14,7 @@ mutation updateImplementationElement(
   $originalNatId: bigint
   $ruleUid: String
   $groupName: String
+  $name: String
   ) {
   update_request_implelement_by_pk(
     pk_columns: { id: $id }
@@ -32,6 +33,7 @@ mutation updateImplementationElement(
       original_nat_id: $originalNatId
       rule_uid: $ruleUid
       group_name: $groupName
+      name: $name
   }) {
     UpdatedId: id
   }

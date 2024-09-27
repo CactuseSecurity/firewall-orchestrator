@@ -75,6 +75,55 @@ namespace FWO.Api.Data
             }
         }
 
+        public int? GetAddInfoIntValue(string key)
+        {
+            if(int.TryParse(GetAddInfoValue(key), out int value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        public string GetAddInfoValue(string key)
+        {
+            Dictionary<string, string>? addInfo = GetAddInfos();
+            if (addInfo != null && addInfo.TryGetValue(key, out string? value))
+            {
+                return value;
+            }
+            return "";
+        }
+
+        public void SetAddInfo(string key, string newValue)
+        {
+            Dictionary<string, string>? addInfo = GetAddInfos();
+            if(addInfo == null)
+            {
+                addInfo = new() { {key, newValue} };
+            }
+            else
+            {
+                if(addInfo.ContainsKey(key))
+                {
+                    addInfo[key] = newValue;
+                }
+                else
+                {
+                    addInfo.Add(key, newValue);
+                }
+            }
+            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+        }
+
+        private Dictionary<string, string>? GetAddInfos()
+        {
+            if(AdditionalInfo != null && AdditionalInfo != "")
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(AdditionalInfo);
+            }
+            return null;
+        }
+
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();

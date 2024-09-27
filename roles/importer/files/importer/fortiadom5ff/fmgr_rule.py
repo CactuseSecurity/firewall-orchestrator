@@ -39,6 +39,11 @@ def initializeRulebases(raw_config):
         raw_config.update({'rules_global_nat': {}})
     if 'rules_adom_nat' not in raw_config:
         raw_config.update({'rules_adom_nat': {}})
+    
+    # new in v8.3.1:
+    # initialize hitcounts
+    if 'rules_hitcount' not in raw_config:
+        raw_config.update({'rules_hitcount': {}})
 
 
 def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
@@ -47,7 +52,39 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
 
     local_pkg_name = device['local_rulebase_name']
     global_pkg_name = device['global_rulebase_name']
+    options = ['extra info', 'scope member', 'get meta']
     # pkg_name = device['package_name'] pkg_name is not used at all
+
+    # get hitcount task numbers
+    hitcount_task_config = {}
+    hitcount_payload = {
+        "params": [
+            {
+                "data": {
+                    "adom": adom_name,
+                    "pkg": local_pkg_name
+                }
+            }
+        ]
+    }
+    #todo same for global_pkg_name?
+    fmgr_getter.update_config_with_fortinet_api_call(
+        hitcount_task_config, sid, fm_api_url, "/sys/hitcount", local_pkg_name, payload=hitcount_payload, limit=limit)
+    
+    # execute hitcount tasks
+    for task in hitcount_task_config[local_pkg_name]['result'][0]['data']:
+        hitcount_payload = {
+            "params": [
+                {
+                    "data": {
+                        "taskid": task['task']
+                    }
+                }
+            ]
+        }
+        fmgr_getter.update_config_with_fortinet_api_call(
+            raw_config['rules_hitcount'], sid, fm_api_url, "/sys/task/result", local_pkg_name, payload=hitcount_payload, limit=limit)
+
 
     # get global header rulebase:
     if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
@@ -60,7 +97,7 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
     
     # get local rulebase
     fmgr_getter.update_config_with_fortinet_api_call(
-        raw_config['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, limit=limit)
+        raw_config['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, options=options, limit=limit)
     fmgr_getter.update_config_with_fortinet_api_call(
         raw_config['rules_adom_v6'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", local_pkg_name, limit=limit)
 
@@ -176,6 +213,14 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     if xlate_rule is not None:
                         rules.append(xlate_rule)
                     rule_number += 1    # nat rules have their own numbering
+
+                    # new in v8.0.3:
+                    if 'meta fields' in rule_orig:
+                        rule.update({ 'rule_custom_fields': rule_orig['meta fields']})
+                    if '_last-modified-by' in rule_orig:
+                        rule.update({ 'rule_last_change_admin': rule_orig['_last-modified-by']})
+                    
+
     config2import.update({'rules': rules})
 
 

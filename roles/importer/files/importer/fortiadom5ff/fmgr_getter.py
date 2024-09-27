@@ -130,7 +130,7 @@ def fortinet_api_call(sid, api_base_url, api_path, payload={}, show_progress=Fal
     plain_result = result["result"][0]
     if "data" in plain_result:
         result = plain_result["data"]
-        if isinstance(result, dict):
+        if isinstance(result, dict):  # code implicitly expects result to be a list, but some fmgr results are dicts
             result = [result]
     else:
         result = []

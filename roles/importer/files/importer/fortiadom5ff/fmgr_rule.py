@@ -74,7 +74,7 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
         "params": [
             {
                 "data": {
-                    "taskid": hitcount_task['task']
+                    "taskid": hitcount_task[0]['task']
                 }
             }
         ]

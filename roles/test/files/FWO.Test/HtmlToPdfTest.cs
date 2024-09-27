@@ -56,13 +56,12 @@ namespace FWO.Test
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true,
-                 Browser = SupportedBrowser.Chrome,
                 Args = ["--no-sandbox"]//, "--disable-setuid-sandbox"
             });
 
             try
             {                
-                using IPage page = await browser.NewPageAsync();
+                IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
                 
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };

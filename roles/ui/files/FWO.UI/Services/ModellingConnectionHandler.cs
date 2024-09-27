@@ -1011,6 +1011,7 @@ namespace FWO.Ui.Services
                     if(AddMode)
                     {
                         await AddConnectionToDb();
+                        await ReInit();
                     }
                     else
                     {

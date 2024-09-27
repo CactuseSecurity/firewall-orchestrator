@@ -53,10 +53,10 @@ namespace FWO.Test
             if (File.Exists(FilePath))
                 File.Delete(FilePath);
 
-            using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true,
-                Args = ["--no-sandbox", "--disable-setuid-sandbox"]
+                //Args = ["--no-sandbox", "--disable-setuid-sandbox"]
             });
 
             try

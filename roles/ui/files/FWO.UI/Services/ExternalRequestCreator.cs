@@ -132,12 +132,17 @@ namespace FWO.Ui.Services
 			}
 		}
 
-		private string ConstructContent(List<WfReqTask> tasks)
+		private string ConstructContent(List<WfReqTask> reqTasks)
 		{
 			ExternalTicket? ticket;
 			if(extSystemType == ExternalTicketSystemType.TufinSecureChange)
 			{
-				ticket = new SCTicket(actSystem, tasks, "test ticket 1", SCTicketPriority.High); // todo
+				ticket = new SCTicket(actSystem, reqTasks)
+				{
+					Subject = "test ticket 1", // todo
+					Priority = SCTicketPriority.High.ToString(), // todo: necessary?
+					OnBehalfOfUser = UserConfig.User.Name
+				};
 			}
 			else
 			{
@@ -145,7 +150,7 @@ namespace FWO.Ui.Services
 			}
 			if(ticket != null)
 			{
-				actTaskType = ticket.GetTaskType(tasks.First());
+				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
 				return System.Text.Json.JsonSerializer.Serialize(ticket);
 			}
 			return "";

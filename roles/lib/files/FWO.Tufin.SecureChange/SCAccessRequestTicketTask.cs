@@ -57,11 +57,15 @@ namespace FWO.Tufin.SecureChange
 			List<string> convertedobjects = [];
 			foreach(var svc in nwServiceElements)
 			{
-				convertedobjects.Add(FillServiceTemplate(svc.ProtoId.ToString(), svc.Port.ToString(), svc.Name ?? ""));
+				convertedobjects.Add(FillServiceTemplate(svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
 			}
 			return "[" + string.Join(",", convertedobjects) + "]";
 		}
 
+		private static string DisplayPortRange(int port, int? portEnd)
+		{
+			return portEnd == null || portEnd == 0 || port == portEnd ? $"{port}" : $"{port}-{portEnd}";
+		}
 
 		// static private string ConvertNetworkObjectWrapperssToTufinJsonString(List<ModellingAppServerWrapper> nwObjects)
 		// {

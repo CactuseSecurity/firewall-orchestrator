@@ -79,32 +79,21 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				RestResponse<int>? ticketIdResponse = null;
             	ExternalTicketSystem extTicketSystem = System.Text.Json.JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
-				if(extTicketSystem.Type == ExternalTicketSystemType.TufinSecureChange)
+				ExternalTicket ticket = System.Text.Json.JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
+                RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket(extTicketSystem);
+				if (ticketIdResponse.StatusCode == HttpStatusCode.OK)
 				{
-					SCTicket ticket = System.Text.Json.JsonSerializer.Deserialize<SCTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
-                	ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystem);
-				}
-				if (ticketIdResponse != null)
-				{
-					if (ticketIdResponse.StatusCode == HttpStatusCode.OK)
-					{
-						await UpdateState(request, ExtStates.ExtReqRequested.ToString());
-					}
-					else
-					{
-						Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.ErrorMessage);
-					}
+					await UpdateState(request, ExtStates.ExtReqRequested.ToString());
 				}
 				else
 				{
-					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "No ticket sent.");
+					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.ErrorMessage);
 				}
 			}
 			catch(Exception exception)
 			{
-				Log.WriteError("External Request Sender", $"Sending request failed: ", exception);
+				Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Sending request failed: ", exception);
 			}
 		}
 

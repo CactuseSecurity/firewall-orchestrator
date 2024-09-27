@@ -57,7 +57,7 @@ namespace FWO.Test
             {
                 Headless = true,
                  Browser = SupportedBrowser.Chromium,
-                Args = ["--no-sandbox"]//, "--disable-setuid-sandbox"
+                Args = ["--no-sandbox", "--disable-setuid-sandbox"]
             });
 
             try

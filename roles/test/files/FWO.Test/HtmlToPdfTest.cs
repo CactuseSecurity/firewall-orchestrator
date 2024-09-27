@@ -46,15 +46,14 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "starting PDF generation");
             // HTML
             string html = "<html> <body> <h1>test<h1> test </body> </html>";
-
             
-
             if (File.Exists(FilePath))
                 File.Delete(FilePath);
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                Headless = true
+                Headless = true,
+                Args = ["--no-sandbox"]
             });
 
             try

@@ -2,14 +2,15 @@
 {
     public enum ExtStates
     {
-        Done,
-        Rejected,
+        Done = 0,
+        Rejected = 1,
 
-        ExtReqInitialized,
-		ExtReqRequested,
-		ExtReqInProgress,
-		ExtReqRejected,
-		ExtReqDone,
-		ExtReqAcknowledged
+        ExtReqInitialized = 10,
+        ExtReqFailed = 11,
+		ExtReqRequested = 12,
+		ExtReqInProgress = 13,
+		ExtReqRejected = 14,
+		ExtReqDone = 15,
+		ExtReqAcknowledged = 16
     }
 }

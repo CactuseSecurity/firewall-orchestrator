@@ -33,6 +33,9 @@ namespace FWO.Api.Data
         [JsonProperty("last_recert_date"), JsonPropertyName("last_recert_date")]
         public DateTime? LastRecertDate { get; set; }
 
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int? ManagementId { get; set; }
+
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public string SelectedDevices 
         {  
@@ -59,6 +62,7 @@ namespace FWO.Api.Data
             AdditionalInfo = reqtask.AdditionalInfo;
             LastRecertDate = reqtask.LastRecertDate;
             SelectedDevices = reqtask.SelectedDevices;
+            ManagementId = reqtask.ManagementId;
         }
 
         public List<int> GetDeviceList()

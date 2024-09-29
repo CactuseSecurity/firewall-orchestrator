@@ -1104,7 +1104,9 @@ create table ext_request
 	ext_request_type varchar,
 	ext_request_content varchar,
 	ext_query_variables varchar,
-	ext_request_state varchar
+	ext_request_state varchar,
+	create_date Timestamp default now(),
+	finish_date Timestamp
 );
 
 -- workflow -------------------------------------------------------
@@ -1141,7 +1143,8 @@ create table request.reqtask
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
 	devices varchar,
-	additional_info varchar
+	additional_info varchar,
+	mgm_id int
 );
 
 create table request.reqelement 

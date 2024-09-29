@@ -17,6 +17,7 @@ fragment reqTaskDetails on request_reqtask {
   additional_info
   free_text
   last_recert_date
+  mgm_id
   current_handler: uiuser {
     uiuser_id
     uuid
@@ -31,6 +32,10 @@ fragment reqTaskDetails on request_reqtask {
   target_begin_date
   target_end_date
   devices
+  on_management: management {
+    id: mgm_id
+    name: mgm_name
+  }
   elements: elements {
     id
     task_id

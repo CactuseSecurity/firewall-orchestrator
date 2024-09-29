@@ -54,7 +54,8 @@ namespace FWO.Middleware.Server
 					openRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests);
 					foreach(var request in openRequests)
 					{
-						if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString())
+						if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
+							request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
 						{
 							await SendRequest(request);
 						}
@@ -88,6 +89,7 @@ namespace FWO.Middleware.Server
 				}
 				else
 				{
+					await UpdateState(request, ExtStates.ExtReqFailed.ToString());
 					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.ErrorMessage);
 				}
 			}
@@ -101,8 +103,9 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				string newState = await CheckState(request);
-				if(newState != request.ExtRequestState)
+				string oldState = request.ExtRequestState;
+				string newState = await PollState(request);
+				if(newState != oldState)
 				{
 					await UpdateState(request, newState);
 				}
@@ -113,7 +116,7 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private async Task<string> CheckState(ExternalRequest request)
+		private async Task<string> PollState(ExternalRequest request)
 		{
 			// todo
 			return request.ExtRequestState;

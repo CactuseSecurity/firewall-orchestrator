@@ -15,7 +15,9 @@ create table if not exists ext_request
 	ext_request_type varchar,
 	ext_request_content varchar,
 	ext_query_variables varchar,
-	ext_request_state varchar
+	ext_request_state varchar,
+	create_date Timestamp default now(),
+	finish_date Timestamp
 );
 
 ALTER TABLE owner_ticket DROP CONSTRAINT IF EXISTS owner_ticket_owner_id_foreign_key;
@@ -36,6 +38,10 @@ ALTER TABLE request.implelement ADD COLUMN IF NOT EXISTS group_name varchar;
 ALTER TABLE request.implelement ADD COLUMN IF NOT EXISTS ip_end cidr;
 ALTER TABLE request.implelement ADD COLUMN IF NOT EXISTS port_end int;
 ALTER TABLE request.implelement ADD COLUMN IF NOT EXISTS name varchar;
+ALTER TABLE request.reqtask ADD COLUMN IF NOT EXISTS mgm_id int;
+
+ALTER TABLE request.reqtask DROP CONSTRAINT IF EXISTS request_reqtask_management_foreign_key;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_management_foreign_key FOREIGN KEY (mgm_id) REFERENCES management(mgm_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestSleepTime', '0', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestStartAt', '00:00:00', 0) ON CONFLICT DO NOTHING;

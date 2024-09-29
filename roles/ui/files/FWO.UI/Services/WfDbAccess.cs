@@ -175,7 +175,8 @@ namespace FWO.Ui.Services
                     validTo = reqtask.TargetEndDate,
                     reason = reqtask.Reason,
                     additionalInfo = reqtask.AdditionalInfo,
-                    freeText = reqtask.FreeText
+                    freeText = reqtask.FreeText,
+                    managementId = reqtask.ManagementId
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newRequestTask, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -229,7 +230,8 @@ namespace FWO.Ui.Services
                     reason = reqtask.Reason,
                     additionalInfo = reqtask.AdditionalInfo,
                     freeText = reqtask.FreeText,
-                    devices = reqtask.SelectedDevices
+                    devices = reqtask.SelectedDevices,
+                    managementId = reqtask.ManagementId
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTask, Variables)).UpdatedId;
                 if(udId != reqtask.Id)

@@ -11,8 +11,8 @@ namespace FWO.Tufin.SecureChange
 		{			
 			TaskText = tasksTemplate
 				.Replace("@@GROUPNAME@@", ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName))
-				.Replace("@@MANAGEMENT_ID@@", "1") // todo
-				.Replace("@@MANAGEMENT_NAME@@", "Managementname") // todo
+				.Replace("@@MANAGEMENT_ID@@", ReqTask.OnManagement?.Id.ToString())
+				.Replace("@@MANAGEMENT_NAME@@", ReqTask.OnManagement?.Name)
 				.Replace("@@MEMBERS@@", ConvertNetworkObjects());
 		}
 

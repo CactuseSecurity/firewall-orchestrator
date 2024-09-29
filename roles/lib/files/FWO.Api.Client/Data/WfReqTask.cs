@@ -26,6 +26,9 @@ namespace FWO.Api.Data
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public List<WfCommentDataHelper> Comments { get; set; } = [];
 
+        [JsonProperty("on_management"), JsonPropertyName("on_management")]
+        public Management? OnManagement { get; set; }
+
         public List<WfReqElement> RemovedElements { get; set; } = [];
         public List<FwoOwner> NewOwners { get; set; } = [];
         public List<FwoOwner> RemovedOwners { get; set; } = [];
@@ -45,6 +48,7 @@ namespace FWO.Api.Data
             RemovedElements = reqtask.RemovedElements;
             NewOwners = reqtask.NewOwners;
             RemovedOwners = reqtask.RemovedOwners;
+            OnManagement = reqtask.OnManagement;
         }
 
         public string OwnerList()

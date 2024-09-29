@@ -90,6 +90,8 @@
     private bool RequestInProcess = false;
     private WfStateDict states = new();
     private ExtStateHandler extStateHandler;
+    private List<Management> managements = [];
+    private int? actManagementId;
 
     private struct TicketId
     {
@@ -102,6 +104,8 @@
         extStateHandler = new(apiConnection);
         await extStateHandler.Init();
         ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+        managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+        actManagementId = managements.Count > 0 ? managements.First().Id : null;  // Todo: Management selection logic
     }
 
     protected override async Task OnParametersSetAsync()
@@ -174,6 +178,7 @@
                     TaskNumber = taskNumber++,
                     TaskType = WfTaskType.access.ToString(),
                     StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+                    ManagementId = actManagementId,
                     Elements = elements
                 });
             }
@@ -248,6 +253,7 @@
             TaskNumber = taskNumber++,
             TaskType = WfTaskType.group_create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+            ManagementId = actManagementId,
             Elements = groupMembers,
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
         });
@@ -331,6 +337,7 @@
             TaskNumber = taskNumber++,
             TaskType = WfTaskType.group_create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+            ManagementId = actManagementId,
             Elements = groupMembers,
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
         });

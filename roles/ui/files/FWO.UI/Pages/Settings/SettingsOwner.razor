@@ -340,7 +340,6 @@ else
     private Tenant? selectedTenant;
     private DayOfWeek? selectedDayOfWeek;
     private RecertRefresh recertRefresh;
-    private List<Management> managements = [];
     private List<Tenant> tenants = [];
 
     private bool showCleanupButton = false;
@@ -370,7 +369,6 @@ else
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             AnalyseSampleOwners();
-            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
             recertRefresh = new(apiConnection);
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();

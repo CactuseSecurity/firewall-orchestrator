@@ -96,12 +96,13 @@ namespace FWO.Ui.Services
 							wfHandler.SetTicketEnv(intTicket);
 							await UpdateTicket(intTicket, extRequests.First());
             				ApiConnection.SetProperRole(AuthUser, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+							// todo: Reject handling: set all following tasks to rejected?
 							if(extStateHandler.GetInternalStateId(extRequests.First().ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
 							{
 								Dispose(extRequests.First().Id);
 								await Acknowledge(extRequests.First());
 								await SendNextRequest(intTicket, extRequests.First().TaskNumber);
-								// push (some) state changes to modelling pages?
+								// todo: push (some) state changes to modelling pages?
 							}
 						}
 						else
@@ -177,7 +178,8 @@ namespace FWO.Ui.Services
 				var Variables = new
 				{
 					id = extRequest.Id,
-					extRequestState = ExtStates.ExtReqAcknowledged.ToString()
+					extRequestState = ExtStates.ExtReqAcknowledged.ToString(),
+					finishDate = DateTime.Now
 				};
 				await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestState, Variables);
 			}

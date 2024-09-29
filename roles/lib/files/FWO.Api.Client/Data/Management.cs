@@ -15,7 +15,7 @@ namespace FWO.Api.Data
         public string Hostname { get; set; } = "";
 
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
-        public ImportCredential ImportCredential { get; set; } = new ImportCredential();
+        public ImportCredential ImportCredential { get; set; } = new();
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string? ConfigPath { get; set; } = "";
@@ -54,13 +54,13 @@ namespace FWO.Api.Data
         public int? DebugLevel { get; set; }
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
-        public Device[] Devices { get; set; } = new Device[]{};
+        public Device[] Devices { get; set; } = [];
 
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
-        public DeviceType DeviceType { get; set; } = new DeviceType();
+        public DeviceType DeviceType { get; set; } = new();
 
         [JsonProperty("import"), JsonPropertyName("import")]
-        public Import Import { get; set; } = new Import();
+        public Import Import { get; set; } = new();
 
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }

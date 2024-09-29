@@ -45,8 +45,8 @@
                     </div>
                     <div class="col-sm-3">
                         <div class="form-group row">
-                            <label class="col-sm-5 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
-                            <div class="col-sm-7">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
+                            <div class="col-sm-8">
                                 <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActReqTask.CurrentHandler?.Name</label>
                             </div>
                         </div>
@@ -80,6 +80,30 @@
                             </div>
                         </div>
                     </div>
+
+                    @if(actTaskType == WfTaskType.access || actTaskType == WfTaskType.group_create)
+                    {
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("management")):</label>
+                                <div class="col-sm-8">
+                                    @if (WfHandler.EditReqTaskMode)
+                                    {
+                                        <Dropdown ElementType="Management" @bind-SelectedElement="actManagement" ElementToString="@(d => d.Name)" Elements="managements">
+                                            <ElementTemplate Context="management">
+                                                @management.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@actManagement?.Name</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
                     @if(actTaskType == WfTaskType.access && !WfHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
                     {
                         <div class="col-sm-3">
@@ -164,7 +188,7 @@
                     }
                     else if(actTaskType == WfTaskType.group_create)
                     {
-                        <div class="col-sm-7">
+                        <div class="col-sm-6">
                             <div class="form-group row">
                                 <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                                 <div class="col-sm-11">
@@ -446,6 +470,8 @@
     private FwoOwner? oldOwner;
     private string? actGrpName;
     private bool firstParamSet = false;
+    private List<Management> managements = [];
+    private Management? actManagement;
 
 
     protected override async Task OnInitializedAsync()
@@ -456,6 +482,8 @@
             actTaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.Last() : WfTaskType.access;
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
+            managements.Add(new(){ Id = -1, Name = userConfig.GetText("all"), DeviceType = new(){ Id = 0 } });
+            managements.AddRange(await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames));
             InitElements();
             firstParamSet = true;
         }
@@ -537,6 +565,7 @@
         actRuleDevice = WfHandler.Devices.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetRuleDeviceId());
         actRuleAction = ruleActions.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.RuleAction);
         actTracking = trackings.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.Tracking);
+        actManagement = WfHandler.ActReqTask.ManagementId != null ? managements.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.ManagementId) : managements.First();
         actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
         StateHasChanged();
     }
@@ -669,6 +698,7 @@
             WfHandler.ActReqTask.TaskType = actTaskType.ToString();
             WfHandler.ActReqTask.RuleAction = actRuleAction?.Id;
             WfHandler.ActReqTask.Tracking = actTracking?.Id;
+            WfHandler.ActReqTask.ManagementId = actManagement.Id >= 0 ? actManagement.Id : null;
             WfHandler.ActReqTask.RemovedOwners = new();
             WfHandler.ActReqTask.NewOwners = new();
             if(actOwner != oldOwner)

@@ -6,11 +6,12 @@
         Rejected = 1,
 
         ExtReqInitialized = 10,
-        ExtReqFailed = 11,
-		ExtReqRequested = 12,
-		ExtReqInProgress = 13,
-		ExtReqRejected = 14,
-		ExtReqDone = 15,
-		ExtReqAcknowledged = 16
+        ExtReqFailed = 20,
+		ExtReqRequested = 21,
+		ExtReqInProgress = 22,
+		ExtReqRejected = 23,
+		ExtReqDone = 24,
+        ExtReqAckRejected = 30,
+		ExtReqAcknowledged = 31
     }
 }

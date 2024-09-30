@@ -5,8 +5,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Middleware.Client;
 using FWO.Tufin.SecureChange;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 
 namespace FWO.Ui.Services
@@ -66,7 +65,7 @@ namespace FWO.Ui.Services
 				ownerId = Owner.Id,
   				ticketId = InternalTicket.Id,
 				taskNumber = tasks.First()?.TaskNumber ?? 0,
-				extTicketSystem = System.Text.Json.JsonSerializer.Serialize(actSystem),
+				extTicketSystem = JsonSerializer.Serialize(actSystem),
 				extTaskType = actTaskType,
 				extTaskContent = taskContent,
 				extQueryVariables = "", // todo ??
@@ -96,12 +95,18 @@ namespace FWO.Ui.Services
 							wfHandler.SetTicketEnv(intTicket);
 							await UpdateTicket(intTicket, extRequests.First());
             				ApiConnection.SetProperRole(AuthUser, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
-							// todo: Reject handling: set all following tasks to rejected?
 							if(extStateHandler.GetInternalStateId(extRequests.First().ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
 							{
 								Dispose(extRequests.First().Id);
 								await Acknowledge(extRequests.First());
-								await SendNextRequest(intTicket, extRequests.First().TaskNumber);
+								if(extRequests.First().ExtRequestState != ExtStates.ExtReqRejected.ToString())
+								{
+									await SendNextRequest(intTicket, extRequests.First().TaskNumber);
+								}
+								else
+								{
+									// todo: Reject handling: set all following tasks to rejected?
+								}
 								// todo: push (some) state changes to modelling pages?
 							}
 						}
@@ -121,7 +126,7 @@ namespace FWO.Ui.Services
 		private void GetExtSystemFromConfig()
 		{
 			// Todo: logic for multiple systems
-			List<ExternalTicketSystem> extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? [];
+			List<ExternalTicketSystem> extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? [];
 			if(extTicketSystems.Count > 0)
 			{
 				extSystemType = extTicketSystems.First().Type;
@@ -152,7 +157,7 @@ namespace FWO.Ui.Services
 			if(ticket != null)
 			{
 				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
-				return System.Text.Json.JsonSerializer.Serialize(ticket);
+				return JsonSerializer.Serialize(ticket);
 			}
 			return "";
 		}
@@ -178,7 +183,9 @@ namespace FWO.Ui.Services
 				var Variables = new
 				{
 					id = extRequest.Id,
-					extRequestState = ExtStates.ExtReqAcknowledged.ToString(),
+					extRequestState = extRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString() ?
+						ExtStates.ExtReqAckRejected.ToString() :
+						ExtStates.ExtReqAcknowledged.ToString(),
 					finishDate = DateTime.Now
 				};
 				await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestState, Variables);

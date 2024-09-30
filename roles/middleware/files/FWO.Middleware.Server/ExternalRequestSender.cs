@@ -6,7 +6,7 @@ using FWO.Logging;
 using System.Net;
 using RestSharp;
 using FWO.Tufin.SecureChange;
-
+using System.Text.Json;
 
 namespace FWO.Middleware.Server
 {
@@ -80,8 +80,8 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-            	ExternalTicketSystem extTicketSystem = System.Text.Json.JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
-				ExternalTicket ticket = System.Text.Json.JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
+            	ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
+				ExternalTicket ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
                 RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket(extTicketSystem);
 				if (ticketIdResponse.StatusCode == HttpStatusCode.OK)
 				{
@@ -126,10 +126,12 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
+				DateTime? dateTimeNull = null;
 				var Variables = new
 				{
 					id = request.Id,
-					extRequestState = newState
+					extRequestState = newState,
+					finishDate = dateTimeNull
 				};
 				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestState, Variables);
 			}

@@ -89,7 +89,7 @@ namespace FWO.Ui.Services
                     TaskType = WfTaskType.new_interface.ToString(),
                     Owners = [new() { Owner = owner }],
                     Reason = reason,
-                    AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+                    AdditionalInfo = JsonSerializer.Serialize(addInfo)
                 },
                 ObjAction.add);
             await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = wfHandler.MasterStateMatrix.LowestEndState}));

@@ -3,6 +3,15 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data
 {
+    public struct ExtMgtData
+    {
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public string? ExtId { get; set; }
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string? ExtName { get; set; }
+    }
+
     public class Management
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -62,12 +71,14 @@ namespace FWO.Api.Data
         [JsonProperty("import"), JsonPropertyName("import")]
         public Import Import { get; set; } = new();
 
+        [JsonProperty("extMgtData"), JsonPropertyName("extMgtData")]
+        public string? ExtMgtData { get; set; }
+
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
         public bool AwaitDevice { get; set; }
         public bool Delete { get; set; }
         public long ActionId { get; set; }
-
 
         public Management()
         {}
@@ -107,6 +118,7 @@ namespace FWO.Api.Data
             AwaitDevice = management.AwaitDevice;
             Delete = management.Delete;
             ActionId = management.ActionId;
+            ExtMgtData = management.ExtMgtData;
         }
 
         public string Host()

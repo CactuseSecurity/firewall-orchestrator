@@ -35,6 +35,7 @@ fragment reqTaskDetails on request_reqtask {
   on_management: management {
     id: mgm_id
     name: mgm_name
+    extMgtData: ext_mgm_data
   }
   elements: elements {
     id

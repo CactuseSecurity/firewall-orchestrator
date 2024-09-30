@@ -46,6 +46,49 @@ namespace FWO.Api.Data
             return result;
         }
 
+        public static string DisplayService(NwServiceElement svcElem, List<IpProtocol> IpProtos)
+        {
+            IpProtocol? ipProt = IpProtos.FirstOrDefault(p => p.Id == svcElem.ProtoId);
+            NetworkService svc = new()
+            {
+                DestinationPort = svcElem.Port,
+                DestinationPortEnd = svcElem.PortEnd,
+                Protocol = ipProt != null ? new NetworkProtocol(ipProt) : new NetworkProtocol()
+            };
+            return DisplayService(svc, true).ToString();
+        }
+
+        public static List<IpProtocol> CustomSortProtocols(List<IpProtocol> ListIn)
+        {
+            List<IpProtocol> ListOut = [];
+            IpProtocol? tcp = ListIn.Find(x => x.Name.ToLower() == "tcp");
+            if(tcp != null)
+            {
+                ListOut.Add(tcp);
+                ListIn.Remove(tcp);
+            }
+            IpProtocol? udp = ListIn.Find(x => x.Name.ToLower() == "udp");
+            if(udp != null)
+            {
+                ListOut.Add(udp);
+                ListIn.Remove(udp);
+            }
+            IpProtocol? icmp = ListIn.Find(x => x.Name.ToLower() == "icmp");
+            if(icmp != null)
+            {
+                ListOut.Add(icmp);
+                ListIn.Remove(icmp);
+            }
+            foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
+            {
+                if (proto.Name.ToLower() != "unassigned")
+                {
+                    ListOut.Add(proto);
+                }
+            }
+            return ListOut;
+        }
+
         public static string DisplayIpWithName(NetworkObject elem)
         {
             if(elem.Name != null && elem.Name != "")

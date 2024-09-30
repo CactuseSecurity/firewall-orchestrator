@@ -76,6 +76,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"importer_hostname" Varchar,
 	"debug_level" Integer,
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
+	"ext_mgm_data" Varchar,
  primary key ("mgm_id")
 );
 

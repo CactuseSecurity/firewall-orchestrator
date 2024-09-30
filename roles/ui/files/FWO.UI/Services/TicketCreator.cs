@@ -50,6 +50,7 @@ namespace FWO.Ui.Services
                         Owners = [new() { Owner = owner }],
                         Reason = reqTask.Reason,
                         ManagementId = reqTask.ManagementId,
+                        OnManagement = reqTask.OnManagement,
                         Elements = reqTask.Elements,
                         AdditionalInfo = reqTask.AdditionalInfo
                     },

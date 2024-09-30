@@ -1673,6 +1673,8 @@ INSERT INTO txt VALUES ('edit_gateway',         'German', 	'Gateway bearbeiten')
 INSERT INTO txt VALUES ('edit_gateway',         'English', 	'Edit Gateway');
 INSERT INTO txt VALUES ('management',           'German', 	'Management');
 INSERT INTO txt VALUES ('management',           'English', 	'Management');
+INSERT INTO txt VALUES ('ext_mgt_data',         'German', 	'Externe Management Daten');
+INSERT INTO txt VALUES ('ext_mgt_data',         'English', 	'External Management Data');
 INSERT INTO txt VALUES ('local_rulebase',       'German', 	'Lokale Rulebase');
 INSERT INTO txt VALUES ('local_rulebase',       'English', 	'Local Rulebase');
 INSERT INTO txt VALUES ('global_rulebase',      'German', 	'Globale Rulebase');
@@ -4071,6 +4073,8 @@ INSERT INTO txt VALUES ('H5122', 'German',  'Import Deaktiviert: Schalter um den
 INSERT INTO txt VALUES ('H5122', 'English', 'Import Disabled: Flag if the data import needs to be disabled.');
 INSERT INTO txt VALUES ('H5123', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Management nicht mit Standard-Reporter-Rolle sichtbar.');
 INSERT INTO txt VALUES ('H5123', 'English', 'Hide in UI: If set, this management is not visible to the standard reporter role.');
+INSERT INTO txt VALUES ('H5124', 'German',  'Externe Management Daten: Daten die das Management in externen Systemen kennzeichnen.');
+INSERT INTO txt VALUES ('H5124', 'English', 'External Management Data: Data specifying the management in external systems.');
 
 INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml;r den Import der Firewall-Konfigurationen verwaltet.
 Diese k&ouml;nnen auch f&uuml;r den Zugriff auf mehrere Firewall-Managements verwendet werden.

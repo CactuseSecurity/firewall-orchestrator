@@ -30,6 +30,8 @@ ALTER TABLE ext_request DROP CONSTRAINT IF EXISTS ext_request_ticket_id_foreign_
 ALTER TABLE ext_request ADD CONSTRAINT ext_request_owner_id_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE ext_request ADD CONSTRAINT ext_request_ticket_id_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
+ALTER TABLE management ADD COLUMN IF NOT EXISTS ext_mgm_data varchar;
+
 ALTER TABLE request.reqelement ADD COLUMN IF NOT EXISTS group_name varchar;
 ALTER TABLE request.reqelement ADD COLUMN IF NOT EXISTS ip_end cidr;
 ALTER TABLE request.reqelement ADD COLUMN IF NOT EXISTS port_end int;

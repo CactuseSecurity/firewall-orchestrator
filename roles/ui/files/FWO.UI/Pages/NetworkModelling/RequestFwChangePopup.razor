@@ -92,6 +92,7 @@
     private ExtStateHandler extStateHandler;
     private List<Management> managements = [];
     private int? actManagementId;
+    private Management? actManagement;
 
     private struct TicketId
     {
@@ -105,7 +106,8 @@
         await extStateHandler.Init();
         ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
         managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-        actManagementId = managements.Count > 0 ? managements.First().Id : null;  // Todo: Management selection logic
+        actManagement = managements.Count > 0 ? managements.FirstOrDefault(m => !string.IsNullOrEmpty(m.ExtMgtData)) : null;  // Todo: Management selection logic
+        actManagementId = actManagement?.Id;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -179,6 +181,7 @@
                     TaskType = WfTaskType.access.ToString(),
                     StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
                     ManagementId = actManagementId,
+                    OnManagement = actManagement,
                     Elements = elements
                 });
             }
@@ -254,6 +257,7 @@
             TaskType = WfTaskType.group_create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
             ManagementId = actManagementId,
+            OnManagement = actManagement,
             Elements = groupMembers,
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
         });
@@ -338,6 +342,7 @@
             TaskType = WfTaskType.group_create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
             ManagementId = actManagementId,
+            OnManagement = actManagement,
             Elements = groupMembers,
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
         });

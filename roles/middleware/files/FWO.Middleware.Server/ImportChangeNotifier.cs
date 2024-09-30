@@ -55,12 +55,12 @@ namespace FWO.Middleware.Server
 			public string MgmtName { get; set; }
 		}
 
-		private List<ImportToNotify> importsToNotify = new();
+		private List<ImportToNotify> importsToNotify = [];
 
 		private bool WorkInProgress = false;
-		private DeviceFilter deviceFilter = new();
-		private List<int> importedManagements = new();
-		private UserConfig userConfig;
+		private readonly DeviceFilter deviceFilter = new();
+		private List<int> importedManagements = [];
+		private readonly UserConfig userConfig;
 
 
 		/// <summary>
@@ -107,7 +107,7 @@ namespace FWO.Middleware.Server
 		private async Task<bool> NewImportFound()
 		{
 			importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
-			importedManagements = new();
+			importedManagements = [];
 			foreach(var imp in importsToNotify)
 			{
 				if(!importedManagements.Contains(imp.MgmtId))
@@ -123,8 +123,6 @@ namespace FWO.Middleware.Server
 			try
 			{
 				CancellationToken token = new();
-				UserConfig userConfig = new(globalConfig);
-
 				changeReport = ReportBase.ConstructReport(new ReportTemplate("", await SetFilters()), userConfig);
 				ReportData reportData = new();
 				await changeReport.Generate(int.MaxValue, apiConnection,
@@ -174,7 +172,7 @@ namespace FWO.Middleware.Server
 				Log.WriteError("Import Change Notifier", $"Could not decrypt mailserver password.", exception);				
 			}
 
-			EmailConnection emailConnection = new EmailConnection(globalConfig.EmailServerAddress, globalConfig.EmailPort,
+			EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
 				globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
 			MailKitMailer mailer = new(emailConnection);
 			await mailer.SendAsync(PrepareEmail(), emailConnection, new CancellationToken(),
@@ -251,9 +249,9 @@ namespace FWO.Middleware.Server
         {
             if(globalConfig.UseDummyEmailAddress)
             {
-                return new() { globalConfig.DummyEmailAddress };
+                return [globalConfig.DummyEmailAddress];
             }
-            string[] separatingStrings = { ",", ";", "|" };
+            string[] separatingStrings = [",", ";", "|"];
             return globalConfig.ImpChangeNotifyRecipients.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
         }
 

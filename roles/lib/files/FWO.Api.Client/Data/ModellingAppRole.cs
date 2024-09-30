@@ -16,7 +16,7 @@ namespace FWO.Api.Data
         public DateTime? CreationDate { get; set; }
 
         [JsonProperty("nwobjects"), JsonPropertyName("nwobjects")]
-        public List<ModellingAppServerWrapper> AppServers { get; set; } = new();
+        public List<ModellingAppServerWrapper> AppServers { get; set; } = [];
 
         public ModellingNetworkArea? Area { get; set; } = new();
 

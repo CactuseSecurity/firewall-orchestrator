@@ -1,0 +1,13 @@
+﻿mutation upsertConfigItems($config_items: [config_insert_input!]!) {
+  insert_config(
+    objects: $config_items,
+    on_conflict: {
+      constraint: config_pkey,
+      update_columns: [config_value]
+    }
+  ) {
+    returning {
+      id: config_key
+    }
+  }
+}

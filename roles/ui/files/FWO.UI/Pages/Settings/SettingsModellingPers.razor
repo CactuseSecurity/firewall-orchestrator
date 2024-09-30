@@ -40,7 +40,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -57,7 +57,7 @@ else
     {
         try
         {
-            configData = await globalConfig.GetEditableConfig();
+            configData = await userConfig.GetEditableConfig();
         }
         catch (Exception exception)
         {
@@ -70,7 +70,7 @@ else
         {
             if (configData != null)
             {
-                await globalConfig.WriteToDatabase(configData, apiConnection);
+                await userConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
             else

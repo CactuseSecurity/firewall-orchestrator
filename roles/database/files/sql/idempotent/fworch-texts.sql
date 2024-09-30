@@ -1004,6 +1004,8 @@ INSERT INTO txt VALUES ('select_owner',         'German',   'Eigent&uuml;mer aus
 INSERT INTO txt VALUES ('select_owner',         'English',  'Select Owner');
 INSERT INTO txt VALUES ('ticket_id',            'German', 	'Ticket-Id');
 INSERT INTO txt VALUES ('ticket_id',            'English',  'Ticket Id');
+INSERT INTO txt VALUES ('requesting_owner',     'German',   'Beantragender Eigent&uuml;mer');
+INSERT INTO txt VALUES ('requesting_owner',     'English',  'Requesting Owner');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
@@ -1122,10 +1124,14 @@ INSERT INTO txt VALUES ('delete_connection', 	'German',	'Verbindung l&ouml;schen
 INSERT INTO txt VALUES ('delete_connection', 	'English',	'Delete Connection');
 INSERT INTO txt VALUES ('remove_connection', 	'German',	'Verbindung entfernen');
 INSERT INTO txt VALUES ('remove_connection', 	'English',	'Remove Connection');
+INSERT INTO txt VALUES ('displayRejected', 	    'German',	'Abgelehnte anzeigen');
+INSERT INTO txt VALUES ('displayRejected', 	    'English',	'Display rejected');
 INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
+INSERT INTO txt VALUES ('replace_error', 	    'German',	'Fehler beim Ersetzen');
+INSERT INTO txt VALUES ('replace_error', 	    'English',	'Replace error');
 INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
 INSERT INTO txt VALUES ('func_reason', 	        'English',	'Functional Reason');
 INSERT INTO txt VALUES ('to_source', 	        'German',	'Zu Quelle');
@@ -1493,6 +1499,10 @@ INSERT INTO txt VALUES ('match_drop_rules',		'German', 	'in Drop-Regeln');
 INSERT INTO txt VALUES ('match_drop_rules',		'English', 	'in Drop rules');
 INSERT INTO txt VALUES ('show_full_rules',		'German', 	'vollst&auml;ndige Regeln anzeigen');
 INSERT INTO txt VALUES ('show_full_rules',		'English', 	'show full rules');
+INSERT INTO txt VALUES ('reject',               'German',   'Ablehnen');
+INSERT INTO txt VALUES ('reject',               'English',  'Reject');
+INSERT INTO txt VALUES ('reject_interface',     'German',   'Schnittstelle ablehnen');
+INSERT INTO txt VALUES ('reject_interface',     'English',  'Reject interface');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -1823,6 +1833,8 @@ INSERT INTO txt VALUES ('sessionTimeoutNoticePeriod', 'German','Benachrichtigung
 INSERT INTO txt VALUES ('sessionTimeoutNoticePeriod', 'English','Warning before session timeout (in minutes)');
 INSERT INTO txt VALUES ('uiHostName',           'German', 	'Hostname der UI');
 INSERT INTO txt VALUES ('uiHostName',           'English', 	'UI Hostname');
+INSERT INTO txt VALUES ('welcomeMessage',       'German', 	'Willkommensnachricht');
+INSERT INTO txt VALUES ('welcomeMessage',       'English', 	'Welcome Message');
 INSERT INTO txt VALUES ('maxMessages',          'German', 	'Max Anzahl Nachrichten');
 INSERT INTO txt VALUES ('maxMessages',          'English', 	'Max number of messages');
 INSERT INTO txt VALUES ('messageViewTime',      'German', 	'Nachrichten-Anzeigedauer (in Sekunden)');
@@ -2077,6 +2089,16 @@ INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgang
 INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest exit state');
 INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
 INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
+INSERT INTO txt VALUES ('ext_states',           'German',   'Externe Stati');
+INSERT INTO txt VALUES ('ext_states',           'English',  'External states');
+INSERT INTO txt VALUES ('save_ext_states',      'German',   'Externe Stati speichern');
+INSERT INTO txt VALUES ('save_ext_states',      'English',  'Save external states');
+INSERT INTO txt VALUES ('internal_state_name',  'German', 	'Interner Status-Name');
+INSERT INTO txt VALUES ('internal_state_name',  'English', 	'Internal State Name');
+INSERT INTO txt VALUES ('external_state_name',  'German', 	'Externer Status-Name');
+INSERT INTO txt VALUES ('external_state_name',  'English', 	'External State Name');
+INSERT INTO txt VALUES ('assign_state_to',      'German',   'Status zuordnen zu: ');
+INSERT INTO txt VALUES ('assign_state_to',      'English',  'Assign state to: ');
 INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
 INSERT INTO txt VALUES ('owners',               'German',   'Eigent&uuml;mer');
@@ -2642,6 +2664,10 @@ INSERT INTO txt VALUES ('U9015', 'German',  'Beantragte Schnittstelle mit dieser
 INSERT INTO txt VALUES ('U9015', 'English', 'Replace requested interface by this?');
 INSERT INTO txt VALUES ('U9016', 'German',  'Beantragte Schnittstelle ersetzt durch');
 INSERT INTO txt VALUES ('U9016', 'English', 'Requested interface replaced by');
+INSERT INTO txt VALUES ('U9017', 'German',  'Sind sie sicher, dass sie folgende beantragte Schnittstelle ablehnen wollen: ');
+INSERT INTO txt VALUES ('U9017', 'English', 'Are you sure you want to reject following requested interface: ');
+INSERT INTO txt VALUES ('U9018', 'German',  'Antrag abgelehnt.');
+INSERT INTO txt VALUES ('U9018', 'English', 'Ticket rejected.');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
@@ -2957,8 +2983,8 @@ INSERT INTO txt VALUES ('E9013', 'German',  'Schnittstelle kann nicht gel&ouml;s
 INSERT INTO txt VALUES ('E9013', 'English', 'Interface cannot be deleted because it is in use: ');
 INSERT INTO txt VALUES ('E9014', 'German',  'Bitte zuerst die gemachten &Auml;nderungen speichern.');
 INSERT INTO txt VALUES ('E9014', 'English', 'Please save changes first.');
-INSERT INTO txt VALUES ('E9015', 'German',  'Schnittstelle kann beantragte nicht ersetzen: Falscher Typ.');
-INSERT INTO txt VALUES ('E9015', 'English', 'Interface cannot replace requested one: Wrong type.');
+INSERT INTO txt VALUES ('E9015', 'German',  'Schnittstelle kann die angeforderte nicht ersetzen: Die Richtungen der Schnittstellen stimmen nicht &uuml;berein (eine ist eine Quellschnittstelle, die andere eine Zielschnittstelle).');
+INSERT INTO txt VALUES ('E9015', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
 INSERT INTO txt VALUES ('E9016', 'German',  'Beantragte Schnittstelle kann nicht gel&ouml;scht werden.');
 INSERT INTO txt VALUES ('E9016', 'English', 'Requested interface cannot be deleted.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
@@ -3124,7 +3150,7 @@ INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Au
     <li>Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt</li>
     <li>Verbindungen - Anzeige aller in einer Applikation modellierten Verbindungen, Schnittstellen und eigener Common Services mit zus&auml;tzlicher Auflistung aller hierin verwendeter Netzwerk- und Serviceobjekte.
         Hinzu kommt eine Liste aller globalen Common Services.</li>
-    <li>App-Regeln - Darstellung aller Regeln, in welchen Objekte eines vorgegebenen Eigent&uuml;mers verwendet werden. Es kann weiter spezifiziert werden, ob nur Quelle, Ziel oder beides, sowie ob "Any"-Objekte ber&uuml;cksichtigt werden sollen.</li>
+    <li>App-Regeln - Darstellung aller Regeln, in welchen Objekte eines vorgegebenen Eigent&uuml;mers verwendet werden (diese werden farblich hervorgehoben). Es kann weiter spezifiziert werden, ob nur Quelle, Ziel oder beides, sowie ob "Any"-Objekte ber&uuml;cksichtigt werden sollen.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report types:
@@ -3142,7 +3168,7 @@ INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report t
     <li>Statistics - display statistical data on the number of objects and rules. Default report time: now</li>
     <li>Connections - display of all connections, interfaces and Common Services modelled in an application with additional lists of all network and service objects used here.
         Additionally a list of all global Common Services is given.</li>
-    <li>App Rules - display of all rules, where objects of the given owner are used. It can be further specified, if only source, destination or both are to be considered as well as "any" objects.</li>
+    <li>App Rules - display of all rules, where objects of the given owner are used (and which are highlighted). It can be further specified, if only source, destination or both are to be considered as well as "any" objects.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
@@ -3354,9 +3380,13 @@ INSERT INTO txt VALUES ('H1511', 'English', 'Only for Recertification Report: Re
     <li>Show any rules: If flag is set, rules with Ip 0.0.0.0 in source or destination are shown.
         When deselecting an excluding statement is added to the filter line.</li></ul>
 ');
-INSERT INTO txt VALUES ('H1512', 'German',  'Nur beim Verbindungs-Report: Eigent&uuml;mer: Hier kann aus den dem Nutzer zur Modellierung zugeordneten Eigent&uuml;merschaften ausgew&auml;hlt werden. 
+INSERT INTO txt VALUES ('H1512', 'German',  'Nur bei Verbindungs-und App-Regel-Report: Eigent&uuml;mer: Hier kann aus den dem Nutzer zur Modellierung zugeordneten Eigent&uuml;merschaften ausgew&auml;hlt werden. ');
+INSERT INTO txt VALUES ('H1512', 'English', 'Only for Connections and App Rules Report: Owner: Select the modelling owner out of the ownerships related to the user.');
+INSERT INTO txt VALUES ('H1513', 'German',  'Nur beim App-Regel-Report: Weitere Parameter zur Einschr&auml;nkung der Treffermenge: Ber&uuml;cksichtigung von Quelle und/oder Ziel, Any- oder Drop-Regeln.
+    Desweiteren, ob nicht relevante Teile der Regel dargestellt werden sollen oder nicht.
 ');
-INSERT INTO txt VALUES ('H1512', 'English', 'Only for Connections Report: Owner: Select the modelling owner out of the ownerships related to the user.
+INSERT INTO txt VALUES ('H1513', 'English', 'Only for App Rules Report: Further parameters to reduce the selected rules: Regard Source and/or Destination, Any or Drop rules.
+    Furtheron, if not relevant parts of the rules shall be displayed or not.
 ');
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
@@ -3703,7 +3733,7 @@ Variablen
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-5",
-        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.5.0.0/32", "ip_end": "10.5.255.255/32"},{"ip": "10.9.0.0/32", "ip": "10.9.255.255/32"}]}
       },
       {
         "name": "6",
@@ -3711,7 +3741,7 @@ Variablen
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-6",
-        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.6.0.0/32", "ip_end": "10.6.255.255/32"}]}
       },
       {
         "name": "7",
@@ -3719,7 +3749,7 @@ Variablen
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-7",
-        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.7.0.0/32", /"ip_end": "10.7.255.21655/32"}]}
       }
   ]
 }
@@ -3739,7 +3769,7 @@ mutation addSingleOwner {
         group_dn: "b"
         app_id_external: "app-sechs"
         owner_networks: {
-          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          data: [{ ip: "10.69.0.0/32", ip_end: "10.69.255.255/32" }, { ip: "10.9.0.0/32", ip_end: "10.9.255.255/32" }]
           on_conflict: {
             constraint: owner_network_ip_unique
             update_columns: [ip]
@@ -3785,7 +3815,7 @@ Variables
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-5",
-        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.5.0.0/32", "ip_end": "10.5.255.255/32"},{"ip": "10.9.0.0/32", "ip": "10.9.255.255/32"}]}
       },
       {
         "name": "6",
@@ -3793,7 +3823,7 @@ Variables
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-6",
-        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.6.0.0/32", "ip_end": "10.6.255.255/32"}]}
       },
       {
         "name": "7",
@@ -3801,7 +3831,7 @@ Variables
         "dn":"x",
         "group_dn":"x",
         "app_id_external": "app-7",
-        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+        "owner_networks": {"data": [{"ip": "10.7.0.0/32", /"ip_end": "10.7.255.21655/32"}]}
       }
   ]
 }
@@ -3821,7 +3851,7 @@ mutation addSingleOwner {
         group_dn: "b"
         app_id_external: "app-sechs"
         owner_networks: {
-          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          data: [{ ip: "10.69.0.0/32", ip_end: "10.69.255.255/32" }, { ip: "10.9.0.0/32", ip_end: "10.9.255.255/32" }]
           on_conflict: {
             constraint: owner_network_ip_unique
             update_columns: [ip]
@@ -4653,6 +4683,8 @@ INSERT INTO txt VALUES ('H5531', 'English', 'An arbitrary number of states can b
     As internally solely the numbers are processed, duplicates in state names are (technically) possible.
     Only states are offered for deletion, who are not used in any state matrix (even in deactivated phases or in actions).
 ');
+INSERT INTO txt VALUES ('H5532', 'German',  'Externe Stati: Um interne Stati &uuml;ber Aktionen ansprechen zu k&ouml;nnen, m&uuml;ssen sie vordefinierten, nach aussen sichtbaren Stati zugeordnet werden.');
+INSERT INTO txt VALUES ('H5532', 'English', 'External States: To be used by actions, internal states have to be assigned to predefined externally visible states.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Stati pro Phase und Tasktyp festgelegt. 
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     In der Installation sind diese Matrizen bereits vorbelegt, sie k&ouml;nnen aber nahezu beliebig &uuml;berschrieben werden.
@@ -4799,7 +4831,7 @@ INSERT INTO txt VALUES ('H5593', 'German',  'URL des externen Ticketing Systems:
 INSERT INTO txt VALUES ('H5593', 'English', 'URL of external ticketing system: Exact address and path under which the external ticket system''s API can be reached.');
 INSERT INTO txt VALUES ('H5594', 'German',  'Authorization-Header-String: Beispielsweise Base64-kodierter String von "Username:Password" mit f&uuml;hrendem "Basic" zur Bezeichnung der Basic Authentication');
 INSERT INTO txt VALUES ('H5594', 'English', 'Authorization header string: E.g. base64 encoded string of "Username:Password" lead by "Basic" to indicate basic authentication');
-INSERT INTO txt VALUES ('H5595', 'German',  'Template Ticket-Text: Vorlagentext mit verschiedenen Platzhaltern, die durch @@PLACEHOLDER@@ gekennzeichnet sind und für jede Anfrage durch die eigentlichen Anfragedaten ersetzt werden. Eine vollst&auml;ndige Liste der Platzhalter finden Sie auf den Hilfeseiten.');
+INSERT INTO txt VALUES ('H5595', 'German',  'Template Ticket-Text: Vorlagentext mit verschiedenen Platzhaltern, die durch @@PLACEHOLDER@@ gekennzeichnet sind und f&uuml;r jede Anfrage durch die eigentlichen Anfragedaten ersetzt werden. Eine vollst&auml;ndige Liste der Platzhalter finden Sie auf den Hilfeseiten.');
 INSERT INTO txt VALUES ('H5595', 'English', 'Template ticket text: template text containing various placeholders indicated by @@PLACEHOLDER@@ which will be substituted for each ticket with the actual ticket data. For a full list of placeholders, see help pages.');
 INSERT INTO txt VALUES ('H5596', 'German',  'Template Aufgabentext: Template pro Verbindung (sollte die folgenden Platzhalter enthalten: @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, ...)');
 INSERT INTO txt VALUES ('H5596', 'English', 'Template task text: Template for each connection (should contain placeholders @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, ...)');
@@ -5610,6 +5642,18 @@ INSERT INTO txt VALUES ('H8514', 'English', 'External call: Calls to external co
 ');
 INSERT INTO txt VALUES ('H8515', 'German',  'Pfadanalyse: Die in der automatischen Pfadanalyse gefundenen Ger&auml;te werden als Liste der Ger&auml;te eines Zugriffs-Auftrags &uuml;bernommen oder in einem eigenen Fenster dargestellt.');
 INSERT INTO txt VALUES ('H8515', 'English', 'Path Analysis: The devices found in the automatic path analysis are transferred to the list of devices of a request task or displayed in an own window.');
+INSERT INTO txt VALUES ('H8516', 'German',  'Email verschicken: Es k&ouml;nnen Emails mit vorgegebenen Betreff und Inhalt an alle im Workflow bekannten Akteure (Antragsteller, Genehmiger, letzter Kommentator...) geschickt werden.');
+INSERT INTO txt VALUES ('H8516', 'English', 'Send Email: Emails with self defined subject an body can be sent to all known actors in the workflow (requester, approver, last commenter...).');
+INSERT INTO txt VALUES ('H8517', 'German',  'Verbindung anlegen: TBD.');
+INSERT INTO txt VALUES ('H8517', 'English', 'Create Connection: TBD.');
+INSERT INTO txt VALUES ('H8518', 'German',  'Verbindungseigent&uuml;mer &auml;ndern: Der Eigent&uuml;mer einer Verbindung im Modellierungsmodul kann angepasst werden.');
+INSERT INTO txt VALUES ('H8518', 'English', 'Update Connection Owner: To adapt the owner of a connection in the Modelling module.');
+INSERT INTO txt VALUES ('H8519', 'German',  'Verbindung ver&ouml;ffentlichen: Dient der Ver&ouml;ffentlichung einer Verbindung (bzw. Schnittstelle) im Modellierungsmodul.');
+INSERT INTO txt VALUES ('H8519', 'English', 'Publish Connection: To publish a connection (resp. interface) in the Modelling module.');
+INSERT INTO txt VALUES ('H8520', 'German',  'Verbindung darstellen: Darstellen einer Verbindung/Schnittstelle aus dem Modellierungsmodul im Workflow-Kontext (nur lesend).');
+INSERT INTO txt VALUES ('H8520', 'English', 'Display Connection: Display a connection/interface of the Modelling module in workflow context (read only).');
+INSERT INTO txt VALUES ('H8521', 'German',  'Schnittstelle ablehnen: Ablehnen einer beantragten Schnittstelle im Modellierungsmodul.');
+INSERT INTO txt VALUES ('H8521', 'English', 'Reject Interface: Reject a requested interface of the Modelling module.');
 INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfiehlt es sich, in folgenden Schritten vorzugehen:
     <ul>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Auswahl der zu verwendenden Tasktypen</li>
@@ -6163,3 +6207,26 @@ INSERT INTO txt VALUES ('H9052', 'English', 'The assigned modeller can replace t
         <li>From the view of the requester there is no difference, whether the interface was newly modelled or replaced by an alredy existing.</li>
     </ul>
 ');
+INSERT INTO txt VALUES ('H9053', 'German',  'Der beauftragte Modellierer kann die angefragte Schnittstelle ablehnen:
+    <ul>
+        <li>Beim Editieren der beantragten Schnittstelle wird eine Schaltfl&auml;che "Ablehnen" angeboten.</li>
+        <li>Es erscheint ein Fenster, in dem eine Begr&uuml;ndung eingetragen werden kann (dieser wird in das Kommentarfeld des entsprechenden Implementierungsauftrags &uuml;bernommen).</li>
+        <li>Beim Speichern wird die Schnittstelle auf abgelehnt gesetzt und der zugeh&ouml;rige Antrag auf den entsprechenden Status gesetzt.</li>
+        <li>Bei entsprechender Konfiguration durch den Administrator (<a href="/help/workflow/actions">Aktionen</a>) kann die Schnittstelle auch aus dem Workflow-Antrag heraus abgelehnt werden.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H9053', 'English', 'The assigned modeller can reject the requested interface:
+    <ul>
+        <li>When editing the requested interface a button "Reject" is displayed.</li>
+        <li>A pop up window is shown where the reason for the reject can be inserted (which is added to the comments of the respective implementation task).</li>
+        <li>When saving the interface is set to rejected and the respective workflow request is set to the according state.</li>
+        <li>If configured by the administrator (<a href="/help/workflow/actions">Actions</a>), the interface can also be rejected inside the workflow request.</li>
+    </ul>
+');
+
+INSERT INTO txt VALUES ('H9054', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
+INSERT INTO txt VALUES ('H9054', 'English', 'Message that is displayed on Login Page.');
+INSERT INTO txt VALUES ('PagerPagesize',     'German', 	'Seitengröße');
+INSERT INTO txt VALUES ('PagerPagesize',     'English', 'Page size');
+INSERT INTO txt VALUES ('PagerSubmit',       'German', 	'Speichern');
+INSERT INTO txt VALUES ('PagerSubmit',       'English', 'Save');

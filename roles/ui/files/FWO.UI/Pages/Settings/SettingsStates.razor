@@ -1,4 +1,5 @@
 ﻿@using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Config.Api
 
 @page "/settings/statedefinitions"
@@ -16,24 +17,31 @@
     </div>
     @(userConfig.GetText("U5313"))
     <hr />
-    <button type="button" class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>
+    <div class="btn-group">
+        <button type="button" class="btn btn-sm btn-success" @onclick="AddState">
+            @(ModellingHandlerBase.DisplayButton(userConfig, "add_state", Icons.Add))</button>
+        <button type="button" class="btn btn-sm btn-warning" data-toggle="tooltip" title="@(userConfig.PureLine("H5532"))" @onclick="EditExtStates">
+            @(ModellingHandlerBase.DisplayButton(userConfig, "ext_states", Icons.Edit, "ext_states"))</button>
+    </div>
     <br><br>
     <div class="m-2 vheight75">
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestState" Items="states" PageSize="0" ColumnReorder="true">
-            <Column TableItem="RequestState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfState" Items="states" PageSize="0" ColumnReorder="true">
+            <Column TableItem="WfState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditState(context)">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditState(context)">
+                            @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                         @if(!usedStateIds.Exists(x => x == context.Id))
                         {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteState(context)">@(userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteState(context)">
+                                @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                         }
                     </div>
                 </Template>
             </Column>
-            <Column TableItem="RequestState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestState" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestState" Title="@(userConfig.GetText("state_actions"))" Field="@(x => x.Actions)" Sortable="false">
+            <Column TableItem="WfState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="WfState" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="WfState" Title="@(userConfig.GetText("state_actions"))" Field="@(x => x.Actions)" Sortable="false">
                 <Template>
                     @(context.ActionList())
                 </Template>
@@ -61,19 +69,21 @@
                     </div>
                 </div>
                 <br><br>
-                <button type="button" class="btn btn-sm btn-success" @onclick="SelectAction">@(userConfig.GetText("add_action"))</button>
+                <button type="button" class="btn btn-sm btn-success" @onclick="SelectAction">
+                    @(ModellingHandlerBase.DisplayButton(userConfig, "add_action", Icons.Add, "action"))</button>
                 <br><br>
                 <div class="m-2 vheight75">
-                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RequestStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("actions"))" Field="(x => x.Action.Id)" Sortable="false" Filterable="false">
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="WfStateActionDataHelper" Title="@(userConfig.GetText("actions"))" Field="(x => x.Action.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">@(userConfig.GetText("remove"))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">
+                                        @(ModellingHandlerBase.DisplayButton(userConfig, "remove", Icons.Delete))</button>
                                 </div>
                             </Template>
                         </Column>
-                        <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("id"))" Field="@(x => x.Action.Id)" Sortable="true" Filterable="true" />
-                        <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("name"))" Field="@(x => x.Action.Name)" Sortable="true" Filterable="true" />
+                        <Column TableItem="WfStateActionDataHelper" Title="@(userConfig.GetText("id"))" Field="@(x => x.Action.Id)" Sortable="true" Filterable="true" />
+                        <Column TableItem="WfStateActionDataHelper" Title="@(userConfig.GetText("name"))" Field="@(x => x.Action.Name)" Sortable="true" Filterable="true" />
                     </Table>
                 </div>
             }
@@ -100,7 +110,7 @@
             @if (SelectActionMode)
             {
                 <div class="col-sm-8">
-                    <Dropdown ElementType="RequestStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="actions">
+                    <Dropdown ElementType="WfStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="actions">
                         <ElementTemplate Context="action">
                             @action.Name
                         </ElementTemplate>
@@ -129,11 +139,13 @@
             </div>
         </Footer>
     </PopUp>
+
+    <EditExtStates @bind-Display="EditExtStatesMode" States="states"/>
 }
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -142,25 +154,26 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestState> states = new ();
-    private List<int> usedStateIds = new ();
-    private RequestStateDict statesDict = new ();
-    private RequestState actState = new ();
+    private List<WfState> states = [];
+    private List<int> usedStateIds = [];
+    private WfStateDict statesDict = new ();
+    private WfState actState = new ();
 
-    private List<RequestStateAction> actions = new ();
-    private RequestStateAction? selectedAction;
+    private List<WfStateAction> actions = [];
+    private WfStateAction? selectedAction;
 
     private bool EditStateMode = false;
     private bool AddStateMode = false;
     private bool DeleteStateMode = false;
     private bool InitComplete = false;
     private bool SelectActionMode = false;
+    private bool EditExtStatesMode = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
+            actions = await apiConnection.SendQueryAsync<List<WfStateAction>>(RequestQueries.getActions);
             await RefreshStates();
             InitComplete = true;
         }
@@ -172,17 +185,16 @@ else
 
     private async Task RefreshStates()
     {
-        states = new List<RequestState>();
-        states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
-        statesDict = new RequestStateDict();
+        states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+        statesDict = new WfStateDict();
         await statesDict.Init(apiConnection);
         await GetUsedStates();
     }
 
     private async Task GetUsedStates()
     {
-        usedStateIds = new List<int>();
-        GlobalStateMatrix tmpStateMatrix = new GlobalStateMatrix();
+        usedStateIds = [];
+        GlobalStateMatrix tmpStateMatrix = new();
         foreach(TaskType type in Enum.GetValues(typeof(TaskType)))
         {
             await tmpStateMatrix.Init(apiConnection, type);
@@ -235,10 +247,10 @@ else
         {
             firstFreeId++;
         }
-        EditState(new RequestState(){ Id = firstFreeId });
+        EditState(new WfState(){ Id = firstFreeId });
     }
 
-    private void EditState(RequestState state)
+    private void EditState(WfState state)
     {
         actState = state;
         EditStateMode = true;
@@ -248,13 +260,13 @@ else
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.upsertState, new { id = actState.Id, name = actState.Name });
+            await apiConnection.SendQueryAsync<object>(RequestQueries.upsertState, new { id = actState.Id, name = actState.Name });
             if(AddStateMode)
             {
                 states.Add(actState);
                 foreach(var action in actState.Actions)
                 {
-                    await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+                    await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
                 }
             }
             else
@@ -275,9 +287,10 @@ else
         EditStateMode = false;
         AddStateMode = false;
         DeleteStateMode = false;
+        EditExtStatesMode = false;
     }
 
-    private void RequestDeleteState(RequestState state)
+    private void RequestDeleteState(WfState state)
     {
         actState = state;
         DeleteStateMode = true;
@@ -287,7 +300,7 @@ else
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.deleteState, new { id = actState.Id });
+            await apiConnection.SendQueryAsync<object>(RequestQueries.deleteState, new { id = actState.Id });
             states.Remove(actState);
             DeleteStateMode = false;
         }
@@ -315,9 +328,9 @@ else
         {
             if(!AddStateMode)
             {
-                await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0});
+                await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0});
             }
-            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = selectedAction ?? throw new Exception("no action selected") });
+            actState.Actions.Add(new WfStateActionDataHelper(){ Action = selectedAction ?? throw new Exception("no action selected") });
             SelectActionMode = false;
         }
         catch (Exception exception)
@@ -326,13 +339,13 @@ else
         }
     }
 
-    private async Task RemoveActionFromState(RequestStateActionDataHelper action)
+    private async Task RemoveActionFromState(WfStateActionDataHelper action)
     {
         try
         {
             if(!AddStateMode)
             {
-                await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+                await apiConnection.SendQueryAsync<object>(RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
             }
             actState.Actions.Remove(action);
         }
@@ -340,5 +353,10 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
+    }
+
+    private void EditExtStates()
+    {
+        EditExtStatesMode = true;
     }
 }

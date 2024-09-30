@@ -65,7 +65,8 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
             rule.update({ 'rule_num': rule_number})
             if 'name' in rule_orig:
                 rule.update({ 'rule_name': rule_orig['name']})
-            rule.update({ 'rule_installon': None })
+            rule.update({ 'rule_installon': mgm_details['devices'][0]['name'] })
+            # rule.update({ 'rule_installon': localPkgName })
             rule.update({ 'rule_implied': False })
             rule.update({ 'rule_time': None })
             rule.update({ 'rule_type': 'access' })

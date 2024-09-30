@@ -449,17 +449,6 @@ thead {
     background-color: rgba(255, 0, 0, 0.25)
 }
 
-.fade-bg {
-    background-color: rgba(0, 0, 0, 0);
-    -webkit-transition: background-color 500ms linear;
-    -ms-transition: background-color 500ms linear;
-    transition: background-color 500ms linear;
-}
-
-.temp-highlight {
-    background-color: #a4d7f5;
-}
-
 .fly-in-animation {
     animation: fly-in 1s ease-out;
 }
@@ -487,4 +476,14 @@ thead {
 .draggable-selected {
     color: black !important;
     background-color: #a4d7f5;
+}
+
+.table-responsive:has(.popover, .bs-popover-bottom, .show) div {
+    overflow-x: visible;
+    transform: none !important;
+    inset: unset !important;
+}
+
+.table-responsive:has(.popover, .bs-popover-bottom, .show) {
+    overflow-x: visible;
 }

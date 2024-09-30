@@ -18,13 +18,13 @@
 
 @if(InitComplete)
 {
-    <DisplayTicketTable Phase="WorkflowPhases.planning" States="states" ReqHandler="reqHandler" 
+    <DisplayTicketTable Phase="WorkflowPhases.planning" States="states" WfHandler="wfHandler" 
         ResetParent="Reset" StartPhase="StartPlanTask"/>
 }
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -39,8 +39,8 @@ else
     [Parameter]
     public string? TicketId { get; set; }
 
-    private RequestHandler reqHandler = new ();
-    private RequestStateDict states = new ();
+    private WfHandler wfHandler = new ();
+    private WfStateDict states = new ();
     private List<int> OwnerIds = new ();
     private bool InitComplete = false;
 
@@ -56,10 +56,10 @@ else
             {
                 OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.planning){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.planning){};
             await Reset();
             await HandleTicketId();
-            reqHandler.SetContinueEnv(ObjAction.plan);
+            wfHandler.SetContinueEnv(ObjAction.plan);
     
             InitComplete = true;
         }
@@ -73,7 +73,7 @@ else
     {
         if(long.TryParse(TicketId, out long ticketId))
         {
-            string newPhase = await reqHandler.HandleExtTicketId(WorkflowPhases.planning, ticketId);
+            string newPhase = await wfHandler.HandleInjectedTicketId(WorkflowPhases.planning, ticketId);
             if(newPhase != "")
             {
                 NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
@@ -85,8 +85,8 @@ else
     {
         try
         {
-            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Planner) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await reqHandler.Init(OwnerIds);
+            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Planner) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            await wfHandler.Init(OwnerIds);
         }
         catch (Exception exception)
         {
@@ -94,12 +94,12 @@ else
         }
     }
 
-    private async Task StartPlanTask(RequestReqTask reqTask)
+    private async Task StartPlanTask(WfReqTask reqTask)
     {
         try
         {
             reqTask.Start = DateTime.Now;
-            await reqHandler.StartWorkOnReqTask(reqTask, ObjAction.plan);
+            await wfHandler.StartWorkOnReqTask(reqTask, ObjAction.plan);
         }
         catch (Exception exception)
         {

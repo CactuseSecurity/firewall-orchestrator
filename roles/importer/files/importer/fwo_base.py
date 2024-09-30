@@ -26,6 +26,7 @@ def split_list(list_in, max_list_length):
 def split_config(config2import, current_import_id, mgm_id):
     conf_split_dict_of_lists = {}
     max_number_of_chunks = 0
+    logger = getFwoLogger()
 
     object_lists = ["network_objects", "service_objects", "user_objects", "rules", "zone_objects", "interfaces", "routing"]
 
@@ -80,8 +81,11 @@ def split_config(config2import, current_import_id, mgm_id):
         })
         current_chunk_number += 1
     # setting the trigger in the last chunk:
-    config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
-    if fwo_globals.debug_level>0:
+    if len(config_split_with_metadata)>0:
+        config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
+    else:
+        logger.warning('got empty config (no chunks at all)')
+    if fwo_globals.debug_level>0 and len(config_split_with_metadata)>0:
         config_split_with_metadata[len(config_split_with_metadata)-1]["debug_mode"] = True
     return config_split_with_metadata
 

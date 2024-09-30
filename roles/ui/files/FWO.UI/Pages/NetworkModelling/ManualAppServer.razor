@@ -49,7 +49,7 @@
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(GlobalConfig.ShowBool(context.InUse))
+                            @(GlobalFunc.ShowBool(context.InUse))
                         </Template>
                     </Column>
                     <Pager ShowPageNumber="true" ShowTotalCount="true" />

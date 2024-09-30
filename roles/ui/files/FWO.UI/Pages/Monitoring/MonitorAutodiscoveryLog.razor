@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api
 @using FWO.Middleware.Client
+@using FWO.Ui.Shared
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
@@ -13,7 +14,8 @@
 @if(InitComplete)
 {
     <div class="vheight75">
-        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="PageSize">
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("found_by"))" Field="@(x => x.UserId)" Sortable="true">
@@ -36,7 +38,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -50,6 +52,8 @@ else
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<Management> managements = new List<Management>();
     private bool InitComplete = false;
+
+    private int PageSize { get; set; } = 10;
 
     protected override async Task OnInitializedAsync()
     {
@@ -72,5 +76,10 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
         }
+    }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
     }
 }

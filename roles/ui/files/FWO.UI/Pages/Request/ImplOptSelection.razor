@@ -50,7 +50,7 @@
     public List<FwoOwner> Owners { get; set; } = [];
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; } = new ();
+    public WfHandler WfHandler { get; set; } = new ();
 
     private List<Device> deviceOptions = [];
     private Device selectedDeviceOpt = new ();
@@ -96,7 +96,7 @@
     {
         Device optTicket = new (){ Id = -1, Name = userConfig.GetText("tickets") };
         Device allGateways = new (){ Id = 0, Name = userConfig.GetText("all_gateways") };
-        deviceOptions = new (ReqHandler.Devices);
+        deviceOptions = new (WfHandler.Devices);
         deviceOptions.Add(allGateways);
         selectedDeviceOpt = allGateways;
         if(!userConfig.ReqReducedView || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))

@@ -4481,6 +4481,15 @@
                   }
                 },
                 {
+                  "name": "get_rules_for_owner",
+                  "definition": {
+                    "function": {
+                      "name": "get_rules_for_owner",
+                      "schema": "public"
+                    }
+                  }
+                },
+                {
                   "name": "get_rules_for_tenant",
                   "definition": {
                     "function": {
@@ -4488,15 +4497,6 @@
                       "schema": "public"
                     },
                     "session_argument": "hasura_session"
-                  }
-                },
-                {
-                  "name": "get_rules_for_owner",
-                  "definition": {
-                    "function": {
-                      "name": "get_rules_for_owner",
-                      "schema": "public"
-                    }
                   }
                 }
               ],
@@ -16895,6 +16895,27 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -16927,6 +16948,27 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -16945,6 +16987,27 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
                   "permission": {
                     "columns": [
                       "tenant_can_view_all_devices",
@@ -17021,6 +17084,48 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
                   },
                   "comment": ""
                 }
@@ -17251,6 +17356,22 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id",
+                      "shared"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -17273,6 +17394,22 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id",
+                      "shared"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -17285,6 +17422,22 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id",
+                      "shared"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
                   "permission": {
                     "columns": [
                       "tenant_id",
@@ -17343,6 +17496,38 @@
                     "allow_aggregations": true
                   },
                   "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id",
+                      "shared"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id",
+                      "shared"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -17382,6 +17567,22 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -17406,6 +17607,22 @@
                   "comment": ""
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -17419,6 +17636,22 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
                   "permission": {
                     "columns": [
                       "shared",
@@ -17474,6 +17707,38 @@
                       "tenant_id"
                     ],
                     "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "shared",
+                      "management_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    }
                   },
                   "comment": ""
                 }
@@ -20731,6 +20996,94 @@
             },
             {
               "table": {
+                "name": "ext_state",
+                "schema": "request"
+              },
+              "object_relationships": [
+                {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "state_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "implelement",
                 "schema": "request"
               },
@@ -22697,6 +23050,18 @@
                       "column": "state_id",
                       "table": {
                         "name": "approval",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "ext_states",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "name": "ext_state",
                         "schema": "request"
                       }
                     }

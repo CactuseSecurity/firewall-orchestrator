@@ -40,7 +40,7 @@
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("active"))" Field="@(x => x.Active)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.Active))
+                @(GlobalFunc.ShowBool(context.Active))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
@@ -56,22 +56,22 @@
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("search_user"))" Field="@(x => x.SearchUser)" Sortable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.SearchUser != null && context.SearchUser != ""))
+                @(GlobalFunc.ShowBool(context.SearchUser != null && context.SearchUser != ""))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.IsWritable()))
+                @(GlobalFunc.ShowBool(context.IsWritable()))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.HasRoleHandling()))
+                @(GlobalFunc.ShowBool(context.HasRoleHandling()))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.HasGroupHandling()))
+                @(GlobalFunc.ShowBool(context.HasGroupHandling()))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">

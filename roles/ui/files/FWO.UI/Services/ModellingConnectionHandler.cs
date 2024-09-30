@@ -365,7 +365,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        private async Task RemoveFromAllSelections()
+        public async Task RemoveFromAllSelections()
         {
             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeSelectedConnection, new { connectionId = ActConn.Id });
         }
@@ -396,7 +396,7 @@ namespace FWO.Ui.Services
                     string comment = $"{userConfig.GetText("U9016")}: {IntConnHandler?.ActConn.Name}";
                     apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor]);
                     TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
-                    if(await ticketCreator.PromoteTicket(Application, (long)ActConn.TicketId, comment))
+                    if(await ticketCreator.PromoteNewInterfaceImplTask(Application, (long)ActConn.TicketId, ExtStates.Done, comment))
                     {
                         DisplayMessageInUi(null, comment, userConfig.GetText("U9013"), false);
                     }
@@ -586,6 +586,10 @@ namespace FWO.Ui.Services
                     {
                         SrcNwGroupsToAdd.Add(nwGroup);
                     }
+                    else
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("replace_error"), userConfig.GetText("E9015"), true);
+                    }
                 }
                 CalcVisibility();
             }
@@ -601,6 +605,10 @@ namespace FWO.Ui.Services
                         (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == nwGroup.Id)?.UseInDst ?? true))
                     {
                         DstNwGroupsToAdd.Add(nwGroup);
+                    }
+                    else
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("replace_error"), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();
@@ -977,7 +985,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task<bool> Save()
+        public async Task<bool> Save(bool noCheck = false)
         {
             try
             {
@@ -985,7 +993,7 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_connection"), userConfig.GetText("U0001"), true);
                 }
-                if(CheckConn())
+                if(noCheck || CheckConn())
                 {
                     if(!SrcReadOnly)
                     {
@@ -1002,12 +1010,13 @@ namespace FWO.Ui.Services
                     ActConn.SyncState();
                     if(AddMode)
                     {
-                        await AddConnectionToDb();
+                        await AddConnectionToDb();                        
                     }
                     else
                     {
                         await UpdateConnectionInDb();
                     }
+                    await ReInit();
                     Close();
                     return true;
                 }
@@ -1056,7 +1065,7 @@ namespace FWO.Ui.Services
 
         private void SyncSrcChanges()
         {
-            if(ActConn.IsRequested && SrcFilledInWork(1))
+            if(ActConn.IsInterface && SrcFilledInWork(1))
             {
                 ModellingAppRoleWrapper? linkedDummyAR = ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
                 if (linkedDummyAR != null)
@@ -1092,7 +1101,7 @@ namespace FWO.Ui.Services
 
         private void SyncDstChanges()
         {
-            if(ActConn.IsRequested && DstFilledInWork(1))
+            if(ActConn.IsInterface && DstFilledInWork(1))
             {
                 ModellingAppRoleWrapper? linkedDummyAR = ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
                 if (linkedDummyAR != null)

@@ -94,6 +94,9 @@ else
 @code
 {
     [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private bool editMode = false;
@@ -106,6 +109,9 @@ else
     {
         try
         {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User,
+                [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
+                Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor ]);
             zones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
         }
         catch (Exception exception)

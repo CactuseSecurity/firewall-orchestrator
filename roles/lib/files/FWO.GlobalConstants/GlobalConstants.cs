@@ -41,6 +41,12 @@ namespace FWO.GlobalConstants
 		public const string kStyleHighlighted = "color:red;";
 	}
 
+	public struct PageName
+	{
+		public const string ReportGeneration = "report/generation";
+		public const string Certification = "certification";
+	}
+
 	public struct ObjectType
 	{
 		public const string Group = "group";
@@ -55,4 +61,12 @@ namespace FWO.GlobalConstants
         public const string SimpleService = "simple";
         public const string Rpc = "rpc";
     }
+
+	public class GlobalFunc
+	{
+		public static string ShowBool(bool boolVal)
+        {
+            return boolVal ? "\u2714" : "\u2716";
+        }
+	}
 }

@@ -1,3 +1,4 @@
+using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Report.Filter;
@@ -94,7 +95,7 @@ namespace FWO.Report
                 report.AppendLine($"<td>{connection.Id}</td>");
                 if(isInterface)
                 {
-                    report.AppendLine($"<td>{GlobalConfig.ShowBool(connection.IsPublished)}</td>");
+                    report.AppendLine($"<td>{GlobalFunc.ShowBool(connection.IsPublished)}</td>");
                 }
                 if(IsGlobalComSvc)
                 {
@@ -117,7 +118,7 @@ namespace FWO.Report
                     }
                     else
                     {
-                        report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedSrcNames(connection))}</td>");
+                        report.AppendLine($"<td>{String.Join("<br>", ownerReport!.GetLinkedSrcNames(connection))}</td>");
                     }
                     if(connection.InterfaceIsRequested || connection.IsRequested)
                     {
@@ -126,7 +127,7 @@ namespace FWO.Report
                     }
                     else
                     {
-                        report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedSvcNames(connection))}</td>");
+                        report.AppendLine($"<td>{String.Join("<br>", ownerReport!.GetLinkedSvcNames(connection))}</td>");
                     }
                     if((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled()))
                     {
@@ -135,7 +136,7 @@ namespace FWO.Report
                     }
                     else
                     {
-                        report.AppendLine($"<td>{String.Join("<br>", ownerReport.GetLinkedDstNames(connection))}</td>");
+                        report.AppendLine($"<td>{String.Join("<br>", ownerReport!.GetLinkedDstNames(connection))}</td>");
                     }
                 }
             }

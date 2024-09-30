@@ -121,9 +121,9 @@ namespace FWO.Ui.Services
             return 0;
         }
 
-        public List<ModellingConnection> GetInterfaces()
+        public List<ModellingConnection> GetInterfaces(bool showRejected = false)
         {
-            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface).ToList();
+            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface && (showRejected || !x.GetBoolProperty(ConState.Rejected.ToString()))).ToList();
             tmpList.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
             return tmpList;
         }

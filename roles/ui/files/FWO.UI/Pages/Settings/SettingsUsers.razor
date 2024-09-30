@@ -3,6 +3,7 @@
 @using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Middleware.Client
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
@@ -93,7 +94,7 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
             <Template>
                 <div data-toggle="tooltip" title="@(userConfig.PureLine("H5278"))">
-                    @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+                    @(GlobalFunc.ShowBool(context.PasswordMustBeChanged))
                 </div>
             </Template>
         </Column>
@@ -278,18 +279,18 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
-    private List<UiLdapConnection> writableLdaps = new List<UiLdapConnection>();
-    UiLdapConnection internalLdap = new UiLdapConnection();
+    private List<UiLdapConnection> connectedLdaps = [];
+    private List<UiLdapConnection> writableLdaps = [];
+    UiLdapConnection internalLdap = new();
 
-    private List<UiUser> ldapUsers = new List<UiUser>();
-    private List<UiUser> uiUsers = new List<UiUser>();
-    private List<UiUser> sampleUsers = new List<UiUser>();
-    private List<Tenant> tenants = new List<Tenant>();
-    private List<Tenant> availableTenants = new List<Tenant>();
-    private List<UserGroup> groups = new List<UserGroup>();
-    private List<Role> roles = new List<Role>();
-    private List<Role> availableRoles = new List<Role>();
+    private List<UiUser> ldapUsers = [];
+    private List<UiUser> uiUsers = [];
+    private List<UiUser> sampleUsers = [];
+    private List<Tenant> tenants = [];
+    private List<Tenant> availableTenants = [];
+    private List<UserGroup> groups = [];
+    private List<Role> roles = [];
+    private List<Role> availableRoles = [];
 
     private bool EditMode = false;
     private bool DeleteMode = false;
@@ -299,8 +300,8 @@
     private bool showSampleRemoveButton = false;
     private bool ResetPasswordMode = false;
 
-    private UiUser newUser = new UiUser();
-    private UiUser actUser = new UiUser();
+    private UiUser newUser = new();
+    private UiUser actUser = new();
     private UiLdapConnection? selectedLdap;
     private Tenant? selectedTenant;
     private Role? selectedRole;
@@ -320,12 +321,12 @@
     {
         try
         {
-            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getLdapConnections);
             writableLdaps = connectedLdaps.FindAll(x => x.IsWritable());
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? throw new Exception(userConfig.GetText("E5207"));
 
             // Get the tenants
-            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
 
             // Get users from uiusers table
             RestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
@@ -335,11 +336,11 @@
             }
             else
             {
-                uiUsers = new List<UiUser>();
-                sampleUsers = new List<UiUser>();
+                uiUsers = [];
+                sampleUsers = [];
                 foreach (UserGetReturnParameters apiUser in middlewareServerResponse.Data)
                 {
-                    UiUser user = new UiUser(apiUser);
+                    UiUser user = new(apiUser);
                     user.LdapConnection = connectedLdaps.FirstOrDefault(x => x.Id == user.LdapConnection.Id) ?? throw new ArgumentNullException(nameof(user.LdapConnection.Id));
                     if(user.Tenant != null)
                     {
@@ -360,7 +361,7 @@
 
     private void AnalyseSampleUsers()
     {
-        sampleUsers = new List<UiUser>();
+        sampleUsers = [];
         foreach (var user in uiUsers)
         {
             if (user.Name.EndsWith("_demo"))
@@ -610,7 +611,7 @@
         try
         {
             selectedLdap = newLdap;
-            availableTenants = new List<Tenant>();
+            availableTenants = [];
             if(selectedLdap != null)
             {
                 if (selectedLdap.TenantId != null && selectedLdap.TenantId != 0)
@@ -644,9 +645,9 @@
             SetAvailableTenants(selectedLdap);
             selectedTenant = availableTenants.FirstOrDefault();
             selectedGroup = null;
-            newUser.Groups = new List<string>();
+            newUser.Groups = [];
             selectedRole = null;
-            newUser.Roles = new List<string>();
+            newUser.Roles = [];
             Edit(newUser);
         }
         catch (Exception exception)
@@ -704,13 +705,13 @@
             user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
                 (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == GlobalConst.kTenant0Id && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
         }
-        user.Groups = new List<string>();
+        user.Groups = [];
         if(selectedGroup != null)
         {
             user.Groups.Add(selectedGroup.Name);
         }
         user.PasswordMustBeChanged = true;
-        user.Roles = new List<string>();
+        user.Roles = [];
         if(selectedRole != null)
         {
             user.Roles.Add(selectedRole.Name);
@@ -918,7 +919,7 @@
         try
         {
             var Variables = new { id = user.DbId };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteUser, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.deleteUser, Variables)).DeletedId;
             if (delId == user.DbId)
             {
                 uiUsers.Remove(user);

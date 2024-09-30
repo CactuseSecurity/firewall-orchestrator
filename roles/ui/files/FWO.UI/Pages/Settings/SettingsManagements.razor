@@ -2,6 +2,7 @@
 @using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.DeviceAutoDiscovery
 @using FWO.Middleware.Client
@@ -91,7 +92,7 @@
         <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
-                @(GlobalConfig.ShowBool(!context.ImportDisabled))
+                @(GlobalFunc.ShowBool(!context.ImportDisabled))
             </Template>
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("debug_level"))" Field="@(x => x.DebugLevel)" Sortable="true" Filterable="true" />
@@ -293,18 +294,18 @@
             jwt.Validate();
 
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             else
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
 
             AnalyseSampleManagements();
 
-            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
+            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(DeviceQueries.getDeviceTypeDetails);
 
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
             else
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentialsWithoutSecrets);
+                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentialsWithoutSecrets);
         }
         catch (System.Exception exception)
         {
@@ -354,7 +355,7 @@
             workInProgress = true;
             StateHasChanged();
             var Variables = new { id = actManagement.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == actManagement.Id)
             {
                 managements.Remove(actManagement);
@@ -440,7 +441,7 @@
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newManagement, Variables)).ReturnIds;
                     if (returnIds != null)
                     {
                         actManagement.Id = returnIds[0].NewId;
@@ -472,7 +473,7 @@
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
                     };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagement, Variables)).UpdatedId;
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }

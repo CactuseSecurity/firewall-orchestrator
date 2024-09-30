@@ -13,9 +13,10 @@ namespace FWO.Config.Api
     /// <summary>
     /// Collection of all config data for the current user
     /// </summary>
-    public class UserConfig : Config
+    public class UserConfig : Config, IDisposable
     {
         private readonly GlobalConfig globalConfig;
+        private bool disposedValue;
 
         public Dictionary<string, string> Translate { get; set; }
         public Dictionary<string, string> Overwrite { get; set; } = [];
@@ -40,7 +41,7 @@ namespace FWO.Config.Api
             Translate = globalConfig.LangDict[user.Language!];
             Overwrite = apiConnection != null ? Task.Run(async () => await GetCustomDict(user.Language!)).Result : globalConfig.OverDict[user.Language!];
             this.globalConfig = globalConfig;
-            globalConfig.OnChange += GlobalConfigOnChange;
+            globalConfig.OnChange += OnGlobalConfigChange;
         }
 
         public UserConfig(GlobalConfig globalConfig) : base()
@@ -48,14 +49,14 @@ namespace FWO.Config.Api
             User = new UiUser();
             Translate = globalConfig.LangDict[globalConfig.DefaultLanguage];
             this.globalConfig = globalConfig;
-            globalConfig.OnChange += GlobalConfigOnChange;
+            globalConfig.OnChange += OnGlobalConfigChange;
         }
 
         // only for unit tests
         protected UserConfig() : base()
         {}
         
-        private void GlobalConfigOnChange(Config config, ConfigItem[] changedItems)
+        private void OnGlobalConfigChange(Config config, ConfigItem[] changedItems)
         {
             // Get properties that belong to the user config 
             IEnumerable<PropertyInfo> properties = GetType().GetProperties()
@@ -71,14 +72,14 @@ namespace FWO.Config.Api
 
         public async Task SetUserInformation(string userDn, ApiConnection apiConnection)
         {
-            GlobalConfigOnChange(globalConfig, globalConfig.RawConfigItems);
+            OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
             UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
             if (users.Length > 0)
             {
                 User = users[0];
             }
-            await SetUserId(apiConnection, User.DbId);
+            await InitWithUserId(apiConnection, User.DbId, true);
 
             if (User.Language == null)
             {
@@ -281,6 +282,24 @@ namespace FWO.Config.Api
                 }
             }
             return plainText;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    globalConfig.OnChange -= OnGlobalConfigChange;
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

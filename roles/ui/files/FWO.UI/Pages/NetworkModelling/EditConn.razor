@@ -78,7 +78,8 @@
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.SrcFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.SourceFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
+                                ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -160,7 +161,8 @@
                     {
                         @if(ConnHandler.ActConn.InterfaceIsRequested || ConnHandler.ActConn.IsRequested)
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
+                                ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -219,7 +221,8 @@
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.DstFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.DestinationFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
+                                ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -319,7 +322,7 @@
                 }
                 else
                 {
-                    @if(ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested)
+                    @if((ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested) && !ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()))
                     {
                         <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     }
@@ -332,17 +335,22 @@
                     {
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(ConnHandler.DisplayButton("remove_interface", Icons.Unuse, "interface"))</button>
                     }
+                    @if(ConnHandler.ActConn.IsRequested && !ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()))
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="Reject">@(userConfig.GetText("reject"))</button>
+                    }
                 }
             }
         </div>
-    </div>
+    </div>    
     <InProgress Display="workInProgress"/>
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
     <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
     <EditAppServer @bind-Display="ConnHandler.DisplayAppServerMode" AppServerHandler="ConnHandler.AppServerHandler"/>
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"
         ReplaceMode="ConnHandler.ReplaceMode" Replace="ReplaceInterface"/>
-    <DisplayImplementationTask ReqHandler="reqHandler" States="states" IncludePopups="false"/>
+    <DisplayImplementationTask WfHandler="wfHandler" States="states" IncludePopups="false"/>
+    <RejectInterfacePopup @bind-Display="RejectInterfaceMode" ConnHandler="ConnHandler" RefreshParent="async () => {await ConnHandler.ReInit(); Close();}"/>
 }
 
 @code
@@ -383,10 +391,11 @@
     private static string forbiddenDropzoneClass = "minheight-dropzone bg-white";
     private bool workInProgress = false;
 
-    private RequestHandler reqHandler = new ();
-    private RequestStateDict states = new ();
+    private WfHandler wfHandler = new ();
+    private WfStateDict states = new ();
     private List<int> OwnerIds = new ();
     private ModellingConnection unchangedConn = new();
+    private bool RejectInterfaceMode = false;
 
     protected override void OnInitialized()
     {
@@ -454,7 +463,7 @@
             }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler.NwGroupToDestination(Container.NwGroupElements);
+                ConnHandler.NwGroupToDestination(Container.NwGroupElements);                
             }
             if(Container.AppServerElements.Count > 0)
             {
@@ -512,7 +521,7 @@
             unchangedConn = new(ConnHandler.ActConn);
             if(publishRequested)
             {
-                await PromoteTicket();
+                await PromoteTicketToDone();
             }
             Close();
             return true;
@@ -531,7 +540,12 @@
         Close();
     }
 
-    private async Task PromoteTicket()
+    private void Reject()
+    {
+        RejectInterfaceMode = true;
+    }
+
+    private async Task PromoteTicketToDone()
     {
         if(ConnHandler.ActConn.TicketId != null)
         {
@@ -539,7 +553,7 @@
             {
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor ]);
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
-                if(await ticketCreator.PromoteTicket(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId)))
+                if(await ticketCreator.PromoteNewInterfaceImplTask(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId), ExtStates.Done))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);
                 }
@@ -594,21 +608,21 @@
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
             await states.Init(apiConnection);
             OwnerIds = (await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners)).ConvertAll(x => x.Id);
-            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
-            reqHandler.ReadOnlyMode = true;
-            await reqHandler.Init(OwnerIds, true, true);
-            RequestTicket? ticket = await reqHandler.ResolveTicket((long)ConnHandler.ActConn.TicketId);
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
+            wfHandler.ReadOnlyMode = true;
+            await wfHandler.Init(OwnerIds, true, true);
+            WfTicket? ticket = await wfHandler.ResolveTicket((long)ConnHandler.ActConn.TicketId);
             if(ticket != null)
             {
-                reqHandler.SetTicketEnv(ticket);
-                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                wfHandler.SetTicketEnv(ticket);
+                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
                 if(reqTask != null)
                 {
-                    reqHandler.SetReqTaskEnv(reqTask);
-                    RequestImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
+                    wfHandler.SetReqTaskEnv(reqTask);
+                    WfImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
                     if(implTask != null)
                     {
-                        reqHandler.SelectImplTask(implTask, ObjAction.display);
+                        wfHandler.SelectImplTask(implTask, ObjAction.display);
                     }
                 }
             }
@@ -628,6 +642,7 @@
         ConnHandler.Close();
         ClosingAction();
         workInProgress = false;
+        RejectInterfaceMode = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

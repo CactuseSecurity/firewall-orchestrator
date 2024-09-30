@@ -17,7 +17,7 @@
             {
                 @if (device.Rules != null && device.Rules.Length > 0 && ruleDisplay != null)
                 {
-                    <Collapse Title="@device.Name" Style="@("secondary")" class="vheight75" StartToggled="true">
+                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
                             RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
                             style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
@@ -32,7 +32,7 @@
                                     </Template>
                                 </Column>
                             }
-                            @if(SelectedReportType == ReportType.UnusedRules)
+                            @if(SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules)
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(rule => rule.Metadata.LastHit)" Sortable="false" Filterable="false">
                                     <Template>

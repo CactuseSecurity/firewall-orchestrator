@@ -10,7 +10,7 @@ import cp_const, cp_network, cp_service
 import cp_getter
 from fwo_exception import FwLoginFailed, FwLogoutFailed
 from cp_user import parse_user_objects_from_rulebase
-from fwconfig_base import calcManagerUidHash
+from roles.importer.files.importer.models.fwconfig_base import calcManagerUidHash
 from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
 from fwoBaseImport import ImportState
 from fwo_base import ConfFormat, ConfigAction

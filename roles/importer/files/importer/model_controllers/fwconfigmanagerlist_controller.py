@@ -1,6 +1,5 @@
 import json
 import jsonpickle
-from typing import List, Any, get_type_hints
 import time
 import traceback
 
@@ -11,56 +10,17 @@ from fwo_base import split_list, serializeDictToClassRecursively, deserializeCla
 from fwo_const import max_objs_per_chunk, import_tmp_path
 
 from fwoBaseImport import ImportState, ManagementDetails
-from fwconfig_normalized import FwConfig, FwConfigNormalized
+from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from fwo_base import ConfFormat
-from fwconfig_base import calcManagerUidHash, FwoEncoder
-
-class FwConfigManager():
-    ManagerUid: str
-    ManagerName: str
-    IsGlobal: bool
-    DependantManagerUids: List[str]
-    Configs: List[FwConfigNormalized]
-    # Configs: List[dict]
-
-
-    # def __init__(self, ManagerUid: str, ManagerName: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[FwConfigNormalized]=[]):
-    def __init__(self, ManagerUid: str, ManagerName: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[dict]=[]):
-        """
-            mandatory parameter: ManagerUid, 
-        """
-        self.ManagerUid = ManagerUid
-        self.ManagerName = ManagerName
-        self.IsGlobal = IsGlobal
-        self.DependantManagerUids = DependantManagerUids
-        self.Configs = Configs
-
-    @classmethod
-    def fromJson(cls, jsonDict):
-        ManagerUid = jsonDict['manager_uid']
-        ManagerName = jsonDict['mgm_name']
-        IsGlobal = jsonDict['is_global']
-        DependantManagerUids = jsonDict['dependant_manager_uids']
-        Configs = jsonDict['configs']
-        return cls(ManagerUid, ManagerName, IsGlobal, DependantManagerUids, Configs)
-
-    def __str__(self):
-        return f"{self.ManagerUid}({str(self.Configs)})"
-
+from fwconfig_base import calcManagerUidHash
+from models.fwconfigmanagerlist import FwConfigManagerList
+from model_controllers.fwconfig_controller import FwoEncoder
 
 """
     a list of normalized configuratons of a firewall management to import
     FwConfigManagerList: [ FwConfigManager ]
 """
-class FwConfigManagerList():
-
-    ConfigFormat: ConfFormat
-    ManagerSet: List[FwConfigManager]
-
-    def __init__(self, ConfigFormat=ConfFormat.NORMALIZED, ManagerSet: List[FwConfigManager]=[]):
-        self.ManagerSet = ManagerSet
-        self.ConfigFormat=ConfigFormat
-
+class FwConfigManagerListController(FwConfigManagerList):
     def __str__(self):
         return f"{str(self.ManagerSet)})"
 

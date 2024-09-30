@@ -1,15 +1,28 @@
 from typing import List
 import traceback
 import time, datetime
+import json
 
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
-from fwconfig_normalized import FwConfigNormalized
-from fwconfig_import_base import FwConfigImportBase
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
+from model_controllers.fwconfig_import_base import FwConfigImportBase
+from models.networkobject import NetworkObjectForImport
+from models.serviceobject import ServiceObjectForImport
 import fwo_const
+
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportObject(FwConfigImportBase):
+
+    # @root_validator(pre=True)
+    # def custom_initialization(cls, values):
+    #     values['NetworkObjectTypeMap'] = cls.GetNetworkObjTypeMap()
+    #     values['ServiceObjectTypeMap'] = cls.GetServiceObjTypeMap()
+    #     values['UserObjectTypeMap'] = cls.GetUserObjTypeMap()
+    #     values['ProtocolMap'] = cls.GetProtocolMap()
+    #     values['ColorMap'] = cls.GetColorMap()
+    #     return values
     
     def __init__(self, importState: ImportState, config: FwConfigNormalized):
         super().__init__(importState, config)
@@ -20,29 +33,28 @@ class FwConfigImportObject(FwConfigImportBase):
         self.ProtocolMap = self.GetProtocolMap()
         self.ColorMap = self.GetColorMap()
 
-    def updateObjectDiffs(self, prevConfig: dict):
+    def updateObjectDiffs(self, prevConfig: FwConfigNormalized):
 
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
-        previousNwObjects = prevConfig['network_objects']
-        deletedNwobjUids = previousNwObjects.keys() - self.network_objects.keys()
-        newNwobjUids = self.network_objects.keys() - previousNwObjects.keys()
-        nwobjUidsInBoth = self.network_objects.keys() & previousNwObjects.keys()
+        # previousNwObjects = prevConfig.network_objects
+        deletedNwobjUids = prevConfig.network_objects.keys() - self.NormalizedConfig.network_objects.keys()
+        newNwobjUids = self.NormalizedConfig.network_objects.keys() - prevConfig.network_objects.keys()
+        nwobjUidsInBoth = self.NormalizedConfig.network_objects.keys() & prevConfig.network_objects.keys()
 
         # decide if it is prudent to mix changed, deleted and added rules here:
         for nwObjUid in nwobjUidsInBoth:
-            if previousNwObjects[nwObjUid] != self.network_objects[nwObjUid]:
+            if prevConfig.network_objects[nwObjUid] != self.NormalizedConfig.network_objects[nwObjUid]:
                 newNwobjUids.add(nwObjUid)
                 deletedNwobjUids.add(nwObjUid)
 
         # calculate service object diffs
-        previousSvcObjects = prevConfig['service_objects']
-        deletedSvcObjUids = previousSvcObjects.keys() - self.service_objects.keys()
-        newSvcObjUids = self.service_objects.keys() - previousSvcObjects.keys()
-        svcObjUidsInBoth = self.service_objects.keys() & previousSvcObjects.keys()
+        deletedSvcObjUids = list(prevConfig.service_objects.keys() - self.NormalizedConfig.service_objects.keys())
+        newSvcObjUids = list(self.NormalizedConfig.service_objects.keys() - prevConfig.service_objects.keys())
+        svcObjUidsInBoth = list(self.NormalizedConfig.service_objects.keys() & prevConfig.service_objects.keys())
 
         for uid in svcObjUidsInBoth:
-            if previousSvcObjects[uid] != self.service_objects[uid]:
+            if prevConfig.service_objects[uid] != self.NormalizedConfig.service_objects[uid]:
                 newSvcObjUids.append(uid)
                 deletedSvcObjUids.append(uid)
 
@@ -77,6 +89,8 @@ class FwConfigImportObject(FwConfigImportBase):
         changes = 0
         newNwObjIds = []
         newNwSvcIds = []
+        removedNwObjIds = []
+        removedNwSvcIds = []
         import_mutation = """
             mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
                 update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
@@ -119,7 +133,7 @@ class FwConfigImportObject(FwConfigImportBase):
         try:
             import_result = self.call(import_mutation, queryVariables=queryVariables)
             if 'errors' in import_result:
-                logger.exception(f"fwo_api:importNwObject - error while adding new nw objects: {str(import_result['errors'])}")
+                logger.exception(f"fwo_api:importNwObject - error in updateObjectsViaApi: {str(import_result['errors'])}")
                 errors = 1
             else:
                 changes = int(import_result['data']['insert_object']['affected_rows']) + \
@@ -208,23 +222,18 @@ class FwConfigImportObject(FwConfigImportBase):
     def prepareNewNwObjects(self, newNwobjUids):
         newNwObjs = []
         for nwobjUid in newNwobjUids:
-            newEnrichedNwObj = self.network_objects[nwobjUid].copy() # leave the original dict as is
-
-            obj_color = newEnrichedNwObj.pop('obj_color', None)     # get and remove
-            if obj_color != None:
-                obj_color = self.lookupColor(obj_color)
-            obj_type = newEnrichedNwObj.pop('obj_typ', None)     # get and remove
-            if obj_type != None:
-                obj_type = self.lookupObjType(obj_type)
-
-            newEnrichedNwObj.update({
-                    'mgm_id': self.ImportDetails.MgmDetails.Id,
-                    'obj_create': self.ImportDetails.ImportId,
-                    'obj_last_seen': self.ImportDetails.ImportId,    # could be left out
-                    'obj_color_id': obj_color,
-                    'obj_typ_id': obj_type
-                })
-            newNwObjs.append(newEnrichedNwObj)
+            newNwObj = NetworkObjectForImport(nwObject=self.NormalizedConfig.network_objects[nwobjUid],
+                                                    mgmId=self.ImportDetails.MgmDetails.Id, 
+                                                    importId=self.ImportDetails.ImportId, 
+                                                    colorId=self.lookupColor(self.NormalizedConfig.network_objects[nwobjUid].obj_color), 
+                                                    typId=self.lookupObjType(self.NormalizedConfig.network_objects[nwobjUid].obj_typ))
+            newNwObjJson = newNwObj.toJson()
+            newNwObjs.append(newNwObjJson)
+            # newNwObjs.append(NetworkObjectForImport(nwObject=self.NormalizedConfig.network_objects[nwobjUid],
+            #                                         mgmId=self.ImportDetails.MgmDetails.Id, 
+            #                                         importId=self.ImportDetails.ImportId, 
+            #                                         colorId=self.lookupColor(self.NormalizedConfig.network_objects[nwobjUid].obj_color), 
+            #                                         typId=self.lookupObjType(self.NormalizedConfig.network_objects[nwobjUid].obj_typ)).toJson())
         return newNwObjs
 
     def buildNwObjMemberUidToIdMap(self, newIds):
@@ -252,7 +261,7 @@ class FwConfigImportObject(FwConfigImportBase):
             try:
                 uidMapResult = self.call(buildQuery, queryVariables=queryVariables)
                 if 'errors' in uidMapResult:
-                    logger.exception(f"fwo_api:importNwObject - error while adding new nw objects: {str(uidMapResult['errors'])}")
+                    logger.exception(f"fwo_api:importNwObject - error in buildNwObjMemberUidToIdMap: {str(uidMapResult['errors'])}")
                     errors = 1
                 else:
                     uidMap = uidMapResult['data']['object']
@@ -304,7 +313,7 @@ class FwConfigImportObject(FwConfigImportBase):
             try:
                 import_result = self.call(import_mutation, queryVariables=queryVariables)
                 if 'errors' in import_result:
-                    logger.exception(f"fwo_api:importNwObject - error while adding new nw objects: {str(import_result['errors'])}")
+                    logger.exception(f"fwo_api:importNwObject - error in addNwObjGroupMemberships: {str(import_result['errors'])}")
                     errors = 1
                 else:
                     changes = int(import_result['data']['insert_objgrp']['affected_rows'])
@@ -318,30 +327,37 @@ class FwConfigImportObject(FwConfigImportBase):
     def prepareNewSvcObjects(self, newSvcobjUids):
         newObjs = []
         for uid in newSvcobjUids:
-            newEnrichedSvcObj = self.service_objects[uid].copy() # leave the original dict as is
+            newObjs.append(ServiceObjectForImport(svcObject=self.NormalizedConfig.service_objects[uid],
+                                        mgmId=self.ImportDetails.MgmDetails.Id, 
+                                        importId=self.ImportDetails.ImportId, 
+                                        colorId=self.lookupColor(self.NormalizedConfig.service_objects[uid].svc_color), 
+                                        typId=self.lookupSvcType(self.NormalizedConfig.service_objects[uid].svc_typ),
+                                        ).toDict())
 
-            color = newEnrichedSvcObj.pop('svc_color', None)     # get and remove
-            if color != None:
-                color = self.lookupColor(color)
-            objtype = newEnrichedSvcObj.pop('svc_typ', None)     # get and remove
-            if objtype != None:
-                objtype = self.lookupSvcType(objtype)
-            protoId = newEnrichedSvcObj.pop('ip_proto', None)     # get and remove
-            if protoId != None:
-                protoId = self.lookupProtoNameToId(protoId)
+            # newEnrichedSvcObj = self.NormalizedConfig.service_objects[uid].copy() # leave the original dict as is
 
-            rpcNr = newEnrichedSvcObj.pop('rpc_nr', None)     # get and remove
+            # color = newEnrichedSvcObj.pop('svc_color', None)     # get and remove
+            # if color != None:
+            #     color = self.lookupColor(color)
+            # objtype = newEnrichedSvcObj.pop('svc_typ', None)     # get and remove
+            # if objtype != None:
+            #     objtype = self.lookupSvcType(objtype)
+            # protoId = newEnrichedSvcObj.pop('ip_proto', None)     # get and remove
+            # if protoId != None:
+            #     protoId = self.lookupProtoNameToId(protoId)
 
-            newEnrichedSvcObj.update({
-                    'mgm_id': self.ImportDetails.MgmDetails.Id,
-                    'svc_create': self.ImportDetails.ImportId,
-                    'svc_last_seen': self.ImportDetails.ImportId,   # could be left out
-                    'svc_color_id': color,
-                    'svc_typ_id': objtype,
-                    'ip_proto_id': protoId,
-                    'svc_rpcnr': rpcNr
-                })
-            newObjs.append(newEnrichedSvcObj)
+            # rpcNr = newEnrichedSvcObj.pop('rpc_nr', None)     # get and remove
+
+            # newEnrichedSvcObj.update({
+            #         'mgm_id': self.ImportDetails.MgmDetails.Id,
+            #         'svc_create': self.ImportDetails.ImportId,
+            #         'svc_last_seen': self.ImportDetails.ImportId,   # could be left out
+            #         'svc_color_id': color,
+            #         'svc_typ_id': objtype,
+            #         'ip_proto_id': protoId,
+            #         'svc_rpcnr': rpcNr
+            #     })
+            # newObjs.append(newEnrichedSvcObj)
         return newObjs
 
     # # objects are not deleted but marked as removed
@@ -483,7 +499,10 @@ class FwConfigImportObject(FwConfigImportBase):
             # logger.warning(f"found protocol with an id as name: {str(protoString)}")
             return protoString  # already an int, do nothing
         else:
-            return self.ProtocolMap.get(protoString.lower(), None)
+            if protoString == None:
+                return None
+            else:
+                return self.ProtocolMap.get(protoString.lower(), None)
 
     def prepareChangelogObjects(self, nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved):
         """

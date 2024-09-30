@@ -17,9 +17,12 @@ from fwo_exception import FwoApiLoginFailed, FwLoginFailed, ImportRecursionLimit
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
 from fwoBaseImport import FworchConfig, ImportState
-from fwconfig import FwConfig, FwConfigManagerList, FwConfigNormalized, FwConfigManager
-from fwconfig_base import Gateway, calcManagerUidHash
-from fwconfig_import import FwConfigImport
+# from fwconfig import FwConfig, FwConfigManagerList, FwConfigNormalized, FwConfigManager
+from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
+from models.gateway import Gateway
+from fwconfig_base import calcManagerUidHash
+from model_controllers.fwconfig_import import FwConfigImport
+from model_controllers.gateway_controller import GatewayController
 
 
 """  
@@ -59,7 +62,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         logger.info("import_management - import disabled for mgm " + str(mgmId))
     else:
         Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
-        gateways = Gateway.buildGatewayList(importState.FullMgmDetails)
+        gateways = GatewayController.buildGatewayList(importState.FullMgmDetails)
 
         # only run if this is the correct import module
         if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:

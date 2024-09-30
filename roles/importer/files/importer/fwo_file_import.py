@@ -9,12 +9,14 @@ from fwo_log import getFwoLogger
 import fwo_globals
 from fwo_exception import ConfigFileNotFound
 from fwo_api import complete_import
-from fwconfig import FwConfig, FwConfigManagerList, ConfFormat
+from models.fwconfigmanagerlist import FwConfigManagerList
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.fwconfig_controller import FwConfigController
+from models.fwconfig import FwConfig
+from fwconfig_base import ConfFormat
+
 import traceback
 from fwoBaseImport import ImportState
-# from fwo_base import serializeDictToClassRecursively
-from fwconfig_base import Policy
-from fwconfig_base import FwoEncoder
 
 """
     supported input formats:
@@ -79,17 +81,25 @@ from fwconfig_base import FwoEncoder
 
 
 ################# MAIN FUNC #########################
-def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
+def readJsonConfigFromFile(importState: ImportState) -> FwConfigController:
     configJson = readFile(importState)
     config = None
     logger = getFwoLogger()
 
     # now try to convert to config object
     try:
-        configFwConfigManagerList = serializeDictToClassRecursively(configJson, FwConfigManagerList)
-        if len(configFwConfigManagerList.ManagerSet)==0:
+        managerList = FwConfigManagerListController(**configJson)
+
+        # managerList = serializeDictToClassRecursively(configJson, FwConfigManagerList)
+        if len(managerList.ManagerSet)==0:
             logger.warning(f'read a config file without managersets from {importState.ImportFileName}')
-        return configFwConfigManagerList
+        return managerList
+    # except ValidationError as e:
+    #     print("Validation Error:")
+    #     # Print the error details
+    #     for error in e.errors():
+    #         print(f"Field: {error['loc']}, Error: {error['msg']}") 
+
     except: # legacy stuff from here
         logger.info(f"could not serialize config {str(traceback.format_exc())}")
         if 'ConfigFormat' in configJson:

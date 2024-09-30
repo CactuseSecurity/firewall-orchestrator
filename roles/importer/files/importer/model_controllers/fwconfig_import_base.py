@@ -7,27 +7,29 @@ import fwo_globals
 #from fwo_globals import verify_certs, suppress_cert_warnings, debug_level
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
-from fwconfig_normalized import FwConfigNormalized
+from roles.importer.files.importer.model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from fwo_const import fwo_api_http_import_timeout, import_tmp_path
 from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout
-from fwo_base import ConfigAction
+from fwo_base import ConfigAction, ConfFormat
 
 # this class is used for importing a config into the FWO API
-class FwConfigImportBase(FwConfigNormalized):
+class FwConfigImportBase():
     ImportDetails: ImportState
+    NormalizedConfig: FwConfigNormalized
     
     def __init__(self, importState: ImportState, config: FwConfigNormalized):
         self.FwoApiUrl = importState.FwoConfig.FwoApiUri
         self.FwoJwt = importState.Jwt
         self.ImportDetails = importState
-        super().__init__(action=config.action,
-                         network_objects=config.network_objects,
-                         service_objects=config.service_objects,
-                         users=config.users,
-                         zone_objects=config.zone_objects,
-                         rules=config.rules,
-                         gateways=config.gateways,
-                         ConfigFormat=config.ConfigFormat)
+        self.NormalizedConfig = config
+        # super().__init__(action=config.action,
+        #                  network_objects=config.network_objects,
+        #                  service_objects=config.service_objects,
+        #                  users=config.users,
+        #                  zone_objects=config.zone_objects,
+        #                  rules=config.rules,
+        #                  gateways=config.gateways,
+        #                  ConfigFormat=config.ConfigFormat)
 
     # standard FWO API call
     def call(self, query, queryVariables=""):
@@ -99,12 +101,21 @@ class FwConfigImportBase(FwConfigNormalized):
                                 str(self.ImportDetails.MgmDetails.Id) + ": " + str(queryResult['errors']))
                 return 1 # error
             else:
-                if len(queryResult['data']['latest_config'])>0:
-                    return queryResult['data']['latest_config'][0]['config']
-                    # return FwConfigNormalized(ConfigAction.INSERT, json.loads(queryResult['data']['latest_config'][0]['config']))
+                if len(queryResult['data']['latest_config'])>0: # do we have a prev config?
+                    prevConfigDict = json.loads(queryResult['data']['latest_config'][0]['config'])
                 else:
-                    # if we do not get a previous config, simply return empty config
-                    return FwConfigNormalized(action=ConfigAction.INSERT)
+                    prevConfigDict = {
+                        'action': ConfigAction.INSERT,
+                        'network_objects': {},
+                        'service_objects': {},
+                        'users': {},
+                        'zone_objects': {},
+                        'rules': [],
+                        'gateways': [],
+                        'ConfigFormat': ConfFormat.NORMALIZED_LEGACY
+                    }
+                prevConfig = FwConfigNormalized(**prevConfigDict)
+                return prevConfig
         except:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise Exception(f"error while trying to get the previous config")

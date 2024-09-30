@@ -4,10 +4,14 @@ import traceback
 
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
-from fwconfig_base import ConfigAction, Policy
-from fwconfig_normalized import FwConfigNormalized
-from fwconfig_import_object import FwConfigImportObject
-from fwconfig_import_rule import FwConfigImportRule
+from models.policy import Policy
+from models.gateway import Gateway
+from models.fwconfig_normalized import FwConfigNormalized
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
+from model_controllers.fwconfig_import_object import FwConfigImportObject
+from model_controllers.fwconfig_import_rule import FwConfigImportRule
+from model_controllers.fwconfig_import_object import FwConfigImportObject
+from model_controllers.fwconfig_import_rule import FwConfigImportRule
 import fwo_const
 
 
@@ -22,19 +26,16 @@ Class hierachy:
 # this class is used for importing a config into the FWO API
 class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
     ImportDetails: ImportState
+    FwoApiUrl: str
+    FwoJwt: str
     
     def __init__(self, importState: ImportState, config: FwConfigNormalized):
         self.FwoApiUrl = importState.FwoConfig.FwoApiUri
         self.FwoJwt = importState.Jwt
         self.ImportDetails = importState
-        FwConfigNormalized.__init__(self, action=config.action,
-                         network_objects=config.network_objects,
-                         service_objects=config.service_objects,
-                         users=config.users,
-                         zone_objects=config.zone_objects,
-                         rules=config.rules,
-                         gateways=config.gateways,
-                         ConfigFormat=config.ConfigFormat)
+        self.NormalizedConfig = config
+        
+        FwConfigNormalizedController.__init__(self, importState, config)
         FwConfigImportObject.__init__(self, importState, config)
         FwConfigImportRule.__init__(self, importState, config)
         
@@ -47,11 +48,12 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         # TODO: deal with networking later
         return
 
-    def updateDiffs(self, previousConfig: dict):
-        prevConfigDict = json.loads(previousConfig)
+    def updateDiffs(self, previousConfig: FwConfigNormalized):
+        # prevConfigDict = json.loads(previousConfig)
+        # prevConfigAsObjects = FwConfigNormalized(previousConfig)
 
-        objectErrorCount, objectChangeCount = self.updateObjectDiffs(prevConfigDict)
-        ruleErrorCount, ruleChangeCount = self.updateRuleDiffs(prevConfigDict)
+        objectErrorCount, objectChangeCount = self.updateObjectDiffs(previousConfig)
+        ruleErrorCount, ruleChangeCount = self.updateRuleDiffs(previousConfig)
 
         # update error and change counters
         self.ImportDetails.increaseErrorCounter(objectErrorCount + ruleErrorCount)
@@ -180,35 +182,29 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         # check if all uid refs are valid
         allUsedObjRefs = []
         # add all new obj refs from all rules
-        for policyId in self.rules:
-            ## TODO: clean this up! policy should be detected in json.loads
-            if isinstance(self.rules[policyId], Policy):
-                for ruleId in self.rules[policyId].Rules:
-                    allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_src_refs'].split(fwo_const.list_delimiter)
-                    allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_dst_refs'].split(fwo_const.list_delimiter)
-            else:
-                for ruleId in self.rules[policyId]['Rules']:
-                    allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_src_refs'].split(fwo_const.list_delimiter)
-                    allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_dst_refs'].split(fwo_const.list_delimiter)
+        for policy in self.NormalizedConfig.rules:
+            for ruleId in policy.Rules:
+                allUsedObjRefs += policy.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter)
+                allUsedObjRefs += policy.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter)
 
         # add all nw obj refs from groups
-        for objId in self.network_objects:
-            if self.network_objects[objId]['obj_typ']=='group':
-                if 'obj_member_refs' in self.network_objects[objId] and self.network_objects[objId]['obj_member_refs'] is not None:
-                    allUsedObjRefs += self.network_objects[objId]['obj_member_refs'].split(fwo_const.list_delimiter)
+        for objId in self.NormalizedConfig.network_objects:
+            if self.NormalizedConfig.network_objects[objId].obj_typ=='group':
+                if self.NormalizedConfig.network_objects[objId].obj_member_refs is not None:
+                    allUsedObjRefs += self.NormalizedConfig.network_objects[objId].obj_member_refs.split(fwo_const.list_delimiter)
 
             # TODO: also check color
 
         # now make list unique and get all refs not contained in network_objects
         allUsedObjRefsUnique = list(set(allUsedObjRefs))
-        unresolvableNwObRefs = allUsedObjRefsUnique - self.network_objects.keys()
+        unresolvableNwObRefs = allUsedObjRefsUnique - self.NormalizedConfig.network_objects.keys()
         if len(unresolvableNwObRefs)>0:
             issues.update({'unresolvableNwObRefs': list(unresolvableNwObRefs)})
 
         # check that all obj_typ exist 
         allUsedObjTypes = set()
-        for objId in self.network_objects:
-            allUsedObjTypes.add(self.network_objects[objId]['obj_typ'])
+        for objId in self.NormalizedConfig.network_objects:
+            allUsedObjTypes.add(self.NormalizedConfig.network_objects[objId].obj_typ)
         allUsedObjTypes = list(set(allUsedObjTypes))
         missingNwObjTypes = allUsedObjTypes - self.NetworkObjectTypeMap.keys()
         if len(missingNwObjTypes)>0:
@@ -217,12 +213,12 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
 
         # check if there are any objects with obj_typ<>group and empty ip addresses (breaking constraint)
         nonGroupNwObjWithMissingIps = []
-        for objId in self.network_objects:
-            if self.network_objects[objId]['obj_typ']!='group':
-                ip1 = self.network_objects[objId].get('obj_ip', None)
-                ip2 = self.network_objects[objId].get('obj_ip_end', None)
+        for objId in self.NormalizedConfig.network_objects:
+            if self.NormalizedConfig.network_objects[objId].obj_typ!='group':
+                ip1 = self.NormalizedConfig.network_objects[objId].obj_ip
+                ip2 = self.NormalizedConfig.network_objects[objId].obj_ip_end
                 if ip1==None or ip2==None:
-                    nonGroupNwObjWithMissingIps.append(self.network_objects[objId])
+                    nonGroupNwObjWithMissingIps.append(self.NormalizedConfig.network_objects[objId])
         if len(nonGroupNwObjWithMissingIps)>0:
             issues.update({'non-group network object with undefined IP addresse(s)': list(nonGroupNwObjWithMissingIps)})
 
@@ -233,31 +229,26 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         # check if all uid refs are valid
         allUsedObjRefs = []
         # add all new obj refs from all rules
-        for policyId in self.rules:
-            ## TODO: clean this up! policy should be detected in json.loads
-            if isinstance(self.rules[policyId], Policy):
-                for ruleId in self.rules[policyId].Rules:
-                    allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_svc_refs'].split(fwo_const.list_delimiter)
-            else:
-                for ruleId in self.rules[policyId]['Rules']:
-                    allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_svc_refs'].split(fwo_const.list_delimiter)
+        for policy in self.NormalizedConfig.rules:
+            for ruleId in policy.Rules:
+                allUsedObjRefs += policy.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter)
 
         # add all svc obj refs from groups
-        for objId in self.service_objects:
-            if self.service_objects[objId]['svc_typ']=='group':
-                if 'svc_member_refs' in self.service_objects[objId] and self.service_objects[objId]['svc_member_refs'] is not None:
-                    allUsedObjRefs += self.service_objects[objId]['svc_member_refs'].split(fwo_const.list_delimiter)
+        for objId in self.NormalizedConfig.service_objects:
+            if self.NormalizedConfig.service_objects[objId].svc_typ=='group':
+                if self.NormalizedConfig.service_objects[objId].svc_member_refs is not None:
+                    allUsedObjRefs += self.NormalizedConfig.service_objects[objId].svc_member_refs.split(fwo_const.list_delimiter)
 
         # now make list unique and get all refs not contained in service_objects
         allUsedObjRefsUnique = list(set(allUsedObjRefs))
-        unresolvableObRefs = allUsedObjRefsUnique - self.service_objects.keys()
+        unresolvableObRefs = allUsedObjRefsUnique - self.NormalizedConfig.service_objects.keys()
         if len(unresolvableObRefs)>0:
             issues.update({'unresolvableSvcObRefs': list(unresolvableObRefs)})
 
         # check that all obj_typ exist 
         allUsedObjTypes = set()
-        for objId in self.service_objects:
-            allUsedObjTypes.add(self.service_objects[objId]['svc_typ'])
+        for objId in self.NormalizedConfig.service_objects:
+            allUsedObjTypes.add(self.NormalizedConfig.service_objects[objId].svc_typ)
         allUsedObjTypes = list(set(allUsedObjTypes))
         missingObjTypes = allUsedObjTypes - self.ServiceObjectTypeMap.keys()
         if len(missingObjTypes)>0:
@@ -279,35 +270,28 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         # check if all uid refs are valid
         allUsedObjRefs = []
         # add all user refs from all rules
-        for policyId in self.rules:
-            ## TODO: clean this up! policy should be detected in json.loads
-            if isinstance(self.rules[policyId], Policy):
-                for ruleId in self.rules[policyId].Rules:
-                    if fwo_const.user_delimiter in self.rules[policyId].Rules[ruleId]['rule_src_refs']:
-                        allUsedObjRefs += collectUsersFromRule(self.rules[policyId].Rules[ruleId]['rule_src_refs'].split(fwo_const.list_delimiter))
-                        allUsedObjRefs += collectUsersFromRule(self.rules[policyId].Rules[ruleId]['rule_dst_refs'].split(fwo_const.list_delimiter))
-            else:
-                for ruleId in self.rules[policyId]['Rules']:
-                    if fwo_const.user_delimiter in self.rules[policyId]['Rules'][ruleId]['rule_src_refs']:
-                        allUsedObjRefs += collectUsersFromRule(self.rules[policyId]['Rules'][ruleId]['rule_src_refs'].split(fwo_const.list_delimiter))
-                        allUsedObjRefs += collectUsersFromRule(self.rules[policyId]['Rules'][ruleId]['rule_dst_refs'].split(fwo_const.list_delimiter))
+        for policy in self.NormalizedConfig.rules:
+            for ruleId in policy.Rules:
+                if fwo_const.user_delimiter in policy.Rules[ruleId].rule_src_refs:
+                    allUsedObjRefs += collectUsersFromRule(policy.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
+                    allUsedObjRefs += collectUsersFromRule(policy.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
 
         # add all user obj refs from groups
-        for objId in self.users:
-            if self.users[objId]['user_typ']=='group':
-                if 'user_member_refs' in self.users[objId] and self.users[objId]['user_member_refs'] is not None:
-                    allUsedObjRefs += self.users[objId]['user_member_refs'].split(fwo_const.list_delimiter)
+        for objId in self.NormalizedConfig.users:
+            if self.users[objId].user_typ=='group':
+                if self.users[objId].user_member_refs is not None:
+                    allUsedObjRefs += self.users[objId].user_member_refs.split(fwo_const.list_delimiter)
 
         # now make list unique and get all refs not contained in users
         allUsedObjRefsUnique = list(set(allUsedObjRefs))
-        unresolvableObRefs = allUsedObjRefsUnique - self.users.keys()
+        unresolvableObRefs = allUsedObjRefsUnique - self.NormalizedConfig.users.keys()
         if len(unresolvableObRefs)>0:
             issues.update({'unresolvableUserObRefs': list(unresolvableObRefs)})
 
         # check that all obj_typ exist 
         allUsedObjTypes = set()
-        for objId in self.users:
-            allUsedObjTypes.add(self.users[objId]['user_typ'])
+        for objId in self.NormalizedConfig.users:
+            allUsedObjTypes.add(self.NormalizedConfig.users[objId].user_typ)
         allUsedObjTypes = list(set(allUsedObjTypes))    # make list unique
         missingObjTypes = allUsedObjTypes - self.UserObjectTypeMap.keys()
         if len(missingObjTypes)>0:
@@ -320,30 +304,18 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         # check if all uid refs are valid
         allUsedObjRefs = []
         # add all zone refs from all rules
-        for policyId in self.rules:
-            ## TODO: clean this up! policy should be detected in json.loads
-            if isinstance(self.rules[policyId], Policy):
-                for ruleId in self.rules[policyId].Rules:
-                    if 'rule_src_zone' in self.rules[policyId].Rules[ruleId] and \
-                        self.rules[policyId].Rules[ruleId]['rule_src_zone'] is not None:
-                        allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_src_zone']
-                    if 'rule_dst_zone' in self.rules[policyId].Rules[ruleId] and \
-                        self.rules[policyId].Rules[ruleId]['rule_dst_zone'] is not None:
-                        allUsedObjRefs += self.rules[policyId].Rules[ruleId]['rule_dst_zone']
-            else:
-                for ruleId in self.rules[policyId]['Rules']:
-                    if 'rule_src_zone' in self.rules[policyId]['Rules'][ruleId] and \
-                        self.rules[policyId]['Rules'][ruleId]['rule_src_zone'] is not None:
-                        allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_src_zone']
-                    if 'rule_dst_zone' in self.rules[policyId]['Rules'][ruleId] and \
-                        self.rules[policyId]['Rules'][ruleId]['rule_dst_zone'] is not None:
-                        allUsedObjRefs += self.rules[policyId]['Rules'][ruleId]['rule_dst_zone']
+        for policy in self.NormalizedConfig.rules:
+            for ruleId in policy.Rules:
+                if policy.Rules[ruleId].rule_src_zone is not None:
+                    allUsedObjRefs += policy.Rules[ruleId].rule_src_zone
+                if policy.Rules[ruleId].rule_dst_zone is not None:
+                    allUsedObjRefs += policy.Rules[ruleId].rule_dst_zone
 
         # we currently do not have zone groups - skipping group ref handling
 
         # now make list unique and get all refs not contained in zone_objects
         allUsedObjRefsUnique = list(set(allUsedObjRefs))
-        unresolvableObRefs = allUsedObjRefsUnique - self.zone_objects.keys()
+        unresolvableObRefs = allUsedObjRefsUnique - self.NormalizedConfig.zone_objects.keys()
         if len(unresolvableObRefs)>0:
             issues.update({'unresolvableZoneObRefs': list(unresolvableObRefs)})
 
@@ -479,3 +451,15 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
             return 1 # error
         
         return 0
+
+    def fillGateways(self, importState: ImportState):      
+        for dev in importState.MgmDetails.Devices:
+            gw = Gateway(Uid = f"{dev['name']}_{dev['local_rulebase_name']}",
+                         Name = dev['name'],
+                         Routing=[],    # TODO: routing
+                         Interfaces=[],    # TODO: interfaces
+                         EnforcedPolicyUids=[dev['local_rulebase_name']],
+                         EnforcedNatPolicyUids=[dev['package_name']],
+                         GlobalPolicyUid=None  # TODO: global policy UID
+                         )
+            self.NormalizedConfig.gateways.append(gw)

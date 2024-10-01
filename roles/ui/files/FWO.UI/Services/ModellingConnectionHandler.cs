@@ -1010,12 +1010,13 @@ namespace FWO.Ui.Services
                     ActConn.SyncState();
                     if(AddMode)
                     {
-                        await AddConnectionToDb();
+                        await AddConnectionToDb();                        
                     }
                     else
                     {
                         await UpdateConnectionInDb();
                     }
+                    await ReInit();
                     Close();
                     return true;
                 }

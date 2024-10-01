@@ -149,7 +149,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     rule.update({ 'rule_num': rule_number})
                     if 'name' in rule_orig:
                         rule.update({ 'rule_name': rule_orig['name']})
-                    if 'scope member' in rule:
+                    if 'scope member' in rule_orig:
                         installon_target = []
                         for vdom in rule['scope member']:
                             installon_target.append(vdom['name'] + '_' + vdom['vdom'])
@@ -211,18 +211,16 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     if '_last-modified-by' in rule_orig:
                         rule.update({ 'rule_last_change_admin': rule_orig['_last-modified-by']})
 
-                    if rule_table in rule_access_scope_v4:
+                    if rule_table in rule_access_scope_v4 and len(full_config['rules_hitcount'][localPkgName])>0:
                         for hitcount_config in full_config['rules_hitcount'][localPkgName][0]['firewall policy']:
                             if rule_orig['policyid'] == hitcount_config['policyid']:
                                 rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
-                            else:
-                                rule.update({ 'last_hit': None})
-                    elif rule_table in rule_access_scope_v6:
+                    elif rule_table in rule_access_scope_v6 and len(full_config['rules_hitcount'][localPkgName])>0:
                         for hitcount_config in full_config['rules_hitcount'][localPkgName][0]['firewall policy6']:
                             if rule_orig['policyid'] == hitcount_config['policyid']:
                                 rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
-                            else:
-                                rule.update({ 'last_hit': None})
+                    else:
+                        rule.update({ 'last_hit': None})
 
                     xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, dev_id)
                     rules.append(rule)

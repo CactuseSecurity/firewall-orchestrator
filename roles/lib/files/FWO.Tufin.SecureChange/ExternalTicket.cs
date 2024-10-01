@@ -10,15 +10,6 @@ namespace FWO.Tufin.SecureChange
 {
 	public class ExternalTicket
 	{
-		[JsonProperty("subject"), JsonPropertyName("subject")]
-		public string Subject { get; set; } = "";
-
-		[JsonProperty("priority"), JsonPropertyName("priority")]
-		public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
-
-		[JsonProperty("requester"), JsonPropertyName("requester")]
-		public string Requester { get; set; } = "";
-
 		[JsonProperty("ticketText"), JsonPropertyName("ticketText")]
 		public string TicketText { get; set; } = "";
 
@@ -27,6 +18,9 @@ namespace FWO.Tufin.SecureChange
 
 
 		public ExternalTicket(){}
+
+		public virtual void CreateRequestString(List<WfReqTask> tasks)
+		{}
 
 		public virtual string GetTaskTypeAsString(WfReqTask task)
 		{
@@ -74,7 +68,7 @@ namespace FWO.Tufin.SecureChange
 						headers += $"header: '{p.Name}: {p.Value}' ";
 				}
 			}
-			Log.WriteDebug("API", $"Sending API Call to SecureChange:\nrequest: {request.Method} url: {restClient.Options.BaseUrl} {body} {headers} ");
+			Log.WriteDebug("API", $"Sending API Call to SecureChange:\nrequest: {request.Method}, url: {restClient.Options.BaseUrl}, {body}, {headers} ");
 		}
 
 

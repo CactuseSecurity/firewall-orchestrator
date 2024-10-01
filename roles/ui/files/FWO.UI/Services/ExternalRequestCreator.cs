@@ -143,7 +143,7 @@ namespace FWO.Ui.Services
 			ExternalTicket? ticket;
 			if(extSystemType == ExternalTicketSystemType.TufinSecureChange)
 			{
-				ticket = new SCTicket(actSystem, reqTasks)
+				ticket = new SCTicket(actSystem)
 				{
 					Subject = "test ticket 1", // todo
 					Priority = SCTicketPriority.Low.ToString(), // todo: necessary?
@@ -156,6 +156,7 @@ namespace FWO.Ui.Services
 			}
 			if(ticket != null)
 			{
+				ticket.CreateRequestString(reqTasks);
 				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
 				return JsonSerializer.Serialize(ticket);
 			}

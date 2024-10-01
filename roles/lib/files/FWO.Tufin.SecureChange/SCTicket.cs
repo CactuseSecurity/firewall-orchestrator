@@ -19,6 +19,10 @@ namespace FWO.Tufin.SecureChange
 
 	public class SCTicket : ExternalTicket
 	{
+		public string Subject { get; set; } = "";
+		public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
+		public string Requester { get; set; } = "";
+		
 		private string actTicketTemplate;
 		private SCTaskType actTaskType;
 		private readonly Dictionary<SCTaskType, string> WorkflowNames = new()
@@ -29,10 +33,14 @@ namespace FWO.Tufin.SecureChange
 		};
 
 
-		public SCTicket(ExternalTicketSystem tufinSystem, List<WfReqTask> tasks)
+		public SCTicket(ExternalTicketSystem tufinSystem)
 		{
 			TicketSystem = tufinSystem;
 			actTicketTemplate = TicketSystem.Templates.FirstOrDefault()?.TicketTemplate ?? "";
+		}
+
+		public override void CreateRequestString(List<WfReqTask> tasks)
+		{
 			CreateTicketTasks(tasks);
 			CreateTicketText();
 		}

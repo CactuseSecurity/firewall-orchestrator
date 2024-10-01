@@ -491,3 +491,7 @@ thead {
 .popover-transform:has(.popover, .bs-popover-bottom, .show) div[role=tooltip] {
     transform: translate(0px, 55px) !important;
 }
+
+.curosor-pointer{
+    cursor: pointer;
+}

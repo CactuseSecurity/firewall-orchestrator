@@ -19,9 +19,6 @@ namespace FWO.Tufin.SecureChange
 
 	public class SCTicket : ExternalTicket
 	{
-		public string Subject { get; set; } = "";
-		public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
-		public string OnBehalfOfUser { get; set; } = "";
 		private string actTicketTemplate;
 		private SCTaskType actTaskType;
 		private readonly Dictionary<SCTaskType, string> WorkflowNames = new()
@@ -97,7 +94,7 @@ namespace FWO.Tufin.SecureChange
 			TicketText = actTicketTemplate
 				.Replace("@@TICKET_SUBJECT@@", Subject)
 				.Replace("@@PRIORITY@@", Priority)
-				.Replace("@@ONBEHALF@@", OnBehalfOfUser)
+				.Replace("@@ONBEHALF@@", Requester)
 				.Replace("@@WORKFLOW_NAME@@", WorkflowNames[actTaskType])
 				.Replace("@@TASKS@@", string.Join(",", TicketTasks));
 		}

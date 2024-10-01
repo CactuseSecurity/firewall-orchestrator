@@ -146,8 +146,8 @@ namespace FWO.Ui.Services
 				ticket = new SCTicket(actSystem, reqTasks)
 				{
 					Subject = "test ticket 1", // todo
-					Priority = SCTicketPriority.High.ToString(), // todo: necessary?
-					OnBehalfOfUser = UserConfig.User.Name
+					Priority = SCTicketPriority.Low.ToString(), // todo: necessary?
+					Requester = UserConfig.User.Name
 				};
 			}
 			else

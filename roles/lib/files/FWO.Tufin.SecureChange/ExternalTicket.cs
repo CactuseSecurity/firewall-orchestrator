@@ -10,6 +10,15 @@ namespace FWO.Tufin.SecureChange
 {
 	public class ExternalTicket
 	{
+		[JsonProperty("subject"), JsonPropertyName("subject")]
+		public string Subject { get; set; } = "";
+
+		[JsonProperty("priority"), JsonPropertyName("priority")]
+		public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
+
+		[JsonProperty("requester"), JsonPropertyName("requester")]
+		public string Requester { get; set; } = "";
+
 		[JsonProperty("ticketText"), JsonPropertyName("ticketText")]
 		public string TicketText { get; set; } = "";
 
@@ -57,15 +66,15 @@ namespace FWO.Tufin.SecureChange
 			{
 				if (p.Name == "")
 				{
-					body = $"--data '{p.Value}'";
+					body = $"data: '{p.Value}'";
 				}
 				else
 				{
 					if (p.Name != "Authorization") // avoid logging of credentials
-						headers += $"--header '{p.Name}: {p.Value}' ";
+						headers += $"header: '{p.Name}: {p.Value}' ";
 				}
 			}
-			Log.WriteDebug("API", $"Sending API Call to SecureChange:\ncurl --insecure --request {request.Method} --url {restClient.Options.BaseUrl} {body} {headers} ");
+			Log.WriteDebug("API", $"Sending API Call to SecureChange:\nrequest: {request.Method} url: {restClient.Options.BaseUrl} {body} {headers} ");
 		}
 
 

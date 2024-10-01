@@ -68,6 +68,7 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
     }
     hitcount_task = fmgr_getter.fortinet_api_call(
         sid, fm_api_url, "/sys/hitcount", payload=hitcount_payload, method="get")
+    time.sleep(2)
 
     # get global header rulebase:
     if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
@@ -151,9 +152,9 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                         rule.update({ 'rule_name': rule_orig['name']})
                     if 'scope member' in rule_orig:
                         installon_target = []
-                        for vdom in rule['scope member']:
+                        for vdom in rule_orig['scope member']:
                             installon_target.append(vdom['name'] + '_' + vdom['vdom'])
-                            rule.update({ 'rule_installon': '|'.join(installon_target)})
+                        rule.update({ 'rule_installon': '|'.join(installon_target)})
                     else:
                         rule.update({ 'rule_installon': localPkgName })
                     rule.update({ 'rule_implied': False })
@@ -213,12 +214,12 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
 
                     if rule_table in rule_access_scope_v4 and len(full_config['rules_hitcount'][localPkgName])>0:
                         for hitcount_config in full_config['rules_hitcount'][localPkgName][0]['firewall policy']:
-                            if rule_orig['policyid'] == hitcount_config['policyid']:
-                                rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
+                            if rule_orig['policyid'] == hitcount_config['last_hit']:
+                                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
                     elif rule_table in rule_access_scope_v6 and len(full_config['rules_hitcount'][localPkgName])>0:
                         for hitcount_config in full_config['rules_hitcount'][localPkgName][0]['firewall policy6']:
-                            if rule_orig['policyid'] == hitcount_config['policyid']:
-                                rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
+                            if rule_orig['policyid'] == hitcount_config['last_hit']:
+                                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
                     else:
                         rule.update({ 'last_hit': None})
 

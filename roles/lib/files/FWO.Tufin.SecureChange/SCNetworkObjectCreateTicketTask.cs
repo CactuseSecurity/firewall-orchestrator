@@ -11,8 +11,9 @@ namespace FWO.Tufin.SecureChange
 		{
 			ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement?.ExtMgtData != null ?
 				System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
+			bool shortened = false;
 			TaskText = tasksTemplate
-				.Replace("@@GROUPNAME@@", ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName))
+				.Replace("@@GROUPNAME@@", Sanitizer.SanitizeJsonFieldMand(ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName), ref shortened))
 				.Replace("@@MANAGEMENT_ID@@", extMgt.ExtId ?? "0")
 				.Replace("@@MANAGEMENT_NAME@@", extMgt.ExtName)
 				.Replace("@@MEMBERS@@", ConvertNetworkObjects(extMgt.ExtId));

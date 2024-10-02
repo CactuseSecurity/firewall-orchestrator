@@ -292,7 +292,7 @@
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode" />
+                        IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode" />
                 }
                 else if(actTaskType == WfTaskType.rule_delete)
                 {
@@ -300,18 +300,42 @@
                 }
                 else if(actTaskType == WfTaskType.group_create)
                 {
-                    <div class="col-sm-4 mt-2">
+                    <div class="form-group row mt-2">
                         @if (WfHandler.EditReqTaskMode)
                         {
-                            <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false"/>
+                            <div class="col-sm-2">
+                                <input class="form-check-input" type="radio" checked="@(!grpTypeSvc)" name="shortcutRange" id="nwGrp" @onchange="() => {grpTypeSvc = false;}" >
+                                <label class="col-sm-1 col-form-label col-form-label-sm" for="nwGrp">@(userConfig.GetText("network_group"))</label>
+                            </div>
+                            <div class="col-sm-2">
+                                <input class="form-check-input" type="radio" checked="@(grpTypeSvc)" name="shortcutRange" id="svcGrp" @onchange="() => {grpTypeSvc = true;}" >
+                                <label class="col-sm-1 col-form-label col-form-label-sm" for="svcGrp">@(userConfig.GetText("service_group"))</label>
+                            </div>
+                            <div class="col-sm-4">
+                                @if(!grpTypeSvc)
+                                {
+                                    <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false"/>
+                                }
+                                else
+                                {
+                                    <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+                                        IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
+                                }
+                            </div>
                         }
                         else
                         {
-                            <div class="list-group">
-                                @foreach(var source in actSources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
+                            <div class="list-group col-sm-4">
+                                @foreach(var source in actSources)
                                 {
                                     <div class="list-group-item border bg-secondary">
                                         <label>@NwObjDisplay.DisplayIp(source.IpString, source.IpEndString)</label>
+                                    </div>
+                                }
+                                @foreach(var service in actServices)
+                                {
+                                    <div class="list-group-item border bg-secondary">
+                                        <label>@DisplayBase.DisplayService(service, ipProtos)</label>
                                     </div>
                                 }
                             </div>
@@ -446,6 +470,7 @@
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private List<RuleAction> ruleActions = [];
     private List<Tracking> trackings = [];
+    private List<IpProtocol> ipProtos = [];
 
     private List<NwObjectElement> actSources = [];
     private List<NwObjectElement> actDestinations = [];
@@ -469,6 +494,7 @@
     private FwoOwner? actOwner;
     private FwoOwner? oldOwner;
     private string? actGrpName;
+    private bool grpTypeSvc = false;
     private bool firstParamSet = false;
     private List<Management> managements = [];
     private Management? actManagement;
@@ -484,6 +510,7 @@
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
             managements.Add(new(){ Id = -1, Name = userConfig.GetText("all"), DeviceType = new(){ Id = 0 } });
             managements.AddRange(await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames));
+            ipProtos = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols));
             InitElements();
             firstParamSet = true;
         }
@@ -530,6 +557,7 @@
         actDestinations = WfHandler.ActReqTask.GetNwObjectElements(ElemFieldType.destination);
         actServices = WfHandler.ActReqTask.GetServiceElements();
         actRules = WfHandler.ActReqTask.GetRuleElements();
+        grpTypeSvc = actServices.Count > 0;
     }
 
     private async Task InitComments()
@@ -629,38 +657,26 @@
         foreach(var src in sourcesToDelete)
         {
             actSources.Remove(src);
-            WfReqElement? oldElem = WfHandler.ActReqTask.Elements.FirstOrDefault(x => x.Id == src.ElemId);
-            if(oldElem != null)
-            {
-                WfHandler.ActReqTask.RemovedElements.Add(oldElem);
-                WfHandler.ActReqTask.Elements.Remove(oldElem);
-            }
+            RemoveElem(src.ElemId);
         }
         foreach(var dst in destinationsToDelete)
         {
             actDestinations.Remove(dst);
-            WfReqElement? oldElem = WfHandler.ActReqTask.Elements.FirstOrDefault(x => x.Id == dst.ElemId);
-            if(oldElem != null)
-            {
-                WfHandler.ActReqTask.RemovedElements.Add(oldElem);
-                WfHandler.ActReqTask.Elements.Remove(oldElem);
-            }
+            RemoveElem(dst.ElemId);
         }
         foreach(var svc in servicesToDelete)
         {
             actServices.Remove(svc);
-            WfReqElement? oldElem = WfHandler.ActReqTask.Elements.FirstOrDefault(x => x.Id == svc.ElemId);
-            if(oldElem != null)
-            {
-                WfHandler.ActReqTask.RemovedElements.Add(oldElem);
-                WfHandler.ActReqTask.Elements.Remove(oldElem);
-            }
+            RemoveElem(svc.ElemId);
         }
-        foreach(var src in sourcesToAdd)
+        if(actTaskType != WfTaskType.group_create || !grpTypeSvc)
         {
-            src.TaskId = WfHandler.ActReqTask.Id;
-            actSources.Add(src);
-            WfHandler.ActReqTask.Elements.Add(src.ToReqElement(ElemFieldType.source));
+            foreach(var src in sourcesToAdd)
+            {
+                src.TaskId = WfHandler.ActReqTask.Id;
+                actSources.Add(src);
+                WfHandler.ActReqTask.Elements.Add(src.ToReqElement(ElemFieldType.source));
+            }
         }
         foreach(var dst in destinationsToAdd)
         {
@@ -668,11 +684,14 @@
             actDestinations.Add(dst);
             WfHandler.ActReqTask.Elements.Add(dst.ToReqElement(ElemFieldType.destination));
         }
-        foreach(var svc in servicesToAdd)
+        if(actTaskType != WfTaskType.group_create || grpTypeSvc)
         {
-            svc.TaskId = WfHandler.ActReqTask.Id;
-            actServices.Add(svc);
-            WfHandler.ActReqTask.Elements.Add(svc.ToReqElement());
+            foreach(var svc in servicesToAdd)
+            {
+                svc.TaskId = WfHandler.ActReqTask.Id;
+                actServices.Add(svc);
+                WfHandler.ActReqTask.Elements.Add(svc.ToReqElement());
+            }
         }
         sourcesToDelete = [];
         destinationsToDelete = [];
@@ -688,6 +707,16 @@
             reqElem.DeviceId = actRuleDevice?.Id;
             reqElem.RequestAction = WfHandler.ActReqTask.RequestAction;
             WfHandler.ActReqTask.Elements.Add(reqElem);
+        }
+    }
+
+    private void RemoveElem(long elemId)
+    {
+        WfReqElement? oldElem = WfHandler.ActReqTask.Elements.FirstOrDefault(x => x.Id == elemId);
+        if(oldElem != null)
+        {
+            WfHandler.ActReqTask.RemovedElements.Add(oldElem);
+            WfHandler.ActReqTask.Elements.Remove(oldElem);
         }
     }
 
@@ -800,7 +829,7 @@
         }
         else if (actTaskType == WfTaskType.group_create)
         {
-            if (actGrpName == null || actGrpName == "" || actSources.Count == 0)
+            if (actGrpName == null || actGrpName == "" || (actSources.Count == 0 && actServices.Count == 0))
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
                 return false;

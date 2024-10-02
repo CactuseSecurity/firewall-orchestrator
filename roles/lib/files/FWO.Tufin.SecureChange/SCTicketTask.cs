@@ -21,8 +21,9 @@ namespace FWO.Tufin.SecureChange
 
 		protected string FillHostTemplate(string hostname, string objUid, string objDetails, string mgmtId, string comment)
 		{
+			bool shortened = false;
 			return HostTemplate
-				.Replace("@@HOSTNAME@@", hostname)
+				.Replace("@@HOSTNAME@@", Sanitizer.SanitizeJsonFieldMand(hostname, ref shortened))
 				.Replace("@@OBJECT_UID@@", objUid)
 				.Replace("@@OBJECT_DETAILS@@", objDetails)
 				.Replace("@@MANAGEMENT_ID@@", mgmtId)

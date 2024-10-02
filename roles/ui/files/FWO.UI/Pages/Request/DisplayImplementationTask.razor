@@ -5,6 +5,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Ui.Display
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}")]
 
@@ -117,6 +118,15 @@
                             </div>
                         </div>
                     }
+                    else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString())
+                    {
+                        <div class="col-sm-6">
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                                <label class="col-sm-10 border bg-secondary">@actGrpName</label>
+                            </div>
+                        </div>
+                    }
                 </div>
                 @if(WfHandler.ActImplTask.TaskType == WfTaskType.generic.ToString())
                 {
@@ -203,12 +213,47 @@
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
+                        IpProtos="ipProtos" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
                 else if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
                 {
                     <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
+                else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString())
+                {
+                    <div class="col-sm-4 mt-2">
+                        @if (WfHandler.EditImplTaskMode)
+                        {
+                            @if(actSources.Count > 0)
+                            {
+                                <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false"/>
+                            }
+                            else
+                            {
+                                <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+                                    IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
+                            }
+                        }
+                        else
+                        {
+                            <div class="list-group">
+                                @foreach(var source in actSources)
+                                {
+                                    <div class="list-group-item border bg-secondary">
+                                        <label>@NwObjDisplay.DisplayIp(source.IpString, source.IpEndString)</label>
+                                    </div>
+                                }
+                                @foreach(var service in actServices)
+                                {
+                                    <div class="list-group-item border bg-secondary">
+                                        <label>@DisplayBase.DisplayService(service, ipProtos)</label>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
                 <div class="form-group row mt-2">
                     <div class="col-sm-1">
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
@@ -311,6 +356,7 @@
 
     private List<RuleAction> ruleActions = [];
     private List<Tracking> trackings = [];
+    private List<IpProtocol> ipProtos = [];
     
     private List<NwObjectElement> actSources = [];
     private List<NwObjectElement> actDestinations = [];
@@ -330,6 +376,7 @@
     private FwoOwner? actOwner;
     private FwoOwner? oldOwner;
     private bool newOwnerAssigned = false;
+    private string? actGrpName;
     private bool firstParamSet = false;
 
     private List<WfStateAction> offeredActions = new ();
@@ -344,6 +391,7 @@
         {
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
+            ipProtos = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols));
             firstParamSet = true;
         }
         catch (Exception exception)
@@ -371,6 +419,7 @@
                 actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
                 oldOwner = actOwner;
                 newOwnerAssigned = false;
+                actGrpName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
             }
         }
         catch (Exception exception)

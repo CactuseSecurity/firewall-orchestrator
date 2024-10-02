@@ -138,8 +138,6 @@
 
     private async Task Export()
     {
-        DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("U0001"), true);
-
         if (reportExportFile.Sanitize())
         {
             DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("U0001"), true);

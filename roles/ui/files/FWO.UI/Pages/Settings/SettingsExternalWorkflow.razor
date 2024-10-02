@@ -197,13 +197,15 @@ else
                     });
                 }
                 extTicketingSystemTemplates = extTicketingSystemTemplates.Where(t => t.TicketTemplate != "" || t.TasksTemplate != "").ToList();
-                currentSystems.Add(new ExternalTicketSystem()
+                ExternalTicketSystem newSystem = new()
                 {
                     Type = extTicketingSystemType,
                     Url = extTicketingSystemUrl,
                     Authorization = extTicketingSystemAuth,
                     Templates = extTicketingSystemTemplates
-                });
+                };
+                newSystem.Sanitize();
+                currentSystems.Add(newSystem);
                 configData.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(currentSystems);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("ext_ticket_settings"), userConfig.GetText("U5301"), false);

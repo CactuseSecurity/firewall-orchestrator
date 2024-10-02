@@ -46,6 +46,18 @@ namespace FWO.Tufin.SecureChange
 			return await restClient.ExecuteAsync<int>(request);
 		}
 
+		protected void CheckForProperJson(string jsonString)
+		{
+			try
+			{
+				var tmpObj = System.Text.Json.JsonSerializer.Deserialize<object>(jsonString);
+			}
+			catch (Exception ex)
+			{
+				Log.WriteError("Check Json string: ", ex.ToString());
+			}
+		}
+
 		private void ConfigureRestClientSerialization(SerializerConfig config)
 		{
 			JsonNetSerializer serializer = new (); // Case insensivitive is enabled by default

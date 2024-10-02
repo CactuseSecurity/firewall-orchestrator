@@ -154,5 +154,15 @@ namespace FWO.Api.Data
             }
             else return null;
         }
+
+        public static string SanitizeJsonMand(string input, ref bool shortened)
+        {
+            string output = Regex.Replace(input, @"[^\S ]", "").Trim();
+            if(output.Length < input.Length)
+            {
+                shortened = true;
+            }
+            return output;
+        }
     }
 }

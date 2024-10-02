@@ -439,7 +439,7 @@
         try
         {
             actManagement.SuperManagerId = selectedSuperManagement?.Id;
-            actManagement.ExtMgtData = System.Text.Json.JsonSerializer.Serialize(actExtMgtData);
+            actManagement.ExtMgtData = actExtMgtData.ExtId != null || actExtMgtData.ExtName != null ? System.Text.Json.JsonSerializer.Serialize(actExtMgtData) : null;
             if (actManagement.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);

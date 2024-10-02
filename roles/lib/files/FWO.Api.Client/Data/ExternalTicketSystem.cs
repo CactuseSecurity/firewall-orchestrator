@@ -38,6 +38,20 @@ namespace FWO.Api.Data
 
 		[JsonProperty(nameof(TasksTemplate)), JsonPropertyName(nameof(TasksTemplate))]
 		public string TasksTemplate { get; set; } = "";
+
+		public bool Sanitize()
+        {
+            bool shortened = false;
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Url = Sanitizer.SanitizePasswMand(Url, ref shortened);
+			TicketTemplate = Sanitizer.SanitizeJsonMand(TicketTemplate, ref shortened);
+			TasksTemplate = Sanitizer.SanitizeJsonMand(TasksTemplate, ref shortened);
+			foreach(var template in Templates)
+			{
+				shortened = template.Sanitize();
+			}
+            return shortened;
+        }
 	}
 
 	public class ExternalTicketTemplate
@@ -50,5 +64,14 @@ namespace FWO.Api.Data
 
 		[JsonProperty(nameof(TasksTemplate)), JsonPropertyName(nameof(TasksTemplate))]
 		public string TasksTemplate { get; set; } = "";
+
+		public bool Sanitize()
+        {
+            bool shortened = false;
+            TaskType = Sanitizer.SanitizeMand(TaskType, ref shortened);
+			TicketTemplate = Sanitizer.SanitizeJsonMand(TicketTemplate, ref shortened);
+			TasksTemplate = Sanitizer.SanitizeJsonMand(TasksTemplate, ref shortened);
+            return shortened;
+        }
 	}
 }

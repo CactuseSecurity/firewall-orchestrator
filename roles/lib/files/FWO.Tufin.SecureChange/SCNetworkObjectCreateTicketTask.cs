@@ -13,7 +13,7 @@ namespace FWO.Tufin.SecureChange
 				System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
 			TaskText = tasksTemplate
 				.Replace("@@GROUPNAME@@", ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName))
-				.Replace("@@MANAGEMENT_ID@@", extMgt.ExtId)
+				.Replace("@@MANAGEMENT_ID@@", extMgt.ExtId ?? "0")
 				.Replace("@@MANAGEMENT_NAME@@", extMgt.ExtName)
 				.Replace("@@MEMBERS@@", ConvertNetworkObjects(extMgt.ExtId));
 		}

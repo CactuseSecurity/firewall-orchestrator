@@ -105,6 +105,7 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@ONBEHALF@@", Requester)
 				.Replace("@@WORKFLOW_NAME@@", WorkflowNames[actTaskType])
 				.Replace("@@TASKS@@", string.Join(",", TicketTasks));
+			CheckForProperJson(TicketText);
 		}
 	}
 }

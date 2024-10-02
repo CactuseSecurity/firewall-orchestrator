@@ -158,8 +158,7 @@ namespace FWO.Ui.Services
 			{
 				ticket.CreateRequestString(reqTasks);
 				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
-				bool shortened = false;
-				return Sanitizer.SanitizeMand(JsonSerializer.Serialize(ticket), ref shortened);
+				return JsonSerializer.Serialize(ticket);
 			}
 			return "";
 		}

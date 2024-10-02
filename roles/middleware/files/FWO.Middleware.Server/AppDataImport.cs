@@ -286,7 +286,7 @@ namespace FWO.Middleware.Server
 			// find the user in all connected ldaps
 			foreach (Ldap ldap in connectedLdaps)
 			{
-				if (!ldap.UserSearchPath.IsNullOrEmpty() && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
+				if (!string.IsNullOrEmpty(ldap.UserSearchPath) && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
 				{
 					LdapEntry? ldapUser = ldap.GetUserDetailsFromLdap(userDn);
 					
@@ -320,7 +320,7 @@ namespace FWO.Middleware.Server
 			string tenantName = "";
 
 			// can we derive the users tenant purely from its ldap?
-			if (!ldap.GlobalTenantName.IsNullOrEmpty() || ldap.TenantLevel > 0)
+			if (!string.IsNullOrEmpty(ldap.GlobalTenantName) || ldap.TenantLevel > 0)
 			{
 				if (ldap.TenantLevel > 0)
 				{
@@ -329,7 +329,7 @@ namespace FWO.Middleware.Server
 				}
 				else
 				{
-					if (!ldap.GlobalTenantName.IsNullOrEmpty())
+					if (!string.IsNullOrEmpty(ldap.GlobalTenantName))
 					{
 						tenantName = ldap.GlobalTenantName ?? "";
 					}

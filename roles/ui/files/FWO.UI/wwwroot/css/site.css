@@ -478,6 +478,20 @@ thead {
     background-color: #a4d7f5;
 }
 
-div.table-responsive {
-    overflow-x: visible !important;
+.table-responsive:has(.popover, .bs-popover-bottom, .show) {
+    overflow-x: visible;
+}
+
+.table-responsive:has(.popover, .bs-popover-bottom, .show) div {
+    overflow-x: visible;
+    inset: unset !important;
+    transform: none !important;
+}
+
+.popover-transform:has(.popover, .bs-popover-bottom, .show) div[role=tooltip] {
+    transform: translate(0px, 55px) !important;
+}
+
+.curosor-pointer{
+    cursor: pointer;
 }

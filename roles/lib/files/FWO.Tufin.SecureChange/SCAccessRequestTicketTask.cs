@@ -66,41 +66,67 @@ namespace FWO.Tufin.SecureChange
 		{
 			return portEnd == null || portEnd == 0 || port == portEnd ? $"{port}" : $"{port}-{portEnd}";
 		}
-
-		// static private string ConvertNetworkObjectWrapperssToTufinJsonString(List<ModellingAppServerWrapper> nwObjects)
-		// {
-		// 	// TODO: this is just a mock-up, needs to handle app roles, ...
-		// 	string result = "[";
-		// 	foreach (ModellingAppServerWrapper srv in nwObjects)
-		// 	{
-		// 		result += $@"{{
-		// 							""@type"": ""IP"",
-		// 							""ip_address"": ""{srv.Content.Ip}"",
-		// 							""netmask"": ""255.255.255.255"",
-		// 							""cidr"": 32
-		// 					}},";
-		// 	}
-		// 	result = result.TrimEnd(',');
-		// 	result += "]";
-		// 	return result;
-		// }
-
-		// static private string ConvertNetworkServiceWrapperssToTufinJsonString(List<ModellingServiceWrapper> services)
-		// {
-		// 	string result = "[";
-		// 	foreach (ModellingServiceWrapper svc in services)
-		// 	{
-		// 		result += $@"
-		// 		{{
-		// 			""@type"": ""PROTOCOL"", 
-		// 			""protocol"": ""{svc.Content.ProtoId}"", 
-		// 			""port"": {svc.Content.Port},
-		// 			""name"": ""{svc.Content.Name}""
-		// 		}},";
-		// 	}
-		// 	result = result.TrimEnd(',');
-		// 	result += "]";
-		// 	return result;
-		// }
 	}
 }
+
+// {
+// 	"@xsi.type": "multi_access_request",
+// 	"name": "Gewünschter Zugang",
+// 	"read_only": false,
+// 	"access_request": {
+// 		"order": "AR1",
+// 		"verifier_result": {
+// 			"status": "not run"
+// 		},
+// 		"use_topology": true,
+// 		"targets": {
+// 			"target": {
+// 				"@type": "ANY"
+// 			}
+// 		},
+// 		"users": {
+// 			"user": @@USERS@@
+// 		},
+// 		"sources": {
+// 			"source": @@SOURCES@@
+// 		},
+// 		"destinations": {
+// 			"destination": @@DESTINATIONS@@
+// 		},
+// 		"services": {
+// 			"service": @@SERVICES@@
+// 		},
+// 		"action": "@@ACTION@@",
+// 		"labels": ""
+// 	}
+// },
+// {
+// 	"@xsi.type": "text_area",
+// 	"name": "Grund für den Antrag",
+// 	"read_only": false,
+// 	"text": "@@REASON@@"
+// },
+// {
+// 	"@xsi.type": "drop_down_list",
+// 	"name": "Regel Log aktivieren?",
+// 	"selection": "@@LOGGING@@"
+// },
+// {
+// 	"@xsi.type": "date",
+// 	"name": "Regel befristen bis:"
+// },
+// {
+// 	"@xsi.type": "text_field",
+// 	"name": "Anwendungs-ID",
+// 	"text": "@@APPID@@"
+// },
+// {
+// 	"@xsi.type": "checkbox",
+// 	"name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
+// 	"value":  @@COM_DOCUMENTED@@
+// },
+// {
+// 	"@xsi.type": "drop_down_list",
+// 	"name": "Expertenmodus: Exakt wie beantragt implementieren (Designervorschlag ignorieren)",
+// 	"selection": "Nein"
+// }

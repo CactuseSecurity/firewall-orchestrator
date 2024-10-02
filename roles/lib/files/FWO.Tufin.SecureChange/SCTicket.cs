@@ -22,7 +22,7 @@ namespace FWO.Tufin.SecureChange
 		public string Subject { get; set; } = "";
 		public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
 		public string Requester { get; set; } = "";
-		
+
 		private string actTicketTemplate;
 		private SCTaskType actTaskType;
 		private readonly Dictionary<SCTaskType, string> WorkflowNames = new()
@@ -109,9 +109,93 @@ namespace FWO.Tufin.SecureChange
 	}
 }
 
-	/*
+// {
+// 	"ticket": {
+// 		"subject": "@@TICKET_SUBJECT@@",
+// 		"priority": "@@PRIORITY@@",
+// 		"requester": "@@ONBEHALF@@",
+// 		"domain_name": "",
+// 		"workflow": {
+// 			"name": "@@WORKFLOW_NAME@@"
+// 		},
+// 		"steps": {
+// 			"step": [
+// 				{
+// 					"name": "Erfassung des Antrags",
+// 					"tasks": {
+// 						"task": {
+// 							"fields": {
+// 								"field": [
+// 										@@TASKS@@
+// 								]
+// 							}
+// 						}
+// 					}
+// 				}
+// 			]
+// 		}
+// 	}
+// }
 
-		Create Ticket Sample Call
+
+	/*
+		Create Ticket for creating network groups
+
+		parameters:
+		- management_id: we need to get all management ids from tufin st?
+		- 
+
+		workflow:
+		- get all management ids (from sc or do we need to access sc as well?)
+		- loop over all managements
+		  - create group modify ticket with all groups of the app (first: adds only)
+		  - store ticket ids for checking status
+		  - check status and wait for status "closed"
+
+		curl --request POST \
+			--insecure \
+			--url https://tufin-stest.xxx.de/securechangeworkflow/api/securechange/tickets.json \
+			--header 'Authorization: Basic xxx' \
+			--header 'Content-Type: application/json' \
+			--data '{
+			"ticket": {
+				"subject": "Neue automatische Gruppenerstellung",
+				"priority": "Normal",
+				"domain_name": "",
+				"workflow": {
+					"name": "Automatische Gruppenerstellung"
+				},
+				"steps": {
+					"step": [
+						{
+							"name": "Submit Request",
+							"tasks": {
+								"task": {
+									"fields": {
+										"field": {
+											"@xsi.type": "multi_group_change",
+											"name": "Modify network object group",
+											"group_change": {
+												"name": "test-group-change-ticket-1",
+												"management_id": 1,
+												"management_name": mgmt_name,
+												"members": {
+													"member": []
+												},
+												"change_action": "CREATE"
+											}
+										}
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		}'
+
+
+		Create Ticket for access rule
 
 		curl --request POST \
 			--insecure \
@@ -238,6 +322,4 @@ namespace FWO.Tufin.SecureChange
 					}
 				}
 			}'
-
 	*/
-

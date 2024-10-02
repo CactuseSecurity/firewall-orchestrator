@@ -113,7 +113,7 @@ namespace FWO.Api.Data
         {
             if (input!=null)
             {
-                 return SanitizeCommentMand(input, ref shortened);
+                return SanitizeCommentMand(input, ref shortened);
             }
             else return null;
         }
@@ -131,7 +131,6 @@ namespace FWO.Api.Data
                         shortened = true;
                     }
                 }
-
             }
             return output;
         }

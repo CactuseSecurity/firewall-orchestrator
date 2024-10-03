@@ -166,7 +166,10 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
         logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
     cp_network.normalize_network_objects(nativeConfig, normalizedConfig, importState.ImportId, mgm_id=importState.MgmDetails.Id)
+    logger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(nativeConfig, normalizedConfig, importState.ImportId)
+    logger.info("completed normalizing service objects")
+
     # TODO: re-add user import
     # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
     if importState.ImportVersion>8:
@@ -175,6 +178,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
         normalizedConfig.update({'rules':  cp_rule.normalize_rulebases_top_level(nativeConfig, importState.ImportId, normalizedConfig) })
     if not parsing_config_only: # get config from cp fw mgr
         logout_cp("https://" + importState.MgmDetails.Hostname + ":" + str(importState.FullMgmDetails['port']) + "/web_api/", sid)
+    logger.info("completed normalizing rulebases")
     
     # put dicts into object of class FwConfigManager
     normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 
@@ -194,6 +198,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
     listOfManagers = FwConfigManagerList()
 
     listOfManagers.addManager(manager)
+    logger.info("completed getting config")
     
     return 0, listOfManagers
 

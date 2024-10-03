@@ -76,5 +76,5 @@ class ServiceObjectForImport():
             'mgm_id': self.mgm_id
         }
 
-    def toJson (self):
-        return json.dumps(self.toDict())
+    # def toJson (self):
+    #     return json.dumps(self.toDict())

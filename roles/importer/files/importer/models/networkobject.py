@@ -101,9 +101,9 @@ class NetworkObjectForImport():
             result.update({'obj_ip_end': self.obj_ip_end})
         return result
 
-    def toJson (self):
-        nwObjDict = self.toDict()
-        return nwObjDict
-        # result = json.dumps(nwObjDict)
+    # def toJson (self):
+    #     nwObjDict = self.toDict()
+    #     return nwObjDict
+    #     # result = json.dumps(nwObjDict)
         # return result
         # return json.dumps(self.toDict())

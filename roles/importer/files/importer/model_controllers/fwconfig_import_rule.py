@@ -1,12 +1,11 @@
-from typing import List
 import traceback
 from difflib import ndiff
 
+from models.rule import RuleForImport
 from fwoBaseImport import ImportState
-from roles.importer.files.importer.model_controllers.fwconfig_normalized_controller import FwConfigNormalized
-from roles.importer.files.importer.model_controllers.fwconfig_import_base import FwConfigImportBase
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
+from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import getFwoLogger
-from pydantic import root_validator
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
@@ -35,29 +34,41 @@ class FwConfigImportRule(FwConfigImportBase):
         deletedRuleUids = {}
         newRuleUids = {}
         ruleUidsInBoth = {}
+        previousPolicyUids = []
+        currentPolicyUids = []
 
-        for rulebaseId in prevConfig.rules:
-            if rulebaseId in self.NormalizedConfig.rules:
-                deletedRuleUids.update({ rulebaseId: prevConfig.rules[rulebaseId].Rules.keys() - self.NormalizedConfig.rules[rulebaseId].Rules.keys() })
-                newRuleUids.update({ rulebaseId: list(self.NormalizedConfig.rules[rulebaseId].Rules.keys() - prevConfig.rules[rulebaseId].Rules.keys()) })
-                ruleUidsInBoth.update({ rulebaseId: self.NormalizedConfig.rules[rulebaseId].Rules.keys() & prevConfig.rules[rulebaseId].Rules.keys() })
+        # collect policy UIDs of previous config
+        for policy in prevConfig.rules:
+            previousPolicyUids.append(policy.Uid)
+
+        # collect policy UIDs of current (just imported) config
+        for policy in self.NormalizedConfig.rules:
+            currentPolicyUids.append(policy.Uid)
+
+        for rulebaseId in previousPolicyUids:
+            if rulebaseId in currentPolicyUids:
+                # deal with policies contained both in this and previous config
+                currentPolicy = [pol for pol in self.NormalizedConfig.rules if pol.Uid == rulebaseId]
+                previousPolicy = [pol for pol in prevConfig.rules if pol.Uid == rulebaseId]
+
+                deletedRuleUids.update({ rulebaseId: list(previousPolicy.Rules.keys() - currentPolicy.Rules.keys()) })
+                newRuleUids.update({ rulebaseId: list(currentPolicy.Rules.keys() - previousPolicy.Rules.keys()) })
+                ruleUidsInBoth.update({ rulebaseId: list(currentPolicy.Rules.keys() & previousPolicy.Rules.keys()) })
             else:
                 logger.info(f"previous rulebase has been deleted: {rulebaseId}")
-                deletedRuleUids.update({ rulebaseId: prevConfig.rules[rulebaseId].Rules.keys() })
+                deletedRuleUids.update({ rulebaseId: list(previousPolicy.Rules.keys()) })
 
         # now deal with new rulebases (not contained in previous config)
-        # for policy in [item for item in self.NormalizedConfig.rules if item not in prevConfig.rules]: # set(self.NormalizedConfig.rules) - set(prevConfig.rules):
-        oldPolicyUids = []
-        for policy in prevConfig.rules:
-            oldPolicyUids.append(policy.Uid)
         for policy in self.NormalizedConfig.rules:
-            if policy.Uid not in oldPolicyUids:
-                newRuleUids.update({ policy.Uid: list(self.NormalizedConfig.rules[policy.Uid].Rules.keys()) })
+            if policy.Uid not in previousPolicyUids:
+                newRuleUids.update({ policy.Uid: list(policy.Rules.keys()) })
 
         # find changed rules
         # TODO: need to ignore last_hit! 
         for rulebaseId in ruleUidsInBoth:
             changedRuleUids.update({ rulebaseId: [] })
+            currentPolicy = [pol for pol in self.NormalizedConfig.rules if pol.Uid == rulebaseId]
+            previousPolicy = [pol for pol in prevConfig.rules if pol.Uid == rulebaseId]
             for ruleUid in ruleUidsInBoth[rulebaseId]:
                 if self.ruleChanged(rulebaseId, ruleUid, prevConfig):
                     changedRuleUids[rulebaseId].append(ruleUid)
@@ -119,9 +130,9 @@ class FwConfigImportRule(FwConfigImportBase):
     # - full database table of current rules of the rulebase at hand
     # update attribute rule_num_numeric of all new rules in current rulebases
     def setNewRulesNumbering(self, previousRules):
-
+        return
         # first deal with new rulebases
-        for newRbName in self.rules:
+        for newRbName in self.NormalizedConfig.rules:
             if newRbName not in previousRules:
                 # if rulebase is new, simply for all rules: set rule_num_numeric to 1000*rule_num
                 for ruleUid in self.rules[newRbName]['Rules']:
@@ -393,9 +404,16 @@ class FwConfigImportRule(FwConfigImportBase):
 
     def prepareNewRules(self, newRuleUids):
         newRules = []
-        for rulebaseName in newRuleUids:
-            for ruleUid in newRuleUids[rulebaseName]:
-                newEnrichedRule = self.rules[rulebaseName]['Rules'][ruleUid].copy() # leave the original dict as is
+        for rulebaseUid in newRuleUids:
+            currentPolicy = [pol for pol in self.NormalizedConfig.rules if pol.Uid == rulebaseUid]
+            if len(currentPolicy)==1:
+                currentPolicy = currentPolicy.pop()
+            else:
+                logger = getFwoLogger()
+                logger.warning("did not find exactly one policy for rulebaseUid")
+
+            for ruleUid in newRuleUids[rulebaseUid]:
+                newEnrichedRule = RuleForImport(currentPolicy.Rules[ruleUid]) # leave the original dict as is
 
                 # TODO: resolve:
                 #   "rule_num": 1, // no - need to handle order otherwise!

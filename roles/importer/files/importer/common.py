@@ -9,15 +9,14 @@ from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
 from fwo_log import getFwoLogger
-from fwo_config import readConfig
-from fwo_const import fw_module_name, full_config_size_limit
-from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name, import_tmp_path
+from fwo_const import fw_module_name
+from fwo_const import import_tmp_path
 import fwo_globals
-from fwo_exception import FwoApiLoginFailed, FwLoginFailed, ImportRecursionLimitReached
+from fwo_exception import FwLoginFailed, ImportRecursionLimitReached
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
-from fwoBaseImport import FworchConfig, ImportState
-# from fwconfig import FwConfig, FwConfigManagerList, FwConfigNormalized, FwConfigManager
+from fwoBaseImport import ImportState
+from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from models.gateway import Gateway
 from fwconfig_base import calcManagerUidHash

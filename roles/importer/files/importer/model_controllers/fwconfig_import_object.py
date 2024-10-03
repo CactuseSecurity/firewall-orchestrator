@@ -227,8 +227,8 @@ class FwConfigImportObject(FwConfigImportBase):
                                                     importId=self.ImportDetails.ImportId, 
                                                     colorId=self.lookupColor(self.NormalizedConfig.network_objects[nwobjUid].obj_color), 
                                                     typId=self.lookupObjType(self.NormalizedConfig.network_objects[nwobjUid].obj_typ))
-            newNwObjJson = newNwObj.toJson()
-            newNwObjs.append(newNwObjJson)
+            newNwObjDict = newNwObj.toDict()
+            newNwObjs.append(newNwObjDict)
             # newNwObjs.append(NetworkObjectForImport(nwObject=self.NormalizedConfig.network_objects[nwobjUid],
             #                                         mgmId=self.ImportDetails.MgmDetails.Id, 
             #                                         importId=self.ImportDetails.ImportId, 

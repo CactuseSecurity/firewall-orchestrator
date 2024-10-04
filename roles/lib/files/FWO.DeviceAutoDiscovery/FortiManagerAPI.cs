@@ -1,5 +1,4 @@
 ﻿using RestSharp;
-using RestSharp.Serializers.SystemTextJson;
 using System.Text.Json;
 using FWO.GlobalConstants;
 using FWO.Api.Data;

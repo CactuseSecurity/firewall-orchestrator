@@ -321,7 +321,7 @@ namespace FWO.Ui.Services
         {
             if(interf.SourceFilled() != ActConn.SourceFilled() || interf.DestinationFilled() != ActConn.DestinationFilled())
             {
-                DisplayMessageInUi(null, userConfig.GetText("replace"), userConfig.GetText("E9015"), true);
+                DisplayMessageInUi(null, userConfig.GetText("replace"), userConfig.GetText("E9017"), true);
                 return;
             }
             ReplaceMode = true;

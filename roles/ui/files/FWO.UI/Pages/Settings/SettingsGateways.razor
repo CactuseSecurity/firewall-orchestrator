@@ -1,4 +1,4 @@
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
@@ -364,12 +364,13 @@
             DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (!actDevice.ImportDisabled && !string.IsNullOrEmpty(actDevice.LocalRulebase) && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
-            && dev.LocalRulebase == actDevice.LocalRulebase && dev.Id != actDevice.Id && !dev.ImportDisabled) != null)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);
-            return false;
-        }
+//      disabling duplicate check because we need duplicate gateways in some cases: one policy for multiple gateways
+//        if (!actDevice.ImportDisabled && !string.IsNullOrEmpty(actDevice.LocalRulebase) && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
+//            && dev.LocalRulebase == actDevice.LocalRulebase && dev.Id != actDevice.Id && !dev.ImportDisabled) != null)
+//        {
+//            DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);
+//            return false;
+//        }
         return true;
     }
 

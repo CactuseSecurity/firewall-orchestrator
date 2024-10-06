@@ -1,6 +1,6 @@
 ﻿@using System
 @using FWO.Config.Api
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
@@ -40,7 +40,7 @@
                         <div class="mt-2">
                             <CascadingValue Value="collapseSidebarReport">
                                 <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.report" InputDataType="ManagementReport" 
-                                    Data="CurrentReport.ReportData.ManagementData.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))"
+                                    Data="CurrentReport.ReportData.ManagementData.Where(m => m.ContainsRules())"
                                     NameExtractor="man => man.Name"
                                     NetworkObjectExtractor="man => man.ReportObjects"
                                     NetworkServiceExtractor="man => man.ReportServices"
@@ -57,7 +57,7 @@
                         <div class="mt-2">
                             <CascadingValue Value="collapseSidebarRule">
                                 <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="SelectedRules"
-                                    NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                    NameExtractor=@(rule => $"{rule.RulebaseName} - Rule {rule.Id} {rule.Name}")
                                     NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
                                         .Union(rule.Tos.Select(nl => nl.Object))
                                         .Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object))

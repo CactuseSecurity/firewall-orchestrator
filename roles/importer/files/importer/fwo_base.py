@@ -1,10 +1,42 @@
 import json
-import jsonpickle
-from fwo_data_networking import InterfaceSerializable, RouteSerializable
+from copy import deepcopy
+import re
+from enum import Enum
+from typing import List, Any, get_type_hints
+import ipaddress 
+
 import fwo_globals
 from fwo_const import max_objs_per_chunk, csv_delimiter, apostrophe, line_delimiter
 from fwo_log import getFwoLogger, getFwoAlertLogger
-from copy import deepcopy
+# from fwconfig_base import Policy
+
+
+class ConfigAction(Enum):
+    INSERT = 'INSERT'
+    UPDATE = 'UPDATE'
+    DELETE = 'DELETE'
+
+class ConfFormat(Enum):
+    # NORMALIZED = auto()
+    NORMALIZED = 'NORMALIZED'
+    
+    CHECKPOINT = 'CHECKPOINT'
+    FORTINET = 'FORTINET'
+    PALOALTO = 'PALOALTO'
+    CISCOFIREPOWER = 'CISCOFIREPOWER'
+
+    NORMALIZED_LEGACY = 'NORMALIZED_LEGACY'
+
+    CHECKPOINT_LEGACY = 'CHECKPOINT_LEGACY'
+    FORTINET_LEGACY = 'FORTINET_LEGACY'
+    PALOALTO_LEGACY = 'PALOALTO_LEGACY'
+    CISCOFIREPOWER_LEGACY = 'CISCOFIREPOWER_LEGACY'
+
+    @staticmethod
+    def IsLegacyConfigFormat(confFormatString):
+        return ConfFormat(confFormatString) in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
+                                    ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
+                                    ConfFormat.PALOALTO_LEGACY]
 
 
 def split_list(list_in, max_list_length):
@@ -18,76 +50,6 @@ def split_list(list_in, max_list_length):
             list_of_lists.append(list_in[i:last_element_in_chunk])
             i += max_list_length
     return list_of_lists
-
-
-# split the config into chunks of max size "max_objs_per_chunk" to avoid 
-# timeout of import while writing data to import table
-# each object table to import is handled here 
-def split_config(config2import, current_import_id, mgm_id):
-    conf_split_dict_of_lists = {}
-    max_number_of_chunks = 0
-    logger = getFwoLogger()
-
-    object_lists = ["network_objects", "service_objects", "user_objects", "rules", "zone_objects", "interfaces", "routing"]
-
-    for obj_list_name in object_lists:
-        if obj_list_name in config2import:
-
-            if obj_list_name == 'interfaces':
-                if_obj_list = config2import['interfaces']
-                if_obj_list_ser = []
-                for iface in if_obj_list:
-                    if_obj_list_ser.append(InterfaceSerializable(iface))
-                if_dict = json.loads(jsonpickle.encode(if_obj_list_ser, unpicklable=False))
-                config2import['interfaces'] = if_dict
-
-            if obj_list_name == 'routing':
-                route_obj_list = config2import['routing']
-                route_obj_list_ser = []
-                for route in route_obj_list:
-                    route_obj_list_ser.append(RouteSerializable(route))
-                route_dict = json.loads(jsonpickle.encode(route_obj_list_ser, unpicklable=False))
-                config2import['routing'] = route_dict
-                
-            split_list_tmp = split_list(config2import[obj_list_name], max_objs_per_chunk)
-            conf_split_dict_of_lists.update({obj_list_name: split_list_tmp})
-            if len(split_list_tmp)>max_number_of_chunks:
-                max_number_of_chunks = len(split_list_tmp)
-        else:
-            conf_split_dict_of_lists.update({obj_list_name: []})
-    conf_split = []
-    current_chunk = 0
-    while current_chunk<max_number_of_chunks:
-        single_chunk = {}
-        for obj_list_name in object_lists:
-            single_chunk[obj_list_name] = []
-        for obj_list_name in object_lists:
-            if current_chunk<len(conf_split_dict_of_lists[obj_list_name]):
-                single_chunk[obj_list_name] = conf_split_dict_of_lists[obj_list_name][current_chunk]
-
-        conf_split.append(single_chunk)
-        current_chunk += 1
-
-    # now adding meta data around (start_import_flag used as trigger)
-    config_split_with_metadata = []
-    current_chunk_number = 0
-    for conf_chunk in conf_split:
-        config_split_with_metadata.append({
-            "config": conf_chunk,
-            "start_import_flag": False,
-            "importId": int(current_import_id), 
-            "mgmId": int(mgm_id), 
-            "chunk_number": current_chunk_number
-        })
-        current_chunk_number += 1
-    # setting the trigger in the last chunk:
-    if len(config_split_with_metadata)>0:
-        config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
-    else:
-        logger.warning('got empty config (no chunks at all)')
-    if fwo_globals.debug_level>0 and len(config_split_with_metadata)>0:
-        config_split_with_metadata[len(config_split_with_metadata)-1]["debug_mode"] = True
-    return config_split_with_metadata
 
 
 def csv_add_field(content, no_csv_delimiter=False):
@@ -168,3 +130,173 @@ def set_ssl_verification(ssl_verification_mode):
         if fwo_globals.debug_level>5:
             logger.debug("ssl_verification: [ca]certfile=" + ssl_verification)
     return ssl_verification
+
+
+def stringIsUri(s):
+    return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s)
+
+
+def serializeDictToClass(data: dict, cls):
+    # Unpack the dictionary into keyword arguments
+    return cls(**data)
+
+
+def serializeDictToClassRecursively(data: dict, cls: Any) -> Any:
+    try:
+        init_args = {}
+        type_hints = get_type_hints(cls)
+
+        if type_hints == {}:
+            raise ValueError(f"no type hints found, assuming dict '{str(cls)}")
+
+        for field, field_type in type_hints.items():
+
+            if field in data:
+                value = data[field]
+
+                # Handle list types
+                if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+                    inner_type = field_type.__args__[0]
+                    if isinstance(value, list):
+                        init_args[field] = [
+                            serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item
+                            for item in value
+                        ]
+                    else:
+                        raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
+
+                # Handle dictionary (nested objects)
+                elif isinstance(value, dict):
+                    init_args[field] = serializeDictToClassRecursively(value, field_type)
+
+                # Handle Enum types
+                elif isinstance(field_type, type) and issubclass(field_type, Enum):
+                    init_args[field] = field_type[value]
+
+                # Direct assignment for basic types
+                else:
+                    init_args[field] = value
+
+        # Create an instance of the class with the collected arguments
+        return cls(**init_args)
+
+    except (TypeError, ValueError, KeyError) as e:
+        # If an error occurs, return the original dictionary as is
+        return data
+
+
+def oldSerializeDictToClassRecursively(data: dict, cls: Any) -> Any:
+    # Create an empty dictionary to store keyword arguments
+    init_args = {}
+
+    # Get the class's type hints (this is a safer way to access annotations)
+    type_hints = get_type_hints(cls)
+
+    # Iterate over the class fields
+    for field, field_type in type_hints.items():
+        if field in data:
+            if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+                # Handle list types
+                inner_type = field_type.__args__[0]
+                init_args[field] = [
+                    serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item
+                    for item in data[field]
+                ]
+            elif isinstance(data[field], dict):
+                # Recursively convert nested dictionaries into the appropriate class
+                init_args[field] = serializeDictToClassRecursively(data[field], field_type)
+            else:
+                # Directly assign the value if it's not a dict
+                init_args[field] = data[field]
+
+    # Create an instance of the class with the collected arguments
+    return cls(**init_args)
+
+
+def deserializeClassToDictRecursively(obj: Any, seen=None) -> Any:
+    if seen is None:
+        seen = set()
+
+    # Handle simple immutable types directly (int, float, bool, str) and None
+    if obj is None or isinstance(obj, (int, float, bool, str, ConfFormat, ConfigAction)):
+        return obj
+
+    # Check for circular references
+    if id(obj) in seen:
+        return f"<Circular reference to {obj.__class__.__name__}>"
+    
+    seen.add(id(obj))
+
+    if isinstance(obj, list):
+        # If the object is a list, deserialize each item
+        return [deserializeClassToDictRecursively(item, seen) for item in obj]
+    elif isinstance(obj, dict):
+        # If the object is a dictionary, deserialize each key-value pair
+        return {key: deserializeClassToDictRecursively(value, seen) for key, value in obj.items()}
+    elif isinstance(obj, Enum):
+        # If the object is an Enum, convert it to its value
+        return obj.value
+    elif hasattr(obj, '__dict__'):
+        # If the object is a class instance, deserialize its attributes
+        return {
+            key: deserializeClassToDictRecursively(value, seen)
+            for key, value in obj.__dict__.items()
+            if not callable(value) and not key.startswith('__')
+        }
+    else:
+        # For other types, return the value as is
+        return obj
+
+
+def cidrToRange(ip):
+    logger = getFwoLogger()
+
+    if isinstance(ip, str):
+        # dealing with ranges:
+        if '-' in ip:
+            return '-'.split(ip)
+
+        ipVersion = validIPAddress(ip)
+        if ipVersion=='Invalid':
+            logger.warning("error while decoding ip '" + ip + "'")
+            return [ip]
+        elif ipVersion=='IPv4':
+            net = ipaddress.IPv4Network(ip)
+        elif ipVersion=='IPv6':
+            net = ipaddress.IPv6Network(ip)    
+        return [str(net.network_address), str(net.broadcast_address)]
+            
+    return [ip]
+
+
+def validIPAddress(IP: str) -> str: 
+    try: 
+        t = type(ipaddress.ip_address(IP))
+        if t is ipaddress.IPv4Address:
+            return "IPv4"
+        elif t is ipaddress.IPv6Address:
+            return "IPv6"
+        else:
+            return 'Invalid'
+    except:
+        try:
+            t = type(ipaddress.ip_network(IP))
+            if t is ipaddress.IPv4Network:
+                return "IPv4"
+            elif t is ipaddress.IPv6Network:
+                return "IPv6"
+            else:
+                return 'Invalid'        
+        except:
+            return "Invalid"
+
+
+def validate_ip_address(address):
+    try:
+        # ipaddress.ip_address(address)
+        ipaddress.ip_network(address)
+        return True
+        # print("IP address {} is valid. The object returned is {}".format(address, ip))
+    except ValueError:
+        return False
+        # print("IP address {} is not valid".format(address)) 

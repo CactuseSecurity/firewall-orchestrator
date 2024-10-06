@@ -2,9 +2,6 @@ fragment ruleOpenCertOverview on rule {
   rule_id
   rule_uid
   rule_action
-  device {
-    dev_id
-  }
   section_header: rule_head_text
   rule_comment
   rule_track

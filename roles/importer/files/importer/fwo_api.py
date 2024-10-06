@@ -12,17 +12,18 @@ from fwo_log import getFwoLogger
 import fwo_globals
 import fwo_const
 from fwo_const import fwo_api_http_import_timeout
-from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, SecretDecryptionFailed
+from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, \
+    SecretDecryptionFailed, FwoApiFailedLockImport
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
 
-def showApiCallInfo(url, query, headers, type='debug'):
+def showApiCallInfo(url, query, headers, typ='debug'):
     max_query_size_to_display = 1000
     query_string = json.dumps(query, indent=2)
     header_string = json.dumps(headers, indent=2)
     query_size = len(query_string)
 
-    if type=='error':
+    if typ=='error':
         result = "error while sending api_call to url "
     else:
         result = "successful FWO API call to url "        
@@ -53,16 +54,16 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
             r.raise_for_status()
         except requests.exceptions.RequestException:
-            logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+            logger.error(showApiCallInfo(full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
             if r != None:
                 if r.status_code == 503:
-                    raise FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
+                    raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
                 if r.status_code == 502:
                     raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
             else:
                 raise
-        if int(fwo_globals.debug_level) > 4:
-            logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
+        if int(fwo_globals.debug_level) > 8:
+            logger.debug (showApiCallInfo(full_query, request_headers, typ='debug'))
         if show_progress:
             pass
             # print('.', end='', flush=True)
@@ -118,7 +119,11 @@ def set_api_url(base_url, testmode, api_supported, hostname):
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
     mgm_query = """
         query getManagementIds {
-            management(where:{do_not_import:{_eq:false}} order_by: {mgm_name: asc}) { id: mgm_id } } """
+            management(where: {do_not_import: {_eq: false}}, order_by: {is_super_manager: desc}) {
+                id: mgm_id
+            }
+        }
+ """
     return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management']
 
 
@@ -170,6 +175,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                     name: dev_typ_name
                     version: dev_typ_version
                 }
+                isSuperManager: is_super_manager
                 configPath: config_path
                 domainUid: domain_uid
                 cloudSubscriptionId: cloud_subscription_id
@@ -225,13 +231,33 @@ def log_import_attempt(fwo_api_base_url, jwt, mgm_id, successful=False):
     return call(fwo_api_base_url, jwt, mgm_mutation, query_variables=query_variables, role='importer')
 
 
-def lock_import(fwo_api_base_url, jwt, query_variables):
-    lock_mutation = "mutation lockImport($mgmId: Int!) { insert_import_control(objects: {mgm_id: $mgmId}) { returning { control_id } } }"
-    lock_result = call(fwo_api_base_url, jwt, lock_mutation, query_variables=query_variables, role='importer')
-    if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
-        return lock_result['data']['insert_import_control']['returning'][0]['control_id']
-    else:
-        return -1
+def setImportLock(importState) -> None:
+        logger = getFwoLogger()
+        try: # set import lock
+            url = importState.FwoConfig.FwoApiUri
+            mgmId = int(importState.MgmDetails.Id)
+            lock_mutation = """
+                mutation lockImport($mgmId: Int!, $isFullImport: Boolean) { 
+                    insert_import_control(objects: {mgm_id: $mgmId, is_full_import: $isFullImport}) 
+                    { returning { control_id } } 
+                }
+                """
+            lock_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, lock_mutation, 
+                               query_variables={"mgmId": mgmId, "isFullImport": importState.IsFullImport },
+                               role='importer')
+            if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
+                importState.setImportId(lock_result['data']['insert_import_control']['returning'][0]['control_id'])
+            else:
+                importState.setImportId(-1)
+        except:
+            logger.error("import_management - failed to get import lock for management id " + str(mgmId))
+            importState.setImportId(-1)
+        if importState.ImportId == -1:
+            create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, mgm_id=int(importState.MgmDetails.Id), severity=1, 
+                description="failed to get import lock for management id " + str(mgmId))
+            setAlert(url, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=str(mgmId), severity=1, role='importer', \
+                description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=importState.MgmDetails)
+            raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgmId)) from None
 
 
 def count_rule_changes_per_import(fwo_api_base_url, jwt, import_id):
@@ -285,7 +311,7 @@ def unlock_import(importState):
         }"""
 
     try:
-        unlock_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, unlock_mutation,
+        unlock_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, unlock_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_import_control = unlock_result['data']['update_import_control']['affected_rows']
     except:
@@ -305,7 +331,7 @@ def delete_import(importState):
         }"""
 
     try:
-        result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_import_mutation,
+        result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, delete_import_mutation,
                       query_variables=query_variables, role='importer')
         api_changes = result['data']['delete_import_control']['affected_rows']
     except:
@@ -317,21 +343,27 @@ def delete_import(importState):
     else:
         return 1
 
-
-def import_json_config(importState, configChunk):
+#   currently temporarliy only working with single chunk
+def import_json_config(importState, config, startImport=True):
     logger = getFwoLogger()
     import_mutation = """
-        mutation import($importId: bigint!, $mgmId: Int!, $config: jsonb!, $start_import_flag: Boolean!, $debug_mode: Boolean!, $chunk_number: Int!) {
-            insert_import_config(objects: {start_import_flag: $start_import_flag, import_id: $importId, mgm_id: $mgmId, chunk_number: $chunk_number, config: $config, debug_mode: $debug_mode}) {
+        mutation import($importId: bigint!, $mgmId: Int!, $config: jsonb!, $start_import_flag: Boolean!, $debug_mode: Boolean!) {
+            insert_import_config(objects: {start_import_flag: $start_import_flag, import_id: $importId, mgm_id: $mgmId, config: $config, debug_mode: $debug_mode}) {
                 affected_rows
             }
         }
     """
     try:
         debug_mode = (fwo_globals.debug_level>0)
-        configChunk.update({'debug_mode': debug_mode})
-        import_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_mutation,
-                             query_variables=configChunk, role='importer')
+        queryVariables = {
+            'debug_mode': debug_mode,
+            'mgmId': importState.MgmDetails.Id,
+            'importId': importState.ImportId,
+            'config': config,
+            'start_import_flag': startImport,
+        }
+        import_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, import_mutation,
+                             query_variables=queryVariables, role='importer')
         # note: this will not detect errors in triggered stored procedure run
         if 'errors' in import_result:
             logger.exception("fwo_api:import_json_config - error while writing importable config for mgm id " +
@@ -340,7 +372,7 @@ def import_json_config(importState, configChunk):
         else:
             changes_in_import_control = import_result['data']['insert_import_config']['affected_rows']
     except:
-        logger.exception("failed to write importable config for mgm id " + str(importState.MgmDetails.Id))
+        logger.exception(f"failed to write normalized config for mgm id {str(importState.MgmDetails.Id)}: {str(traceback.format_exc())}")
         return 1 # error
     
     if changes_in_import_control==1:
@@ -349,51 +381,51 @@ def import_json_config(importState, configChunk):
         return 1
 
 
-def update_hit_counter(importState, query_variables):
+def update_hit_counter(importState, normalizedConfig):
     logger = getFwoLogger()
     # currently only data for check point firewalls is collected!
 
-    if 'config' in query_variables and 'rules' in query_variables['config']:
-        queryVariablesLocal = {"mgmId": importState.MgmDetails.Id}
-        # prerequesite: rule_uids are unique across a management
-        # this is guaranteed for the newer devices
-        # older devices like netscreen or FortiGate (via ssh) need to be checked
-        # when hits information should be gathered here in the future
+    queryVariablesLocal = {"mgmId": importState.MgmDetails.Id}
+    # prerequesite: rule_uids are unique across a management
+    # this is guaranteed for the newer devices
+    # older devices like netscreen or FortiGate (via ssh) need to be checked
+    # when hits information should be gathered here in the future
 
-        found_hits = False
-        last_hit_update_mutation = """
-            mutation updateRuleLastHit($mgmId:Int!) {
-                update_rule_metadata_many(updates: [
-        """
-
-        for rule in query_variables['config']['rules']:
+    # TODO (of minor importance) import rules per gateway to show which gateways have no hits
+    found_hits = False
+    last_hit_update_mutation = """
+        mutation updateRuleLastHit($mgmId:Int!) {
+            update_rule_metadata_many(updates: [
+    """
+    for policy in normalizedConfig.rules:
+        for rule in policy.Rules:
             if 'last_hit' in rule and rule['last_hit'] is not None:
                 found_hits = True
                 update_expr = '{{ where: {{ device: {{ mgm_id:{{_eq:$mgmId}} }} rule_uid: {{ _eq: "{rule_uid}" }} }}, _set: {{ rule_last_hit: "{last_hit}" }} }}, '.format(rule_uid=rule["rule_uid"], last_hit=rule['last_hit'])
                 last_hit_update_mutation += update_expr
 
-        last_hit_update_mutation += " ]) { affected_rows } }"
+    last_hit_update_mutation += " ]) { affected_rows } }"
 
-        if found_hits:
-            try:
-                update_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, last_hit_update_mutation,
-                                    query_variables=queryVariablesLocal, role='importer')
-                if 'errors' in update_result:
-                    logger.exception("fwo_api:update_hit_counter - error while updating hit counters for mgm id " +
-                                    str(importState.MgmDetails.Id) + ": " + str(update_result['errors']))
-                update_counter = len(update_result['data']['update_rule_metadata_many'])
-            except:
-                logger.exception("failed to update hit counter for mgm id " + str(importState.MgmDetails.Id))
-                return 1 # error
-            
-            return 0
-        else:
-            if len(query_variables['config']['rules'])>0:
-                logger.debug("found rules without hit information for mgm_id " + str(importState.MgmDetails.Id))
-                return 1
+    if found_hits:
+        try:
+            update_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, last_hit_update_mutation,
+                                query_variables=queryVariablesLocal, role='importer')
+            if 'errors' in update_result:
+                logger.exception("fwo_api:update_hit_counter - error while updating hit counters for mgm id " +
+                                str(importState.MgmDetails.Id) + ": " + str(update_result['errors']))
+            update_counter = len(update_result['data']['update_rule_metadata_many'])
+        except:
+            logger.exception("failed to update hit counter for mgm id " + str(importState.MgmDetails.Id))
+            return 1 # error
+        
+        return 0
     else:
-        logger.debug("no rules found for mgm_id " + str(importState.MgmDetails.Id))
-        return 1
+        if len(normalizedConfig.rules)>0:
+            logger.debug("found only rules without hit information for mgm_id " + str(importState.MgmDetails.Id))
+            return 1
+    # else:
+    #     logger.debug("no rules found for mgm_id " + str(importState.MgmDetails.Id))
+    #     return 1
 
 
 def delete_import_object_tables(importState, query_variables):
@@ -415,7 +447,7 @@ def delete_import_object_tables(importState, query_variables):
         }
     """
     try:
-        delete_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_mutation,
+        delete_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, delete_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_delete_import_tables =  \
             int(delete_result['data']['delete_import_object']['affected_rows']) + \
@@ -436,7 +468,7 @@ def delete_json_config_in_import_table(importState, query_variables):
         }
     """
     try:
-        delete_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_mutation,
+        delete_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, delete_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_delete_config = delete_result['data']['delete_import_config']['affected_rows']
     except:
@@ -445,49 +477,29 @@ def delete_json_config_in_import_table(importState, query_variables):
     return changes_in_delete_config
 
 
-def store_full_json_config(importState, query_variables):
-    logger = getFwoLogger()
-    import_mutation = """
-        mutation store_full_config($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
-            insert_import_full_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
-                affected_rows
-            }
-        }
-    """
-
-    try:
-        import_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_mutation,
-                             query_variables=query_variables, role='importer')
-        changes_in_import_full_config = import_result['data']['insert_import_full_config']['affected_rows']
-    except:
-        logger.exception("failed to write full config for mgm id " + str(importState.MgmDetails.Id))
-        return 2  # indicating 1 error because we are expecting exactly one change
-    return changes_in_import_full_config-1
-
-
-# def delete_full_json_config(importState, query_variables):
+# def store_full_json_config(importState, query_variables):
 #     logger = getFwoLogger()
-#     delete_mutation = """
-#         mutation delete_import_full_config($importId: bigint!) {
-#             delete_import_full_config(where: {import_id: {_eq: $importId}}) {
+#     import_mutation = """
+#         mutation store_full_config($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
+#             insert_import_full_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
 #                 affected_rows
 #             }
 #         }
 #     """
 
 #     try:
-#         delete_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_mutation,
+#         import_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, import_mutation,
 #                              query_variables=query_variables, role='importer')
-#         changes_in_delete_full_config = delete_result['data']['delete_import_full_config']['affected_rows']
+#         changes_in_import_full_config = import_result['data']['insert_import_full_config']['affected_rows']
 #     except:
-#         logger.exception("failed to delete full config ")
-#         return 2  # indicating 1 error
-#     return changes_in_delete_full_config-1
+#         logger.exception("failed to write full config for mgm id " + str(importState.MgmDetails.Id))
+#         return 2  # indicating 1 error because we are expecting exactly one change
+#     return changes_in_import_full_config-1
 
 
 def get_error_string_from_imp_control(importState, query_variables):
     error_query = "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
-    return call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, error_query, query_variables=query_variables, role='importer')['data']['import_control']
+    return call(importState.FwoConfig.FwoApiUri, importState.Jwt, error_query, query_variables=query_variables, role='importer')['data']['import_control']
 
 
 def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_id=None, dev_id=None, severity=1, role='importer',
@@ -650,24 +662,24 @@ def complete_import(importState):
     
     success = (importState.ErrorCount==0)
     try:
-        log_import_attempt(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, importState.MgmDetails.Id, successful=success)
+        log_import_attempt(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.MgmDetails.Id, successful=success)
     except:
         logger.error('error while trying to log import attempt')
 
-    try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
-        if delete_json_config_in_import_table(importState, {"importId": importState.ImportId})<0:
-            importState.ErrorCount += 1
-    except:
-        logger.error("import_management - unspecified error cleaning up import_config: " + str(traceback.format_exc()))
+    # try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
+    #     if delete_json_config_in_import_table(importState, {"importId": importState.ImportId})<0:
+    #         importState.increaseErrorCounterByOne()
+    # except:
+    #     logger.error("import_management - unspecified error cleaning up import_config: " + str(traceback.format_exc()))
 
     try: # CLEANUP: delete data of this import from import_object/rule/service/user tables
         if delete_import_object_tables(importState, {"importId": importState.ImportId})<0:
-            importState.ErrorCount += 1
+            importState.increaseErrorCounterByOne()
     except:
         logger.error("import_management - unspecified error cleaning up import_ object tables: " + str(traceback.format_exc()))
 
     try: # finalize import by unlocking it
-        importState.ErrorCount += unlock_import(importState)
+        importState.increaseErrorCounter(unlock_import(importState))
     except:
         logger.error("import_management - unspecified error while unlocking import: " + str(traceback.format_exc()))
 
@@ -677,12 +689,41 @@ def complete_import(importState):
             " change_count: " + str(importState.ChangeCount) + \
             ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
     import_result += ", ERRORS: " + importState.ErrorString if len(importState.ErrorString) > 0 else ""
-    
+    # def lock_import(fwo_api_base_url, jwt, query_variables):
+
     if importState.ErrorCount>0:
-        create_data_issue(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.ErrorString)
-        setAlert(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
+        create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.ErrorString)
+        setAlert(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
             description=importState.ErrorString, source='import', alertCode=14, mgm_details=importState.MgmDetails)
 
     logger.info(import_result)
 
     return importState.ErrorCount
+
+def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):
+    mgm_query = """
+        query getLastImportDetails($mgmId: Int!) {
+            config(where: {config_key: {_eq: "dataRetentionTime"}, config_user: {_eq: 0}}) {
+                retentionInDays: config_value
+            }
+            import_control(where: {mgm_id: {_eq: $mgmId}, _or: [{is_initial_import: {_eq: true}}, {is_full_import: {_eq: true}}]}, order_by: {control_id: desc}, limit: 1) {
+                control_id
+                start_time
+            }
+        }
+    """
+
+    try:
+        pastDetails = call(fwo_api_base_url, jwt, mgm_query, query_variables=queryVariables, role='importer')
+        retentionInDays = pastDetails['data']['config'][0]['retentionInDays']
+        if len(pastDetails['data']['import_control'])>0:
+            lastFullImportId = pastDetails['data']['import_control'][0]['control_id']
+            lastFullImportDate = pastDetails['data']['import_control'][0]['start_time']
+        else: # no matching imports found
+            lastFullImportId = None
+            lastFullImportDate = None
+    except:
+        logger = getFwoLogger()
+        logger.error(f"error while getting past import details for mgm {str(queryVariables)}")
+
+    return int(retentionInDays), lastFullImportId, lastFullImportDate

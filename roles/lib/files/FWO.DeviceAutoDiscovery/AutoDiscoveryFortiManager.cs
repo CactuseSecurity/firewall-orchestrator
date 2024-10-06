@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using RestSharp;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;
@@ -103,14 +103,14 @@ namespace FWO.DeviceAutoDiscovery
                                     {
                                         Device devFound = new Device();
                                         // assign.PackageName = assign.PackageName.Replace("/", "\\/");    // replace / in package name with \/
-                                        Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
-                                        if (assign.DeviceName != null)
+                                        Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
+                                        if (assign.RulebaseName != null)
                                         {
-                                            Log.WriteDebug("Autodiscovery", $"found assignment2 (device<>null) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
-                                            if (assign.DeviceName != "")
+                                            Log.WriteDebug("Autodiscovery", $"found assignment2 (device<>null) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
+                                            if (assign.RulebaseName != "")
                                             {
-                                                Log.WriteDebug("Autodiscovery", $"found assignment3 (non-device-empty-string) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
-                                                string devName = assign.DeviceName;
+                                                Log.WriteDebug("Autodiscovery", $"found assignment3 (non-device-empty-string) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
+                                                string devName = assign.RulebaseName;
                                                 if (assign.VdomName != null && assign.VdomName != "")
                                                     devName += "_" + assign.VdomName;
                                                 devFound = new Device

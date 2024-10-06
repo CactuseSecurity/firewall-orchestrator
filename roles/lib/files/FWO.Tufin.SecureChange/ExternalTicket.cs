@@ -81,7 +81,7 @@ namespace FWO.Tufin.SecureChange
 										"name": "Grund für den Antrag",
 										"read_only": false,
 										"text": "@@REASON@@"
-									},
+									},xv86w6u
 									{
 										"@xsi.type": "drop_down_list",
 										"name": "Regel Log aktivieren?",
@@ -98,7 +98,7 @@ namespace FWO.Tufin.SecureChange
 									},
 									{
 										"@xsi.type": "checkbox",
-										"name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
+										"name": "Die ben&ouml;tigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
 										"value":  @@COM_DOCUMENTED@@
 									},
 									{
@@ -253,7 +253,9 @@ public class SCTicket : ExternalTicket
 		}'
 
 
-		Create Ticket for access rule
+		####################################################### 
+
+		Create Access Request Ticket Sample Call
 
 		curl --request POST \
 			--insecure \
@@ -363,7 +365,7 @@ public class SCTicket : ExternalTicket
 												},
 												{
 													"@xsi.type": "checkbox",
-													"name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
+													"name": "Die ben&ouml;tigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
 													"value": false
 												},
 												{

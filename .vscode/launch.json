@@ -101,19 +101,53 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m23",
-                "-d1",
+                "-m26",
+                "-d7",
                 "-f",
                 "-s",
+                //"-ifile:///home/tim/tmp/k1/cp-native-new.json",
+                // "-ifile:///home/tim/Downloads/b1_imp_nor.json",
+                // "-ifile:///home/tim/Downloads/b1_imp_norm_old.json",
+                // "-ifile:///home/tim/tmp/mgm_id_26_1.json",
+                // "-ifile:///home/tim/tmp/mgm_id_26_3_new_rule.json",
+                //  "-ifile:///home/tim/tmp/mgm_id_26_4_change_nw_obj.json",
+                // "-ifile:///home/tim/tmp/mgm_id_26_config_normalized_5.json",
+                "-ifile:///home/tim/tmp/mgm_id_26_config_normalized_6_pol_list.json",
                 //"-l66",
-                // "-c"
-                //"-l250"
+                // "-c",
+                // "-l500",
                 //  41 - lab fortimanager
                 //"-nhttps://fwodemodata.cactus.de/demo07_dummyGw1.json"
-                //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
+                // "-ihttps://fwodemodata.cactus.de/demo11-r82_v9.json",
+                // "-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
                 //"-ihttps://fwodemodata.cactus.de/demo01_fortiMgrLab.json"
-                //"-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
+                // "-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
                 //"-ihttps://fwodemodata.cactus.de/big/xxx.json",
+            ]
+        },
+        {
+            "name": "py-test-ruleorder",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/test/ruleorder.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },
+        {
+            "name": "py-kimport",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/scripts/Python-nsPYm-v2/get_all_firewall_data.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "itsecorg",
+                "st8chel"
             ]
         },
         {
@@ -311,24 +345,24 @@
                 "-i/tmp/fworch-config.graphql"
             ]
         },
-        {
-            "name": "py-cpr8x-autodiscovery",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
-            "env": {
-                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
-            },
-            "args": [
-                "-a192.168.100.110",
-                "-w/home/tim/secrets/cp_apiuser_pwd",
-                "-uitsecorg",
-                "-d4",
-                "-fjson"
-            ]
-        },
+        // {
+        //     "name": "py-cpr8x-autodiscovery",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
+        //     "console": "integratedTerminal",
+        //     "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
+        //     "env": {
+        //         "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+        //     },
+        //     "args": [
+        //         "-a192.168.100.111",
+        //         "-w/home/tim/secrets/cp_apiuser_pwd",
+        //         "-uitsecorg",
+        //         "-d4",
+        //         "-fjson"
+        //     ]
+        // },
         {
             "name": "py-import-main-loop",
             "type": "debugpy",

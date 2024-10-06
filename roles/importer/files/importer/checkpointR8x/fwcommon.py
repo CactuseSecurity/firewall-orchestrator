@@ -10,6 +10,11 @@ import cp_const, cp_network, cp_service
 import cp_getter
 from fwo_exception import FwLoginFailed, FwLogoutFailed
 from cp_user import parse_user_objects_from_rulebase
+from roles.importer.files.importer.models.fwconfig_base import calcManagerUidHash
+from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
+from fwoBaseImport import ImportState
+from fwo_base import ConfFormat, ConfigAction
+import fwo_const
 
 
 def has_config_changed (full_config, mgm_details, force=False):
@@ -38,11 +43,96 @@ def has_config_changed (full_config, mgm_details, force=False):
     return result
 
 
-def get_config(config2import, full_config, current_import_id, mgm_details, limit=150, force=False, jwt=None):
+
+def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerApiBaseUrl: str) -> int:
+
     logger = getFwoLogger()
+    nativeConfig.update({'rulebases': [], 'nat_rulebases': [] })
+    show_params_rules = {
+        'limit': importState.FwoConfig.ApiFetchSize,
+        'use-object-dictionary': cp_const.use_object_dictionary,
+        'details-level': 'standard',
+        'show-hits': cp_const.with_hits 
+    }
+
+    # read all rulebases: handle per device details
+    for device in importState.FullMgmDetails['devices']:
+        if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
+            show_params_rules.update({'name': device['global_rulebase_name']})
+            # get global layer rulebase
+            logger.debug ( "getting layer: " + show_params_rules['name'] )
+            current_layer_json = cp_getter.get_layer_from_api_as_dict (importState.FwoConfig.FwoApiUri, 
+                                                                       importState.MgmDetails.Secret, 
+                                                                       show_params_rules, 
+                                                                       layername=device['global_rulebase_name'],
+                                                                       nativeConfig=nativeConfig)
+            if current_layer_json is None:
+                return 1
+            # now also get domain rules 
+            show_params_rules.update({'name': device['local_rulebase_name']})
+            current_layer_json({'layername': device['local_rulebase_name']})
+            logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
+            domain_rules = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 
+                                                                 sid, 
+                                                                 show_params_rules, 
+                                                                 layername=device['local_rulebase_name'], 
+                                                                 nativeConfig=nativeConfig)
+            if current_layer_json is None:
+                return 1
+
+            # now handling possible reference to domain rules within global rules
+            # if we find the reference, replace it with the domain rules
+            if 'layerchunks' in current_layer_json:
+                for chunk in current_layer_json["layerchunks"]:
+                    for rule in chunk['rulebase']:
+                        if "type" in rule and rule["type"] == "place-holder":
+                            logger.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
+                            current_layer_json = cp_getter.insert_layer_after_place_holder(current_layer_json, 
+                                                                                           domain_rules, 
+                                                                                           rule['uid'], 
+                                                                                           nativeConfig=nativeConfig)
+        else:   # no global rules, just get local ones
+            show_params_rules.update({'name': device['local_rulebase_name']})
+            logger.debug ( "getting layer: " + show_params_rules['name'] )
+            current_layer_json = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 
+                                                                       sid, 
+                                                                       show_params_rules, 
+                                                                       layerName=device['local_rulebase_name'], 
+                                                                       nativeConfig=nativeConfig)
+            if current_layer_json is None:
+                return 1
+
+        nativeConfig['rulebases'].append(current_layer_json)
+
+        # getting NAT rules - need package name for nat rule retrieval
+        # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
+        if device['package_name'] != None and device['package_name'] != '':
+            show_params_rules = {
+                'limit': importState.FwoConfig.ApiFetchSize,
+                'use-object-dictionary':cp_const.use_object_dictionary,
+                'details-level': 'standard', 
+                'package': device['package_name'] } #  'show-hits': cp_const.with_hits
+            if importState.DebugLevel>3:
+                logger.debug ( "getting nat rules for package: " + device['package_name'] )
+            nat_rules = cp_getter.get_nat_rules_from_api_as_dict (cpManagerApiBaseUrl, 
+                                                                  sid, 
+                                                                  show_params_rules, 
+                                                                  nativeConfig=nativeConfig)
+            if len(nat_rules)>0:
+                nativeConfig['nat_rulebases'].append(nat_rules)
+            else:
+                nativeConfig['nat_rulebases'].append({ "nat_rule_chunks": [] })
+        else: # always making sure we have an (even empty) nat rulebase per device 
+            nativeConfig['nat_rulebases'].append({ "nat_rule_chunks": [] })
+    return 0
+
+
+def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwConfigManagerList]:
+    logger = getFwoLogger()
+    normalizedConfig = fwo_const.emptyNormalizedFwConfigJsonDict
     logger.debug ( "starting checkpointR8x/get_config" )
 
-    if full_config == {}:   # no native config was passed in, so getting it from FW-Manager
+    if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
         parsing_config_only = False
     else:
         parsing_config_only = True
@@ -50,24 +140,24 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     if not parsing_config_only: # get config from cp fw mgr
         starttime = int(time.time())
 
-        if 'users' not in full_config:
-            full_config.update({'users': {}})
+        if 'users' not in nativeConfig:
+            nativeConfig.update({'users': {}})
 
-        domain, base_url = prepare_get_vars(mgm_details)
+        domain, cpManagerApiBaseUrl = prepare_get_vars(importState.FullMgmDetails)
 
-        sid = login_cp(mgm_details, domain)
+        sid = login_cp(importState.FullMgmDetails, domain)
 
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
-        result_get_objects = get_objects (full_config, mgm_details, base_url, sid, force=force, limit=str(limit), details_level=cp_const.details_level, test_version='off')
+        result_get_objects = get_objects (nativeConfig, importState.FullMgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
         if result_get_objects>0:
             return result_get_objects
         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
 
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
-        result_get_rules = get_rules (full_config, mgm_details, base_url, sid, force=force, limit=str(limit), details_level=cp_const.details_level, test_version='off')
+        result_get_rules = getRules (nativeConfig, importState, sid, cpManagerApiBaseUrl)
         if result_get_rules>0:
             return result_get_rules
         logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
@@ -75,13 +165,42 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         duration = int(time.time()) - starttime
         logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
-    cp_network.normalize_network_objects(full_config, config2import, current_import_id, mgm_id=mgm_details['id'])
-    cp_service.normalize_service_objects(full_config, config2import, current_import_id)
-    parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
-    config2import.update({'rules':  cp_rule.normalize_rulebases_top_level(full_config, current_import_id, config2import) })
+    cp_network.normalize_network_objects(nativeConfig, normalizedConfig, importState.ImportId, mgm_id=importState.MgmDetails.Id)
+    logger.info("completed normalizing network objects")
+    cp_service.normalize_service_objects(nativeConfig, normalizedConfig, importState.ImportId)
+    logger.info("completed normalizing service objects")
+
+    # TODO: re-add user import
+    # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
+    if importState.ImportVersion>8:
+        cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfig)
+    else:
+        normalizedConfig.update({'rules':  cp_rule.normalize_rulebases_top_level(nativeConfig, importState.ImportId, normalizedConfig) })
     if not parsing_config_only: # get config from cp fw mgr
-        logout_cp("https://" + mgm_details['hostname'] + ":" + str(mgm_details['port']) + "/web_api/", sid)
-    return 0
+        logout_cp("https://" + importState.MgmDetails.Hostname + ":" + str(importState.FullMgmDetails['port']) + "/web_api/", sid)
+    logger.info("completed normalizing rulebases")
+    
+    # put dicts into object of class FwConfigManager
+    normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 
+                            network_objects=normalizedConfig['network_objects'],
+                            service_objects=normalizedConfig['service_objects'],
+                            users=normalizedConfig['users'],
+                            zone_objects=normalizedConfig['zone_objects'],
+                            # decide between old (rules) and new (policies) format
+                            rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
+                            gateways=normalizedConfig['gateways']
+                            )
+    manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
+                              ManagerName=importState.MgmDetails.Name,
+                              IsGlobal=False, 
+                              DependantManagerUids=[], 
+                              Configs=[normalizedConfig])
+    listOfManagers = FwConfigManagerList()
+
+    listOfManagers.addManager(manager)
+    logger.info("completed getting config")
+    
+    return 0, listOfManagers
 
 
 def prepare_get_vars(mgm_details):
@@ -110,73 +229,38 @@ def logout_cp(url, sid):
         logout_result = cp_getter.logout(url, sid)
         return logout_result
     except:
-        raise FwLogoutFailed
+        logger = getFwoLogger()
+        logger.warning("logout from CP management failed")
 
 
-def get_rules (config_json, mgm_details, v_url, sid, force=False, config_filename=None,
-    limit=150, details_level=cp_const.details_level, test_version='off', debug_level=0, ssl_verification=True):
+def addRulebaseIfNew(rulebaseToAdd, url, sid, packageName, rulebaseNamesCollected=[], limit=500, nativeConfig={}):
+    if rulebaseToAdd in rulebaseNamesCollected:
+        return None
+    else:
+        rulebaseNamesCollected.append(rulebaseToAdd)
 
-    logger = getFwoLogger()
-    config_json.update({'rulebases': [], 'nat_rulebases': [] })
-    show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary,'details-level':details_level, 'show-hits' : cp_const.with_hits}
+        show_params_rules = {
+            'limit': limit,
+            'use-object-dictionary': cp_const.use_object_dictionary,
+            'details-level': 'standard',
+            'package': packageName, 
+            'show-hits': cp_const.with_hits 
+        }
 
-    # read all rulebases: handle per device details
-    for device in mgm_details['devices']:
-        if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
-            show_params_rules['name'] = device['global_rulebase_name']
-            # get global layer rulebase
-            logger.debug ( "getting layer: " + show_params_rules['name'] )
-            current_layer_json = cp_getter.get_layer_from_api_as_dict (v_url, sid, show_params_rules, layername=device['global_rulebase_name'], nativeConfig=config_json)
-            if current_layer_json is None:
-                return 1
-            # now also get domain rules 
-            show_params_rules['name'] = device['local_rulebase_name']
-            current_layer_json['layername'] = device['local_rulebase_name']
-            logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
-            domain_rules = cp_getter.get_layer_from_api_as_dict (v_url, sid, show_params_rules, layername=device['local_rulebase_name'], nativeConfig=config_json)
-            if current_layer_json is None:
-                return 1
-
-            # now handling possible reference to domain rules within global rules
-            # if we find the reference, replace it with the domain rules
-            if 'layerchunks' in current_layer_json:
-                for chunk in current_layer_json["layerchunks"]:
-                    for rule in chunk['rulebase']:
-                        if "type" in rule and rule["type"] == "place-holder":
-                            logger.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
-                            current_layer_json = cp_getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
-        else:   # no global rules, just get local ones
-            show_params_rules['name'] = device['local_rulebase_name']
-            logger.debug ( "getting layer: " + show_params_rules['name'] )
-            current_layer_json = cp_getter.get_layer_from_api_as_dict (v_url, sid, show_params_rules, layerName=device['local_rulebase_name'], nativeConfig=config_json)
-            if current_layer_json is None:
-                return 1
-
-        config_json['rulebases'].append(current_layer_json)
-
-        # getting NAT rules - need package name for nat rule retrieval
-        # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
-        if device['package_name'] != None and device['package_name'] != '':
-            show_params_rules = {'limit':limit,'use-object-dictionary':cp_const.use_object_dictionary,'details-level':details_level, 'package': device['package_name'] }
-            if debug_level>3:
-                logger.debug ( "getting nat rules for package: " + device['package_name'] )
-            nat_rules = cp_getter.get_nat_rules_from_api_as_dict (v_url, sid, show_params_rules, nativeConfig=config_json)
-            if len(nat_rules)>0:
-                config_json['nat_rulebases'].append(nat_rules)
-            else:
-                config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
-        else: # always making sure we have an (even empty) nat rulebase per device 
-            config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
-    return 0
+        logger = getFwoLogger()
+        rulebaseNamesCollected.append(rulebaseToAdd)
+        show_params_rules.update({'name': rulebaseToAdd})
+        logger.debug ( "getting layer: " + show_params_rules['name'] )
+        return cp_getter.get_layer_from_api_as_dict (url, sid, show_params_rules, layerName=rulebaseToAdd, nativeConfig=nativeConfig)
     
 
 def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filename=None,
-    limit=150, details_level=cp_const.details_level, test_version='off', debug_level=0, ssl_verification=True):
+    limit=150, details_level=cp_const.details_level_objects, test_version='off', debug_level=0, ssl_verification=True):
 
     logger = getFwoLogger()
 
     config_json["object_tables"] = []
-    show_params_objs = {'limit':limit,'details-level': cp_const.details_level}
+    show_params_objs = {'limit':limit,'details-level': details_level }
 
     # getting Original (NAT) object (both for networks and services)
     origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url)['object_chunks'][0]

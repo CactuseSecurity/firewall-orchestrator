@@ -12,8 +12,10 @@ full_config_size_limit = 5000000 # native configs greater than 5 MB will not be 
 csv_delimiter = '%'
 list_delimiter = '|'
 line_delimiter = "\n"
+user_delimiter = "@"
 apostrophe = "\""
 section_header_uids=[]
+dummy_ip = '0.0.0.0/32'
 nat_postfix = '_NatNwObj'
 fwo_api_http_import_timeout = 14400 # 4 hours
 importer_user_name = 'importer'  # todo: move to config file?
@@ -24,7 +26,7 @@ import_tmp_path = base_dir + '/tmp/import'
 fwo_config_filename = base_dir + '/etc/fworch.json'
 max_recursion_level = 25 # do not call a function recursively more than this
 default_section_header_text = 'section without name'
-# possible config-format values: normalized|checkpoint|fortimanager|fortioOS|azure|ciscoFirePower
+# possible ConfigFormat values: normalized|checkpoint|fortimanager|fortioOS|azure|ciscoFirePower
 # legacy: barracuda|junos|netscreen
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
@@ -37,3 +39,12 @@ max_objs_per_chunk = 1000
 # with open(fwo_config_filename, "r") as fwo_config:
 #     fwo_config = json.loads(fwo_config.read())
 # fwo_api_base_url = fwo_config['api_uri']
+
+emptyNormalizedFwConfigJsonDict = {
+    'network_objects': [],
+    'service_objects': [],
+    'users': [],
+    'zone_objects': [],
+    'rules': [],
+    'gateways': []
+}

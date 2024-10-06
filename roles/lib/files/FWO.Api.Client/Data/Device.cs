@@ -35,6 +35,9 @@ namespace FWO.Api.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
+        // [JsonProperty("rulebase_on_gateways"), JsonPropertyName("rulebase_on_gateways")]
+        // public RulebaseOnGateway[] OrderedRulebases { get; set; } = [];
+
         public bool Selected { get; set; } = false;
         public bool Relevant { get; set; }
         public bool AwaitMgmt { get; set; }
@@ -60,6 +63,7 @@ namespace FWO.Api.Data
             AwaitMgmt = device.AwaitMgmt;
             Delete = device.Delete;
             ActionId = device.ActionId;
+            // OrderedRulebases = [];
         }
 
         public bool Sanitize()

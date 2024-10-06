@@ -1,5 +1,5 @@
 ### general settings
-product_version: "8.4"
+product_version: "9.0"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -13,6 +13,7 @@ syslog_host: "{{ groups['logserver'].0 }}"
 fworch_db_host: "{{ groups['databaseserver'].0 }}"
 api_hostname: "{{  groups['apiserver'].0 }}"
 sample_hostname: "{{ groups['sampleserver'].0 }}"
+linux_architecture: amd64
 
 # fworch_db_host_ip: "{{ hostvars[fworch_db_host]['ansible_host'] }}"
 

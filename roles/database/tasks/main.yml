@@ -59,61 +59,68 @@
         postgresql_hba_file: /var/lib/pgsql/data/pg_hba.conf
       when: ansible_os_family == 'RedHat'
 
-    - name: edit postgresql.conf log_destination
+    - name: edit {{ postgresql_config_file }} log_destination
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_destination = 'syslog'
         regexp: '\s*log_destination'
         backup: true
 
-    - name: edit postgresql.conf client_min_messages
+    - name: edit {{ postgresql_config_file }} client_min_messages
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: client_min_messages = WARNING
         regexp: '\s*client_min_messages'
         backup: true
           
-    - name: edit postgresql.conf log_min_messages
+    - name: edit {{ postgresql_config_file }} log_min_messages
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_min_messages = WARNING
         regexp: '\s*log_min_messages'
         backup: true
           
-    - name: edit postgresql.conf application_name
+    - name: edit {{ postgresql_config_file }} application_name
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: application_name = {{ product_name }}-database
         regexp: '\s*application_name'
         backup: true
 
-    - name: edit postgresql.conf log_error_verbosity
+    - name: edit {{ postgresql_config_file }} log_error_verbosity
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_error_verbosity = DEFAULT
         regexp: '\s*log_error_verbosity'
         backup: true
 
-    - name: edit postgresql.conf log_min_error_statement
+    - name: edit {{ postgresql_config_file }} log_min_error_statement
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_min_error_statement = ERROR
         regexp: '\s*log_min_error_statement'
         backup: true
 
-    - name: edit postgresql.conf log_line_prefix
+    - name: edit {{ postgresql_config_file }} log_line_prefix
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_line_prefix = '%d '
         regexp: '\s*log_line_prefix'
         backup: true
 
-    - name: edit postgresql.conf listening IPs
+    - name: edit {{ postgresql_config_file }} listening IPs
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: "listen_addresses = '0.0.0.0'"
         #line: "listen_addresses = '{{ api_network_listening_ip_address }},127.0.0.1'"
         regexp: listen_addresses
+        backup: true
+
+    - name: edit {{ postgresql_config_file }} set client encoding to UTF8 
+      lineinfile:
+        path: "{{ postgresql_config_file }}"
+        line: "client_encoding = 'UTF8'"
+        regexp: client_encoding
         backup: true
 
     - name: edit pg_hba.conf

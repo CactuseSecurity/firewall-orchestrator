@@ -17,7 +17,7 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
     if sid != '': # only not set for login
         request_headers.update({'X-chkp-sid' : sid})
 
-    if fwo_globals.debug_level>4:
+    if fwo_globals.debug_level>8:
         logger.debug(f"api call '{command}'")
         if fwo_globals.debug_level>9:
             if command!='login':    # do not log passwords
@@ -51,7 +51,7 @@ def login(user, password, api_host, api_port, domain):
         payload.update({'domain': domain})
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     if int(fwo_globals.debug_level)>2:
-        logger.debug("auto-discover - login to url " + base_url + " with user " + user)
+        logger.debug("login - login to url " + base_url + " with user " + user)
     response = cp_api_call(base_url, 'login', payload, '')
     if "sid" not in response:
         exception_text = "\ngetter ERROR: did not receive a sid during login, " + \
@@ -224,7 +224,7 @@ def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=None
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
 
     # adding inline and domain layers (if they exist)
-    add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules, nativeConfig=nativeConfig)
+    add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules, nativeConfig=nativeConfig)    
 
     return current_layer_json
 
@@ -265,7 +265,7 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
 
         for ruleField in ['original-source', 'original-destination', 'original-service', 'translated-source',
                           'translated-destination', 'translated-service', 'action', 'track', 'install-on', 'time']:
-            resolveRefListFromObjectDictionary(rulebase, ruleField, sid=sid, base_url=api_v_url,  nativeConfig=nativeConfig)
+            resolveRefListFromObjectDictionary(rulebase, ruleField, sid=sid, base_url=api_v_url, nativeConfig=nativeConfig)
 
         nat_rules['nat_rule_chunks'].append(rulebase)
         if 'total' in rulebase:
@@ -279,12 +279,14 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
             if 'to' in rulebase:
                 current=rulebase['to']
             else:
+                current = total # assuming we do not have any NAT rules, so skipping this step
+                # logger.warning ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
     return nat_rules
 
 
 # insert domain rule layer after rule_idx within top_ruleset
-def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, placeholder_uid):
+def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, placeholder_uid, nativeConfig={}):
     logger = getFwoLogger()
     # serialize domain rule chunks
     domain_rules_serialized = []
@@ -313,35 +315,16 @@ def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, plac
     return top_ruleset_json
 
 
-# def createUidIndex(array, key='uid'):
-#     """
-#     Create an index for the array of dictionaries based on the specified key.
-    
-#     :param array: List of dictionaries
-#     :param key: The key to index the dictionaries by
-#     :return: A dictionary with key values mapped to dictionaries
-#     """
-#     uidIndex = {item[key]: item for item in array}
-#     return uidIndex
-
-
 def findElementByUid(array, uid):
     for el in array:
         if 'uid' in el and el['uid']==uid:
             return el
     return None
 
-    # if not hasattr(findElementByUid, "uidIndex"):
-    #     # Create the index on the first call
-    #     findElementByUid.uidIndex = createUidIndex(array)
-    
-    # # Look up the uid in the index
-    # return findElementByUid.uidIndex.get(uid)
-
 
 def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_url='', rule4debug={}):
-    matchedObj = findElementByUid(objDict, id)
 
+    matchedObj = findElementByUid(objDict, id)
 
     if matchedObj is None: # object not in dict - neet to fetch it from API
         logger.warning(f"did not find object with uid {id} in object dictionary")

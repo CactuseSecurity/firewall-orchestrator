@@ -1,4 +1,8 @@
 using FWO.Api.Data;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
+using System.Net;
+using RestSharp;
 
 namespace FWO.Tufin.SecureChange
 {
@@ -32,6 +36,39 @@ namespace FWO.Tufin.SecureChange
 			{ SCTaskType.NetworkServiceCreate, "Automatische Gruppenerstellung" }
 		};
 
+		// IN_PROGRESS, REJECTED, CLOSED, CANCELLED, RESOLVED
+		private readonly Dictionary<string, string> ScToInternalStates = new()
+        {
+			{ "IN_PROGRESS", ExtStates.ExtReqInProgress.ToString() },
+			{ "REJECTED", ExtStates.ExtReqRejected.ToString() },
+			{ "CLOSED", ExtStates.ExtReqDone.ToString() },
+			{ "CANCELLED", ExtStates.ExtReqDone.ToString() },  // ??
+			{ "RESOLVED", ExtStates.ExtReqDone.ToString() }  // ??
+		};
+
+
+		// {
+		// 	"ticket": {
+		// 		"id": 2,
+		// 		"subject": "Clone Server Policy Ticket",
+		// 		"requester": "a",
+		// 		"requester_id": 12,
+		// 		"priority": "Normal",
+		// 		"status": "In Progress",...
+		// Todo: move to template settings?
+
+		private class SCPollTicketResponseStatus
+		{
+			[JsonProperty("status"), JsonPropertyName("status")]
+			public string Status { get; set; } = "";
+		}
+
+		private class SCPollTicketResponse
+		{
+			[JsonProperty("ticket"), JsonPropertyName("ticket")]
+			public SCPollTicketResponseStatus Ticket { get; set; } = new();
+		}
+
 
 		public SCTicket(ExternalTicketSystem tufinSystem)
 		{
@@ -48,6 +85,26 @@ namespace FWO.Tufin.SecureChange
 		public override string GetTaskTypeAsString(WfReqTask task)
 		{
 			return GetTaskType(task).ToString();
+		}
+
+		public override async Task<(string, string?)> GetNewState(string oldState)
+		{
+			RestResponse<int> restResponse = await PollExternalTicket(ConstructUrl());
+			if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
+			{
+				SCPollTicketResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCPollTicketResponse?>(restResponse.Content);
+				if(scResponse != null)
+				{
+					return (ScToInternalStates[scResponse.Ticket.Status.ToUpper()], restResponse.Content);
+				}
+			}
+			return (oldState, restResponse.ErrorMessage);
+		}
+
+		private string ConstructUrl()
+		{
+			// URL: /securechangeworkflow/api/securechange/tickets/{id:[0-9]+}
+			return TicketSystem.Url + "/id:" + TicketId;
 		}
 
 		private static SCTaskType GetTaskType(WfReqTask task)

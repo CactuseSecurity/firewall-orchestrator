@@ -29,6 +29,13 @@ namespace FWO.Middleware.Server
 		private bool WorkInProgress = false;
 		private readonly UserConfig userConfig;
 		private List<ExternalRequest> openRequests = [];
+		private static readonly List<string> openRequestStates =
+		[
+			ExtStates.ExtReqInitialized.ToString(),
+			ExtStates.ExtReqFailed.ToString(),
+			ExtStates.ExtReqRequested.ToString(),
+			ExtStates.ExtReqInProgress.ToString()
+		];
 
 
 		/// <summary>
@@ -51,7 +58,7 @@ namespace FWO.Middleware.Server
 				if(!WorkInProgress)
 				{
 					WorkInProgress = true;
-					openRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests);
+					openRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = openRequestStates});
 					foreach(var request in openRequests)
 					{
 						if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
@@ -80,9 +87,9 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-            	ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
 				ExternalTicket ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
-                RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket(extTicketSystem);
+				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
+                RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
 				if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)
 				{
 					var locationHeader = ticketIdResponse.Headers?.FirstOrDefault(h => h.Name.Equals("location", StringComparison.OrdinalIgnoreCase))?.Value?.ToString();
@@ -113,12 +120,12 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				string oldState = new(request.ExtRequestState);
+				// string oldState = new(request.ExtRequestState);
 				(request.ExtRequestState, request.LastMessage) = await PollState(request);
-				if(request.ExtRequestState != oldState)
-				{
+				// if(request.ExtRequestState != oldState)
+				// {
 					await UpdateRequestProcess(request);
-				}
+				// }
 			}
 			catch(Exception exception)
 			{
@@ -126,12 +133,30 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private async Task<(string, string)> PollState(ExternalRequest request)
+		private async Task<(string, string?)> PollState(ExternalRequest request)
 		{
-			// todo
-
-
-			return (request.ExtRequestState, "");//ticketIdResponse?.Content);
+			try
+			{
+            	ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
+				ExternalTicket? ticket;
+				if(extTicketSystem.Type == ExternalTicketSystemType.TufinSecureChange)
+				{
+					ticket = new SCTicket(extTicketSystem)
+					{
+						TicketId = request.ExtTicketId
+					};
+				}
+				else
+				{
+					throw new Exception("Ticket system not supported yet");
+				}
+				return await ticket.GetNewState(request.ExtRequestState);
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Polling request failed: ", exception);
+				return (request.ExtRequestState, exception.Message);
+			}
 		}
 
 		private async Task UpdateRequestCreation(ExternalRequest request)

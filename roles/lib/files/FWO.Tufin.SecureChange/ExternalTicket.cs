@@ -13,9 +13,9 @@ namespace FWO.Tufin.SecureChange
 		[JsonProperty("ticketText"), JsonPropertyName("ticketText")]
 		public string TicketText { get; set; } = "";
 
+		public string? TicketId { get; set; } = "";
 		protected List<string> TicketTasks = [];
-		protected ExternalTicketSystem TicketSystem = new();
-
+		public ExternalTicketSystem TicketSystem = new();
 
 		public ExternalTicket(){}
 
@@ -27,16 +27,37 @@ namespace FWO.Tufin.SecureChange
 			return "";
 		}
 
-		public async Task<RestResponse<int>> CreateExternalTicket(ExternalTicketSystem ticketSystem)
+		public virtual async Task<(string, string?)> GetNewState(string oldState)
 		{
-			// build API call
+			return ("","");
+		}
+
+		public async Task<RestResponse<int>> CreateExternalTicket()
+		{
 			RestRequest request = new("tickets.json", Method.Post);
 			request.AddJsonBody(TicketText);
+
+			// https://192.168.1.1/securechangeworkflow/api/securechange/tickets
+			return await RestCall(request, TicketSystem.Url);
+		}
+
+		protected async Task<RestResponse<int>> PollExternalTicket(string url)
+		{
+			if(TicketId != null)
+			{
+				RestRequest request = new("tickets.json", Method.Get);
+				return await RestCall(request, url);
+			}
+			throw new Exception("No Ticket Id given.");
+		}
+
+		private async Task<RestResponse<int>> RestCall(RestRequest request, string url)
+		{
 			request.AddHeader("Content-Type", "application/json");
-			request.AddHeader("Authorization", ticketSystem.Authorization);
+			request.AddHeader("Authorization", TicketSystem.Authorization);
 			RestClientOptions restClientOptions = new();
 			restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-			restClientOptions.BaseUrl = new Uri(ticketSystem.Url);
+			restClientOptions.BaseUrl = new Uri(url);
 			RestClient restClient = new(restClientOptions, null, ConfigureRestClientSerialization);
 
 			// Debugging SecureChange API call

@@ -5167,6 +5167,29 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "ext_query_variables",
+                      "ext_request_content",
+                      "ext_request_state",
+                      "ext_request_type",
+                      "ext_ticket_id",
+                      "ext_ticket_system",
+                      "last_creation_response",
+                      "last_processing_response",
+                      "owner_id",
+                      "task_number",
+                      "create_date",
+                      "finish_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -5176,7 +5199,10 @@
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
+                      "ext_ticket_id",
                       "ext_ticket_system",
+                      "last_creation_response",
+                      "last_processing_response",
                       "owner_id",
                       "task_number",
                       "create_date",
@@ -5190,17 +5216,20 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "create_date",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
+                      "ext_ticket_id",
                       "ext_ticket_system",
+                      "finish_date",
+                      "id",
+                      "last_creation_response",
+                      "last_processing_response",
                       "owner_id",
                       "task_number",
-                      "create_date",
-                      "finish_date"
+                      "ticket_id"
                     ],
                     "filter": {}
                   },
@@ -5213,7 +5242,9 @@
                   "permission": {
                     "columns": [
                       "ext_request_state",
-                      "finish_date"
+                      "ext_ticket_id",
+                      "last_creation_response",
+                      "last_processing_response"
                     ],
                     "filter": {},
                     "check": null

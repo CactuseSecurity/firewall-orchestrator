@@ -1,6 +1,6 @@
 
-query getOpenRequests {
-  ext_request (where: { _and: [ { ext_request_state: {_neq: "ExtReqAcknowledged"}}, {ext_request_state: {_neq: "ExtReqDone"}} ]} order_by: { id: asc }){
+query getOpenRequests ($states: [String!] ){
+  ext_request (where: { ext_request_state: {_in: $states} } order_by: { id: asc }){
     id
     owner_id
     ticket_id

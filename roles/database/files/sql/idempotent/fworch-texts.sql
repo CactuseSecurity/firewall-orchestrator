@@ -3097,6 +3097,8 @@ INSERT INTO txt VALUES ('C9010', 'German',  'Angefrage Schnittstelle durch berei
 INSERT INTO txt VALUES ('C9010', 'English', 'Replace requested by already existing interface.');
 INSERT INTO txt VALUES ('C9011', 'German',  'Angefrage Schnittstelle wurde abgelehnt.');
 INSERT INTO txt VALUES ('C9011', 'English', 'Requested interface was rejected.');
+INSERT INTO txt VALUES ('C9012', 'German',  'Sie haben keine der Rollen: requester, implementer, admin, auditor.');
+INSERT INTO txt VALUES ('C9012', 'English', 'You do not have one of the following roles: requester, implementer, admin, auditor.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.

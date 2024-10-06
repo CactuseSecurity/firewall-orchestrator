@@ -145,8 +145,8 @@ namespace FWO.Ui.Services
 			{
 				ticket = new SCTicket(actSystem)
 				{
-					Subject = "test ticket 1", // todo
-					Priority = SCTicketPriority.Low.ToString(), // todo: necessary?
+					Subject = ConstructSubject(reqTasks.First()),
+					Priority = SCTicketPriority.Low.ToString(), // todo: handling for manually handled requests (e.g. access)
 					Requester = UserConfig.User.Name
 				};
 			}
@@ -162,6 +162,20 @@ namespace FWO.Ui.Services
 			}
 			return "";
 		}
+
+		private static string ConstructSubject(WfReqTask reqTask)
+		{
+			string onMgt = " on " + reqTask.OnManagement?.Name + "(" + reqTask.OnManagement?.Id + ")";
+			string grpName = reqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+            return reqTask.TaskType switch
+            {
+                nameof(WfTaskType.access) => "Create rule on " + onMgt,
+                nameof(WfTaskType.group_create) => "Create group " + grpName + onMgt,
+                nameof(WfTaskType.group_modify) => "Modify group " + grpName + onMgt,
+                nameof(WfTaskType.group_delete) => "Delete group " + grpName + onMgt,
+                _ => "Request something",
+            };
+        }
 
 		private async Task UpdateTicket(WfTicket ticket, ExternalRequest extReq)
 		{
@@ -189,7 +203,7 @@ namespace FWO.Ui.Services
 						ExtStates.ExtReqAcknowledged.ToString(),
 					finishDate = DateTime.Now
 				};
-				await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestState, Variables);
+				await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestFinal, Variables);
 			}
 			catch(Exception exception)
 			{

@@ -32,5 +32,10 @@ namespace FWO.Api.Data
 
         [JsonProperty("ext_request_state"), JsonPropertyName("ext_request_state")]
         public string ExtRequestState { get; set; } = "";
+
+        [JsonProperty("ext_ticket_id"), JsonPropertyName("ext_ticket_id")]
+        public string? ExtTicketId { get; set; }
+
+        public string? LastMessage { get; set; }
     }
 }

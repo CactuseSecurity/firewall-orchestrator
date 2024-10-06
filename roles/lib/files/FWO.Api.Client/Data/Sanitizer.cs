@@ -168,7 +168,7 @@ namespace FWO.Api.Data
         // not allowed: +*(){}[]?!#<>=,;'\"'/\\\t@$%^|&~
         public static string SanitizeJsonFieldMand(string input, ref bool shortened)
         {
-            string output = Regex.Replace(input, @"[\+\*\(\)\{\}\[\]\?\!#<>\=\,\;\/\\\t@\$\%\^\|\&\~ ]", "").Trim();
+            string output = Regex.Replace(input, @"[\+\*\(\)\{\}\[\]\?\!#<>\=\,\;\/\\\t@\$\%\^\|\&\~ ]", "_").Trim();
             if(output.Length < input.Length)
             {
                 shortened = true;

@@ -1106,6 +1106,9 @@ create table ext_request
 	ext_request_content varchar,
 	ext_query_variables varchar,
 	ext_request_state varchar,
+	ext_ticket_id varchar,
+	last_creation_response varchar,
+	last_processing_response varchar,
 	create_date Timestamp default now(),
 	finish_date Timestamp
 );

@@ -83,13 +83,23 @@ namespace FWO.Middleware.Server
             	ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
 				ExternalTicket ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
                 RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket(extTicketSystem);
-				if (ticketIdResponse.StatusCode == HttpStatusCode.OK)
+				if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)
 				{
-					await UpdateState(request, ExtStates.ExtReqRequested.ToString());
+					var locationHeader = ticketIdResponse.Headers?.FirstOrDefault(h => h.Name.Equals("location", StringComparison.OrdinalIgnoreCase))?.Value?.ToString();
+					if (!string.IsNullOrEmpty(locationHeader))
+					{
+						Uri locationUri = new(locationHeader);
+						request.ExtTicketId = locationUri.Segments.Last();
+					}
+					request.ExtRequestState = ExtStates.ExtReqRequested.ToString();
+					request.LastMessage = ticketIdResponse?.Content;
+					await UpdateRequestCreation(request);
 				}
 				else
 				{
-					await UpdateState(request, ExtStates.ExtReqFailed.ToString());
+					request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
+					request.LastMessage = ticketIdResponse?.ErrorMessage;
+					await UpdateRequestCreation(request);
 					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.ErrorMessage);
 				}
 			}
@@ -103,11 +113,11 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				string oldState = request.ExtRequestState;
-				string newState = await PollState(request);
-				if(newState != oldState)
+				string oldState = new(request.ExtRequestState);
+				(request.ExtRequestState, request.LastMessage) = await PollState(request);
+				if(request.ExtRequestState != oldState)
 				{
-					await UpdateState(request, newState);
+					await UpdateRequestProcess(request);
 				}
 			}
 			catch(Exception exception)
@@ -116,24 +126,44 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private async Task<string> PollState(ExternalRequest request)
+		private async Task<(string, string)> PollState(ExternalRequest request)
 		{
 			// todo
-			return request.ExtRequestState;
+
+
+			return (request.ExtRequestState, "");//ticketIdResponse?.Content);
 		}
 
-		private async Task UpdateState(ExternalRequest request, string newState)
+		private async Task UpdateRequestCreation(ExternalRequest request)
 		{
 			try
 			{
-				DateTime? dateTimeNull = null;
 				var Variables = new
 				{
 					id = request.Id,
-					extRequestState = newState,
-					finishDate = dateTimeNull
+					extRequestState = request.ExtRequestState,
+					extTicketId = request.ExtTicketId,
+					creationResponse = request.LastMessage
 				};
-				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestState, Variables);
+				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestCreation, Variables);
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError("External Request Sender", $"State update failed: ", exception);
+			}
+		}
+
+		private async Task UpdateRequestProcess(ExternalRequest request)
+		{
+			try
+			{
+				var Variables = new
+				{
+					id = request.Id,
+					extRequestState = request.ExtRequestState,
+					processingResponse = request.LastMessage
+				};
+				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
 			}
 			catch(Exception exception)
 			{

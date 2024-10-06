@@ -1262,7 +1262,8 @@ namespace FWO.Ui.Services
 
         public async Task UpdateActTicketStateFromImplTasks()
         {
-            foreach (WfReqTask reqTask in ActTicket.Tasks)
+            List<WfReqTask> tasks = new(ActTicket.Tasks);
+            foreach (WfReqTask reqTask in tasks)
             {
                 await UpdateReqTaskStateFromImplTasks(reqTask);
             }

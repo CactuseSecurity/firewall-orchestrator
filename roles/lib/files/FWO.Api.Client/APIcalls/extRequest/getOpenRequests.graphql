@@ -10,5 +10,6 @@ query getOpenRequests {
     task_number
     ext_request_type
     ext_request_state
+    ext_ticket_id
   }
 }

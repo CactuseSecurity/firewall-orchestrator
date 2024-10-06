@@ -19,7 +19,7 @@ namespace FWO.Tufin.SecureChange
 
 
 		public override void FillTaskText(string tasksTemplate)
-		{			
+		{
 			TaskText = tasksTemplate
 				.Replace("@@USERS@@", "[\"Any\"]") // data not provided yet
 				.Replace("@@SOURCES@@", ConvertNetworkObjects(ElemFieldType.source))

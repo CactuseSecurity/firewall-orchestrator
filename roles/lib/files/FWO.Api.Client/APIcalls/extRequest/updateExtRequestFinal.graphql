@@ -1,4 +1,4 @@
-mutation updateExtRequestState(
+mutation updateExtRequestFinal(
   $id: bigint!
   $extRequestState: String!
   $finishDate: timestamp

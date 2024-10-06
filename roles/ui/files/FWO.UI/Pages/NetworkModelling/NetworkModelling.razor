@@ -41,9 +41,20 @@
                     <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">
                         @(userConfig.GetText("show_history"))
                     </button>
-                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
-                        @(userConfig.GetText("request_fw_change"))
-                    </button>
+                    <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
+                        <Authorized>
+                            <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
+                                @(userConfig.GetText("request_fw_change"))
+                            </button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
+                                <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
+                                    @(userConfig.GetText("request_fw_change"))
+                                </button>
+                            </div>
+                        </NotAuthorized>
+                    </AuthorizeView>
                 </div>
             </div>
         </div>

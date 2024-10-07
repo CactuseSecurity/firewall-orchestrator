@@ -185,6 +185,8 @@ INSERT INTO txt VALUES ('AllOwnerResponsibles', 'German',	'Eigent&uuml;mer alle 
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'English',	'Owner all responsibles');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'German',	'nur Eigent&uuml;mergruppe');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'English',	'Owner Group only');
+INSERT INTO txt VALUES ('MainResponsibleOwnerEmpty', 'German',	'Hauptverantworlicher wenn Eigent&uuml;mergruppe nicht spezifiziert');
+INSERT INTO txt VALUES ('MainResponsibleOwnerEmpty', 'English',	'Owner Main Responsible if Owner Group not specified');
 INSERT INTO txt VALUES ('Requester', 		    'German',	'Antragsteller');
 INSERT INTO txt VALUES ('Requester', 	        'English',	'Requester');
 INSERT INTO txt VALUES ('Approver', 		    'German',	'Genehmiger');

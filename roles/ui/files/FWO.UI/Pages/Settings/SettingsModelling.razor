@@ -289,7 +289,7 @@ else
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly, 
-    EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible ];
+    EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.MainResponsibleOwnerEmpty ];
 
     protected override async Task OnInitializedAsync()
     {

@@ -4,7 +4,7 @@ using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Middleware.Client;
 using FWO.Mail;
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 
@@ -54,6 +54,11 @@ namespace FWO.Ui.Services
             ScopedUserCc = scopedUserCc;
         }
 
+        public List<UserGroup> GetOwnerGroups()
+        {
+            return ownerGroups;
+        }
+
         public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body)
         {
             List<string>? requester = userConfig.ModReqEmailRequesterInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
@@ -74,9 +79,9 @@ namespace FWO.Ui.Services
 
         private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null)
         {
-            EmailConnection emailConnection = new (userConfig.EmailServerAddress, userConfig.EmailPort,
+            EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
-            MailKitMailer mailer = new (emailConnection);
+            MailKitMailer mailer = new(emailConnection);
             tos = tos.Where(t => t != "").ToList();
             ccs = ccs?.Where(c => c != "").ToList();
             return await mailer.SendAsync(new MailData(tos, subject, body, null, null, null, null, null, ccs), emailConnection, new CancellationToken(), true);
@@ -85,7 +90,7 @@ namespace FWO.Ui.Services
         private List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)
         {
             List<string> recipients = [];
-            switch(recipientOption)
+            switch (recipientOption)
             {
                 case EmailRecipientOption.CurrentHandler:
                     recipients.Add(GetEmailAddress(statefulObject?.CurrentHandler?.Dn));
@@ -116,6 +121,22 @@ namespace FWO.Ui.Services
             return recipients;
         }
 
+        public List<string> GetOwnerMainResponsibleRecipients(List<UserGroup> owners)
+        {
+            List<string> recipients = [];
+
+            foreach (UserGroup owner in owners)
+            {
+                if (owner is null || string.IsNullOrWhiteSpace(owner.Dn))
+                {
+                    continue;
+                }
+                recipients.Add(GetEmailAddress(owner.Dn));
+            }
+
+            return recipients;
+        }
+
         private List<string> CollectEmailAddressesFromOwner(FwoOwner? owner)
         {
             List<string> tos = new() { GetEmailAddress(owner?.Dn) };
@@ -134,9 +155,9 @@ namespace FWO.Ui.Services
         {
             List<string> tos = [];
             UserGroup? ownerGroup = ownerGroups.FirstOrDefault(x => x.Dn == groupDn);
-            if(ownerGroup != null)
+            if (ownerGroup != null)
             {
-                foreach(var user in ownerGroup.Users)
+                foreach (var user in ownerGroup.Users)
                 {
                     tos.Add(GetEmailAddress(user.Dn));
                 }
@@ -146,12 +167,12 @@ namespace FWO.Ui.Services
 
         private string GetEmailAddress(string? dn)
         {
-            if(userConfig.UseDummyEmailAddress)
+            if (userConfig.UseDummyEmailAddress)
             {
                 return userConfig.DummyEmailAddress;
             }
             UiUser? uiuser = uiUsers.FirstOrDefault(x => x.Dn == dn);
-            if(uiuser != null && uiuser.Email != null && uiuser.Email != "")
+            if (uiuser != null && uiuser.Email != null && uiuser.Email != "")
             {
                 return uiuser.Email;
             }

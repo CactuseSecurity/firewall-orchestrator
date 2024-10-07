@@ -9,6 +9,7 @@
         OwnerMainResponsible = 10, 
         AllOwnerResponsibles = 11,
         OwnerGroupOnly = 12,
+        MainResponsibleOwnerEmpty = 13,
 
         Requester = 20,
         Approver = 21,

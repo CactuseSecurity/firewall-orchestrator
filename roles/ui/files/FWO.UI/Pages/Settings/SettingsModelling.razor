@@ -174,7 +174,19 @@
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5614"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ImportSubnetDataPath" />
+            <div class="col-sm-6">
+                <EditList ElementType="string" Elements="SubnetDataPaths.ToArray()" ElementsToAdd="PathsToAddSubnet" ElementsToDelete="PathsToDeleteSubnet" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border bg-transparent">@context</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <input type="text" class="col-sm-10" @bind="SubnetActPath" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPathSubnet" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                </div>
+            </div>
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5615"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataSleepTime")):</label>
@@ -250,16 +262,20 @@ else
 
     private ConfigData? configData;
     private List<string> appDataPaths = [];
+    private List<string> SubnetDataPaths = [];
     private List<string> PathsToAdd = [];
     private List<string> PathsToDelete = [];
+    private List<string> PathsToAddSubnet = [];
+    private List<string> PathsToDeleteSubnet = [];
     private string actPath = "";
-    
+    private string SubnetActPath = "";
+
     private List<AppServerType> appServerTypes = [];
     private List<AppServerType> appServerTypesToAdd = [];
     private List<AppServerType> appServerTypesToDelete = [];
     private AppServerType actAppServerType = new();
     private string appServerDefaultTypeName = "";
-    
+
     private List<ModellingNwGroup> allAreas = [];
     private List<ModellingNwGroupWrapper> pureAreaList = [];
     private List<CommonAreaConfig> commAreaConfigItems = [];
@@ -273,7 +289,7 @@ else
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly, 
-        EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible ];
+    EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible ];
 
     protected override async Task OnInitializedAsync()
     {
@@ -281,6 +297,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? new();
+            SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? new();
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
             if(configData.ModAppServerTypes != "")
             {
@@ -335,6 +352,15 @@ else
         }
     }
 
+    private void AddPathSubnet()
+    {
+        if (!string.IsNullOrWhiteSpace(SubnetActPath))
+        {
+            PathsToAddSubnet.Add(SubnetActPath);
+            SubnetActPath = "";
+        }
+    }
+
     private void AddAppServerType()
     {
         if(actAppServerType.Id > 0 && actAppServerType.Name != "" 
@@ -367,6 +393,8 @@ else
 
                 PathsToDelete = [];
                 PathsToAdd = [];
+                PathsToDeleteSubnet = [];
+                PathsToAddSubnet = [];
                 AreasToDelete = [];
                 appServerTypesToAdd = [];
                 appServerTypesToDelete = [];
@@ -387,6 +415,7 @@ else
     private void PrepareConfigData()
     {
         PrepareAppDataPaths();
+        PrepareSubnetDataPaths();
         configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         PrepareCommonAreas();
@@ -405,6 +434,19 @@ else
             appDataPaths.Add(path);
         }
         configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
+    }
+
+    private void PrepareSubnetDataPaths()
+    {
+        foreach (string path in PathsToDeleteSubnet)
+        {
+            SubnetDataPaths.Remove(path);
+        }
+        foreach (string path in PathsToAddSubnet)
+        {
+            SubnetDataPaths.Add(path);
+        }
+        configData.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
     }
 
     private void PrepareCommonAreas()

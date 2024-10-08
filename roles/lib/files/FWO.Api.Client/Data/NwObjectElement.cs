@@ -32,10 +32,10 @@ namespace FWO.Api.Data
         public string? Comment { get; set; }
 
         public long TaskId { get; set; }
-
         public long? NetworkId { get; set; }
-
         public string GroupName { get; set; } = "";
+        public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
+
 
         public NwObjectElement()
         {}
@@ -67,6 +67,7 @@ namespace FWO.Api.Data
                 CidrEnd = new Cidr(CidrEnd.CidrString),
                 NetworkId = NetworkId,
                 GroupName = GroupName,
+                RequestAction = RequestAction,
                 Name = Name
             };
             return element;

@@ -29,6 +29,8 @@ namespace FWO.Middleware.Server
 		private bool WorkInProgress = false;
 		private readonly UserConfig userConfig;
 		private List<ExternalRequest> openRequests = [];
+
+		// todo: map to internal states to use "lowest_end_state" setting ?
 		private static readonly List<string> openRequestStates =
 		[
 			ExtStates.ExtReqInitialized.ToString(),

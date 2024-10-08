@@ -2,9 +2,9 @@ using FWO.Api.Data;
 
 namespace FWO.Tufin.SecureChange
 {
-	public class SCNetworkObjectCreateTicketTask : SCTicketTask
+	public class SCNetworkObjectUpdateTicketTask : SCTicketTask
 	{
-		public SCNetworkObjectCreateTicketTask(WfReqTask reqTask) : base(reqTask)
+		public SCNetworkObjectUpdateTicketTask(WfReqTask reqTask) : base(reqTask)
 		{}
 
 		public override void FillTaskText(string tasksTemplate)
@@ -14,6 +14,7 @@ namespace FWO.Tufin.SecureChange
 			bool shortened = false;
 			TaskText = tasksTemplate
 				.Replace("@@GROUPNAME@@", Sanitizer.SanitizeJsonFieldMand(ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName), ref shortened))
+				.Replace("@@OBJECT_UID@@", ReqTask.NetworkGroupId.ToString())
 				.Replace("@@MANAGEMENT_ID@@", extMgt.ExtId ?? "0")
 				.Replace("@@MANAGEMENT_NAME@@", extMgt.ExtName)
 				.Replace("@@MEMBERS@@", ConvertNetworkObjects(extMgt.ExtId));
@@ -29,12 +30,13 @@ namespace FWO.Tufin.SecureChange
 // 			"name": "Modify network object group",
 // 			"group_change": {
 // 				"name": "@@GROUPNAME@@",
+//              "object_UID": "@@OBJECT_UID@@",
 // 				"management_id": @@MANAGEMENT_ID@@,
 // 				"management_name": "@@MANAGEMENT_NAME@@",
 // 				"members": {
 // 					"member": @@MEMBERS@@
 // 				},
-// 				"change_action": "CREATE"
+// 				"change_action": "UPDATE"
 // 			}
 // 		}
 // 	}

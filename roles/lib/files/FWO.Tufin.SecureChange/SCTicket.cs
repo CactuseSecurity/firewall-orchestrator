@@ -8,9 +8,11 @@ namespace FWO.Tufin.SecureChange
 {
 	public enum SCTaskType
 	{
-		AccessRequest,
-		NetworkObjectCreate,
-		NetworkServiceCreate
+		AccessRequest = 0,
+		NetworkObjectCreate = 10,
+		NetworkObjectUpdate = 11,
+		NetworkServiceCreate = 20,
+		NetworkServiceUpdate = 21
 	}
 
 	public enum SCTicketPriority
@@ -33,7 +35,9 @@ namespace FWO.Tufin.SecureChange
         {
 			{ SCTaskType.AccessRequest, "1. xxx Standard Firewall Request" },
 			{ SCTaskType.NetworkObjectCreate, "Automatische Gruppenerstellung" },
-			{ SCTaskType.NetworkServiceCreate, "Automatische Gruppenerstellung" }
+			{ SCTaskType.NetworkServiceCreate, "Automatische Gruppenerstellung" },
+			{ SCTaskType.NetworkObjectUpdate, "Automatische Gruppenerstellung" },
+			{ SCTaskType.NetworkServiceUpdate, "Automatische Gruppenerstellung" }
 		};
 
 		// IN_PROGRESS, REJECTED, CLOSED, CANCELLED, RESOLVED
@@ -122,6 +126,15 @@ namespace FWO.Tufin.SecureChange
 					{
 						return SCTaskType.NetworkServiceCreate;
 					}
+				case nameof(WfTaskType.group_modify):
+					if(task.IsNetworkFlavor())
+					{
+						return SCTaskType.NetworkObjectUpdate;
+					}
+					else
+					{
+						return SCTaskType.NetworkServiceUpdate;
+					}
 				default: return SCTaskType.AccessRequest;
 			}
 		}
@@ -139,6 +152,9 @@ namespace FWO.Tufin.SecureChange
 						break;
 					case SCTaskType.NetworkObjectCreate:
 						ticketTask = new SCNetworkObjectCreateTicketTask(task);
+						break;
+					case SCTaskType.NetworkObjectUpdate:
+						ticketTask = new SCNetworkObjectUpdateTicketTask(task);
 						break;
 				}
 				if(ticketTask != null)

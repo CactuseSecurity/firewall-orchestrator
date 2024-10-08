@@ -9,7 +9,7 @@
         public int ProtoId { get; set; }
         public long? ServiceId { get; set; }
         public string? Name { get; set; }
-
+        public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
 
         public WfReqElement ToReqElement()
         {
@@ -22,7 +22,8 @@
                 PortEnd = PortEnd,
                 ProtoId = ProtoId,
                 ServiceId = ServiceId,
-                Name = Name
+                Name = Name,
+                RequestAction = RequestAction
             };
             return element;
         }

@@ -41,7 +41,7 @@ namespace FWO.Tufin.SecureChange
 			{
 				if(nwObj.GroupName != "" && convertedobjects.FirstOrDefault(o => o == nwObj.GroupName) == null)
 				{
-					convertedobjects.Add(FillGroupTemplate(nwObj.GroupName));
+					convertedobjects.Add(FillNwObjGroupTemplate(nwObj.GroupName));
 				}
 				else
 				{

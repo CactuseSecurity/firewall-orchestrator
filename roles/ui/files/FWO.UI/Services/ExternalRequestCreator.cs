@@ -44,6 +44,9 @@ namespace FWO.Ui.Services
 				if(UserConfig.ModRolloutBundleTasks)
 				{
 					// todo: bundle
+					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
+					// it must be split into multiple tickets of up to 100 ARs each.
+					// The count parameter specifies the number of tickets to be opened.
 				}
 				else
 				{

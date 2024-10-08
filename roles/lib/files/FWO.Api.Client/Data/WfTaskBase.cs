@@ -20,7 +20,8 @@ namespace FWO.Api.Data
     {
         create,
         delete,
-        modify
+        modify,
+        unchanged
     }
 
     public class WfTaskBase : WfStatefulObject

@@ -176,6 +176,11 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         issues.update(self.checkUserObjectConsistency())
         issues.update(self.checkZoneObjectConsistency())
         issues.update(self.checkRuleConsistency())
+        if len(issues)>0:
+            logger = getFwoLogger()
+            logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
+            self.ImportDetails.increaseErrorCounterByOne()
+
         return issues
 
     def checkNetworkObjectConsistency(self):

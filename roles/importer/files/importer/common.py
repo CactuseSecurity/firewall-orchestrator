@@ -117,11 +117,10 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
                 for managerSet in configNormalized.ManagerSet:
                     for config in managerSet.Configs:
-                        if config !=  {}:
+                        # if len(config)>0:
                             if importState.ImportVersion>8:
                                 configImporter = FwConfigImport(importState, config)
-                                issues = configImporter.checkConfigConsistency()
-                                if issues == {}:
+                                if len(configImporter.checkConfigConsistency())==0:
                                     try:
                                         configImporter.importConfig()
                                     except:
@@ -132,9 +131,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                         configImporter.rollbackCurrentImport()
                                     else:
                                         configImporter.storeConfigToApi() # to file (for debugging) and to database
-                                else:
-                                    logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
-                                    importState.increaseErrorCounterByOne()
                             else:
                                 configChunk = config.toJsonLegacy(withAction=False)
                                 importState.increaseErrorCounter(fwo_api.import_json_config(importState, configChunk))
@@ -158,7 +154,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             if error_from_imp_control != None and error_from_imp_control != [{'import_errors': None}]:
                 importState.increaseErrorCounterByOne()
                 importState.appendErrorString(str(error_from_imp_control))
-            # todo: if no objects found at all: at least throw a warning
+            # TODO: if no objects found at all: at least throw a warning
 
             # try: # get change count from db
             #     # temporarily only count rule changes until change report also includes other changes
@@ -168,8 +164,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             # except:
             #     logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
             #     raise
-        else: # if no changes were found, we skip everything else without errors
-            pass
         
         importState.increaseErrorCounter(fwo_api.complete_import(importState))
 

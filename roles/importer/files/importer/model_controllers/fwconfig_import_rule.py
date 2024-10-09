@@ -47,9 +47,9 @@ class FwConfigImportRule(FwConfigImportBase):
             currentPolicyUids.append(policy.Uid)
 
         for rulebaseId in previousPolicyUids:
+            currentPolicy = self.NormalizedConfig.getPolicy(rulebaseId)
             if rulebaseId in currentPolicyUids:
                 # deal with policies contained both in this and previous config
-                currentPolicy = self.NormalizedConfig.getPolicy(rulebaseId)
                 previousPolicy = prevConfig.getPolicy(rulebaseId)
 
                 deletedRuleUids.update({ rulebaseId: list(previousPolicy.Rules.keys() - currentPolicy.Rules.keys()) })
@@ -57,7 +57,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 ruleUidsInBoth.update({ rulebaseId: list(currentPolicy.Rules.keys() & previousPolicy.Rules.keys()) })
             else:
                 logger.info(f"previous rulebase has been deleted: {rulebaseId}")
-                deletedRuleUids.update({ rulebaseId: list(previousPolicy.Rules.keys()) })
+                deletedRuleUids.update({ rulebaseId: list(currentPolicy.Rules.keys()) })
 
         # now deal with new rulebases (not contained in previous config)
         for policy in self.NormalizedConfig.rules:

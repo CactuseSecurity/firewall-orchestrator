@@ -641,7 +641,6 @@ importer cp get changes:
   - each rule is only stored once
   - each rulebase is only stored once
 --- global changes ----
-- write changes into new normalized (class-based) format
 - allow conversion from new to old format (would lose information when working with rulebases)
 - allow conversion from old to new format (only for simple setups with 1:1 gw to rulebase matches
 
@@ -668,13 +667,24 @@ Cleanups (after cp importer works with all config variants):
 
 can we get everything working with old config format? no!
 
-optimization: add mgm_id to all tables like objgrp, ...
+optimization: add mgm_id to all tables like objgrp, ... ?
 
 disabled in UI:
     recertification.razor
     in report.razor:
     - RSB 
     - TicketCreate Komponente
+
+2024-10-09 planning
+- calculate rule_num_numeric
+- config mapping gateway to rulebase(s)
+- config mapping global start rb, local rb, global end rb
+- import inline layers
+- get reports working
+- valentin: open issues for KfW UI problems
+- decide how to implement ordered layer (all must match) vs. e.g. global policies (first match)
+- allow for also importing native configs from file 
+
 
 TODOs after full importer migration
 

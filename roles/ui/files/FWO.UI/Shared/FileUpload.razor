@@ -7,7 +7,7 @@
         @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
         <span class="ms-1">@(userConfig.GetText("import"))</span>
     </button>
-    <InputFile OnChange="@SingleUpload" />   
+    <InputFile OnChange="@SingleUpload" />
 </div>
 @if (ShowAlert)
 {
@@ -15,7 +15,6 @@
         <span>@userConfig.GetText("E7014")</span>
     </div>
 }
-
 
 @code {
     private bool ShowAlert { get; set; }
@@ -50,13 +49,36 @@
         await InputFileChangeEventArgs.File.OpenReadStream().CopyToAsync(ms);
         byte[]? bytes = ms.ToArray();
 
-        string[] result = System.Text.Encoding.UTF8.GetString(bytes).Split(';');
+        string text = System.Text.Encoding.UTF8.GetString(bytes);
+        string[] lines = text.Split('\r');
 
-        CSVInterfaceImportModel interfaceImport = new()
+        foreach (string tmpLine in lines)
         {
-            AppID = result[0],
-            AppServerTyp = result[1],
-            AppIPRange = result[2]
-        };
+            string line = tmpLine;
+
+            if (line.StartsWith("\n"))
+                line = line.Remove(0, 1);
+
+            if (IsHeader(line))
+                continue;
+
+            string[] entries = line.Split(';');
+
+            if (entries.Length < 2)
+                continue;
+
+            CSVInterfaceImportModel interfaceImport = new()
+                {
+                    AppID = entries[0],
+                    AppIPRange = entries[1]
+                };
+        }
+    }
+
+    private bool IsHeader(string lineText)
+    {
+        string[] columns = lineText.Split(";");
+
+        return ( columns[0] == "External App-ID" && columns[1] == "App-IP-Address-Range" && columns.Length == 2 );
     }
 }

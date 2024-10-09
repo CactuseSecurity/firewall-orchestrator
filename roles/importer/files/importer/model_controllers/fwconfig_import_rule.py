@@ -1,7 +1,8 @@
 import traceback
 from difflib import ndiff
 
-from models.rule import RuleForImport
+from models.rule import RuleForImport, RuleType
+from models.policy import Policy
 from fwoBaseImport import ImportState
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
@@ -48,8 +49,8 @@ class FwConfigImportRule(FwConfigImportBase):
         for rulebaseId in previousPolicyUids:
             if rulebaseId in currentPolicyUids:
                 # deal with policies contained both in this and previous config
-                currentPolicy = [pol for pol in self.NormalizedConfig.rules if pol.Uid == rulebaseId]
-                previousPolicy = [pol for pol in prevConfig.rules if pol.Uid == rulebaseId]
+                currentPolicy = self.NormalizedConfig.getPolicy(rulebaseId)
+                previousPolicy = prevConfig.getPolicy(rulebaseId)
 
                 deletedRuleUids.update({ rulebaseId: list(previousPolicy.Rules.keys() - currentPolicy.Rules.keys()) })
                 newRuleUids.update({ rulebaseId: list(currentPolicy.Rules.keys() - previousPolicy.Rules.keys()) })
@@ -67,15 +68,15 @@ class FwConfigImportRule(FwConfigImportBase):
         # TODO: need to ignore last_hit! 
         for rulebaseId in ruleUidsInBoth:
             changedRuleUids.update({ rulebaseId: [] })
-            currentPolicy = [pol for pol in self.NormalizedConfig.rules if pol.Uid == rulebaseId]
-            previousPolicy = [pol for pol in prevConfig.rules if pol.Uid == rulebaseId]
+            currentPolicy = self.NormalizedConfig.getPolicy(rulebaseId) # [pol for pol in self.NormalizedConfig.rules if pol.Uid == rulebaseId]
+            previousPolicy = prevConfig.getPolicy(rulebaseId)
             for ruleUid in ruleUidsInBoth[rulebaseId]:
-                if self.ruleChanged(rulebaseId, ruleUid, prevConfig):
+                if self.ruleChanged(rulebaseId, ruleUid, currentPolicy, previousPolicy):
                     changedRuleUids[rulebaseId].append(ruleUid)
 
         # changed rules will get the same rule_num_numeric as their previous version?!
         # new rules will be fitted between the respective rules of the previous rulebase
-        self.setNewRulesNumbering(prevConfig.rules)
+        self.setNewRulesNumbering(prevConfig)
 
         # update rule diffs
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRuleUids)
@@ -93,9 +94,10 @@ class FwConfigImportRule(FwConfigImportBase):
 
         return errorCountAdd + errorCountDel, numberOfDeletedRules + numberOfAddedRules
 
-    def ruleChanged(self, rulebaseId, ruleUid, prevConfig: FwConfigNormalized):
+    def ruleChanged(self, rulebaseId, ruleUid, currentPolicy: Policy, prevPolicy: Policy):
         # TODO: need to ignore rule_num, last_hit, ...?
-        return prevConfig.rules[rulebaseId].Rules[ruleUid] != self.NormalizedConfig.rules[rulebaseId].Rules[ruleUid]
+        return prevPolicy.Rules[ruleUid] != currentPolicy.Rules[ruleUid]
+        # return prevConfig.rules[rulebaseId].Rules[ruleUid] != self.NormalizedConfig.rules[rulebaseId].Rules[ruleUid]
         # return prevConfig['rules'][rulebaseId]['Rules'][ruleUid] != self.rules[rulebaseId]['Rules'][ruleUid]
 
     # assuming input of form:
@@ -129,8 +131,98 @@ class FwConfigImportRule(FwConfigImportBase):
     # - list of rules to be imported (only the changes - rules to be added) per rulebase
     # - full database table of current rules of the rulebase at hand
     # update attribute rule_num_numeric of all new rules in current rulebases
-    def setNewRulesNumbering(self, previousRules):
+
+    def setNewRulesNumbering(self, previousConfig: FwConfigNormalized):
+        """
+        Updates the PostgreSQL table 'rule' to reflect changes between old and new rules,
+        inserting new rules at the correct positions using float rule_num_numeric values.
+
+        :param old_rules: List of tuples representing previous rules (e.g., [(1, 1.0), (2, 2.0)]).
+        :param conn: Connection to the PostgreSQL database.
+        """
+
+        for policy in self.NormalizedConfig.rules:
+            # Step 1: Identify the old and new rule IDs
+            oldRuleUids  = {}
+            if policy.Uid in previousConfig.rules:
+                oldRuleUids = previousConfig.rules[policy.Uid].Rules.keys()
+            newRuleUids = self.NormalizedConfig.getPolicy(policy.Uid).Rules.keys()
+
+            # Rules to delete and add
+            deleted_rules = oldRuleUids - newRuleUids
+            added_rules = newRuleUids - oldRuleUids
+
+            # Map existing rules to their current rule numbers for quick lookup
+            if policy.Uid in previousConfig.rules:
+                existing_rule_numbers = previousConfig.getPolicy(policy.Uid).Rules
+            else:
+                existing_rule_numbers = {}
+
+            try:
+                # # Step 2: Delete the rules no longer in the new list
+                # if deleted_rules:
+                #     delete_query = "DELETE FROM rule WHERE rule_id IN %s"
+                #     cursor.execute(delete_query, (tuple(deleted_rules),))
+
+                # Step 3: Traverse the new list and handle added rules using list operations
+                current_rule_number = None
+                for ruleUid in policy.Rules.keys():
+                    if ruleUid not in existing_rule_numbers:
+                        # This is a new rule and needs a new `rule_number`
+
+                        # Find the previous rule in the list that already exists
+                        previous_rule_number = current_rule_number
+
+                        # Get the next existing rule number in the new list
+                        next_rule_number = None
+                        for nextRuleUid in self._find_following_rules(ruleUid, existing_rule_numbers, policy.Uid):
+                            if nextRuleUid in existing_rule_numbers:
+                                next_rule_number = existing_rule_numbers[nextRuleUid]
+                                break
+
+                        # Calculate the new rule number based on neighbors
+                        if previous_rule_number is not None and next_rule_number is not None:
+                            new_rule_number = (previous_rule_number + next_rule_number) / 2.0
+                        elif previous_rule_number is not None:
+                            new_rule_number = previous_rule_number + 1.0
+                        elif next_rule_number is not None:
+                            new_rule_number = next_rule_number - 1.0
+                        else:
+                            new_rule_number = 1.0  # Default when no neighbors exist
+
+                        # # Insert the new rule into the database
+                        # insert_query = "INSERT INTO rule (rule_id, rule_num_numeric) VALUES (%s, %s)"
+                        # cursor.execute(insert_query, (rule_id, new_rule_number))
+
+                        # Update the existing rule numbers dictionary
+                        existing_rule_numbers[ruleUid] = new_rule_number
+
+                    # Update the current rule number for the next iteration
+                    current_rule_number = existing_rule_numbers[ruleUid]
+
+            except Exception as e:
+                print(f"An error occurred: {e}")
+
+    def _find_following_rules(self, ruleUid, previousPolicy, policyId):
+        """
+        Helper method to find the next rule in self that has an existing rule number.
+        
+        :param ruleUid: The ID of the current rule being processed.
+        :param previousPolicy: Dictionary of existing rule IDs and their rule_number values.
+        :return: Generator yielding rule IDs that appear after `current_rule_id` in self.new_rules.
+        """
+        found = False
+        currentPolicy = self.NormalizedConfig.getPolicy(policyId)
+        for currentUid in currentPolicy.Rules:
+            if currentUid == ruleUid:
+                found = True
+            elif found and ruleUid in previousPolicy:
+                yield currentUid
+
+    """
         return
+
+
         # first deal with new rulebases
         for newRbName in self.NormalizedConfig.rules:
             if newRbName not in previousRules:
@@ -188,6 +280,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
                     elif change_type == 'unchanged':
                         db_index += 1  # Move to the next uid in the current_db_list
+    """
 
     def addNewRules(self, newRuleUids):
         logger = getFwoLogger()
@@ -413,7 +506,28 @@ class FwConfigImportRule(FwConfigImportBase):
                 logger.warning("did not find exactly one policy for rulebaseUid")
 
             for ruleUid in newRuleUids[rulebaseUid]:
-                newEnrichedRule = RuleForImport(currentPolicy.Rules[ruleUid]) # leave the original dict as is
+                rule = currentPolicy.Rules[ruleUid]
+                rule_action_id = self.lookupAction(rule.rule_action)
+                rule_track_id = self.lookupTrack(rule.rule_track)
+                rulebaseId = self.lookupRulebaseId(rulebaseUid)
+
+                rule_type = rule.rule_type
+                if rule_type == RuleType.ACCESS:
+                    access_rule = True
+                    nat_rule = False
+                elif rule_type == RuleType.NAT:
+                    access_rule = False
+                    nat_rule = True
+                else:   # mast be both then
+                    access_rule = True
+                    nat_rule = True
+
+                lastHit = rule.last_hit # TODO: write last_hit to rule_metadata
+                parentRuleId = None # rule.parent_rule_uid # TODO: link to parent rule if it is set
+                lastChangeAdmin = rule.rule_last_change_admin
+                importId = self.ImportDetails.ImportId
+                is_global = self.ImportDetails.MgmDetails.IsSuperManager
+                rule_number_float = 1.0 # TODO dummy, calculate!
 
                 # TODO: resolve:
                 #   "rule_num": 1, // no - need to handle order otherwise!
@@ -421,44 +535,48 @@ class FwConfigImportRule(FwConfigImportBase):
                 # - parent_rule_uid
                 # rulebase_id
 
-                rule_action = newEnrichedRule.get('rule_action', None)    
-                rule_action_id = self.lookupAction(rule_action)
-                rule_track = newEnrichedRule.get('rule_track', None)     
-                rule_track_id = self.lookupTrack(rule_track)
+                newEnrichedRule = RuleForImport(
+                    mgm_id=self.ImportDetails.MgmDetails.Id,
+                    rule_num=rule.rule_num,
+                    rule_disabled=rule.rule_disabled,
+                    rule_src_neg=rule.rule_src_neg,
+                    rule_src=rule.rule_src,
+                    rule_src_refs=rule.rule_src_refs,
+                    rule_dst_neg=rule.rule_dst_neg,
+                    rule_dst=rule.rule_dst,
+                    rule_dst_refs=rule.rule_dst_refs,
+                    rule_svc_neg=rule.rule_svc_neg,
+                    rule_svc=rule.rule_svc,
+                    rule_svc_refs=rule.rule_svc_refs,
+                    rule_action=rule.rule_action,
+                    rule_track=rule.rule_track,
+                    rule_installon=rule.rule_installon,
+                    rule_time=rule.rule_time,
+                    rule_name=rule.rule_name,
+                    rule_uid=rule.rule_uid,
+                    rule_custom_fields=rule.rule_custom_fields,
+                    rule_implied=rule.rule_implied,
+                    # last_change_admin=lastChangeAdmin,
+                    parent_rule_id=parentRuleId,
+                    # last_hit=rule.last_hit,   # TODO: add this to rule_metadata
+                    rule_comment=rule.rule_comment,
+                    rule_from_zone=rule.rule_src_zone,
+                    rule_to_zone=rule.rule_dst_zone,
+                    access_rule=access_rule,
+                    nat_rule=nat_rule,
+                    is_global=is_global,
+                    rulebase_id=rulebaseId,
+                    rule_create=importId,
+                    rule_last_seen=importId,
+                    rule_num_numeric=rule_number_float,
+                    action_id=rule_action_id,
+                    track_id=rule_track_id,
+                    rule_head_text=rule.rule_head_text
+                )
 
-                rule_type = newEnrichedRule.pop('rule_type', None)     # get and remove
-                if rule_type == 'access':
-                    access_rule = True
-                    nat_rule = False
-                elif rule_type == 'nat':
-                    access_rule = False
-                    nat_rule = True
-                else:   # mast be both then
-                    access_rule = True
-                    nat_rule = True
-
-                lastHit = newEnrichedRule.pop('last_hit', None)     # get and remove
-                # TODO: write last_hit to rule_metadata
-
-                parentRuleUId = newEnrichedRule.pop('parent_rule_uid', None)     # get and remove
-                # TODO: link to parten rule if it is set
-
-                newEnrichedRule.pop('rule_last_change_admin', None)     # ignore this (not used anyway)
-
-                newEnrichedRule.update({
-                        'mgm_id': self.ImportDetails.MgmDetails.Id,
-                        'rule_create': self.ImportDetails.ImportId,
-                        'rule_last_seen': self.ImportDetails.ImportId,    # could be left out
-                        'track_id': rule_track_id,
-                        'action_id': rule_action_id,
-                        'access_rule': access_rule,
-                        'nat_rule': nat_rule,
-                        'rulebase_id': self.lookupRulebaseId(rulebaseName),
-                        'rule_num': 1   # TODO: need to fix this!!!!!!!!!!!!!!!
-                    })
-                # end of adaption
+                # 'rule_num': 1   # TODO: need to fix this!!!!!!!!!!!!!!!
                     
-                newRules.append(newEnrichedRule)
+                newRules.append(newEnrichedRule.dict())
             
         return newRules
 
@@ -534,7 +652,10 @@ class FwConfigImportRule(FwConfigImportBase):
         return self.TrackMap.get(trackStr.lower(), None)
 
     def lookupRulebaseId(self, rulebaseName):
-        return self.RulebaseMap.get(rulebaseName, None)
+        if rulebaseName in self.RulebaseMap:
+            return self.RulebaseMap[rulebaseName]
+        else:
+            return None
 
     def getCurrentRules(self, importId, mgmId, rulebaseName):
         query_variables = {

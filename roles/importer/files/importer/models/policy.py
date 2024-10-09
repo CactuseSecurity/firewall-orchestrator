@@ -13,5 +13,5 @@ from pydantic import BaseModel
 class Policy(BaseModel):
     Uid: str
     Name: str
+    Rules: Dict[str, Rule] = {}
     # EnforcingGatewayUids: List[str]
-    Rules: Dict[str, Rule]

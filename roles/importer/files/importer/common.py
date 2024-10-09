@@ -22,6 +22,7 @@ from models.gateway import Gateway
 from fwconfig_base import calcManagerUidHash
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.gateway_controller import GatewayController
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 
 
 """  
@@ -74,9 +75,26 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
         if clearManagementData:
             logger.info('this import run will reset the configuration of this management to "empty"')
-            configNormalized = FwConfigManagerList()
-            configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails), importState.MgmDetails.Name))
-            configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, [], [], [], [], []))
+            configNormalized = FwConfigManagerListController()
+            configNormalized.addManager(
+                manager=FwConfigManager(
+                    ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
+                    ManagerName=importState.MgmDetails.Name,
+                    IsGlobal=importState.MgmDetails.IsSuperManager,
+                    DependantManagerUids=[],
+                    Configs=[]
+                ))
+            configNormalized.ManagerSet[0].Configs.append(
+                FwConfigNormalized(
+                    action=ConfigAction.INSERT, 
+                    network_objects=[], 
+                    service_objects=[], 
+                    users=[], 
+                    zone_objects=[], 
+                    rules=[],
+                    gateways=[]
+            ))
+            
             importState.IsClearingImport = True # the now following import is a full one
         else:
             if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):

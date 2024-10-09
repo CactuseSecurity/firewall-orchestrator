@@ -46,7 +46,6 @@ class FwConfig(BaseModel):
 """
 class FwConfigNormalized(FwConfig):
     action: ConfigAction
-    # Networks: List[NetworkObject]
     network_objects: Dict[str, NetworkObject] = {}
     service_objects: Dict[str, ServiceObject] = {}
     users: dict = {}
@@ -58,3 +57,28 @@ class FwConfigNormalized(FwConfig):
 
     class Config:
         arbitrary_types_allowed = True
+
+
+    def getPolicy(self, policyUid: str) -> Policy:
+        """
+        get the policy with a specific uid  
+        :param policyUid: The UID of the relevant policy.
+        :return: Returns the policy with a specific uid, otherwise returns empty policy.
+        """
+        for pol in self.rules:
+            if pol.Uid == policyUid:
+                return pol
+        return Policy(Uid='', Name='')
+
+        # currentPolicy = [pol for pol in self.NormalizedConfig.rules if pol.Uid == policyUid][0]
+        # previousPolicy = [pol for pol in prevConfig.rules if pol.Uid == policyUid][0]
+
+
+    def getOrderedRuleList(self, policyUid: str) -> List[dict]:
+        """
+        get the policy with a specific uid as an ordered list (ordered by rule_num)
+        :param policyUid: The UID of the relevant policy.
+        :return: Returns the policy with a specific uid as an ordered list [ruleUid, rule_num].
+        """
+        ruleList = [{'Uid': rule_uid, 'rule_num': details['rule_num']} for rule_uid, details in self.getPolicy(policyUid).items()]
+        return sorted(ruleList, key=lambda x: x['rule_num'])

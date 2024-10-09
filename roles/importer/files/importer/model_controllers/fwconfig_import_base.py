@@ -90,9 +90,7 @@ class FwConfigImportBase():
     # return previous config or empty config if there is none
     def getPreviousConfig(self) -> FwConfigNormalized:
         logger = getFwoLogger()
-        query = """
-          query getLatestConfig($mgmId: Int!) { latest_config(where: {mgm_id: {_eq: $mgmId}}) { config } }
-        """
+        query = "query getLatestConfig($mgmId: Int!) { latest_config(where: {mgm_id: {_eq: $mgmId}}) { config } }"
         queryVariables = { 'mgmId': self.ImportDetails.MgmDetails.Id }
         try:
             queryResult = self.call(query, queryVariables=queryVariables)
@@ -102,7 +100,8 @@ class FwConfigImportBase():
                 return 1 # error
             else:
                 if len(queryResult['data']['latest_config'])>0: # do we have a prev config?
-                    prevConfigDict = json.loads(queryResult['data']['latest_config'][0]['config'])
+                    # prevConfigDict = json.loads(queryResult['data']['latest_config'][0]['config'])
+                    prevConfig = FwConfigNormalized.parse_raw(queryResult['data']['latest_config'][0]['config'])
                 else:
                     prevConfigDict = {
                         'action': ConfigAction.INSERT,
@@ -114,7 +113,7 @@ class FwConfigImportBase():
                         'gateways': [],
                         'ConfigFormat': ConfFormat.NORMALIZED_LEGACY
                     }
-                prevConfig = FwConfigNormalized(**prevConfigDict)
+                    prevConfig = FwConfigNormalized(**prevConfigDict)
                 return prevConfig
         except:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")

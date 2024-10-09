@@ -28,6 +28,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
     ImportDetails: ImportState
     FwoApiUrl: str
     FwoJwt: str
+    NormalizedConfig: FwConfigNormalized
     
     def __init__(self, importState: ImportState, config: FwConfigNormalized):
         self.FwoApiUrl = importState.FwoConfig.FwoApiUri
@@ -121,20 +122,20 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
     def storeConfigToApi(self):
 
          # convert FwConfigImport to FwConfigNormalized
-        conf = FwConfigNormalized(action=self.action, 
-                                  network_objects=self.network_objects, 
-                                  service_objects=self.service_objects, 
-                                  users=self.users,
-                                  zone_objects=self.zone_objects,
-                                  rules=self.rules,
-                                  gateways=self.gateways,
-                                  ConfigFormat=self.ConfigFormat)
+        self.NormalizedConfig = FwConfigNormalized(action=self.NormalizedConfig.action, 
+                                  network_objects=self.NormalizedConfig.network_objects, 
+                                  service_objects=self.NormalizedConfig.service_objects, 
+                                  users=self.NormalizedConfig.users,
+                                  zone_objects=self.NormalizedConfig.zone_objects,
+                                  rules=self.NormalizedConfig.rules,
+                                  gateways=self.NormalizedConfig.gateways,
+                                  ConfigFormat=self.NormalizedConfig.ConfigFormat)
         
         if self.ImportDetails.ImportVersion>8:
             errorsFound = self.deleteLatestConfig()
             if errorsFound:
                 getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.ImportDetails.ImportId}")
-            errorsFound = self.storeLatestConfig(conf.toJsonString(prettyPrint=False))
+            errorsFound = self.storeLatestConfig(self.NormalizedConfig.json())
             if errorsFound:
                 getFwoLogger().warning(f"error while writing latest config for mgm_id: {self.ImportDetails.ImportId}")
 

@@ -64,7 +64,6 @@ class Rule(BaseModel):
     rule_name: Optional[str] = None
     rule_uid: str
     rule_custom_fields: Optional[str] = None
-    # rule_custom_fields: Optional[dict] = None
     rule_implied: bool
     rule_type: RuleType = RuleType.SECTIONHEADER
     rule_last_change_admin: Optional[str] = None
@@ -73,9 +72,12 @@ class Rule(BaseModel):
     rule_comment: Optional[str] = None
     rule_src_zone: Optional[str] = None
     rule_dst_zone: Optional[str] = None
+    rule_head_text: Optional[str] = None
 
 
 """
+    based on public.rule:
+
 	"rule_id" BIGSERIAL,
 	"last_change_admin" Integer,
 	"rule_name" Varchar,
@@ -120,57 +122,66 @@ class Rule(BaseModel):
 	"rulebase_id" Integer NOT NULL,
 """
 
-class RuleForImport():
-    rule_num: int
-    rule_disabled: bool
-    rule_src_neg: bool
-    rule_src: str
-    rule_src_refs: str
-    rule_dst_neg: bool
-    rule_dst: str
-    rule_dst_refs: str
-    rule_svc_neg: bool
-    rule_svc: str
-    rule_svc_refs: str
-    rule_action: RuleAction
-    rule_track: RuleTrack
-    rule_installon: str
-    rule_time: str
-    rule_name: Optional[str] = None
-    rule_uid: str
-    rule_custom_fields: Optional[str] = None
-    rule_implied: bool
-    rule_type: RuleType = RuleType.SECTIONHEADER
-    rule_last_change_admin: int = None
-    parent_rule_uid: Optional[str] = None
-    last_hit: Optional[str] = None
-    rule_comment: Optional[str] = None
-    rule_src_zone: Optional[str] = None
-    rule_dst_zone: Optional[str] = None
+class RuleForImport(BaseModel):
     access_rule: bool = True
-    nat_rule: bool = False
-    xlate_rule: Optional[int]
+    action_id: int
     is_global: bool = False
+    last_change_admin: Optional[int] = None
+    # last_hit: Optional[str] = None
+    mgm_id: int
+    nat_rule: bool = False
+    parent_rule_id: Optional[int] = None
+    removed: Optional[int] = None
+    rule_action: str
+    rule_comment: Optional[str] = None
+    rule_create: int
+    rule_custom_fields: Optional[str] = None
+    rule_disabled: bool
+    rule_dst: str
+    rule_dst_neg: bool
+    rule_dst_refs: str
+    rule_from_zone: Optional[str] = None
+    rule_head_text: Optional[str] = None
+    rule_implied: bool = False
+    rule_installon: str
+    rule_last_seen: int
+    rule_name: Optional[str] = None
+    rule_num: int
+    rule_num_numeric: float
+    rule_src: str
+    rule_src_neg: bool
+    rule_src_refs: str
+    rule_svc: str
+    rule_svc_neg: bool
+    rule_svc_refs: str
+    rule_time: str
+    rule_to_zone: Optional[str] = None
+    rule_track: str
+    rule_uid: str
     rulebase_id: int
+    track_id: int
+    xlate_rule: Optional[int] = None
 
-    def __init__(self, rule: Rule, mgmId: int, importId: int, typId: int):
-        self.rule_uid = rule.rule_uid
-        self.rule_name = rule.rule_name
-        self.rule_comment = rule.rule_comment
-        self.mgm_id = mgmId
-        self.rule_create = importId
-        self.rule_last_seen = importId
-        self.rule_typ_id = typId
+    # def __init__(self, rule: Rule, mgmId: int, importId: int, access_rule: bool, nat_rule: bool, rulebase_id: str):
+    #     self.rule_uid = rule.rule_uid
+    #     self.rule_name = rule.rule_name
+    #     self.rule_comment = rule.rule_comment
+    #     self.access_rule = access_rule
+    #     self.nat_rule = nat_rule
+    #     self.mgm_id = mgmId
+    #     self.rule_create = importId
+    #     self.rule_last_seen = importId
+    #     self.rulebase_id = rulebase_id
+    #     # self.rule_typ_id = typId
 
-    def toDict (self):
-        result = {
-            'rule_uid': self.rule_uid,
-            'rule_name': self.rule_name,
-            'rule_comment': self.rule_comment,
-            'mgm_id': self.mgm_id,
-            'rule_create': self.rule_create,
-            'rule_last_seen': self.rule_last_seen,
-            'rule_typ_id': self.rule_typ_id
-        }
-
-        return result
+    # def toDict (self):
+    #     result = {
+    #         'rule_uid': self.rule_uid,
+    #         'rule_name': self.rule_name,
+    #         'rule_comment': self.rule_comment,
+    #         'mgm_id': self.mgm_id,
+    #         'rule_create': self.rule_create,
+    #         'rule_last_seen': self.rule_last_seen,
+    #         'rule_typ_id': self.rule_typ_id
+    #     }
+    #     return result

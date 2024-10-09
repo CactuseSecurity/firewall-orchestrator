@@ -7,7 +7,8 @@ import fwo_globals
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
 from fwo_exception import ImportRecursionLimitReached
-from models.fwconfig_base import Policy
+from models.policy import Policy
+from models.rule import Rule
 
 uid_to_name_map = {}
 
@@ -26,7 +27,7 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
     rule_num = 0
     parent_uid=None
     section_header_uids=[]
-    normalizedConfig['policies'] = {}
+    normalizedConfig['policies'] = []
 
     # fill uid_to_name_map:
     for nw_obj in normalizedConfig['network_objects']:
@@ -36,8 +37,8 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
     for rb_id in rb_range:
 
         rulebaseUid = nativeConfig['rulebases'][rb_id]['layername']
-        accessPolicy = Policy(rulebaseUid, rulebaseUid, [])
-        natPolicy = Policy(rulebaseUid, rulebaseUid, [])
+        accessPolicy = Policy(Uid=rulebaseUid, Name=rulebaseUid, Rules=[])
+        natPolicy = Policy(Uid=rulebaseUid, Name=rulebaseUid, Rules=[])
 
         if fwo_globals.debug_level>3:
             logger.debug("parsing layer " + rulebaseUid)
@@ -57,8 +58,8 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
                 rule_num = parseNatRulebase(
                     nativeConfig['nat_rulebases'][rb_id], natPolicy, nativeConfig['rulebases'][rb_id]['layername'], 
                     importState.ImportId, rule_num, section_header_uids, parent_uid, normalizedConfig)
-        normalizedConfig['policies'].update({ rulebaseUid: accessPolicy })
-    # normalizedConfig['rules'] += policyList
+                # TODO: do we have to add the nat rulebase here?!
+        normalizedConfig['policies'].append(accessPolicy)
 
 
 def normalize_rulebases_top_level (full_config, current_import_id, config2import):
@@ -254,7 +255,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
                 last_hit = None
 
             rule = {
-                "control_id":       int(import_id),
+                # "control_id":       int(import_id),
                 "rule_num":         int(rule_num),
                 "rulebase_name":    sanitize(layer_name),
                 # rule_ruleid
@@ -287,10 +288,11 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             }
             if comments is not None:
                 rule['rule_comment'] = sanitize(comments)
-            if isinstance(rulebase, Policy):
-                rulebase.Rules.append(rule)
-            else:
-                rulebase.append(rule)
+            rulebase.Rules.update({ rule['rule_uid']: Rule(**rule)})
+            # if isinstance(rulebase, Policy):
+                # rulebase.Rules.append(rule)
+            # else:
+            #     # rulebase.append(rule)
 
             return rule_num + 1
     return rule_num
@@ -343,7 +345,7 @@ def insert_section_header_rule(rulebase, section_name, layer_name, import_id, ru
 def insertSectionHeaderRule(rulebase, section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
     section_header_uids.append(sanitize(rule_uid))
     rule = {
-        "control_id":       int(import_id),
+        # "control_id":       int(import_id),
         "rule_num":         int(rule_num),
         "rulebase_name":    sanitize(layer_name),
         # rule_ruleid
@@ -371,7 +373,8 @@ def insertSectionHeaderRule(rulebase, section_name, layer_name, import_id, rule_
         # rule_last_change_admin
         "parent_rule_uid":  sanitize(parent_uid)
     }
-    rulebase.Rules.append(rule)
+    # rulebase.Rules.append(rule)
+    rulebase.Rules.update({ rule['rule_uid']: Rule(**rule)})
     return rule_num + 1
 
 def add_domain_rule_header_rule(rulebase, section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
@@ -604,7 +607,7 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'time': [{'name': 'Any'}],
         'enabled': xlate_rule_in['enabled'],
         'comments': xlate_rule_in['comments'],
-        'rule_type': 'original'
+        'rule_type': 'access'
     }
     rule_xlate = {
         'uid': xlate_rule_in['uid'],
@@ -621,7 +624,7 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'service-negate': False,
         'install-on': [{'name': 'Policy Targets'}],
         'time': [{'name': 'Any'}],
-        'rule_type': 'xlate'
+        'rule_type': 'nat'
     }
     return (rule_match, rule_xlate)
 

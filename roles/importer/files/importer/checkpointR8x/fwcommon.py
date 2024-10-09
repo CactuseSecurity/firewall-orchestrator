@@ -10,11 +10,14 @@ import cp_const, cp_network, cp_service
 import cp_getter
 from fwo_exception import FwLoginFailed, FwLogoutFailed
 from cp_user import parse_user_objects_from_rulebase
-from roles.importer.files.importer.models.fwconfig_base import calcManagerUidHash
-from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
+from fwconfig_base import calcManagerUidHash
+from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from models.fwconfig_normalized import FwConfigNormalized
 from fwoBaseImport import ImportState
-from fwo_base import ConfFormat, ConfigAction
+from fwo_base import ConfigAction
 import fwo_const
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 
 
 def has_config_changed (full_config, mgm_details, force=False):
@@ -181,13 +184,14 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
     logger.info("completed normalizing rulebases")
     
     # put dicts into object of class FwConfigManager
-    normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 
-                            network_objects=normalizedConfig['network_objects'],
-                            service_objects=normalizedConfig['service_objects'],
+    normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
+                            network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['network_objects'], 'obj_uid'),
+                            service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['service_objects'], 'svc_uid'),
                             users=normalizedConfig['users'],
                             zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
-                            rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
+                            # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
+                            rules=normalizedConfig['policies'],
                             gateways=normalizedConfig['gateways']
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
@@ -195,7 +199,8 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
                               IsGlobal=False, 
                               DependantManagerUids=[], 
                               Configs=[normalizedConfig])
-    listOfManagers = FwConfigManagerList()
+    # listOfManagers = FwConfigManagerList()
+    listOfManagers = FwConfigManagerListController()
 
     listOfManagers.addManager(manager)
     logger.info("completed getting config")

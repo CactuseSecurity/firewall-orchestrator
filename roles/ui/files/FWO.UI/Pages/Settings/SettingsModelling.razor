@@ -14,7 +14,7 @@
 
 <div class="input-group">
     <h3>@(userConfig.GetText("modelling_settings"))</h3>
-    <HelpLink Page="settings/modelling"/>
+    <HelpLink Page="settings/modelling" />
 </div>
 @(userConfig.GetText("U5322"))
 <hr />
@@ -22,7 +22,9 @@
 @if (configData != null)
 {
     <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
-        @onclick="PredefServices">@(userConfig.GetText("predef_services"))</button>
+            @onclick="PredefServices">
+        @(userConfig.GetText("predef_services"))
+    </button>
     <form onsubmit="return false">
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">
@@ -38,6 +40,7 @@
                 </div>
             </div>
         </div>
+        <hr />
         <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5605"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines"))*:</label>
@@ -56,7 +59,7 @@
                 </div>
             </div>
         </div>
-        <hr />
+        <hr />        
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5627"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("app_server_types"):</label>
             <div class="col-sm-6">
@@ -77,6 +80,12 @@
                     <input type="text" class="col-sm-8" @bind="actAppServerType.Name" />
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddAppServerType" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
+            </div>
+        </div>
+        <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5620"))">
+            <label class="col-form-label col-sm-4">App Server importieren:</label>
+            <div class="row col-sm-6">
+                <FileUpload></FileUpload>
             </div>
         </div>
         <hr />
@@ -108,7 +117,8 @@
                 </EditList>
                 <div class="row col-sm-12 mt-1">
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="SearchArea" @onclick:preventDefault>
-                        @(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                        @(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))
+                    </button>
                 </div>
             </div>
         </div>
@@ -133,7 +143,7 @@
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5607"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("fixedPartLength"):</label>
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
-             </div>
+            </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
                 <div class="col-sm-2">
@@ -205,7 +215,7 @@
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
             <div class="col-sm-3">
-                <Dropdown @bind-SelectedElement="configData!.ModReqEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="selectableRecipientOptions" >
+                <Dropdown @bind-SelectedElement="configData!.ModReqEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="selectableRecipientOptions">
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
@@ -225,14 +235,14 @@
             <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModReqEmailBody"></textarea>
         </div>
     </form>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ModReqTicketTitle" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
-        </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
+        <input type="text" class="col-sm-6" @bind="configData!.ModReqTicketTitle" />
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
+        <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
+    </div>
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
@@ -240,9 +250,10 @@
         </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-        </NotAuthorized> 
+        </NotAuthorized>
     </AuthorizeView>
-    <br><br>
+    <br>
+    <br>
     <p>@(userConfig.GetText("U5303"))</p>
 }
 else
@@ -251,9 +262,8 @@ else
         <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
-<PredefServices @bind-Display="predefServices"/>
-<SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true"/>
-
+<PredefServices @bind-Display="predefServices" />
+<SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true" />
 
 @code
 {
@@ -288,8 +298,9 @@ else
     private DateTime appDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
-    private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly, 
+    private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
     EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible ];
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -299,10 +310,10 @@ else
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? new();
             SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? new();
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
-            if(configData.ModAppServerTypes != "")
+            if (configData.ModAppServerTypes != "")
             {
                 appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(configData.ModAppServerTypes) ?? new();
-                if(appServerTypes.Count > 0)
+                if (appServerTypes.Count > 0)
                 {
                     appServerDefaultTypeName = appServerTypes.FirstOrDefault(x => x.Id == 0)?.Name ?? "";
                 }
@@ -321,17 +332,17 @@ else
 
     private void RefreshAreas()
     {
-        if(configData.ModCommonAreas != "")
+        if (configData.ModCommonAreas != "")
         {
             commAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(configData.ModCommonAreas) ?? new();
         }
         commonAreas = new();
-        foreach(var areaInfo in commAreaConfigItems)
+        foreach (var areaInfo in commAreaConfigItems)
         {
             ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == areaInfo.AreaId);
-            if(area != null)
+            if (area != null)
             {
-                commonAreas.Add(new () { Area = new() {Content = area}, UseInSrc = areaInfo.UseInSrc, UseInDst = areaInfo.UseInDst });
+                commonAreas.Add(new() { Area = new() { Content = area }, UseInSrc = areaInfo.UseInSrc, UseInDst = areaInfo.UseInDst });
             }
         }
         pureAreaList = commonAreas.ConvertAll(x => x.Area);
@@ -339,13 +350,13 @@ else
 
     public bool AddArea(ModellingNwGroup area)
     {
-        commonAreas.Add(new () { Area = new() {Content = area} });
+        commonAreas.Add(new() { Area = new() { Content = area } });
         return true;
     }
 
     private void AddPath()
     {
-        if(actPath != "")
+        if (actPath != "")
         {
             PathsToAdd.Add(actPath);
             actPath = "";
@@ -363,9 +374,9 @@ else
 
     private void AddAppServerType()
     {
-        if(actAppServerType.Id > 0 && actAppServerType.Name != "" 
-            && (appServerTypesToAdd.FirstOrDefault(a => a.Id == actAppServerType.Id) == null)
-            && (appServerTypes.FirstOrDefault(a => a.Id == actAppServerType.Id) == null))
+        if (actAppServerType.Id > 0 && actAppServerType.Name != ""
+            && ( appServerTypesToAdd.FirstOrDefault(a => a.Id == actAppServerType.Id) == null )
+            && ( appServerTypes.FirstOrDefault(a => a.Id == actAppServerType.Id) == null ))
         {
             appServerTypesToAdd.Add(actAppServerType);
             actAppServerType = new();
@@ -425,11 +436,11 @@ else
 
     private void PrepareAppDataPaths()
     {
-        foreach(var path in PathsToDelete)
+        foreach (var path in PathsToDelete)
         {
             appDataPaths.Remove(path);
         }
-        foreach(var path in PathsToAdd)
+        foreach (var path in PathsToAdd)
         {
             appDataPaths.Add(path);
         }
@@ -452,7 +463,7 @@ else
     private void PrepareCommonAreas()
     {
         commAreaConfigItems = commonAreas.ConvertAll(x => x.ToConfigItem());
-        foreach(var area in AreasToDelete)
+        foreach (var area in AreasToDelete)
         {
             CommonAreaConfig? existingItem = commAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Area.Content.Id);
             if (existingItem != null)
@@ -466,19 +477,19 @@ else
     private void PrepareAppServerTypes()
     {
         AppServerType? defaultType = appServerTypes.FirstOrDefault(x => x.Id == 0);
-        if(defaultType != null)
+        if (defaultType != null)
         {
             defaultType.Name = appServerDefaultTypeName;
         }
         else
         {
-            appServerTypes.Add(new (){ Id = 0, Name = appServerDefaultTypeName });
+            appServerTypes.Add(new() { Id = 0, Name = appServerDefaultTypeName });
         }
-        foreach(var appServerType in appServerTypesToDelete)
+        foreach (var appServerType in appServerTypesToDelete)
         {
             appServerTypes.Remove(appServerType);
         }
-        foreach(var appServerType in appServerTypesToAdd)
+        foreach (var appServerType in appServerTypesToAdd)
         {
             appServerTypes.Add(appServerType);
         }

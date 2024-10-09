@@ -14,10 +14,7 @@
         {
             <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appServerListHandler.CreateAppServer">
                 @(appServerListHandler.DisplayButton("add_app_server", Icons.Add))
-            </button>
-            <button type="button" class="btn btn-sm btn-success mb-2" @onclick="ShowFileUploadPopUp">
-                @(appServerListHandler.DisplayButton("add_app_server", Icons.Import)) Import
-            </button>
+            </button>           
             <div class="vheight75">
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingAppServer"
                        Items="appServerListHandler.ManualAppServers" PageSize="0" ColumnReorder="true">
@@ -74,10 +71,6 @@
 <Confirm @bind-Display="appServerListHandler.ReactivateAppServerMode" PerformAction="async () => {await appServerListHandler.ReactivateAppServer(); StateHasChanged();}"
          Title="@userConfig.GetText("reactivate")" Message="@appServerListHandler.Message" />
 <InProgress Display="workInProgress" />
-@if (ShowFileUpload)
-{
-    <FileUpload OnClose="OnFileUploadClose"></FileUpload>
-}
 
 @code
 {
@@ -98,7 +91,6 @@
     private bool workInProgress = false;
     private bool firstTry = true;
 
-    private bool ShowFileUpload { get; set; }
 
     protected override void OnInitialized()
     {
@@ -131,17 +123,6 @@
     {
         firstTry = true;
         Display = false;
-        ShowFileUpload = false;
         DisplayChanged.InvokeAsync(Display);
-    }
-
-    private void ShowFileUploadPopUp()
-    {
-        ShowFileUpload = true;
-    }
-
-    private void OnFileUploadClose()
-    {
-        ShowFileUpload = false;
     }
 }

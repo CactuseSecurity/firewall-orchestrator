@@ -1,30 +1,36 @@
-﻿@inject UserConfig userConfig
+﻿@using FWO.Api.Data
+@using FWO.Ui.Data
+@inject UserConfig userConfig
 
-<PopUp Title="@userConfig.GetText("import")" Show="true" Size=PopupSize.Small OnClose="Close">
-    <Body>        
-        <InputFile OnChange="@SingleUpload"  />
-        @if (ShowAlert)
-        {
-            <div class="alert alert-warning mt-2" role="alert">
-                <span>@userConfig.GetText("E7014")</span>
-            </div>
-        }
-    </Body>
-    <Footer>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("save"))</button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
-    </Footer>
-</PopUp>
+<div class="d-inline">
+    <button type="button" disabled="@ImportDisabled" class="btn btn-sm btn-primary d-inline" @onclick="LoadCSV">
+        @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+        <span class="ms-1">@(userConfig.GetText("import"))</span>
+    </button>
+    <InputFile OnChange="@SingleUpload" />   
+</div>
+@if (ShowAlert)
+{
+    <div class="alert alert-warning mt-2" role="alert">
+        <span>@userConfig.GetText("E7014")</span>
+    </div>
+}
+
 
 @code {
-    [Parameter]
-    public EventCallback OnClose { get; set; }
-
     private bool ShowAlert { get; set; }
+    InputFileChangeEventArgs? InputFileChangeEventArgs;
 
-    private async Task SingleUpload(InputFileChangeEventArgs e)
+    private bool ImportDisabled { get; set; } = true;
+
+    private void SingleUpload(InputFileChangeEventArgs e)
     {
+        ImportDisabled = true;
+        InputFileChangeEventArgs = e;
         ShowAlert = false;
+
+        if (InputFileChangeEventArgs.FileCount == 0)
+            return;
 
         if (!e.File.Name.EndsWith(".csv"))
         {
@@ -32,15 +38,25 @@
             return;
         }
 
-        MemoryStream ms = new MemoryStream();
-        await e.File.OpenReadStream().CopyToAsync(ms);
-        byte[]? bytes = ms.ToArray();
-
-        string result = System.Text.Encoding.UTF8.GetString(bytes);
+        ImportDisabled = false;
     }
 
-    private async void Close()
+    private async Task LoadCSV()
     {
-        await OnClose.InvokeAsync();
+        if (ImportDisabled || InputFileChangeEventArgs is null)
+            return;
+
+        using MemoryStream ms = new MemoryStream();
+        await InputFileChangeEventArgs.File.OpenReadStream().CopyToAsync(ms);
+        byte[]? bytes = ms.ToArray();
+
+        string[] result = System.Text.Encoding.UTF8.GetString(bytes).Split(';');
+
+        CSVInterfaceImportModel interfaceImport = new()
+        {
+            AppID = result[0],
+            AppServerTyp = result[1],
+            AppIPRange = result[2]
+        };
     }
 }

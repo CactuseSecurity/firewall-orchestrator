@@ -46,7 +46,7 @@ namespace FWO.Tufin.SecureChange
 			{ "IN_PROGRESS", ExtStates.ExtReqInProgress.ToString() },
 			{ "REJECTED", ExtStates.ExtReqRejected.ToString() },
 			{ "CLOSED", ExtStates.ExtReqDone.ToString() },
-			{ "CANCELLED", ExtStates.ExtReqDone.ToString() },  // ??
+			{ "CANCELLED", ExtStates.ExtReqRejected.ToString() },  // ??
 			{ "RESOLVED", ExtStates.ExtReqDone.ToString() }  // ??
 		};
 

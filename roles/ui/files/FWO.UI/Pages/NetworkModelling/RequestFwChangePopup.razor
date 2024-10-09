@@ -31,7 +31,7 @@
                     </Column>
                     <DetailTemplate TableItem="WfReqTask">
                         <Detail Data="@(userConfig.GetText("action") + ": " + context.RequestAction)">
-                            <span>@((MarkupString)@DisplyTask(context))</span>
+                            <span>@((MarkupString)@DisplayTaskDetails(context))</span>
                         </Detail>
                     </DetailTemplate>
                 </Table>
@@ -82,7 +82,7 @@
 
 
     private List<WfReqTask> TaskList = [];
-    private List<WfReqTask> AddTasksList = [];
+    private List<WfReqTask> AccessTaskList = [];
     private List<WfReqTask> DeleteTasksList = [];
     private int taskNumber = 0;
     private List<WfReqElement> elements = [];
@@ -101,6 +101,9 @@
     private List<ModellingAppServerWrapper> newAppServers = [];
     private List<ModellingAppServerWrapper> deletedAppServers = [];
     private List<ModellingAppServerWrapper> unchangedAppServers = [];
+    private List<WfReqElement> newGroupMembers = [];
+    private List<WfReqElement> deletedGroupMembers = [];
+    private List<WfReqElement> unchangedGroupMembers = [];
 
     private struct TicketId
     {
@@ -178,9 +181,8 @@
         // later: get rules + compare, bundle requests
         await GetProductionState();
         TaskList = [];
-        AddTasksList = [];
+        AccessTaskList = [];
         DeleteTasksList = [];
-        taskNumber = 0;
         foreach(var conn in Connections.Where(c => !c.IsRequested))
         {
             elements = [];
@@ -192,10 +194,9 @@
 
             if(elements.Count > 0)
             {
-                AddTasksList.Add(new()
+                AccessTaskList.Add(new()
                 {
                     Title = "New Connection: " + conn.Name ?? "",
-                    TaskNumber = taskNumber++,
                     TaskType = WfTaskType.access.ToString(),
                     StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
                     ManagementId = actManagementId,
@@ -204,12 +205,20 @@
                 });
             }
         }
-        AddTasksList.AddRange(DeleteTasksList);
+        TaskList.AddRange(AccessTaskList);
+        TaskList.AddRange(DeleteTasksList);
+        taskNumber = 1;
+        foreach(var task in TaskList)
+        {
+            task.TaskNumber = taskNumber++;
+        }
     }
 
     private async Task GetProductionState()
     {
-        // fill allExistingAppRoles...
+        // Todo: fill allExistingAppRoles... for actManagement -> later multi mgt
+
+
     }
 
     private void AnalyseNetworkAreas(ModellingConnection conn)
@@ -248,9 +257,9 @@
 
     private void AnalyseAppRole(ModellingAppRole appRole, bool isSource = false)
     {
-        if(!FindExistingAppRole(appRole))
+        if(!ResolveExistingAppRole(appRole))
         {
-            if(AddTasksList.FirstOrDefault(x => x.Title == newAppRoleString + appRole.Display()) == null)
+            if(TaskList.FirstOrDefault(x => x.Title == newAppRoleString + appRole.Display()) == null)
             {
                 RequestNewAppRole(appRole);
             }
@@ -268,7 +277,7 @@
         });
     }
 
-    private bool FindExistingAppRole(ModellingAppRole appRole)
+    private bool ResolveExistingAppRole(ModellingAppRole appRole)
     {
         existingAppRole = allExistingAppRoles.FirstOrDefault(a => a.Name == appRole.Name);
         return existingAppRole != null;
@@ -302,9 +311,72 @@
 
     private void RequestNewAppRole(ModellingAppRole appRole)
     {
-        List<WfReqElement> newGroupMembers = [];
-        List<WfReqElement> deletedGroupMembers = [];
-        List<WfReqElement> unchangedGroupMembers = [];
+        List<WfReqElement> groupMembers = [];
+        foreach(var appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
+        {
+            groupMembers.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                IpString = appServer.Ip,
+                GroupName = appRole.Display()
+            });
+        }
+        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Display()} };
+        TaskList.Add(new()
+        {
+            Title = newAppRoleString + appRole.Display(),
+            TaskType = WfTaskType.group_create.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+            ManagementId = actManagementId,
+            OnManagement = actManagement,
+            Elements = groupMembers,
+            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+        });
+    }
+
+    private void RequestUpdateAppRole(ModellingAppRole appRole)
+    {
+        FillGroupMembers(appRole);
+        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Display()} };
+        if(newGroupMembers.Count > 0)
+        {
+            newGroupMembers.AddRange(unchangedGroupMembers);
+            TaskList.Add(new()
+            {
+                Title = updateAppRoleString + appRole.Display() + addMembersString,
+                TaskType = WfTaskType.group_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+                ManagementId = actManagementId,
+                OnManagement = actManagement,
+                Elements = newGroupMembers,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+            });
+        }
+        if(deletedGroupMembers.Count > 0)
+        {
+            deletedGroupMembers.AddRange(unchangedGroupMembers);
+            DeleteTasksList.Add(new()
+            {
+                Title = updateAppRoleString + appRole.Display() + removeMembersString,
+                TaskType = WfTaskType.group_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+                ManagementId = actManagementId,
+                OnManagement = actManagement,
+                Elements = deletedGroupMembers,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+            });
+        }
+    }
+
+    private void FillGroupMembers(ModellingAppRole appRole)
+    {
+        newGroupMembers = [];
+        deletedGroupMembers = [];
+        unchangedGroupMembers = [];
         foreach(var appServer in newAppServers)
         {
             newGroupMembers.Add(new()
@@ -335,67 +407,6 @@
                 GroupName = appRole.Display()
             });
         }
-        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Display()} };
-        if(newGroupMembers.Count > 0)
-        {
-            newGroupMembers.AddRange(unchangedGroupMembers);
-            AddTasksList.Add(new()
-            {
-                Title = updateAppRoleString + appRole.Display(),
-                TaskNumber = taskNumber++,
-                TaskType = WfTaskType.group_modify.ToString(),
-                RequestAction = RequestAction.modify.ToString(),
-                StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
-                ManagementId = actManagementId,
-                OnManagement = actManagement,
-                Elements = newGroupMembers,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
-            });
-        }
-        if(deletedGroupMembers.Count > 0)
-        {
-            deletedGroupMembers.AddRange(unchangedGroupMembers);
-            DeleteTasksList.Add(new()
-            {
-                Title = updateAppRoleString + appRole.Display(),
-                TaskNumber = taskNumber++,
-                TaskType = WfTaskType.group_modify.ToString(),
-                RequestAction = RequestAction.modify.ToString(),
-                StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
-                ManagementId = actManagementId,
-                OnManagement = actManagement,
-                Elements = deletedGroupMembers,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
-            });
-        }
-    }
-
-    private void RequestUpdateAppRole(ModellingAppRole appRole)
-    {
-        List<WfReqElement> groupMembers = [];
-        foreach(var appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
-        {
-            groupMembers.Add(new()
-            {
-                RequestAction = RequestAction.create.ToString(),
-                Field = ElemFieldType.source.ToString(),
-                IpString = appServer.Ip,
-                GroupName = appRole.Display()
-            });
-        }
-        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Display()} };
-        AddTasksList.Add(new()
-        {
-            Title = updateAppRoleString + appRole.Display() + addMembersString,
-            TaskNumber = taskNumber++,
-            TaskType = WfTaskType.group_modify.ToString(),
-            RequestAction = RequestAction.modify.ToString(),
-            StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
-            ManagementId = actManagementId,
-            OnManagement = actManagement,
-            Elements = groupMembers,
-            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
-        });
     }
 
     private void AnalyseAppServers(ModellingConnection conn)
@@ -440,7 +451,7 @@
             }
             else
             {
-                if(AddTasksList.FirstOrDefault(x => x.Title == newServiceGroupString + svcGrp.Name) == null)
+                if(TaskList.FirstOrDefault(x => x.Title == newServiceGroupString + svcGrp.Name) == null)
                 {
                     RequestNewServiceGroup(svcGrp);
                 }
@@ -470,10 +481,9 @@
             });
         }
         Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, svcGrp.Name} };
-        AddTasksList.Add(new()
+        TaskList.Add(new()
         {
             Title = newServiceGroupString + svcGrp.Name,
-            TaskNumber = taskNumber++,
             TaskType = WfTaskType.group_create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
             ManagementId = actManagementId,
@@ -498,61 +508,89 @@
         }
     }
 
-    private string DisplyTask(WfReqTask task)
+    private string DisplayTaskDetails(WfReqTask task)
     {
         if(task.TaskType == WfTaskType.access.ToString())
         {
-            List<string> sources = [];
-            foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.source.ToString()))
-            {
-                if(elem.GroupName != null)
-                {
-                    sources.Add(elem.GroupName);
-                }
-                else
-                {
-                    sources.Add(elem.IpString ?? "");
-                }
-            }
-            List<string> services = [];
-            foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
-            {
-                if(elem.GroupName != null)
-                {
-                    services.Add(elem.GroupName);
-                }
-                else
-                {                
-                    services.Add(elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
-                }
-            }
-            List<string> destinations = [];
-            foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.destination.ToString()))
-            {
-                if(elem.GroupName != null)
-                {
-                    destinations.Add(elem.GroupName);
-                }
-                else
-                {
-                    destinations.Add(elem.IpString ?? "");
-                }
-            }
-            return userConfig.GetText("source") + ": " + string.Join(", ", sources) +
-                "<br>" + userConfig.GetText("service") + ": " + string.Join(", ", services) +
-                "<br>" + userConfig.GetText("destination") + ": " + string.Join(", ", destinations);
+            return userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
+                "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
+                "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString());
         }
-        else if(task.TaskType == WfTaskType.group_create.ToString())
+        else if(task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
         {
-            // todo: differentiate between appRoles + SvcGrp -> new Task type or new criterion in task?
-            return userConfig.GetText("members") + ": " + 
-            (task.Title.Contains("AppRole") ? string.Join(", ", task.Elements.ConvertAll(g => g.IpString)) :
-            string.Join(", ", task.Elements.ConvertAll(g => g.Port + "/" + ipProtos.Find(x => x.Id == g.ProtoId)?.Name)));
+            return DisplayMembers(task);
         }
         else
         {
             return "";
         }
+    }
+
+    private string DisplayNwObjects(WfReqTask task, string fieldType)
+    {
+        List<string> nwObjects = [];
+        foreach(var elem in task.Elements.Where(e => e.Field == fieldType))
+        {
+            if(elem.GroupName != null)
+            {
+                nwObjects.Add(elem.GroupName);
+            }
+            else
+            {
+                nwObjects.Add(elem.IpString ?? "");
+            }
+        }
+        return string.Join(", ", nwObjects);
+    }
+
+    private string DisplayServices(WfReqTask task)
+    {
+        List<string> services = [];
+        foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
+        {
+            if(elem.GroupName != null)
+            {
+                services.Add(elem.GroupName);
+            }
+            else
+            {
+                services.Add(elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
+            }
+        }
+        return string.Join(", ", services);
+    }
+
+    private string DisplayMembers(WfReqTask task)
+    {
+        List<string> members =[];
+        if(task.IsNetworkFlavor())
+        {
+            foreach(var elem in task.Elements)
+            {
+                members.Add($"<span class=\"{CssClass(elem)}\" >{elem.IpString}</span>");
+            }
+        }
+        else
+        {
+            foreach(var elem in task.Elements)
+            {
+                members.Add($"<span class=\"{CssClass(elem)}\" >{elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name}</span>");
+            }
+        }
+        return userConfig.GetText("members") + ": " + string.Join(", ", members);
+    }
+
+    private string CssClass(WfReqElement elem)
+    {
+        if(elem.RequestAction == RequestAction.create.ToString())
+        {
+            return "text-success";
+        }
+        else if(elem.RequestAction == RequestAction.delete.ToString())
+        {
+            return "text-danger";
+        }
+        return "";
     }
 
     private async Task SendRequest()
@@ -569,7 +607,7 @@
             {
                 RequestInProcess = true;
                 TaskList = intTicket.Tasks;
-                await SetModellingVersion();
+                // await SetModellingVersion();
                 await SaveTicketId(intTicket.Id);
                 await CreateExtRequests(intTicket);
             }
@@ -581,7 +619,7 @@
         WorkInProgress = false;
     }
 
-    private async Task SetModellingVersion()
+    @* private async Task SetModellingVersion()
     {
         try
         {
@@ -591,7 +629,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
         }
-    }
+    } *@
 
     private async Task SaveTicketId(long ticketId)
     {

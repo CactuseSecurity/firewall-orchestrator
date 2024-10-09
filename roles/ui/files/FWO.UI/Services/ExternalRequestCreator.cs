@@ -41,18 +41,7 @@ namespace FWO.Ui.Services
 			{
 				GetExtSystemFromConfig();
             	await extStateHandler.Init();
-				if(UserConfig.ModRolloutBundleTasks)
-				{
-					// todo: bundle
-					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
-					// it must be split into multiple tickets of up to 100 ARs each.
-					// The count parameter specifies the number of tickets to be opened.
-				}
-				else
-				{
-					WfReqTask firstTask = InternalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == 0) ?? throw new Exception("No task found.");
-					await CreateExtRequest([firstTask]);
-				}
+				await SendNextRequest(InternalTicket, 0);
 			}
 			catch(Exception exception)
 			{
@@ -216,14 +205,35 @@ namespace FWO.Ui.Services
 
 		private async Task SendNextRequest(WfTicket ticket, int oldTaskNumber)
 		{
-			if(UserConfig.ModRolloutBundleTasks)
+			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == oldTaskNumber + 1);
+			if(nextTask != null)
 			{
-				// todo: bundle
-			}
-			else
-			{
-				WfReqTask? nextTask = InternalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == oldTaskNumber + 1);
-				if(nextTask != null)
+				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
+				{
+					// todo: bundle also other task types?
+					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
+					// it must be split into multiple tickets of up to 100 ARs each.
+					// The count parameter specifies the number of tickets to be opened.
+
+					List<WfReqTask> bundledTasks = [nextTask];
+					int actTaskNumber = oldTaskNumber + 2;
+					bool taskFound = true;
+					while(taskFound)
+					{
+						WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
+						if(furtherTask != null && furtherTask.TaskType == WfTaskType.access.ToString())
+						{
+							bundledTasks.Add(furtherTask);
+							actTaskNumber++;
+						}
+						else
+						{
+							taskFound = false;
+						}
+					}
+					await CreateExtRequest(bundledTasks);
+				}
+				else
 				{
 					await CreateExtRequest([nextTask]);
 				}

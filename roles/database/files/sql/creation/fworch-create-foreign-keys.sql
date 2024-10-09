@@ -190,6 +190,11 @@ Alter table "zone" add  foreign key ("mgm_id") references "management" ("mgm_id"
 Alter table "zone" add  foreign key ("zone_create") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "zone" add  foreign key ("zone_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 
+ALTER TABLE owner_ticket ADD CONSTRAINT owner_ticket_owner_id_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE owner_ticket ADD CONSTRAINT owner_ticket_ticket_id_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE ext_request ADD CONSTRAINT ext_request_owner_id_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE ext_request ADD CONSTRAINT ext_request_ticket_id_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
 --- request.reqtask ---
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_request_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -200,6 +205,7 @@ ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_object_foreign_key FO
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_management_foreign_key FOREIGN KEY (mgm_id) REFERENCES management(mgm_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.reqelement ---
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_request_reqtask_foreign_key FOREIGN KEY (task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;

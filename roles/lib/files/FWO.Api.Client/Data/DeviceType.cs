@@ -1,8 +1,6 @@
-using System.ComponentModel;
-using System.Globalization;
 using System.Text.Json.Serialization;
-using FWO.Api.Client;
 using Newtonsoft.Json;
+
 namespace FWO.Api.Data
 {
     public class DeviceType
@@ -25,23 +23,23 @@ namespace FWO.Api.Data
         [JsonProperty("isManagement"), JsonPropertyName("isManagement")]
         public bool IsManagement { get; set; }
 
-        private static List<int> LegacyDevTypeList = new List<int> 
-        {
+        private static readonly List<int> LegacyDevTypeList =
+        [
             2, // Netscreen 5.x-6.x
             4, // FortiGateStandalone 5ff
             5, // Barracuda Firewall Control Center Vx
             6, // phion netfence 3.x
             7, // Check Point R5x-R7x
             8  // JUNOS 10-21
-        };
+        ];
 
-        private static Dictionary<int, int> SupermanagerMap = new Dictionary<int, int>
+        private static readonly Dictionary<int, int> SupermanagerMap = new()
         {  
             // Mgmt -> Supermgmt
             { 11, 12 }, // FortiADOM 5ff -> FortiManager 5ff
             { 9, 13 }  // Check Point R8x -> Check Point MDS R8x
         };
-        private static Dictionary<int, int> SupermanagerGatewayMap = new Dictionary<int, int>
+        private static readonly Dictionary<int, int> SupermanagerGatewayMap = new()
         {  
             // Supermgmt -> Gateway
             { 12, 10},  // FortiManager 5ff-> FortiGate 5ff
@@ -50,15 +48,15 @@ namespace FWO.Api.Data
             { 14, 16}   // Cisco Firepower
         };
 
-        private static List<int> CheckPointManagers = new List<int>
-        {  
+        private static readonly List<int> CheckPointManagers =
+        [
             13, 9   // Check Point MDS R8x and Check Point R8x
-        };
+        ];
 
-        private static List<int> FortiManagers = new List<int>
-        {  
+        private static readonly List<int> FortiManagers =
+        [
             12   // FortiManager 5ff
-        };
+        ];
 
 
         public DeviceType()
@@ -96,23 +94,23 @@ namespace FWO.Api.Data
 
         public bool CanHaveSupermanager()
         {
-            return SupermanagerMap.Keys.Contains(Id);
+            return SupermanagerMap.ContainsKey(Id);
         }
 
         public bool CanBeSupermanager()
         {
-            return SupermanagerMap.Values.Contains(Id);
+            return SupermanagerMap.ContainsValue(Id);
         }
 
         public bool CanBeAutodiscovered(Management mgmt)
         {
-            return !IsUri(mgmt.Hostname) && (SupermanagerMap.Values.Contains(Id) || (CheckPointManagers.Contains(Id) && mgmt.SuperManagerId==null));
+            return !IsUri(mgmt.Hostname) && (SupermanagerMap.ContainsValue(Id) || (CheckPointManagers.Contains(Id) && mgmt.SuperManagerId==null));
         }
+
         private static bool IsUri(string hostname)
         {
             return hostname.StartsWith("https://") || hostname.StartsWith("http://") || hostname.StartsWith("file://");
         }
-
 
         public int GetSupermanagerId()
         {

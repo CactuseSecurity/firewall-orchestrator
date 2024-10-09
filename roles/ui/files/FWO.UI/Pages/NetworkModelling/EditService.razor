@@ -26,9 +26,9 @@
                 {
                     <div class="form-group row col-sm-6">
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
-                        <input type="number" min="1" max="65535" class="col-sm-4" @bind="ServiceHandler.ActService.Port" />
+                        <input type="number" min="1" max="GlobalConst.kMaxPortNumber" class="col-sm-4" @bind="ServiceHandler.ActService.Port" />
                         <label class="col-sm-1 col-form-label col-form-label-sm"> - </label>
-                        <input type="number" min="1" max="65535" class=" col-sm-4" @bind="ServiceHandler.ActService.PortEnd" />
+                        <input type="number" min="1" max="GlobalConst.kMaxPortNumber" class=" col-sm-4" @bind="ServiceHandler.ActService.PortEnd" />
                     </div>
                 }
             </div>
@@ -121,7 +121,7 @@
 
     private async Task Save()
     {
-        if(await ServiceHandler.Save())
+        if(ServiceHandler != null && await ServiceHandler.Save())
         {
             if(unchangedService.Name != ServiceHandler.ActService.Name
                 || unchangedService.Port != ServiceHandler.ActService.Port

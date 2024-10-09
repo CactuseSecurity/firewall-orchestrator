@@ -44,13 +44,14 @@ namespace FWO.Api.Data
             return numberImplTasks;
         }
 
-        public void UpdateCidrStringsInTaskElements()
+        public void UpdateIpStringsFromCidrInTaskElements()
         {
             foreach (WfReqTask reqtask in Tasks)
             {
                 foreach(WfReqElement elem in reqtask.Elements)
                 {
-                    elem.IpString = elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString : null ;
+                    elem.IpString = elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString : null;
+                    elem.IpEnd = elem.CidrEnd != null && elem.CidrEnd.Valid ? elem.CidrEnd.CidrString : null;
                 }
             }
         }
@@ -65,6 +66,10 @@ namespace FWO.Api.Data
                     {
                         elem.Cidr = new Cidr(elem.IpString);
                     }
+                    if (elem.IpEnd != null)
+                    {
+                        elem.CidrEnd = new Cidr(elem.IpEnd);
+                    }
                 }
                 foreach(WfImplTask implTask in reqtask.ImplementationTasks)
                 {
@@ -73,6 +78,10 @@ namespace FWO.Api.Data
                         if (elem.IpString != null)
                         {
                             elem.Cidr = new Cidr(elem.IpString);
+                        }
+                        if (elem.IpEnd != null)
+                        {
+                            elem.CidrEnd = new Cidr(elem.IpEnd);
                         }
                     }
                 }

@@ -151,7 +151,7 @@
 
     private void AddReqTask()
     {
-        WfHandler.SelectReqTask(new WfReqTask(){ RuleAction = 1, Tracking = 1 }, ObjAction.add);
+        WfHandler.SelectReqTask(new WfReqTask(){ RuleAction = 1, Tracking = 1, ManagementId = -1 }, ObjAction.add);
     }
 
     private void EditReqTask(WfReqTask reqTask)

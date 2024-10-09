@@ -48,9 +48,9 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<LogEntry> logEntrys = new List<LogEntry>();
-    private List<UiUser> uiUsers = new List<UiUser>();
-    private List<Management> managements = new List<Management>();
+    private List<LogEntry> logEntrys = [];
+    private List<UiUser> uiUsers = [];
+    private List<Management> managements = [];
     private bool InitComplete = false;
 
     private int PageSize { get; set; } = 10;
@@ -60,16 +60,8 @@ else
         try
         {
             logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getAutodiscoveryLogEntrys);
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
-
-            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-            jwt.Validate();
-            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
-            else
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
-
-            // managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
             InitComplete = true;
         }
         catch (Exception exception)

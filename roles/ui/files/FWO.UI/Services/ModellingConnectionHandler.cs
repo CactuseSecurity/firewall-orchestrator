@@ -503,7 +503,7 @@ namespace FWO.Ui.Services
             {
                 try
                 {
-                    AppServerHandler = new (apiConnection, userConfig, Application, appServer, new(), false, DisplayMessageInUi){ ReadOnly = true };
+                    AppServerHandler = new (apiConnection, userConfig, Application, appServer, [], false, DisplayMessageInUi){ ReadOnly = true };
                     DisplayAppServerMode = true;
                 }
                 catch (Exception exception)

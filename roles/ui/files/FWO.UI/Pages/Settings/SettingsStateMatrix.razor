@@ -23,7 +23,7 @@
     <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5541"))">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
         <div class="col-sm-3">
-            <Dropdown ElementType="TaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >
+            <Dropdown ElementType="WfTaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >
                 <ElementTemplate Context="type">
                     @(userConfig.GetText(type.ToString()))
                 </ElementTemplate>
@@ -256,15 +256,15 @@ else
     private bool SaveMatrixMode = false;
     private bool ResetMatrixMode = false;
     private bool EditTargetStatesMode = false;
-    private TaskType actTaskType = TaskType.master;
-    private List<TaskType> availableTaskTypes { get; set; } = [];
+    private WfTaskType actTaskType = WfTaskType.master;
+    private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
         await RefreshStates();
         await InitMatrix();
-        availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+        availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
         InitComplete = true;
     }
 
@@ -388,15 +388,15 @@ else
             SaveMatrixMode = false;
             string matrixKey = actTaskType switch
             {
-                TaskType.master => "reqMasterStateMatrix",
-                TaskType.generic => "reqGenStateMatrix",
-                TaskType.access => "reqAccStateMatrix",
-                TaskType.rule_delete => "reqRulDelStateMatrix",
-                TaskType.rule_modify => "reqRulModStateMatrix",
-                TaskType.group_create => "reqGrpCreStateMatrix",
-                TaskType.group_modify => "reqGrpModStateMatrix",
-                TaskType.group_delete => "reqGrpDelStateMatrix",
-                TaskType.new_interface => "reqNewIntStateMatrix",
+                WfTaskType.master => "reqMasterStateMatrix",
+                WfTaskType.generic => "reqGenStateMatrix",
+                WfTaskType.access => "reqAccStateMatrix",
+                WfTaskType.rule_delete => "reqRulDelStateMatrix",
+                WfTaskType.rule_modify => "reqRulModStateMatrix",
+                WfTaskType.group_create => "reqGrpCreStateMatrix",
+                WfTaskType.group_modify => "reqGrpModStateMatrix",
+                WfTaskType.group_delete => "reqGrpDelStateMatrix",
+                WfTaskType.new_interface => "reqNewIntStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + actTaskType.ToString()),
             };
 

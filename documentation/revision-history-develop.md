@@ -225,3 +225,6 @@ bugfix release:
 
 # 8.3.2 - 09.09.2024 DEVELOP
 - Added welcome message and settings
+
+# 8.4.1 - 01.10.2024 DEVELOP
+- external request

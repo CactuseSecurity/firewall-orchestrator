@@ -17,6 +17,7 @@ fragment reqTaskDetails on request_reqtask {
   additional_info
   free_text
   last_recert_date
+  mgm_id
   current_handler: uiuser {
     uiuser_id
     uuid
@@ -31,12 +32,19 @@ fragment reqTaskDetails on request_reqtask {
   target_begin_date
   target_end_date
   devices
+  on_management: management {
+    id: mgm_id
+    name: mgm_name
+    extMgtData: ext_mgm_data
+  }
   elements: elements {
     id
     task_id
     request_action
     ip
+    ip_end
     port
+    port_end
     ip_proto_id
     network_object_id
     service_id
@@ -45,6 +53,8 @@ fragment reqTaskDetails on request_reqtask {
     original_nat_id
     device_id
     rule_uid
+    group_name
+    name
   }
   implementation_tasks: impltasks {
     ...implTaskDetails

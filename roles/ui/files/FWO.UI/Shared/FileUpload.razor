@@ -2,12 +2,15 @@
 @using FWO.Ui.Data
 @inject UserConfig userConfig
 
-<div class="d-inline">
-    <button type="button" disabled="@ImportDisabled" class="btn btn-sm btn-primary d-inline" @onclick="LoadCSV">
-        @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
-        <span class="ms-1">@(userConfig.GetText("import"))</span>
-    </button>
-    <InputFile OnChange="@SingleUpload" />
+
+<div class="row">
+    <div class="col-sm-8">
+        <InputFile OnChange="@SingleUpload" />
+        <button type="button" disabled="@ImportDisabled" class="btn btn-sm btn-primary mt-2 w-100" @onclick="LoadCSV">
+            @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+            <span class="ms-1">@(userConfig.GetText("import"))</span>
+        </button>
+    </div>
 </div>
 @if (ShowAlert)
 {

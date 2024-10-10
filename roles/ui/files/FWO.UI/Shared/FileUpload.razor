@@ -1,5 +1,10 @@
-﻿@using FWO.Api.Data
+﻿@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+@using FWO.Api.Data
+@using FWO.Config.File
+@using FWO.GlobalConstants
 @using FWO.Ui.Data
+@using NetTools
 @inject UserConfig userConfig
 
 
@@ -24,6 +29,12 @@
     InputFileChangeEventArgs? InputFileChangeEventArgs;
 
     private bool ImportDisabled { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<Exception> OnAddAppServerError { get; set; }
+
+    [Parameter]
+    public ApiConnection ApiConnection { get; set; }
 
     private void SingleUpload(InputFileChangeEventArgs e)
     {
@@ -70,12 +81,18 @@
             if (entries.Length < 3)
                 continue;
 
-            CSVInterfaceImportModel interfaceImport = new()
+            CSVAppServerImportModel appServer = new()
                 {
-                    AppID = entries[0],
-                    AppServerTyp = entries[1],
-                    AppIPRange = entries[2]
+                    AppServerName = entries[0],
+                    AppID = entries[1],
+                    AppServerTyp = entries[2],
+                    AppIPRange = entries[3]
                 };
+
+            bool success = await AddAppServerToDb(appServer);
+
+            if (!success)
+                return;
         }
     }
 
@@ -83,9 +100,36 @@
     {
         string[] columns = lineText.Split(";");
 
-        return (columns.Length == 3 
-            && columns[0] == "External App-ID" 
-            && columns[1] == "App-Server-Typ" 
-            && columns[2] == "App-IP-Address-Range" );
+        return ( columns.Length == 4
+            && columns[0] == "App-Server-Name"
+            && columns[1] == "External-App-ID"
+            && columns[2] == "App-Server-Typ"
+            && columns[3] == "App-IP-Address-Range" );
+    }
+
+    private async Task<bool> AddAppServerToDb(CSVAppServerImportModel appServer)
+    {
+        try
+        {
+            var Variables = new
+            {
+                name = appServer.AppServerName,
+                appId = appServer.AppID,
+                ip =appServer.AppIPRange,
+                // ipEnd = appServer.IpEnd != "" ? IPAddressRange.Parse(ActAppServer.IpEnd).ToCidrString() : IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
+                importSource = GlobalConst.kManual
+            };
+           
+            ReturnId[]? returnIds = ( await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
+            
+        }
+        catch (Exception exception)
+        {
+            await OnAddAppServerError.InvokeAsync(exception);
+
+            return false;
+        }
+
+        return true;
     }
 }

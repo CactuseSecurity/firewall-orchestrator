@@ -85,7 +85,7 @@
             <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <FileUpload></FileUpload>
+                <FileUpload ApiConnection="apiConnection"  OnAddAppServerError="OnAddAppServerError"></FileUpload>
             </div>
         </div>
         <hr />
@@ -301,6 +301,10 @@ else
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
     EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible ];
 
+    private void OnAddAppServerError(Exception exception)
+    {
+        DisplayMessageInUi(exception, userConfig.GetText("add_app_server"), exception.Message, false);
+    }
 
     protected override async Task OnInitializedAsync()
     {

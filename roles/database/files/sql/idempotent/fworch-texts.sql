@@ -6233,21 +6233,23 @@ INSERT INTO txt VALUES ('H9054', 'German',  'Nachricht die auf der Anmeldeseite 
 INSERT INTO txt VALUES ('H9054', 'English', 'Message that is displayed on Login Page.');
 INSERT INTO txt VALUES ('H9055', 'German',  'Importieren von App Servern via CSV Datei. Die CSV muss folgende Daten enthalten:
 <ul>
+<li>App Server Name</li>
 <li>Externe App-ID</li>
 <li>App Server Typ</li>
 <li>App IP Address Range</li>
 </ul>
 <br>
-Die CSV darf eine Überschrift enthalten und muss wie folgt formatiert/benannt sein: External App-ID;App-Server-Typ;App-IP-Address-Range.
+Die CSV darf eine Überschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
 INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV file. The CSV must contain the following data:
 <ul>
-<li>External App ID</li>
+<li>App server name</li>
+<li>External app ID</li>
 <li>App server type</li>
 <li>App IP address range</li>
 </ul>
 <br>
-The CSV may contain a header and must be formatted/named as follows: External App-ID;App-Server-Type;App-IP-Address-Range.
+The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
 INSERT INTO txt VALUES ('PagerPagesize',     'German', 	'Seitengröße');
 INSERT INTO txt VALUES ('PagerPagesize',     'English', 'Page size');

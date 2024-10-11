@@ -6,6 +6,7 @@
 @using FWO.Ui.Data
 @using NetTools
 @using System.Net
+@using System.Text.Json
 @inject UserConfig userConfig
 
 
@@ -43,6 +44,20 @@
 
     [Parameter]
     public ApiConnection ApiConnection { get; set; }
+
+    private List<AppServerType> AppServerTypes = new();
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (userConfig.ModAppServerTypes != "")
+            {
+                AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
+            }
+        }
+        catch (Exception) { }
+    }
 
     private void SingleUpload(InputFileChangeEventArgs e)
     {
@@ -158,13 +173,16 @@
                 ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.AppIPRange);
             }
 
+            AppServerType? appServerType = AppServerTypes.First(_ => _.Name == appServer.AppServerTyp);
+
             var Variables = new
             {
                 name = appServer.AppServerName,
                 appId = appServer.AppID,
                 ip = ip.Start,
                 ipEnd = ip.End,
-                importSource = GlobalConst.kManual
+                importSource = GlobalConst.kManual,
+                customType = appServerType.Id
             };
 
             ReturnId[]? returnIds = ( await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;

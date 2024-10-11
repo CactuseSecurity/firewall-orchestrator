@@ -5,6 +5,7 @@
 @using FWO.GlobalConstants
 @using FWO.Ui.Data
 @using NetTools
+@using System.Net
 @inject UserConfig userConfig
 
 
@@ -96,10 +97,16 @@
                     AppIPRange = entries[3]
                 };
 
+
             if (TrySplit(appServer.AppIPRange, '-', 1, out string? ipEnd))
             {
                 appServer.AppIPRange = appServer.AppIPRange.Split('-')[0];
                 appServer.AppIPRangeEnd = ipEnd;
+            }
+
+            if (string.IsNullOrEmpty(appServer.AppIPRangeEnd) && !TrySplit(appServer.AppIPRange, '/', 1, out string? subnet))
+            {
+                appServer.AppIPRange += "/32";
             }
 
             bool success = await AddAppServerToDb(appServer);
@@ -139,12 +146,24 @@
     {
         try
         {
+            (string Start, string End) ip;
+
+            if (!string.IsNullOrEmpty(appServer.AppIPRangeEnd))
+            {
+                ip.Start = appServer.AppIPRange;
+                ip.End = appServer.AppIPRangeEnd;
+            }
+            else
+            {
+                ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.AppIPRange);
+            }
+
             var Variables = new
             {
                 name = appServer.AppServerName,
                 appId = appServer.AppID,
-                ip = IPAddressRange.Parse(appServer.AppIPRange).ToCidrString(),
-                ipEnd = string.IsNullOrEmpty(appServer.AppIPRangeEnd) ? IPAddressRange.Parse(appServer.AppIPRange).ToCidrString() : IPAddressRange.Parse(appServer.AppIPRangeEnd).ToCidrString(),
+                ip = ip.Start,
+                ipEnd = ip.End,
                 importSource = GlobalConst.kManual
             };
 

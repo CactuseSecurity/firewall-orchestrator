@@ -10,20 +10,27 @@
 
 <div class="row">
     <div class="col-sm-8">
-        <InputFile OnChange="@SingleUpload" />
-        <button type="button" disabled="@ImportDisabled" class="btn btn-sm btn-primary mt-2 w-100" @onclick="LoadCSV">
+        <label class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
+            @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Add))
+            <span class="ms-2">@(userConfig.GetText("add"))</span>
+        </label>
+        <InputFile id="fileUpload" hidden accept=".csv" OnChange="@SingleUpload" />
+        @if (InputFileChangeEventArgs is not null && !string.IsNullOrEmpty(InputFileChangeEventArgs.File.Name))
+        {
+            <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
+        }
+        <button type="button" disabled="@ImportDisabled" class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="LoadCSV">
             @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
             <span class="ms-1">@(userConfig.GetText("import"))</span>
         </button>
+        @if (ShowAlert)
+        {
+            <div class="alert alert-warning mt-2" role="alert">
+                <span>@userConfig.GetText("E7014")</span>
+            </div>
+        }
     </div>
 </div>
-@if (ShowAlert)
-{
-    <div class="alert alert-warning mt-2" role="alert">
-        <span>@userConfig.GetText("E7014")</span>
-    </div>
-}
-
 @code {
     private bool ShowAlert { get; set; }
     InputFileChangeEventArgs? InputFileChangeEventArgs;
@@ -116,6 +123,7 @@
 
         return true;
     }
+
     private bool IsHeader(string lineText)
     {
         string[] columns = lineText.Split(";");

@@ -15,7 +15,22 @@ mutation newAppServer(
     is_deleted: false
     nw_type: 10
     custom_type: $customType
-  }) {
+  }
+  on_conflict: {
+      constraint: ip
+      update_columns: 
+      [
+        name
+        owner_id
+        ip
+        ip_end
+        import_source
+        is_deleted
+        nw_type
+        custom_type
+      ]
+    }
+  ) {
     returning {
       newId: id
     }

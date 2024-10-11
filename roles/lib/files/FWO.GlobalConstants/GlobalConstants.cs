@@ -1,3 +1,8 @@
+using System.Net.Sockets;
+using System.Net;
+using System.Numerics;
+using System.Text.RegularExpressions;
+
 namespace FWO.GlobalConstants
 {
 	/// <summary>
@@ -68,5 +73,211 @@ namespace FWO.GlobalConstants
         {
             return boolVal ? "\u2714" : "\u2716";
         }
-	}
+        public class IpOperations
+        {
+            public static (IPAddress start, IPAddress end) CidrToRange(string cidr)
+            {
+                string[] parts = cidr.Split('/');
+                if (parts.Length != 2)
+                {
+                    throw new FormatException("Invalid CIDR format.");
+                }
+
+                var ip = IPAddress.Parse(parts[0]);
+                int prefixLength = int.Parse(parts[1]);
+
+                var addressBytes = ip.GetAddressBytes();
+
+                if (addressBytes.Length == 4)
+                {
+                    // IPv4 case
+                    return IPv4CidrToRange(addressBytes, prefixLength);
+                }
+                else if (addressBytes.Length == 16)
+                {
+                    // IPv6 case
+                    return IPv6CidrToRange(addressBytes, prefixLength);
+                }
+                else
+                {
+                    throw new FormatException("Invalid IP address format.");
+                }
+            }
+            public static (string start, string end) CidrToRangeString(string cidr)
+            {
+                IPAddress ipStart;
+                IPAddress ipEnd;
+
+                (ipStart, ipEnd) = CidrToRange(cidr);
+
+                return (ipStart.ToString(), ipEnd.ToString());
+            }
+
+            private static (IPAddress start, IPAddress end) IPv4CidrToRange(byte[] addressBytes, int prefixLength)
+            {
+                uint ipAddress = BitConverter.ToUInt32(addressBytes.Reverse().ToArray(), 0);
+                uint mask = ( uint.MaxValue << ( 32 - prefixLength ) ) & uint.MaxValue;
+
+                uint startIp = ipAddress & mask;
+                uint endIp = startIp | ~mask;
+
+                return (new IPAddress(BitConverter.GetBytes(startIp).Reverse().ToArray()),
+                        new IPAddress(BitConverter.GetBytes(endIp).Reverse().ToArray()));
+            }
+
+            private static (IPAddress start, IPAddress end) IPv6CidrToRange(byte[] addressBytes, int prefixLength)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    addressBytes = addressBytes.Reverse().ToArray();  // Reverse byte array for BigInteger compatibility
+                }
+
+                var addressBigInt = new BigInteger(addressBytes.Concat(new byte[] { 0 }).ToArray());  // Treat as unsigned
+
+                var mask = BigInteger.Pow(2, 128) - BigInteger.Pow(2, 128 - prefixLength);  // Compute mask
+                var startIpBigInt = addressBigInt & mask;  // Apply mask for the start IP
+                var endIpBigInt = startIpBigInt | ( ~mask & BigInteger.Pow(2, 128) - 1 );  // Compute end IP
+
+                var startIpBytes = startIpBigInt.ToByteArray();
+                var endIpBytes = endIpBigInt.ToByteArray();
+
+                // Ensure the byte arrays are 16 bytes (128 bits) for IPv6
+                startIpBytes = NormalizeBytes(startIpBytes, 16);
+                endIpBytes = NormalizeBytes(endIpBytes, 16);
+
+                if (BitConverter.IsLittleEndian)
+                {
+                    startIpBytes = startIpBytes.Reverse().ToArray();
+                    endIpBytes = endIpBytes.Reverse().ToArray();
+                }
+
+                return (new IPAddress(startIpBytes), new IPAddress(endIpBytes));
+            }
+
+            private static byte[] NormalizeBytes(byte[] bytes, int targetLength)
+            {
+                if (bytes.Length < targetLength)
+                {
+                    // Pad the byte array to the required length
+                    byte[] padded = new byte[targetLength];
+                    Array.Copy(bytes, padded, bytes.Length);
+                    return padded;
+                }
+                return bytes.Take(targetLength).ToArray();  // Ensure it's exactly targetLength bytes
+            }
+
+            public static bool IsInSubnet(IPAddress address, string cidrString)
+            {
+                string[] parts = cidrString.Split('/');
+                if (parts.Length != 2)
+                {
+                    throw new FormatException("Invalid CIDR format.");
+                }
+
+                var networkAddress = IPAddress.Parse(parts[0]);
+                int prefixLength = int.Parse(parts[1]);
+
+                if (address.AddressFamily != networkAddress.AddressFamily)
+                {
+                    // The IP versions must match (IPv4 vs IPv6)
+                    return false;
+                }
+
+                if (address.AddressFamily == AddressFamily.InterNetwork)  // IPv4
+                {
+                    return IsIPv4InSubnet(address, networkAddress, prefixLength);
+                }
+                else if (address.AddressFamily == AddressFamily.InterNetworkV6)  // IPv6
+                {
+                    return IsIPv6InSubnet(address, networkAddress, prefixLength);
+                }
+                else
+                {
+                    throw new NotSupportedException("Only IPv4 and IPv6 are supported.");
+                }
+            }
+
+            private static bool IsIPv4InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
+            {
+                uint ipAddress = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
+                uint networkIpAddress = BitConverter.ToUInt32(networkAddress.GetAddressBytes().Reverse().ToArray(), 0);
+
+                uint mask = ( uint.MaxValue << ( 32 - prefixLength ) ) & uint.MaxValue;
+
+                return ( ipAddress & mask ) == ( networkIpAddress & mask );
+            }
+
+            private static bool IsIPv6InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
+            {
+                BigInteger ipAddressBigInt = new(address.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
+                BigInteger networkIpAddressBigInt = new(networkAddress.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
+
+                BigInteger mask = BigInteger.Pow(2, 128) - BigInteger.Pow(2, 128 - prefixLength);
+
+                return ( ipAddressBigInt & mask ) == ( networkIpAddressBigInt & mask );
+            }
+
+
+            // // TODO: rewrite this to universally deal with ipv4 and ipv6
+            // // currently the input parameter subnetMask is unclear
+            // // looks like it is not a mask but a CIDR as a string
+            // public static bool IsInSubnet(IPAddress address, string subnetMask)
+            // {
+            //     var slashIdx = subnetMask.IndexOf("/");
+            //     var maskAddress = IPAddress.Parse(slashIdx == -1 ? subnetMask : subnetMask.Substring(0, slashIdx));
+            //     if (maskAddress.AddressFamily != address.AddressFamily)
+            //     {
+            //         return false;
+            //     }
+
+            //     int maskLength = slashIdx == -1 ? (maskAddress.AddressFamily == AddressFamily.InterNetwork ? 31 : 127) : int.Parse(subnetMask.Substring(slashIdx + 1));
+            //     if (maskLength == 0)
+            //     {
+            //         return true;
+            //     }
+
+            //     if (maskAddress.AddressFamily == AddressFamily.InterNetwork)
+            //     {
+
+            //         var maskAddressBits = BitConverter.ToUInt32(maskAddress.GetAddressBytes().Reverse().ToArray(), 0);
+            //         var ipAddressBits = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
+            //         uint mask = uint.MaxValue << (32 - maskLength);
+            //         return (maskAddressBits & mask) == (ipAddressBits & mask);
+            //     }
+
+            //     if (maskAddress.AddressFamily == AddressFamily.InterNetworkV6)
+            //     {
+            //         var maskAddressBits = new BitArray(maskAddress.GetAddressBytes().Reverse().ToArray());
+            //         var ipAddressBits = new BitArray(address.GetAddressBytes().Reverse().ToArray());
+            //         var ipAddressLength = ipAddressBits.Length;
+
+            //         if (maskAddressBits.Length != ipAddressBits.Length)
+            //         {
+            //             throw new ArgumentException("Length of IP Address and Subnet Mask do not match.");
+            //         }
+
+            //         for (var i = ipAddressLength - 1; i >= ipAddressLength - maskLength; i--)
+            //         {
+            //             if (ipAddressBits[i] != maskAddressBits[i])
+            //             {
+            //                 return false;
+            //             }
+            //         }
+            //         return true;
+            //     }
+            //     return false;
+            // }
+
+            public static string StripOffNetmask(string ip)
+            {
+                Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");
+                if (match.Success)
+                {
+                    string matchedString = match.Value;
+                    return matchedString.Remove(matchedString.Length - 1);
+                }
+                return ip;
+            }
+        }
+    }
 }

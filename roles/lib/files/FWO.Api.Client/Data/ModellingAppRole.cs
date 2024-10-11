@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 using FWO.GlobalConstants;
+using System.Data;
 
 namespace FWO.Api.Data
 {
@@ -33,6 +34,24 @@ namespace FWO.Api.Data
             Area = appRole.Area;
         }
 
+        public ModellingAppRole(NetworkObject nwObj) : base(nwObj)
+        {
+            Comment = nwObj.Comment;
+            CreationDate = nwObj.CreateTime.Time;
+            AppServers = ConvertNwObjectsToAppServers(nwObj.ObjectGroupFlats);
+            // Todo: Fill Area + AppId from IdString (-> Naming Convention)?
+        }
+
+        private static List<ModellingAppServerWrapper> ConvertNwObjectsToAppServers(GroupFlat<NetworkObject>[] groupFlats)
+        {
+            List<ModellingAppServerWrapper> appServers = [];
+            foreach(var obj in groupFlats.Where(x => x.Object?.IP != null).ToList())
+            {
+                appServers.Add(new ModellingAppServerWrapper(){ Content = obj.Object != null ? new(obj.Object) : new() });
+            }
+            return appServers;
+        }
+
         public ModellingNwGroup ToBase()
         {
             return new ModellingNwGroup()
@@ -54,7 +73,7 @@ namespace FWO.Api.Data
 
         public override NetworkObject ToNetworkObjectGroup()
         {
-            Group<NetworkObject>[] objectGroups = ModellingAppRoleWrapper.ResolveAppServersAsNetworkObjectGroup(AppServers ?? new List<ModellingAppServerWrapper>());
+            Group<NetworkObject>[] objectGroups = ModellingAppRoleWrapper.ResolveAppServersAsNetworkObjectGroup(AppServers ?? []);
             return new()
             {
                 Id = Id,

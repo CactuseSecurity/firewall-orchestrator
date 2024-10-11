@@ -2,9 +2,9 @@
 @using FWO.Middleware.Client
 @using FWO.Api.Data
 @using FWO.Tufin.SecureChange
+@using FWO.Report
 @using System.Text.Json.Serialization
 @using Newtonsoft.Json
-
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -96,7 +96,7 @@
     private int? actManagementId;
     private Management? actManagement;
 
-    private List<ModellingAppRole> allExistingAppRoles = [];
+    private Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
     private ModellingAppRole? existingAppRole;
     private List<ModellingAppServerWrapper> newAppServers = [];
     private List<ModellingAppServerWrapper> deletedAppServers = [];
@@ -216,9 +216,49 @@
 
     private async Task GetProductionState()
     {
-        // Todo: fill allExistingAppRoles... for actManagement -> later multi mgt
+        try
+        {
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+            List<int> managementIds = managements.ConvertAll(m => m.Id);
+            var ImportIdVariables = new
+            {
+                time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                mgmIds = managementIds // ???
+            };
+            List<Management> managementsWithRelevantImportId =
+                await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, ImportIdVariables);
 
-
+            List<ManagementReport> objByMgt = [];
+            foreach(var management in managementsWithRelevantImportId)
+            {
+                var ObjGroupVariables = new
+                {
+                    mgmId = management.Id,
+                    relevantImportId = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId
+                };
+                List<ManagementReport> mgtList = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getNetworkObjectGroups, ObjGroupVariables);
+                if(mgtList.Count > 0)
+                {
+                    objByMgt.Add(mgtList.First());
+                }
+            }
+            foreach(var mgt in objByMgt)
+            {
+                foreach(var objGrp in mgt.Objects)
+                {
+                    int mgtId = actManagementId != null ? (int)actManagementId : 0;
+                    if(!allExistingAppRoles.ContainsKey(mgtId))
+                    {
+                        allExistingAppRoles.Add(mgtId, []);
+                    }
+                    allExistingAppRoles[mgtId].Add(new(objGrp));
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
     }
 
     private void AnalyseNetworkAreas(ModellingConnection conn)
@@ -279,7 +319,7 @@
 
     private bool ResolveExistingAppRole(ModellingAppRole appRole)
     {
-        existingAppRole = allExistingAppRoles.FirstOrDefault(a => a.Name == appRole.Name);
+        existingAppRole = allExistingAppRoles[actManagementId ?? 0].FirstOrDefault(a => a.IdString == appRole.IdString);
         return existingAppRole != null;
     }
 
@@ -290,7 +330,7 @@
         unchangedAppServers = [];
         foreach(var appserver in appRole.AppServers)
         {
-            if(existingAppRole.AppServers.Contains(appserver))
+            if(existingAppRole.AppServers.FirstOrDefault(x => x.Content.Ip == appserver.Content.Ip && x.Content.IpEnd == appserver.Content.IpEnd) != null)  // Name ?
             {
                 unchangedAppServers.Add(appserver);
             }
@@ -301,7 +341,7 @@
         }
         foreach(var exAppserver in existingAppRole.AppServers)
         {
-            if(!appRole.AppServers.Contains(exAppserver))
+            if(appRole.AppServers.FirstOrDefault(x => x.Content.Ip == exAppserver.Content.Ip && x.Content.IpEnd == exAppserver.Content.IpEnd) == null)  // Name ?
             {
                 deletedAppServers.Add(exAppserver);
             }

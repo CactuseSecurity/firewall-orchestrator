@@ -28,6 +28,13 @@ namespace FWO.Api.Data
             ManagedIdString = nwGroup.ManagedIdString;
         }
 
+        public ModellingNwGroup(NetworkObject nwObj) : base(nwObj)
+        {
+            GroupType = MapObjectType(nwObj.Type.Name);
+            IdString = nwObj.Uid;
+            ManagedIdString.Whole = nwObj.Uid;
+        }
+
         public override string Display()
         {
             return base.Display() + " (" + IdString + ")";
@@ -48,6 +55,7 @@ namespace FWO.Api.Data
             return new()
             {
                 Id = Id,
+                Uid = IdString,
                 Number = Number,
                 Name = Display(),
                 Type = new NetworkObjectType(){ Name = ObjectType.Group }
@@ -59,6 +67,17 @@ namespace FWO.Api.Data
             bool shortened = base.Sanitize();
             ManagedIdString.FreePart = Sanitizer.SanitizeMand(ManagedIdString.FreePart, ref shortened);
             return shortened;
+        }
+
+        protected static int MapObjectType(string nwObjType)
+        {
+            return nwObjType switch
+            {
+                ObjectType.Group => (int)ModellingTypes.ModObjectType.AppRole,
+                ObjectType.Network => (int)ModellingTypes.ModObjectType.Network,
+                ObjectType.Host or ObjectType.IPRange => (int)ModellingTypes.ModObjectType.AppServer,
+                _ => (int)ModellingTypes.ModObjectType.AppRole,
+            };
         }
     }
     

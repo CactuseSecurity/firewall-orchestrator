@@ -277,7 +277,24 @@ namespace FWO.GlobalConstants
                     return matchedString.Remove(matchedString.Length - 1);
                 }
                 return ip;
-            }
+            }           
+        }
+    }
+    public static class Extensions
+    {
+        public static bool TrySplit(this string text, char separator, int index, out string output)
+        {
+            string[] splits = text.Split(separator);
+
+            output = "";
+
+            if (splits.Length == 0 || splits.Length < index + 1)
+                return false;
+
+            output = splits[index];
+
+            return true;
         }
     }
 }
+

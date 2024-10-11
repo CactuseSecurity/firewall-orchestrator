@@ -113,13 +113,13 @@
                 };
 
 
-            if (TrySplit(appServer.AppIPRange, '-', 1, out string? ipEnd))
+            if (appServer.AppIPRange.TrySplit('-', 1, out string ipEnd))
             {
                 appServer.AppIPRange = appServer.AppIPRange.Split('-')[0];
                 appServer.AppIPRangeEnd = ipEnd;
             }
 
-            if (string.IsNullOrEmpty(appServer.AppIPRangeEnd) && !TrySplit(appServer.AppIPRange, '/', 1, out string? subnet))
+            if (string.IsNullOrEmpty(appServer.AppIPRangeEnd) && !appServer.AppIPRange.TrySplit('/', 1, out string subnet))
             {
                 appServer.AppIPRange += "/32";
             }
@@ -129,21 +129,6 @@
             if (!success)
                 return;
         }
-    }
-
-    public bool TrySplit(string text, char separator, int index, out string? output)
-    {
-
-        string[] splits = text.Split(separator);
-
-        output = null;
-
-        if (splits.Length == 0 || splits.Length < index + 1)
-            return false;
-
-        output = splits[index];
-
-        return true;
     }
 
     private bool IsHeader(string lineText)

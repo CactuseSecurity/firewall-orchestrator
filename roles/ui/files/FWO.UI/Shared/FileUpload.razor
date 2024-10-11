@@ -89,6 +89,12 @@
                     AppIPRange = entries[3]
                 };
 
+            if (TrySplit(appServer.AppIPRange, '-', 1, out string? ipEnd))
+            {
+                appServer.AppIPRange = appServer.AppIPRange.Split('-')[0];
+                appServer.AppIPRangeEnd = ipEnd;
+            }
+          
             bool success = await AddAppServerToDb(appServer);
 
             if (!success)
@@ -96,6 +102,20 @@
         }
     }
 
+    public bool TrySplit(string text, char separator, int index, out string? output)
+    {
+
+        string[] splits = text.Split(separator);
+
+        output = null;
+
+        if (splits.Length == 0 || splits.Length < index + 1)
+            return false;
+
+        output = splits[index];
+
+        return true;
+    }
     private bool IsHeader(string lineText)
     {
         string[] columns = lineText.Split(";");
@@ -115,13 +135,13 @@
             {
                 name = appServer.AppServerName,
                 appId = appServer.AppID,
-                ip =appServer.AppIPRange,
-                // ipEnd = appServer.IpEnd != "" ? IPAddressRange.Parse(ActAppServer.IpEnd).ToCidrString() : IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
+                ip = IPAddressRange.Parse(appServer.AppIPRange).ToCidrString(),
+                ipEnd = string.IsNullOrWhiteSpace(appServer.AppIPRangeEnd) ? IPAddressRange.Parse(appServer.AppIPRange).ToCidrString() : IPAddressRange.Parse(appServer.AppIPRangeEnd).ToCidrString(),
                 importSource = GlobalConst.kManual
             };
-           
+
             ReturnId[]? returnIds = ( await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
-            
+
         }
         catch (Exception exception)
         {

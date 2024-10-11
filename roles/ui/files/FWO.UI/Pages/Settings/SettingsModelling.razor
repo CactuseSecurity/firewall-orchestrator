@@ -301,9 +301,16 @@ else
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
     EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible ];
 
-    private void OnAddAppServerError(Exception exception)
+    private void OnAddAppServerError((Exception exception, string? ipStart) _ )
     {
-        DisplayMessageInUi(exception, userConfig.GetText("add_app_server"), exception.Message, false);
+        if (_.exception.Message.Contains("Uniqueness violation"))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("E9010"), $"{_.ipStart}", true);
+        }
+        else
+        {
+            DisplayMessageInUi(_.exception, userConfig.GetText("add_app_server"), _.exception.Message, false);
+        }       
     }
 
     protected override async Task OnInitializedAsync()

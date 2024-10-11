@@ -31,7 +31,7 @@
     private bool ImportDisabled { get; set; } = true;
 
     [Parameter]
-    public EventCallback<Exception> OnAddAppServerError { get; set; }
+    public EventCallback<(Exception, string?)> OnAddAppServerError { get; set; }
 
     [Parameter]
     public ApiConnection ApiConnection { get; set; }
@@ -94,7 +94,7 @@
                 appServer.AppIPRange = appServer.AppIPRange.Split('-')[0];
                 appServer.AppIPRangeEnd = ipEnd;
             }
-          
+
             bool success = await AddAppServerToDb(appServer);
 
             if (!success)
@@ -136,7 +136,7 @@
                 name = appServer.AppServerName,
                 appId = appServer.AppID,
                 ip = IPAddressRange.Parse(appServer.AppIPRange).ToCidrString(),
-                ipEnd = string.IsNullOrWhiteSpace(appServer.AppIPRangeEnd) ? IPAddressRange.Parse(appServer.AppIPRange).ToCidrString() : IPAddressRange.Parse(appServer.AppIPRangeEnd).ToCidrString(),
+                ipEnd = string.IsNullOrEmpty(appServer.AppIPRangeEnd) ? IPAddressRange.Parse(appServer.AppIPRange).ToCidrString() : IPAddressRange.Parse(appServer.AppIPRangeEnd).ToCidrString(),
                 importSource = GlobalConst.kManual
             };
 
@@ -145,7 +145,11 @@
         }
         catch (Exception exception)
         {
-            await OnAddAppServerError.InvokeAsync(exception);
+            (Exception e, string? ipStart) eIP = new();
+            eIP.e = exception;
+            eIP.ipStart = appServer.AppIPRange;
+
+            await OnAddAppServerError.InvokeAsync(eIP);
 
             return false;
         }

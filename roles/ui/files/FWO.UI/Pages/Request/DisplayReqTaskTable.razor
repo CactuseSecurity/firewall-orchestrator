@@ -14,7 +14,7 @@
     @if (WfHandler.ActTicket.Tasks.Count > 0)
     {
         <div class="m-2">
-            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="WfHandler.ActTicket.Tasks" PageSize="0" ColumnReorder="true">
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="WfHandler.ActTicket.Tasks.OrderBy(x => x.Id)" PageSize="0" ColumnReorder="true">
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
                         <div class="btn-group">

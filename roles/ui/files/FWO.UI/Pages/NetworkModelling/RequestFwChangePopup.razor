@@ -17,12 +17,13 @@
         {
             <div class="m-2">
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="TaskList" PageSize="0" ColumnReorder="true">
-                    @* <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" /> *@
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="false" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
                         <Template>
                             @(userConfig.GetText(context.TaskType))
                         </Template>
                     </Column>
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.OnManagement.Name)" Sortable="false" Filterable="false" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="false" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                         <Template>
@@ -93,8 +94,6 @@
     private WfStateDict states = new();
     private ExtStateHandler extStateHandler;
     private List<Management> managements = [];
-    private int? actManagementId;
-    private Management? actManagement;
 
     private Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
     private ModellingAppRole? existingAppRole;
@@ -124,8 +123,7 @@
         await extStateHandler.Init();
         ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
         managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-        actManagement = managements.Count > 0 ? managements.FirstOrDefault(m => !string.IsNullOrEmpty(m.ExtMgtData)) : null;  // Todo: Management selection logic
-        actManagementId = actManagement?.Id;
+        managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -170,7 +168,8 @@
             {
                 TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
                 int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
-                RequestInProcess = (TaskList.FirstOrDefault(t => t.StateId < doneStateId) != null);
+                int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
+                RequestInProcess = (TaskList.FirstOrDefault(t => t.StateId < doneStateId && t.StateId < rejectedStateId) != null);
             }
         }
         return RequestInProcess;
@@ -185,13 +184,15 @@
         DeleteTasksList = [];
         foreach(var conn in Connections.Where(c => !c.IsRequested))
         {
-            elements = [];
-            AnalyseNetworkAreas(conn);
-            AnalyseAppRoles(conn);
-            AnalyseAppServers(conn);
-            AnalyseServiceGroups(conn);
-            AnalyseServices(conn);
-
+            foreach(var mgt in managements)
+            {
+                elements = [];
+                AnalyseNetworkAreas(conn);
+                AnalyseAppRoles(conn, mgt);
+                AnalyseAppServers(conn);
+                AnalyseServiceGroups(conn, mgt);
+                AnalyseServices(conn);
+            }
             if(elements.Count > 0)
             {
                 AccessTaskList.Add(new()
@@ -199,8 +200,6 @@
                     Title = "New Connection: " + conn.Name ?? "",
                     TaskType = WfTaskType.access.ToString(),
                     StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
-                    ManagementId = actManagementId,
-                    OnManagement = actManagement,
                     Elements = elements
                 });
             }
@@ -218,7 +217,6 @@
     {
         try
         {
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
             List<int> managementIds = managements.ConvertAll(m => m.Id);
             var ImportIdVariables = new
             {
@@ -242,16 +240,15 @@
                     objByMgt.Add(mgtList.First());
                 }
             }
-            foreach(var mgt in objByMgt)
+            foreach(var prdMgt in objByMgt)
             {
-                foreach(var objGrp in mgt.Objects)
+                foreach(var objGrp in prdMgt.Objects)
                 {
-                    int mgtId = actManagementId != null ? (int)actManagementId : 0;
-                    if(!allExistingAppRoles.ContainsKey(mgtId))
+                    if(!allExistingAppRoles.ContainsKey(prdMgt.Id))
                     {
-                        allExistingAppRoles.Add(mgtId, []);
+                        allExistingAppRoles.Add(prdMgt.Id, []);
                     }
-                    allExistingAppRoles[mgtId].Add(new(objGrp));
+                    allExistingAppRoles[prdMgt.Id].Add(new(objGrp));
                 }
             }
         }
@@ -283,30 +280,30 @@
         }
     }
 
-    private void AnalyseAppRoles(ModellingConnection conn)
+    private void AnalyseAppRoles(ModellingConnection conn, Management mgt)
     {
         foreach(var srcAppRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
         {
-            AnalyseAppRole(srcAppRole, true);
+            AnalyseAppRole(srcAppRole, mgt, true);
         }
         foreach(var dstAppRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
         {
-            AnalyseAppRole(dstAppRole);
+            AnalyseAppRole(dstAppRole, mgt);
         }
     }
 
-    private void AnalyseAppRole(ModellingAppRole appRole, bool isSource = false)
+    private void AnalyseAppRole(ModellingAppRole appRole, Management mgt, bool isSource = false)
     {
-        if(!ResolveExistingAppRole(appRole))
+        if(!ResolveExistingAppRole(appRole, mgt))
         {
-            if(TaskList.FirstOrDefault(x => x.Title == newAppRoleString + appRole.Display()) == null)
+            if(TaskList.FirstOrDefault(x => x.Title == newAppRoleString + appRole.Display() && x.OnManagement.Id == mgt.Id) == null)
             {
-                RequestNewAppRole(appRole);
+                RequestNewAppRole(appRole, mgt);
             }
         }
         else if(AppRoleChanged(appRole))
         {
-            RequestUpdateAppRole(appRole);
+            RequestUpdateAppRole(appRole, mgt);
         }
 
         elements.Add(new()
@@ -317,9 +314,9 @@
         });
     }
 
-    private bool ResolveExistingAppRole(ModellingAppRole appRole)
+    private bool ResolveExistingAppRole(ModellingAppRole appRole, Management mgt)
     {
-        existingAppRole = allExistingAppRoles[actManagementId ?? 0].FirstOrDefault(a => a.IdString == appRole.IdString);
+        existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.IdString == appRole.IdString);
         return existingAppRole != null;
     }
 
@@ -349,7 +346,7 @@
         return newAppServers.Count > 0 || deletedAppServers.Count > 0;
     }
 
-    private void RequestNewAppRole(ModellingAppRole appRole)
+    private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
     {
         List<WfReqElement> groupMembers = [];
         foreach(var appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
@@ -369,14 +366,14 @@
             TaskType = WfTaskType.group_create.ToString(),
             RequestAction = RequestAction.create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
-            ManagementId = actManagementId,
-            OnManagement = actManagement,
+            ManagementId = mgt.Id,
+            OnManagement = mgt,
             Elements = groupMembers,
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
         });
     }
 
-    private void RequestUpdateAppRole(ModellingAppRole appRole)
+    private void RequestUpdateAppRole(ModellingAppRole appRole, Management mgt)
     {
         FillGroupMembers(appRole);
         Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Display()} };
@@ -389,8 +386,8 @@
                 TaskType = WfTaskType.group_modify.ToString(),
                 RequestAction = RequestAction.modify.ToString(),
                 StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
-                ManagementId = actManagementId,
-                OnManagement = actManagement,
+                ManagementId = mgt.Id,
+                OnManagement = mgt,
                 Elements = newGroupMembers,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
             });
@@ -404,8 +401,8 @@
                 TaskType = WfTaskType.group_modify.ToString(),
                 RequestAction = RequestAction.modify.ToString(),
                 StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
-                ManagementId = actManagementId,
-                OnManagement = actManagement,
+                ManagementId = mgt.Id,
+                OnManagement = mgt,
                 Elements = deletedGroupMembers,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
             });
@@ -471,7 +468,7 @@
         }
     }
 
-    private void AnalyseServiceGroups(ModellingConnection conn)
+    private void AnalyseServiceGroups(ModellingConnection conn, Management mgt)
     {
         foreach (var svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
         {
@@ -491,9 +488,9 @@
             }
             else
             {
-                if(TaskList.FirstOrDefault(x => x.Title == newServiceGroupString + svcGrp.Name) == null)
+                if(TaskList.FirstOrDefault(x => x.Title == newServiceGroupString + svcGrp.Name && x.OnManagement.Id == mgt.Id) == null)
                 {
-                    RequestNewServiceGroup(svcGrp);
+                    RequestNewServiceGroup(svcGrp, mgt);
                 }
                 elements.Add(new()
                 {
@@ -505,7 +502,7 @@
         }
     }
 
-    private void RequestNewServiceGroup(ModellingServiceGroup svcGrp)
+    private void RequestNewServiceGroup(ModellingServiceGroup svcGrp, Management mgt)
     {
         List<WfReqElement> groupMembers = [];
         foreach(var svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
@@ -526,8 +523,8 @@
             Title = newServiceGroupString + svcGrp.Name,
             TaskType = WfTaskType.group_create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
-            ManagementId = actManagementId,
-            OnManagement = actManagement,
+            ManagementId = mgt.Id,
+            OnManagement = mgt,
             Elements = groupMembers,
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
         });

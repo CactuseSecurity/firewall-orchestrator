@@ -49,7 +49,91 @@ namespace FWO.Ui.Services
 			}
 		}
 
-		public async Task CreateExtRequest(List<WfReqTask> tasks)
+		public void OnStateUpdate(List<ExternalRequest> extRequests)
+		{
+			if(extRequests.Count > 0)
+			{
+				ExternalRequest actExtRequest = extRequests.First();
+				Task.Run(async () =>
+				{
+					try
+					{
+						await extStateHandler.Init();
+						await wfHandler.Init([actExtRequest.OwnerId]);
+            			ApiConnection.SetProperRole(AuthUser, [ Roles.Requester, Roles.Admin ]);
+            			WfTicket? intTicket = await wfHandler.ResolveTicket(actExtRequest.TicketId);
+						if(intTicket != null)
+						{
+							wfHandler.SetTicketEnv(intTicket);
+							await UpdateTicket(intTicket, actExtRequest);
+            				ApiConnection.SetProperRole(AuthUser, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+							if(extStateHandler.GetInternalStateId(actExtRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
+							{
+								Dispose(actExtRequest.Id);
+								await Acknowledge(actExtRequest);
+								if(actExtRequest.ExtRequestState != ExtStates.ExtReqRejected.ToString())
+								{
+									await SendNextRequest(intTicket, actExtRequest.TaskNumber);
+								}
+								else
+								{
+									await RejectFollowingTasks(intTicket, actExtRequest.TaskNumber);
+								}
+								// todo: push (some) state changes to modelling pages?
+							}
+						}
+						else
+						{
+            				ApiConnection.SetProperRole(AuthUser, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+						}
+					}
+					catch(Exception exception)
+					{
+						Log.WriteError("External Request Update", $"Runs into exception: ", exception);
+						ApiConnection.SetProperRole(AuthUser, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+					}
+				});
+			}
+		}
+
+		private async Task SendNextRequest(WfTicket ticket, int oldTaskNumber)
+		{
+			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == oldTaskNumber + 1);
+			if(nextTask != null)
+			{
+				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
+				{
+					// todo: bundle also other task types?
+					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
+					// it must be split into multiple tickets of up to 100 ARs each.
+					// The count parameter specifies the number of tickets to be opened.
+
+					List<WfReqTask> bundledTasks = [nextTask];
+					int actTaskNumber = oldTaskNumber + 2;
+					bool taskFound = true;
+					while(taskFound)
+					{
+						WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
+						if(furtherTask != null && furtherTask.TaskType == WfTaskType.access.ToString())
+						{
+							bundledTasks.Add(furtherTask);
+							actTaskNumber++;
+						}
+						else
+						{
+							taskFound = false;
+						}
+					}
+					await CreateExtRequest(bundledTasks);
+				}
+				else
+				{
+					await CreateExtRequest([nextTask]);
+				}
+			}
+		}
+
+		private async Task CreateExtRequest(List<WfReqTask> tasks)
 		{
 			string taskContent = ConstructContent(tasks);
 			var Variables = new
@@ -70,49 +154,25 @@ namespace FWO.Ui.Services
 			}
 		}
 
-		public void OnStateUpdate(List<ExternalRequest> extRequests)
+		private async Task RejectFollowingTasks(WfTicket ticket, int lastTaskNumber)
 		{
-			if(extRequests.Count > 0)
+			ApiConnection.SetProperRole(AuthUser, [ Roles.Requester, Roles.Admin ]);
+			int actTaskNumber = lastTaskNumber + 1;
+			bool taskFound = true;
+			while(taskFound)
 			{
-				Task.Run(async () =>
+				WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
+				if(furtherTask != null)
 				{
-					try
-					{
-						await extStateHandler.Init();
-						await wfHandler.Init([extRequests.First().OwnerId]);
-            			ApiConnection.SetProperRole(AuthUser, [ Roles.Requester, Roles.Admin ]);
-            			WfTicket? intTicket = await wfHandler.ResolveTicket(extRequests.First().TicketId);
-						if(intTicket != null)
-						{
-							wfHandler.SetTicketEnv(intTicket);
-							await UpdateTicket(intTicket, extRequests.First());
-            				ApiConnection.SetProperRole(AuthUser, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
-							if(extStateHandler.GetInternalStateId(extRequests.First().ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
-							{
-								Dispose(extRequests.First().Id);
-								await Acknowledge(extRequests.First());
-								if(extRequests.First().ExtRequestState != ExtStates.ExtReqRejected.ToString())
-								{
-									await SendNextRequest(intTicket, extRequests.First().TaskNumber);
-								}
-								else
-								{
-									// todo: Reject handling: set all following tasks to rejected?
-								}
-								// todo: push (some) state changes to modelling pages?
-							}
-						}
-						else
-						{
-            				ApiConnection.SetProperRole(AuthUser, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
-						}
-					}
-					catch(Exception exception)
-					{
-						Log.WriteError("External Request Update", $"Runs into exception: ", exception);
-					}
-				});
+					await UpdateTask(furtherTask, ExtStates.ExtReqRejected.ToString());
+					actTaskNumber++;
+				}
+				else
+				{
+					taskFound = false;
+				}
 			}
+			ApiConnection.SetProperRole(AuthUser, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
 		}
 
 		private void GetExtSystemFromConfig()
@@ -174,12 +234,17 @@ namespace FWO.Ui.Services
 			WfReqTask? updatedTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == extReq.TaskNumber);
 			if(updatedTask != null)
 			{
-				if(updatedTask.StateId != extStateHandler.GetInternalStateId(extReq.ExtRequestState))
-				{
-					wfHandler.SetReqTaskEnv(updatedTask);
-					updatedTask.StateId = extStateHandler.GetInternalStateId(extReq.ExtRequestState) ?? throw new Exception("No translation defined for external state.");
-					await wfHandler.PromoteReqTask(updatedTask);
-				}
+				await UpdateTask(updatedTask, extReq.ExtRequestState);
+			}
+		}
+
+		private async Task UpdateTask(WfReqTask reqTask, string extReqState)
+		{
+			if(reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
+			{
+				wfHandler.SetReqTaskEnv(reqTask);
+				reqTask.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new Exception("No translation defined for external state.");
+				await wfHandler.PromoteReqTask(reqTask);
 			}
 		}
 
@@ -200,43 +265,6 @@ namespace FWO.Ui.Services
 			catch(Exception exception)
 			{
 				Log.WriteError("Acknowledge External Request", $"Runs into exception: ", exception);
-			}
-		}
-
-		private async Task SendNextRequest(WfTicket ticket, int oldTaskNumber)
-		{
-			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == oldTaskNumber + 1);
-			if(nextTask != null)
-			{
-				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
-				{
-					// todo: bundle also other task types?
-					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
-					// it must be split into multiple tickets of up to 100 ARs each.
-					// The count parameter specifies the number of tickets to be opened.
-
-					List<WfReqTask> bundledTasks = [nextTask];
-					int actTaskNumber = oldTaskNumber + 2;
-					bool taskFound = true;
-					while(taskFound)
-					{
-						WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
-						if(furtherTask != null && furtherTask.TaskType == WfTaskType.access.ToString())
-						{
-							bundledTasks.Add(furtherTask);
-							actTaskNumber++;
-						}
-						else
-						{
-							taskFound = false;
-						}
-					}
-					await CreateExtRequest(bundledTasks);
-				}
-				else
-				{
-					await CreateExtRequest([nextTask]);
-				}
 			}
 		}
 

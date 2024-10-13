@@ -31,8 +31,8 @@ namespace FWO.Api.Data
         public ModellingNwGroup(NetworkObject nwObj) : base(nwObj)
         {
             GroupType = MapObjectType(nwObj.Type.Name);
-            IdString = nwObj.Uid;
-            ManagedIdString.Whole = nwObj.Uid;
+            IdString = nwObj.Name;
+            ManagedIdString.Whole = nwObj.Name;
         }
 
         public override string Display()
@@ -55,9 +55,8 @@ namespace FWO.Api.Data
             return new()
             {
                 Id = Id,
-                Uid = IdString,
+                Name = IdString,
                 Number = Number,
-                Name = Display(),
                 Type = new NetworkObjectType(){ Name = ObjectType.Group }
             };
         }

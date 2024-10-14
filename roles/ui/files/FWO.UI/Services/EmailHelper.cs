@@ -124,7 +124,7 @@ namespace FWO.Ui.Services
                     }
                     else
                     {
-                        recipients.AddRange(owners);
+                        recipients.AddRange(owners.Where(_ => !string.IsNullOrEmpty(_)));
                     }
 
                     break;

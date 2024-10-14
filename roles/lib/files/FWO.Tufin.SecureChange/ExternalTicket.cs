@@ -34,35 +34,37 @@ namespace FWO.Tufin.SecureChange
 
 		public async Task<RestResponse<int>> CreateExternalTicket()
 		{
-			RestRequest request = new("tickets.json", Method.Post);
+			string restEndPoint = "tickets.json";
+			RestRequest request = new(restEndPoint, Method.Post);
 			request.AddJsonBody(TicketText);
 
 			// https://192.168.1.1/securechangeworkflow/api/securechange/tickets
-			return await RestCall(request, TicketSystem.Url);
+			return await RestCall(request, restEndPoint);
 		}
 
-		protected async Task<RestResponse<int>> PollExternalTicket(string url)
+		protected async Task<RestResponse<int>> PollExternalTicket()
 		{
 			if(TicketId != null)
 			{
-				RestRequest request = new("tickets.json", Method.Get);
+				string restEndPoint = "tickets/" + TicketId;
+				RestRequest request = new(restEndPoint, Method.Get);
 				request.AddHeader("Accept", "application/json");
-				return await RestCall(request, url);
+				return await RestCall(request, restEndPoint);
 			}
 			throw new Exception("No Ticket Id given.");
 		}
 
-		private async Task<RestResponse<int>> RestCall(RestRequest request, string url)
+		private async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
 		{
 			request.AddHeader("Content-Type", "application/json");
 			request.AddHeader("Authorization", TicketSystem.Authorization);
 			RestClientOptions restClientOptions = new();
 			restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-			restClientOptions.BaseUrl = new Uri(url);
+			restClientOptions.BaseUrl = new Uri(TicketSystem.Url);
 			RestClient restClient = new(restClientOptions, null, ConfigureRestClientSerialization);
 
 			// Debugging SecureChange API call
-			DebugApiCall(request, restClient);
+			DebugApiCall(request, restClient, restEndPoint);
 
 			// send API call
 			return await restClient.ExecuteAsync<int>(request);
@@ -86,7 +88,7 @@ namespace FWO.Tufin.SecureChange
 			config.UseSerializer(() => serializer);
 		}
 
-		private static void DebugApiCall(RestRequest request, RestClient restClient)
+		private static void DebugApiCall(RestRequest request, RestClient restClient, string restEndPoint)
 		{
 			string headers = "";
 			string body = "";
@@ -102,7 +104,7 @@ namespace FWO.Tufin.SecureChange
 						headers += $"header: '{p.Name}: {p.Value}' ";
 				}
 			}
-			Log.WriteDebug("API", $"Sending API Call to SecureChange:\nrequest: {request.Method}, url: {restClient.Options.BaseUrl}, {body}, {headers} ");
+			Log.WriteDebug("API", $"Sending API Call to SecureChange:\nrequest: {request.Method}, base url: {restClient.Options.BaseUrl}, restEndpoint: {restEndPoint}, body: {body}, {headers} ");
 		}
 	}
 }

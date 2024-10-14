@@ -93,7 +93,7 @@ namespace FWO.Tufin.SecureChange
 
 		public override async Task<(string, string?)> GetNewState(string oldState)
 		{
-			RestResponse<int> restResponse = await PollExternalTicket(ConstructUrl());
+			RestResponse<int> restResponse = await PollExternalTicket();
 			if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
 			{
 				SCPollTicketResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCPollTicketResponse?>(restResponse.Content);
@@ -103,12 +103,6 @@ namespace FWO.Tufin.SecureChange
 				}
 			}
 			return (oldState, restResponse.ErrorMessage);
-		}
-
-		private string ConstructUrl()
-		{
-			// URL: /securechangeworkflow/api/securechange/tickets/{id:[0-9]+}
-			return TicketSystem.Url + TicketId;
 		}
 
 		private static string GetInternalState(string externalState)

@@ -116,15 +116,16 @@ namespace FWO.Ui.Services
                     recipients.Add(GetEmailAddress(scopedUser));
                     break;
                 case EmailRecipientOption.MainResponsibleOwnerEmpty:
-                    List<string> owners = CollectEmailAddressesFromOwner(owner);
+                    List<string> owners = CollectEmailAddressesFromOwner(owner).Where(_ => !string.IsNullOrEmpty(_))
+                                            .ToList();
 
-                    if (owner is null || owners.Count == 0 || owners.All(_ => string.IsNullOrEmpty(_)))
+                    if (owner is null || owners.Count == 0)
                     {
                         recipients.Add(GetEmailAddress(owner?.Dn));
                     }
                     else
                     {
-                        recipients.AddRange(owners.Where(_ => !string.IsNullOrEmpty(_)));
+                        recipients.AddRange(owners);
                     }
 
                     break;

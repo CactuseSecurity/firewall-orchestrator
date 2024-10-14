@@ -92,6 +92,13 @@
 
     private async Task SendRequest()
     {
+        ModellingConnectionHandler ConnHandler = new(apiConnection, userConfig, SelectedOwner,
+                       new(), new(), true, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
+        await ConnHandler.PartialInit();
+        ConnHandler.RequesterId = RequestingOwner.Id;
+        long connId = await ConnHandler.CreateNewRequestedInterface(1, AsSource, InterfaceName, Reason);
+        await SendEmail(connId);
+
         WorkInProgress = true;
         try
         {
@@ -104,11 +111,11 @@
 
                 if(ticketId > 0)
                 {
-                    ModellingConnectionHandler ConnHandler = new (apiConnection, userConfig, SelectedOwner, 
+                    ConnHandler = new (apiConnection, userConfig, SelectedOwner, 
                         new(), new(), true, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
                     await ConnHandler.PartialInit();
                     ConnHandler.RequesterId = RequestingOwner.Id;
-                    long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
+                    connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
                     await SendEmail(connId);
 
                     apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin });

@@ -165,7 +165,6 @@
     int sidebarLeftWidth = GlobalConst.kObjLibraryWidth;
 
     private List<ModellingNetworkArea> areas = new();
-    private ModellingAppRole unchangedAppRole = new();
     private bool firstTry = true;
     private bool workInProgress = false;
 
@@ -214,7 +213,6 @@
             {
                 AppRoleHandler.AppServersInArea = AppRoleHandler.AvailableAppServers.Where(x => !x.IsDeleted).ToList();
             }
-            unchangedAppRole = new(AppRoleHandler.ActAppRole);
         }
     }
 
@@ -241,11 +239,7 @@
     {
         if(await AppRoleHandler.Save())
         {
-            if(unchangedAppRole.Name != AppRoleHandler.ActAppRole.Name || unchangedAppRole.IdString != AppRoleHandler.ActAppRole.IdString)
-            {
-                await RefreshParent();
-            }
-            unchangedAppRole = new(AppRoleHandler.ActAppRole);
+            await RefreshParent();
             Close();
         }
     }

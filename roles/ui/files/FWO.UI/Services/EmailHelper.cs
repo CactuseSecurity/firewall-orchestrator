@@ -118,7 +118,7 @@ namespace FWO.Ui.Services
                 case EmailRecipientOption.MainResponsibleOwnerEmpty:
                     List<string> owners = CollectEmailAddressesFromOwner(owner);
 
-                    if (owner is null || owners.Count == 0)
+                    if (owner is null || owners.Count == 0 || owners.All(_ => string.IsNullOrEmpty(_)))
                     {
                         recipients.Add(GetEmailAddress(owner?.Dn));
                     }

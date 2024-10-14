@@ -46,6 +46,7 @@ namespace FWO.Tufin.SecureChange
 			if(TicketId != null)
 			{
 				RestRequest request = new("tickets.json", Method.Get);
+				request.AddHeader("Accept", "application/json");
 				return await RestCall(request, url);
 			}
 			throw new Exception("No Ticket Id given.");

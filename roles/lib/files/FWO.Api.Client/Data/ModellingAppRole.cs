@@ -45,7 +45,7 @@ namespace FWO.Api.Data
         private static List<ModellingAppServerWrapper> ConvertNwObjectsToAppServers(GroupFlat<NetworkObject>[] groupFlats)
         {
             List<ModellingAppServerWrapper> appServers = [];
-            foreach(var obj in groupFlats.Where(x => x.Object?.IP != null).ToList())
+            foreach(var obj in groupFlats.Where(x => x.Object?.IP != null && x.Object?.IP != "").ToList())
             {
                 appServers.Add(new ModellingAppServerWrapper(){ Content = obj.Object != null ? new(obj.Object) : new() });
             }

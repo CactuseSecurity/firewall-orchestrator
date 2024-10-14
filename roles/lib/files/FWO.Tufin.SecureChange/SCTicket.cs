@@ -41,14 +41,14 @@ namespace FWO.Tufin.SecureChange
 		};
 
 		// IN_PROGRESS, REJECTED, CLOSED, CANCELLED, RESOLVED
-		private readonly Dictionary<string, string> ScToInternalStates = new()
-        {
-			{ "IN_PROGRESS", ExtStates.ExtReqInProgress.ToString() },
-			{ "REJECTED", ExtStates.ExtReqRejected.ToString() },
-			{ "CLOSED", ExtStates.ExtReqDone.ToString() },
-			{ "CANCELLED", ExtStates.ExtReqRejected.ToString() },  // ??
-			{ "RESOLVED", ExtStates.ExtReqDone.ToString() }  // ??
-		};
+		// private readonly Dictionary<string, string> ScToInternalStates = new()
+        // {
+		// 	{ "IN_PROGRESS", ExtStates.ExtReqInProgress.ToString() },
+		// 	{ "REJECTED", ExtStates.ExtReqRejected.ToString() },
+		// 	{ "CLOSED", ExtStates.ExtReqDone.ToString() },
+		// 	{ "CANCELLED", ExtStates.ExtReqRejected.ToString() },
+		// 	{ "RESOLVED", ExtStates.ExtReqDone.ToString() }
+		// };
 
 
 		// {
@@ -99,7 +99,7 @@ namespace FWO.Tufin.SecureChange
 				SCPollTicketResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCPollTicketResponse?>(restResponse.Content);
 				if(scResponse != null)
 				{
-					return (ScToInternalStates[scResponse.Ticket.Status.ToUpper()], restResponse.Content);
+					return (GetInternalState(scResponse.Ticket.Status.ToUpper()), restResponse.Content);
 				}
 			}
 			return (oldState, restResponse.ErrorMessage);
@@ -108,7 +108,23 @@ namespace FWO.Tufin.SecureChange
 		private string ConstructUrl()
 		{
 			// URL: /securechangeworkflow/api/securechange/tickets/{id:[0-9]+}
-			return TicketSystem.Url + "/id:" + TicketId;
+			return TicketSystem.Url + TicketId;
+		}
+
+		private static string GetInternalState(string externalState)
+		{
+			if(externalState.Contains("REJECTED") || externalState.Contains("CANCELLED"))
+			{
+				return ExtStates.ExtReqRejected.ToString();
+			}
+			else if(externalState.Contains("RESOLVED") || externalState.Contains("CLOSED"))
+			{
+				return ExtStates.ExtReqDone.ToString();
+			}
+			else
+			{
+				return ExtStates.ExtReqInProgress.ToString();
+			}
 		}
 
 		private static SCTaskType GetTaskType(WfReqTask task)

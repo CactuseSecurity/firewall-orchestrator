@@ -316,7 +316,9 @@
 
     private bool ResolveExistingAppRole(ModellingAppRole appRole, Management mgt)
     {
-        existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.IdString == appRole.IdString);
+        ModellingAppRole sanitizedAR = new (appRole);
+        sanitizedAR.Sanitize();
+        existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.IdString == appRole.IdString || a.IdString == sanitizedAR.IdString);
         return existingAppRole != null;
     }
 

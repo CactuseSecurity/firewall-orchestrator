@@ -149,17 +149,6 @@
 
             await emailHelper.Init();
 
-            List<UserGroup> ownerGroups = emailHelper.GetOwnerGroups();
-
-            if (userConfig.ModReqEmailReceiver == EmailRecipientOption.MainResponsibleOwnerEmpty)
-            {
-                var bla = emailHelper.GetOwnerMainResponsibleRecipients(ownerGroups);
-                if (!ownerGroups.Any()) //|| ownergroup is default
-                {
-                    
-                }
-            }
-
             string interfaceUrl = $"{userConfig.UiHostName}/networkmodelling/{SelectedOwner.ExtAppId}/{connId}";
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +

@@ -48,7 +48,6 @@ namespace FWO.Tufin.SecureChange
 			{
 				string restEndPoint = "tickets/" + TicketId;
 				RestRequest request = new(restEndPoint, Method.Get);
-				request.AddHeader("Accept", "application/json");
 				return await RestCall(request, restEndPoint);
 			}
 			throw new Exception("No Ticket Id given.");
@@ -58,6 +57,7 @@ namespace FWO.Tufin.SecureChange
 		{
 			request.AddHeader("Content-Type", "application/json");
 			request.AddHeader("Authorization", TicketSystem.Authorization);
+			request.AddHeader("Accept", "application/json");
 			RestClientOptions restClientOptions = new();
 			restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
 			restClientOptions.BaseUrl = new Uri(TicketSystem.Url);

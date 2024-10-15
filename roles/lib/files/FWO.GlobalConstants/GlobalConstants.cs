@@ -5,71 +5,71 @@ using System.Text.RegularExpressions;
 
 namespace FWO.GlobalConstants
 {
-	/// <summary>
-	/// Global string constants used e.g. as database keys etc.
-	/// </summary>
-	public struct GlobalConst
-	{
-		public const string kFwoProdName = "fworch";
-		public const string kFwoBaseDir = "/usr/local/" + kFwoProdName;
-		public const string kMainKeyFile = kFwoBaseDir + "/etc/secrets/main_key";
+    /// <summary>
+    /// Global string constants used e.g. as database keys etc.
+    /// </summary>
+    public struct GlobalConst
+    {
+        public const string kFwoProdName = "fworch";
+        public const string kFwoBaseDir = "/usr/local/" + kFwoProdName;
+        public const string kMainKeyFile = kFwoBaseDir + "/etc/secrets/main_key";
 
-		public const string kEnglish = "English";
-		public const int kTenant0Id = 1;
+        public const string kEnglish = "English";
+        public const int kTenant0Id = 1;
 
-		public const int kSidebarLeftWidth = 300;
-		public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
-		public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
-		public const int kSidebarRightWidth = 300;
-		public const int kHoursToMilliseconds = 3600000;
+        public const int kSidebarLeftWidth = 300;
+        public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
+        public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
+        public const int kSidebarRightWidth = 300;
+        public const int kHoursToMilliseconds = 3600000;
 
-		public const string kHtml = "html";
-		public const string kPdf = "pdf";
-		public const string kJson = "json";
-		public const string kCsv = "csv";
+        public const string kHtml = "html";
+        public const string kPdf = "pdf";
+        public const string kJson = "json";
+        public const string kCsv = "csv";
 
-		public const string kAutodiscovery = "autodiscovery";
-		public const string kDailyCheck = "dailycheck";
-		public const string kUi = "ui";
-		public const string kCertification = "Certification";
-		public const string kImportAppData = "importAppData";
-		public const string kImportAreaSubnetData = "importAreaSubnetData";
-		public const string kManual = "manual";
-		public const string kModellerGroup = "ModellerGroup_";
-		public const string kImportChangeNotify = "importChangeNotify";
+        public const string kAutodiscovery = "autodiscovery";
+        public const string kDailyCheck = "dailycheck";
+        public const string kUi = "ui";
+        public const string kCertification = "Certification";
+        public const string kImportAppData = "importAppData";
+        public const string kImportAreaSubnetData = "importAreaSubnetData";
+        public const string kManual = "manual";
+        public const string kModellerGroup = "ModellerGroup_";
+        public const string kImportChangeNotify = "importChangeNotify";
 
-		public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
+        public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
 
-		public const string kDummyAppRole = "DummyAppRole";
-		public const string kUndefinedText = "(undefined text)";
-		
-		public const string kStyleHighlighted = "color:red;";
-	}
+        public const string kDummyAppRole = "DummyAppRole";
+        public const string kUndefinedText = "(undefined text)";
 
-	public struct PageName
-	{
-		public const string ReportGeneration = "report/generation";
-		public const string Certification = "certification";
-	}
+        public const string kStyleHighlighted = "color:red;";
+    }
 
-	public struct ObjectType
-	{
-		public const string Group = "group";
-		public const string Host = "host";
-		public const string Network = "network";
-		public const string IPRange = "ip_range";
-	}
-	
-	public struct ServiceType
+    public struct PageName
+    {
+        public const string ReportGeneration = "report/generation";
+        public const string Certification = "certification";
+    }
+
+    public struct ObjectType
+    {
+        public const string Group = "group";
+        public const string Host = "host";
+        public const string Network = "network";
+        public const string IPRange = "ip_range";
+    }
+
+    public struct ServiceType
     {
         public const string Group = "group";
         public const string SimpleService = "simple";
         public const string Rpc = "rpc";
     }
 
-	public class GlobalFunc
-	{
-		public static string ShowBool(bool boolVal)
+    public class GlobalFunc
+    {
+        public static string ShowBool(bool boolVal)
         {
             return boolVal ? "\u2714" : "\u2716";
         }
@@ -217,7 +217,6 @@ namespace FWO.GlobalConstants
                 return ( ipAddressBigInt & mask ) == ( networkIpAddressBigInt & mask );
             }
 
-
             // // TODO: rewrite this to universally deal with ipv4 and ipv6
             // // currently the input parameter subnetMask is unclear
             // // looks like it is not a mask but a CIDR as a string
@@ -268,16 +267,6 @@ namespace FWO.GlobalConstants
             //     return false;
             // }
 
-            public static string StripOffNetmask(string ip)
-            {
-                Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");
-                if (match.Success)
-                {
-                    string matchedString = match.Value;
-                    return matchedString.Remove(matchedString.Length - 1);
-                }
-                return ip;
-            }           
         }
     }
     public static class Extensions
@@ -294,6 +283,27 @@ namespace FWO.GlobalConstants
             output = splits[index];
 
             return true;
+        }
+        public static string StripOffNetmask(this string ip)
+        {
+            Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");
+            if (match.Success)
+            {
+                string matchedString = match.Value;
+                return matchedString.Remove(matchedString.Length - 1);
+            }
+            return ip;
+        }
+        public static bool TryGetNetmask(this string ip, out string netmask)
+        {
+            netmask = "";
+
+            Match match = Regex.Match(ip, @"(\/[\d\.\:]+)\D?");
+
+            if (match.Success)
+                netmask = match.Groups[1].Value;
+
+            return match.Success;
         }
     }
 }

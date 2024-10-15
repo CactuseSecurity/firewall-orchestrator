@@ -133,7 +133,7 @@ namespace FWO.Tufin.SecureChange
 			{
 				convertedobjects.Add(FillHostTemplate(ConstructHostName(nwObj), ConstructHostUid(nwObj),
 					nwObj.IpString, mgmId ?? "0", nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction),
-					ObjUpdStatus(nwObj.RequestAction), nwObj.RequestAction != RequestAction.create.ToString()));
+					ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId), nwObj.RequestAction != RequestAction.create.ToString()));
 			}
 			return "[" + string.Join(",", convertedobjects) + "]";
 		}
@@ -159,15 +159,16 @@ namespace FWO.Tufin.SecureChange
             };
         }
 
-		private static string ObjUpdStatus(string action)
+		private static string ObjUpdStatus(string action, long? nwObjId)
 		{
-            return action switch
-            {
-                nameof(RequestAction.create) => ObjStatusValue.NEW.ToString(),
-                nameof(RequestAction.delete) => ObjStatusValue.EXISTING_NOT_EDITED.ToString(),
-                nameof(RequestAction.unchanged) => ObjStatusValue.EXISTING_NOT_EDITED.ToString(),
-                _ => "",
-            };
+			return action == nameof(RequestAction.create) && nwObjId == null ? ObjStatusValue.NEW.ToString() : ObjStatusValue.EXISTING_NOT_EDITED.ToString();
+            // return action switch
+            // {
+            //     nameof(RequestAction.create) => ObjStatusValue.NEW.ToString(),
+            //     nameof(RequestAction.delete) => ObjStatusValue.EXISTING_NOT_EDITED.ToString(),
+            //     nameof(RequestAction.unchanged) => ObjStatusValue.EXISTING_NOT_EDITED.ToString(),
+            //     _ => "",
+            // };
         }
 	}
 }

@@ -6,10 +6,10 @@ namespace FWO.Api.Data
     public class WfTicket : WfTicketBase
     {
         [JsonProperty("reqtasks"), JsonPropertyName("reqtasks")]
-        public List<WfReqTask> Tasks { get; set; } = new ();
+        public List<WfReqTask> Tasks { get; set; } = [];
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<WfCommentDataHelper> Comments { get; set; } = new ();
+        public List<WfCommentDataHelper> Comments { get; set; } = [];
 
 
         public WfTicket()

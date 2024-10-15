@@ -85,7 +85,7 @@
             <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <FileUpload ApiConnection="apiConnection"  OnAddAppServerError="OnAddAppServerError"></FileUpload>
+                <FileUpload ApiConnection="apiConnection" OnAddAppServerError="OnAddAppServerError" OnImportSuccess="OnAppServerImportSuccess"></FileUpload>
             </div>
         </div>
         <hr />
@@ -311,6 +311,11 @@ else
         {
             DisplayMessageInUi(_.exception, userConfig.GetText("add_app_server"), _.exception.Message, false);
         }       
+    }
+
+    private void OnAppServerImportSuccess()
+    {
+        DisplayMessageInUi(null, userConfig.GetText("import_app_server"), userConfig.GetText("importAppServerDataSuccess"), false);
     }
 
     protected override async Task OnInitializedAsync()

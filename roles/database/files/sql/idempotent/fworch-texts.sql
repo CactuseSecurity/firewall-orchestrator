@@ -2157,6 +2157,8 @@ INSERT INTO txt VALUES ('importSubnetDataSleepTime','German','Import Subnetzdate
 INSERT INTO txt VALUES ('importSubnetDataSleepTime','English','Import Subnet data sleep time (in hours)');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten-Start');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','English','Import Subnet data start at');
+INSERT INTO txt VALUES ('importAppServerDataSuccess',  'German',   'Import von App-Server Daten erfolgreich');
+INSERT INTO txt VALUES ('importAppServerDataSuccess',  'English',  'Import of App-Server Data successfull');
 INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorgeschrieben');
 INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
 INSERT INTO txt VALUES ('modReqInterfaceName',  'German',   'Name der beantragten Schnittstelle');

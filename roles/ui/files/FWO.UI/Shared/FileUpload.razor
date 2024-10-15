@@ -43,6 +43,9 @@
     public EventCallback<(Exception, string?)> OnAddAppServerError { get; set; }
 
     [Parameter]
+    public EventCallback OnImportSuccess { get; set; }
+
+    [Parameter]
     public ApiConnection ApiConnection { get; set; }
 
     private List<AppServerType> AppServerTypes = new();
@@ -129,6 +132,8 @@
             if (!success)
                 return;
         }
+
+        await OnImportSuccess.InvokeAsync();
     }
 
     private bool IsHeader(string lineText)

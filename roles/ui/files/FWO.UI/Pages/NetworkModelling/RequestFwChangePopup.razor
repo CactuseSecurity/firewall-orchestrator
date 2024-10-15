@@ -266,7 +266,7 @@
             {
                 RequestAction = RequestAction.create.ToString(),
                 Field = ElemFieldType.source.ToString(),
-                GroupName = nwGroup.Display()
+                GroupName = nwGroup.IdString
             });
         }
         foreach(var nwGroup in ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups))
@@ -275,7 +275,7 @@
             {
                 RequestAction = RequestAction.create.ToString(),
                 Field = ElemFieldType.destination.ToString(),
-                GroupName = nwGroup.Display()
+                GroupName = nwGroup.IdString
             });
         }
     }
@@ -296,7 +296,7 @@
     {
         if(!ResolveExistingAppRole(appRole, mgt))
         {
-            if(TaskList.FirstOrDefault(x => x.Title == newAppRoleString + appRole.Display() && x.OnManagement.Id == mgt.Id) == null)
+            if(TaskList.FirstOrDefault(x => x.Title == newAppRoleString + appRole.IdString && x.OnManagement.Id == mgt.Id) == null)
             {
                 RequestNewAppRole(appRole, mgt);
             }
@@ -310,7 +310,7 @@
         {
             RequestAction = RequestAction.create.ToString(),
             Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
-            GroupName = appRole.Display()
+            GroupName = appRole.IdString
         });
     }
 
@@ -358,13 +358,13 @@
                 RequestAction = RequestAction.create.ToString(),
                 Field = ElemFieldType.source.ToString(),
                 IpString = appServer.Ip,
-                GroupName = appRole.Display()
+                GroupName = appRole.IdString
             });
         }
-        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Display()} };
+        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
         TaskList.Add(new()
         {
-            Title = newAppRoleString + appRole.Display(),
+            Title = newAppRoleString + appRole.IdString,
             TaskType = WfTaskType.group_create.ToString(),
             RequestAction = RequestAction.create.ToString(),
             StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
@@ -378,13 +378,13 @@
     private void RequestUpdateAppRole(ModellingAppRole appRole, Management mgt)
     {
         FillGroupMembers(appRole);
-        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.Display()} };
+        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
         if(newGroupMembers.Count > 0)
         {
             newGroupMembers.AddRange(unchangedGroupMembers);
             TaskList.Add(new()
             {
-                Title = updateAppRoleString + appRole.Display() + addMembersString,
+                Title = updateAppRoleString + appRole.IdString + addMembersString,
                 TaskType = WfTaskType.group_modify.ToString(),
                 RequestAction = RequestAction.modify.ToString(),
                 StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
@@ -399,7 +399,7 @@
             deletedGroupMembers.AddRange(unchangedGroupMembers);
             DeleteTasksList.Add(new()
             {
-                Title = updateAppRoleString + appRole.Display() + removeMembersString,
+                Title = updateAppRoleString + appRole.IdString + removeMembersString,
                 TaskType = WfTaskType.group_modify.ToString(),
                 RequestAction = RequestAction.modify.ToString(),
                 StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
@@ -423,7 +423,7 @@
                 RequestAction = RequestAction.create.ToString(),
                 Field = ElemFieldType.source.ToString(),
                 IpString = appServer.Content.Ip,
-                GroupName = appRole.Display()
+                GroupName = appRole.IdString
             });
         }
         foreach(var appServer in unchangedAppServers)
@@ -433,7 +433,7 @@
                 RequestAction = RequestAction.unchanged.ToString(),
                 Field = ElemFieldType.source.ToString(),
                 IpString = appServer.Content.Ip,
-                GroupName = appRole.Display()
+                GroupName = appRole.IdString
             });
         }
         foreach(var appServer in deletedAppServers)
@@ -443,7 +443,7 @@
                 RequestAction = RequestAction.delete.ToString(),
                 Field = ElemFieldType.source.ToString(),
                 IpString = appServer.Content.Ip,
-                GroupName = appRole.Display()
+                GroupName = appRole.IdString
             });
         }
     }
@@ -490,7 +490,7 @@
             }
             else
             {
-                if(TaskList.FirstOrDefault(x => x.Title == newServiceGroupString + svcGrp.Name && x.OnManagement.Id == mgt.Id) == null)
+                if(TaskList.FirstOrDefault(x => x.Title == newServiceGroupString + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
                 {
                     RequestNewServiceGroup(svcGrp, mgt);
                 }

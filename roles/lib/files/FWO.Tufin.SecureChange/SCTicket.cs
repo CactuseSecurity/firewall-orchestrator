@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using System.Net;
 using RestSharp;
+using FWO.Logging;
 
 namespace FWO.Tufin.SecureChange
 {
@@ -96,12 +97,14 @@ namespace FWO.Tufin.SecureChange
 			RestResponse<int> restResponse = await PollExternalTicket();
 			if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
 			{
+				Log.WriteDebug("Poll external ticket status OK", "Content: " + restResponse.Content);
 				SCPollTicketResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCPollTicketResponse?>(restResponse.Content);
 				if(scResponse != null)
 				{
 					return (GetInternalState(scResponse.Ticket.Status.ToUpper()), restResponse.Content);
 				}
 			}
+			Log.WriteDebug("Poll external ticket status failed", "Content: " + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
 			return (oldState, restResponse.ErrorMessage);
 		}
 

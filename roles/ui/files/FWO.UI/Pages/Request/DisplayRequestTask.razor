@@ -727,7 +727,7 @@
             WfHandler.ActReqTask.TaskType = actTaskType.ToString();
             WfHandler.ActReqTask.RuleAction = actRuleAction?.Id;
             WfHandler.ActReqTask.Tracking = actTracking?.Id;
-            WfHandler.ActReqTask.ManagementId = actManagement.Id >= 0 ? actManagement.Id : null;
+            WfHandler.ActReqTask.ManagementId = actManagement != null && actManagement.Id >= 0 ? actManagement.Id : null;
             WfHandler.ActReqTask.RemovedOwners = new();
             WfHandler.ActReqTask.NewOwners = new();
             if(actOwner != oldOwner)
@@ -751,7 +751,7 @@
             }
             else if(actTaskType == WfTaskType.group_create)
             {
-                Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, actGrpName} };
+                Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, actGrpName ?? ""} };
                 WfHandler.ActReqTask.AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
             }
 

@@ -103,6 +103,7 @@ namespace FWO.Middleware.Server
 					request.ExtRequestState = ExtStates.ExtReqRequested.ToString();
 					request.LastMessage = ticketIdResponse?.Content;
 					await UpdateRequestCreation(request);
+					Log.WriteDebug(userConfig.GetText("ext_ticket_success"), "Message: " + ticketIdResponse?.Content);
 				}
 				else
 				{

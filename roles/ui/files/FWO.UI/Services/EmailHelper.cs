@@ -115,17 +115,16 @@ namespace FWO.Ui.Services
                 case EmailRecipientOption.LastCommenter:
                     recipients.Add(GetEmailAddress(scopedUser));
                     break;
-                case EmailRecipientOption.MainResponsibleOwnerEmpty:
-                    List<string> ownerAdresses = CollectEmailAddressesFromOwner(owner).Where(_ => !string.IsNullOrEmpty(_))
-                                            .ToList();
+                case EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty:
+                    List<string> ownerGroupAdresses = GetAddressesFromGroup(owner?.GroupDn);
 
-                    if (owner is null || ownerAdresses.Count == 0)
+                    if (owner is null || ownerGroupAdresses.Count == 0)
                     {
                         recipients.Add(GetEmailAddress(owner?.Dn));
                     }
                     else
                     {
-                        recipients.AddRange(ownerAdresses);
+                        recipients.AddRange(ownerGroupAdresses);
                     }
 
                     break;

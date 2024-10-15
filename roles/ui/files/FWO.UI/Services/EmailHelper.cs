@@ -116,9 +116,12 @@ namespace FWO.Ui.Services
                     recipients.Add(GetEmailAddress(scopedUser));
                     break;
                 case EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty:
+                    if (owner is null)
+                        break;
+
                     List<string> ownerGroupAdresses = GetAddressesFromGroup(owner?.GroupDn);
 
-                    if (owner is null || ownerGroupAdresses.Count == 0)
+                    if (ownerGroupAdresses.Count == 0)
                     {
                         recipients.Add(GetEmailAddress(owner?.Dn));
                     }

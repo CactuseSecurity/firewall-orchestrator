@@ -87,6 +87,7 @@ namespace FWO.Api.Data
                         TaskId = reqElem.TaskId,
                         Cidr = new Cidr(reqElem.Cidr != null ? reqElem.Cidr.CidrString : ""),
                         CidrEnd = new Cidr(reqElem.CidrEnd != null ? reqElem.CidrEnd.CidrString : ""),
+                        IpString = reqElem.IpString ?? "",
                         NetworkId = reqElem.NetworkId,
                         RequestAction = reqElem.RequestAction
                     });

@@ -9,10 +9,16 @@ namespace FWO.Test
     [Parallelizable]
     internal class AppRoleTest
     {
+        static readonly string ARName = "ARxx12345-100";
+        static readonly ModellingNamingConvention NamingConvention = new()
+        {
+            NetworkAreaRequired = true, UseAppPart = true, FixedPartLength = 4, FreePartLength = 3, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+        };
+
         static readonly NetworkObject nwObj1 = new()
         {
             Id = 1,
-            Name = "ARxx12345",
+            Name = ARName,
             IP = "",
             IpEnd = "",
             Uid = "XYZ123",
@@ -60,8 +66,11 @@ namespace FWO.Test
             ],
             Number = 1
         };
-        static readonly ModellingAppRole ar1 = new(nwObj1);
+        static readonly ModellingAppRole ar1 = new(nwObj1, NamingConvention);
         static readonly ModellingAppRole ar2 = new(ar1);
+        static readonly ModellingAppRole ar3 = new(nwObj1);
+        static readonly ModellingAppRole ar4 = new(ar3);
+
 
         static readonly NetworkObject nwObjConverted = ar1.ToNetworkObjectGroup();
 
@@ -75,9 +84,9 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, ar1.Sanitize());
             ClassicAssert.AreEqual($"<span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"\" ><span class=\"\">{ar1.Name} ({ar1.IdString})</span></span></b></span>", ar1.DisplayWithIcon());
 
-            ClassicAssert.AreEqual("ARxx12345", ar1.Name);
+            ClassicAssert.AreEqual(ARName, ar1.Name);
             ClassicAssert.AreEqual(1, ar1.Number);
-            ClassicAssert.AreEqual("ARxx12345", ar1.IdString);
+            ClassicAssert.AreEqual(ARName, ar1.IdString);
             ClassicAssert.AreEqual(false, ar1.IsDeleted);
             ClassicAssert.AreEqual(1, ar1.Id);
             ClassicAssert.AreEqual("Comment nw1", ar1.Comment);
@@ -102,7 +111,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, nwObjConverted.Id);
             ClassicAssert.AreEqual(1, nwObjConverted.Number);
-            ClassicAssert.AreEqual("ARxx12345", nwObjConverted.Name);
+            ClassicAssert.AreEqual(ARName, nwObjConverted.Name);
             ClassicAssert.AreEqual("Comment nw1", nwObjConverted.Comment);
             ClassicAssert.AreEqual(ObjectType.Group, nwObjConverted.Type.Name);
             ClassicAssert.AreEqual("nwObj2|nwObj3", nwObjConverted.MemberNames);
@@ -117,6 +126,9 @@ namespace FWO.Test
             ClassicAssert.AreEqual(ar2.Area, ar1.Area);
             ClassicAssert.AreEqual(ar2.AppId, ar1.AppId);
             ClassicAssert.AreEqual(ar2.AppServers, ar1.AppServers);
+
+            ClassicAssert.AreEqual(ar3.IdString, ar1.IdString);
+            ClassicAssert.AreEqual(ar4.IdString, ar1.IdString);
         }
     }
 }

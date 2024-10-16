@@ -22,36 +22,6 @@ class FwConfigNormalizedController():
 
         self.NormalizedConfig = fwConfig
 
-        # this needs to be moved to a different class
-        # if ConfigFormat!=ConfFormat.NORMALIZED:
-        #     for policyElement in rules:
-        #         if isinstance(policyElement, dict):    # old format
-        #             formatOld = True
-        #             break
-        #         elif isinstance(policyElement, str):   # found new format
-        #             rules[policyElement].Rules = FwConfigNormalized.convertListToDict(rules[policyElement].Rules, 'rule_uid')
-        #         else:
-        #             logger = getFwoLogger()
-        #             logger.warning("found unknown policy format")
-
-            # if formatOld:                 # found old config format, do not adjust config
-            #     self.network_objects = network_objects
-            #     self.service_objects = service_objects
-            #     self.users = users
-            #     self.zone_objects = zone_objects
-            #     self.rules = rules
-            #     self.gateways = gateways
-            # else:
-            #     self.network_objects = FwConfigNormalized.convertListToDict(FwConfigNormalized.deleteControlIdFromDictList(network_objects), 'obj_uid')
-            #     self.service_objects = FwConfigNormalized.convertListToDict(FwConfigNormalized.deleteControlIdFromDictList(service_objects), 'svc_uid')
-            #     self.users = FwConfigNormalized.convertListToDict(FwConfigNormalized.deleteControlIdFromDictList(users), 'user_uid')
-            #     self.zone_objects = FwConfigNormalized.convertListToDict(FwConfigNormalized.deleteControlIdFromDictList(zone_objects), 'zone_name')
-            #     self.rules = rules
-            #     self.gateways = gateways
-            #     if stripFields:
-            #         self.stripUnusedElements()
-            #     self.ConfigFormat = ConfFormat.NORMALIZED
-
     @staticmethod
     def convertListToDict(listIn: List, idField: str) -> dict:
         logger = getFwoLogger()
@@ -66,46 +36,6 @@ class FwConfigNormalizedController():
 
     def __str__(self):
         return f"{self.action}({str(self.network_objects)})"
-
-    # def toJsonLegacy(self, withAction=True):
-    #     rules = []
-    #     gws = []
-    #     if self.ConfigFormat == ConfFormat.NORMALIZED:
-    #         for policyUid in self.rules:
-    #             rules += self.rules[policyUid].toJsonLegacy()
-    #         for gw in self.gateways:
-    #             gws.append(gw.toJson())
-    #     elif self.ConfigFormat == ConfFormat.NORMALIZED_LEGACY:
-    #         rules = self.rules
-    #     else:
-    #         logger = getFwoLogger()
-    #         logger.error("found no suitable config format")
-    #         return {}
-        
-    #     config = {
-    #         'network_objects': self.network_objects,
-    #         'service_objects': self.service_objects,
-    #         'users': self.users,
-    #         'zone_objects': self.zone_objects,
-    #         'rules': rules
-    #     }
-    #         # ,
-    #         # 'gateways': gws
-
-    #     if withAction:
-    #         config.update({'action': self.action})
-
-    #     return config
-
-    # def toJson(self, withAction=False):
-    #     return deserializeClassToDictRecursively(self)
-
-    # def toJsonString(self, prettyPrint=False):
-    #     jsonDict = self.toJson()
-    #     if prettyPrint:
-    #         return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
-    #     else:
-    #         return json.dumps(jsonDict, cls=FwoEncoder)
 
     def stripUnusedElements(self):
         for policyName in self.rules:
@@ -142,17 +72,17 @@ class FwConfigNormalizedController():
         self.rules += config.Policies
         self.gateways += config.Gateways
 
-    # def fillGateways(self, importState: ImportState):      
-    #     for dev in importState.MgmDetails.Devices:
-    #         gw = Gateway(f"{dev['name']}_{dev['local_rulebase_name']}",
-    #                      dev['name'],
-    #                      [],    # TODO: routing
-    #                      [],    # TODO: interfaces
-    #                      [dev['local_rulebase_name']],
-    #                      [dev['package_name']],
-    #                      None  # TODO: global policy UID
-    #                      )
-    #         self.gateways.append(gw)
+    def fillGateways(self, importState: ImportState, gateways:List[Gateway]):      
+        self.gateways = gateways
+        # for dev in importState.MgmDetails.Devices:
+        #     gw = Gateway(f"{dev['name']}_{dev['local_rulebase_name']}",
+        #                  dev['name'],
+        #                  [],    # TODO: routing
+        #                  [],    # TODO: interfaces
+        #                  [dev['local_rulebase_name']],
+        #                  [dev['package_name']],
+        #                  None  # TODO: global policy UID
+        #                  )
 
     def writeNormalizedConfigToFile(self, importState):
         if not self == {}:

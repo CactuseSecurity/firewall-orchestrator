@@ -33,6 +33,10 @@ class FwConfigManagerListController(FwConfigManagerList):
             return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
         else:
             return json.dumps(jsonDict)
+        
+    def mergeConfigs(self, conf2: 'FwConfigManagerListController'):
+        if self.ConfigFormat==conf2.ConfigFormat:
+            self.ManagerSet.extend(conf2.ManagerSet)
 
 
 # to be re-written:

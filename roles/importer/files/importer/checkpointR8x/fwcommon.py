@@ -20,15 +20,46 @@ import fwo_const
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 
 
+# objects as well as rules can now be either from super-amanager or from local manager!
+# TODO: decide if we still support importing native config from file
+#   might replace this with json config file (in case it is not deserializable into classes)
+def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigManagerList) -> tuple[int, FwConfigManagerList]:
+    logger = getFwoLogger()
+    logger.debug ( "starting checkpointR8x/get_config" )
+    managers = FwConfigManagerList()
+    managers.ManagerSet.append(FwConfigManager(ManagerUid=importState.MgmDetails.Name, ManagerName=importState.MgmDetails.Name))
+    
+    policies = []
+    if importState.MgmDetails.IsSuperManager:
+        # parse all global objects and policies
+        getObjects(importState, normalizedConfig)
+        getPolicies(importState, normalizedConfig)
+    else:
+        # get all details needed to import necessary policies via CP API
+        getGatewayDetails(importState, normalizedConfig)
+
+        # for local managers - only get and parse policies that are used by gateways which are marked as "do import" 
+        for device in importState.FullMgmDetails['devices']:
+            if not device.do_not_import:
+
+                for policy in package:
+                    if policy not in policies:
+                        normalizedConfig.rules.append(getPolicy(policy))
+                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(policy.name )
+
+
+def getGatewayDetails(importState, normalizedConfig):
+    #run show-package for package-name to get all relevant policies
+    package = cp_api_call(api_v_url, 'show-package', showParams, sid)
+
+
 def has_config_changed (full_config, mgm_details, force=False):
 
     if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
         return 1
 
     domain, _ = prepare_get_vars(mgm_details)
-
     session_id = login_cp(mgm_details, domain)
-
     last_change_time = ''
     if 'import_controls' in mgm_details:
         for importctl in mgm_details['import_controls']: 
@@ -46,9 +77,7 @@ def has_config_changed (full_config, mgm_details, force=False):
     return result
 
 
-
 def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerApiBaseUrl: str) -> int:
-
     logger = getFwoLogger()
     nativeConfig.update({'rulebases': [], 'nat_rulebases': [] })
     show_params_rules = {

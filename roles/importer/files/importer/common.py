@@ -45,11 +45,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     importState = ImportState.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                force=force, version=version, 
                                                isClearingImport=clearManagementData, isFullImport=False)
-    # configImporter = FwConfigImport(importState, {})    # initialize importer (needed for clearing old imports)
 
-    if type(importState) is str:
-        logger.error("error while getting import state")
-        return 1
     importState.setPastImportInfos()    # last full import, data retention, ...
     if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
         # run clear import; this makes sure the following import is a full one
@@ -59,7 +55,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         importState.IsFullImport = True # the now following import is a full one
 
     if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
-        logger.info("import_management - import disabled for mgm " + str(mgmId))
+        logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
     else:
         Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
         gateways = GatewayController.buildGatewayList(importState.FullMgmDetails)
@@ -104,6 +100,16 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             else:
                 ### geting config from firewall manager API ######
                 config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
+
+                # also import sub managers if they exist
+                for subManagerId in importState.MgmDetails.SubManager:
+                    subMgrImportState = ImportState.initializeImport(subManagerId, debugLevel=debug_level_in, 
+                                            force=force, version=version, 
+                                            isClearingImport=clearManagementData, isFullImport=False)
+                    config_changed_since_last_import, configNormalizedSub = get_config_from_api(subMgrImportState, {})
+                    configNormalized.mergeConfigs(configNormalizedSub)
+                    # TODO: destroy configNormalizedSub?
+
                 if importState.ImportVersion>8:
                     configNormalized.ConfigFormat = ConfFormat.NORMALIZED
 
@@ -174,23 +180,23 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     return importState.ErrorCount
 
 
-def initiateImportStart(importState):
-    # now start import by adding a dummy config with flag set
-    emptyDummyConfig = FwConfigNormalized.fromJson( {
-        'action': ConfigAction.INSERT,
-        'network_objects': [],
-        'service_objects': [],
-        'users': [],
-        'zone_objects': [], 
-        'policies': [],
-        'routing': [],
-        'interfaces': []
-    })
+# def initiateImportStart(importState):
+#     # now start import by adding a dummy config with flag set
+#     emptyDummyConfig = FwConfigNormalized.fromJson( {
+#         'action': ConfigAction.INSERT,
+#         'network_objects': [],
+#         'service_objects': [],
+#         'users': [],
+#         'zone_objects': [], 
+#         'policies': [],
+#         'routing': [],
+#         'interfaces': []
+#     })
 
-    importState.setChangeCounter (
-        importState.ErrorCount + fwo_api.import_json_config(importState, 
-                                    emptyDummyConfig.toJsonLegacy(withAction=False), 
-                                    startImport=True))
+#     importState.setChangeCounter (
+#         importState.ErrorCount + fwo_api.import_json_config(importState, 
+#                                     emptyDummyConfig.toJsonLegacy(withAction=False), 
+#                                     startImport=True))
 
 
 def importFromFile(importState: ImportState, fileName: str = None, gateways: List[Gateway] = []):

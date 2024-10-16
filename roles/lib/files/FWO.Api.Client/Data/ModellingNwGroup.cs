@@ -25,14 +25,14 @@ namespace FWO.Api.Data
         {
             GroupType = nwGroup.GroupType;
             IdString = nwGroup.IdString;
-            ManagedIdString = nwGroup.ManagedIdString;
+            ManagedIdString.NamingConvention = nwGroup.ManagedIdString.NamingConvention;
         }
 
-        public ModellingNwGroup(NetworkObject nwObj) : base(nwObj)
+        public ModellingNwGroup(NetworkObject nwObj, ModellingNamingConvention? namCon = null) : base(nwObj)
         {
             GroupType = MapObjectType(nwObj.Type.Name);
             IdString = nwObj.Name;
-            ManagedIdString.Whole = nwObj.Name;
+            ManagedIdString.NamingConvention = namCon ?? new();
         }
 
         public override string Display()

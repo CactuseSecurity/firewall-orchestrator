@@ -34,7 +34,7 @@ namespace FWO.Api.Data
             Area = appRole.Area;
         }
 
-        public ModellingAppRole(NetworkObject nwObj) : base(nwObj)
+        public ModellingAppRole(NetworkObject nwObj, ModellingNamingConvention? namCon = null) : base(nwObj, namCon)
         {
             Comment = nwObj.Comment;
             CreationDate = nwObj.CreateTime.Time;

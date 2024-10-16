@@ -105,6 +105,7 @@
     private List<WfReqElement> newGroupMembers = [];
     private List<WfReqElement> deletedGroupMembers = [];
     private List<WfReqElement> unchangedGroupMembers = [];
+    private ModellingNamingConvention namingConvention = new();
 
     private struct TicketId
     {
@@ -126,6 +127,7 @@
         ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
         managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
         managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
+        namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -239,7 +241,7 @@
                     {
                         allExistingAppRoles.Add(prdMgt.Id, []);
                     }
-                    allExistingAppRoles[prdMgt.Id].Add(new(objGrp));
+                    allExistingAppRoles[prdMgt.Id].Add(new(objGrp, namingConvention));
                 }
             }
 

@@ -104,6 +104,7 @@
     private List<ModellingAppServerWrapper> unchangedAppServers = [];
     private List<WfReqElement> newGroupMembers = [];
     private List<WfReqElement> deletedGroupMembers = [];
+    private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
     private List<WfReqElement> unchangedGroupMembers = [];
     private ModellingNamingConvention namingConvention = new();
 
@@ -231,7 +232,9 @@
             };
             List<Management> managementsWithRelevantImportId =
                 await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, ImportIdVariables);
-
+            
+            int aRCount = 0;
+            int aSCount = 0;
             List<ManagementReport> objGrpByMgt = await GetObjects(managementsWithRelevantImportId, [2]);
             foreach(var prdMgt in objGrpByMgt)
             {
@@ -242,6 +245,7 @@
                         allExistingAppRoles.Add(prdMgt.Id, []);
                     }
                     allExistingAppRoles[prdMgt.Id].Add(new(objGrp, namingConvention));
+                    aRCount++;
                 }
             }
 
@@ -255,8 +259,10 @@
                         allExistingAppServers.Add(prdMgt.Id, []);
                     }
                     allExistingAppServers[prdMgt.Id].Add(new(obj));
+                    aSCount++;
                 }
             }
+            Log.WriteDebug("GetProductionState", $"Found {aRCount} AppRoles, {aSCount} AppServer");
         }
         catch (Exception exception)
         {
@@ -417,6 +423,7 @@
         if(newGroupMembers.Count > 0)
         {
             newGroupMembers.AddRange(unchangedGroupMembers);
+            newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
             TaskList.Add(new()
             {
                 Title = updateAppRoleText + appRole.IdString + addMembersText,
@@ -451,6 +458,7 @@
         newGroupMembers = [];
         deletedGroupMembers = [];
         unchangedGroupMembers = [];
+        unchangedGroupMembersDuringCreate = [];
         foreach(var appServer in newAppServers)
         {
             newGroupMembers.Add(new()
@@ -476,6 +484,14 @@
         }
         foreach(var appServer in deletedAppServers)
         {
+            unchangedGroupMembersDuringCreate.Add(new()
+            {
+                RequestAction = RequestAction.unchanged.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                Name = appServer.Content.Name,
+                IpString = appServer.Content.Ip,
+                GroupName = appRole.IdString
+            });
             deletedGroupMembers.Add(new()
             {
                 RequestAction = RequestAction.delete.ToString(),

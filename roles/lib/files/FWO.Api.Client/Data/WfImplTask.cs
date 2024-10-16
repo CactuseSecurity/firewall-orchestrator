@@ -107,7 +107,9 @@ namespace FWO.Api.Data
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,
                         Cidr = new Cidr(implElem.Cidr != null ? implElem.Cidr.CidrString : ""),
-                        NetworkId = implElem.NetworkId
+                        IpString = implElem.IpString ?? "",
+                        NetworkId = implElem.NetworkId,
+                        Name = implElem.Name
                     });
                 }
             }

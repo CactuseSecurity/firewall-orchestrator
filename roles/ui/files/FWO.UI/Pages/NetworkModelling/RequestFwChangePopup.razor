@@ -344,7 +344,7 @@
     {
         ModellingAppRole sanitizedAR = new(appRole);
         sanitizedAR.Sanitize();
-        existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.IdString == appRole.IdString || a.IdString == sanitizedAR.IdString);
+        existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedAR.IdString);
         return existingAppRole != null;
     }
 

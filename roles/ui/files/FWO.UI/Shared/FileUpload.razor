@@ -112,19 +112,19 @@
                     AppServerName = entries[0],
                     AppID = entries[1],
                     AppServerTyp = entries[2],
-                    AppIPRange = entries[3]
+                    AppIPRangeStart = entries[3]
                 };
 
 
-            if (appServer.AppIPRange.TrySplit('-', 1, out string ipEnd))
+            if (appServer.AppIPRangeStart.TrySplit('-', 1, out string ipEnd))
             {
-                appServer.AppIPRange = appServer.AppIPRange.Split('-')[0];
+                appServer.AppIPRangeStart = appServer.AppIPRangeStart.Split('-')[0];
                 appServer.AppIPRangeEnd = ipEnd;
             }
 
-            if (string.IsNullOrEmpty(appServer.AppIPRangeEnd) && !appServer.AppIPRange.TrySplit('/', 1, out string subnet))
+            if (string.IsNullOrEmpty(appServer.AppIPRangeEnd) && !appServer.AppIPRangeStart.TrySplit('/', 1, out string subnet))
             {
-                appServer.AppIPRange += "/32";
+                appServer.AppIPRangeStart += "/32";
             }
 
             bool success = await AddAppServerToDb(appServer);
@@ -155,12 +155,12 @@
 
             if (!string.IsNullOrEmpty(appServer.AppIPRangeEnd))
             {
-                ip.Start = appServer.AppIPRange;
+                ip.Start = appServer.AppIPRangeStart;
                 ip.End = appServer.AppIPRangeEnd;
             }
             else
             {
-                ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.AppIPRange);
+                ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.AppIPRangeStart);
             }
 
             AppServerType? appServerType = AppServerTypes.First(_ => _.Name == appServer.AppServerTyp);
@@ -182,7 +182,7 @@
         {
             (Exception e, string? ipStart) eIP = new();
             eIP.e = exception;
-            eIP.ipStart = appServer.AppIPRange;
+            eIP.ipStart = appServer.AppIPRangeStart;
 
             await OnAddAppServerError.InvokeAsync(eIP);
 

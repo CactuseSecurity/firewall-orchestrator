@@ -30,6 +30,11 @@
                             @(RequestInProcess ? states.Name[context.StateId] : "")
                         </Template>
                     </Column>
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("ext_ticket_number"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" >
+                        <Template>
+                            @(context.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId) ?? "")
+                        </Template>
+                    </Column>
                     <DetailTemplate TableItem="WfReqTask">
                         <Detail Data="@(userConfig.GetText("action") + ": " + context.RequestAction)">
                             <span>@((MarkupString)@DisplayTaskDetails(context))</span>
@@ -262,7 +267,18 @@
                     aSCount++;
                 }
             }
-            Log.WriteDebug("GetProductionState", $"Found {aRCount} AppRoles, {aSCount} AppServer");
+            string aRappRoles = "";
+            string aRappServers = "";
+            foreach(var mgt in allExistingAppRoles.Keys)
+            {
+                aRappRoles += $" Management {mgt}: " + string.Join(",", allExistingAppRoles[mgt].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
+            }
+            foreach(var mgt in allExistingAppServers.Keys)
+            {
+                aRappServers += $" Management {mgt}: " + string.Join(",", allExistingAppServers[mgt].ConvertAll(x => $"{x.Name}({x.Ip})").ToList());
+            }
+            Log.WriteDebug("GetProductionState", 
+                $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
         }
         catch (Exception exception)
         {
@@ -348,16 +364,26 @@
 
     private bool ResolveExistingAppRole(ModellingAppRole appRole, Management mgt)
     {
+        Log.WriteDebug("Search AppRole", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
         ModellingAppRole sanitizedAR = new(appRole);
         sanitizedAR.Sanitize();
         existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedAR.IdString);
+        if(existingAppRole != null)
+        {
+            Log.WriteDebug("Search AppRole", $"Found!!");
+        }
         return existingAppRole != null;
     }
 
     private long? ResolveAppServerId(ModellingAppServer appServer, Management mgt)
     {
+        Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
         string appServerName = string.IsNullOrEmpty(appServer.Name) ? "net_" + appServer.Ip : appServer.Name;
         ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => a.Name == appServerName);
+        if(existingAppServer != null)
+        {
+            Log.WriteDebug("Search AppServer", $"Found!!");
+        }
         return existingAppServer?.Id;
     }
 

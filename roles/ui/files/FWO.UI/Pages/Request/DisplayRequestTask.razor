@@ -751,8 +751,7 @@
             }
             else if(actTaskType == WfTaskType.group_create)
             {
-                Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, actGrpName ?? ""} };
-                WfHandler.ActReqTask.AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
             }
 
             UpdateElements();

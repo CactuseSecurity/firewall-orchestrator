@@ -136,6 +136,14 @@ namespace FWO.Ui.Services
 		private async Task CreateExtRequest(List<WfReqTask> tasks)
 		{
 			string taskContent = ConstructContent(tasks);
+			Dictionary<string, List<int>>? bundledTasks;
+			string? extQueryVars = null;
+			if(tasks.Count > 1)
+			{
+				bundledTasks = new() { {ExternalVarKeys.BundledTasks, tasks.ConvertAll(t => t.TaskNumber)} };
+				extQueryVars = JsonSerializer.Serialize(bundledTasks);
+			}
+			
 			var Variables = new
 			{
 				ownerId = Owner.Id,
@@ -144,7 +152,7 @@ namespace FWO.Ui.Services
 				extTicketSystem = JsonSerializer.Serialize(actSystem),
 				extTaskType = actTaskType,
 				extTaskContent = taskContent,
-				extQueryVariables = "", // todo ??
+				extQueryVariables = extQueryVars,
 				extRequestState = ExtStates.ExtReqInitialized.ToString()
 			};
 			ReturnId[]? reqIds = (await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables)).ReturnIds;
@@ -164,7 +172,7 @@ namespace FWO.Ui.Services
 				WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
 				if(furtherTask != null)
 				{
-					await UpdateTask(furtherTask, ExtStates.ExtReqRejected.ToString());
+					await UpdateTaskState(furtherTask, ExtStates.ExtReqRejected.ToString());
 					actTaskNumber++;
 				}
 				else
@@ -231,14 +239,29 @@ namespace FWO.Ui.Services
 
 		private async Task UpdateTicket(WfTicket ticket, ExternalRequest extReq)
 		{
-			WfReqTask? updatedTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == extReq.TaskNumber);
-			if(updatedTask != null)
+			List<int>? taskNumbers = null;
+			if(extReq.ExtQueryVariables != null)
 			{
-				await UpdateTask(updatedTask, extReq.ExtRequestState);
+				Dictionary<string, List<int>>? extQueryVars = JsonSerializer.Deserialize<Dictionary<string, List<int>>>(extReq.ExtQueryVariables);
+				extQueryVars?.TryGetValue(ExternalVarKeys.BundledTasks, out taskNumbers);
+			}
+			taskNumbers ??= [extReq.TaskNumber];
+			foreach(var taskNumber in taskNumbers)
+			{
+				WfReqTask? updatedTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == taskNumber);
+				if(updatedTask != null)
+				{
+					string? extTicketIdInTask = updatedTask.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId);
+					if(extReq.ExtTicketId != null && extReq.ExtTicketId != extTicketIdInTask)
+					{
+						await wfHandler.SetAddInfoInReqTask(updatedTask, AdditionalInfoKeys.ExtIcketId, extReq.ExtTicketId);
+					}
+					await UpdateTaskState(updatedTask, extReq.ExtRequestState);
+				}
 			}
 		}
 
-		private async Task UpdateTask(WfReqTask reqTask, string extReqState)
+		private async Task UpdateTaskState(WfReqTask reqTask, string extReqState)
 		{
 			if(reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
 			{

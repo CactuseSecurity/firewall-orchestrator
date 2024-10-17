@@ -4,6 +4,11 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
+    public struct ExternalVarKeys
+    {
+        public const string BundledTasks = "BundledTasks";
+    }
+
     public class ExternalRequest
     {
         [JsonProperty("id"), JsonPropertyName("id")]

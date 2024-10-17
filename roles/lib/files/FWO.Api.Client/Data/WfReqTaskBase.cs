@@ -17,6 +17,7 @@ namespace FWO.Api.Data
         public const string ConnId = "ConnId";
         public const string ReqOwner = "ReqOwner";
         public const string GrpName = "GrpName";
+        public const string ExtIcketId = "ExtIcketId";
     }
 
     public class WfReqTaskBase : WfTaskBase
@@ -107,13 +108,9 @@ namespace FWO.Api.Data
             }
             else
             {
-                if(addInfo.ContainsKey(key))
+                if(!addInfo.TryAdd(key, newValue))
                 {
                     addInfo[key] = newValue;
-                }
-                else
-                {
-                    addInfo.Add(key, newValue);
                 }
             }
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);

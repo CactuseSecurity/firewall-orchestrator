@@ -17,7 +17,7 @@ mutation newAppServer(
     custom_type: $customType
   }
   on_conflict: {
-      constraint: ip
+      constraint: owner_network_ip_unique
       update_columns: 
       [
         name

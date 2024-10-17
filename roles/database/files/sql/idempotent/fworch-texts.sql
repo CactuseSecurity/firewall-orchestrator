@@ -2424,7 +2424,7 @@ INSERT INTO txt VALUES ('general',              'English', 	'General');
 INSERT INTO txt VALUES ('naming_convention',    'German',   'Namenskonvention');
 INSERT INTO txt VALUES ('naming_convention',    'English',  'Naming Convention');
 INSERT INTO txt VALUES ('import_app_server',    'German',   'App Server importieren');
-INSERT INTO txt VALUES ('import_app_server',    'English',  'Import App Server');
+INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)

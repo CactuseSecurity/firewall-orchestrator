@@ -321,7 +321,7 @@ namespace FWO.Ui.Services
         {
             if(interf.SourceFilled() != ActConn.SourceFilled() || interf.DestinationFilled() != ActConn.DestinationFilled())
             {
-                DisplayMessageInUi(null, userConfig.GetText("replace"), userConfig.GetText("E9015"), true);
+                DisplayMessageInUi(null, userConfig.GetText("replace"), userConfig.GetText("E9017"), true);
                 return;
             }
             ReplaceMode = true;
@@ -588,7 +588,7 @@ namespace FWO.Ui.Services
                     }
                     else
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("replace_error"), userConfig.GetText("E9015"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();
@@ -608,7 +608,7 @@ namespace FWO.Ui.Services
                     }
                     else
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("replace_error"), userConfig.GetText("E9015"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();

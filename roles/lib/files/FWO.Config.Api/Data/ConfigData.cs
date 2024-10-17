@@ -284,7 +284,7 @@ namespace FWO.Config.Api.Data
 		public string ModReqInterfaceName { get; set; } = "";
 
 		[JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
-		public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.OwnerGroupOnly;
+		public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty;
 
 		[JsonProperty("modReqEmailRequesterInCc"), JsonPropertyName("modReqEmailRequesterInCc")]
 		public bool ModReqEmailRequesterInCc { get; set; } = true;

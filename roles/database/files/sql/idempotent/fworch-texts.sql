@@ -185,6 +185,8 @@ INSERT INTO txt VALUES ('AllOwnerResponsibles', 'German',	'Eigent&uuml;mer alle 
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'English',	'Owner all responsibles');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'German',	'nur Eigent&uuml;mergruppe');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'English',	'Owner Group only');
+INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'German',	'Hauptverantworlicher wenn Eigent&uuml;mergruppe nicht spezifiziert');
+INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'English',	'Owner Main Responsible if Owner Group not specified');
 INSERT INTO txt VALUES ('Requester', 		    'German',	'Antragsteller');
 INSERT INTO txt VALUES ('Requester', 	        'English',	'Requester');
 INSERT INTO txt VALUES ('Approver', 		    'German',	'Genehmiger');
@@ -1777,6 +1779,8 @@ INSERT INTO txt VALUES ('add_new_ldap',         'German', 	'Neue LDAP-Verbindung
 INSERT INTO txt VALUES ('add_new_ldap',         'English', 	'Add new LDAP connection');
 INSERT INTO txt VALUES ('edit_ldap',            'German', 	'LDAP-Verbindung bearbeiten');
 INSERT INTO txt VALUES ('edit_ldap',            'English', 	'Edit LDAP connection');
+INSERT INTO txt VALUES ('edit_ldap_message',    'German', 	'Diese Einstellungen müssen normalerweise nicht angepasst werden. Ändern Sie diese Einstellungen nur wenn Sie wirklich wissen was Sie tun.');
+INSERT INTO txt VALUES ('edit_ldap_message',    'English', 	'These settings do not normally need to be adjusted. Only change these settings if you really know what you are doing.');
 INSERT INTO txt VALUES ('test_connection',      'German', 	'Verbindung testen');
 INSERT INTO txt VALUES ('test_connection',      'English', 	'Test connection');
 INSERT INTO txt VALUES ('test_email_connection','German', 	'Email-Verbindung testen');

@@ -112,19 +112,18 @@
                     AppServerName = entries[0],
                     AppID = entries[1],
                     AppServerTyp = entries[2],
-                    AppIPRangeStart = entries[3]
+                    AppIPRangeStart = GlobalConstants.GlobalFunc.IpOperations.SanitizeIp(entries[3])
                 };
 
 
             if (appServer.AppIPRangeStart.TrySplit('-', 1, out string ipEnd))
             {
                 appServer.AppIPRangeStart = appServer.AppIPRangeStart.Split('-')[0];
-                appServer.AppIPRangeEnd = ipEnd;
-            }
-
-            if (string.IsNullOrEmpty(appServer.AppIPRangeEnd) && !appServer.AppIPRangeStart.TrySplit('/', 1, out string subnet))
+                appServer.AppIPRangeEnd = GlobalConstants.GlobalFunc.IpOperations.SanitizeIp(ipEnd);
+            }else if (string.IsNullOrEmpty(appServer.AppIPRangeEnd))
             {
-                appServer.AppIPRangeStart += "/32";
+                (string Start, string End) ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.AppIPRangeStart);
+                appServer.AppIPRangeEnd = GlobalConstants.GlobalFunc.IpOperations.SanitizeIp(ip.End);
             }
 
             bool success = await AddAppServerToDb(appServer);
@@ -151,26 +150,14 @@
     {
         try
         {
-            (string Start, string End) ip;
-
-            if (!string.IsNullOrEmpty(appServer.AppIPRangeEnd))
-            {
-                ip.Start = appServer.AppIPRangeStart;
-                ip.End = appServer.AppIPRangeEnd;
-            }
-            else
-            {
-                ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.AppIPRangeStart);
-            }
-
             AppServerType? appServerType = AppServerTypes.First(_ => _.Name == appServer.AppServerTyp);
 
             var Variables = new
             {
                 name = appServer.AppServerName,
                 appId = appServer.AppID,
-                ip = ip.Start,
-                ipEnd = ip.End,
+                ip = appServer.AppIPRangeStart,
+                ipEnd = appServer.AppIPRangeEnd,
                 importSource = GlobalConst.kManual,
                 customType = appServerType.Id
             };
@@ -180,9 +167,9 @@
         }
         catch (Exception exception)
         {
-            (Exception e, string? ipStart) eIP = new();
+            (Exception e, string? ip) eIP = new();
             eIP.e = exception;
-            eIP.ipStart = appServer.AppIPRangeStart;
+            eIP.ip = $"{appServer.AppIPRangeStart} - {appServer.AppIPRangeEnd}";
 
             await OnAddAppServerError.InvokeAsync(eIP);
 

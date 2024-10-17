@@ -266,7 +266,42 @@ namespace FWO.GlobalConstants
             //     }
             //     return false;
             // }
+            public static string SanitizeIp(string cidr_str)
+            {
+                cidr_str = cidr_str.StripOffNetmask();
 
+                if (IPAddress.TryParse(cidr_str, out IPAddress? ip))
+                {
+                    if (ip != null)
+                    {
+                        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                        {
+                            cidr_str = ip.ToString();
+                            if (cidr_str.IndexOf('/') < 0) // a single ip without mask
+                            {
+                                cidr_str += "/128";
+                            }
+                            if (cidr_str.IndexOf('/') == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 128 mask)
+                            {
+                                cidr_str += "128";
+                            }
+                        }
+                        else if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        {
+                            cidr_str = ip.ToString();
+                            if (cidr_str.IndexOf('/') < 0) // a single ip without mask
+                            {
+                                cidr_str += "/32";
+                            }
+                            if (cidr_str.IndexOf('/') == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                            {
+                                cidr_str += "32";
+                            }
+                        }
+                    }
+                }
+                return cidr_str;
+            }
         }
     }
     public static class Extensions
@@ -286,12 +321,9 @@ namespace FWO.GlobalConstants
         }
         public static string StripOffNetmask(this string ip)
         {
-            Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");
-            if (match.Success)
-            {
-                string matchedString = match.Value;
-                return matchedString.Remove(matchedString.Length - 1);
-            }
+            if (TryGetNetmask(ip, out string netmask))
+                return ip.Replace(netmask, "");
+
             return ip;
         }
         public static bool TryGetNetmask(this string ip, out string netmask)
@@ -304,6 +336,32 @@ namespace FWO.GlobalConstants
                 netmask = match.Groups[1].Value;
 
             return match.Success;
+        }
+
+        public static bool IsIPv4(this string ipAddress)
+        {
+            if (IPAddress.TryParse(ipAddress, out IPAddress? addr))
+            {
+                if (addr.AddressFamily == AddressFamily.InterNetwork)
+                    return true;
+
+                return false;
+            }
+
+            return false;
+        }
+
+        public static bool IsIPv6(this string ipAddress)
+        {
+            if (IPAddress.TryParse(ipAddress, out IPAddress? addr))
+            {
+                if (addr.AddressFamily == AddressFamily.InterNetworkV6)
+                    return true;
+
+                return false;
+            }
+
+            return false;
         }
     }
 }

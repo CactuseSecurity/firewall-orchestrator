@@ -59,7 +59,7 @@
                 </div>
             </div>
         </div>
-        <hr />        
+        <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5627"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("app_server_types"):</label>
             <div class="col-sm-6">
@@ -82,7 +82,7 @@
                 </div>
             </div>
         </div>
-            <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
+        <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
                 <FileUpload ApiConnection="apiConnection" OnAddAppServerError="OnAddAppServerError" OnImportSuccess="OnAppServerImportSuccess"></FileUpload>
@@ -302,16 +302,9 @@ else
     EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
 
 
-    private void OnAddAppServerError((Exception exception, string? ipStart) _ )
+    private void OnAddAppServerError((Exception exception, string? ipStart) _)
     {
-        if (_.exception.Message.Contains("Uniqueness violation"))
-        {
-            DisplayMessageInUi(null, userConfig.GetText("E9010"), $"{_.ipStart}", true);
-        }
-        else
-        {
-            DisplayMessageInUi(_.exception, userConfig.GetText("add_app_server"), _.exception.Message, false);
-        }       
+        DisplayMessageInUi(_.exception, userConfig.GetText("add_app_server"), _.exception.Message, false);
     }
 
     private void OnAppServerImportSuccess()

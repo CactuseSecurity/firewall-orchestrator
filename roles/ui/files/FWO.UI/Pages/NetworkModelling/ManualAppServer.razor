@@ -43,7 +43,7 @@
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true">
                         <Template>
-                            @((MarkupString)GetHtmlNameAndIP(context))
+                            @((MarkupString)context.DisplayHtml())
                         </Template>
                     </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("type"))" Field="@(x => x.CustomType)" Sortable="true" Filterable="true">
@@ -53,7 +53,7 @@
                     </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true">
                         <Template>
-                            @GetIPRange(context)
+                            @(DisplayBase.DisplayIpRange(context.Ip, context.IpEnd))
                         </Template>
                     </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true">
@@ -129,32 +129,5 @@
         firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
-    }
-
-    private string GetIPRange(ModellingAppServer appServer)
-    {
-        (string Start, string End) ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.IpEnd);
-        if (appServer.Ip != appServer.IpEnd && appServer.IpEnd.StripOffNetmask() != ip.End)
-        {
-            return $"{appServer.Ip.StripOffNetmask()} - {appServer.IpEnd.StripOffNetmask()}";
-        }
-        else if (appServer.Ip != appServer.IpEnd)
-        {
-            return $"{appServer.Ip.StripOffNetmask()} - {appServer.IpEnd.StripOffNetmask()}  ({appServer.Ip})";
-        }
-        else
-        {
-            return $"{appServer.Ip.StripOffNetmask()}";
-        }
-    }
-
-    private string GetHtmlNameAndIP(ModellingAppServer appServer)
-    {
-        string display = appServer.DisplayHtml();
-
-        if (display.TryGetNetmask(out string oldNetmask) && appServer.Ip.TryGetNetmask(out string newNetmask))
-            return display.Replace(oldNetmask, newNetmask);
-
-        return display;
     }
 }

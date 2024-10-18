@@ -112,24 +112,27 @@
                     AppServerName = entries[0],
                     AppID = entries[1],
                     AppServerTyp = entries[2],
-                    AppIPRangeStart = GlobalConstants.GlobalFunc.IpOperations.SanitizeIp(entries[3])
+                    AppIPRangeStart = entries[3]
                 };
 
 
-            if (appServer.AppIPRangeStart.TrySplit('-', 1, out string ipEnd))
-            {
-                appServer.AppIPRangeStart = appServer.AppIPRangeStart.Split('-')[0];
-                appServer.AppIPRangeEnd = GlobalConstants.GlobalFunc.IpOperations.SanitizeIp(ipEnd);
-            }else if (string.IsNullOrEmpty(appServer.AppIPRangeEnd))
+            if(appServer.AppIPRangeStart.TryGetNetmask(out string netmask))
             {
                 (string Start, string End) ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.AppIPRangeStart);
-                appServer.AppIPRangeEnd = GlobalConstants.GlobalFunc.IpOperations.SanitizeIp(ip.End);
+                appServer.AppIPRangeStart = ip.Start;
+                appServer.AppIPRangeEnd = ip.End;
+            }
+            else if (appServer.AppIPRangeStart.TrySplit('-', 1, out string ipEnd) && IPAddressRange.TryParse(appServer.AppIPRangeStart, out IPAddressRange ipRange))
+            {
+                appServer.AppIPRangeStart = ipRange.Begin.ToString();
+                appServer.AppIPRangeEnd = ipRange.End.ToString();
+            }
+            else
+            {
+                appServer.AppIPRangeEnd = appServer.AppIPRangeStart;
             }
 
-            bool success = await AddAppServerToDb(appServer);
-
-            if (!success)
-                return;
+           await AddAppServerToDb(appServer);
         }
 
         await OnImportSuccess.InvokeAsync();
@@ -167,6 +170,10 @@
         }
         catch (Exception exception)
         {
+            //if IP already exists, skip displaying error message
+            if (exception.Message.Contains("Uniqueness violation"))
+                return false;
+
             (Exception e, string? ip) eIP = new();
             eIP.e = exception;
             eIP.ip = $"{appServer.AppIPRangeStart} - {appServer.AppIPRangeEnd}";

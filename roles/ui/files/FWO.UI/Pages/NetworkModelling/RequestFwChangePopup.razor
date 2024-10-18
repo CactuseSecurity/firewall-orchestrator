@@ -1,0 +1,776 @@
+﻿@using FWO.Config.Api
+@using FWO.Middleware.Client
+@using FWO.Api.Data
+@using FWO.Tufin.SecureChange
+@using FWO.Report
+@using System.Text.Json.Serialization
+@using Newtonsoft.Json
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+
+<PopUp Title="@(userConfig.GetText("request_fw_change"))" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div class="m-2">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="TaskList" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="false" />
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+                        <Template>
+                            @(userConfig.GetText(context.TaskType))
+                        </Template>
+                    </Column>
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.OnManagement.Name)" Sortable="false" Filterable="false" />
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="false" />
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+                        <Template>
+                            @(RequestInProcess ? states.Name[context.StateId] : "")
+                        </Template>
+                    </Column>
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("ext_ticket_number"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" >
+                        <Template>
+                            @(context.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId) ?? "")
+                        </Template>
+                    </Column>
+                    <DetailTemplate TableItem="WfReqTask">
+                        <Detail Data="@(userConfig.GetText("action") + ": " + context.RequestAction)">
+                            <span>@((MarkupString)@DisplayTaskDetails(context))</span>
+                        </Detail>
+                    </DetailTemplate>
+                </Table>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <AuthorizeView Roles="@Roles.Modeller">
+            <Authorized>
+                @if(SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="SendRequest">@(userConfig.GetText("request_fw_change"))</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_fw_change"))</button>
+                }
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_fw_change"))</button>
+            </NotAuthorized> 
+        </AuthorizeView>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+    </Footer>
+</PopUp>
+<InProgress Display="WorkInProgress"/>
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public FwoOwner SelectedApp { get; set; } = new();
+
+    [Parameter]
+    public List<ModellingConnection> Connections { get; set; } = [];
+
+
+    private List<WfReqTask> TaskList = [];
+    private List<WfReqTask> AccessTaskList = [];
+    private List<WfReqTask> DeleteTasksList = [];
+    private int taskNumber = 0;
+    private List<WfReqElement> elements = [];
+    private List<IpProtocol> ipProtos = [];
+    private bool WorkInProgress = false;
+    private bool FirstTry = true;
+    private bool RequestInProcess = false;
+    private WfStateDict states = new();
+    private ExtStateHandler extStateHandler;
+    private List<Management> managements = [];
+
+    private Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
+    private Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
+
+    private ModellingAppRole? existingAppRole;
+    private List<ModellingAppServerWrapper> newAppServers = [];
+    private List<ModellingAppServerWrapper> deletedAppServers = [];
+    private List<ModellingAppServerWrapper> unchangedAppServers = [];
+    private List<WfReqElement> newGroupMembers = [];
+    private List<WfReqElement> deletedGroupMembers = [];
+    private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
+    private List<WfReqElement> unchangedGroupMembers = [];
+    private ModellingNamingConvention namingConvention = new();
+
+    private struct TicketId
+    {
+        [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
+        public long Id { get; set; }
+    };
+
+    private static readonly string newAppRoleText = "New AppRole: ";
+    private static readonly string updateAppRoleText = "Update AppRole: ";
+    private static readonly string newServiceGroupText = "New Servicegroup: ";
+    private static readonly string addMembersText = ": Add Members";
+    private static readonly string removeMembersText = ": Remove Members";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        extStateHandler = new(apiConnection);
+        await extStateHandler.Init();
+        ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+        managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+        managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
+        namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display && FirstTry)
+        {
+            FirstTry = false;
+            WorkInProgress = true;
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Implementer, Roles.Admin, Roles.Auditor ]);
+            await states.Init(apiConnection);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+            await InitTasks();
+            WorkInProgress = false;
+        }
+    }
+
+    private async Task InitTasks()
+    {
+        try
+        {
+            if(!await GetActTicketStatus())
+            {
+                await AnalyseModelledConnections();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+        }
+    }
+
+    private async Task<bool> GetActTicketStatus()
+    {
+        List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = SelectedApp.Id});
+        if(ticketIds.Count > 0)
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
+            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
+            WfTicket? intTicket = await ticketCreator.GetTicket(SelectedApp.Id, ticketIds.First().Id);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+            if(intTicket != null)
+            {
+                TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
+                int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
+                int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
+                RequestInProcess = (TaskList.FirstOrDefault(t => t.StateId < doneStateId && t.StateId < rejectedStateId) != null);
+            }
+        }
+        return RequestInProcess;
+    }
+
+    private async Task AnalyseModelledConnections()
+    {
+        // later: get rules + compare, bundle requests
+        await GetProductionState();
+        TaskList = [];
+        AccessTaskList = [];
+        DeleteTasksList = [];
+        foreach(var conn in Connections.Where(c => !c.IsRequested))
+        {
+            foreach(var mgt in managements)
+            {
+                elements = [];
+                AnalyseNetworkAreas(conn);
+                AnalyseAppRoles(conn, mgt);
+                AnalyseAppServers(conn);
+                AnalyseServiceGroups(conn, mgt);
+                AnalyseServices(conn);
+                if(elements.Count > 0)
+                {
+                    AccessTaskList.Add(new()
+                    {
+                        Title = "New Connection: " + conn.Name ?? "",
+                        TaskType = WfTaskType.access.ToString(),
+                        ManagementId = mgt.Id,
+                        OnManagement = mgt,
+                        StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+                        Elements = elements
+                    });
+                }
+            }
+        }
+        TaskList.AddRange(AccessTaskList);
+        TaskList.AddRange(DeleteTasksList);
+        taskNumber = 1;
+        foreach(var task in TaskList)
+        {
+            task.TaskNumber = taskNumber++;
+        }
+    }
+
+    private async Task GetProductionState()
+    {
+        try
+        {
+            int aRCount = 0;
+            int aSCount = 0;
+            foreach(var mgt in managements)
+            {
+                List<NetworkObject>? objGrpByMgt = await GetObjects(mgt.Id, [2]);
+                if(objGrpByMgt != null)
+                {
+                    foreach(var objGrp in objGrpByMgt)
+                    {
+                        // Todo: filter for naming convention??
+                        if(!allExistingAppRoles.ContainsKey(mgt.Id))
+                        {
+                            allExistingAppRoles.Add(mgt.Id, []);
+                        }
+                        allExistingAppRoles[mgt.Id].Add(new(objGrp, namingConvention));
+                        aRCount++;
+                    }
+                }
+
+                List<NetworkObject>? objByMgt = await GetObjects(mgt.Id, [1,3,12]);
+                if(objByMgt != null)
+                {
+                    foreach(var obj in objByMgt)
+                    {
+                        if(!allExistingAppServers.ContainsKey(mgt.Id))
+                        {
+                            allExistingAppServers.Add(mgt.Id, []);
+                        }
+                        allExistingAppServers[mgt.Id].Add(new(obj));
+                        aSCount++;
+                    }
+                }
+            }
+
+            string aRappRoles = "";
+            string aRappServers = "";
+            foreach(var mgt in allExistingAppRoles.Keys)
+            {
+                aRappRoles += $" Management {mgt}: " + string.Join(",", allExistingAppRoles[mgt].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
+            }
+            foreach(var mgt in allExistingAppServers.Keys)
+            {
+                aRappServers += $" Management {mgt}: " + string.Join(",", allExistingAppServers[mgt].ConvertAll(x => $"{x.Name}({x.Ip})").ToList());
+            }
+            Log.WriteDebug("GetProductionState", 
+                $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task<List<NetworkObject>?> GetObjects(int mgtId, int[] objTypeIds)
+    {
+        var ObjGroupVariables = new
+        {
+            mgmId = mgtId,
+            objTypeIds = objTypeIds
+        };
+        return await apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkObjectsForManagement, ObjGroupVariables);
+    }
+
+    private void AnalyseNetworkAreas(ModellingConnection conn)
+    {
+        foreach(var nwGroup in ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups))
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                GroupName = nwGroup.IdString
+            });
+        }
+        foreach(var nwGroup in ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups))
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.destination.ToString(),
+                GroupName = nwGroup.IdString
+            });
+        }
+    }
+
+    private void AnalyseAppRoles(ModellingConnection conn, Management mgt)
+    {
+        foreach(var srcAppRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
+        {
+            AnalyseAppRole(srcAppRole, mgt, true);
+        }
+        foreach(var dstAppRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
+        {
+            AnalyseAppRole(dstAppRole, mgt);
+        }
+    }
+
+    private void AnalyseAppRole(ModellingAppRole appRole, Management mgt, bool isSource = false)
+    {
+        if(!ResolveExistingAppRole(appRole, mgt))
+        {
+            if(TaskList.FirstOrDefault(x => x.Title == newAppRoleText + appRole.IdString && x.OnManagement?.Id == mgt.Id) == null)
+            {
+                RequestNewAppRole(appRole, mgt);
+            }
+        }
+        else if(AppRoleChanged(appRole))
+        {
+            RequestUpdateAppRole(appRole, mgt);
+        }
+
+        elements.Add(new()
+        {
+            RequestAction = RequestAction.create.ToString(),
+            Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
+            GroupName = appRole.IdString
+        });
+    }
+
+    private bool ResolveExistingAppRole(ModellingAppRole appRole, Management mgt)
+    {
+        Log.WriteDebug("Search AppRole", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
+        ModellingAppRole sanitizedAR = new(appRole);
+        sanitizedAR.Sanitize();
+        if(allExistingAppRoles.ContainsKey(mgt.Id))
+        {
+            existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedAR.IdString);
+        }
+        if(existingAppRole != null)
+        {
+            Log.WriteDebug("Search AppRole", $"Found!!");
+        }
+        return existingAppRole != null;
+    }
+
+    private long? ResolveAppServerId(ModellingAppServer appServer, Management mgt)
+    {
+        Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
+        string appServerName = string.IsNullOrEmpty(appServer.Name) ? "net_" + appServer.Ip : appServer.Name;
+        ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => a.Name == appServerName);
+        if(existingAppServer != null)
+        {
+            Log.WriteDebug("Search AppServer", $"Found!!");
+        }
+        return existingAppServer?.Id;
+    }
+
+    private bool AppRoleChanged(ModellingAppRole appRole)
+    {
+        newAppServers = [];
+        deletedAppServers = [];
+        unchangedAppServers = [];
+        foreach(var appserver in appRole.AppServers)
+        {
+            if(existingAppRole.AppServers.FirstOrDefault(x => x.Content.Ip == appserver.Content.Ip && x.Content.IpEnd == appserver.Content.IpEnd) != null)  // Name ?
+            {
+                unchangedAppServers.Add(appserver);
+            }
+            else
+            {
+                newAppServers.Add(appserver);
+            }
+        }
+        foreach(var exAppserver in existingAppRole.AppServers)
+        {
+            if(appRole.AppServers.FirstOrDefault(x => x.Content.Ip == exAppserver.Content.Ip && x.Content.IpEnd == exAppserver.Content.IpEnd) == null)  // Name ?
+            {
+                deletedAppServers.Add(exAppserver);
+            }
+        }
+        return newAppServers.Count > 0 || deletedAppServers.Count > 0;
+    }
+
+    private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
+    {
+        List<WfReqElement> groupMembers = [];
+        foreach(var appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
+        {
+            groupMembers.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                Name = appServer.Name,
+                IpString = appServer.Ip,
+                GroupName = appRole.IdString,
+                NetworkId = ResolveAppServerId(appServer, mgt)
+            });
+        }
+        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
+        TaskList.Add(new()
+        {
+            Title = newAppRoleText + appRole.IdString,
+            TaskType = WfTaskType.group_create.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+            ManagementId = mgt.Id,
+            OnManagement = mgt,
+            Elements = groupMembers,
+            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+        });
+    }
+
+    private void RequestUpdateAppRole(ModellingAppRole appRole, Management mgt)
+    {
+        FillGroupMembers(appRole, mgt);
+        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
+        if(newGroupMembers.Count > 0)
+        {
+            newGroupMembers.AddRange(unchangedGroupMembers);
+            newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
+            TaskList.Add(new()
+            {
+                Title = updateAppRoleText + appRole.IdString + addMembersText,
+                TaskType = WfTaskType.group_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+                ManagementId = mgt.Id,
+                OnManagement = mgt,
+                Elements = newGroupMembers,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+            });
+        }
+        if(deletedGroupMembers.Count > 0)
+        {
+            deletedGroupMembers.AddRange(unchangedGroupMembers);
+            DeleteTasksList.Add(new()
+            {
+                Title = updateAppRoleText + appRole.IdString + removeMembersText,
+                TaskType = WfTaskType.group_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+                ManagementId = mgt.Id,
+                OnManagement = mgt,
+                Elements = deletedGroupMembers,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+            });
+        }
+    }
+
+    private void FillGroupMembers(ModellingAppRole appRole, Management mgt)
+    {
+        newGroupMembers = [];
+        deletedGroupMembers = [];
+        unchangedGroupMembers = [];
+        unchangedGroupMembersDuringCreate = [];
+        foreach(var appServer in newAppServers)
+        {
+            newGroupMembers.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                Name = appServer.Content.Name,
+                IpString = appServer.Content.Ip,
+                GroupName = appRole.IdString,
+                NetworkId = ResolveAppServerId(appServer.Content, mgt)
+            });
+        }
+        foreach(var appServer in unchangedAppServers)
+        {
+            unchangedGroupMembers.Add(new()
+            {
+                RequestAction = RequestAction.unchanged.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                Name = appServer.Content.Name,
+                IpString = appServer.Content.Ip,
+                GroupName = appRole.IdString
+            });
+        }
+        foreach(var appServer in deletedAppServers)
+        {
+            unchangedGroupMembersDuringCreate.Add(new()
+            {
+                RequestAction = RequestAction.unchanged.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                Name = appServer.Content.Name,
+                IpString = appServer.Content.Ip,
+                GroupName = appRole.IdString
+            });
+            deletedGroupMembers.Add(new()
+            {
+                RequestAction = RequestAction.delete.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                Name = appServer.Content.Name,
+                IpString = appServer.Content.Ip,
+                GroupName = appRole.IdString
+            });
+        }
+    }
+
+    private void AnalyseAppServers(ModellingConnection conn)
+    {
+        foreach(var srcAppServer in conn.SourceAppServers)
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                Name = srcAppServer.Content.Name,
+                IpString = srcAppServer.Content.Ip
+            });
+        }
+        foreach(var dstAppServer in conn.DestinationAppServers)
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.destination.ToString(),
+                Name = dstAppServer.Content.Name,
+                IpString = dstAppServer.Content.Ip
+            });
+        }
+    }
+
+    private void AnalyseServiceGroups(ModellingConnection conn, Management mgt)
+    {
+        foreach (var svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
+        {
+            if(userConfig.ModRolloutResolveServiceGroups)
+            {
+                foreach(var svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
+                {
+                    elements.Add(new()
+                    {
+                        RequestAction = RequestAction.create.ToString(),
+                        Field = ElemFieldType.service.ToString(),
+                        Port = svc.Port,
+                        PortEnd = svc.PortEnd,
+                        ProtoId = svc.ProtoId
+                    });
+                }
+            }
+            else
+            {
+                if(TaskList.FirstOrDefault(x => x.Title == newServiceGroupText + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
+                {
+                    RequestNewServiceGroup(svcGrp, mgt);
+                }
+                elements.Add(new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.service.ToString(),
+                    GroupName = svcGrp.Name
+                });
+            }
+        }
+    }
+
+    private void RequestNewServiceGroup(ModellingServiceGroup svcGrp, Management mgt)
+    {
+        List<WfReqElement> groupMembers = [];
+        foreach(var svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
+        {
+            groupMembers.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.service.ToString(),
+                Port = svc.Port,
+                PortEnd = svc.PortEnd,
+                ProtoId = svc.ProtoId,
+                GroupName = svcGrp.Name
+            });
+        }
+        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, svcGrp.Name} };
+        TaskList.Add(new()
+        {
+            Title = newServiceGroupText + svcGrp.Name,
+            TaskType = WfTaskType.group_create.ToString(),
+            StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
+            ManagementId = mgt.Id,
+            OnManagement = mgt,
+            Elements = groupMembers,
+            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+        });
+    }
+    
+    private void AnalyseServices(ModellingConnection conn)
+    {
+        foreach (var svc in ModellingServiceWrapper.Resolve(conn.Services))
+        {
+            elements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = ElemFieldType.service.ToString(),
+                Port = svc.Port,
+                PortEnd = svc.PortEnd,
+                ProtoId = svc.ProtoId
+            });
+        }
+    }
+
+    private string DisplayTaskDetails(WfReqTask task)
+    {
+        if(task.TaskType == WfTaskType.access.ToString())
+        {
+            return userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
+                "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
+                "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString());
+        }
+        else if(task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
+        {
+            return DisplayMembers(task);
+        }
+        else
+        {
+            return "";
+        }
+    }
+
+    private string DisplayNwObjects(WfReqTask task, string fieldType)
+    {
+        List<string> nwObjects = [];
+        foreach(var elem in task.Elements.Where(e => e.Field == fieldType))
+        {
+            if(elem.GroupName != null)
+            {
+                nwObjects.Add(elem.GroupName);
+            }
+            else
+            {
+                nwObjects.Add(!string.IsNullOrEmpty(elem.Name) ? elem.Name : elem.IpString ?? "");
+            }
+        }
+        return string.Join(", ", nwObjects);
+    }
+
+    private string DisplayServices(WfReqTask task)
+    {
+        List<string> services = [];
+        foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
+        {
+            if(elem.GroupName != null)
+            {
+                services.Add(elem.GroupName);
+            }
+            else
+            {
+                services.Add(elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
+            }
+        }
+        return string.Join(", ", services);
+    }
+
+    private string DisplayMembers(WfReqTask task)
+    {
+        List<string> members =[];
+        if(task.IsNetworkFlavor())
+        {
+            foreach(var elem in task.Elements)
+            {
+                members.Add($"<span class=\"{CssClass(elem)}\" >{(!string.IsNullOrEmpty(elem.Name) ? elem.Name : elem.IpString)}</span>");
+            }
+        }
+        else
+        {
+            foreach(var elem in task.Elements)
+            {
+                members.Add($"<span class=\"{CssClass(elem)}\" >{elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name}</span>");
+            }
+        }
+        return userConfig.GetText("members") + ": " + string.Join(", ", members);
+    }
+
+    private string CssClass(WfReqElement elem)
+    {
+        if(elem.RequestAction == RequestAction.create.ToString())
+        {
+            return "text-success";
+        }
+        else if(elem.RequestAction == RequestAction.delete.ToString())
+        {
+            return "text-danger";
+        }
+        return "";
+    }
+
+    private async Task SendRequest()
+    {
+        WorkInProgress = true;
+        try
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
+            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
+            WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
+                "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized), "");
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+            if(intTicket != null)
+            {
+                RequestInProcess = true;
+                TaskList = intTicket.Tasks;
+                // await SetModellingVersion();
+                await SaveTicketId(intTicket.Id);
+                await CreateExtRequests(intTicket);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+        }
+        WorkInProgress = false;
+    }
+
+    @* private async Task SetModellingVersion()
+    {
+        try
+        {
+            // todo: set a version number / fix point(?) to actual modelling
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+        }
+    } *@
+
+    private async Task SaveTicketId(long ticketId)
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addTicketId, new{ownerId = SelectedApp.Id, ticketId = ticketId});
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+        }
+    }
+
+    private async Task CreateExtRequests(WfTicket intTicket)
+    {
+        try
+        {
+            ExternalRequestCreator extTicketCreator = new(SelectedApp, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient);
+            await extTicketCreator.Run(intTicket);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        FirstTry = true;
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

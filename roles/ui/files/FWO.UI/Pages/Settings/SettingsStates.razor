@@ -195,7 +195,7 @@ else
     {
         usedStateIds = [];
         GlobalStateMatrix tmpStateMatrix = new();
-        foreach(TaskType type in Enum.GetValues(typeof(TaskType)))
+        foreach(WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
         {
             await tmpStateMatrix.Init(apiConnection, type);
             foreach(var key in tmpStateMatrix.GlobalMatrix.Keys)

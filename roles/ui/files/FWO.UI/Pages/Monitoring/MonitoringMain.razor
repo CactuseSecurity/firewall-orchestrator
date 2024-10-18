@@ -134,16 +134,10 @@
     {
         try
         {
-            if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin))
+            if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin]);
-                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
-                await RefreshAlerts();
-            }
-            else if (authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
-            {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Auditor]);
-                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
                 await RefreshAlerts();
             }
             InitComplete = true;
@@ -264,15 +258,10 @@
     private async Task DeleteManagements()
     {
         // Todo: refresh necessary?
-        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin))
+        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin]);
-            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
-        }
-        else if (authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
-        {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Auditor]);
-            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
         }
 
         deletedSampleManagements = 0;

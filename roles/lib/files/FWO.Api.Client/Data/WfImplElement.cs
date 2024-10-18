@@ -14,7 +14,8 @@ namespace FWO.Api.Data
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = "create";
 
-        public Cidr Cidr { get; set; } = new Cidr();
+        public Cidr Cidr { get; set; } = new();
+        public Cidr CidrEnd { get; set; } = new();
 
         public WfImplElement()
         {}
@@ -25,6 +26,7 @@ namespace FWO.Api.Data
             ImplTaskId = element.ImplTaskId;
             ImplAction = element.ImplAction;
             Cidr = new Cidr(element.Cidr != null ? element.Cidr.CidrString : "");
+            CidrEnd = new Cidr(element.CidrEnd != null ? element.CidrEnd.CidrString : "");
         }
 
         public WfImplElement(WfReqElement element)
@@ -32,7 +34,9 @@ namespace FWO.Api.Data
             Id = 0;
             ImplAction = element.RequestAction;
             Cidr = new Cidr(element.Cidr != null ? element.Cidr.CidrString : "");
+            CidrEnd = new Cidr(element.CidrEnd != null ? element.CidrEnd.CidrString : "");
             Port = element.Port;
+            PortEnd = element.PortEnd;
             ProtoId = element.ProtoId;
             NetworkId = element.NetworkId;
             ServiceId = element.ServiceId;
@@ -40,6 +44,7 @@ namespace FWO.Api.Data
             UserId = element.UserId;
             OriginalNatId = element.OriginalNatId;
             RuleUid = element.RuleUid;
+            GroupName = element.GroupName;
         }
     }
 }

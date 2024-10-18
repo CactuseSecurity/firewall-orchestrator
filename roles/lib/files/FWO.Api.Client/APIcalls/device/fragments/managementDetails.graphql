@@ -16,6 +16,7 @@ fragment ManagementDetails on management {
   importerHostname: importer_hostname
   comment: mgm_comment
   debugLevel: debug_level
+  extMgtData: ext_mgm_data
   creationDate: mgm_create
   updateDate: mgm_update
   lastConfigHash: last_import_md5_complete_config

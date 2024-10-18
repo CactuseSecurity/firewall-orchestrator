@@ -1,0 +1,109 @@
+﻿@using NetTools;
+@using FWO.GlobalConstants
+@using FWO.Api.Data;
+@using FWO.Ui.Display;
+
+@inject UserConfig userConfig
+
+<div class="form-group row">
+    @if(WithLabel)
+    {
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("services")):</label>
+    }
+    <div class="@(WithLabel ? "col-sm-9" : "col-sm-12") me-auto">
+        @if(Readonly)
+        {
+            @foreach(var service in Services)
+            {
+                <div class="list-group-item border bg-secondary">
+                    <label>@DisplayBase.DisplayService(service, IpProtos)</label>
+                </div>
+            }
+        }
+        else
+        {
+            <EditList ElementType="NwServiceElement" Elements="Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)).ToArray()" ElementsToAdd="ServicesToAdd" ElementsToDelete="ServicesToDelete" StdLayout="false">
+                <Display>
+                    <div class="border bg-transparent">@DisplayBase.DisplayService(context, IpProtos)</div>
+                </Display>
+            </EditList>
+            <div class="row col-sm-12 mt-1">
+                <div class="col-sm-6">
+                    <PortRangeInput @bind-Port="actPort" @bind-PortEnd="actPortEnd"/>
+                </div>
+                <div class="col-sm-5">
+                    <Dropdown ElementType="int" @bind-SelectedElement="actProtoId"
+                            ElementToString="@(protId => IpProtos.FirstOrDefault(x => x.Id == protId)?.Name ?? "")" Elements="IpProtos.ConvertAll(x => x.Id)">
+                        <ElementTemplate Context="proto">
+                            @IpProtos.FirstOrDefault(x => x.Id == proto)?.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+                <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddService" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+            </div>
+        }
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public List<NwServiceElement> Services { get; set; } = [];
+
+    [Parameter]
+    public List<NwServiceElement> ServicesToAdd { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<NwServiceElement>> ServicesToAddChanged { get; set; }
+
+    [Parameter]
+    public List<NwServiceElement> ServicesToDelete { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<NwServiceElement>> ServicesToDeleteChanged { get; set; }
+
+    [Parameter]
+    public List<IpProtocol> IpProtos { get; set; } = [];
+
+    [Parameter]
+    public long TaskId { get; set; } = 0;
+
+    [Parameter]
+    public bool Readonly { get; set; } = false;
+
+    [Parameter]
+    public bool WithLabel { get; set; } = true;
+
+
+    private bool FirstTry = true;
+    private int? actPort;
+    private int? actPortEnd;
+    private int actProtoId = 0;
+
+
+    protected override void OnParametersSet()
+    {
+        if(FirstTry)
+        {
+            FirstTry = false;
+            if(IpProtos.Count > 0)
+            {
+                actProtoId = IpProtos.First().Id;
+            }
+        }
+    }
+
+    private void AddService()
+    {
+        if (actPort != null && actPort > 0 && actProtoId != 0)
+        {
+            ServicesToAdd.Add(new NwServiceElement(){ Port = (int)actPort, PortEnd = actPortEnd, ProtoId = actProtoId, TaskId = TaskId });
+			actPort = null;
+            actPortEnd = null;
+            if(IpProtos.Count > 0)
+            {
+                actProtoId = IpProtos.First().Id;
+            }
+		}
+	}
+}

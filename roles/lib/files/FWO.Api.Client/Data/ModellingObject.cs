@@ -26,6 +26,12 @@ namespace FWO.Api.Data
             Number = modellingObject.Number;
         }
 
+        public ModellingObject(NetworkObject nwObj)
+        {
+            Name = nwObj.Name;
+            Number = nwObj.Number;
+        }
+
         public virtual string Display()
         {
             return Name;

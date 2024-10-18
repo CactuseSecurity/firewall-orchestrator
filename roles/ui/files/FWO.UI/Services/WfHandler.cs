@@ -122,7 +122,7 @@ namespace FWO.Ui.Services
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
                     AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                     await stateMatrixDict.Init(Phase, apiConnection);
-                    MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
+                    MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
                     TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, ignoreOwners);
                     PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
                     apiConnection.SwitchBack();
@@ -227,6 +227,11 @@ namespace FWO.Ui.Services
             return AllTicketList.FirstOrDefault(x => x.Id == ticketId);
         }
 
+        public async Task<WfTicket?> GetFullTicket(long ticketId)
+        {
+            return await dbAcc.GetTicket(ticketId);
+        }
+
         public async Task<string> HandleInjectedTicketId(WorkflowPhases phase, long ticketId)
         {
             WfTicket? ticket = await ResolveTicket(ticketId);
@@ -256,7 +261,7 @@ namespace FWO.Ui.Services
         {
             bool foundNewPhase = false;
             GlobalStateMatrix glbStateMatrix = new ();
-            await glbStateMatrix.Init(apiConnection, TaskType.master);
+            await glbStateMatrix.Init(apiConnection, WfTaskType.master);
             bool cont = true;
             while(cont)
             {
@@ -595,30 +600,10 @@ namespace FWO.Ui.Services
 
         public string GetRequestingOwner()
         {
-            int? ownerId = GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner);
+            int? ownerId = ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner);
             if(ownerId != null)
             {
                 return AllOwners.FirstOrDefault(x => x.Id == ownerId)?.Display() ?? "";
-            }
-            return "";
-        }
-
-        public int? GetAddInfoIntValue(string key)
-        {
-            if(int.TryParse(GetAddInfoValue(key), out int value))
-            {
-                return value;
-            }
-            return null;
-        }
-
-        public string GetAddInfoValue(string key)
-        {
-            Dictionary<string, string>? addInfo = GetAddInfos();
-            string value = "";
-            if(addInfo != null && addInfo.TryGetValue(key, out value))
-            {
-                return value;
             }
             return "";
         }
@@ -627,46 +612,13 @@ namespace FWO.Ui.Services
         {
             try
             {
-                Dictionary<string, string>? addInfo = GetAddInfos();
-                if(addInfo == null)
-                {
-                    addInfo = new() { {key, newValue} };
-                }
-                else
-                {
-                    if(addInfo.ContainsKey(key))
-                    {
-                        addInfo[key] = newValue;
-                    }
-                    else
-                    {
-                        addInfo.Add(key, newValue);
-                    }
-                }
-                reqTask.AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+                reqTask.SetAddInfo(key, newValue);
                 await dbAcc.UpdateReqTaskAdditionalInfo(reqTask);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("promote_task"), "", true);
             }
-        }
-
-        private Dictionary<string, string>? GetAddInfos()
-        {
-            if(ActReqTask.AdditionalInfo != null && ActReqTask.AdditionalInfo != "")
-            {
-                try
-                {
-                    return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(ActReqTask.AdditionalInfo);
-                }
-                catch(Exception)
-                {
-                    Log.WriteInfo("Get Additional Info","Could not deserialize. No valid content.");
-                    return null;
-                }
-            }
-            return null;
         }
 
         public async Task PromoteReqTask(WfStatefulObject reqTask)
@@ -1169,7 +1121,7 @@ namespace FWO.Ui.Services
         private async Task AutoCreateImplTasks(WfReqTask reqTask)
         {
             WfImplTask newImplTask;
-            if(reqTask.TaskType == TaskType.access.ToString())
+            if(reqTask.TaskType == WfTaskType.access.ToString())
             {
                 switch (userConfig.ReqAutoCreateImplTasks)
                 {
@@ -1188,7 +1140,7 @@ namespace FWO.Ui.Services
                         }
                         break;
                     case AutoCreateImplTaskOptions.enterInReqTask:
-                        foreach(var deviceId in reqTask.getDeviceList())
+                        foreach(var deviceId in reqTask.GetDeviceList())
                         {
                             await createAccessImplTask(reqTask, deviceId);
                         }
@@ -1310,7 +1262,8 @@ namespace FWO.Ui.Services
 
         public async Task UpdateActTicketStateFromImplTasks()
         {
-            foreach (WfReqTask reqTask in ActTicket.Tasks)
+            List<WfReqTask> tasks = new(ActTicket.Tasks);
+            foreach (WfReqTask reqTask in tasks)
             {
                 await UpdateReqTaskStateFromImplTasks(reqTask);
             }

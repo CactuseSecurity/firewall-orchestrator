@@ -6,7 +6,6 @@ namespace FWO.Api.Data
 {
     public class NwObjectElement
     {
-
         [JsonProperty("id"), JsonPropertyName("id")]
         public long ElemId { get; set; }
 
@@ -33,8 +32,10 @@ namespace FWO.Api.Data
         public string? Comment { get; set; }
 
         public long TaskId { get; set; }
-
         public long? NetworkId { get; set; }
+        public string GroupName { get; set; } = "";
+        public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
+
 
         public NwObjectElement()
         {}
@@ -63,7 +64,11 @@ namespace FWO.Api.Data
                 TaskId = TaskId,
                 Field = field.ToString(),
                 Cidr = new Cidr(Cidr.CidrString),
-                NetworkId = NetworkId
+                CidrEnd = new Cidr(CidrEnd.CidrString),
+                NetworkId = NetworkId,
+                GroupName = GroupName,
+                RequestAction = RequestAction,
+                Name = Name
             };
             return element;
         }
@@ -76,7 +81,10 @@ namespace FWO.Api.Data
                 ImplTaskId = TaskId,
                 Field = field.ToString(),
                 Cidr = new Cidr(Cidr.CidrString),
+                CidrEnd = new Cidr(CidrEnd.CidrString),
                 NetworkId = NetworkId,
+                GroupName = GroupName,
+                Name = Name
             };
             return element;
         }

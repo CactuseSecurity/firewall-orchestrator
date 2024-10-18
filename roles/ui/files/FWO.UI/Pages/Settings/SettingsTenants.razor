@@ -189,13 +189,13 @@
         [CascadingParameter]
         private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private List<Tenant> tenants = new List<Tenant>();
-    private List<Tenant> sampleTenants = new List<Tenant>();
-    private DeviceFilter devicesSelectedForTenant = new DeviceFilter();
+    private List<Tenant> tenants = [];
+    private List<Tenant> sampleTenants = [];
+    private DeviceFilter devicesSelectedForTenant = new();
     private bool collapseDevices = false;
-    private List<UiUser> uiUsers = new List<UiUser>();
+    private List<UiUser> uiUsers = [];
 
-    private Tenant actTenant = new Tenant();
+    private Tenant actTenant = new();
     private bool selectAll = true;
 
     private bool AddTenantMode = false;
@@ -210,9 +210,9 @@
     private string sampleRemoveMessage = "";
     private bool workInProgress = false;
 
-    private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
-    private List<NwObjectElement> ipsToAdd = new List<NwObjectElement>();
-    private List<NwObjectElement> ipsToDelete = new List<NwObjectElement>();
+    private List<NwObjectElement> actIpAddresses = [];
+    private List<NwObjectElement> ipsToAdd = [];
+    private List<NwObjectElement> ipsToDelete = [];
 
     private bool addDeleteAllowed = false;
 
@@ -240,10 +240,10 @@
         }
         else
         {
-            tenants = new List<Tenant>();
+            tenants = [];
             foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
             {
-                Tenant newTenant = new Tenant(apiTenant);
+                Tenant newTenant = new (apiTenant);
                 // foreach (TenantViewGateway tenantGateway in apiTenant.UnfilteredGateways)
                 //    newTenant.UnfilteredGatewayIds.Append(tenantGateway.Id);
                 // foreach (TenantViewGateway tenantGateway in apiTenant.SharedGateways)
@@ -256,7 +256,7 @@
 
     private void AnalyseSampleTenants()
     {
-        sampleTenants = new List<Tenant>();
+        sampleTenants = [];
         foreach (var tenant in tenants)
         {
             if (tenant.Name.EndsWith("_demo"))

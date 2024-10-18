@@ -1,0 +1,188 @@
+﻿@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+@using FWO.Api.Data
+@using FWO.Config.File
+@using FWO.GlobalConstants
+@using FWO.Ui.Data
+@using NetTools
+@using System.Net
+@using System.Text.Json
+@inject UserConfig userConfig
+
+
+<div class="row">
+    <div class="col-sm-8">
+        <label class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
+            @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Add))
+            <span class="ms-2">@(userConfig.GetText("add"))</span>
+        </label>
+        <InputFile id="fileUpload" hidden accept=".csv" OnChange="@SingleUpload" />
+        @if (InputFileChangeEventArgs is not null && !string.IsNullOrEmpty(InputFileChangeEventArgs.File.Name))
+        {
+            <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
+        }
+        <button type="button" disabled="@ImportDisabled" class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="LoadCSV">
+            @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+            <span class="ms-1">@(userConfig.GetText("import"))</span>
+        </button>
+        @if (ShowAlert)
+        {
+            <div class="alert alert-warning mt-2" role="alert">
+                <span>@userConfig.GetText("E7014")</span>
+            </div>
+        }
+    </div>
+</div>
+@code {
+    private bool ShowAlert { get; set; }
+    InputFileChangeEventArgs? InputFileChangeEventArgs;
+
+    private bool ImportDisabled { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<(Exception, string?)> OnAddAppServerError { get; set; }
+
+    [Parameter]
+    public EventCallback OnImportSuccess { get; set; }
+
+    [Parameter]
+    public ApiConnection ApiConnection { get; set; }
+
+    private List<AppServerType> AppServerTypes = new();
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (userConfig.ModAppServerTypes != "")
+            {
+                AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private void SingleUpload(InputFileChangeEventArgs e)
+    {
+        ImportDisabled = true;
+        InputFileChangeEventArgs = e;
+        ShowAlert = false;
+
+        if (InputFileChangeEventArgs.FileCount == 0)
+            return;
+
+        if (!e.File.Name.EndsWith(".csv"))
+        {
+            ShowAlert = true;
+            return;
+        }
+
+        ImportDisabled = false;
+    }
+
+    private async Task LoadCSV()
+    {
+        if (ImportDisabled || InputFileChangeEventArgs is null)
+            return;
+
+        using MemoryStream ms = new MemoryStream();
+        await InputFileChangeEventArgs.File.OpenReadStream().CopyToAsync(ms);
+        byte[]? bytes = ms.ToArray();
+
+        string text = System.Text.Encoding.UTF8.GetString(bytes);
+        string[] lines = text.Split('\r');
+
+        foreach (string tmpLine in lines)
+        {
+            string line = tmpLine;
+
+            if (line.StartsWith("\n"))
+                line = line.Remove(0, 1);
+
+            if (IsHeader(line))
+                continue;
+
+            string[] entries = line.Split(';');
+
+            if (entries.Length < 3)
+                continue;
+
+            CSVAppServerImportModel appServer = new()
+                {
+                    AppServerName = entries[0],
+                    AppID = entries[1],
+                    AppServerTyp = entries[2],
+                    AppIPRangeStart = entries[3]
+                };
+
+
+            if(appServer.AppIPRangeStart.TryGetNetmask(out string netmask))
+            {
+                (string Start, string End) ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.AppIPRangeStart);
+                appServer.AppIPRangeStart = ip.Start;
+                appServer.AppIPRangeEnd = ip.End;
+            }
+            else if (appServer.AppIPRangeStart.TrySplit('-', 1, out string ipEnd) && IPAddressRange.TryParse(appServer.AppIPRangeStart, out IPAddressRange ipRange))
+            {
+                appServer.AppIPRangeStart = ipRange.Begin.ToString();
+                appServer.AppIPRangeEnd = ipRange.End.ToString();
+            }
+            else
+            {
+                appServer.AppIPRangeEnd = appServer.AppIPRangeStart;
+            }
+
+           await AddAppServerToDb(appServer);
+        }
+
+        await OnImportSuccess.InvokeAsync();
+    }
+
+    private bool IsHeader(string lineText)
+    {
+        string[] columns = lineText.Split(";");
+
+        return ( columns.Length == 4
+            && columns[0] == "App-Server-Name"
+            && columns[1] == "External-App-ID"
+            && columns[2] == "App-Server-Typ"
+            && columns[3] == "App-IP-Address-Range" );
+    }
+
+    private async Task<bool> AddAppServerToDb(CSVAppServerImportModel appServer)
+    {
+        try
+        {
+            AppServerType? appServerType = AppServerTypes.First(_ => _.Name == appServer.AppServerTyp);
+
+            var Variables = new
+            {
+                name = appServer.AppServerName,
+                appId = appServer.AppID,
+                ip = appServer.AppIPRangeStart,
+                ipEnd = appServer.AppIPRangeEnd,
+                importSource = GlobalConst.kManual,
+                customType = appServerType.Id
+            };
+
+            ReturnId[]? returnIds = ( await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
+
+        }
+        catch (Exception exception)
+        {
+            //if IP already exists, skip displaying error message
+            if (exception.Message.Contains("Uniqueness violation"))
+                return false;
+
+            (Exception e, string? ip) eIP = new();
+            eIP.e = exception;
+            eIP.ip = $"{appServer.AppIPRangeStart} - {appServer.AppIPRangeEnd}";
+
+            await OnAddAppServerError.InvokeAsync(eIP);
+
+            return false;
+        }
+
+        return true;
+    }
+}

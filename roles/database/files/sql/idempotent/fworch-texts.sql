@@ -2161,6 +2161,8 @@ INSERT INTO txt VALUES ('importSubnetDataSleepTime','German','Import Subnetzdate
 INSERT INTO txt VALUES ('importSubnetDataSleepTime','English','Import Subnet data sleep time (in hours)');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten-Start');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','English','Import Subnet data start at');
+INSERT INTO txt VALUES ('importAppServerDataSuccess',  'German',   'Import von App-Server Daten erfolgreich');
+INSERT INTO txt VALUES ('importAppServerDataSuccess',  'English',  'Import of App-Server Data successfull');
 INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorgeschrieben');
 INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
 INSERT INTO txt VALUES ('modReqInterfaceName',  'German',   'Name der beantragten Schnittstelle');
@@ -2425,7 +2427,8 @@ INSERT INTO txt VALUES ('general',              'German', 	'Allgemein');
 INSERT INTO txt VALUES ('general',              'English', 	'General');
 INSERT INTO txt VALUES ('naming_convention',    'German',   'Namenskonvention');
 INSERT INTO txt VALUES ('naming_convention',    'English',  'Naming Convention');
-
+INSERT INTO txt VALUES ('import_app_server',    'German',   'App Server importieren');
+INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -2922,6 +2925,8 @@ INSERT INTO txt VALUES ('E7012', 'German',  'Kein Import f&uuml;r aktives Manage
 INSERT INTO txt VALUES ('E7012', 'English', 'No Import for active management');
 INSERT INTO txt VALUES ('E7013', 'German',  'Letzter erfolgreicher Import zu lange her');
 INSERT INTO txt VALUES ('E7013', 'English', 'Last successful import too long ago');
+INSERT INTO txt VALUES ('E7014', 'German',  'Es sind nur CSV Dateien erlaubt.');
+INSERT INTO txt VALUES ('E7014', 'English', 'Only CSV Files allowed.');
 
 INSERT INTO txt VALUES ('E8001', 'German',  'Antrag konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8001', 'English', 'Request could not be created');
@@ -6232,6 +6237,26 @@ INSERT INTO txt VALUES ('H9053', 'English', 'The assigned modeller can reject th
 
 INSERT INTO txt VALUES ('H9054', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
 INSERT INTO txt VALUES ('H9054', 'English', 'Message that is displayed on Login Page.');
+INSERT INTO txt VALUES ('H9055', 'German',  'Importieren von App Servern via CSV Datei. Die CSV muss folgende Daten enthalten:
+<ul>
+<li>App Server Name</li>
+<li>Externe App-ID</li>
+<li>App Server Typ</li>
+<li>App IP Address Range</li>
+</ul>
+<br>
+Die CSV darf eine Überschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+');
+INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV file. The CSV must contain the following data:
+<ul>
+<li>App server name</li>
+<li>External app ID</li>
+<li>App server type</li>
+<li>App IP address range</li>
+</ul>
+<br>
+The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+');
 INSERT INTO txt VALUES ('PagerPagesize',     'German', 	'Seitengröße');
 INSERT INTO txt VALUES ('PagerPagesize',     'English', 'Page size');
 INSERT INTO txt VALUES ('PagerSubmit',       'German', 	'Speichern');

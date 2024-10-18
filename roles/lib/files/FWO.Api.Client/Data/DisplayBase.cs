@@ -132,6 +132,66 @@ namespace FWO.Api.Data
             return result;
         }
 
+        public static string DisplayIpRange(string ip1, string ip2, bool inBrackets = false)
+        {
+            string result = "";
+            string nwObjType = AutoDetectType(ip1, ip2);
+            if (nwObjType != ObjectType.Group)
+            {
+                if (!IsV4Address(ip1) && !IsV6Address(ip1))
+                {
+                    Log.WriteError("Ip displaying", $"Found undefined IP family: {ip1} - {ip2}");
+                }
+                else if (IsV4Address(ip1) == IsV6Address(ip2))
+                {
+                    Log.WriteError("Ip displaying", $"Found mixed IP family: {ip1} - {ip2}");
+                }
+                else
+                {
+                    if (ip2 == "")
+                    {
+                        ip2 = ip1;
+                    }
+                    string IpStart = StripOffUnnecessaryNetmask(ip1);
+                    string IpEnd = StripOffUnnecessaryNetmask(ip2);
+
+                    try
+                    {
+                        result = inBrackets ? " (" : "";
+                        if (nwObjType == ObjectType.Network)
+                        {
+                            if (GetNetmask(IpStart) == "")
+                            {
+                                IPAddressRange ipRange = new(IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
+                                if (ipRange != null)
+                                {
+                                    result += $"{ipRange.Begin}-{ipRange.End}";
+                                }
+                            }
+                            else
+                            {
+                                result += IpStart;
+                            }
+                        }
+                        else
+                        {
+                            result += IpStart;
+                            if (nwObjType == ObjectType.IPRange)
+                            {
+                                result += $"-{IpEnd}";
+                            }
+                        }
+                        result += inBrackets ? ")" : "";
+                    }
+                    catch (Exception exc)
+                    {
+                        Log.WriteError("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd}\nMessage: {exc.Message}");
+                    }
+                }
+            }
+            return result;
+        }
+
         public static string GetNetmask(string ip)
         {
             int pos = ip.LastIndexOf('/');

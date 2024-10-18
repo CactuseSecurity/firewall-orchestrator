@@ -758,8 +758,8 @@
     {
         try
         {
-            ExternalRequestCreator extTicketCreator = new(SelectedApp, intTicket, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient);
-            await extTicketCreator.Run();
+            ExternalRequestCreator extTicketCreator = new(SelectedApp, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient);
+            await extTicketCreator.Run(intTicket);
         }
         catch (Exception exception)
         {

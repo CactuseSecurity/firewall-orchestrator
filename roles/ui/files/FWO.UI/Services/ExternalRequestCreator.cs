@@ -13,7 +13,6 @@ namespace FWO.Ui.Services
 	public class ExternalRequestCreator
 	{
 		private readonly FwoOwner Owner;
-		private readonly WfTicket InternalTicket;
 		private readonly ApiConnection ApiConnection;
 		private readonly ExtStateHandler extStateHandler;
 		private readonly WfHandler wfHandler;
@@ -24,10 +23,9 @@ namespace FWO.Ui.Services
 		private ExternalTicketSystem actSystem = new();
 		private string actTaskType = "";
 
-		public ExternalRequestCreator(FwoOwner owner, WfTicket ticket, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient)
+		public ExternalRequestCreator(FwoOwner owner, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient)
 		{
 			Owner = owner;
-			InternalTicket = ticket;
 			ApiConnection = apiConnection;
 			UserConfig = userConfig;
 			AuthUser = authUser;
@@ -35,13 +33,13 @@ namespace FWO.Ui.Services
 			wfHandler = new (LogMessage, userConfig, authUser, apiConnection, middlewareClient, WorkflowPhases.request);
 		}
 
-		public async Task Run()
+		public async Task Run(WfTicket ticket)
 		{
 			try
 			{
 				GetExtSystemFromConfig();
             	await extStateHandler.Init();
-				await SendNextRequest(InternalTicket, 0);
+				await SendNextRequest(ticket, 0);
 			}
 			catch(Exception exception)
 			{
@@ -124,16 +122,16 @@ namespace FWO.Ui.Services
 							taskFound = false;
 						}
 					}
-					await CreateExtRequest(bundledTasks);
+					await CreateExtRequest(ticket, bundledTasks);
 				}
 				else
 				{
-					await CreateExtRequest([nextTask]);
+					await CreateExtRequest(ticket, [nextTask]);
 				}
 			}
 		}
 
-		private async Task CreateExtRequest(List<WfReqTask> tasks)
+		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks)
 		{
 			string taskContent = ConstructContent(tasks);
 			Dictionary<string, List<int>>? bundledTasks;
@@ -147,7 +145,7 @@ namespace FWO.Ui.Services
 			var Variables = new
 			{
 				ownerId = Owner.Id,
-  				ticketId = InternalTicket.Id,
+  				ticketId = ticket.Id,
 				taskNumber = tasks.First()?.TaskNumber ?? 0,
 				extTicketSystem = JsonSerializer.Serialize(actSystem),
 				extTaskType = actTaskType,

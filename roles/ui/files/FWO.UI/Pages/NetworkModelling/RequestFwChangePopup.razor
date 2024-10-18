@@ -229,44 +229,40 @@
     {
         try
         {
-            List<int> managementIds = managements.ConvertAll(m => m.Id);
-            var ImportIdVariables = new
-            {
-                time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                mgmIds = managementIds // ???
-            };
-            List<Management> managementsWithRelevantImportId =
-                await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, ImportIdVariables);
-            
             int aRCount = 0;
             int aSCount = 0;
-            List<ManagementReport> objGrpByMgt = await GetObjects(managementsWithRelevantImportId, [2]);
-            foreach(var prdMgt in objGrpByMgt)
+            foreach(var mgt in managements)
             {
-                foreach(var objGrp in prdMgt.Objects)
+                List<NetworkObject>? objGrpByMgt = await GetObjects(mgt.Id, [2]);
+                if(objGrpByMgt != null)
                 {
-                    if(!allExistingAppRoles.ContainsKey(prdMgt.Id))
+                    foreach(var objGrp in objGrpByMgt)
                     {
-                        allExistingAppRoles.Add(prdMgt.Id, []);
+                        // Todo: filter for naming convention??
+                        if(!allExistingAppRoles.ContainsKey(mgt.Id))
+                        {
+                            allExistingAppRoles.Add(mgt.Id, []);
+                        }
+                        allExistingAppRoles[mgt.Id].Add(new(objGrp, namingConvention));
+                        aRCount++;
                     }
-                    allExistingAppRoles[prdMgt.Id].Add(new(objGrp, namingConvention));
-                    aRCount++;
+                }
+
+                List<NetworkObject>? objByMgt = await GetObjects(mgt.Id, [1,3,12]);
+                if(objByMgt != null)
+                {
+                    foreach(var obj in objByMgt)
+                    {
+                        if(!allExistingAppServers.ContainsKey(mgt.Id))
+                        {
+                            allExistingAppServers.Add(mgt.Id, []);
+                        }
+                        allExistingAppServers[mgt.Id].Add(new(obj));
+                        aSCount++;
+                    }
                 }
             }
 
-            List<ManagementReport> objByMgt = await GetObjects(managementsWithRelevantImportId, [1,3,12]);
-            foreach(var prdMgt in objByMgt)
-            {
-                foreach(var obj in prdMgt.Objects)
-                {
-                    if(!allExistingAppServers.ContainsKey(prdMgt.Id))
-                    {
-                        allExistingAppServers.Add(prdMgt.Id, []);
-                    }
-                    allExistingAppServers[prdMgt.Id].Add(new(obj));
-                    aSCount++;
-                }
-            }
             string aRappRoles = "";
             string aRappServers = "";
             foreach(var mgt in allExistingAppRoles.Keys)
@@ -286,24 +282,14 @@
         }
     }
 
-    private async Task<List<ManagementReport>> GetObjects(List<Management> managementsWithRelevantImportId, int[] objTypeIds)
+    private async Task<List<NetworkObject>?> GetObjects(int mgtId, int[] objTypeIds)
     {
-        List<ManagementReport> objectsByMgt = [];
-        foreach(var management in managementsWithRelevantImportId)
+        var ObjGroupVariables = new
         {
-            var ObjGroupVariables = new
-            {
-                mgmId = management.Id,
-                relevantImportId = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId,
-                objTypeIds = objTypeIds
-            };
-            List<ManagementReport> mgtList = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getNetworkObjectsByType, ObjGroupVariables);
-            if(mgtList.Count > 0)
-            {
-                objectsByMgt.Add(mgtList.First());
-            }
-        }
-        return objectsByMgt;
+            mgmId = mgtId,
+            objTypeIds = objTypeIds
+        };
+        return await apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkObjectsForManagement, ObjGroupVariables);
     }
 
     private void AnalyseNetworkAreas(ModellingConnection conn)
@@ -367,7 +353,10 @@
         Log.WriteDebug("Search AppRole", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
         ModellingAppRole sanitizedAR = new(appRole);
         sanitizedAR.Sanitize();
-        existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedAR.IdString);
+        if(allExistingAppRoles.ContainsKey(mgt.Id))
+        {
+            existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedAR.IdString);
+        }
         if(existingAppRole != null)
         {
             Log.WriteDebug("Search AppRole", $"Found!!");

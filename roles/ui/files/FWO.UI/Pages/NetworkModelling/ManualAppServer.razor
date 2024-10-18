@@ -53,7 +53,7 @@
                     </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true">
                         <Template>
-                            @(DisplayBase.DisplayIpRange(context.Ip, context.IpEnd))
+                            @(DisplayBase.DisplayIp(context.Ip, context.IpEnd))
                         </Template>
                     </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true">

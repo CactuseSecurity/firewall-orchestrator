@@ -238,7 +238,7 @@ namespace FWO.Ui.Services
 		private async Task UpdateTicket(WfTicket ticket, ExternalRequest extReq)
 		{
 			List<int>? taskNumbers = null;
-			if(extReq.ExtQueryVariables != null)
+			if(!string.IsNullOrEmpty(extReq.ExtQueryVariables))
 			{
 				Dictionary<string, List<int>>? extQueryVars = JsonSerializer.Deserialize<Dictionary<string, List<int>>>(extReq.ExtQueryVariables);
 				extQueryVars?.TryGetValue(ExternalVarKeys.BundledTasks, out taskNumbers);

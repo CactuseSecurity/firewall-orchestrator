@@ -93,6 +93,8 @@
         string text = System.Text.Encoding.UTF8.GetString(bytes);
         string[] lines = text.Split('\r');
 
+        bool importSuccess = false;
+
         foreach (string tmpLine in lines)
         {
             string line = tmpLine;
@@ -133,10 +135,14 @@
                 appServer.AppIPRangeEnd = appServer.AppIPRangeStart;
             }
 
-            await AddAppServerToDb(appServer);
+            importSuccess = await AddAppServerToDb(appServer);
+
+            if (!importSuccess)
+                break;
         }
 
-        await OnImportSuccess.InvokeAsync();
+        if (importSuccess)
+            await OnImportSuccess.InvokeAsync();
     }
 
     private bool IsHeader(string lineText)
@@ -181,7 +187,7 @@
         {
             //if IP already exists, skip displaying error message
             if (exception.Message.Contains("Uniqueness violation"))
-                return false;
+                return true;
 
             (Exception e, string? ip) eIP = new();
             eIP.e = exception;

@@ -33,13 +33,6 @@ class TestApiDatabaseIntegration(unittest.TestCase):
         mock_import_state.ErrorString = ''
         mock_import_state.StartTime = int(time.time())
         mock_import_state.DebugLevel = 3  # Example debug level
-        mock_import_state.Config2import = {
-            "network_objects": [],
-            "service_objects": [],
-            "user_objects": [],
-            "zone_objects": [],
-            "rules": []
-        }
         mock_import_state.ConfigChangedSinceLastImport = True
         mock_import_state.FwoConfig = MagicMock()  # Mocked FworchConfig object
         mock_import_state.MgmDetails = MagicMock()  # Mocked ManagementDetails object

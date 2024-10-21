@@ -108,7 +108,6 @@ class ImportState():
     ErrorString: str
     StartTime: int
     DebugLevel: int
-    Config2import: dict
     ConfigChangedSinceLastImport: bool
     FwoConfig: FworchConfig
     MgmDetails: ManagementDetails
@@ -129,7 +128,6 @@ class ImportState():
         self.ErrorString = ''
         self.StartTime = int(time.time())
         self.DebugLevel = debugLevel
-        self.Config2import = { "network_objects": [], "service_objects": [], "user_objects": [], "zone_objects": [], "rules": [] }
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
         self.FwoConfig = fwoConfig
         self.MgmDetails = ManagementDetails.fromJson(mgmDetails)

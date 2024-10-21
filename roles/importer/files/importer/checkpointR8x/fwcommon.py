@@ -297,8 +297,8 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
     show_params_objs = {'limit':limit,'details-level': details_level }
 
     # getting Original (NAT) object (both for networks and services)
-    origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url)['object_chunks'][0]
-    anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url)['object_chunks'][0]
+    origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
+    anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
 
     for obj_type in cp_const.api_obj_types:
         if obj_type in cp_const.obj_types_full_fetch_needed:

@@ -89,7 +89,7 @@
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditReqTaskMode)
                                     {
-                                        <Dropdown ElementType="Management" @bind-SelectedElement="actManagement" ElementToString="@(d => d.Name)" Elements="managements">
+                                        <Dropdown ElementType="Management" @bind-SelectedElement="actManagement" ElementToString="@(d => d.Name)" Elements="managements" Nullable="true">
                                             <ElementTemplate Context="management">
                                                 @management.Name
                                             </ElementTemplate>
@@ -134,7 +134,7 @@
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditReqTaskMode)
                                     {
-                                        <Dropdown ElementType="Device" @bind-SelectedElement="actRuleDevice" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices">
+                                        <Dropdown ElementType="Device" @bind-SelectedElement="actRuleDevice" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices" Nullable="true">
                                             <ElementTemplate Context="device">
                                                 @device.Name
                                             </ElementTemplate>
@@ -216,7 +216,7 @@
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditReqTaskMode)
                                     {
-                                        <Dropdown ElementType="RuleAction" @bind-SelectedElement="actRuleAction" ElementToString="@(a => a.Name)" Elements="ruleActions">
+                                        <Dropdown ElementType="RuleAction" @bind-SelectedElement="actRuleAction" ElementToString="@(a => a.Name)" Elements="ruleActions" Nullable="true">
                                             <ElementTemplate Context="action">
                                                 @action.Name
                                             </ElementTemplate>
@@ -235,7 +235,7 @@
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditReqTaskMode)
                                     {
-                                        <Dropdown ElementType="Tracking" @bind-SelectedElement="actTracking" ElementToString="@(t => t.Name)" Elements="trackings">
+                                        <Dropdown ElementType="Tracking" @bind-SelectedElement="actTracking" ElementToString="@(t => t.Name)" Elements="trackings" Nullable="true">
                                             <ElementTemplate Context="track">
                                                 @track.Name
                                             </ElementTemplate>

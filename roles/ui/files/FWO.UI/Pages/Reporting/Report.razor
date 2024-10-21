@@ -99,7 +99,7 @@
         <hr />
 
         @* ==== Templates ==== *@
-        <ReportTemplateComponent OnTemplateLoad="async template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
+        <ReportTemplateComponent OnTemplateLoad="async template => { await SyncFiltersFromTemplate(template); }" @ref="reportTemplateControl" />
 
         @* ==== Report main div ==== *@
         <div class="card me-1 ms-1 mb-1 shadow">
@@ -188,7 +188,7 @@
 
     private List<ModellingAppHandler> appHandlers = [];
     List<int> relevantManagementIds = [];
-    
+
     private ReportFilters actReportFilters = new();
     private bool InitDone = false;
     private int? injectedAppId = null;
@@ -348,6 +348,7 @@
 
     private async Task SyncFiltersFromTemplate(ReportTemplate template)
     {
+        template.ReportParams.ModellingFilter.SelectedOwner = template.ReportParams.ModellingFilter.SelectedTemplateOwner;
         filterInput = template.Filter;
         Tenant? tenantFromTemplate = null;
         if (template.ReportParams.TenantFilter.IsActive)

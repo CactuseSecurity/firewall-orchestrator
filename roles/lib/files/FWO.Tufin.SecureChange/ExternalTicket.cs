@@ -196,7 +196,6 @@ public class SCTicket : ExternalTicket
 		return await restClient.ExecuteAsync<int>(request);
 	}
 
-
 	/*
 		Create Ticket for creating network groups
 

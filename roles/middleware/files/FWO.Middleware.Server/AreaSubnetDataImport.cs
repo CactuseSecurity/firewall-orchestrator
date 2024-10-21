@@ -122,7 +122,7 @@ namespace FWO.Middleware.Server
                 foreach(var subnet in incomingArea.Subnets)
                 {
 
-                    if (String.IsNullOrEmpty(subnet.IpEnd))
+                    if (subnet.IpEnd.IsNullOrEmpty())
                     // we found a subnet - converting to range
                     {
                         (subnet.Ip, subnet.IpEnd) = IpOperations.CidrToRangeString(subnet.Ip);

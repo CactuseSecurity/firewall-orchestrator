@@ -641,7 +641,6 @@ importer cp get changes:
   - each rule is only stored once
   - each rulebase is only stored once
 --- global changes ----
-- write changes into new normalized (class-based) format
 - allow conversion from new to old format (would lose information when working with rulebases)
 - allow conversion from old to new format (only for simple setups with 1:1 gw to rulebase matches
 
@@ -668,13 +667,89 @@ Cleanups (after cp importer works with all config variants):
 
 can we get everything working with old config format? no!
 
-optimization: add mgm_id to all tables like objgrp, ...
+optimization: add mgm_id to all tables like objgrp, ... ?
 
 disabled in UI:
     recertification.razor
     in report.razor:
     - RSB 
     - TicketCreate Komponente
+
+2024-10-09 planning
+- calculate rule_num_numeric
+- config mapping gateway to rulebase(s)
+    - do not store/use any rulebase names in device table
+    - instead get current config with every import
+    - id for gateway needs to be fixated:
+
+    - check point: 
+        - read interface information from show-gateways-and-servers details-level=full
+        - where to get routing infos?
+        - optional: also get publish time per policy (push):
+            "publish-time" : {
+                    "posix" : 1727978692716,
+                    "iso-8601" : "2024-10-03T20:04+0200"
+                },
+            filter out vswitches?
+
+    - goal:
+        - in device table:
+            - for CP only save policy-name per gateway (gotten from show-gateways-and-servers
+        - in config file storage: 
+            - store all policies with the management rathen than with the gateway?
+            - per gateway only store the ordered mapping gw --> policies
+                - also allow for mapping a gateway to a policy from the manager's super-manager
+
+    - TODO: set is_super_manager flag = true for MDS 
+
+{
+  "ConfigFormat": "NORMALIZED",
+  "ManagerSet": [ 
+    {
+      "ManagerUid": "6ae3760206b9bfbd2282b5964f6ea07869374f427533c72faa7418c28f7a77f2",
+      "ManagerName": "schting2",
+      "IsGlobal": false,
+      "DependantManagerUids": [],
+      "Configs": [
+        {
+          "ConfigFormat": "NORMALIZED_LEGACY",
+          "action": "INSERT",
+          "rules": [
+            {
+              "Uid": "FirstLayer shared with inline layer",
+              "Name": "FirstLayer shared with inline layer",
+              "Rules": {
+                "828b0f42-4b18-4352-8bdf-c9c864d692eb": {
+            }
+          ],
+          "gateways": [
+                Uid: str
+                Name: str
+                Routing: List[dict] = []
+                Interfaces: List[dict]  = []
+                # GlobalPolicyUid: Optional[str] = None
+                "EnforcedPolicyUids": [
+                    "<super-manager-UID>:<super-manager-start-policy-UID>",
+                    "FirstLayer shared with inline layer",
+                    "second-layer",
+                    "<super-manager-UID>:<super-manager-final-policy-UID>",
+                ]
+                EnforcedNatPolicyUids: List[str] = []          
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+
+- config mapping global start rb, local rb, global end rb
+- import inline layers
+- get reports working
+- valentin: open issues for KfW UI problems
+- decide how to implement ordered layer (all must match) vs. e.g. global policies (first match)
+- allow for also importing native configs from file 
+
 
 TODOs after full importer migration
 

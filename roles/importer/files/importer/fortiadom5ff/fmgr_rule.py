@@ -39,6 +39,11 @@ def initializeRulebases(raw_config):
         raw_config.update({'rules_global_nat': {}})
     if 'rules_adom_nat' not in raw_config:
         raw_config.update({'rules_adom_nat': {}})
+    
+    # new in v8.3.1:
+    # initialize hitcounts
+    if 'rules_hitcount' not in raw_config:
+        raw_config.update({'rules_hitcount': {}})
 
 
 def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
@@ -47,7 +52,23 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
 
     local_pkg_name = device['local_rulebase_name']
     global_pkg_name = device['global_rulebase_name']
+    options = ['extra info', 'scope member', 'get meta']
     # pkg_name = device['package_name'] pkg_name is not used at all
+
+    # get hitcount task number
+    hitcount_payload = {
+        "params": [
+            {
+                "data": {
+                    "adom": adom_name,
+                    "pkg": local_pkg_name
+                }
+            }
+        ]
+    }
+    hitcount_task = fmgr_getter.fortinet_api_call(
+        sid, fm_api_url, "/sys/hitcount", payload=hitcount_payload, method="get")
+    time.sleep(2)
 
     # get global header rulebase:
     if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
@@ -60,7 +81,7 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
     
     # get local rulebase
     fmgr_getter.update_config_with_fortinet_api_call(
-        raw_config['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, limit=limit)
+        raw_config['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, options=options, limit=limit)
     fmgr_getter.update_config_with_fortinet_api_call(
         raw_config['rules_adom_v6'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", local_pkg_name, limit=limit)
 
@@ -70,6 +91,19 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
             raw_config['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, limit=limit)
         fmgr_getter.update_config_with_fortinet_api_call(
             raw_config['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
+
+    # execute hitcount task
+    hitcount_payload = {
+        "params": [
+            {
+                "data": {
+                    "taskid": hitcount_task[0]['task']
+                }
+            }
+        ]
+    }
+    fmgr_getter.update_config_with_fortinet_api_call(
+        raw_config['rules_hitcount'], sid, fm_api_url, "/sys/task/result", local_pkg_name, payload=hitcount_payload, limit=limit)
 
 
 def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
@@ -116,7 +150,13 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     rule.update({ 'rule_num': rule_number})
                     if 'name' in rule_orig:
                         rule.update({ 'rule_name': rule_orig['name']})
-                    rule.update({ 'rule_installon': localPkgName })
+                    if 'scope member' in rule_orig:
+                        installon_target = []
+                        for vdom in rule_orig['scope member']:
+                            installon_target.append(vdom['name'] + '_' + vdom['vdom'])
+                        rule.update({ 'rule_installon': '|'.join(installon_target)})
+                    else:
+                        rule.update({ 'rule_installon': localPkgName })
                     rule.update({ 'rule_implied': False })
                     rule.update({ 'rule_time': None })
                     rule.update({ 'rule_type': 'access' })
@@ -138,11 +178,6 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                         rule.update({ 'rule_track': 'None'})
                     else:
                         rule.update({ 'rule_track': 'Log'})
-
-                    if '_last_hit' not in rule_orig or rule_orig['_last_hit'] == 0:
-                        rule.update({ 'last_hit': None})
-                    else:                      	
-                        rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
 
                     rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter, jwt=jwt, import_id=import_id)
@@ -171,11 +206,29 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
                     add_users_to_rule(rule_orig, rule)
 
+                    # new in v8.0.3:
+                    if 'meta fields' in rule_orig:
+                        rule.update({ 'rule_custom_fields': rule_orig['meta fields']})
+                    if '_last-modified-by' in rule_orig:
+                        rule.update({ 'rule_last_change_admin': rule_orig['_last-modified-by']})
+
+                    if rule_table in rule_access_scope_v4 and len(full_config['rules_hitcount'][localPkgName])>0:
+                        for hitcount_config in full_config['rules_hitcount'][localPkgName][0]['firewall policy']:
+                            if rule_orig['policyid'] == hitcount_config['last_hit']:
+                                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
+                    elif rule_table in rule_access_scope_v6 and len(full_config['rules_hitcount'][localPkgName])>0:
+                        for hitcount_config in full_config['rules_hitcount'][localPkgName][0]['firewall policy6']:
+                            if rule_orig['policyid'] == hitcount_config['last_hit']:
+                                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
+                    else:
+                        rule.update({ 'last_hit': None})
+
                     xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, dev_id)
                     rules.append(rule)
                     if xlate_rule is not None:
                         rules.append(xlate_rule)
                     rule_number += 1    # nat rules have their own numbering
+
     config2import.update({'rules': rules})
 
 

@@ -11,10 +11,46 @@ import cp_getter
 from fwo_exception import FwLoginFailed, FwLogoutFailed
 from cp_user import parse_user_objects_from_rulebase
 from fwconfig_base import calcManagerUidHash
-from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
+from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from models.fwconfig_normalized import FwConfigNormalized
 from fwoBaseImport import ImportState
-from fwo_base import ConfFormat, ConfigAction
+from fwo_base import ConfigAction
 import fwo_const
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
+
+
+# objects as well as rules can now be either from super-amanager or from local manager!
+# TODO: decide if we still support importing native config from file
+#   might replace this with json config file (in case it is not deserializable into classes)
+def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigManagerList) -> tuple[int, FwConfigManagerList]:
+    logger = getFwoLogger()
+    logger.debug ( "starting checkpointR8x/get_config" )
+    managers = FwConfigManagerList()
+    managers.ManagerSet.append(FwConfigManager(ManagerUid=importState.MgmDetails.Name, ManagerName=importState.MgmDetails.Name))
+    
+    policies = []
+    if importState.MgmDetails.IsSuperManager:
+        # parse all global objects and policies
+        getObjects(importState, normalizedConfig)
+        getPolicies(importState, normalizedConfig)
+    else:
+        # get all details needed to import necessary policies via CP API
+        getGatewayDetails(importState, normalizedConfig)
+
+        # for local managers - only get and parse policies that are used by gateways which are marked as "do import" 
+        for device in importState.FullMgmDetails['devices']:
+            if not device.do_not_import:
+
+                for policy in package:
+                    if policy not in policies:
+                        normalizedConfig.rules.append(getPolicy(policy))
+                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(policy.name )
+
+
+def getGatewayDetails(importState, normalizedConfig):
+    #run show-package for package-name to get all relevant policies
+    package = cp_api_call(api_v_url, 'show-package', showParams, sid)
 
 
 def has_config_changed (full_config, mgm_details, force=False):
@@ -23,9 +59,7 @@ def has_config_changed (full_config, mgm_details, force=False):
         return 1
 
     domain, _ = prepare_get_vars(mgm_details)
-
     session_id = login_cp(mgm_details, domain)
-
     last_change_time = ''
     if 'import_controls' in mgm_details:
         for importctl in mgm_details['import_controls']: 
@@ -43,9 +77,7 @@ def has_config_changed (full_config, mgm_details, force=False):
     return result
 
 
-
 def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerApiBaseUrl: str) -> int:
-
     logger = getFwoLogger()
     nativeConfig.update({'rulebases': [], 'nat_rulebases': [] })
     show_params_rules = {
@@ -166,7 +198,10 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
         logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
     cp_network.normalize_network_objects(nativeConfig, normalizedConfig, importState.ImportId, mgm_id=importState.MgmDetails.Id)
+    logger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(nativeConfig, normalizedConfig, importState.ImportId)
+    logger.info("completed normalizing service objects")
+
     # TODO: re-add user import
     # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
     if importState.ImportVersion>8:
@@ -175,15 +210,17 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
         normalizedConfig.update({'rules':  cp_rule.normalize_rulebases_top_level(nativeConfig, importState.ImportId, normalizedConfig) })
     if not parsing_config_only: # get config from cp fw mgr
         logout_cp("https://" + importState.MgmDetails.Hostname + ":" + str(importState.FullMgmDetails['port']) + "/web_api/", sid)
+    logger.info("completed normalizing rulebases")
     
     # put dicts into object of class FwConfigManager
-    normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 
-                            network_objects=normalizedConfig['network_objects'],
-                            service_objects=normalizedConfig['service_objects'],
+    normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
+                            network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['network_objects'], 'obj_uid'),
+                            service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['service_objects'], 'svc_uid'),
                             users=normalizedConfig['users'],
                             zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
-                            rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
+                            # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
+                            rules=normalizedConfig['policies'],
                             gateways=normalizedConfig['gateways']
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
@@ -191,9 +228,11 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
                               IsGlobal=False, 
                               DependantManagerUids=[], 
                               Configs=[normalizedConfig])
-    listOfManagers = FwConfigManagerList()
+    # listOfManagers = FwConfigManagerList()
+    listOfManagers = FwConfigManagerListController()
 
     listOfManagers.addManager(manager)
+    logger.info("completed getting config")
     
     return 0, listOfManagers
 

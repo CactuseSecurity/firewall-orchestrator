@@ -1,16 +1,22 @@
 """
     read config from file and convert to non-legacy format (in case of legacy input)
 """
+from typing import List, Any, get_type_hints
+from enum import Enum
 
 import json, requests, requests.packages
 from fwo_log import getFwoLogger
 import fwo_globals
 from fwo_exception import ConfigFileNotFound
 from fwo_api import complete_import
-from fwconfig import FwConfig, FwConfigManagerList, ConfFormat
+from models.fwconfigmanagerlist import FwConfigManagerList
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.fwconfig_controller import FwConfigController
+from models.fwconfig import FwConfig
+from fwconfig_base import ConfFormat
+
 import traceback
 from fwoBaseImport import ImportState
-from fwo_base import serializeDictToClassRecursively
 
 """
     supported input formats:
@@ -75,17 +81,25 @@ from fwo_base import serializeDictToClassRecursively
 
 
 ################# MAIN FUNC #########################
-def readJsonConfigFromFile(importState: ImportState) -> FwConfig:
+def readJsonConfigFromFile(importState: ImportState) -> FwConfigController:
     configJson = readFile(importState)
     config = None
     logger = getFwoLogger()
 
     # now try to convert to config object
     try:
-        configFwConfigManagerList = serializeDictToClassRecursively(configJson, FwConfigManagerList)
-        if len(configFwConfigManagerList.ManagerSet)==0:
+        managerList = FwConfigManagerListController(**configJson)
+
+        # managerList = serializeDictToClassRecursively(configJson, FwConfigManagerList)
+        if len(managerList.ManagerSet)==0:
             logger.warning(f'read a config file without managersets from {importState.ImportFileName}')
-        return configFwConfigManagerList
+        return managerList
+    # except ValidationError as e:
+    #     print("Validation Error:")
+    #     # Print the error details
+    #     for error in e.errors():
+    #         print(f"Field: {error['loc']}, Error: {error['msg']}") 
+
     except: # legacy stuff from here
         logger.info(f"could not serialize config {str(traceback.format_exc())}")
         if 'ConfigFormat' in configJson:
@@ -244,3 +258,49 @@ def convertFromLegacyNormalizedToNormalized(importState: ImportState, configJson
         handleErrorOnConfigFileSerialization(importState, exception=Exception)
     
     return configResult
+
+
+
+def serializeDictToClassRecursively(data: dict, cls: Any) -> Any:
+    try:
+        init_args = {}
+        type_hints = get_type_hints(cls)
+
+        if type_hints == {}:
+            raise ValueError(f"no type hints found, assuming dict '{str(cls)}")
+
+        for field, field_type in type_hints.items():
+
+            if field in data:
+                value = data[field]
+
+                # Handle list types
+                if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+                    inner_type = field_type.__args__[0]
+                    if isinstance(value, list):
+                        init_args[field] = [
+                            serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item
+                            for item in value
+                        ]
+                    else:
+                        raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
+
+                # Handle dictionary (nested objects)
+                elif isinstance(value, dict):
+                    init_args[field] = serializeDictToClassRecursively(value, field_type)
+
+                # Handle Enum types
+                elif isinstance(field_type, type) and issubclass(field_type, Enum):
+                    init_args[field] = field_type[value]
+
+                # Direct assignment for basic types
+                else:
+                    init_args[field] = value
+
+        # Create an instance of the class with the collected arguments
+        return cls(**init_args)
+
+    except (TypeError, ValueError, KeyError) as e:
+        # If an error occurs, return the original dictionary as is
+        return data
+

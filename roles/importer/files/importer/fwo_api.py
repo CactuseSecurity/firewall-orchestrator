@@ -117,9 +117,17 @@ def set_api_url(base_url, testmode, api_supported, hostname):
 
 
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
+    # from 9.0 do not import sub-managers separately
     mgm_query = """
-        query getManagementIds {
-            management(where:{do_not_import:{_eq:false}} order_by: {mgm_name: asc}) { id: mgm_id } } """
+    query getManagementIds {
+        management(where: {multi_device_manager_id: {_is_null: true}, do_not_import: {_eq: false}}, order_by: {is_super_manager: desc}) {
+            id: mgm_id
+            subManager: managementByMultiDeviceManagerId {
+                mgm_id
+            }
+        }
+    }
+    """
     return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management']
 
 
@@ -171,6 +179,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                     name: dev_typ_name
                     version: dev_typ_version
                 }
+                isSuperManager: is_super_manager
                 configPath: config_path
                 domainUid: domain_uid
                 cloudSubscriptionId: cloud_subscription_id
@@ -186,6 +195,9 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                     local_rulebase_name
                     global_rulebase_name
                     package_name
+                }
+                subManager: managementByMultiDeviceManagerId {
+                mgm_id
                 }
                 import_controls(where: { successful_import: {_eq: true} } order_by: {control_id: desc}, limit: 1) {
                     starttime: start_time
@@ -392,11 +404,12 @@ def update_hit_counter(importState, normalizedConfig):
         mutation updateRuleLastHit($mgmId:Int!) {
             update_rule_metadata_many(updates: [
     """
-    for rule in normalizedConfig.rules:
-        if 'last_hit' in rule and rule['last_hit'] is not None:
-            found_hits = True
-            update_expr = '{{ where: {{ device: {{ mgm_id:{{_eq:$mgmId}} }} rule_uid: {{ _eq: "{rule_uid}" }} }}, _set: {{ rule_last_hit: "{last_hit}" }} }}, '.format(rule_uid=rule["rule_uid"], last_hit=rule['last_hit'])
-            last_hit_update_mutation += update_expr
+    for policy in normalizedConfig.rules:
+        for rule in policy.Rules:
+            if 'last_hit' in rule and rule['last_hit'] is not None:
+                found_hits = True
+                update_expr = '{{ where: {{ device: {{ mgm_id:{{_eq:$mgmId}} }} rule_uid: {{ _eq: "{rule_uid}" }} }}, _set: {{ rule_last_hit: "{last_hit}" }} }}, '.format(rule_uid=rule["rule_uid"], last_hit=rule['last_hit'])
+                last_hit_update_mutation += update_expr
 
     last_hit_update_mutation += " ]) { affected_rows } }"
 

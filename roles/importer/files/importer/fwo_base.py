@@ -8,6 +8,7 @@ import ipaddress
 import fwo_globals
 from fwo_const import max_objs_per_chunk, csv_delimiter, apostrophe, line_delimiter
 from fwo_log import getFwoLogger, getFwoAlertLogger
+# from fwconfig_base import Policy
 
 
 class ConfigAction(Enum):

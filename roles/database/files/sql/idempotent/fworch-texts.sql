@@ -1555,6 +1555,8 @@ INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
 INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
 INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
 INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
+INSERT INTO txt VALUES ('owner_appserver_notfound',     'German', 	'Owner für App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appserver_notfound',     'English', 	'Owner for App server not found.');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

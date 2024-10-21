@@ -1,4 +1,5 @@
 ﻿@using FWO.Api.Client
+@using FWO.Api.Client.Data
 @using FWO.Api.Client.Queries
 @using FWO.Api.Data
 @using FWO.Config.File
@@ -132,7 +133,7 @@
                 appServer.AppIPRangeEnd = appServer.AppIPRangeStart;
             }
 
-           await AddAppServerToDb(appServer);
+            await AddAppServerToDb(appServer);
         }
 
         await OnImportSuccess.InvokeAsync();
@@ -149,21 +150,29 @@
             && columns[3] == "App-IP-Address-Range" );
     }
 
+
     private async Task<bool> AddAppServerToDb(CSVAppServerImportModel appServer)
     {
         try
         {
             AppServerType? appServerType = AppServerTypes.First(_ => _.Name == appServer.AppServerTyp);
 
+            List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
+
+            if (ownerIds is null || !ownerIds.Any())
+            {
+                throw new Exception($"{userConfig.GetText("owner_appserver_notfound")} Id: {appServer.AppID}");                
+            }
+
             var Variables = new
             {
                 name = appServer.AppServerName,
-                appId = appServer.AppID,
+                appId = ownerIds.First().Id,
                 ip = appServer.AppIPRangeStart,
                 ipEnd = appServer.AppIPRangeEnd,
                 importSource = GlobalConst.kManual,
                 customType = appServerType.Id
-            };
+            };            
 
             ReturnId[]? returnIds = ( await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
 

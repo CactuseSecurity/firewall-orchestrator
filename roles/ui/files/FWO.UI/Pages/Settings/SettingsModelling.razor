@@ -4,6 +4,7 @@
 @using FWO.Config.Api.Data
 @using System.Text.Json
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Services
 
 @page "/settings/modelling"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]

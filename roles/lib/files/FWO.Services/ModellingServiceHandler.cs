@@ -5,7 +5,7 @@ using FWO.Api.Client.Queries;
 using FWO.GlobalConstants;
 
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class ModellingServiceHandler : ModellingHandlerBase
     {

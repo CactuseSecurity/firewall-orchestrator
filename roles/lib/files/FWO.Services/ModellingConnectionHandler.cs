@@ -10,7 +10,7 @@ using FWO.Middleware.Client;
 using System.Data;
 
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class ModellingConnectionHandler : ModellingHandlerBase
     {

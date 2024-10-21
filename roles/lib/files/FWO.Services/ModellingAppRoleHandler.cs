@@ -9,7 +9,7 @@ using System.Net.Sockets;
 using System.Collections;
 using System.Text.RegularExpressions;
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class ModellingAppRoleHandler : ModellingHandlerBase
     {

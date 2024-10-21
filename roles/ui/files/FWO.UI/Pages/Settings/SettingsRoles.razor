@@ -8,6 +8,7 @@
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
 @using RestSharp
+@using FWO.Services
 
 @page "/settings/roles"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]

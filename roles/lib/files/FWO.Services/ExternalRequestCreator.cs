@@ -8,7 +8,7 @@ using FWO.Tufin.SecureChange;
 using System.Text.Json;
 
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
 	public class ExternalRequestCreator
 	{

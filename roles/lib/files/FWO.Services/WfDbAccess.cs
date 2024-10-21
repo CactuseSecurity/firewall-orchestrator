@@ -3,7 +3,7 @@ using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class WfDbAccess
     {

@@ -5,6 +5,7 @@
 @using System
 @using FWO.Mail
 @using FWO.Encryption
+@using FWO.Services
 
 @page "/settings/email"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]

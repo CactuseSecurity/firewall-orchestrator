@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\..\lib\files\FWO.Encryption\FWO.Encryption.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Recert\FWO.Recert.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Tufin.SecureChange\FWO.Tufin.SecureChange.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
   </ItemGroup>
   
 </Project>

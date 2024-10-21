@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class ModellingHandlerBase
     {

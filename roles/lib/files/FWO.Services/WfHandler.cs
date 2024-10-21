@@ -5,7 +5,7 @@ using FWO.Api.Client.Queries;
 using FWO.Middleware.Client;
 using FWO.Logging;
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public enum ObjAction
     {

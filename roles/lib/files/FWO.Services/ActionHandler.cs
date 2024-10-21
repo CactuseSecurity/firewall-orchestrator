@@ -4,7 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Logging;
 
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class ActionHandler
     {

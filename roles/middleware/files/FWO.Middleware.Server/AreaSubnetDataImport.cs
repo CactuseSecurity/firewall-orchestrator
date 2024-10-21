@@ -121,6 +121,7 @@ namespace FWO.Middleware.Server
             {
                 foreach(var subnet in incomingArea.Subnets)
                 {
+
                     if (String.IsNullOrEmpty(subnet.IpEnd))
                     // we found a subnet - converting to range
                     {

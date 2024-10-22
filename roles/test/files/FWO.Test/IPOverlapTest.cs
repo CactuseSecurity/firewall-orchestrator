@@ -14,37 +14,33 @@ namespace FWO.Test
         public void TestIPOverlaps()
         {
             List<string> areaIPs = [
+                "2001:db8::1-2001:db8::4",
                 "1.2.3.0/24",
                 "2.2.2.2",
                 "3.3.3.3-3.3.3.4",
                 "10.121.254.128/27",
-                "10.122.28.1/23",
                 "172.0.0.0/7",
-                "10.0.0.0/7"
                 ];
 
             List<string> ipsShouldOverlap = [
+                "2001:db8::3",
                 "1.2.3.0/24",
                 "2.2.2.2",
                 "3.3.3.3-3.3.3.4",
                 "10.121.254.128/27",
-                "10.122.28.1/23",
                 "172.0.0.0/7",
-                "10.0.0.0/7"
                 ];
 
             List<string> ipsShouldNotOverlap = [
+                "2001:db8::",
                 "1.2.2.0/24",
-                "2.2.2.0",
-                "3.3.2.3-3.3.2.4",
-                "10.121.253.128/27",
-                "10.122.25.1/23",
-                "169.0.0.0/7",
-                "9.0.0.0/7"
+                "1.1.1.1",
+                "2.1.1.1-2.1.1.4",
+                "9.0.254.128/27",
+                "171.0.0.0/7",
              ];
 
             int ipsThatOverlapped = 0;
-            int ipsThatNotOverlapped = 0;
 
             foreach (var subnet in areaIPs)
             {
@@ -54,10 +50,6 @@ namespace FWO.Test
                     {
                         ipsThatOverlapped++;
                     }
-                    else
-                    {
-                        ipsThatNotOverlapped++;
-                    }
                 }
 
                 foreach (var ipNotOverlap in ipsShouldNotOverlap)
@@ -66,15 +58,10 @@ namespace FWO.Test
                     {
                         ipsThatOverlapped++;
                     }
-                    else
-                    {
-                        ipsThatNotOverlapped++;
-                    }
                 }
             }
 
             Assert.That(Is.Equals(ipsThatOverlapped, ipsShouldOverlap.Count));
-            Assert.That(Is.Equals(ipsThatNotOverlapped, ipsShouldNotOverlap.Count));
         }
 
         private bool OverlapExists(IPAddressRange a, IPAddressRange b)

@@ -301,7 +301,7 @@ namespace FWO.GlobalConstants
                     }
                 }
                 return cidr_str;
-            }
+            }           
         }
     }
     public static class Extensions
@@ -363,6 +363,6 @@ namespace FWO.GlobalConstants
 
             return false;
         }
-    }
+    }   
 }
 

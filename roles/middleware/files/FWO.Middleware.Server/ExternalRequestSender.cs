@@ -123,12 +123,10 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				// string oldState = new(request.ExtRequestState);
 				(request.ExtRequestState, request.LastMessage) = await PollState(request);
-				// if(request.ExtRequestState != oldState)
-				// {
-					await UpdateRequestProcess(request);
-				// }
+				await UpdateRequestProcess(request);
+				ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+				await extReqHandler.HandleStateChange(request);
 			}
 			catch(Exception exception)
 			{

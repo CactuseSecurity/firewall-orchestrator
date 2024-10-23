@@ -91,11 +91,15 @@ namespace FWO.Services
 
         private ObjAction contOption = ObjAction.display;
         private bool InitOngoing = false;
+        private bool usedInMwServer = false;
 
 
         public WfHandler()
         {}
 
+		/// <summary>
+		/// constructor for use in UI
+		/// </summary>
         public WfHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, 
             System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient, WorkflowPhases phase)
         {
@@ -107,6 +111,19 @@ namespace FWO.Services
             AuthUser = authUser;
         }
 
+		/// <summary>
+		/// constructor for use in middleware server
+		/// </summary>
+        public WfHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig,
+            ApiConnection apiConnection, WorkflowPhases phase)
+        {
+            DisplayMessageInUi = displayMessageInUi;
+            this.userConfig = userConfig;
+            this.apiConnection = apiConnection;
+            Phase = phase;
+            usedInMwServer = true;
+        }
+
 
         public async Task Init(List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
         {
@@ -116,7 +133,14 @@ namespace FWO.Services
                 {
                     InitOngoing = true;
                     ActionHandler = new (apiConnection, this);
-                    apiConnection.SetProperRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor]);
+                    if(usedInMwServer)
+                    {
+                        apiConnection.SetRole(Roles.MiddlewareServer);
+                    }
+                    else
+                    {
+                        apiConnection.SetProperRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor]);
+                    }
                     await ActionHandler.Init();
                     dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);

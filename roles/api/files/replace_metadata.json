@@ -5151,6 +5151,29 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "ext_query_variables",
+                      "ext_request_content",
+                      "ext_request_state",
+                      "ext_request_type",
+                      "ext_ticket_id",
+                      "ext_ticket_system",
+                      "last_creation_response",
+                      "last_processing_response",
+                      "owner_id",
+                      "task_number",
+                      "create_date",
+                      "finish_date"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -5247,10 +5270,20 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "id",
+                      "ticket_id",
+                      "ext_query_variables",
+                      "ext_request_content",
                       "ext_request_state",
+                      "ext_request_type",
                       "ext_ticket_id",
+                      "ext_ticket_system",
                       "last_creation_response",
-                      "last_processing_response"
+                      "last_processing_response",
+                      "owner_id",
+                      "task_number",
+                      "create_date",
+                      "finish_date"
                     ],
                     "filter": {},
                     "check": null
@@ -9493,18 +9526,6 @@
                   }
                 },
                 {
-                  "name": "ext_requests",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "owner_id",
-                      "table": {
-                        "name": "ext_request",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {                  
                   "name": "connectionsByProposedAppId",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9512,6 +9533,18 @@
                       "table": {
                         "name": "connection",
                         "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "ext_requests",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "ext_request",
+                        "schema": "public"
                       }
                     }
                   }
@@ -12720,6 +12753,17 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -20455,6 +20499,24 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "action_type",
+                      "button_text",
+                      "event",
+                      "external_parameters",
+                      "name",
+                      "phase",
+                      "scope",
+                      "task_type",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -20730,6 +20792,28 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -20949,6 +21033,17 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -21205,6 +21300,21 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -21613,6 +21723,31 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -22071,6 +22206,36 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -22397,6 +22562,17 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -22618,6 +22794,32 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "device_id",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -23036,6 +23238,40 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "additional_info",
+                      "assigned_group",
+                      "devices",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "mgm_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -23389,6 +23625,17 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -23541,6 +23788,17 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -23631,6 +23889,17 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -23878,6 +24147,32 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -24185,6 +24480,17 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",

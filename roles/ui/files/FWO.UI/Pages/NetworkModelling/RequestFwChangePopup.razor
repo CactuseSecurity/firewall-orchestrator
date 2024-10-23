@@ -1,11 +1,14 @@
 ﻿@using FWO.Config.Api
 @using FWO.Middleware.Client
+@using FWO.Middleware.RequestParameters
 @using FWO.Api.Data
 @using FWO.Tufin.SecureChange
 @using FWO.Report
 @using System.Text.Json.Serialization
 @using Newtonsoft.Json
 @using FWO.Services
+@using System.Net
+@using RestSharp
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -211,7 +214,6 @@
                         TaskType = WfTaskType.access.ToString(),
                         ManagementId = mgt.Id,
                         OnManagement = mgt,
-                        StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
                         Elements = elements
                     });
                 }
@@ -223,6 +225,8 @@
         foreach(var task in TaskList)
         {
             task.TaskNumber = taskNumber++;
+            task.Owners = [new (){ Owner = SelectedApp }];
+            task.StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0;
         }
     }
 
@@ -424,7 +428,6 @@
             Title = newAppRoleText + appRole.IdString,
             TaskType = WfTaskType.group_create.ToString(),
             RequestAction = RequestAction.create.ToString(),
-            StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
             ManagementId = mgt.Id,
             OnManagement = mgt,
             Elements = groupMembers,
@@ -445,7 +448,6 @@
                 Title = updateAppRoleText + appRole.IdString + addMembersText,
                 TaskType = WfTaskType.group_modify.ToString(),
                 RequestAction = RequestAction.modify.ToString(),
-                StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
                 ManagementId = mgt.Id,
                 OnManagement = mgt,
                 Elements = newGroupMembers,
@@ -460,7 +462,6 @@
                 Title = updateAppRoleText + appRole.IdString + removeMembersText,
                 TaskType = WfTaskType.group_modify.ToString(),
                 RequestAction = RequestAction.modify.ToString(),
-                StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
                 ManagementId = mgt.Id,
                 OnManagement = mgt,
                 Elements = deletedGroupMembers,
@@ -597,7 +598,6 @@
         {
             Title = newServiceGroupText + svcGrp.Name,
             TaskType = WfTaskType.group_create.ToString(),
-            StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0,
             ManagementId = mgt.Id,
             OnManagement = mgt,
             Elements = groupMembers,
@@ -719,7 +719,6 @@
             {
                 RequestInProcess = true;
                 TaskList = intTicket.Tasks;
-                // await SetModellingVersion();
                 await SaveTicketId(intTicket.Id);
                 await CreateExtRequests(intTicket);
             }
@@ -730,18 +729,6 @@
         }
         WorkInProgress = false;
     }
-
-    @* private async Task SetModellingVersion()
-    {
-        try
-        {
-            // todo: set a version number / fix point(?) to actual modelling
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
-        }
-    } *@
 
     private async Task SaveTicketId(long ticketId)
     {
@@ -759,8 +746,16 @@
     {
         try
         {
-            ExternalRequestCreator extTicketCreator = new(SelectedApp, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient);
-            await extTicketCreator.Run(intTicket);
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.AddExternalRequest(new ExternalRequestParameters(){ TicketId = intTicket.Id });
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("request_fw_change"), userConfig.GetText("E9101"), true);
+                Log.WriteError("CreateExtRequest", $"Could not create External Request for Ticket {intTicket.Id.ToString()}.");
+            }
+            else
+            {
+                Log.WriteDebug("CreateExtRequest", $"External Request for Ticket {intTicket.Id.ToString()} created.");
+            }
         }
         catch (Exception exception)
         {

@@ -1,6 +1,17 @@
 # this playbook sets up some sample devices with configs to play around with
 # postgresql-client
 
+- name: remove test dir
+  file:
+    state: absent
+    path: "{{ fworch_home }}/importer"
+  when: installation_mode == "upgrade"
+
+- name: create or re-create test dir
+  file:
+    state: dir
+    path: "{{ fworch_home }}/importer"
+
 - name: install packages necessary for testing
   package:
     name: "{{ item }}"

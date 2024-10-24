@@ -91,7 +91,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                AreaSubnetDataImport import = new AreaSubnetDataImport(apiConnection, globalConfig);
+                AreaIpDataImport import = new AreaIpDataImport(apiConnection, globalConfig);
                 if(!await import.Run())
                 {
                     throw new Exception("Area Subnet Import failed.");

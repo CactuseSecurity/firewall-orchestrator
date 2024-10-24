@@ -4,7 +4,7 @@ query getAreas {
     name
     id_string
     is_deleted
-    subnets: nwobject_nwgroups{
+    ip_data: nwobject_nwgroups{
       owner_network{
         id
         name

@@ -98,7 +98,7 @@ namespace FWO.Ui.Services
                     ActAppServer.Ip += "/32";
                 }              
 
-                (string Start, string End) ip = ip = GlobalFunc.IpOperations.CidrToRangeString(ActAppServer.Ip);
+                (string Start, string End) ip = ip = ActAppServer.Ip.CidrToRangeString();
 
                 var Variables = new
                 {

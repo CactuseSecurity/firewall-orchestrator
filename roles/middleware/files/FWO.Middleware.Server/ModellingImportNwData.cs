@@ -34,16 +34,16 @@ namespace FWO.Middleware.Server
         public string IdString { get; set; } = "";
 
         /// <summary>
-        /// List of all associated Subnets
+        /// List of all associated ip data
         /// </summary>
         [JsonProperty("subnets"), JsonPropertyName("subnets")]
-        public List<ModellingImportAreaSubnets> Subnets { get; set; } = [];
+        public List<ModellingImportAreaIpData> IpData { get; set; } = [];
     }
     
     /// <summary>
-    /// Structure for imported Area Subnets 
+    /// Structure for imported Area Ip Data 
     /// </summary>
-    public class ModellingImportAreaSubnets
+    public class ModellingImportAreaIpData
     {
         /// <summary>
         /// Area Subnet Name

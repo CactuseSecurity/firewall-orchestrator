@@ -1,5 +1,6 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 

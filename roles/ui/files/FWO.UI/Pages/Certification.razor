@@ -8,6 +8,7 @@
 @using FWO.GlobalConstants
 @using FWO.Api.Data
 @using FWO.Middleware.Client
+@using FWO.Services
 
 @page "/certification"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")]

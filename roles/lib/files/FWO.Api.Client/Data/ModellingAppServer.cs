@@ -60,18 +60,20 @@ namespace FWO.Api.Data
         public ModellingAppServer()
         {}
 
-        public ModellingAppServer(ModellingAppServer appServer)
+        public ModellingAppServer(ModellingAppServer appServer) : base(appServer)
         {
-            Id = appServer.Id;
-            Number = appServer.Number;
-            AppId = appServer.AppId;
-            Name = appServer.Name;
-            IsDeleted = appServer.IsDeleted;
             Ip = appServer.Ip;
             IpEnd = appServer.IpEnd;
             ImportSource = appServer.ImportSource;
             InUse = appServer.InUse;
             CustomType = appServer.CustomType;
+        }
+
+        public ModellingAppServer(NetworkObject nwObj)  : base(nwObj)
+        {
+            Ip = nwObj.IP;
+            IpEnd = nwObj.IpEnd;
+            CustomType = 0;
         }
 
         public override bool Equals(object? obj)

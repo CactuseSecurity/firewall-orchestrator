@@ -239,6 +239,13 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
+        public async Task<RestResponse<bool>> AddExternalRequest(ExternalRequestParameters parameters)
+        {
+            RestRequest request = new ("ExternalRequest", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<bool>(request);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposed) return;

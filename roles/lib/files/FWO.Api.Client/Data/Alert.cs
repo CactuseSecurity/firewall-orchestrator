@@ -27,7 +27,9 @@ namespace FWO.Api.Data
         ImportAppData = 41,
         ImportAreaSubnetData = 42,
 
-        ImportChangeNotify = 51
+        ImportChangeNotify = 51,
+
+        ExternalRequest = 61
     }
 
     public class Alert

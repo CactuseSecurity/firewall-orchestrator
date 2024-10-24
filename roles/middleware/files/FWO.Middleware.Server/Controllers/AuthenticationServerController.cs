@@ -2,14 +2,13 @@
 using FWO.Api.Client;
 using FWO.Api.Data;
 using FWO.Logging;
-using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.RequestParameters;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
-namespace FWO.Middleware.Controllers
+namespace FWO.Middleware.Server.Controllers
 {
     /// <summary>
     /// Controller for Ldap administration

@@ -6,7 +6,7 @@ using FWO.Middleware.Client;
 using FWO.Middleware.RequestParameters;
 using RestSharp;
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class GroupAccess
     {

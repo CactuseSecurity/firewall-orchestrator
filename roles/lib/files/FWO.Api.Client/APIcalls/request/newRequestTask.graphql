@@ -12,6 +12,7 @@ mutation newRequestTask(
   $reason: String
   $additionalInfo: String
   $freeText: String
+  $managementId: Int
   ) {
   insert_request_reqtask(objects: {
     title: $title
@@ -27,6 +28,7 @@ mutation newRequestTask(
     reason: $reason
     additional_info: $additionalInfo
     free_text: $freeText
+    mgm_id: $managementId
   }) {
     returning {
       newId: id

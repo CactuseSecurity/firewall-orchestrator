@@ -1,6 +1,7 @@
 ﻿@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
+@using FWO.Services
 
 @page "/settings/defaults"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -129,8 +130,8 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
             <div class="col-sm-4">
                 <div class="row">
-                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="startTime" />
-                    <input type="date" class="col-sm-5" @bind="startDate" />
+                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="autoDiscStartTime" />
+                    <input type="date" class="col-sm-5" @bind="autoDiscStartDate" />
                 </div>
             </div>
         </div>
@@ -199,8 +200,8 @@ else
 
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
-    private DateTime startDate = DateTime.Today;
-    private DateTime startTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private DateTime autoDiscStartDate = DateTime.Today;
+    private DateTime autoDiscStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
     protected override async Task OnInitializedAsync()
     {
@@ -208,7 +209,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
-            startDate = startTime = configData.AutoDiscoverStartAt;
+            autoDiscStartDate = autoDiscStartTime = configData.AutoDiscoverStartAt;
         }
         catch (Exception exception)
         {
@@ -224,7 +225,7 @@ else
             {
                 configData.WelcomeMessage = SanitizeHtml(configData!.WelcomeMessage);
                 configData.DefaultLanguage = selectedLanguage.Name;
-                configData.AutoDiscoverStartAt = startDate.Date.Add(startTime.TimeOfDay);
+                configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

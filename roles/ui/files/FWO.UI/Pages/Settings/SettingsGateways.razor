@@ -4,6 +4,7 @@
 @using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.Middleware.Client
+@using FWO.Services
 
 @page "/settings/gateways"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]

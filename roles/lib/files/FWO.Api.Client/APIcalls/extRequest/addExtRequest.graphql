@@ -1,0 +1,25 @@
+mutation addExtRequest(
+  $ownerId: Int!
+  $ticketId: bigint!
+  $taskNumber: Int!
+  $extTicketSystem: String!
+  $extTaskType: String!
+  $extTaskContent: String!
+  $extQueryVariables: String
+  $extRequestState: String!
+  ) {
+  insert_ext_request(objects: {
+    owner_id: $ownerId
+    ticket_id: $ticketId
+    task_number: $taskNumber
+  	ext_ticket_system: $extTicketSystem
+  	ext_request_type: $extTaskType
+  	ext_request_content: $extTaskContent
+  	ext_query_variables: $extQueryVariables
+  	ext_request_state: $extRequestState
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

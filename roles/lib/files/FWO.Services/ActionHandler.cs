@@ -4,7 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Logging;
 
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class ActionHandler
     {
@@ -288,17 +288,17 @@ namespace FWO.Ui.Services
             {
                 Log.WriteDebug("DisplayConnection", "Perform Action");
                 await SetScope(statefulObject, scope);
-                WfReqTask? reqTask = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                WfReqTask? reqTask = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
                 if(reqTask != null)
                 {
                     wfHandler.SetReqTaskEnv(reqTask);
                 }
                 FwoOwner? owner = wfHandler.ActReqTask.Owners?.First()?.Owner;
-                if(owner != null && wfHandler.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
+                if(owner != null && wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
                 {
                     apiConnection.SetProperRole(wfHandler.AuthUser, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
-                    ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
+                    ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
                     if(conn != null)
                     {
                         ConnHandler = new ModellingConnectionHandler(apiConnection, wfHandler.userConfig, owner ?? new(), Connections, conn, false, true, DefaultInit.DoNothing, DefaultInit.DoNothing, false);

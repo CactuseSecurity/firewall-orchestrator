@@ -1,0 +1,13 @@
+mutation addTicketId(
+  $ownerId: Int!
+  $ticketId: bigint!
+  ) {
+  insert_owner_ticket(objects: {
+    owner_id: $ownerId
+    ticket_id: $ticketId
+  }) {
+    returning {
+      ticket_id
+    }
+  }
+}

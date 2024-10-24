@@ -1,0 +1,14 @@
+mutation updateExtRequestFinal(
+  $id: bigint!
+  $extRequestState: String!
+  $finishDate: timestamp
+  ) {
+  update_ext_request_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      ext_request_state: $extRequestState
+      finish_date: $finishDate
+  }) {
+    UpdatedId: id
+  }
+}

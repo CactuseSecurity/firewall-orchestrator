@@ -1,12 +1,11 @@
 ﻿using FWO.Api.Data;
 using FWO.Logging;
 using FWO.Middleware.RequestParameters;
-using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
 
-namespace FWO.Middleware.Controllers
+namespace FWO.Middleware.Server.Controllers
 {
     /// <summary>
 	/// Controller class for tenant api
@@ -36,8 +35,8 @@ namespace FWO.Middleware.Controllers
         {
             try
             {
-                ConcurrentBag<GroupGetReturnParameters> allGroups = new ConcurrentBag<GroupGetReturnParameters>();
-                List<Task> ldapGroupRequests = new List<Task>();
+                ConcurrentBag<GroupGetReturnParameters> allGroups = [];
+                List<Task> ldapGroupRequests = [];
 
                 foreach (Ldap currentLdap in ldaps)
                 {
@@ -78,7 +77,7 @@ namespace FWO.Middleware.Controllers
         public async Task<string> Create([FromBody] GroupAddDeleteParameters parameters)
         {
             string groupDn = "";
-            List<Task> workers = new List<Task>();
+            List<Task> workers = [];
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -117,7 +116,7 @@ namespace FWO.Middleware.Controllers
         public async Task<bool> Delete([FromBody] GroupAddDeleteParameters parameters)
         {
             bool groupDeleted = false;
-            List<Task> workers = new List<Task>();
+            List<Task> workers = [];
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -155,7 +154,7 @@ namespace FWO.Middleware.Controllers
         public async Task<string> Edit([FromBody] GroupEditParameters parameters)
         {
             string groupUpdatedDn = "";
-            List<Task> workers = new List<Task>();
+            List<Task> workers = [];
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -192,7 +191,7 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<List<string>> Get([FromBody] GroupGetParameters parameters)
         {
-            List<string> allGroups = new List<string>();
+            List<string> allGroups = [];
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -225,7 +224,7 @@ namespace FWO.Middleware.Controllers
         public async Task<bool> AddUser([FromBody] GroupAddDeleteUserParameters parameters)
         {
             bool userAdded = false;
-            List<Task> workers = new List<Task>();
+            List<Task> workers = [];
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -263,7 +262,7 @@ namespace FWO.Middleware.Controllers
         public async Task<bool> RemoveUser([FromBody] GroupAddDeleteUserParameters parameters)
         {
             bool userRemoved = false;
-            List<Task> workers = new List<Task>();
+            List<Task> workers = [];
 
             foreach (Ldap currentLdap in ldaps)
             {

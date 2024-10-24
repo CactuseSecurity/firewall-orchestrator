@@ -113,7 +113,7 @@ namespace FWO.Api.Data
         {
             if (input!=null)
             {
-                 return SanitizeCommentMand(input, ref shortened);
+                return SanitizeCommentMand(input, ref shortened);
             }
             else return null;
         }
@@ -131,7 +131,6 @@ namespace FWO.Api.Data
                         shortened = true;
                     }
                 }
-
             }
             return output;
         }
@@ -154,6 +153,27 @@ namespace FWO.Api.Data
                 return SanitizeCidrMand(input, ref shortened);
             }
             else return null;
+        }
+
+        public static string SanitizeJsonMand(string input, ref bool shortened)
+        {
+            string output = Regex.Replace(input, @"[^\S ]", "").Trim();
+            if(output.Length < input.Length)
+            {
+                shortened = true;
+            }
+            return output;
+        }
+
+        // not allowed: +*(){}[]?!#<>=,;'\"'/\\\t@$%^|&~
+        public static string SanitizeJsonFieldMand(string input, ref bool changed)
+        {
+            string output = Regex.Replace(input.Trim(), @"[\+\*\(\)\{\}\[\]\?\!#<>\=\,\;\/\\\t@\$\%\^\|\&\~ ]", "_");
+            if(output != input)
+            {
+                changed = true;
+            }
+            return output;
         }
     }
 }

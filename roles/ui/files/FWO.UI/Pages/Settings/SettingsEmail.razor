@@ -5,6 +5,7 @@
 @using System
 @using FWO.Mail
 @using FWO.Encryption
+@using FWO.Services
 
 @page "/settings/email"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -193,7 +194,7 @@
             DisplayMessageInUi(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (actEmailConnection.Port < 1 || actEmailConnection.Port > 65535)
+        if (actEmailConnection.Port < 1 || actEmailConnection.Port > GlobalConst.kMaxPortNumber)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5103"), true);
             return false;

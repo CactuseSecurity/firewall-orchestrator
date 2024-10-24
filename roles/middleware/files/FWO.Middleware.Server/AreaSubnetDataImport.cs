@@ -150,14 +150,14 @@ namespace FWO.Middleware.Server
 
         private ModellingImportAreaData MergeArea(ModellingImportAreaData area1, ModellingImportAreaData area2)
         {
-            bool found = false;
             ModellingImportAreaData resultArea = area1; // make a copy of area1 including all subnets
 
-            foreach (ModellingImportAreaSubnets subnet in area2.Subnets)
+            foreach (ModellingImportAreaSubnets ipRange in area2.Subnets)
             {
-                foreach (var subnetExisting in area1.Subnets)
+                bool found = false;
+                foreach (var existingIpRange in area1.Subnets)
                 {
-                    if (subnet.Ip == subnetExisting.Ip && subnet.IpEnd == subnetExisting.IpEnd)
+                    if (ipRange.Ip == existingIpRange.Ip && ipRange.IpEnd == existingIpRange.IpEnd)
                     {
                         found = true;
                         break;
@@ -165,7 +165,7 @@ namespace FWO.Middleware.Server
                 }
                 if (!found)
                 {
-                    resultArea.Subnets.Add(subnet);
+                    resultArea.Subnets.Add(ipRange);
                 }
             }
             return resultArea;
@@ -173,10 +173,7 @@ namespace FWO.Middleware.Server
 
         private ModellingImportNwData MergeNetworkData(List<ModellingImportNwData> AllNwData)
         {
-            ModellingImportNwData mergedNwData = new()
-            {
-                Areas = []
-            };
+            ModellingImportNwData mergedNwData = new();
 
             foreach (ModellingImportNwData nwData in AllNwData)
             {

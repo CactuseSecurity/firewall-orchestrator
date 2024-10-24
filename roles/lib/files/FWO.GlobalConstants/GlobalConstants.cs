@@ -312,10 +312,24 @@ namespace FWO.GlobalConstants
 
             output = "";
 
-            if (splits.Length == 0 || splits.Length < index + 1)
+            if (splits.Length < 2 || splits.Length < index + 1)
                 return false;
 
             output = splits[index];
+
+            return true;
+        }
+
+        public static bool TrySplit(this string text, char separator, out int length)
+        {
+            string[] splits = text.Split(separator);
+
+            length = 0;
+
+            if (splits.Length < 2)
+                return false;
+
+            length = splits.Length;
 
             return true;
         }

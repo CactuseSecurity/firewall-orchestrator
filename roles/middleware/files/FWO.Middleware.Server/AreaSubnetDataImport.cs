@@ -31,17 +31,17 @@ namespace FWO.Middleware.Server
         /// </summary>
         public async Task<bool> Run()
         {
-            if (!RunImportScript(globalConfig.ImportSubnetDataPath + ".py"))
-            {
-                Log.WriteInfo("Import Area Subnet Data", $"Script {globalConfig.ImportSubnetDataPath}.py failed but trying to import from existing file.");
-            }
-
             List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new Exception("Config Data could not be deserialized.");
 
             List<ModellingImportNwData> AllNwData = [];
 
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
+                if (!RunImportScript(importfilePathAndName + ".py"))
+                {
+                    Log.WriteInfo("Import Area Subnet Data", $"Script {globalConfig.ImportSubnetDataPath}.py failed but trying to import from existing file.");
+                }
+
                 try
                 {
                     ReadFile(importfilePathAndName + ".json");

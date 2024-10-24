@@ -39,8 +39,8 @@ namespace FWO.Test
 
         static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", Subnets =
         [
-            new(){ Content = new(){ Name = "Testsubnet1", Ip = "10.0.0.0/24", IpEnd = "10.0.0.0/24" }},
-            new(){ Content = new(){ Name = "Testsubnet2", Ip = "11.0.0.0/30", IpEnd = "11.0.0.0/30" }}
+            new(){ Content = new(){ Name = "Testsubnet1", Ip = "10.0.0.0/32", IpEnd = "10.0.0.255/32" }},
+            new(){ Content = new(){ Name = "Testsubnet2", Ip = "11.0.0.0/32", IpEnd = "11.0.0.3/32" }}
         ]};
 
         static readonly ModellingNamingConvention NamingConvention1 = new()

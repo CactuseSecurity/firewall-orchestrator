@@ -13,7 +13,7 @@ namespace FWO.Middleware.Server
         /// List of all Areas
         /// </summary>
         [JsonProperty("areas"), JsonPropertyName("areas")]
-        public List<ModellingImportAreaData>? Areas { get; set; }
+        public List<ModellingImportAreaData>? Areas { get; set; }= [];
     }
 
     /// <summary>
@@ -37,7 +37,7 @@ namespace FWO.Middleware.Server
         /// List of all associated Subnets
         /// </summary>
         [JsonProperty("subnets"), JsonPropertyName("subnets")]
-        public List<ModellingImportAreaSubnets> Subnets { get; set; } = new();
+        public List<ModellingImportAreaSubnets> Subnets { get; set; } = [];
     }
     
     /// <summary>

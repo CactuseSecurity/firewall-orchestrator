@@ -35,30 +35,34 @@ namespace FWO.Middleware.Server
 
             List<ModellingImportNwData> AllNwData = [];
 
+            // iterate over all files
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
                 if (!RunImportScript(importfilePathAndName + ".py"))
                 {
-                    Log.WriteInfo("Import Area Subnet Data", $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
+                    Log.WriteInfo("Import Area Network Data", $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
                 }
 
                 try
                 {
+                    Log.WriteInfo("Importing Area Network Data from file ", $"Script {importfilePathAndName}.json.");
                     ReadFile(importfilePathAndName + ".json");
                     ModellingImportNwData? nwData = Import();
 
-                    if (nwData is null)
-                        continue;
+                    if (nwData != null)
+                    {
+                        AllNwData.Add(ConvertNwDataToRanges(nwData));
+                    }
 
-                    AllNwData.Add(nwData);
                 }
                 catch (Exception ex)
                 {
-                    Log.WriteError("Import Subnet Data", $"Import could not be processed.", ex);
+                    Log.WriteError("Import Network Data", $"Import could not be processed.", ex);
                 }
             }
 
-            ModellingImportNwData mergedNwData = MergeAreas(AllNwData);
+            // merge all data into a single list of areas
+            ModellingImportNwData mergedNwData = MergeNetworkData(AllNwData);
 
             if (mergedNwData != null && mergedNwData.Areas != null)
             {
@@ -66,9 +70,8 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                Log.WriteInfo("Import Area Subnet Data", $"No subnet/host/range Data found in {importFile} No changes done.");
+                Log.WriteInfo("Import Area Network Data", $"No valid network data found in any of the following import files {importfilePathAndNames}. No changes were made.");
             }
-
 
             return true;
         }
@@ -80,10 +83,10 @@ namespace FWO.Middleware.Server
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
+            existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getAreas);
 
             foreach (ModellingImportAreaData area in mergedNwData.Areas)
             {
-                existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getAreas);
                 foreach (ModellingImportAreaData incomingArea in mergedNwData.Areas)
                 {
                     if (await SaveArea(incomingArea))
@@ -111,10 +114,64 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            Log.WriteInfo("Import Area Subnet Data", $"Imported {successCounter} subnets/hosts/ranges, {failCounter} failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
+            Log.WriteInfo("Import Area Subnet Data", $"Imported {successCounter} area successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
         }
 
-        private ModellingImportNwData MergeAreas(List<ModellingImportNwData> AllNwData)
+        private List<ModellingImportNwData> ConvertNwDataListToRanges(List<ModellingImportNwData> AllNwData)
+        {
+            List<ModellingImportNwData> result = [];
+            foreach (ModellingImportNwData nwData in AllNwData)
+            {
+                result.Add(ConvertNwDataToRanges(nwData));
+            }
+            return result;
+
+        }
+        private ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
+        {
+            ModellingImportNwData result = new();
+
+            foreach (ModellingImportAreaData area in nwData.Areas)
+            {
+                ConvertAreaToRanges(area);
+                result.Areas.Add(area);
+            }
+            return result;
+        }
+
+        private void ConvertAreaToRanges(ModellingImportAreaData area)
+        {
+            for (int i = area.Subnets.Count - 1; i >= 0; i--)
+            {
+                ModellingImportAreaSubnets? newSubnet = ConvertSubnet(area.Subnets[i]);
+                area.Subnets[i] = newSubnet;
+            }
+        }
+
+        private ModellingImportAreaData MergeArea(ModellingImportAreaData area1, ModellingImportAreaData area2)
+        {
+            bool found = false;
+            ModellingImportAreaData resultArea = area1; // make a copy of area1 including all subnets
+
+            foreach (ModellingImportAreaSubnets subnet in area2.Subnets)
+            {
+                foreach (var subnetExisting in area1.Subnets)
+                {
+                    if (subnet.Ip == subnetExisting.Ip && subnet.IpEnd == subnetExisting.IpEnd)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    resultArea.Subnets.Add(subnet);
+                }
+            }
+            return resultArea;
+        }
+
+        private ModellingImportNwData MergeNetworkData(List<ModellingImportNwData> AllNwData)
         {
             ModellingImportNwData mergedNwData = new()
             {
@@ -125,46 +182,20 @@ namespace FWO.Middleware.Server
             {
                 foreach (ModellingImportAreaData area in nwData.Areas)
                 {
-                    for (int i = area.Subnets.Count - 1; i >= 0; i--)
-                    {
-                        ModellingImportAreaSubnets? newSubnet = ConvertSubnet(area.Subnets[i]);
-                        area.Subnets[i] = newSubnet;
-                    }
-                }
-            }
-
-            foreach (ModellingImportNwData nwData in AllNwData)
-            {
-                foreach (ModellingImportAreaData area in nwData.Areas)
-                {
-                    ModellingImportAreaData? mergeNwData = mergedNwData.Areas.FirstOrDefault(_ => _.IdString == area.IdString);
-                    if (mergeNwData is null)
+                    // find the current area in the merged data
+                    ModellingImportAreaData? existingArea = mergedNwData.Areas.FirstOrDefault(_ => _.IdString == area.IdString);
+                    if (existingArea is null)
                     {
                         mergedNwData.Areas.Add(area);
                     }
                     else
                     {
-                        bool found = false;
-                        ModellingImportAreaData? newArea = new();
-                        foreach (ModellingImportAreaSubnets subnet in area.Subnets)
-                        {
-                            foreach (var subnetExisting in mergeNwData.Subnets)
-                            {
-                                if (subnet.Ip == subnetExisting.Ip || subnet.IpEnd == subnetExisting.IpEnd)
-                                {
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found)
-                            {
-                                area.Subnets.Add(subnet);
-                            }
-                        }
+                        // replace the existing area with a merge of existing and newly found
+                        mergedNwData.Areas.Remove(existingArea);
+                        mergedNwData.Areas.Add(MergeArea(existingArea, area));
                     }
                 }
             }
-
             return mergedNwData;
         }
 
@@ -213,22 +244,22 @@ namespace FWO.Middleware.Server
                 idString = incomingArea.IdString,
                 creator = GlobalConst.kImportAreaSubnetData
             };
-            ReturnId[]? areaIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newArea, AreaVar) ).ReturnIds;
+            ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newArea, AreaVar)).ReturnIds;
             if (areaIds != null)
             {
                 foreach (var subnet in incomingArea.Subnets)
                 {
-                    ModellingImportAreaSubnets parsedSubnet = ConvertSubnet(subnet);
+                    // ModellingImportAreaSubnets parsedSubnet = ConvertSubnet(subnet);
 
                     var SubnetVar = new
                     {
-                        name = parsedSubnet.Name,
-                        ip = parsedSubnet.Ip,
-                        ipEnd = parsedSubnet.IpEnd,
+                        name = subnet.Name,
+                        ip = subnet.Ip,
+                        ipEnd = subnet.IpEnd,
                         importSource = GlobalConst.kImportAreaSubnetData
                     };
 
-                    ReturnId[]? subnetIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaSubnet, SubnetVar) ).ReturnIds;
+                    ReturnId[]? subnetIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
                     if (subnetIds != null)
                     {
                         var Vars = new
@@ -255,7 +286,7 @@ namespace FWO.Middleware.Server
                 foreach (var incomingSubnet in incomingArea.Subnets)
                 {
                     if (incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip.StripOffNetmask() &&
-                        ( incomingSubnet.IpEnd == existingSubnet.Content.IpEnd.StripOffNetmask() ))
+                        (incomingSubnet.IpEnd == existingSubnet.Content.IpEnd.StripOffNetmask()))
                     {
                         existingSubnet.Content.Ip = existingSubnet.Content.Ip.StripOffNetmask();
                         existingSubnet.Content.IpEnd = existingSubnet.Content.IpEnd.StripOffNetmask();
@@ -277,7 +308,7 @@ namespace FWO.Middleware.Server
                     ipEnd = subnet.IpEnd,
                     importSource = GlobalConst.kImportAreaSubnetData
                 };
-                ReturnId[]? subnetIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaSubnet, SubnetVar) ).ReturnIds;
+                ReturnId[]? subnetIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaSubnet, SubnetVar)).ReturnIds;
                 if (subnetIds != null)
                 {
                     var Vars = new

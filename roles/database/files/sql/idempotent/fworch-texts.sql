@@ -1557,6 +1557,10 @@ INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher
 INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
 INSERT INTO txt VALUES ('owner_appserver_notfound',     'German', 	'Owner für App-Server nicht gefunden.');
 INSERT INTO txt VALUES ('owner_appserver_notfound',     'English', 	'Owner for App server not found.');
+INSERT INTO txt VALUES ('owner_appservertype_notfound',     'German', 	'App-Server Typ für App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appservertype_notfound',     'English', 	'App server type for App server not found.');
+INSERT INTO txt VALUES ('import_finished_witherrors',     'German', 	'Import wurde mit Fehlern abgeschlossen.');
+INSERT INTO txt VALUES ('import_finished_witherrors',     'English', 	'Import succeeded with erros.');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

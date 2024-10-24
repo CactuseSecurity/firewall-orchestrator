@@ -41,7 +41,7 @@
     private bool ImportDisabled { get; set; } = true;
 
     [Parameter]
-    public EventCallback<(Exception, string?)> OnAddAppServerError { get; set; }
+    public EventCallback<Exception> OnAddAppServerError { get; set; }
 
     [Parameter]
     public EventCallback OnImportSuccess { get; set; }
@@ -93,7 +93,7 @@
         string text = System.Text.Encoding.UTF8.GetString(bytes);
         string[] lines = text.Split('\r');
 
-        bool importSuccess = false;
+        List<Exception>? importErrors = [];
 
         foreach (string tmpLine in lines)
         {
@@ -131,14 +131,24 @@
                 appServer.AppIPRangeEnd = appServer.AppIPRangeStart;
             }
 
-            importSuccess = await AddAppServerToDb(appServer);
+            (bool importSuccess, Exception? error) = await AddAppServerToDb(appServer);
 
-            if (!importSuccess)
-                break;
+            if (!importSuccess && error is not null)
+                importErrors.Add(error);
         }
 
-        if (importSuccess)
+        if (importErrors.Count > 0)
+        {
+            Exception exception = importErrors.First();
+            string message = $"{userConfig.GetText("import_finished_witherrors")}({importErrors.Count}) {Environment.NewLine}{exception.Message}";
+
+            Exception newException = new Exception(message);
+            await OnAddAppServerError.InvokeAsync(newException);
+        }
+        else
+        {
             await OnImportSuccess.InvokeAsync();
+        }
     }
 
     private bool TryGetEntries(string line, char separator, out string[]? entries)
@@ -190,18 +200,22 @@
 
     }
 
-
-    private async Task<bool> AddAppServerToDb(CSVAppServerImportModel appServer)
+    private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel appServer)
     {
         try
         {
-            AppServerType? appServerType = AppServerTypes.First(_ => _.Name == appServer.AppServerTyp);
+            AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == appServer.AppServerTyp);
+
+            if (appServerType is null)
+            {
+                return new(false, new Exception($"{userConfig.GetText("owner_appservertype_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
+            }
 
             List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
 
             if (ownerIds is null || !ownerIds.Any())
             {
-                throw new Exception($"{userConfig.GetText("owner_appserver_notfound")} Id: {appServer.AppID}");
+                return new(false, new Exception($"{userConfig.GetText("owner_appserver_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
             }
 
             var Variables = new
@@ -215,23 +229,16 @@
             };
 
             ReturnId[]? returnIds = ( await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
-
         }
         catch (Exception exception)
         {
             //if IP already exists, skip displaying error message
             if (exception.Message.Contains("Uniqueness violation"))
-                return true;
+                return (true, exception);
 
-            (Exception e, string? ip) eIP = new();
-            eIP.e = exception;
-            eIP.ip = $"{appServer.AppIPRangeStart} - {appServer.AppIPRangeEnd}";
-
-            await OnAddAppServerError.InvokeAsync(eIP);
-
-            return false;
+            return (false, exception);
         }
 
-        return true;
+        return (true, default);
     }
 }

@@ -39,7 +39,7 @@ namespace FWO.Middleware.Server
             {
                 if (!RunImportScript(importfilePathAndName + ".py"))
                 {
-                    Log.WriteInfo("Import Area Subnet Data", $"Script {globalConfig.ImportSubnetDataPath}.py failed but trying to import from existing file.");
+                    Log.WriteInfo("Import Area Subnet Data", $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
                 }
 
                 try

@@ -44,8 +44,7 @@ namespace FWO.Middleware.Server
 				{
 					return false;
 				}
-				await SendNextRequest(intTicket, 0);
-				return true;
+				return await SendNextRequest(intTicket, 0);
 			}
 			catch(Exception exception)
 			{
@@ -100,10 +99,15 @@ namespace FWO.Middleware.Server
 			return await wfHandler.ResolveTicket(ticketId);
 		}
 
-		private async Task SendNextRequest(WfTicket ticket, int oldTaskNumber)
+		private async Task<bool> SendNextRequest(WfTicket ticket, int oldTaskNumber)
 		{
 			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == oldTaskNumber + 1);
-			if(nextTask != null)
+			if(nextTask == null)
+			{
+				Log.WriteDebug("SendNextRequest", "No more task found.");
+				return false;
+			}
+			else
 			{
 				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
 				{
@@ -135,6 +139,7 @@ namespace FWO.Middleware.Server
 					await CreateExtRequest(ticket, [nextTask]);
 				}
 			}
+			return true;
 		}
 
 		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks)

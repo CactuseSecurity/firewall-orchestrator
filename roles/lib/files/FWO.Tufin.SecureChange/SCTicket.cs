@@ -173,7 +173,11 @@ namespace FWO.Tufin.SecureChange
 				if(ticketTask != null)
 				{
 					ExternalTicketTemplate? template = TicketSystem.Templates.FirstOrDefault(t => t.TaskType == actTaskType.ToString());
-					if(template != null)
+					if(template == null)
+					{
+						Log.WriteDebug("Create Ticket Tasks", $"No Template found for task type {actTaskType}.");
+					}
+					else
 					{
 						ticketTask.FillTaskText(template.TasksTemplate);
 						actTicketTemplate = template.TicketTemplate;

@@ -73,6 +73,16 @@ namespace FWO.Api.Data
             Name = element.Name;
         }
 
+        public static NetworkObject ToNetworkObject(WfElementBase elem)
+        {
+            return new NetworkObject()
+            {
+                Name = elem.Name ?? "",
+                IP = elem.IpString ?? "",
+                IpEnd = elem.IpEnd ?? ""
+            };
+        }
+
         public virtual bool Sanitize()
         {
             bool shortened = false;

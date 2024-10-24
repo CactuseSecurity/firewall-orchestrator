@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Logging;
+using FWO.GlobalConstants;
 using System.Net;
 using RestSharp;
 using FWO.Tufin.SecureChange;
@@ -47,7 +48,7 @@ namespace FWO.Middleware.Server
 		{
 			this.apiConnection = apiConnection;
 			this.globalConfig = globalConfig;
-			userConfig = new(globalConfig);
+			userConfig = new(globalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
 		}
 
 		/// <summary>

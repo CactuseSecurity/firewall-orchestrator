@@ -321,17 +321,6 @@ namespace FWO.Ui.Services
             }
         }
 
-        private static string StripOffNetmask(string ip)
-        {
-            Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");
-            if (match.Success)
-            {
-                string matchedString = match.Value;
-                return matchedString.Remove( matchedString.Length - 1 );
-            }
-            return ip;
-        }
-
         private static bool IsInArea(ModellingAppServer server, ModellingNetworkArea area)
         {
             try

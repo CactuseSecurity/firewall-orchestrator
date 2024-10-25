@@ -22,8 +22,17 @@
         {
             <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
         }
-        <button type="button" disabled="@ImportDisabled" class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="LoadCSV">
-            @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+        <button type="button" disabled="@(Loading || ImportDisabled)" class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="LoadCSV">
+            @if (Loading)
+            {
+                <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
+                    </div>
+            }
+            else
+            {
+                @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+            }            
             <span class="ms-1">@(userConfig.GetText("import"))</span>
         </button>
         @if (ShowAlert)
@@ -50,6 +59,8 @@
     public ApiConnection ApiConnection { get; set; }
 
     private List<AppServerType> AppServerTypes = new();
+
+    private bool Loading { get; set; } = true;
 
     protected override void OnInitialized()
     {
@@ -85,6 +96,9 @@
     {
         if (ImportDisabled || InputFileChangeEventArgs is null)
             return;
+
+        ImportDisabled = true;
+        Loading = true;
 
         using MemoryStream ms = new MemoryStream();
         await InputFileChangeEventArgs.File.OpenReadStream().CopyToAsync(ms);
@@ -149,6 +163,9 @@
         {
             await OnImportSuccess.InvokeAsync();
         }
+
+        ImportDisabled = false;
+        Loading = false;
     }
 
     private bool TryGetEntries(string line, char separator, out string[]? entries)

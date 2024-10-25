@@ -302,9 +302,9 @@ else
     EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
 
 
-    private void OnAddAppServerError(Exception e)
+    private void OnAddAppServerError(string errorMessage)
     {
-        DisplayMessageInUi(e, userConfig.GetText("add_app_server"), e.Message, false);
+        DisplayMessageInUi(null, userConfig.GetText("add_app_server"), errorMessage, true);
     }
 
     private void OnAppServerImportSuccess()

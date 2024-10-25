@@ -52,7 +52,7 @@
     private bool Loading { get; set; }
 
     [Parameter]
-    public EventCallback<Exception> OnAddAppServerError { get; set; }
+    public EventCallback<string> OnAddAppServerError { get; set; }
 
     [Parameter]
     public EventCallback OnImportSuccess { get; set; }
@@ -153,10 +153,9 @@
         if (importErrors.Count > 0)
         {
             Exception exception = importErrors.First();
-            string message = $"{userConfig.GetText("import_finished_witherrors")}({importErrors.Count}) {Environment.NewLine}{exception.Message}";
+            string message = $"{userConfig.GetText("import_finished_witherrors")}({importErrors.Count}). {exception.Message}";
 
-            Exception newException = new Exception(message);
-            await OnAddAppServerError.InvokeAsync(newException);
+            await OnAddAppServerError.InvokeAsync(message);
         }
         else
         {

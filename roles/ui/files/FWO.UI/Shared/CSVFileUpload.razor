@@ -4,6 +4,7 @@
 @using FWO.Api.Data
 @using FWO.Config.File
 @using FWO.GlobalConstants
+@using FWO.GlobalFunctions
 @using FWO.Ui.Data
 @using NetTools
 @using System.Net
@@ -129,7 +130,7 @@
 
             if (appServer.AppIPRangeStart.TryGetNetmask(out string netmask))
             {
-                (string Start, string End) ip = GlobalConstants.GlobalFunc.IpOperations.CidrToRangeString(appServer.AppIPRangeStart);
+                (string Start, string End) ip = GlobalFuncs.IpOperations.CidrToRangeString(appServer.AppIPRangeStart);
                 appServer.AppIPRangeStart = ip.Start;
                 appServer.AppIPRangeEnd = ip.End;
             }

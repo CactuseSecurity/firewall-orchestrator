@@ -8,6 +8,7 @@ using System.Text.Json;
 using NetTools;
 using System.Reactive.Subjects;
 using System.Linq;
+using FWO.GlobalFunctions;
 
 
 namespace FWO.Middleware.Server
@@ -299,7 +300,7 @@ namespace FWO.Middleware.Server
 
             if (importAreaSubnet.Ip.TryGetNetmask(out _))
             {
-                (string Start, string End) ip = GlobalFunc.IpOperations.CidrToRangeString(importAreaSubnet.Ip);
+                (string Start, string End) ip = GlobalFuncs.IpOperations.CidrToRangeString(importAreaSubnet.Ip);
                 subnet.Ip = ip.Start;
                 subnet.IpEnd = ip.End;
             }

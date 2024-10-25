@@ -17,7 +17,7 @@
 
         private static string GetCSSClass(MessageType messageType)
         {
-            string cssClass = "fly-in-animation";
+            string cssClass = "mb-1 fly-in-animation";
 
             switch (messageType)
             {

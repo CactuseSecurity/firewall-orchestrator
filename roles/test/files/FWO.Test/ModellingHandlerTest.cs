@@ -2,6 +2,7 @@
 using NUnit.Framework.Legacy;
 using FWO.Api.Data;
 using FWO.Ui.Services;
+using FWO.Services;
 
 namespace FWO.Test
 {

@@ -48,6 +48,7 @@
     InputFileChangeEventArgs? InputFileChangeEventArgs;
 
     private bool ImportDisabled { get; set; } = true;
+    private bool Loading { get; set; }
 
     [Parameter]
     public EventCallback<Exception> OnAddAppServerError { get; set; }
@@ -59,8 +60,6 @@
     public ApiConnection ApiConnection { get; set; }
 
     private List<AppServerType> AppServerTypes = new();
-
-    private bool Loading { get; set; } = true;
 
     protected override void OnInitialized()
     {

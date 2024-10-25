@@ -4,6 +4,7 @@ using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.GlobalFunctions;
 
 
 namespace FWO.Ui.Services
@@ -98,7 +99,7 @@ namespace FWO.Ui.Services
                     ActAppServer.Ip += "/32";
                 }              
 
-                (string Start, string End) ip = ip = GlobalFunc.IpOperations.CidrToRangeString(ActAppServer.Ip);
+                (string Start, string End) ip = ip = GlobalFuncs.IpOperations.CidrToRangeString(ActAppServer.Ip);
 
                 var Variables = new
                 {

@@ -57,7 +57,7 @@
     public EventCallback OnImportSuccess { get; set; }
 
     [Parameter]
-    public ApiConnection ApiConnection { get; set; }
+    public ApiConnection? ApiConnection { get; set; }
 
     private List<AppServerType> AppServerTypes = new();
 
@@ -96,7 +96,6 @@
         if (ImportDisabled || InputFileChangeEventArgs is null)
             return;
 
-        ImportDisabled = true;
         Loading = true;
 
         using MemoryStream ms = new MemoryStream();
@@ -163,7 +162,6 @@
             await OnImportSuccess.InvokeAsync();
         }
 
-        ImportDisabled = false;
         Loading = false;
     }
 

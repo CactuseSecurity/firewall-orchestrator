@@ -36,12 +36,12 @@
 </div>
 
 <div class="row w-100 mx-2" style="position:fixed; bottom: 0; z-index:15;">
-    @foreach (UIMessage item in UIMessages)
+    @foreach (UIMessage uiMessage in UIMessages)
     {
         <div class="@cssClass">
             <div class="d-flex flex-row justify-content-between">
-                <div>@item.Title - @item.Message</div>
-                <div class="@Icons.Close curosor-pointer" @onclick="@(() => HideUIMessage(item))"></div>
+                <div>@uiMessage.Title - @uiMessage.Message</div>
+                <div class="@Icons.Close curosor-pointer" @onclick="@(() => HideUIMessage(uiMessage))"></div>
             </div>
         </div>
     }
@@ -101,14 +101,6 @@
     private ClaimsPrincipal? user;
 
     private List<UIMessage> UIMessages = [];
-
-    public enum MessageType
-    {
-        Info,
-        Success,
-        Warning,
-        Error
-    }
 
     protected override void OnInitialized()
     {

@@ -29,8 +29,8 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("welcomeMessage"), JsonPropertyName("welcomeMessage")]
 		public string WelcomeMessage { get; set; } = "";
 
-		//        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
-		//        public int MaxMessages { get; set; } = 3;
+		[JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
+		public int MaxMessages { get; set; } = 3;
 
 		[JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
 		public int ElementsPerFetch { get; set; } = 100;

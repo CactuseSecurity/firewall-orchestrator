@@ -52,7 +52,6 @@ namespace FWO.Middleware.Server
                     {
                         AllNwData.Add(ConvertNwDataToRanges(nwData));
                     }
-
                 }
                 catch (Exception ex)
                 {
@@ -84,31 +83,28 @@ namespace FWO.Middleware.Server
 
             existingAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getAreas);
 
-            foreach (ModellingImportAreaData area in mergedNwData.Areas)
+            foreach (ModellingImportAreaData incomingArea in mergedNwData.Areas)
             {
-                foreach (ModellingImportAreaData incomingArea in mergedNwData.Areas)
+                if (await SaveArea(incomingArea))
                 {
-                    if (await SaveArea(incomingArea))
+                    ++successCounter;
+                }
+                else
+                {
+                    ++failCounter;
+                }
+            }
+            foreach (ModellingNetworkArea existingArea in existingAreas)
+            {
+                if (mergedNwData.Areas.FirstOrDefault(x => x.Name == existingArea.Name) == null)
+                {
+                    if (await DeleteArea(existingArea))
                     {
-                        ++successCounter;
+                        ++deleteCounter;
                     }
                     else
                     {
-                        ++failCounter;
-                    }
-                }
-                foreach (ModellingNetworkArea existingArea in existingAreas)
-                {
-                    if (mergedNwData.Areas.FirstOrDefault(x => x.Name == existingArea.Name) == null)
-                    {
-                        if (await DeleteArea(existingArea))
-                        {
-                            ++deleteCounter;
-                        }
-                        else
-                        {
-                            ++deleteFailCounter;
-                        }
+                        ++deleteFailCounter;
                     }
                 }
             }
@@ -129,7 +125,7 @@ namespace FWO.Middleware.Server
 
         private ModellingImportAreaData ConvertAreaToRanges(ModellingImportAreaData area)
         {
-            ModellingImportAreaData newArea = new(area.IdString, area.Name);
+            ModellingImportAreaData newArea = new(area.Name, area.IdString);
             foreach (ModellingImportAreaIpData ipData in area.IpData)
             {
                 newArea.IpData.Add(ConvertIpDataToRange(ipData));
@@ -171,7 +167,7 @@ namespace FWO.Middleware.Server
         private ModellingImportAreaData MergeArea(ModellingImportAreaData area1, ModellingImportAreaData area2)
         {
             List<ModellingImportAreaIpData> deepCopyIpData = area1.IpData.Select(item => item.Clone()).ToList();
-            ModellingImportAreaData resultArea = new(area1.IdString, area1.Name, deepCopyIpData); // make a copy of area1 including all IP data in the list
+            ModellingImportAreaData resultArea = new(area1.Name, area1.IdString, deepCopyIpData); // make a copy of area1 including all IP data in the list
 
             foreach (ModellingImportAreaIpData ipRange in area2.IpData)
             {

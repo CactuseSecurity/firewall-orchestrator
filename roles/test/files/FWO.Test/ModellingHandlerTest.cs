@@ -22,9 +22,9 @@ namespace FWO.Test
         static readonly bool AddAppRoleMode = false;
         static readonly bool IsOwner = true;
 
-        static readonly ModellingAppServer AppServerInside1 = new(){ Name = "AppServerInside1", Ip = "10.0.0.0" };
-        static readonly ModellingAppServer AppServerInside2 = new(){ Name = "AppServerInside2", Ip = "10.0.0.5" };
-        static readonly ModellingAppServer AppServerInside3 = new(){ Name = "AppServerInside3", Ip = "11.0.0.1" };
+        static readonly ModellingAppServer AppServerInside1 = new(){ Name = "AppServerInside1", Ip = "10.0.0.0", IpEnd = "10.0.0.0" };
+        static readonly ModellingAppServer AppServerInside2 = new(){ Name = "AppServerInside2", Ip = "10.0.0.5", IpEnd = "10.0.0.5"  };
+        static readonly ModellingAppServer AppServerInside3 = new(){ Name = "AppServerInside3", Ip = "11.0.0.1", IpEnd = "11.0.0.1" };
         static readonly List<ModellingAppServer> AvailableAppServers =
         [
             AppServerInside1,

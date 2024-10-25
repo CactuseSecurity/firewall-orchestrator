@@ -113,7 +113,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            Log.WriteInfo("Import Area IP Data", $"Imported {successCounter} area successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
+            Log.WriteInfo("Import Area IP Data", $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
         }
 
         private ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
@@ -129,9 +129,7 @@ namespace FWO.Middleware.Server
 
         private ModellingImportAreaData ConvertAreaToRanges(ModellingImportAreaData area)
         {
-            ModellingImportAreaData newArea = new();
-            newArea.IdString = area.IdString;
-            newArea.Name = area.Name;
+            ModellingImportAreaData newArea = new(area.IdString, area.Name);
             foreach (ModellingImportAreaIpData ipData in area.IpData)
             {
                 newArea.IpData.Add(ConvertIpDataToRange(ipData));
@@ -172,7 +170,8 @@ namespace FWO.Middleware.Server
 
         private ModellingImportAreaData MergeArea(ModellingImportAreaData area1, ModellingImportAreaData area2)
         {
-            ModellingImportAreaData resultArea = area1; // make a copy of area1 including all IP data in the list
+            List<ModellingImportAreaIpData> deepCopyIpData = area1.IpData.Select(item => item.Clone()).ToList();
+            ModellingImportAreaData resultArea = new(area1.IdString, area1.Name, deepCopyIpData); // make a copy of area1 including all IP data in the list
 
             foreach (ModellingImportAreaIpData ipRange in area2.IpData)
             {
@@ -268,8 +267,6 @@ namespace FWO.Middleware.Server
             {
                 foreach (var ipData in incomingArea.IpData)
                 {
-                    // ModellingImportAreaSubnets parsedSubnet = ConvertSubnet(subnet);
-
                     var ipDataVar = new
                     {
                         name = ipData.Name,
@@ -299,8 +296,8 @@ namespace FWO.Middleware.Server
                 await ReactivateArea(existingArea);
             }
             List<ModellingImportAreaIpData> ipDataToAdd = new(incomingArea.IpData);
-            List<NetworkSubnetWrapper> ipDataToDelete = new(existingArea.Subnets);
-            foreach (var existingSubnet in existingArea.Subnets)
+            List<NetworkDataWrapper> ipDataToDelete = new(existingArea.IpData);
+            foreach (var existingSubnet in existingArea.IpData)
             {
                 foreach (var incomingSubnet in incomingArea.IpData)
                 {

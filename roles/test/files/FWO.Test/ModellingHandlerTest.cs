@@ -37,7 +37,7 @@ namespace FWO.Test
             new(){ Ip = "255.255.255.255" }
         ];
 
-        static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", Subnets =
+        static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", IpData =
         [
             new(){ Content = new(){ Name = "TestRange1", Ip = "10.0.0.0", IpEnd = "10.0.0.255" }},
             new(){ Content = new(){ Name = "TestRange2", Ip = "11.0.0.0", IpEnd = "11.0.0.3" }}

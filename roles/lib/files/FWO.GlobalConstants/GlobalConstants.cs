@@ -168,36 +168,36 @@ namespace FWO.GlobalConstants
             return bytes.Take(targetLength).ToArray();  // Ensure it's exactly targetLength bytes
         }
 
-        public static bool IsInSubnet(IPAddress address, string cidrString)
-        {
-            string[] parts = cidrString.Split('/');
-            if (parts.Length != 2)
-            {
-                throw new FormatException("Invalid CIDR format.");
-            }
+        // public static bool IsInSubnet(IPAddress address, string cidrString)
+        // {
+        //     string[] parts = cidrString.Split('/');
+        //     if (parts.Length != 2)
+        //     {
+        //         throw new FormatException("Invalid CIDR format.");
+        //     }
 
-            var networkAddress = IPAddress.Parse(parts[0]);
-            int prefixLength = int.Parse(parts[1]);
+        //     var networkAddress = IPAddress.Parse(parts[0]);
+        //     int prefixLength = int.Parse(parts[1]);
 
-            if (address.AddressFamily != networkAddress.AddressFamily)
-            {
-                // The IP versions must match (IPv4 vs IPv6)
-                return false;
-            }
+        //     if (address.AddressFamily != networkAddress.AddressFamily)
+        //     {
+        //         // The IP versions must match (IPv4 vs IPv6)
+        //         return false;
+        //     }
 
-            if (address.AddressFamily == AddressFamily.InterNetwork)  // IPv4
-            {
-                return IsIPv4InSubnet(address, networkAddress, prefixLength);
-            }
-            else if (address.AddressFamily == AddressFamily.InterNetworkV6)  // IPv6
-            {
-                return IsIPv6InSubnet(address, networkAddress, prefixLength);
-            }
-            else
-            {
-                throw new NotSupportedException("Only IPv4 and IPv6 are supported.");
-            }
-        }
+        //     if (address.AddressFamily == AddressFamily.InterNetwork)  // IPv4
+        //     {
+        //         return IsIPv4InSubnet(address, networkAddress, prefixLength);
+        //     }
+        //     else if (address.AddressFamily == AddressFamily.InterNetworkV6)  // IPv6
+        //     {
+        //         return IsIPv6InSubnet(address, networkAddress, prefixLength);
+        //     }
+        //     else
+        //     {
+        //         throw new NotSupportedException("Only IPv4 and IPv6 are supported.");
+        //     }
+        // }
 
         private static bool IsIPv4InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
         {

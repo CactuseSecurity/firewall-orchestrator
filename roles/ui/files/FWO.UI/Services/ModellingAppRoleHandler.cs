@@ -336,15 +336,17 @@ namespace FWO.Ui.Services
         {
             try
             {
-                foreach(var subnet in area.Subnets)
+                foreach(var areaIpData in area.IpData)
                 {
-                    IPAddress serverIP = IPAddress.Parse(server.Ip.StripOffNetmask());
-                    IPAddress subnetIP = IPAddress.Parse(subnet.Content.Ip.StripOffNetmask());
+                    IPAddress serverIpStart = IPAddress.Parse(server.Ip.StripOffNetmask());
+                    IPAddress serverIpEnd = IPAddress.Parse(server.IpEnd.StripOffNetmask());
+                    IPAddress subnetIpStart = IPAddress.Parse(areaIpData.Content.Ip.StripOffNetmask());
+                    IPAddress subnetIpEnd = IPAddress.Parse(areaIpData.Content.IpEnd.StripOffNetmask());
 
-                    IPAddressRange ipRangeServer = new IPAddressRange(serverIP, IPAddress.Parse(server.IpEnd.StripOffNetmask()));
-                    IPAddressRange ipRangeSubnet = new IPAddressRange(subnetIP, IPAddress.Parse(subnet.Content.IpEnd.StripOffNetmask()));
+                    IPAddressRange ipRangeServer = new IPAddressRange(serverIpStart, serverIpEnd);
+                    IPAddressRange ipRangeSubnet = new IPAddressRange(subnetIpStart, subnetIpEnd);
 
-                    if (serverIP.AddressFamily != subnetIP.AddressFamily)
+                    if (serverIpStart.AddressFamily != subnetIpStart.AddressFamily)
                     {
                         return false;
                     }
@@ -362,51 +364,51 @@ namespace FWO.Ui.Services
             }
         }
 
-        private static bool IsInSubnet(IPAddress address, string subnetMask)
-        {
-            var slashIdx = subnetMask.IndexOf("/");
-            var maskAddress = IPAddress.Parse(slashIdx == -1 ? subnetMask : subnetMask.Substring(0, slashIdx));
-            if (maskAddress.AddressFamily != address.AddressFamily)
-            {
-                return false;
-            }
+        // private static bool IsInSubnet(IPAddress address, string subnetMask)
+        // {
+        //     var slashIdx = subnetMask.IndexOf("/");
+        //     var maskAddress = IPAddress.Parse(slashIdx == -1 ? subnetMask : subnetMask.Substring(0, slashIdx));
+        //     if (maskAddress.AddressFamily != address.AddressFamily)
+        //     {
+        //         return false;
+        //     }
 
-            int maskLength = slashIdx == -1 ? ( maskAddress.AddressFamily == AddressFamily.InterNetwork ? 31 : 127 ) : int.Parse(subnetMask.Substring(slashIdx + 1));
-            if (maskLength == 0)
-            {
-                return true;
-            }
+        //     int maskLength = slashIdx == -1 ? ( maskAddress.AddressFamily == AddressFamily.InterNetwork ? 31 : 127 ) : int.Parse(subnetMask.Substring(slashIdx + 1));
+        //     if (maskLength == 0)
+        //     {
+        //         return true;
+        //     }
 
-            if (maskAddress.AddressFamily == AddressFamily.InterNetwork)
-            {
-                var maskAddressBits = BitConverter.ToUInt32(maskAddress.GetAddressBytes().Reverse().ToArray(), 0);
-                var ipAddressBits = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
-                uint mask = uint.MaxValue << ( 32 - maskLength );
-                return ( maskAddressBits & mask ) == ( ipAddressBits & mask );
-            }
+        //     if (maskAddress.AddressFamily == AddressFamily.InterNetwork)
+        //     {
+        //         var maskAddressBits = BitConverter.ToUInt32(maskAddress.GetAddressBytes().Reverse().ToArray(), 0);
+        //         var ipAddressBits = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
+        //         uint mask = uint.MaxValue << ( 32 - maskLength );
+        //         return ( maskAddressBits & mask ) == ( ipAddressBits & mask );
+        //     }
 
-            if (maskAddress.AddressFamily == AddressFamily.InterNetworkV6)
-            {
-                var maskAddressBits = new BitArray(maskAddress.GetAddressBytes().Reverse().ToArray());
-                var ipAddressBits = new BitArray(address.GetAddressBytes().Reverse().ToArray());
-                var ipAddressLength = ipAddressBits.Length;
+        //     if (maskAddress.AddressFamily == AddressFamily.InterNetworkV6)
+        //     {
+        //         var maskAddressBits = new BitArray(maskAddress.GetAddressBytes().Reverse().ToArray());
+        //         var ipAddressBits = new BitArray(address.GetAddressBytes().Reverse().ToArray());
+        //         var ipAddressLength = ipAddressBits.Length;
 
-                if (maskAddressBits.Length != ipAddressBits.Length)
-                {
-                    throw new ArgumentException("Length of IP Address and Subnet Mask do not match.");
-                }
+        //         if (maskAddressBits.Length != ipAddressBits.Length)
+        //         {
+        //             throw new ArgumentException("Length of IP Address and Subnet Mask do not match.");
+        //         }
 
-                for (var i = ipAddressLength - 1; i >= ipAddressLength - maskLength; i--)
-                {
-                    if (ipAddressBits[i] != maskAddressBits[i])
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            return false;
-        }
+        //         for (var i = ipAddressLength - 1; i >= ipAddressLength - maskLength; i--)
+        //         {
+        //             if (ipAddressBits[i] != maskAddressBits[i])
+        //             {
+        //                 return false;
+        //             }
+        //         }
+        //         return true;
+        //     }
+        //     return false;
+        // }
         public static bool OverlapExists(IPAddressRange a, IPAddressRange b)
         {
             return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);

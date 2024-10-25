@@ -202,7 +202,7 @@ namespace FWO.Api.Data
             return "";
         }
 
-        public static string StripOffNetmask(string ip)
+        public static string StripOffNetmask(this string ip)
         {
             int pos = ip.LastIndexOf('/');
             if (pos > -1 && ip.Length > pos + 1)

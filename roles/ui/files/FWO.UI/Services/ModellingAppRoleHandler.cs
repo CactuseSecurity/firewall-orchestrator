@@ -336,15 +336,17 @@ namespace FWO.Ui.Services
         {
             try
             {
-                foreach(var subnet in area.Subnets)
+                foreach(var areaIpData in area.Subnets)
                 {
-                    IPAddress serverIP = IPAddress.Parse(server.Ip.StripOffNetmask());
-                    IPAddress subnetIP = IPAddress.Parse(subnet.Content.Ip.StripOffNetmask());
+                    IPAddress serverIpStart = IPAddress.Parse(server.Ip.StripOffNetmask());
+                    IPAddress serverIpEnd = IPAddress.Parse(server.IpEnd.StripOffNetmask());
+                    IPAddress subnetIpStart = IPAddress.Parse(areaIpData.Content.Ip.StripOffNetmask());
+                    IPAddress subnetIpEnd = IPAddress.Parse(areaIpData.Content.IpEnd.StripOffNetmask());
 
-                    IPAddressRange ipRangeServer = new IPAddressRange(serverIP, IPAddress.Parse(server.IpEnd.StripOffNetmask()));
-                    IPAddressRange ipRangeSubnet = new IPAddressRange(subnetIP, IPAddress.Parse(subnet.Content.IpEnd.StripOffNetmask()));
+                    IPAddressRange ipRangeServer = new IPAddressRange(serverIpStart, serverIpEnd);
+                    IPAddressRange ipRangeSubnet = new IPAddressRange(subnetIpStart, subnetIpEnd);
 
-                    if (serverIP.AddressFamily != subnetIP.AddressFamily)
+                    if (serverIpStart.AddressFamily != subnetIpStart.AddressFamily)
                     {
                         return false;
                     }

@@ -97,7 +97,7 @@ namespace FWO.Test
 
             if (ip.TryGetNetmask(out _))
             {
-                (string Start, string End) = GlobalFunc.IpOperations.CidrToRangeString(ip);
+                (string Start, string End) = ip.CidrToRangeString();
                 ipAddressRange = new(IPAddress.Parse(Start), IPAddress.Parse(End));
             }
             else if (ip.TrySplit('-', 1, out _) && IPAddressRange.TryParse(ip, out IPAddressRange ipRange))

@@ -30,18 +30,18 @@
 <div class="main">
     <div class="content p-4">
      @* DON'T DELETE THESE BUTTONS / They might be needed for testing *@
-     @* <button type="button" @onclick="@(() => ShowMessage("info", "info", MessageType.Info))">info</button>
+     <button type="button" @onclick="@(() => ShowMessage("info", "info", MessageType.Info))">info</button>
         <button type="button" @onclick="@(() => ShowMessage("warning", "warning", MessageType.Warning))">warning</button>
         <button type="button" @onclick="@(() => ShowMessage("error", "error", MessageType.Error))">error</button>
         <button type="button" @onclick="@(() => ShowMessage("success", "success", MessageType.Success))">success</button>
-        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@
+        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button>
         <CascadingValue Value="@DisplayMessageInUiFunction">
             @Body
         </CascadingValue>
     </div>
 </div>
 
-<div class="row w-100 mx-2" style="position:fixed; bottom: 0; z-index:15;">
+<div class="footer w-100 mx-2">
     @foreach (UIMessage uiMessage in UIMessages)
     {
         <div class="@uiMessage.CSSClass">

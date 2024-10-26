@@ -23421,6 +23421,23 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "additional_info",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "start",
+                      "state_id",
+                      "stop"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -24298,6 +24315,21 @@
                     "filter": {},
                     "check": null
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "date_completed",
+                      "external_ticket_id",
+                      "state_id",
+                      "ticket_deadline",
+                      "ticket_priority"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",

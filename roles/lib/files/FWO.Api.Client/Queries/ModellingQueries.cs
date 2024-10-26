@@ -13,7 +13,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getAreas;
         public static readonly string newArea;
         public static readonly string setAreaDeletedState;
-        public static readonly string newAreaSubnet;
+        public static readonly string newAreaIpData;
         public static readonly string getConnectionIdsForNwGroup;
 
         public static readonly string getAppServers;
@@ -106,7 +106,7 @@ namespace FWO.Api.Client.Queries
                 getAreas = File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
                 newArea = File.ReadAllText(QueryPath + "modelling/newArea.graphql");
                 setAreaDeletedState = File.ReadAllText(QueryPath + "modelling/setAreaDeletedState.graphql");
-                newAreaSubnet = File.ReadAllText(QueryPath + "modelling/newAreaSubnet.graphql");
+                newAreaIpData = File.ReadAllText(QueryPath + "modelling/newAreaIpData.graphql");
                 getConnectionIdsForNwGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForNwGroup.graphql");
 
                 getAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServers.graphql");

@@ -4,7 +4,7 @@ namespace FWO.Tufin.SecureChange
 {
 	public class SCNetworkObjectCreateTicketTask : SCTicketTask
 	{
-		public SCNetworkObjectCreateTicketTask(WfReqTask reqTask) : base(reqTask)
+		public SCNetworkObjectCreateTicketTask(WfReqTask reqTask, ModellingNamingConvention? namingConvention) : base(reqTask, namingConvention)
 		{}
 
 		public override void FillTaskText(string tasksTemplate)
@@ -16,7 +16,7 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@GROUPNAME@@", Sanitizer.SanitizeJsonFieldMand(ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName), ref shortened))
 				.Replace("@@MANAGEMENT_ID@@", extMgt.ExtId ?? "0")
 				.Replace("@@MANAGEMENT_NAME@@", extMgt.ExtName)
-				.Replace("@@MEMBERS@@", ConvertNetworkObjects(extMgt.ExtId));
+				.Replace("@@MEMBERS@@", ConvertNetworkObjects(extMgt.ExtId, NamingConvention));
 		}
 	}
 }

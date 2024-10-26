@@ -66,7 +66,7 @@ namespace FWO.Tufin.SecureChange
 			NEW
 		}
 
-		public SCTicketTask(WfReqTask reqTask) : base(reqTask)
+		public SCTicketTask(WfReqTask reqTask, ModellingNamingConvention? namingConvention) : base(reqTask, namingConvention)
 		{}
 
 		protected string FillIpTemplate(string ipString)
@@ -125,22 +125,22 @@ namespace FWO.Tufin.SecureChange
 			return SvcGroupTemplate.Replace("@@GROUPNAME@@", groupName);
 		}
 
-		protected string ConvertNetworkObjects(string? mgmId)
+		protected string ConvertNetworkObjects(string? mgmId, ModellingNamingConvention? namingConvention)
 		{
 			List<NwObjectElement> nwObjects = ReqTask.GetNwObjectElements(ElemFieldType.source);
 			List<string> convertedobjects = [];
 			foreach(var nwObj in nwObjects)
 			{
-				convertedobjects.Add(FillHostTemplate(ConstructHostName(nwObj), ConstructHostUid(nwObj),
+				convertedobjects.Add(FillHostTemplate(ConstructHostName(nwObj, namingConvention), ConstructHostUid(nwObj),
 					nwObj.IpString, mgmId ?? "0", nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction),
 					ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId), nwObj.RequestAction != RequestAction.create.ToString()));
 			}
 			return "[" + string.Join(",", convertedobjects) + "]";
 		}
 
-		private static string ConstructHostName(NwObjectElement nwObj)
+		private static string ConstructHostName(NwObjectElement nwObj, ModellingNamingConvention? namingConvention)
 		{
-			return nwObj.Name ?? "net_" + nwObj.IpString;
+			return nwObj.Name ?? namingConvention?.AppServerPrefix + nwObj.IpString;
 		}
 
 		private static string ConstructHostUid(NwObjectElement nwObj)

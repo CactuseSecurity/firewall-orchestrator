@@ -14,7 +14,7 @@ namespace FWO.Tufin.SecureChange
 		private readonly string ComDocumented = "false";
 				
 
-		public SCAccessRequestTicketTask(WfReqTask reqTask) : base(reqTask)
+		public SCAccessRequestTicketTask(WfReqTask reqTask, ModellingNamingConvention? namingConvention = null) : base(reqTask, namingConvention)
 		{}
 
 

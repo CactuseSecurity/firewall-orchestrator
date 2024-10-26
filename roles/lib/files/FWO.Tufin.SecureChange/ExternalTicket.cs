@@ -19,7 +19,7 @@ namespace FWO.Tufin.SecureChange
 
 		public ExternalTicket(){}
 
-		public virtual void CreateRequestString(List<WfReqTask> tasks)
+		public virtual void CreateRequestString(List<WfReqTask> tasks, ModellingNamingConvention? namingConvention)
 		{}
 
 		public virtual string GetTaskTypeAsString(WfReqTask task)

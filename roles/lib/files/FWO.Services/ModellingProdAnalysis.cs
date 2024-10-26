@@ -204,7 +204,9 @@ namespace FWO.Services
                     RequestNewAppRole(appRole, mgt);
                 }
             }
-            else if(AppRoleChanged(appRole))
+            else if(AppRoleChanged(appRole) && 
+                TaskList.FirstOrDefault(x => x.Title == updateAppRoleText + appRole.IdString + addMembersText && x.OnManagement?.Id == mgt.Id) == null &&
+                DeleteTasksList.FirstOrDefault(x => x.Title == updateAppRoleText + appRole.IdString + removeMembersText && x.OnManagement?.Id == mgt.Id) == null)
             {
                 RequestUpdateAppRole(appRole, mgt);
             }
@@ -246,7 +248,7 @@ namespace FWO.Services
 
         private bool AreEqual(ModellingAppServer appServer1, ModellingAppServer appServer2)
         {
-            string appServer2Name = string.IsNullOrEmpty(appServer2.Name) ? "net_" + appServer2.Ip : appServer2.Name;
+            string appServer2Name = string.IsNullOrEmpty(appServer2.Name) ? namingConvention.AppServerPrefix + appServer2.Ip : appServer2.Name;
             return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim();
         }
 
@@ -257,7 +259,7 @@ namespace FWO.Services
             unchangedAppServers = [];
             foreach(var appserver in appRole.AppServers)
             {
-                if(existingAppRole.AppServers.FirstOrDefault(x => x.Content.Ip == appserver.Content.Ip && x.Content.IpEnd == appserver.Content.IpEnd) != null)  // Name ?
+                if(existingAppRole.AppServers.FirstOrDefault(a => AreEqual(a.Content, appserver.Content)) != null)
                 {
                     unchangedAppServers.Add(appserver);
                 }
@@ -268,7 +270,7 @@ namespace FWO.Services
             }
             foreach(var exAppserver in existingAppRole.AppServers)
             {
-                if(appRole.AppServers.FirstOrDefault(x => x.Content.Ip == exAppserver.Content.Ip && x.Content.IpEnd == exAppserver.Content.IpEnd) == null)  // Name ?
+                if(appRole.AppServers.FirstOrDefault(a => AreEqual(a.Content, exAppserver.Content)) == null)
                 {
                     deletedAppServers.Add(exAppserver);
                 }

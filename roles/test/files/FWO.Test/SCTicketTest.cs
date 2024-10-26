@@ -10,6 +10,11 @@ namespace FWO.Test
     internal class SCTicketTest
     {
         readonly SimulatedUserConfig userConfig = new();
+        static readonly ModellingNamingConvention NamingConvention = new()
+        {
+            NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 2, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR", AppServerPrefix = "net_"
+        };
+
 
         readonly ExternalTicketSystem ticketSystem = new()
         {
@@ -77,7 +82,7 @@ namespace FWO.Test
         public void TestSCTicket()
         {
             SCTicket ticket = new (ticketSystem);
-            ticket.CreateRequestString(reqTasks);
+            ticket.CreateRequestString(reqTasks, NamingConvention);
 
             ClassicAssert.AreEqual(FilledTicketText, ticket.TicketText);
         }

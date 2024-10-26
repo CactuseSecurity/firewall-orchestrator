@@ -223,7 +223,8 @@ namespace FWO.Middleware.Server
 			}
 			if(ticket != null)
 			{
-				ticket.CreateRequestString(reqTasks);
+				ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
+				ticket.CreateRequestString(reqTasks, namingConvention);
 				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
 				return JsonSerializer.Serialize(ticket);
 			}

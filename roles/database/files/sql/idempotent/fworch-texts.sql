@@ -2201,6 +2201,8 @@ INSERT INTO txt VALUES ('networkAreaPattern',   'German',   'Muster Netzwerkarea
 INSERT INTO txt VALUES ('networkAreaPattern',   'English',  'Network Area Pattern');
 INSERT INTO txt VALUES ('appRolePattern',       'German',   'Muster App Rolle');
 INSERT INTO txt VALUES ('appRolePattern',       'English',  'App Role Pattern');
+INSERT INTO txt VALUES ('appServerPrefix',      'German',   'App Server Namensprefix');
+INSERT INTO txt VALUES ('appServerPrefix',      'English',  'App Server Name Prefix');
 INSERT INTO txt VALUES ('import_source',        'German',   'Importquelle');
 INSERT INTO txt VALUES ('import_source',        'English',  'Import Source');
 INSERT INTO txt VALUES ('modelling_settings',   'German', 	'Modellierungseinstellungen');
@@ -5015,6 +5017,8 @@ INSERT INTO txt VALUES ('H5631', 'German',  'Servicegruppen aufl&ouml;sen: Erset
 INSERT INTO txt VALUES ('H5631', 'English', 'Resolve service groups: Replace service groups by its members when creating an external request.');
 INSERT INTO txt VALUES ('H5632', 'German',  'Tasks zusammenfassen: Fasse gleichartige Tasks in einem externen Auftrag zusammen.');
 INSERT INTO txt VALUES ('H5632', 'English', 'Bundle tasks: Bundle tasks of same type in one external request.');
+INSERT INTO txt VALUES ('H5633', 'German',  'App Server Namensprefix: Falls der Name nicht schon anderweitig vorbelegt ist, wird er aus Namensprefix + Ip-Adresse zusammengesetzt.');
+INSERT INTO txt VALUES ('H5633', 'English', 'App Server Name Prefix: If not already filled, the App Server Name will be constructed by Name Prefix + Ip address.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

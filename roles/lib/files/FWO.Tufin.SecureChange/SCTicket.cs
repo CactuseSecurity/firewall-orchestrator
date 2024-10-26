@@ -81,9 +81,9 @@ namespace FWO.Tufin.SecureChange
 			actTicketTemplate = TicketSystem.Templates.FirstOrDefault()?.TicketTemplate ?? "";
 		}
 
-		public override void CreateRequestString(List<WfReqTask> tasks)
+		public override void CreateRequestString(List<WfReqTask> tasks, ModellingNamingConvention? namingConvention)
 		{
-			CreateTicketTasks(tasks);
+			CreateTicketTasks(tasks, namingConvention);
 			CreateTicketText();
 		}
 
@@ -152,7 +152,7 @@ namespace FWO.Tufin.SecureChange
 			}
 		}
 
-		private void CreateTicketTasks(List<WfReqTask> tasks)
+		private void CreateTicketTasks(List<WfReqTask> tasks, ModellingNamingConvention? namingConvention)
 		{
 			foreach (var task in tasks)
 			{
@@ -164,10 +164,10 @@ namespace FWO.Tufin.SecureChange
 						ticketTask = new SCAccessRequestTicketTask(task);
 						break;
 					case SCTaskType.NetworkObjectCreate:
-						ticketTask = new SCNetworkObjectCreateTicketTask(task);
+						ticketTask = new SCNetworkObjectCreateTicketTask(task, namingConvention);
 						break;
 					case SCTaskType.NetworkObjectUpdate:
-						ticketTask = new SCNetworkObjectUpdateTicketTask(task);
+						ticketTask = new SCNetworkObjectUpdateTicketTask(task, namingConvention);
 						break;
 				}
 				if(ticketTask != null)

@@ -22,9 +22,9 @@ namespace FWO.Tufin.SecureChange
 		{
 			TaskText = tasksTemplate
 				.Replace("@@USERS@@", "[\"Any\"]") // data not provided yet
-				.Replace("@@SOURCES@@", ConvertNetworkObjects(ElemFieldType.source))
-				.Replace("@@DESTINATIONS@@", ConvertNetworkObjects(ElemFieldType.destination))
-				.Replace("@@SERVICES@@", ConvertServiceObjects())
+				.Replace("@@SOURCES@@", ConvertNetworkElems(ElemFieldType.source))
+				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(ElemFieldType.destination))
+				.Replace("@@SERVICES@@", ConvertServiceElems())
 				.Replace("@@ACTION@@", Action) // -> ReqTask.RuleAction
 				.Replace("@@REASON@@", ReqTask.Reason)
 				.Replace("@@LOGGING@@", Logging) // -> ReqTask.Tracking
@@ -33,33 +33,33 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@COM_DOCUMENTED@@", ComDocumented); // ??
 		}
 
-		private string ConvertNetworkObjects(ElemFieldType fieldType)
+		private string ConvertNetworkElems(ElemFieldType fieldType)
 		{
 			List<NwObjectElement> nwObjects = ReqTask.GetNwObjectElements(fieldType);
-			List<string> convertedobjects = [];
+			List<string> convertedObjects = [];
 			foreach(var nwObj in nwObjects)
 			{
-				if(nwObj.GroupName != "" && convertedobjects.FirstOrDefault(o => o == nwObj.GroupName) == null)
+				if(nwObj.GroupName != "" && convertedObjects.FirstOrDefault(o => o == nwObj.GroupName) == null)
 				{
-					convertedobjects.Add(FillNwObjGroupTemplate(nwObj.GroupName));
+					convertedObjects.Add(FillNwObjGroupTemplate(nwObj.GroupName));
 				}
 				else
 				{
-					convertedobjects.Add(FillIpTemplate(nwObj.IpString));
+					convertedObjects.Add(FillIpTemplate(nwObj.IpString));
 				}
 			}
-			return "[" + string.Join(",", convertedobjects) + "]";
+			return "[" + string.Join(",", convertedObjects) + "]";
 		}
 
-		private string ConvertServiceObjects()
+		private string ConvertServiceElems()
 		{
 			List<NwServiceElement> nwServiceElements = ReqTask.GetServiceElements();
-			List<string> convertedobjects = [];
+			List<string> convertedObjects = [];
 			foreach(var svc in nwServiceElements)
 			{
-				convertedobjects.Add(FillServiceTemplate(svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
+				convertedObjects.Add(FillServiceTemplate(svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
 			}
-			return "[" + string.Join(",", convertedobjects) + "]";
+			return "[" + string.Join(",", convertedObjects) + "]";
 		}
 
 		private static string DisplayPortRange(int port, int? portEnd)

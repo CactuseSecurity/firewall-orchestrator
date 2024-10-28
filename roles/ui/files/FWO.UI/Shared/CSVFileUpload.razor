@@ -52,7 +52,10 @@
     private bool Loading { get; set; }
 
     [Parameter]
-    public EventCallback<string> OnAddAppServerError { get; set; }
+    public EventCallback<(Exception, string?)> OnAddAppServerError { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnAddAppServerWarning { get; set; }
 
     [Parameter]
     public EventCallback OnImportSuccess { get; set; }
@@ -97,11 +100,25 @@
         if (ImportDisabled || InputFileChangeEventArgs is null)
             return;
 
+        if (InputFileChangeEventArgs.File is null)        
+            return;        
+
         Loading = true;
 
-        using MemoryStream ms = new MemoryStream();
-        await InputFileChangeEventArgs.File.OpenReadStream().CopyToAsync(ms);
-        byte[]? bytes = ms.ToArray();
+        byte[]? bytes;
+
+        try
+        {
+            using MemoryStream ms = new MemoryStream();
+            await InputFileChangeEventArgs.File.OpenReadStream().CopyToAsync(ms);
+            bytes = ms.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Loading = false;
+            await OnAddAppServerError.InvokeAsync((ex, $"{userConfig.GetText("file_upload_failed")} {ex.Message}"));
+            return;
+        }
 
         string text = System.Text.Encoding.UTF8.GetString(bytes);
         string[] lines = text.Split('\r');
@@ -155,7 +172,7 @@
             Exception exception = importErrors.First();
             string message = $"{userConfig.GetText("import_finished_witherrors")}({importErrors.Count}). {exception.Message}";
 
-            await OnAddAppServerError.InvokeAsync(message);
+            await OnAddAppServerWarning.InvokeAsync(message);
         }
         else
         {

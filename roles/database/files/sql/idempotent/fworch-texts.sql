@@ -1561,6 +1561,8 @@ INSERT INTO txt VALUES ('owner_appservertype_notfound',     'German', 	'App-Serv
 INSERT INTO txt VALUES ('owner_appservertype_notfound',     'English', 	'App server type for App server not found.');
 INSERT INTO txt VALUES ('import_finished_witherrors',     'German', 	'Import wurde mit Fehlern abgeschlossen');
 INSERT INTO txt VALUES ('import_finished_witherrors',     'English', 	'Import succeeded with errors');
+INSERT INTO txt VALUES ('file_upload_failed',        'German', 	'Datei hochladen ist fehlgeschlagen.');
+INSERT INTO txt VALUES ('file_upload_failed',        'English', 	'File upload failed.');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

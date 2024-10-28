@@ -285,7 +285,7 @@ namespace FWO.Api.Data
         {
             ip1 = StripOffUnnecessaryNetmask(ip1);
             ip2 = StripOffUnnecessaryNetmask(ip2);
-            if (ip1 == ip2)
+            if (ip1 == ip2 || ip2 == "")
             {
                 string netmask = GetNetmask(ip1);
                 if(netmask != "")

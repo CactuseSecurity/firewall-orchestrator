@@ -10,8 +10,7 @@ namespace FWO.Tufin.SecureChange
 	public enum SCTaskType
 	{
 		AccessRequest = 0,
-		NetworkObjectCreate = 10,
-		NetworkObjectUpdate = 11,
+		NetworkObjectModify = 10,
 		NetworkServiceCreate = 20,
 		NetworkServiceUpdate = 21
 	}
@@ -24,6 +23,12 @@ namespace FWO.Tufin.SecureChange
 		Critical
 	}
 
+	public struct SCChangeAction
+	{
+		public const string Create = "CREATE";
+		public const string Update = "UPDATE";
+	}
+
 	public class SCTicket : ExternalTicket
 	{
 		public string Subject { get; set; } = "";
@@ -32,14 +37,14 @@ namespace FWO.Tufin.SecureChange
 
 		private string actTicketTemplate;
 		private SCTaskType actTaskType;
-		private readonly Dictionary<SCTaskType, string> WorkflowNames = new()
-        {
-			{ SCTaskType.AccessRequest, "1. xxx Standard Firewall Request" },
-			{ SCTaskType.NetworkObjectCreate, "Automatische Gruppenerstellung" },
-			{ SCTaskType.NetworkServiceCreate, "Automatische Gruppenerstellung" },
-			{ SCTaskType.NetworkObjectUpdate, "Automatische Gruppenerstellung" },
-			{ SCTaskType.NetworkServiceUpdate, "Automatische Gruppenerstellung" }
-		};
+		// private readonly Dictionary<SCTaskType, string> SCWorkflowNames = new()
+        // {
+		// 	{ SCTaskType.AccessRequest, "1. xxx Standard Firewall Request" },
+		// 	{ SCTaskType.NetworkObjectCreate, "Automatische Gruppenerstellung" },
+		// 	{ SCTaskType.NetworkServiceCreate, "Automatische Gruppenerstellung" },
+		// 	{ SCTaskType.NetworkObjectUpdate, "Automatische Gruppenerstellung" },
+		// 	{ SCTaskType.NetworkServiceUpdate, "Automatische Gruppenerstellung" }
+		// };
 
 		// IN_PROGRESS, REJECTED, CLOSED, CANCELLED, RESOLVED
 		// private readonly Dictionary<string, string> ScToInternalStates = new()
@@ -84,7 +89,7 @@ namespace FWO.Tufin.SecureChange
 		public override void CreateRequestString(List<WfReqTask> tasks, ModellingNamingConvention? namingConvention)
 		{
 			CreateTicketTasks(tasks, namingConvention);
-			CreateTicketText();
+			CreateTicketText(tasks.First());
 		}
 
 		public override string GetTaskTypeAsString(WfReqTask task)
@@ -124,31 +129,31 @@ namespace FWO.Tufin.SecureChange
 			}
 		}
 
-		private static SCTaskType GetTaskType(WfReqTask task)
+		private static (SCTaskType, string) GetTaskType(WfReqTask task)
 		{
 			switch(task.TaskType)
 			{
 				case nameof(WfTaskType.access):
-					return SCTaskType.AccessRequest;
+					return (SCTaskType.AccessRequest, SCChangeAction.Create);
 				case nameof(WfTaskType.group_create):
 					if(task.IsNetworkFlavor())
 					{
-						return SCTaskType.NetworkObjectCreate;
+						return (SCTaskType.NetworkObjectModify, SCChangeAction.Create);
 					}
 					else
 					{
-						return SCTaskType.NetworkServiceCreate;
+						return (SCTaskType.NetworkServiceCreate, SCChangeAction.Create);
 					}
 				case nameof(WfTaskType.group_modify):
 					if(task.IsNetworkFlavor())
 					{
-						return SCTaskType.NetworkObjectUpdate;
+						return (SCTaskType.NetworkObjectModify, SCChangeAction.Update);
 					}
 					else
 					{
-						return SCTaskType.NetworkServiceUpdate;
+						return (SCTaskType.NetworkServiceUpdate, SCChangeAction.Update);
 					}
-				default: return SCTaskType.AccessRequest;
+				default: return (SCTaskType.AccessRequest, SCChangeAction.Create);
 			}
 		}
 
@@ -157,17 +162,15 @@ namespace FWO.Tufin.SecureChange
 			foreach (var task in tasks)
 			{
 				SCTicketTask? ticketTask = null;
-				actTaskType = GetTaskType(task);
+				string changeAction;
+				(actTaskType, changeAction) = GetTaskType(task);
 				switch(actTaskType)
 				{
 					case SCTaskType.AccessRequest:
 						ticketTask = new SCAccessRequestTicketTask(task);
 						break;
-					case SCTaskType.NetworkObjectCreate:
-						ticketTask = new SCNetworkObjectCreateTicketTask(task, namingConvention);
-						break;
-					case SCTaskType.NetworkObjectUpdate:
-						ticketTask = new SCNetworkObjectUpdateTicketTask(task, namingConvention);
+					case SCTaskType.NetworkObjectModify:
+						ticketTask = new SCNetworkObjectModifyTicketTask(task, changeAction, namingConvention);
 						break;
 				}
 				if(ticketTask != null)
@@ -187,13 +190,15 @@ namespace FWO.Tufin.SecureChange
 			}
 		}
 
-		private void CreateTicketText()
+		private void CreateTicketText(WfReqTask? reqTask)
 		{
+			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId ?? "" : "";
 			TicketText = actTicketTemplate
 				.Replace("@@TICKET_SUBJECT@@", Subject)
 				.Replace("@@PRIORITY@@", Priority)
 				.Replace("@@ONBEHALF@@", Requester)
-				.Replace("@@WORKFLOW_NAME@@", WorkflowNames[actTaskType])
+				.Replace("@@REASON@@", reqTask?.Reason ?? "")
+				.Replace("@@APPID@@", appId)
 				.Replace("@@TASKS@@", string.Join(",", TicketTasks));
 			CheckForProperJson(TicketText);
 		}

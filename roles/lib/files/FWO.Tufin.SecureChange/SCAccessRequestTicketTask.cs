@@ -4,36 +4,21 @@ namespace FWO.Tufin.SecureChange
 {
 	public class SCAccessRequestTicketTask : SCTicketTask
 	{
-
-		// mockup:
-		private readonly string Action = "Accept";
-		private readonly string Logging = "Ja";
-		private readonly string EndDate = "";
-		private readonly string AppId = "APP-4711";
-		//private string Reason = "der Grund ..."
-		private readonly string ComDocumented = "false";
-				
-
 		public SCAccessRequestTicketTask(WfReqTask reqTask, ModellingNamingConvention? namingConvention = null) : base(reqTask, namingConvention)
 		{}
 
-
 		public override void FillTaskText(string tasksTemplate)
 		{
+			ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement?.ExtMgtData != null ?
+				System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
 			TaskText = tasksTemplate
-				.Replace("@@USERS@@", "[\"Any\"]") // data not provided yet
-				.Replace("@@SOURCES@@", ConvertNetworkElems(ElemFieldType.source))
-				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(ElemFieldType.destination))
-				.Replace("@@SERVICES@@", ConvertServiceElems())
-				.Replace("@@ACTION@@", Action) // -> ReqTask.RuleAction
-				.Replace("@@REASON@@", ReqTask.Reason)
-				.Replace("@@LOGGING@@", Logging) // -> ReqTask.Tracking
-				.Replace("@@ENDDATE@@", EndDate) // woher?
-				.Replace("@@APPID@@", AppId) // ExtAppId -> AdditionalInfo ?
-				.Replace("@@COM_DOCUMENTED@@", ComDocumented); // ??
+				.Replace("@@ORDERNAME@@", "AR"+ ReqTask.TaskNumber.ToString())
+				.Replace("@@SOURCES@@", ConvertNetworkElems(ElemFieldType.source, extMgt.ExtName))
+				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(ElemFieldType.destination, extMgt.ExtName))
+				.Replace("@@SERVICES@@", ConvertServiceElems());
 		}
 
-		private string ConvertNetworkElems(ElemFieldType fieldType)
+		private string ConvertNetworkElems(ElemFieldType fieldType, string? mgtName)
 		{
 			List<NwObjectElement> nwObjects = ReqTask.GetNwObjectElements(fieldType);
 			List<string> convertedObjects = [];
@@ -41,7 +26,7 @@ namespace FWO.Tufin.SecureChange
 			{
 				if(nwObj.GroupName != "" && convertedObjects.FirstOrDefault(o => o == nwObj.GroupName) == null)
 				{
-					convertedObjects.Add(FillNwObjGroupTemplate(nwObj.GroupName));
+					convertedObjects.Add(FillNwObjGroupTemplate(nwObj.GroupName, mgtName ?? ""));
 				}
 				else
 				{

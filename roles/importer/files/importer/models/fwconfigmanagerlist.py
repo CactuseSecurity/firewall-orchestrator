@@ -17,13 +17,3 @@ class FwConfigManagerList(BaseModel):
 
     def __str__(self):
         return f"{str(self.ManagerSet)})"
-
-    # def toJson(self):
-    #     return deserializeClassToDictRecursively(self)
-
-    # def toJsonString(self, prettyPrint=False):
-    #     jsonDict = self.toJson()
-    #     if prettyPrint:
-    #         return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
-    #     else:
-    #         return json.dumps(jsonDict)

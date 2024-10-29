@@ -62,10 +62,11 @@ class ManagementDetails():
     ImportUser: str
     Secret: str
     IsSuperManager: bool
+    SubManager: List[int]
 
     def __init__(self, hostname: str, id: int, importDisabled: bool, devices: Dict, 
                  importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, 
-                 port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False):
+                 port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, SubManager: List[int] = []):
         self.Hostname = hostname
         self.Id = id
         self.ImportDisabled = importDisabled
@@ -78,6 +79,7 @@ class ManagementDetails():
         self.Secret = secret
         self.ImportUser = importUser
         self.IsSuperManager = isSuperManager
+        self.SubManager = SubManager
 
     @classmethod
     def fromJson(cls, json_dict: Dict):
@@ -106,7 +108,6 @@ class ImportState():
     ErrorString: str
     StartTime: int
     DebugLevel: int
-    Config2import: dict
     ConfigChangedSinceLastImport: bool
     FwoConfig: FworchConfig
     MgmDetails: ManagementDetails
@@ -127,7 +128,6 @@ class ImportState():
         self.ErrorString = ''
         self.StartTime = int(time.time())
         self.DebugLevel = debugLevel
-        self.Config2import = { "network_objects": [], "service_objects": [], "user_objects": [], "zone_objects": [], "rules": [] }
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
         self.FwoConfig = fwoConfig
         self.MgmDetails = ManagementDetails.fromJson(mgmDetails)
@@ -170,12 +170,12 @@ class ImportState():
                          isClearingImport=False, isFullImport=False
                          ):
 
-        def check_input_parameters(mgmId):
+        def _check_input_parameters(mgmId):
             if mgmId is None:
                 raise BaseException("parameter mgm_id is mandatory")
 
         logger = getFwoLogger()
-        check_input_parameters(mgmId)
+        _check_input_parameters(mgmId)
 
         fwoConfig = FworchConfig.fromJson(readConfig(fwo_config_filename))
 
@@ -184,8 +184,10 @@ class ImportState():
             jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
         except FwoApiLoginFailed as e:
             logger.error(e.message)
+            raise
             return e.message
         except:
+            raise
             return "unspecified error during FWO API login"
 
         # set global https connection values
@@ -203,8 +205,7 @@ class ImportState():
             logger.error("import_management - error while getting fw management details for mgm=" + str(mgmId) )
             raise
 
-        # return ImportState (int(debugLevel), True, fwoConfig, mgmDetails) 
-        return cls (
+        result = cls (
             debugLevel = int(debugLevel),
             configChangedSinceLastImport = True,
             fwoConfig = fwoConfig,
@@ -215,9 +216,13 @@ class ImportState():
             isClearingImport=isClearingImport,
             isFullImport=isFullImport
         )
-
-    def setPastImportInfos(self):
+        if type(result) is str:
+            logger.error("error while getting import state")
+            raise
         
+        return result 
+
+    def setPastImportInfos(self):        
         logger = getFwoLogger()
         
         try: # get past import details (LastFullImport, ...):

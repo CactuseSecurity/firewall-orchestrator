@@ -117,13 +117,17 @@ def set_api_url(base_url, testmode, api_supported, hostname):
 
 
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
+    # from 9.0 do not import sub-managers separately
     mgm_query = """
-        query getManagementIds {
-            management(where: {do_not_import: {_eq: false}}, order_by: {is_super_manager: desc}) {
-                id: mgm_id
+    query getManagementIds {
+        management(where: {multi_device_manager_id: {_is_null: true}, do_not_import: {_eq: false}}, order_by: {is_super_manager: desc}) {
+            id: mgm_id
+            subManager: managementByMultiDeviceManagerId {
+                mgm_id
             }
         }
- """
+    }
+    """
     return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management']
 
 
@@ -191,6 +195,9 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                     local_rulebase_name
                     global_rulebase_name
                     package_name
+                }
+                subManager: managementByMultiDeviceManagerId {
+                mgm_id
                 }
                 import_controls(where: { successful_import: {_eq: true} } order_by: {control_id: desc}, limit: 1) {
                     starttime: start_time

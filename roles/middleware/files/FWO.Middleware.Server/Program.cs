@@ -18,7 +18,7 @@ ReportScheduler reportScheduler;
 AutoDiscoverScheduler autoDiscoverScheduler;
 DailyCheckScheduler dailyCheckScheduler;
 ImportAppDataScheduler importAppDataScheduler;
-ImportSubnetDataScheduler importSubnetDataScheduler;
+ImportIpDataScheduler importSubnetDataScheduler;
 ImportChangeNotifyScheduler importChangeNotifyScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -80,7 +80,7 @@ Task.Factory.StartNew(async() =>
 // Create and start import subnet data scheduler
 Task.Factory.StartNew(async() =>
 {
-    importSubnetDataScheduler = await ImportSubnetDataScheduler.CreateAsync(apiConnection);
+    importSubnetDataScheduler = await ImportIpDataScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start import change notify scheduler

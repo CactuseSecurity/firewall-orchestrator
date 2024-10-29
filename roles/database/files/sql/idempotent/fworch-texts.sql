@@ -185,6 +185,8 @@ INSERT INTO txt VALUES ('AllOwnerResponsibles', 'German',	'Eigent&uuml;mer alle 
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'English',	'Owner all responsibles');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'German',	'nur Eigent&uuml;mergruppe');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'English',	'Owner Group only');
+INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'German',	'Hauptverantworlicher wenn Eigent&uuml;mergruppe nicht spezifiziert');
+INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'English',	'Owner Main Responsible if Owner Group not specified');
 INSERT INTO txt VALUES ('Requester', 		    'German',	'Antragsteller');
 INSERT INTO txt VALUES ('Requester', 	        'English',	'Requester');
 INSERT INTO txt VALUES ('Approver', 		    'German',	'Genehmiger');
@@ -1130,8 +1132,8 @@ INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uu
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
-INSERT INTO txt VALUES ('replace_error', 	    'German',	'Fehler beim Ersetzen');
-INSERT INTO txt VALUES ('replace_error', 	    'English',	'Replace error');
+INSERT INTO txt VALUES ('insert_forbidden', 	'German',	'Einf&uuml;gen verboten');
+INSERT INTO txt VALUES ('insert_forbidden', 	'English',	'Insert forbidden');
 INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
 INSERT INTO txt VALUES ('func_reason', 	        'English',	'Functional Reason');
 INSERT INTO txt VALUES ('to_source', 	        'German',	'Zu Quelle');
@@ -1553,6 +1555,12 @@ INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
 INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
 INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
 INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
+INSERT INTO txt VALUES ('owner_appserver_notfound',     'German', 	'Owner für App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appserver_notfound',     'English', 	'Owner for App server not found.');
+INSERT INTO txt VALUES ('owner_appservertype_notfound',     'German', 	'App-Server Typ für App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appservertype_notfound',     'English', 	'App server type for App server not found.');
+INSERT INTO txt VALUES ('import_finished_witherrors',     'German', 	'Import wurde mit Fehlern abgeschlossen.');
+INSERT INTO txt VALUES ('import_finished_witherrors',     'English', 	'Import succeeded with erros.');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -2159,6 +2167,8 @@ INSERT INTO txt VALUES ('importSubnetDataSleepTime','German','Import Subnetzdate
 INSERT INTO txt VALUES ('importSubnetDataSleepTime','English','Import Subnet data sleep time (in hours)');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','German', 'Import Subnetzdaten-Start');
 INSERT INTO txt VALUES ('importSubnetDataStartAt','English','Import Subnet data start at');
+INSERT INTO txt VALUES ('importAppServerDataSuccess',  'German',   'Import von App-Server Daten erfolgreich');
+INSERT INTO txt VALUES ('importAppServerDataSuccess',  'English',  'Import of App-Server Data successfull');
 INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorgeschrieben');
 INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
 INSERT INTO txt VALUES ('modReqInterfaceName',  'German',   'Name der beantragten Schnittstelle');
@@ -2423,7 +2433,8 @@ INSERT INTO txt VALUES ('general',              'German', 	'Allgemein');
 INSERT INTO txt VALUES ('general',              'English', 	'General');
 INSERT INTO txt VALUES ('naming_convention',    'German',   'Namenskonvention');
 INSERT INTO txt VALUES ('naming_convention',    'English',  'Naming Convention');
-
+INSERT INTO txt VALUES ('import_app_server',    'German',   'App Server importieren');
+INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -2920,6 +2931,8 @@ INSERT INTO txt VALUES ('E7012', 'German',  'Kein Import f&uuml;r aktives Manage
 INSERT INTO txt VALUES ('E7012', 'English', 'No Import for active management');
 INSERT INTO txt VALUES ('E7013', 'German',  'Letzter erfolgreicher Import zu lange her');
 INSERT INTO txt VALUES ('E7013', 'English', 'Last successful import too long ago');
+INSERT INTO txt VALUES ('E7014', 'German',  'Es sind nur CSV Dateien erlaubt.');
+INSERT INTO txt VALUES ('E7014', 'English', 'Only CSV Files allowed.');
 
 INSERT INTO txt VALUES ('E8001', 'German',  'Antrag konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8001', 'English', 'Request could not be created');
@@ -2985,10 +2998,12 @@ INSERT INTO txt VALUES ('E9013', 'German',  'Schnittstelle kann nicht gel&ouml;s
 INSERT INTO txt VALUES ('E9013', 'English', 'Interface cannot be deleted because it is in use: ');
 INSERT INTO txt VALUES ('E9014', 'German',  'Bitte zuerst die gemachten &Auml;nderungen speichern.');
 INSERT INTO txt VALUES ('E9014', 'English', 'Please save changes first.');
-INSERT INTO txt VALUES ('E9015', 'German',  'Schnittstelle kann die angeforderte nicht ersetzen: Die Richtungen der Schnittstellen stimmen nicht &uuml;berein (eine ist eine Quellschnittstelle, die andere eine Zielschnittstelle).');
-INSERT INTO txt VALUES ('E9015', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
+INSERT INTO txt VALUES ('E9015', 'German',  'Dieses NA-Objekt darf an dieser Stelle nicht verwendet werden (administrativ verboten).');
+INSERT INTO txt VALUES ('E9015', 'English', 'This NA object must not be used in this position (administratively forbidden).');
 INSERT INTO txt VALUES ('E9016', 'German',  'Beantragte Schnittstelle kann nicht gel&ouml;scht werden.');
 INSERT INTO txt VALUES ('E9016', 'English', 'Requested interface cannot be deleted.');
+INSERT INTO txt VALUES ('E9017', 'German',  'Schnittstelle kann die angeforderte nicht ersetzen: Die Richtungen der Schnittstellen stimmen nicht &uuml;berein (eine ist eine Quellschnittstelle, die andere eine Zielschnittstelle).');
+INSERT INTO txt VALUES ('E9017', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 
@@ -5134,10 +5149,10 @@ INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following mea
         </li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von Subnetzdaten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfad und Namen gespeist.
+INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von IP-Daten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfad und Namen gespeist.
     Dort kann auch ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Datei hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
-INSERT INTO txt VALUES ('H6931', 'English', 'The import of subnet data is fed from a .json file with path and name defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
+INSERT INTO txt VALUES ('H6931', 'English', 'The import of IP data is fed from a .json file with path and name defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
     There also a python script with the same name can be provided to create this file. the structure of the .json file is as following:
 ');
 INSERT INTO txt VALUES ('H6932', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
@@ -6228,6 +6243,26 @@ INSERT INTO txt VALUES ('H9053', 'English', 'The assigned modeller can reject th
 
 INSERT INTO txt VALUES ('H9054', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
 INSERT INTO txt VALUES ('H9054', 'English', 'Message that is displayed on Login Page.');
+INSERT INTO txt VALUES ('H9055', 'German',  'Importieren von App Servern via CSV Datei. Die CSV muss folgende Daten enthalten:
+<ul>
+<li>App Server Name</li>
+<li>Externe App-ID</li>
+<li>App Server Typ</li>
+<li>App IP Address Range</li>
+</ul>
+<br>
+Die CSV darf eine Überschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+');
+INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV file. The CSV must contain the following data:
+<ul>
+<li>App server name</li>
+<li>External app ID</li>
+<li>App server type</li>
+<li>App IP address range</li>
+</ul>
+<br>
+The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+');
 INSERT INTO txt VALUES ('PagerPagesize',     'German', 	'Seitengröße');
 INSERT INTO txt VALUES ('PagerPagesize',     'English', 'Page size');
 INSERT INTO txt VALUES ('PagerSubmit',       'German', 	'Speichern');

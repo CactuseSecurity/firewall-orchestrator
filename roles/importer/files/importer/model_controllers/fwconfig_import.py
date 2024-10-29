@@ -28,6 +28,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
     ImportDetails: ImportState
     FwoApiUrl: str
     FwoJwt: str
+    NormalizedConfig: FwConfigNormalized
     
     def __init__(self, importState: ImportState, config: FwConfigNormalized):
         self.FwoApiUrl = importState.FwoConfig.FwoApiUri
@@ -121,20 +122,20 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
     def storeConfigToApi(self):
 
          # convert FwConfigImport to FwConfigNormalized
-        conf = FwConfigNormalized(action=self.action, 
-                                  network_objects=self.network_objects, 
-                                  service_objects=self.service_objects, 
-                                  users=self.users,
-                                  zone_objects=self.zone_objects,
-                                  rules=self.rules,
-                                  gateways=self.gateways,
-                                  ConfigFormat=self.ConfigFormat)
+        self.NormalizedConfig = FwConfigNormalized(action=self.NormalizedConfig.action, 
+                                  network_objects=self.NormalizedConfig.network_objects, 
+                                  service_objects=self.NormalizedConfig.service_objects, 
+                                  users=self.NormalizedConfig.users,
+                                  zone_objects=self.NormalizedConfig.zone_objects,
+                                  rules=self.NormalizedConfig.rules,
+                                  gateways=self.NormalizedConfig.gateways,
+                                  ConfigFormat=self.NormalizedConfig.ConfigFormat)
         
         if self.ImportDetails.ImportVersion>8:
             errorsFound = self.deleteLatestConfig()
             if errorsFound:
                 getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.ImportDetails.ImportId}")
-            errorsFound = self.storeLatestConfig(conf.toJsonString(prettyPrint=False))
+            errorsFound = self.storeLatestConfig(self.NormalizedConfig.json())
             if errorsFound:
                 getFwoLogger().warning(f"error while writing latest config for mgm_id: {self.ImportDetails.ImportId}")
 
@@ -160,7 +161,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
                 if importsDeleted>0:
                     logger.info(f"deleted {str(importsDeleted)} imoprts which passed the retention time of {ImportState.DataRetentionDays} days")
         except:
-            logger.error(f"error while trying to delete old imports for mgm {str(self.ImportState.MgmDetails.Id)}")
+            logger.error(f"error while trying to delete old imports for mgm {str(self.ImportDetails.MgmDetails.Id)}")
             # create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, mgm_id=int(importState.MgmDetails.Id), severity=1, 
             #     description="failed to get import lock for management id " + str(mgmId))
             # setAlert(url, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=str(mgmId), severity=1, role='importer', \
@@ -175,6 +176,11 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         issues.update(self.checkUserObjectConsistency())
         issues.update(self.checkZoneObjectConsistency())
         issues.update(self.checkRuleConsistency())
+        if len(issues)>0:
+            logger = getFwoLogger()
+            logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
+            self.ImportDetails.increaseErrorCounterByOne()
+
         return issues
 
     def checkNetworkObjectConsistency(self):

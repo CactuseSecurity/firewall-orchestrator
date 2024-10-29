@@ -10,11 +10,47 @@ import cp_const, cp_network, cp_service
 import cp_getter
 from fwo_exception import FwLoginFailed, FwLogoutFailed
 from cp_user import parse_user_objects_from_rulebase
-from roles.importer.files.importer.models.fwconfig_base import calcManagerUidHash
-from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
+from fwconfig_base import calcManagerUidHash
+from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from models.fwconfig_normalized import FwConfigNormalized
 from fwoBaseImport import ImportState
-from fwo_base import ConfFormat, ConfigAction
+from fwo_base import ConfigAction
 import fwo_const
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
+
+
+# objects as well as rules can now be either from super-amanager or from local manager!
+# TODO: decide if we still support importing native config from file
+#   might replace this with json config file (in case it is not deserializable into classes)
+def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigManagerList) -> tuple[int, FwConfigManagerList]:
+    logger = getFwoLogger()
+    logger.debug ( "starting checkpointR8x/get_config" )
+    managers = FwConfigManagerList()
+    managers.ManagerSet.append(FwConfigManager(ManagerUid=importState.MgmDetails.Name, ManagerName=importState.MgmDetails.Name))
+    
+    policies = []
+    if importState.MgmDetails.IsSuperManager:
+        # parse all global objects and policies
+        getObjects(importState, normalizedConfig)
+        getPolicies(importState, normalizedConfig)
+    else:
+        # get all details needed to import necessary policies via CP API
+        getGatewayDetails(importState, normalizedConfig)
+
+        # for local managers - only get and parse policies that are used by gateways which are marked as "do import" 
+        for device in importState.FullMgmDetails['devices']:
+            if not device.do_not_import:
+
+                for policy in package:
+                    if policy not in policies:
+                        normalizedConfig.rules.append(getPolicy(policy))
+                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(policy.name )
+
+
+def getGatewayDetails(importState, normalizedConfig):
+    #run show-package for package-name to get all relevant policies
+    package = cp_api_call(api_v_url, 'show-package', showParams, sid)
 
 
 def has_config_changed (full_config, mgm_details, force=False):
@@ -23,9 +59,7 @@ def has_config_changed (full_config, mgm_details, force=False):
         return 1
 
     domain, _ = prepare_get_vars(mgm_details)
-
     session_id = login_cp(mgm_details, domain)
-
     last_change_time = ''
     if 'import_controls' in mgm_details:
         for importctl in mgm_details['import_controls']: 
@@ -43,9 +77,7 @@ def has_config_changed (full_config, mgm_details, force=False):
     return result
 
 
-
 def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerApiBaseUrl: str) -> int:
-
     logger = getFwoLogger()
     nativeConfig.update({'rulebases': [], 'nat_rulebases': [] })
     show_params_rules = {
@@ -181,13 +213,14 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
     logger.info("completed normalizing rulebases")
     
     # put dicts into object of class FwConfigManager
-    normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 
-                            network_objects=normalizedConfig['network_objects'],
-                            service_objects=normalizedConfig['service_objects'],
+    normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
+                            network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['network_objects'], 'obj_uid'),
+                            service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['service_objects'], 'svc_uid'),
                             users=normalizedConfig['users'],
                             zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
-                            rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
+                            # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
+                            rules=normalizedConfig['policies'],
                             gateways=normalizedConfig['gateways']
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
@@ -195,7 +228,8 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
                               IsGlobal=False, 
                               DependantManagerUids=[], 
                               Configs=[normalizedConfig])
-    listOfManagers = FwConfigManagerList()
+    # listOfManagers = FwConfigManagerList()
+    listOfManagers = FwConfigManagerListController()
 
     listOfManagers.addManager(manager)
     logger.info("completed getting config")
@@ -263,8 +297,8 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
     show_params_objs = {'limit':limit,'details-level': details_level }
 
     # getting Original (NAT) object (both for networks and services)
-    origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url)['object_chunks'][0]
-    anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url)['object_chunks'][0]
+    origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
+    anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
 
     for obj_type in cp_const.api_obj_types:
         if obj_type in cp_const.obj_types_full_fetch_needed:

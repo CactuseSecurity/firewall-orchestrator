@@ -20,7 +20,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string subscribeAutodiscoveryConfigChanges;
         public static readonly string subscribeDailyCheckConfigChanges;
         public static readonly string subscribeImportAppDataConfigChanges;
-        public static readonly string subscribeImportSubnetDataConfigChanges;
+        public static readonly string subscribeImportIpDataConfigChanges;
         public static readonly string subscribeImportNotifyConfigChanges;
 
 
@@ -44,7 +44,7 @@ namespace FWO.Api.Client.Queries
                 subscribeAutodiscoveryConfigChanges = File.ReadAllText(QueryPath + "config/subscribeAutodiscoveryConfigChanges.graphql");
                 subscribeDailyCheckConfigChanges = File.ReadAllText(QueryPath + "config/subscribeDailyCheckConfigChanges.graphql");
                 subscribeImportAppDataConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportAppDataConfigChanges.graphql");
-                subscribeImportSubnetDataConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportSubnetDataConfigChanges.graphql");
+                subscribeImportIpDataConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportSubnetDataConfigChanges.graphql");
                 subscribeImportNotifyConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportNotifyConfigChanges.graphql");
             }
             catch (Exception exception)

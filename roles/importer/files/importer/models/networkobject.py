@@ -14,7 +14,22 @@ class NetworkObject(BaseModel):
     obj_member_names: Optional[str] = None
     obj_comment: Optional[str] = None
 
+    # convert IPNetworks to strings
+    def json(self, **kwargs):
+        # Call the default json method from BaseModel
+        data = super().json(**kwargs)
+        # Replace the IPNetwork objects with their string representations
+        data = data.replace(str(self.obj_ip), str(self.obj_ip))
+        data = data.replace(str(self.obj_ip_end), str(self.obj_ip_end))
+        return data
 
+    def dict(self, **kwargs):
+        # Create a dictionary representation and convert IPNetwork to string
+        original_dict = super().dict(**kwargs)
+        original_dict['obj_ip'] = str(self.obj_ip)  # Convert to string
+        original_dict['obj_ip_end'] = str(self.obj_ip_end)  # Convert to string
+        return original_dict
+    
     @validator('obj_ip', 'obj_ip_end', pre=True)
     def convert_strings_to_ip_objects(cls, value, field):
         """
@@ -26,7 +41,10 @@ class NetworkObject(BaseModel):
                 try:
                     return IPNetwork(value)
                 except AddrFormatError as e:
-                    raise ValueError(f"Invalid network format: {value}") from e
+                    if value == 'None':   # undefined ip addresses are okay (for groups)
+                        return None
+                    else:
+                        raise ValueError(f"Invalid network format: {value}") from e
         return value
 
     # @root_validator(pre=True)

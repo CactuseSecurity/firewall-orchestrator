@@ -371,8 +371,10 @@ def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfig
         resolveRefListFromObjectDictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url)
 
 
-def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
-    logger.debug(f"getting {uid_missing_obj} from API")
+def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='', debug_level=0):
+    logger = getFwoLogger()
+    if debug_level>5:
+        logger.debug(f"getting {uid_missing_obj} from API")
 
     show_params_host = {'details-level':'full','uid':uid_missing_obj}   # need to get the full object here
     try:

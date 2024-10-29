@@ -105,6 +105,7 @@
                 "-d7",
                 "-f",
                 "-s",
+                // "-c",
                 //"-ifile:///home/tim/tmp/k1/cp-native-new.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_nor.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_norm_old.json",
@@ -112,9 +113,9 @@
                 // "-ifile:///home/tim/tmp/mgm_id_26_3_new_rule.json",
                 //  "-ifile:///home/tim/tmp/mgm_id_26_4_change_nw_obj.json",
                 // "-ifile:///home/tim/tmp/mgm_id_26_config_normalized_5.json",
-                "-ifile:///home/tim/tmp/mgm_id_26_config_normalized_6_pol_list.json",
+                // "-ifile:///home/tim/tmp/mgm_id_26_config_normalized_6_pol_list.json",
+                // "-ifile:///usr/local/fworch/tmp/import/mgm_id_26_config_normalized_change_1.json",
                 //"-l66",
-                // "-c",
                 // "-l500",
                 //  41 - lab fortimanager
                 //"-nhttps://fwodemodata.cactus.de/demo07_dummyGw1.json"

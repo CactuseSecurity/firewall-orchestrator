@@ -22,6 +22,7 @@ from models.gateway import Gateway
 from fwconfig_base import calcManagerUidHash
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.gateway_controller import GatewayController
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 
 
 """  
@@ -44,11 +45,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     importState = ImportState.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                force=force, version=version, 
                                                isClearingImport=clearManagementData, isFullImport=False)
-    # configImporter = FwConfigImport(importState, {})    # initialize importer (needed for clearing old imports)
 
-    if type(importState) is str:
-        logger.error("error while getting import state")
-        return 1
     importState.setPastImportInfos()    # last full import, data retention, ...
     if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
         # run clear import; this makes sure the following import is a full one
@@ -58,7 +55,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         importState.IsFullImport = True # the now following import is a full one
 
     if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
-        logger.info("import_management - import disabled for mgm " + str(mgmId))
+        logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
     else:
         Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
         gateways = GatewayController.buildGatewayList(importState.FullMgmDetails)
@@ -74,9 +71,26 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
         if clearManagementData:
             logger.info('this import run will reset the configuration of this management to "empty"')
-            configNormalized = FwConfigManagerList()
-            configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails), importState.MgmDetails.Name))
-            configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, [], [], [], [], []))
+            configNormalized = FwConfigManagerListController()
+            configNormalized.addManager(
+                manager=FwConfigManager(
+                    ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
+                    ManagerName=importState.MgmDetails.Name,
+                    IsGlobal=importState.MgmDetails.IsSuperManager,
+                    DependantManagerUids=[],
+                    Configs=[]
+                ))
+            configNormalized.ManagerSet[0].Configs.append(
+                FwConfigNormalized(
+                    action=ConfigAction.INSERT, 
+                    network_objects=[], 
+                    service_objects=[], 
+                    users=[], 
+                    zone_objects=[], 
+                    rules=[],
+                    gateways=[]
+            ))
+            
             importState.IsClearingImport = True # the now following import is a full one
         else:
             if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
@@ -86,6 +100,16 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             else:
                 ### geting config from firewall manager API ######
                 config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
+
+                # also import sub managers if they exist
+                for subManagerId in importState.MgmDetails.SubManager:
+                    subMgrImportState = ImportState.initializeImport(subManagerId, debugLevel=debug_level_in, 
+                                            force=force, version=version, 
+                                            isClearingImport=clearManagementData, isFullImport=False)
+                    config_changed_since_last_import, configNormalizedSub = get_config_from_api(subMgrImportState, {})
+                    configNormalized.mergeConfigs(configNormalizedSub)
+                    # TODO: destroy configNormalizedSub?
+
                 if importState.ImportVersion>8:
                     configNormalized.ConfigFormat = ConfFormat.NORMALIZED
 
@@ -99,11 +123,10 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
                 for managerSet in configNormalized.ManagerSet:
                     for config in managerSet.Configs:
-                        if config !=  {}:
+                        # if len(config)>0:
                             if importState.ImportVersion>8:
                                 configImporter = FwConfigImport(importState, config)
-                                issues = configImporter.checkConfigConsistency()
-                                if issues == {}:
+                                if len(configImporter.checkConfigConsistency())==0:
                                     try:
                                         configImporter.importConfig()
                                     except:
@@ -114,9 +137,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                         configImporter.rollbackCurrentImport()
                                     else:
                                         configImporter.storeConfigToApi() # to file (for debugging) and to database
-                                else:
-                                    logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
-                                    importState.increaseErrorCounterByOne()
                             else:
                                 configChunk = config.toJsonLegacy(withAction=False)
                                 importState.increaseErrorCounter(fwo_api.import_json_config(importState, configChunk))
@@ -140,7 +160,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             if error_from_imp_control != None and error_from_imp_control != [{'import_errors': None}]:
                 importState.increaseErrorCounterByOne()
                 importState.appendErrorString(str(error_from_imp_control))
-            # todo: if no objects found at all: at least throw a warning
+            # TODO: if no objects found at all: at least throw a warning
 
             # try: # get change count from db
             #     # temporarily only count rule changes until change report also includes other changes
@@ -150,8 +170,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             # except:
             #     logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
             #     raise
-        else: # if no changes were found, we skip everything else without errors
-            pass
         
         importState.increaseErrorCounter(fwo_api.complete_import(importState))
 
@@ -162,23 +180,23 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     return importState.ErrorCount
 
 
-def initiateImportStart(importState):
-    # now start import by adding a dummy config with flag set
-    emptyDummyConfig = FwConfigNormalized.fromJson( {
-        'action': ConfigAction.INSERT,
-        'network_objects': [],
-        'service_objects': [],
-        'users': [],
-        'zone_objects': [], 
-        'policies': [],
-        'routing': [],
-        'interfaces': []
-    })
+# def initiateImportStart(importState):
+#     # now start import by adding a dummy config with flag set
+#     emptyDummyConfig = FwConfigNormalized.fromJson( {
+#         'action': ConfigAction.INSERT,
+#         'network_objects': [],
+#         'service_objects': [],
+#         'users': [],
+#         'zone_objects': [], 
+#         'policies': [],
+#         'routing': [],
+#         'interfaces': []
+#     })
 
-    importState.setChangeCounter (
-        importState.ErrorCount + fwo_api.import_json_config(importState, 
-                                    emptyDummyConfig.toJsonLegacy(withAction=False), 
-                                    startImport=True))
+#     importState.setChangeCounter (
+#         importState.ErrorCount + fwo_api.import_json_config(importState, 
+#                                     emptyDummyConfig.toJsonLegacy(withAction=False), 
+#                                     startImport=True))
 
 
 def importFromFile(importState: ImportState, fileName: str = None, gateways: List[Gateway] = []):

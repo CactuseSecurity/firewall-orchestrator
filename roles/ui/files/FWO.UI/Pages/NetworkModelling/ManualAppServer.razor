@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using FWO.Basics
 @using FWO.Ui.Display
 @using System.Text.Json
 @using System.Net
@@ -58,7 +59,7 @@
                     </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true">
                         <Template>
-                            @(GlobalFunc.ShowBool(context.InUse))
+                            @(context.InUse.ShowAsHtml())
                         </Template>
                     </Column>
                     <Pager ShowPageNumber="true" ShowTotalCount="true" />

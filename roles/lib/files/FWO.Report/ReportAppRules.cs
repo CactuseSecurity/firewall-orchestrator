@@ -6,6 +6,7 @@ using FWO.Report.Filter;
 using FWO.Config.Api;
 using NetTools;
 using System.Net;
+using FWO.Basics;
 
 namespace FWO.Report
 {
@@ -100,8 +101,8 @@ namespace FWO.Report
         {
             List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, 
                 new { appId = Query.SelectedOwner?.Id });
-            ownerIps = [.. appServers.ConvertAll(s => new IPAddressRange(IPAddress.Parse(DisplayBase.StripOffNetmask(s.Ip)),
-                IPAddress.Parse(DisplayBase.StripOffNetmask(s.IpEnd != "" ? s.IpEnd : s.Ip))))];
+            ownerIps = [.. appServers.ConvertAll(s => new IPAddressRange(IPAddress.Parse(s.Ip.StripOffNetmask()),
+                IPAddress.Parse((s.IpEnd != "" ? s.IpEnd : s.Ip).StripOffNetmask())))];
         }
 
         private (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList)
@@ -155,8 +156,8 @@ namespace FWO.Report
             foreach(var ownerIpRange in ownerIps)
             {
                 if(obj.IP != null &&
-                    ComplianceNetworkZone.OverlapExists(new IPAddressRange(IPAddress.Parse(DisplayBase.StripOffNetmask(obj.IP)),
-                    IPAddress.Parse(DisplayBase.StripOffNetmask(obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP))), ownerIpRange))
+                    ComplianceNetworkZone.OverlapExists(new IPAddressRange(IPAddress.Parse(obj.IP.StripOffNetmask()),
+                    IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask())), ownerIpRange))
                 {
                     return true;
                 }
@@ -176,11 +177,33 @@ namespace FWO.Report
                     {
                         foreach(var rule in rb.Rulebase.RuleMetadata[0].Rules)
                         {
-                            foreach(var from in rule.Froms)
+                            mgt.RelevantObjectIds.Add(from.Object.Id);
+                            mgt.HighlightedObjectIds.Add(from.Object.Id);
+                            if(from.Object.Type.Name == ObjectType.Group)
+                            {
+                                foreach(var grpobj in from.Object.ObjectGroupFlats)
+                                {
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    {
+                                        mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                                    }
+                                }
+                            }
+                        }
+                        if(rule.Froms.Length == 0)
+                        {
+                            foreach(var from in rule.DisregardedFroms)
                             {
                                 mgt.RelevantObjectIds.Add(from.Object.Id);
-                                mgt.HighlightedObjectIds.Add(from.Object.Id);
-                                if(from.Object.Type.Name == ObjectType.Group)
+                            }
+                        }
+                        foreach(var to in rule.Tos)
+                        {
+                            mgt.RelevantObjectIds.Add(to.Object.Id);
+                            mgt.HighlightedObjectIds.Add(to.Object.Id);
+                            if(to.Object.Type.Name == ObjectType.Group)
+                            {
+                                foreach(var grpobj in to.Object.ObjectGroupFlats)
                                 {
                                     foreach(var grpobj in from.Object.ObjectGroupFlats)
                                     {

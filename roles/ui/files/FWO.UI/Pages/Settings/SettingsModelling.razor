@@ -85,7 +85,7 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <FileUpload ApiConnection="apiConnection" OnAddAppServerError="OnAddAppServerError" OnImportSuccess="OnAppServerImportSuccess"></FileUpload>
+                <CSVFileUpload ApiConnection="apiConnection" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
             </div>
         </div>
         <hr />
@@ -301,10 +301,19 @@ else
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
     EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
 
-
-    private void OnAddAppServerError(Exception e)
+    private void OnAddAppServerError((Exception Exception, string Message) error)
     {
-        DisplayMessageInUi(e, userConfig.GetText("add_app_server"), e.Message, false);
+        DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
+    }
+
+    private void OnAddAppServerWarning(string errorMessage)
+    {
+        DisplayMessageInUi(null, userConfig.GetText("add_app_server"), errorMessage, true);
+    }
+
+    private void OnAddAppServerWarning(Exception ex)
+    {
+        DisplayMessageInUi(ex, userConfig.GetText("add_app_server"), ex.Message, false);
     }
 
     private void OnAppServerImportSuccess()

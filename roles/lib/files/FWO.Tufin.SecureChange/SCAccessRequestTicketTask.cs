@@ -24,9 +24,12 @@ namespace FWO.Tufin.SecureChange
 			List<string> convertedObjects = [];
 			foreach(var nwObj in nwObjects)
 			{
-				if(nwObj.GroupName != "" && convertedObjects.FirstOrDefault(o => o == nwObj.GroupName) == null)
+				if(nwObj.GroupName != "")
 				{
-					convertedObjects.Add(FillNwObjGroupTemplate(nwObj.GroupName, mgtName ?? ""));
+					if(convertedObjects.FirstOrDefault(o => o == nwObj.GroupName) == null)
+					{
+						convertedObjects.Add(FillNwObjGroupTemplate(nwObj.GroupName, mgtName ?? ""));
+					}
 				}
 				else
 				{

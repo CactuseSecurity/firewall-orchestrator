@@ -26,6 +26,17 @@ namespace FWO.Basics
             return true;
         }
 
+        public static bool TryGetNetmask(this string ip, out string netmask)
+        {
+            netmask = "";
+
+            Match match = Regex.Match(ip, @"(\/[\d\.\:]+)\D?");
+
+            if (match.Success)
+                netmask = match.Groups[1].Value;
+
+            return match.Success;
+        }
         public static bool TrySplit(this string text, char separator, out int length)
         {
             string[] splits = text.Split(separator);
@@ -40,25 +51,30 @@ namespace FWO.Basics
             return true;
         }
 
-        // private static string StripOffNetmask(this string ip)
-        // {
-        //     if (TryGetNetmask(ip, out string netmask))
-        //         return ip.Replace(netmask, "");
-
-        //     return ip;
-        // }
-
-        public static bool TryGetNetmask(this string ip, out string netmask)
+        public static bool CheckOverlap(this string ip1, string ip2)
         {
-            netmask = "";
-
-            Match match = Regex.Match(ip, @"(\/[\d\.\:]+)\D?");
-
-            if (match.Success)
-                netmask = match.Groups[1].Value;
-
-            return match.Success;
+            return IpOperations.CheckOverlap(ip1, ip2);
         }
+
+        public static string StripOffNetmask(this string ip)
+        {
+            if (ip.TryGetNetmask(out string netmask))
+                return ip.Replace(netmask, "");
+
+            return ip;
+        }
+
+        // public static bool TryGetNetmask(this string ip, out string netmask)
+        // {
+        //     netmask = "";
+
+        //     Match match = Regex.Match(ip, @"(\/[\d\.\:]+)\D?");
+
+        //     if (match.Success)
+        //         netmask = match.Groups[1].Value;
+
+        //     return match.Success;
+        // }
 
         public static bool IsIPv4(this string ipAddress)
         {
@@ -174,6 +190,8 @@ namespace FWO.Basics
             }
             return bytes.Take(targetLength).ToArray();  // Ensure it's exactly targetLength bytes
         }
+
+
     }
 }
 

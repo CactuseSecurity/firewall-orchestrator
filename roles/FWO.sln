@@ -41,8 +41,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Basics", "lib\files\FWO
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Tufin.SecureChange", "lib\files\FWO.Tufin.SecureChange\FWO.Tufin.SecureChange.csproj", "{17AA0E0C-BB46-42FE-A08C-68539EA7FD53}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.GlobalFunctions", "GlobalFuncs\FWO.GlobalFunctions.csproj", "{A4D59426-224C-46B8-B2CA-E85011609C80}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

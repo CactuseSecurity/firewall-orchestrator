@@ -9,7 +9,6 @@ using System.Net.Sockets;
 using System.Collections;
 using System.Text.RegularExpressions;
 using NetTools;
-using FWO.GlobalFunctions;
 
 namespace FWO.Ui.Services
 {

@@ -109,9 +109,9 @@ namespace FWO.Middleware.Server
 				else
 				{
 					request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
-					request.LastMessage = ticketIdResponse?.ErrorMessage;
+					request.LastMessage = ticketIdResponse?.Content;
 					await UpdateRequestCreation(request);
-					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.ErrorMessage);
+					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
 				}
 			}
 			catch(Exception exception)

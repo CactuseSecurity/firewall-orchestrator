@@ -68,7 +68,7 @@ namespace FWO.Test
             "{\"ticket\":{\"subject\":\"\",\"priority\":\"Normal\",\"requester\":\"\",\"domain_name\":\"\",\"workflow\":{\"name\":\"Automatische Gruppenerstellung\"}," + 
             "\"steps\":{\"step\":[{\"name\":\"Erfassung des Antrags\",\"tasks\":{\"task\":{\"fields\":{\"field\":[{\"@xsi.type\": \"multi_group_change\",\"name\": \"Modify network object group\",\"group_change\": " +
             "{\"name\": \"ARxx12345-100\",\"management_name\": \"CheckpointExt\",\"members\": " +
-            "{\"member\": [{\"@type\": \"object\", \"name\": \"AppServerX\", \"object_type\": \"Host\", \"object_details\": \"123.0.0.1/32\", \"status\": \"ADDED\", \"comment\": \"\", \"object_updated_status\": \"NEW\"}]}," +
+            "{\"member\": [{\"@type\": \"host\", \"name\": \"AppServerX\", \"object_type\": \"host\", \"object_details\": \"123.0.0.1/32\", \"status\": \"ADDED\", \"comment\": \"\", \"object_updated_status\": \"NEW\"}]}," +
             "\"change_action\": \"CREATE\"}}]}}}}]}}}";
 
 

@@ -94,8 +94,8 @@ namespace FWO.Tufin.SecureChange
 
 		protected struct SCObjectType
 		{
-			public const string Host = "Host";
-			public const string Network = "Network";
+			public const string Host = "host";
+			public const string Network = "network";
 		}
 
 		public SCTicketTask(WfReqTask reqTask, ModellingNamingConvention? namingConvention) : base(reqTask, namingConvention)

@@ -58,7 +58,7 @@
                     </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true">
                         <Template>
-                            @(GlobalFunc.ShowBool(context.InUse))
+                            @(context.InUse.ShowAsHtml())
                         </Template>
                     </Column>
                     <Pager ShowPageNumber="true" ShowTotalCount="true" />

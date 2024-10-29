@@ -1,7 +1,7 @@
 ﻿using NUnit.Framework;
 using NetTools;
 using System.Net;
-using FWO.GlobalConstants;
+using FWO.Basics;
 
 namespace FWO.Test
 {

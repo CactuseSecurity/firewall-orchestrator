@@ -1,5 +1,5 @@
 ﻿using System.Text.RegularExpressions;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Logging;
 using FWO.Config.Api.Data;
 using FWO.Api.Client;

@@ -4,6 +4,7 @@
 @using FWO.Api.Data
 @using FWO.Config.File
 @using FWO.GlobalConstants
+@using FWO.GlobalFunctions
 @using FWO.Ui.Data
 @using NetTools
 @using System.Net
@@ -22,8 +23,17 @@
         {
             <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
         }
-        <button type="button" disabled="@ImportDisabled" class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="LoadCSV">
-            @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+        <button type="button" disabled="@(Loading || ImportDisabled)" class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="LoadCSV">
+            @if (Loading)
+            {
+                <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
+                    </div>
+            }
+            else
+            {
+                @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+            }            
             <span class="ms-1">@(userConfig.GetText("import"))</span>
         </button>
         @if (ShowAlert)
@@ -39,15 +49,19 @@
     InputFileChangeEventArgs? InputFileChangeEventArgs;
 
     private bool ImportDisabled { get; set; } = true;
+    private bool Loading { get; set; }
 
     [Parameter]
-    public EventCallback<Exception> OnAddAppServerError { get; set; }
+    public EventCallback<(Exception, string?)> OnAddAppServerError { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnAddAppServerWarning { get; set; }
 
     [Parameter]
     public EventCallback OnImportSuccess { get; set; }
 
     [Parameter]
-    public ApiConnection ApiConnection { get; set; }
+    public ApiConnection? ApiConnection { get; set; }
 
     private List<AppServerType> AppServerTypes = new();
 
@@ -86,9 +100,25 @@
         if (ImportDisabled || InputFileChangeEventArgs is null)
             return;
 
-        using MemoryStream ms = new MemoryStream();
-        await InputFileChangeEventArgs.File.OpenReadStream().CopyToAsync(ms);
-        byte[]? bytes = ms.ToArray();
+        if (InputFileChangeEventArgs.File is null)        
+            return;        
+
+        Loading = true;
+
+        byte[]? bytes;
+
+        try
+        {
+            using MemoryStream ms = new MemoryStream();
+            await InputFileChangeEventArgs.File.OpenReadStream().CopyToAsync(ms);
+            bytes = ms.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Loading = false;
+            await OnAddAppServerError.InvokeAsync((ex, $"{userConfig.GetText("file_upload_failed")} {ex.Message}"));
+            return;
+        }
 
         string text = System.Text.Encoding.UTF8.GetString(bytes);
         string[] lines = text.Split('\r');
@@ -140,15 +170,16 @@
         if (importErrors.Count > 0)
         {
             Exception exception = importErrors.First();
-            string message = $"{userConfig.GetText("import_finished_witherrors")}({importErrors.Count}) {Environment.NewLine}{exception.Message}";
+            string message = $"{userConfig.GetText("import_finished_witherrors")}({importErrors.Count}). {exception.Message}";
 
-            Exception newException = new Exception(message);
-            await OnAddAppServerError.InvokeAsync(newException);
+            await OnAddAppServerWarning.InvokeAsync(message);
         }
         else
         {
             await OnImportSuccess.InvokeAsync();
         }
+
+        Loading = false;
     }
 
     private bool TryGetEntries(string line, char separator, out string[]? entries)

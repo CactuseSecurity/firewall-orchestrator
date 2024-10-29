@@ -3,6 +3,7 @@
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
 @using FWO.Config.Api
+@using FWO.GlobalFunctions
 @using FWO.Middleware.Client
 
 @page "/settings/gateways"
@@ -49,7 +50,7 @@
         </Column>
         <Column TableItem="Device" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(!context.ImportDisabled))
+                @(GlobalFuncs.ShowBool(!context.ImportDisabled))
             </Template>
         </Column>
     </Table>

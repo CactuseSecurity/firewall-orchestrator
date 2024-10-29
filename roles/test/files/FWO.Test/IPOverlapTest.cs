@@ -1,7 +1,5 @@
 ﻿using NUnit.Framework;
-using NetTools;
-using System.Net;
-using FWO.GlobalConstants;
+using FWO.GlobalFunctions;
 
 namespace FWO.Test
 {
@@ -46,7 +44,7 @@ namespace FWO.Test
             {
                 foreach (var ipOverlap in ipsShouldOverlap)
                 {
-                    if (CheckOverlap(subnet, ipOverlap))
+                    if (GlobalFuncs.IpOperations.CheckOverlap(subnet, ipOverlap))
                     {
                         ipsThatOverlapped++;
                     }
@@ -54,7 +52,7 @@ namespace FWO.Test
 
                 foreach (var ipNotOverlap in ipsShouldNotOverlap)
                 {
-                    if (CheckOverlap(subnet, ipNotOverlap))
+                    if (GlobalFuncs.IpOperations.CheckOverlap(subnet, ipNotOverlap))
                     {
                         ipsThatOverlapped++;
                     }
@@ -63,53 +61,6 @@ namespace FWO.Test
 
             Assert.That(Is.Equals(ipsThatOverlapped, ipsShouldOverlap.Count));
         }
-
-        private bool OverlapExists(IPAddressRange a, IPAddressRange b)
-        {
-            return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
-        }
-        private uint IpToUint(IPAddress ipAddress)
-        {
-            byte[] bytes = ipAddress.GetAddressBytes();
-
-            // flip big-endian(network order) to little-endian
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            return BitConverter.ToUInt32(bytes, 0);
-        }
-        private bool CheckOverlap(string ip1, string ip2)
-        {
-            IPAddressRange range1 = GetIPAdressRange(ip1);
-            IPAddressRange range2 = GetIPAdressRange(ip2);
-
-            if (range1.Begin.AddressFamily != range2.Begin.AddressFamily)
-                return false;
-
-
-            return OverlapExists(range1, range2);
-        }
-        private IPAddressRange GetIPAdressRange(string ip)
-        {
-            IPAddressRange ipAddressRange;
-
-            if (ip.TryGetNetmask(out _))
-            {
-                (string Start, string End) = ip.CidrToRangeString();
-                ipAddressRange = new(IPAddress.Parse(Start), IPAddress.Parse(End));
-            }
-            else if (ip.TrySplit('-', 1, out _) && IPAddressRange.TryParse(ip, out IPAddressRange ipRange))
-            {
-                ipAddressRange = ipRange;
-            }
-            else
-            {
-                ipAddressRange = new IPAddressRange(IPAddress.Parse(ip), IPAddress.Parse(ip));
-            }
-
-            return ipAddressRange;
-        }
+        
     }
 }

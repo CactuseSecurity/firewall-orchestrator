@@ -1,5 +1,5 @@
 ﻿using FWO.Config.Api;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -9,7 +9,6 @@ using System.Net.Sockets;
 using System.Collections;
 using System.Text.RegularExpressions;
 using NetTools;
-using FWO.GlobalFunctions;
 
 namespace FWO.Ui.Services
 {

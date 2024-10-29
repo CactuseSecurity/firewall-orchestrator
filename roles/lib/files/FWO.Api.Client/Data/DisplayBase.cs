@@ -2,7 +2,7 @@
 using NetTools;
 using FWO.Logging;
 using System.Net;
-using FWO.GlobalConstants;
+using FWO.Basics;
 
 namespace FWO.Api.Data
 {
@@ -202,22 +202,22 @@ namespace FWO.Api.Data
             return "";
         }
 
-        public static string StripOffNetmask(this string ip)
-        {
-            int pos = ip.LastIndexOf('/');
-            if (pos > -1 && ip.Length > pos + 1)
-            {
-                return ip[..pos];
-            }
-            return ip;
-        }
+        // public static string StripOffNetmask(this string ip)
+        // {
+        //     int pos = ip.LastIndexOf('/');
+        //     if (pos > -1 && ip.Length > pos + 1)
+        //     {
+        //         return ip[..pos];
+        //     }
+        //     return ip;
+        // }
 
         private static string StripOffUnnecessaryNetmask(string ip)
         {
             string netmask = GetNetmask(ip);
             if (IsV4Address(ip) && netmask == "32" || IsV6Address(ip) && netmask == "128")
             {
-                return StripOffNetmask(ip);
+                return ip.StripOffNetmask();
             }
             return ip;
         }
@@ -226,7 +226,7 @@ namespace FWO.Api.Data
         {
             // IPAddressRange range = IPAddressRange.Parse(IPAddress.Parse(ipInStart), IPAddress.Parse(ipInEnd));
 
-            IPAddressRange range = IPAddressRange.Parse(StripOffNetmask(ipInStart) + "-" + StripOffNetmask(ipInEnd));
+            IPAddressRange range = IPAddressRange.Parse(ipInStart.StripOffNetmask() + "-" + ipInEnd.StripOffNetmask());
             try
             {
                 range.ToCidrString();

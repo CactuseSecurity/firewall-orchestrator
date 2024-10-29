@@ -3,7 +3,7 @@ using System.Net;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
-namespace FWO.GlobalConstants
+namespace FWO.Basics
 {
     /// <summary>
     /// Global string constants used e.g. as database keys etc.
@@ -65,7 +65,7 @@ namespace FWO.GlobalConstants
         public const string Group = "group";
         public const string SimpleService = "simple";
         public const string Rpc = "rpc";
-    }    
-}
+    }
 
+}
 

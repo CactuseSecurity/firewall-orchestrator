@@ -3,7 +3,7 @@ using NUnit.Framework.Legacy;
 using FWO.Logging;
 using FWO.Report;
 using FWO.Report.Filter;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 
 

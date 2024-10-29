@@ -1,11 +1,10 @@
 ﻿@using BlazorTable
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.DeviceAutoDiscovery
-@using FWO.GlobalFunctions
 @using FWO.Middleware.Client
 
 @page "/settings/managements"
@@ -93,7 +92,7 @@
         <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
-                @(GlobalFuncs.ShowBool(!context.ImportDisabled))
+                @((!context.ImportDisabled).ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("debug_level"))" Field="@(x => x.DebugLevel)" Sortable="true" Filterable="true" />

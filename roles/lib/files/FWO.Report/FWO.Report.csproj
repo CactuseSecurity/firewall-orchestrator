@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\GlobalFuncs\FWO.GlobalFunctions.csproj" />
     <ProjectReference Include="..\FWO.Config.Api\FWO.Config.Api.csproj" />
     <ProjectReference Include="..\FWO.Report.Filter\FWO.Report.Filter.csproj" />
     <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />

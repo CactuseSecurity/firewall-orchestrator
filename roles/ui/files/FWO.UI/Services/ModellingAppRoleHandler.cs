@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Collections;
 using System.Text.RegularExpressions;
 using NetTools;
+using FWO.GlobalFunctions;
 
 namespace FWO.Ui.Services
 {
@@ -319,17 +320,6 @@ namespace FWO.Ui.Services
                     area.MemberCount++;
                 }
             }
-        }
-
-        private static string StripOffNetmask(string ip)
-        {
-            Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");
-            if (match.Success)
-            {
-                string matchedString = match.Value;
-                return matchedString.Remove( matchedString.Length - 1 );
-            }
-            return ip;
         }
 
         private static bool IsInArea(ModellingAppServer server, ModellingNetworkArea area)

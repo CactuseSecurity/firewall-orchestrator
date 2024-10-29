@@ -52,7 +52,7 @@ namespace FWO.Tufin.SecureChange
 		// 		"comment": "",
 		// 		"object_updated_status": "EXISTING_NOT_EDITED"
 		// 	},
-		private readonly string ObjectTemplate = "{\"@type\": \"Object\", \"name\": \"@@OBJECTNAME@@\", \"object_type\": \"@@OBJECT_TYPE@@\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
+		private readonly string ObjectTemplate = "{\"@type\": \"@@TYPE@@\", \"name\": \"@@OBJECTNAME@@\", \"object_type\": \"@@OBJECT_TYPE@@\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
 
 		// 	{
 		// 		"@type": "Object",
@@ -101,10 +101,11 @@ namespace FWO.Tufin.SecureChange
 		public SCTicketTask(WfReqTask reqTask, ModellingNamingConvention? namingConvention) : base(reqTask, namingConvention)
 		{}
 
-		protected string FillObjectTemplate(string objName, string ObjType, string objDetails, string comment, string status, string objUpdStatus)
+		protected string FillObjectTemplate(string type, string objName, string ObjType, string objDetails, string comment, string status, string objUpdStatus)
 		{
 			bool shortened = false;
 			return ObjectTemplate
+				.Replace("@@TYPE@@", type)
 				.Replace("@@OBJECTNAME@@", Sanitizer.SanitizeJsonFieldMand(objName, ref shortened))
 				.Replace("@@OBJECT_TYPE@@", ObjType)
 				.Replace("@@OBJECT_DETAILS@@", objDetails)
@@ -173,10 +174,11 @@ namespace FWO.Tufin.SecureChange
 			{
 				if(nwObj.RequestAction == RequestAction.create.ToString())
 				{
-					convertedObjects.Add(FillObjectTemplate(ConstructObjectName(nwObj, namingConvention),
-						GetSCObjectType(DisplayBase.AutoDetectType(nwObj.IpString, nwObj.IpEndString)),
-						nwObj.IpString, nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction),
-						ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId)));
+					string scObjType = GetSCObjectType(DisplayBase.AutoDetectType(nwObj.IpString, nwObj.IpEndString));
+					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId);
+					convertedObjects.Add(FillObjectTemplate(objUpdStatus == SCObjStatusValue.NEW.ToString() ? scObjType : "Object",
+						ConstructObjectName(nwObj, namingConvention), scObjType,
+						nwObj.IpString, nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus));
 				}
 				else
 				{

@@ -5151,10 +5151,10 @@ INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following mea
         </li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von Subnetzdaten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfad und Namen gespeist.
+INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von IP-Daten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfad und Namen gespeist.
     Dort kann auch ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Datei hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
-INSERT INTO txt VALUES ('H6931', 'English', 'The import of subnet data is fed from a .json file with path and name defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
+INSERT INTO txt VALUES ('H6931', 'English', 'The import of IP data is fed from a .json file with path and name defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
     There also a python script with the same name can be provided to create this file. the structure of the .json file is as following:
 ');
 INSERT INTO txt VALUES ('H6932', 'German',  'Die einzelnen Felder haben folgende Bedeutung:

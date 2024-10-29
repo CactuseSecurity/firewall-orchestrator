@@ -22,9 +22,9 @@ namespace FWO.Test
         static readonly bool AddAppRoleMode = false;
         static readonly bool IsOwner = true;
 
-        static readonly ModellingAppServer AppServerInside1 = new(){ Name = "AppServerInside1", Ip = "10.0.0.0" };
-        static readonly ModellingAppServer AppServerInside2 = new(){ Name = "AppServerInside2", Ip = "10.0.0.5" };
-        static readonly ModellingAppServer AppServerInside3 = new(){ Name = "AppServerInside3", Ip = "11.0.0.1" };
+        static readonly ModellingAppServer AppServerInside1 = new(){ Name = "AppServerInside1", Ip = "10.0.0.0", IpEnd = "10.0.0.0" };
+        static readonly ModellingAppServer AppServerInside2 = new(){ Name = "AppServerInside2", Ip = "10.0.0.5", IpEnd = "10.0.0.5"  };
+        static readonly ModellingAppServer AppServerInside3 = new(){ Name = "AppServerInside3", Ip = "11.0.0.1", IpEnd = "11.0.0.1" };
         static readonly List<ModellingAppServer> AvailableAppServers =
         [
             AppServerInside1,
@@ -37,10 +37,10 @@ namespace FWO.Test
             new(){ Ip = "255.255.255.255" }
         ];
 
-        static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", Subnets =
+        static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", IpData =
         [
-            new(){ Content = new(){ Name = "Testsubnet1", Ip = "10.0.0.0/32", IpEnd = "10.0.0.255/32" }},
-            new(){ Content = new(){ Name = "Testsubnet2", Ip = "11.0.0.0/32", IpEnd = "11.0.0.3/32" }}
+            new(){ Content = new(){ Name = "TestRange1", Ip = "10.0.0.0", IpEnd = "10.0.0.255" }},
+            new(){ Content = new(){ Name = "TestRange2", Ip = "11.0.0.0", IpEnd = "11.0.0.3" }}
         ]};
 
         static readonly ModellingNamingConvention NamingConvention1 = new()

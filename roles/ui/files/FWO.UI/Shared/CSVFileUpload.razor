@@ -147,7 +147,7 @@
 
             if (appServer.AppIPRangeStart.TryGetNetmask(out string netmask))
             {
-                (string Start, string End) ip = GlobalFuncs.IpOperations.CidrToRangeString(appServer.AppIPRangeStart);
+                (string Start, string End) ip = appServer.AppIPRangeStart.CidrToRangeString();
                 appServer.AppIPRangeStart = ip.Start;
                 appServer.AppIPRangeEnd = ip.End;
             }

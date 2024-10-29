@@ -5,8 +5,8 @@ namespace FWO.Api.Data
 {
     public class ModellingNetworkArea : ModellingNwGroup
     {
-        [JsonProperty("subnets"), JsonPropertyName("subnets")]
-        public List<NetworkSubnetWrapper> Subnets { get; set; } = [];
+        [JsonProperty("ip_data"), JsonPropertyName("ip_data")]
+        public List<NetworkDataWrapper> IpData { get; set; } = [];
 
         public int MemberCount = 0;
         
@@ -40,9 +40,9 @@ namespace FWO.Api.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            foreach(var subnet in Subnets)
+            foreach(var ip in IpData)
             {
-                shortened |= subnet.Content.Sanitize();
+                shortened |= ip.Content.Sanitize();
             }
             return shortened;
         }
@@ -75,21 +75,6 @@ namespace FWO.Api.Data
        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string? IpEnd { get; set; }
 
-        // public long Number;
-
-
-        // public static NetworkObject ToNetworkObject(NetworkSubnet subnet)
-        // {
-        //     return new NetworkObject()
-        //     {
-        //         Id = subnet.Id,
-        //         Number = subnet.Number,
-        //         Name = subnet.Name,
-        //         IP = subnet.Ip ?? "",
-        //         IpEnd = subnet.IpEnd ?? ""
-        //     };
-        // }
-
         public bool Sanitize()
         {
             bool shortened = false;
@@ -100,19 +85,14 @@ namespace FWO.Api.Data
         }
     }
 
-    public class NetworkSubnetWrapper
+    public class NetworkDataWrapper
     {
         [JsonProperty("owner_network"), JsonPropertyName("owner_network")]
         public NetworkSubnet Content { get; set; } = new();
 
-        public static NetworkSubnet[] Resolve(List<NetworkSubnetWrapper> wrappedList)
+        public static NetworkSubnet[] Resolve(List<NetworkDataWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
         }
-
-        // public static Group<NetworkObject>[] ResolveAsNetworkObjectGroup(List<NetworkSubnetWrapper> wrappedList)
-        // {
-        //     return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkObject> {Id = wrapper.Content.Id, Object = NetworkSubnet.ToNetworkObject(wrapper.Content)});
-        // }
     }
 }

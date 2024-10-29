@@ -1,4 +1,5 @@
 @using FWO.Config.Api
+@using FWO.GlobalFunctions
 @using FWO.Ui.Display
 @using FWO.GlobalConstants
 @using FWO.Api.Data
@@ -35,7 +36,7 @@
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.IsPublished))
+                @(GlobalFuncs.ShowBool(context.IsPublished))
             </Template>
         </Column>
     }
@@ -146,13 +147,13 @@
                         }
                         break;
                     case nameof(ConState.InterfaceRejected):
-                        relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{GlobalFunc.ShowBool(false)}</span>");
+                        relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{GlobalFuncs.ShowBool(false)}</span>");
                         break;
                     default:
                         break;
                 }
             }
         }
-        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"color:green\">{GlobalFunc.ShowBool(true)}</span>";
+        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"color:green\">{GlobalFuncs.ShowBool(true)}</span>";
     }
 }

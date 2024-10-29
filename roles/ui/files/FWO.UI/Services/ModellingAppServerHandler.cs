@@ -4,6 +4,7 @@ using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.GlobalFunctions;
 
 
 namespace FWO.Ui.Services
@@ -27,10 +28,10 @@ namespace FWO.Ui.Services
         {
             try
             {
-                if (ActAppServer.Sanitize())
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
-                }
+                //if (ActAppServer.Sanitize())
+                //{
+                //    DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
+                //}
                 if(CheckAppServer())
                 {
                     bool saveOk = true;
@@ -87,12 +88,25 @@ namespace FWO.Ui.Services
         {
             try
             {
+                if (ActAppServer.Ip.TrySplit('-', 1, out string ipEnd))
+                {
+                    ActAppServer.Ip = ActAppServer.Ip.Split('-')[0];
+                    ActAppServer.IpEnd = ipEnd;
+                }
+
+                if (!ActAppServer.Ip.TrySplit('/', 1, out string? subnet))
+                {
+                    ActAppServer.Ip += "/32";
+                }              
+
+                (string Start, string End) ip = ip = ActAppServer.Ip.CidrToRangeString();
+
                 var Variables = new
                 {
                     name = ActAppServer.Name,
                     appId = Application.Id,
-                    ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
-                    ipEnd = ActAppServer.IpEnd != "" ? IPAddressRange.Parse(ActAppServer.IpEnd).ToCidrString() : IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),
+                    ip = ip.Start,
+                    ipEnd = ip.End,
                     importSource = GlobalConst.kManual,  // todo
                     customType = ActAppServer.CustomType
                 };

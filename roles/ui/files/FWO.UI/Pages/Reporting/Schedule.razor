@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using FWO.GlobalFunctions
 @using FWO.Report.Filter
 
 @implements IDisposable
@@ -42,8 +43,8 @@
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("schedule_owner"))" Field="@(reportSchedule => reportSchedule.ScheduleOwningUser.Name)" Sortable="true" Filterable="true"/>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("active"))" Field="@(reportSchedule => reportSchedule.Active)" Sortable="true" Filterable="true">
                 <Template>
-                    @(GlobalFunc.ShowBool(context.Active))
-                </Template>
+                @(GlobalFuncs.ShowBool(context.Active))
+            </Template>
         </Column>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("count"))" Field="@(reportSchedule => reportSchedule.Counter)" Sortable="true" Filterable="true"/>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("output_format"))" Field="@(reportSchedule => reportSchedule.OutputFormat)">

@@ -138,6 +138,15 @@ namespace FWO.Api.Data
             return elements;
         }
 
+        public string GetFirstCommentText()
+        {
+            if(Comments.Count > 0)
+            {
+                return Comments.First().Comment.CommentText;
+            }
+            return "";
+        }
+
         public string GetAllComments()
         {
             string allComments = "";

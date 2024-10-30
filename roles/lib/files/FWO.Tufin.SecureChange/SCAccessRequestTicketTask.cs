@@ -13,6 +13,7 @@ namespace FWO.Tufin.SecureChange
 				System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
 			TaskText = tasksTemplate
 				.Replace("@@ORDERNAME@@", "AR"+ ReqTask.TaskNumber.ToString())
+				.Replace("@@TASKCOMMENT@@", ReqTask.GetFirstCommentText())
 				.Replace("@@SOURCES@@", ConvertNetworkElems(ElemFieldType.source, extMgt.ExtName))
 				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(ElemFieldType.destination, extMgt.ExtName))
 				.Replace("@@SERVICES@@", ConvertServiceElems());

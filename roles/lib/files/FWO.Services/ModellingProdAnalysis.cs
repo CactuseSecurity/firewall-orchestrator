@@ -77,7 +77,8 @@ namespace FWO.Services
                             TaskType = WfTaskType.access.ToString(),
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
-                            Elements = elements
+                            Elements = elements,
+                            Comments = [ new(){ Comment = new(){ CommentText = "FWOC" + conn.Id.ToString() }} ]
                         });
                     }
                 }

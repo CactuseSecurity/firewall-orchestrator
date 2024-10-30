@@ -52,6 +52,7 @@ namespace FWO.Services
                         ManagementId = reqTask.ManagementId,
                         OnManagement = reqTask.OnManagement,
                         Elements = reqTask.Elements,
+                        Comments = reqTask.Comments,
                         AdditionalInfo = reqTask.AdditionalInfo
                     },
                     ObjAction.add);
@@ -61,6 +62,16 @@ namespace FWO.Services
             wfHandler.AddTicketMode = true;
             wfHandler.ActTicket.UpdateCidrsInTaskElements();
             await wfHandler.SaveTicket(wfHandler.ActTicket);
+            foreach(var reqtask in reqTasks.Where(t => t.Comments.Count > 0))
+            {
+                WfReqTask? reqTaskToChange = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == reqtask.TaskType &&
+                    x.ManagementId == reqtask.ManagementId && x.Title == reqtask.Title);
+                if(reqTaskToChange != null)
+                {
+                    wfHandler.SetReqTaskEnv(reqTaskToChange);
+                    await wfHandler.ConfAddCommentToReqTask(reqtask.Comments.First().Comment.CommentText);
+                }
+            }
             return wfHandler.ActTicket;
         }
 

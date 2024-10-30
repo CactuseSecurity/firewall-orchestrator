@@ -68,8 +68,7 @@ namespace FWO.Tufin.SecureChange
 
 		private readonly string IpTemplate = "{\"@type\": \"IP\", \"ip_address\": \"@@IP@@\", \"netmask\": \"255.255.255.255\", \"cidr\": 32}";
 
-		// private readonly string ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"{@@PROTOCOLID@@}\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"";
-		private readonly string ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"{@@PROTOCOLID@@}\", \"port\": @@PORT@@";
+		private readonly string ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLID@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}";
 
 		//private readonly string NwObjGroupTemplate = "{\"@type\": \"network_object_group\", \"group_name\": \"@@GROUPNAME@@\"}";
 		private readonly string NwObjGroupTemplate = "{\"@type\": \"Object\", \"object_name\": \"@@GROUPNAME@@\", \"management_name\": \"@@MANAGEMENT_NAME@@\"}";

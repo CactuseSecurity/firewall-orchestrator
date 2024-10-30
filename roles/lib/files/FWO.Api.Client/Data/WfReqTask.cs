@@ -90,7 +90,8 @@ namespace FWO.Api.Data
                         IpString = reqElem.IpString ?? "",
                         NetworkId = reqElem.NetworkId,
                         RequestAction = reqElem.RequestAction,
-                        Name = reqElem.Name
+                        Name = reqElem.Name,
+                        GroupName = reqElem.GroupName ?? ""
                     });
                 }
             }

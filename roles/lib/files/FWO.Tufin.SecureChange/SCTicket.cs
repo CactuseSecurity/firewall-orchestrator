@@ -34,6 +34,7 @@ namespace FWO.Tufin.SecureChange
 		public string Subject { get; set; } = "";
 		public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
 		public string Requester { get; set; } = "";
+		public string DefaultReason = "Komunikationsprofil der Anwendung";
 
 		private string actTicketTemplate;
 		private SCTaskType actTaskType;
@@ -86,9 +87,9 @@ namespace FWO.Tufin.SecureChange
 			actTicketTemplate = TicketSystem.Templates.FirstOrDefault()?.TicketTemplate ?? "";
 		}
 
-		public override void CreateRequestString(List<WfReqTask> tasks, ModellingNamingConvention? namingConvention)
+		public override void CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
 		{
-			CreateTicketTasks(tasks, namingConvention);
+			CreateTicketTasks(tasks, ipProtos, namingConvention);
 			CreateTicketText(tasks.First());
 		}
 
@@ -157,7 +158,7 @@ namespace FWO.Tufin.SecureChange
 			}
 		}
 
-		private void CreateTicketTasks(List<WfReqTask> tasks, ModellingNamingConvention? namingConvention)
+		private void CreateTicketTasks(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
 		{
 			foreach (var task in tasks)
 			{
@@ -167,10 +168,10 @@ namespace FWO.Tufin.SecureChange
 				switch(actTaskType)
 				{
 					case SCTaskType.AccessRequest:
-						ticketTask = new SCAccessRequestTicketTask(task);
+						ticketTask = new SCAccessRequestTicketTask(task, ipProtos);
 						break;
 					case SCTaskType.NetworkObjectModify:
-						ticketTask = new SCNetworkObjectModifyTicketTask(task, changeAction, namingConvention);
+						ticketTask = new SCNetworkObjectModifyTicketTask(task, changeAction, ipProtos, namingConvention);
 						break;
 				}
 				if(ticketTask != null)
@@ -197,7 +198,7 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@TICKET_SUBJECT@@", Subject)
 				.Replace("@@PRIORITY@@", Priority)
 				.Replace("@@ONBEHALF@@", Requester)
-				.Replace("@@REASON@@", reqTask?.Reason ?? "")
+				.Replace("@@REASON@@", reqTask?.Reason ?? DefaultReason)
 				.Replace("@@APPID@@", appId)
 				.Replace("@@TASKS@@", string.Join(",", TicketTasks));
 			CheckForProperJson(TicketText);

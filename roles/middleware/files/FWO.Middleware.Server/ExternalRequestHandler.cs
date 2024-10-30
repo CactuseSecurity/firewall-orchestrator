@@ -19,6 +19,7 @@ namespace FWO.Middleware.Server
 		private ExternalTicketSystemType extSystemType = ExternalTicketSystemType.Generic;
 		private ExternalTicketSystem actSystem = new();
 		private string actTaskType = "";
+		private List<IpProtocol> ipProtos = [];
 
 
 		/// <summary>
@@ -95,6 +96,7 @@ namespace FWO.Middleware.Server
 		{
 			GetExtSystemFromConfig();
 			await extStateHandler.Init();
+			ipProtos = await ApiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
 			await wfHandler.Init([], false, true);
 			return await wfHandler.ResolveTicket(ticketId);
 		}
@@ -224,7 +226,7 @@ namespace FWO.Middleware.Server
 			if(ticket != null)
 			{
 				ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
-				ticket.CreateRequestString(reqTasks, namingConvention);
+				ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
 				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
 				return JsonSerializer.Serialize(ticket);
 			}

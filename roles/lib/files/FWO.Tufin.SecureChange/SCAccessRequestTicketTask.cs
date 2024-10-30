@@ -4,7 +4,7 @@ namespace FWO.Tufin.SecureChange
 {
 	public class SCAccessRequestTicketTask : SCTicketTask
 	{
-		public SCAccessRequestTicketTask(WfReqTask reqTask, ModellingNamingConvention? namingConvention = null) : base(reqTask, namingConvention)
+		public SCAccessRequestTicketTask(WfReqTask reqTask, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention = null) : base(reqTask, ipProtos, namingConvention)
 		{}
 
 		public override void FillTaskText(string tasksTemplate)
@@ -46,7 +46,7 @@ namespace FWO.Tufin.SecureChange
 			List<string> convertedObjects = [];
 			foreach(var svc in nwServiceElements)
 			{
-				convertedObjects.Add(FillServiceTemplate(svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
+				convertedObjects.Add(FillServiceTemplate(IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";
 		}

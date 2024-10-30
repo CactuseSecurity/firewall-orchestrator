@@ -68,7 +68,7 @@ namespace FWO.Tufin.SecureChange
 
 		private readonly string IpTemplate = "{\"@type\": \"IP\", \"ip_address\": \"@@IP@@\", \"netmask\": \"255.255.255.255\", \"cidr\": 32}";
 
-		private readonly string ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLID@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}";
+		private readonly string ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLNAME@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}";
 
 		//private readonly string NwObjGroupTemplate = "{\"@type\": \"network_object_group\", \"group_name\": \"@@GROUPNAME@@\"}";
 		private readonly string NwObjGroupTemplate = "{\"@type\": \"Object\", \"object_name\": \"@@GROUPNAME@@\", \"management_name\": \"@@MANAGEMENT_NAME@@\"}";
@@ -97,7 +97,7 @@ namespace FWO.Tufin.SecureChange
 			public const string Network = "network";
 		}
 
-		public SCTicketTask(WfReqTask reqTask, ModellingNamingConvention? namingConvention) : base(reqTask, namingConvention)
+		public SCTicketTask(WfReqTask reqTask, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention) : base(reqTask, ipProtos, namingConvention)
 		{}
 
 		protected string FillObjectTemplate(string type, string objName, string ObjType, string objDetails, string comment, string status, string objUpdStatus)
@@ -150,9 +150,9 @@ namespace FWO.Tufin.SecureChange
 			return IpTemplate.Replace("@@IP@@", ipString);
 		}
 
-		protected string FillServiceTemplate(string protoclId, string port, string serviceName)
+		protected string FillServiceTemplate(string protocolName, string port, string serviceName)
 		{
-			return ServiceTemplate.Replace("@@PROTOCOLID@@", protoclId).Replace("@@PORT@@", port).Replace("@@SERVICENAME@@", serviceName);
+			return ServiceTemplate.Replace("@@PROTOCOLNAME@@", protocolName).Replace("@@PORT@@", port).Replace("@@SERVICENAME@@", serviceName);
 		}
 
 		protected string FillNwObjGroupTemplate(string groupName, string mgtName)

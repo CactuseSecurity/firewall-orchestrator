@@ -14,6 +14,7 @@ namespace FWO.Test
         {
             NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 2, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR", AppServerPrefix = "net_"
         };
+        static readonly List<IpProtocol> ipProtos = [ new(){ Id = 6, Name = "TCP" }];
 
 
         readonly ExternalTicketSystem ticketSystem = new()
@@ -82,7 +83,7 @@ namespace FWO.Test
         public void TestSCTicket()
         {
             SCTicket ticket = new (ticketSystem);
-            ticket.CreateRequestString(reqTasks, NamingConvention);
+            ticket.CreateRequestString(reqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(FilledTicketText, ticket.TicketText);
         }

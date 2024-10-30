@@ -24,6 +24,7 @@ namespace FWO.Services
 
         private Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
         private Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
+        private Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
 
         private ModellingAppRole? existingAppRole;
         private List<ModellingAppServerWrapper> newAppServers = [];
@@ -55,6 +56,13 @@ namespace FWO.Services
             // later: get rules + compare, bundle requests
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
             managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
+            foreach(var mgt in managements)
+            {
+                if(!alreadyCreatedAppServers.ContainsKey(mgt.Id))
+                {
+                    alreadyCreatedAppServers.Add(mgt.Id, []);
+                }
+            }
             await GetProductionState();
             TaskList = [];
             AccessTaskList = [];
@@ -243,8 +251,17 @@ namespace FWO.Services
             if(existingAppServer != null)
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
+                return existingAppServer?.Id;
             }
-            return existingAppServer?.Id;
+            else if(alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer)) != null)
+            {
+                return 0;
+            }
+            else
+            {
+                alreadyCreatedAppServers[mgt.Id].Add(appServer);
+                return null;
+            }
         }
 
         private bool AreEqual(ModellingAppServer appServer1, ModellingAppServer appServer2)
@@ -352,6 +369,7 @@ namespace FWO.Services
             unchangedGroupMembersDuringCreate = [];
             foreach(var appServer in newAppServers)
             {
+                long? networkId = ResolveAppServerId(appServer.Content, mgt);
                 newGroupMembers.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
@@ -359,7 +377,7 @@ namespace FWO.Services
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
                     GroupName = appRole.IdString,
-                    NetworkId = ResolveAppServerId(appServer.Content, mgt)
+                    NetworkId = networkId
                 });
                 newCreatedGroupMembers.Add(new()
                 {
@@ -368,7 +386,7 @@ namespace FWO.Services
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
                     GroupName = appRole.IdString,
-                    NetworkId = ResolveAppServerId(appServer.Content, mgt)
+                    NetworkId = networkId
                 });
             }
             foreach(var appServer in unchangedAppServers)

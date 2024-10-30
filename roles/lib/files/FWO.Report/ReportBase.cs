@@ -1,4 +1,4 @@
-﻿using FWO.GlobalConstants;
+﻿using FWO.Basics;
 using FWO.Api.Client;
 using FWO.Api.Data;
 using FWO.Report.Filter;

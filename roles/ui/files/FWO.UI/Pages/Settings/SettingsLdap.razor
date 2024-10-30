@@ -2,7 +2,7 @@
 @using System.Net
 @using RestSharp
 
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
@@ -33,14 +33,14 @@
             <Template>
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => ShowLDAPChangeMessage(context)">@(userConfig.GetText("edit"))</button>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                 </div>
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("active"))" Field="@(x => x.Active)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.Active))
+                @(context.Active.ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
@@ -56,22 +56,22 @@
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("search_user"))" Field="@(x => x.SearchUser)" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.SearchUser != null && context.SearchUser != ""))
+                @((context.SearchUser != null && context.SearchUser != "").ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.IsWritable()))
+                @(context.IsWritable().ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.HasRoleHandling()))
+                @(context.HasRoleHandling().ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.HasGroupHandling()))
+                @((context.HasGroupHandling()).ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
@@ -207,6 +207,16 @@
         </div>
     </Footer>
 </PopUp>
+<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@ShowWarning" Size=PopupSize.Small OnClose="() => ShowWarning = false">
+    <Body>
+        <p>@userConfig.GetText("edit_ldap_message")</p>
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => Edit(LDAPConnection!)">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 <ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_ldap_conn")" DeleteMessage="@deleteMessage"/>
 
@@ -222,6 +232,7 @@
     private bool EditMode = false;
     private bool DeleteMode = false;
     private bool AddMode = false;
+    private bool ShowWarning = false;
 
     private UiLdapConnection newLdapConnection = new UiLdapConnection();
     private UiLdapConnection actLdapConnection = new UiLdapConnection();
@@ -230,6 +241,8 @@
 
     private string deleteMessage = "";
     private bool wasActive = true;
+
+    private UiLdapConnection? LDAPConnection;
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,8 +270,15 @@
         }
     }
 
+    private void ShowLDAPChangeMessage(UiLdapConnection ldapConnection)
+    {
+        LDAPConnection = ldapConnection;
+        ShowWarning = true;
+    }
+
     private void Edit(UiLdapConnection ldapConnection)
     {
+        ShowWarning = false;
         actLdapConnection = new UiLdapConnection(ldapConnection);
         selectedTenant = tenants.FirstOrDefault(x => x.Id == actLdapConnection.TenantId);
         selectedType = (LdapType)actLdapConnection.Type;
@@ -492,5 +512,6 @@
         AddMode = false;
         EditMode = false;
         DeleteMode = false;
+        ShowWarning = false;
     }
 }

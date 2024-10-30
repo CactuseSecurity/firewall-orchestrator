@@ -413,3 +413,15 @@ Stability release
   - Added last hit information in app-rule report
   - API - upgrading to 2.43.0
   - various security upgrades dotnet (restsharp, jwt, ...)
+
+# 8.4.1 - 30.10.24 MAIN
+Network Modelling feature update
+- import of app server IP addresses via CSV upload
+- import of multiple sources for area IP data 
+- new option email notification: fall-back to main owner if group is empty
+Fixes
+- corrections in displaying UI messages
+- converting owner network ip data to standard format "range"
+- importer 
+  - check point - fix import of all VSX instances
+  - fortinet - add hit counts and install on information

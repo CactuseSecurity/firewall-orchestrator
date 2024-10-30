@@ -1,4 +1,4 @@
-mutation newAreaSubnet(
+mutation newAreaIpData(
   $name: String
   $ip: cidr
   $ipEnd: cidr

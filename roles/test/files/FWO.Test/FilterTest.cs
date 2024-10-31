@@ -6,7 +6,7 @@ using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 namespace FWO.Test
 {

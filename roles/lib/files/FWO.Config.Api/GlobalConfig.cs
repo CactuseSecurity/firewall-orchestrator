@@ -1,6 +1,6 @@
 ﻿using FWO.Logging;
 using FWO.Config.File;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Client;
 using FWO.Config.Api.Data;
 using FWO.Api.Client.Queries;

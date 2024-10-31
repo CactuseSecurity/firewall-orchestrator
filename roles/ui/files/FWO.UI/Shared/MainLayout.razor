@@ -1,7 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using FWO.Config.Api
 @using FWO.Api.Client
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client.Queries
 @using FWO.Middleware.Client
@@ -29,22 +29,30 @@
 
 <div class="main">
     <div class="content p-4">
+        @* DON'T DELETE THESE BUTTONS / They might be needed for testing *@
+@*         <button type="button" @onclick="@(() => ShowMessage("info", "info", MessageType.Info))">info</button>
+        <button type="button" @onclick="@(() => ShowMessage("warning", "warning", MessageType.Warning))">warning</button>
+        <button type="button" @onclick="@(() => ShowMessage("error", "error", MessageType.Error))">error</button>
+        <button type="button" @onclick="@(() => ShowMessage("success", "success", MessageType.Success))">success</button>
+        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@
         <CascadingValue Value="@DisplayMessageInUiFunction">
             @Body
         </CascadingValue>
     </div>
 </div>
 
-<div class="row w-100 mx-2" style="position:fixed; bottom: 0; z-index:15;">
-    @foreach (UIMessage item in UIMessages)
-    {
-        <div class="@cssClass">
-            <div class="d-flex flex-row justify-content-between">
-                <div>@item.Title - @item.Message</div>
-                <div class="@Icons.Close curosor-pointer" @onclick="@(() => HideUIMessage(item))"></div>
+<div class="footer">
+    <div class="mx-2">
+        @foreach (UIMessage uiMessage in UIMessages)
+        {
+            <div class="@uiMessage.CSSClass">
+                <div class="d-flex flex-row justify-content-between">
+                    <div>@uiMessage.Title - @uiMessage.Message</div>
+                    <div class="@Icons.Close cursor-pointer" @onclick="@(() => HideUIMessage(uiMessage.Id))"></div>
+                </div>
             </div>
-        </div>
-    }
+        }
+    </div>
 </div>
 
 <PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.Small>
@@ -101,14 +109,9 @@
     private ClaimsPrincipal? user;
 
     private List<UIMessage> UIMessages = [];
+    private Queue<UIMessage> UIMessageQue = [];
 
-    public enum MessageType
-    {
-        Info,
-        Success,
-        Warning,
-        Error
-    }
+    private Timer? UIMessageQueTimer;
 
     protected override void OnInitialized()
     {
@@ -120,6 +123,15 @@
         JwtEventService.OnJwtExpired += OnJwtExpired;
 
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+
+        UIMessageQueTimer = new()
+            {
+                AutoReset = true,
+                Enabled = true,
+                Interval = 150
+            };
+
+        UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
     }
 
 
@@ -212,66 +224,67 @@
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
-            if (showtime == null)
+            if (showtime == null || showtime == 0)
             {
                 showtime = userConfig.MessageViewTime * 1000; // convert to milliseconds
             }
 
             switch (type)
             {
-                case MessageType.Info:
-                    cssClass = "alert alert-info fly-in-animation";
-                    break;
-                case MessageType.Success:
-                    cssClass = "alert alert-success fly-in-animation";
-                    break;
-                case MessageType.Warning:
-                    cssClass = "alert alert-warning-override  fly-in-animation";
-                    break;
                 case MessageType.Error:
                     Task.Run(async () => await setAlert(title, message));
-                    cssClass = "alert alert-danger fly-in-animation";
                     showtime = showtime * 3; // show errors a bit longer
+                    break;
+                default:
                     break;
             }
 
             UIMessage uiMessage = new()
                 {
-                    Id = Guid.NewGuid().ToString(),
                     Message = message,
                     Title = title,
-                    Timer = new()
-                    {
-                        AutoReset = false,
-                        Enabled = true,
-                        Interval = (int)showtime
-                    }
+                    Type = type
                 };
-            UIMessages.Add(uiMessage);
 
-            if (showtime > 0)
+            Timer messageTimer = new Timer(showtime.Value);
+            messageTimer.Elapsed += (sender, e) => HideMessage(sender, e, uiMessage.Id);
+            messageTimer.AutoReset = false;
+
+            uiMessage.ShowTimer = messageTimer;
+
+            if (UIMessages.Count < userConfig.MaxMessages)
             {
-                Timer messageTimer = new Timer(showtime.Value);
-                messageTimer.Elapsed += (sender, e) => HideMessage(sender, e, uiMessage);
-                messageTimer.AutoReset = false;
                 messageTimer.Start();
+                UIMessages.Add(uiMessage);
+                InvokeAsync(StateHasChanged);
             }
+            else
+            {
+                UIMessageQue.Enqueue(uiMessage);
+            }
+        }
+    }
 
+    private void HideMessage(object? _, ElapsedEventArgs __, string messageId)
+    {
+        HideUIMessage(messageId);
+    }
+
+    private void OnUIMessageTimerTick(object? _, ElapsedEventArgs __)
+    {
+        if (UIMessageQue.Count > 0 && UIMessages.Count < userConfig.MaxMessages)
+        {
+            UIMessage uiMessage = UIMessageQue.Dequeue();
+            uiMessage.ShowTimer!.Start();
+            UIMessages.Add(uiMessage);
             InvokeAsync(StateHasChanged);
         }
     }
 
-    private void HideMessage(object? _, ElapsedEventArgs __, UIMessage? uiMessage)
+    private void HideUIMessage(string messageId)
     {
-        HideUIMessage(uiMessage);
-    }
+        UIMessages.RemoveAll(_ => _.Id == messageId);
 
-    private void HideUIMessage(UIMessage? uiMessage)
-    {
-        if (UIMessages.Contains(uiMessage))
-        {
-            UIMessages.Remove(uiMessage);
-        }
         InvokeAsync(StateHasChanged);
     }
 

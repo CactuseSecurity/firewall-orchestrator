@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using RestSharp;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;

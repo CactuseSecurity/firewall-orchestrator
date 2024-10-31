@@ -1,6 +1,6 @@
 ﻿@using BlazorTable
 @using System.Net
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Ui.Services
@@ -59,7 +59,7 @@
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("owner_group"))" Field="@(x => x.OwnerGroup)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.OwnerGroup))
+                @(context.OwnerGroup.ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("users"))" Field="@(x => x.Users)" Sortable="false" Filterable="false">
@@ -90,7 +90,7 @@
                         }
                         else
                         {
-                            @(GlobalFunc.ShowBool(actGroup.OwnerGroup))
+                            @(actGroup.OwnerGroup.ShowAsHtml())
                         }
                     </div>
                 </div>

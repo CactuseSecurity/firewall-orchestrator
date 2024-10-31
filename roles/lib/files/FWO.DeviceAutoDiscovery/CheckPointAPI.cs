@@ -1,6 +1,6 @@
 using RestSharp;
 using System.Text.Json;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;

@@ -408,6 +408,14 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                         'comments': 'any nw object checkpoint (hard coded)',
                         'type': 'network', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
+                # obj = obj['object']
+                # if (obj['type'] == 'CpmiNoneObject'):
+                #     return  { "object_type": "hosts", "object_chunks": [ {
+                #         "objects": [ {
+                #         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                #         'comments': 'any nw object checkpoint (hard coded)',
+                #         'type': 'group'
+                #         } ] } ] }
                 elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
                     return { "object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
@@ -436,7 +444,7 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                        'comments': obj['comments'], 'type': 'group' #, 'ipv4-address': '0.0.0.0/0',
+                        'comments': obj['comments'], 'type': 'group'
                         } ] } ] }
                 elif (obj['type'] in ['Internet', 'security-zone']):
                     return {"object_type": "hosts", "object_chunks": [ {

@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace FWO.Services
 {
-    public class ModellingProdAnalysis
+    public class ModellingVarianceAnalysis
     {
         private ApiConnection apiConnection;
         private ExtStateHandler extStateHandler;
@@ -43,7 +43,7 @@ namespace FWO.Services
         private static readonly string removeMembersText = ": Remove Members";
 
 
-        public ModellingProdAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig)
+        public ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig)
         {
             this.apiConnection = apiConnection;
             this.extStateHandler = extStateHandler;
@@ -307,6 +307,7 @@ namespace FWO.Services
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Name,
                     IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = appRole.IdString,
                     NetworkId = ResolveAppServerId(appServer, mgt)
                 });
@@ -376,6 +377,7 @@ namespace FWO.Services
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
+                    IpEnd = appServer.Content.IpEnd,
                     GroupName = appRole.IdString,
                     NetworkId = networkId
                 });
@@ -385,6 +387,7 @@ namespace FWO.Services
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
+                    IpEnd = appServer.Content.IpEnd,
                     GroupName = appRole.IdString,
                     NetworkId = networkId
                 });
@@ -397,6 +400,7 @@ namespace FWO.Services
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
+                    IpEnd = appServer.Content.IpEnd,
                     GroupName = appRole.IdString
                 });
             }
@@ -408,6 +412,7 @@ namespace FWO.Services
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
+                    IpEnd = appServer.Content.IpEnd,
                     GroupName = appRole.IdString
                 });
                 deletedGroupMembers.Add(new()
@@ -416,6 +421,7 @@ namespace FWO.Services
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
+                    IpEnd = appServer.Content.IpEnd,
                     GroupName = appRole.IdString
                 });
             }
@@ -430,7 +436,8 @@ namespace FWO.Services
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     Name = srcAppServer.Content.Name,
-                    IpString = srcAppServer.Content.Ip
+                    IpString = srcAppServer.Content.Ip,
+                    IpEnd = srcAppServer.Content.IpEnd
                 });
             }
             foreach(var dstAppServer in conn.DestinationAppServers)
@@ -440,7 +447,8 @@ namespace FWO.Services
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.destination.ToString(),
                     Name = dstAppServer.Content.Name,
-                    IpString = dstAppServer.Content.Ip
+                    IpString = dstAppServer.Content.Ip,
+                    IpEnd = dstAppServer.Content.IpEnd
                 });
             }
         }
@@ -457,6 +465,7 @@ namespace FWO.Services
                         {
                             RequestAction = RequestAction.create.ToString(),
                             Field = ElemFieldType.service.ToString(),
+                            Name = svc.Name,
                             Port = svc.Port,
                             PortEnd = svc.PortEnd,
                             ProtoId = svc.ProtoId
@@ -488,6 +497,7 @@ namespace FWO.Services
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.service.ToString(),
+                    Name = svc.Name,
                     Port = svc.Port,
                     PortEnd = svc.PortEnd,
                     ProtoId = svc.ProtoId,
@@ -514,6 +524,7 @@ namespace FWO.Services
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.service.ToString(),
+                    Name = svc.Name,
                     Port = svc.Port,
                     PortEnd = svc.PortEnd,
                     ProtoId = svc.ProtoId

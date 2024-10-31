@@ -5,7 +5,7 @@ using FWO.GlobalConstants;
 
 namespace FWO.Test
 {
-    internal class ProdAnalysisTestApiConn : SimulatedApiConnection
+    internal class ModellingVarianceAnalysisTestApiConn : SimulatedApiConnection
     {
         static readonly NetworkObject NwObj1 = new(){ Id = 10, Name = "AppServer1", IP = "1.2.3.4", Type = new(){ Name = ObjectType.Host } };
         static readonly NetworkObject NwObj2 = new(){ Id = 11, Name = "AppServer2", IP = "1.2.3.5", IpEnd = "1.2.3.10", Type = new(){ Name = ObjectType.IPRange } };

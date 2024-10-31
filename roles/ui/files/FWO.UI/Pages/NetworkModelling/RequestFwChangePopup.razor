@@ -134,8 +134,8 @@
         {
             if(!await GetActTicketStatus())
             {
-                ModellingProdAnalysis prodAnalysis = new(apiConnection, extStateHandler, userConfig);
-                TaskList = await prodAnalysis.AnalyseModelledConnections(Connections, SelectedApp);
+                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig);
+                TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections, SelectedApp);
             }
         }
         catch (Exception exception)

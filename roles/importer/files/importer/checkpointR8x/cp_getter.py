@@ -402,20 +402,20 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
             if 'object' in obj:
                 obj = obj['object']
                 if (obj['type'] == 'CpmiAnyObject'):
-                    return  { "object_type": "hosts", "object_chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                        'comments': 'any nw object checkpoint (hard coded)',
-                        'type': 'network', 'ipv4-address': '0.0.0.0/0',
-                        } ] } ] }
-                # obj = obj['object']
-                # if (obj['type'] == 'CpmiNoneObject'):
-                #     return  { "object_type": "hosts", "object_chunks": [ {
-                #         "objects": [ {
-                #         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                #         'comments': 'any nw object checkpoint (hard coded)',
-                #         'type': 'group'
-                #         } ] } ] }
+                    if (obj['name'] == 'Any'):
+                        return  { "object_type": "hosts", "object_chunks": [ {
+                            "objects": [ {
+                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'comments': 'any nw object checkpoint (hard coded)',
+                            'type': 'network', 'ipv4-address': '0.0.0.0/0'
+                            } ] } ] }
+                    elif (obj['name'] == 'None'):
+                        return  { "object_type": "hosts", "object_chunks": [ {
+                            "objects": [ {
+                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'comments': 'any nw object checkpoint (hard coded)',
+                            'type': 'group'
+                            } ] } ] }
                 elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
                     return { "object_type": "hosts", "object_chunks": [ {
                         "objects": [ {

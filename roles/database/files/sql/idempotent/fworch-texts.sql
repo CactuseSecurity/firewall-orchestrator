@@ -2219,6 +2219,8 @@ INSERT INTO txt VALUES ('email_to',				'German', 	'An');
 INSERT INTO txt VALUES ('email_to',				'English', 	'To');
 INSERT INTO txt VALUES ('email_cc',				'German', 	'CC');
 INSERT INTO txt VALUES ('email_cc',				'English', 	'CC');
+INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'App Zone Pattern');
+INSERT INTO txt VALUES ('app_zone_pattern',		'English', 	'Muster App Zone');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -4992,6 +4994,9 @@ INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of request emails: Selecti
     the Owner Group, the Owner Main Responsible or both.
     Furtheron it can be determined whether the requester should get the email in Cc (default: yes).
 ');
+
+INSERT INTO txt VALUES ('H5631', 'German',  'Muster App Zone: Definiert, wie der Name einer App Zone beginnt (z.B. "AZ").');
+INSERT INTO txt VALUES ('H5631', 'English', 'App zone pattern: Defines how the name of an app zone begins (e.g. "AZ").');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

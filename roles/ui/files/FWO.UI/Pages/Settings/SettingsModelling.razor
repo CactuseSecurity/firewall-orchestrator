@@ -155,6 +155,12 @@
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FreePartLength" />
             </div>
         </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5631"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("app_zone_pattern"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.AppZone" />
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5611"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>

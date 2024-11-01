@@ -44,7 +44,7 @@
                     </button>
                     <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
                         <Authorized>
-                            <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
+                            <button type="button" class="ms-5 btn btn-sm btn-primary" disabled=@(!userConfig.ModRolloutActive) @onclick="RequestFwChange">
                                 @(userConfig.GetText("request_fw_change"))
                             </button>
                         </Authorized>

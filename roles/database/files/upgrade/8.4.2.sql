@@ -50,6 +50,7 @@ ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_management_foreign_ke
 
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestSleepTime', '0', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestStartAt', '00:00:00', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('modRolloutActive', 'true', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutResolveServiceGroups', 'true', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutBundleTasks', 'false', 0) ON CONFLICT DO NOTHING;
 

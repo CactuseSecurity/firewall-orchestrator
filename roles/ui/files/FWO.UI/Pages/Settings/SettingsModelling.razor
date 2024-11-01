@@ -251,6 +251,12 @@
         </div>
     <hr />
         <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5634"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutActive")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" class="w-100" @bind="configData!.ModRolloutActive">
+                </div>
+            </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5631"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutResolveServiceGroups")):</label>
                 <div class="col-sm-2">

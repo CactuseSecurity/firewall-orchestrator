@@ -81,7 +81,7 @@ namespace FWO.Services
                     {
                         AccessTaskList.Add(new()
                         {
-                            Title = "New Connection: " + conn.Name ?? "",
+                            Title = userConfig.GetText("new_connection") + ": " + conn.Name ?? "",
                             TaskType = WfTaskType.access.ToString(),
                             ManagementId = mgt.Id,
                             OnManagement = mgt,

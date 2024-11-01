@@ -233,17 +233,18 @@ namespace FWO.Middleware.Server
 			return "";
 		}
 
-		private static string ConstructSubject(WfReqTask reqTask)
+		private string ConstructSubject(WfReqTask reqTask)
 		{
-			string onMgt = " on " + reqTask.OnManagement?.Name + "(" + reqTask.OnManagement?.Id + ")";
-			string grpName = reqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
-            return reqTask.TaskType switch
+			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId + ": " ?? "" : "";
+			string onMgt = UserConfig.GetText("on") + reqTask?.OnManagement?.Name + "(" + reqTask?.OnManagement?.Id + ")";
+			string grpName = " " + reqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+            return appId + reqTask.TaskType switch
             {
-                nameof(WfTaskType.access) => "Create rule on " + onMgt,
-                nameof(WfTaskType.group_create) => "Create group " + grpName + onMgt,
-                nameof(WfTaskType.group_modify) => "Modify group " + grpName + onMgt,
-                nameof(WfTaskType.group_delete) => "Delete group " + grpName + onMgt,
-                _ => "Request something",
+                nameof(WfTaskType.access) => UserConfig.GetText("create_rule") + onMgt,
+                nameof(WfTaskType.group_create) => UserConfig.GetText("create_group") + grpName + onMgt,
+                nameof(WfTaskType.group_modify) => UserConfig.GetText("modify_group") + grpName + onMgt,
+                nameof(WfTaskType.group_delete) => UserConfig.GetText("delete_group") + grpName + onMgt,
+                _ => "Request something"
             };
         }
 

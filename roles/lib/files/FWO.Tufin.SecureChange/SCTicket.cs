@@ -34,7 +34,7 @@ namespace FWO.Tufin.SecureChange
 		public string Subject { get; set; } = "";
 		public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
 		public string Requester { get; set; } = "";
-		public string DefaultReason = "Komunikationsprofil der Anwendung";
+		public string DefaultReason = "Kommunikationsprofil der Anwendung";
 
 		private string actTicketTemplate;
 		private SCTaskType actTaskType;

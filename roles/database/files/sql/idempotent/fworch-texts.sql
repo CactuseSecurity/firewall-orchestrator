@@ -1509,6 +1509,16 @@ INSERT INTO txt VALUES ('reject',               'German',   'Ablehnen');
 INSERT INTO txt VALUES ('reject',               'English',  'Reject');
 INSERT INTO txt VALUES ('reject_interface',     'German',   'Schnittstelle ablehnen');
 INSERT INTO txt VALUES ('reject_interface',     'English',  'Reject interface');
+INSERT INTO txt VALUES ('on',                   'German',   ' auf ');
+INSERT INTO txt VALUES ('on',                   'English',  ' on ');
+INSERT INTO txt VALUES ('create_rule',          'German',   'Regel anlegen');
+INSERT INTO txt VALUES ('create_rule',          'English',  'Create Rule');
+INSERT INTO txt VALUES ('create_group',         'German',   'Gruppe anlegen');
+INSERT INTO txt VALUES ('create_group',         'English',  'Create Group');
+INSERT INTO txt VALUES ('modify_group',         'German',   'Gruppe &auml;ndern');
+INSERT INTO txt VALUES ('modify_group',         'English',  'Modify Group');
+INSERT INTO txt VALUES ('new_connection',       'German',   'Neue Verbindung');
+INSERT INTO txt VALUES ('new_connection',       'English',  'New Connection');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2195,6 +2205,8 @@ INSERT INTO txt VALUES ('modReqTicketTitle',    'German',   'Titel des Schnittst
 INSERT INTO txt VALUES ('modReqTicketTitle',    'English',  'Title of interface request ticket');
 INSERT INTO txt VALUES ('modReqTaskTitle',      'German',   'Titel des Schnittstellenauftrags');
 INSERT INTO txt VALUES ('modReqTaskTitle',      'English',  'Title of interface request task');
+INSERT INTO txt VALUES ('modRolloutActive',     'German',   'Automatische Firewallbeantragung aktivieren');
+INSERT INTO txt VALUES ('modRolloutActive',     'English',  'Activate automatic Firewall request');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','German','Servicegruppen aufl&ouml;sen');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','English','Resolve service groups');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfassen');
@@ -5030,6 +5042,8 @@ INSERT INTO txt VALUES ('H5632', 'German',  'Tasks zusammenfassen: Fasse gleicha
 INSERT INTO txt VALUES ('H5632', 'English', 'Bundle tasks: Bundle tasks of same type in one external request.');
 INSERT INTO txt VALUES ('H5633', 'German',  'App Server Namensprefix: Falls der Name nicht schon anderweitig vorbelegt ist, wird er aus Namensprefix + Ip-Adresse zusammengesetzt.');
 INSERT INTO txt VALUES ('H5633', 'English', 'App Server Name Prefix: If not already filled, the App Server Name will be constructed by Name Prefix + Ip address.');
+INSERT INTO txt VALUES ('H5634', 'German',  'Automatische Firewallbeantragung aktivieren: Aktiviert den Button zum Workflow zur automatischen Firewallbeantragung.');
+INSERT INTO txt VALUES ('H5634', 'English', 'Activate automatic Firewall request: Activates the button to the workflow for automatic firewall requests.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

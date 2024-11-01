@@ -36,12 +36,6 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
 
-        private static readonly string newAppRoleText = "New AppRole: ";
-        private static readonly string updateAppRoleText = "Update AppRole: ";
-        private static readonly string newServiceGroupText = "New Servicegroup: ";
-        private static readonly string addMembersText = ": Add Members";
-        private static readonly string removeMembersText = ": Remove Members";
-
 
         public ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig)
         {
@@ -208,14 +202,14 @@ namespace FWO.Services
         {
             if(!ResolveExistingAppRole(appRole, mgt))
             {
-                if(TaskList.FirstOrDefault(x => x.Title == newAppRoleText + appRole.IdString && x.OnManagement?.Id == mgt.Id) == null)
+                if(TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_role") + appRole.IdString && x.OnManagement?.Id == mgt.Id) == null)
                 {
                     RequestNewAppRole(appRole, mgt);
                 }
             }
             else if(AppRoleChanged(appRole) && 
-                TaskList.FirstOrDefault(x => x.Title == updateAppRoleText + appRole.IdString + addMembersText && x.OnManagement?.Id == mgt.Id) == null &&
-                DeleteTasksList.FirstOrDefault(x => x.Title == updateAppRoleText + appRole.IdString + removeMembersText && x.OnManagement?.Id == mgt.Id) == null)
+                TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
+                DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
             {
                 RequestUpdateAppRole(appRole, mgt);
             }
@@ -315,7 +309,7 @@ namespace FWO.Services
             Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
             TaskList.Add(new()
             {
-                Title = newAppRoleText + appRole.IdString,
+                Title = userConfig.GetText("new_app_role") + appRole.IdString,
                 TaskType = WfTaskType.group_create.ToString(),
                 RequestAction = RequestAction.create.ToString(),
                 ManagementId = mgt.Id,
@@ -335,7 +329,7 @@ namespace FWO.Services
                 newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
                 TaskList.Add(new()
                 {
-                    Title = updateAppRoleText + appRole.IdString + addMembersText,
+                    Title = userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
                     RequestAction = RequestAction.modify.ToString(),
                     ManagementId = mgt.Id,
@@ -350,7 +344,7 @@ namespace FWO.Services
                 deletedGroupMembers.AddRange(newCreatedGroupMembers);
                 DeleteTasksList.Add(new()
                 {
-                    Title = updateAppRoleText + appRole.IdString + removeMembersText,
+                    Title = userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
                     RequestAction = RequestAction.modify.ToString(),
                     ManagementId = mgt.Id,
@@ -474,7 +468,7 @@ namespace FWO.Services
                 }
                 else
                 {
-                    if(TaskList.FirstOrDefault(x => x.Title == newServiceGroupText + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
+                    if(TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_svc_grp") + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
                     {
                         RequestNewServiceGroup(svcGrp, mgt);
                     }
@@ -507,7 +501,7 @@ namespace FWO.Services
             Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, svcGrp.Name} };
             TaskList.Add(new()
             {
-                Title = newServiceGroupText + svcGrp.Name,
+                Title = userConfig.GetText("new_svc_grp") + svcGrp.Name,
                 TaskType = WfTaskType.group_create.ToString(),
                 ManagementId = mgt.Id,
                 OnManagement = mgt,

@@ -74,7 +74,13 @@ namespace FWO.Test
             {"func_reason","Functional Reason"},
             {"interface_description","Interface Description"},
             {"published","Published"},
-            {"fetch_data","Fetch data"}
+            {"fetch_data","Fetch data"},
+            {"new_connection","New Connection"},
+            {"new_app_role","New AppRole: "},
+            {"update_app_role","Update AppRole: "},
+            {"new_svc_grp","New Servicegroup: "},
+            {"add_members",": Add Members"},
+            {"remove_members",": Remove Members"}
         };
 
         public override string GetText(string key)

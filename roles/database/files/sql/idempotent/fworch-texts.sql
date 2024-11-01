@@ -1511,14 +1511,24 @@ INSERT INTO txt VALUES ('reject_interface',     'German',   'Schnittstelle ableh
 INSERT INTO txt VALUES ('reject_interface',     'English',  'Reject interface');
 INSERT INTO txt VALUES ('on',                   'German',   ' auf ');
 INSERT INTO txt VALUES ('on',                   'English',  ' on ');
-INSERT INTO txt VALUES ('create_rule',          'German',   'Regel anlegen');
-INSERT INTO txt VALUES ('create_rule',          'English',  'Create Rule');
+INSERT INTO txt VALUES ('create_rule',          'German',   'Regeln anlegen');
+INSERT INTO txt VALUES ('create_rule',          'English',  'Create Rules');
 INSERT INTO txt VALUES ('create_group',         'German',   'Gruppe anlegen');
 INSERT INTO txt VALUES ('create_group',         'English',  'Create Group');
 INSERT INTO txt VALUES ('modify_group',         'German',   'Gruppe &auml;ndern');
 INSERT INTO txt VALUES ('modify_group',         'English',  'Modify Group');
 INSERT INTO txt VALUES ('new_connection',       'German',   'Neue Verbindung');
 INSERT INTO txt VALUES ('new_connection',       'English',  'New Connection');
+INSERT INTO txt VALUES ('new_app_role',         'German',   'Neue AppRolle: ');
+INSERT INTO txt VALUES ('new_app_role',         'English',  'New AppRole: ');
+INSERT INTO txt VALUES ('update_app_role',      'German',   'Ge&auml;nderte AppRolle: ');
+INSERT INTO txt VALUES ('update_app_role',      'English',  'Update AppRole: ');
+INSERT INTO txt VALUES ('new_svc_grp',          'German',   'Neue Servicegruppe: ');
+INSERT INTO txt VALUES ('new_svc_grp',          'English',  'New Servicegroup: ');
+INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
+INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
+INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

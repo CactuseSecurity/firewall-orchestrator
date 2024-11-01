@@ -2221,8 +2221,8 @@ INSERT INTO txt VALUES ('email_cc',				'German', 	'CC');
 INSERT INTO txt VALUES ('email_cc',				'English', 	'CC');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'App Zone Pattern');
 INSERT INTO txt VALUES ('app_zone_pattern',		'English', 	'Muster App Zone');
-INSERT INTO txt VALUES ('app_zone_creation',	'German', 	'App Zonen erstellen');
-INSERT INTO txt VALUES ('app_zone_creation',	'English', 	'Create App Zones');
+INSERT INTO txt VALUES ('app_zone_creation',	'German', 	'App Zonen Objekte erstellen');
+INSERT INTO txt VALUES ('app_zone_creation',	'English', 	'Create App Zone Objects');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');

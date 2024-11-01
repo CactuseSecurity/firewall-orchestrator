@@ -15,7 +15,8 @@ mutation newAppServer(
     is_deleted: false
     nw_type: 10
     custom_type: $customType
-  }) {
+  }
+    ) {
     returning {
       newId: id
     }

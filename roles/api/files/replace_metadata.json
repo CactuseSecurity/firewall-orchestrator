@@ -928,6 +928,12 @@
                   "using": {
                     "foreign_key_constraint_on": "app_id"
                   }
+                },
+                {
+                  "name": "ownerByProposedAppId",
+                  "using": {
+                    "foreign_key_constraint_on": "proposed_app_id"
+                  }
                 }
               ],
               "array_relationships": [
@@ -9803,6 +9809,18 @@
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "app_id",
+                      "table": {
+                        "name": "connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "connectionsByProposedAppId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "proposed_app_id",
                       "table": {
                         "name": "connection",
                         "schema": "modelling"

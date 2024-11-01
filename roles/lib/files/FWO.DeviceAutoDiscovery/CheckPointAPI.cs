@@ -1,5 +1,6 @@
 using RestSharp;
 using System.Text.Json;
+using FWO.Basics;
 using FWO.Api.Data;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
@@ -93,7 +94,7 @@ namespace FWO.Rest.Client
             };
             request.AddJsonBody(body);
             Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-gateways-and-servers'");
-            List<string> gwTypes = ["simple-gateway", "simple-cluster", "CpmiVsClusterNetobj", "CpmiGatewayPlain", "CpmiGatewayCluster", "CpmiVsxClusterNetobj", "CpmiVsxNetobj"];
+            List<string> gwTypes = ["simple-gateway", "simple-cluster", "CpmiVsNetobj", "CpmiVsClusterNetobj", "CpmiGatewayPlain", "CpmiGatewayCluster", "CpmiVsxClusterNetobj", "CpmiVsxNetobj"];
 
             // getting all gateways of this management 
             RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);

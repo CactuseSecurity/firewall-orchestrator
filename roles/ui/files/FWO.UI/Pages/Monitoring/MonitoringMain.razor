@@ -7,6 +7,7 @@
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
 @using RestSharp
+@using FWO.Ui.Shared;
 
 @page "/monitoring"
 @page "/monitoring/main"
@@ -22,32 +23,32 @@
 
 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
     <h5>@(userConfig.GetText("open_alerts"))</h5>
-    @if(InitComplete)
+    @if (InitComplete)
     {
-        @if(alertEntrys.Count == 0)
+        @if (alertEntrys.Count == 0)
         {
             @(userConfig.GetText("no_open_alerts"))
         }
         else
         {
-            <div class="vheight75">
-                <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="10">
+            <div class="vheight75">                  
+                <Table TableClass="table table-bordered table-sm th-bg-secondary sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="PageSize">
                     <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
                             <div class="btn-group">
-                                @if(alert.Source == GlobalConst.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
+                                @if (alert.Source == GlobalConst.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
                                 {
                                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
                                 }
-                                else if(alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
+                                else if (alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
                                 {
                                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
                                 }
-                                else if(alert.AlertCode == AlertCode.ImportRunningTooLong)
+                                else if (alert.AlertCode == AlertCode.ImportRunningTooLong)
                                 {
                                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
                                 }
-                                else if(alert.AlertCode == AlertCode.SampleDataExisting)
+                                else if (alert.AlertCode == AlertCode.SampleDataExisting)
                                 {
                                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
                                 }
@@ -55,31 +56,32 @@
                                 {
                                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
                                 }
-                                
+
                                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                     <Authorized Context="ctx">
                                         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
                                     </Authorized>
                                     <NotAuthorized Context="ctx">
                                         <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
-                                    </NotAuthorized> 
+                                    </NotAuthorized>
                                 </AuthorizeView>
                             </div>
                         </Template>
                     </Column>
-                    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
-                    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
-                    <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
-                    <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true"/>
-                    <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" Sortable="true" Filterable="true"/>
-                    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true" />
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true" />
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" Sortable="true" Filterable="true" />
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true" />
                     <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
                         <Template>
                             @(managements.FirstOrDefault(x => x.Id == alert.ManagementId)?.Name)
                         </Template>
                     </Column>
-                    <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
+                    <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true" />
                     <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                    <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
                 </Table>
             </div>
         }
@@ -92,11 +94,11 @@
     }
 </AuthorizeView>
 
-<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await RefreshAlerts();}"/>
-<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await RefreshAlerts();}"/>
-<ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await RefreshAlerts();}"/>
-<ConfirmDelete @bind-Display="RemoveSampleDataMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@userConfig.GetText("U7003")"/>
-<InProgress Display="workInProgress"/>
+<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await RefreshAlerts();}" />
+<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await RefreshAlerts();}" />
+<ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await RefreshAlerts();}" />
+<ConfirmDelete @bind-Display="RemoveSampleDataMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@userConfig.GetText("U7003")" />
+<InProgress Display="workInProgress" />
 
 @code
 {
@@ -105,6 +107,8 @@
 
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private int PageSize = 10;
 
     private List<Alert> alertEntrys = [];
     private List<ActionItem> actActions = [];
@@ -125,18 +129,18 @@
     private int deletedSampleTenants;
     private int deletedSampleGroups;
     private int deletedSampleOwners;
- 
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin))
+            if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin))
             {
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin]);
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
                 await RefreshAlerts();
             }
-            else if(authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+            else if (authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
             {
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Auditor]);
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
@@ -148,6 +152,11 @@
         {
             DisplayMessageInUi(exception, "", "", true);
         }
+    }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
     }
 
     private async Task RefreshAlerts()
@@ -166,8 +175,8 @@
     {
         try
         {
-            var Variables = new 
-            { 
+            var Variables = new
+            {
                 id = alert.Id,
                 ackUser = userConfig.User.DbId,
                 ackTime = DateTime.Now
@@ -185,7 +194,7 @@
     {
         try
         {
-            actActions = new List<ActionItem>() { new ActionItem(alert) }; 
+            actActions = new List<ActionItem>() { new ActionItem(alert) };
             AutoDiscoverMode = true;
         }
         catch (Exception exception)
@@ -199,7 +208,7 @@
         try
         {
             actMgmtId = alert.ManagementId ?? throw new Exception($"Missing ManagementId!");
-            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString() ?? throw new Exception($"Could not convert Import Data to string!"));
+            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>(( alert.JsonData ?? throw new Exception($"Missing Import Data!") ).ToString() ?? throw new Exception($"Could not convert Import Data to string!"));
             RollbackMode = true;
         }
         catch (Exception exception)
@@ -212,7 +221,7 @@
     {
         try
         {
-            actStatus = JsonSerializer.Deserialize<ImportStatus>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString() ?? throw new Exception($"Could not convert Import Data to string!")) ?? throw new Exception($"Import Data not converted!");
+            actStatus = JsonSerializer.Deserialize<ImportStatus>(( alert.JsonData ?? throw new Exception($"Missing Import Data!") ).ToString() ?? throw new Exception($"Could not convert Import Data to string!")) ?? throw new Exception($"Import Data not converted!");
             DetailsMode = true;
         }
         catch (Exception exception)
@@ -251,16 +260,16 @@
             DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", true);
         }
     }
-    
+
     private async Task DeleteManagements()
     {
         // Todo: refresh necessary?
-        if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin))
+        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin))
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin]);
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
         }
-        else if(authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+        else if (authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Auditor]);
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
@@ -284,7 +293,7 @@
         try
         {
             var Variables = new { id = management.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
+            int delId = ( await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables) ).DeletedId;
             if (delId == management.Id)
             {
                 return true;
@@ -318,7 +327,7 @@
         try
         {
             var Variables = new { id = credential.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteCredential, Variables)).DeletedId;
+            int delId = ( await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteCredential, Variables) ).DeletedId;
             if (delId == credential.Id)
             {
                 return true;
@@ -352,10 +361,10 @@
         try
         {
             UserDeleteParameters parameters = new UserDeleteParameters
-            { 
-                LdapId = user.LdapConnection.Id,
-                UserId = user.DbId
-            };
+                {
+                    LdapId = user.LdapConnection.Id,
+                    UserId = user.DbId
+                };
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
@@ -393,7 +402,7 @@
     {
         try
         {
-            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = tenant.Name, Id = tenant.Id};
+            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = tenant.Name, Id = tenant.Id };
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
@@ -419,7 +428,7 @@
         {
             foreach (var ldapUserGroup in middlewareServerResponse.Data)
             {
-                string groupName = (new DistName(ldapUserGroup.GroupDn)).Group;
+                string groupName = ( new DistName(ldapUserGroup.GroupDn) ).Group;
                 if (groupName.EndsWith("_demo"))
                 {
                     if (await DeleteGroup(groupName))
@@ -474,7 +483,7 @@
         try
         {
             var Variables = new { id = owner.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteOwner, Variables)).DeletedId;
+            int delId = ( await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteOwner, Variables) ).DeletedId;
             if (delId == owner.Id)
             {
                 return true;
@@ -490,32 +499,32 @@
     private string ConstructMessage()
     {
         string text = "";
-        if(deletedSampleManagements > 0)
+        if (deletedSampleManagements > 0)
         {
             text += $"{deletedSampleManagements} " + userConfig.GetText("managements");
         }
-        if(deletedSampleCredentials > 0)
+        if (deletedSampleCredentials > 0)
         {
             text += $"{deletedSampleCredentials} " + userConfig.GetText("credentials");
         }
-        if(deletedSampleUsers > 0)
+        if (deletedSampleUsers > 0)
         {
             text += $" {deletedSampleUsers} " + userConfig.GetText("users");
         }
-        if(deletedSampleTenants > 0)
+        if (deletedSampleTenants > 0)
         {
             text += $" {deletedSampleTenants} " + userConfig.GetText("tenants");
         }
-        if(deletedSampleGroups > 0)
+        if (deletedSampleGroups > 0)
         {
             text += $" {deletedSampleGroups} " + userConfig.GetText("groups");
         }
-        if(deletedSampleOwners > 0)
+        if (deletedSampleOwners > 0)
         {
             text += $" {deletedSampleOwners} " + userConfig.GetText("owners");
         }
 
-        if(text == "")
+        if (text == "")
         {
             text += userConfig.GetText("nothing");
         }

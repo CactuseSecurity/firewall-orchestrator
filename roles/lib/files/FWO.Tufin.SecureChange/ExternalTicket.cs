@@ -144,7 +144,7 @@ public class SCTicket : ExternalTicket
 		string taskText = "";
 
 		// set templates from config
-		if (!tufinSystem.TicketTemplate.IsNullOrEmpty() && !tufinSystem.TasksTemplate.IsNullOrEmpty())
+		if (!string.IsNullOrEmpty(tufinSystem.TicketTemplate) && !string.IsNullOrEmpty(tufinSystem.TasksTemplate))
 		{
 			TicketTemplate = tufinSystem.TicketTemplate;
 			TasksTemplate = tufinSystem.TasksTemplate;
@@ -195,7 +195,6 @@ public class SCTicket : ExternalTicket
 		// send API call
 		return await restClient.ExecuteAsync<int>(request);
 	}
-
 
 	/*
 		Create Ticket for creating network groups
@@ -254,9 +253,7 @@ public class SCTicket : ExternalTicket
 		}'
 
 
-		####################################################### 
-
-		Create Access Request Ticket Sample Call
+		Create Ticket for access rule
 
 		curl --request POST \
 			--insecure \

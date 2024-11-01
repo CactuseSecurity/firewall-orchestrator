@@ -215,6 +215,7 @@ def readMainKey(filePath=fwo_const.mainKeyFile):
     return mainKey
 
 
+# this mgm field is used by mw dailycheck scheduler
 def log_import_attempt(fwo_api_base_url, jwt, mgm_id, successful=False):
     now = datetime.datetime.now().isoformat()
     query_variables = { "mgmId": mgm_id, "timeStamp": now, "success": successful }

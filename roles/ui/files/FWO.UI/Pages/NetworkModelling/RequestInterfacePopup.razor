@@ -110,7 +110,7 @@
                     ConnHandler.RequesterId = RequestingOwner.Id;
                     long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
                     await SendEmail(connId);
-                    
+
                     apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin });
                     await ticketCreator.SetInterfaceId(ticketId, connId, SelectedOwner);
                     apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller });
@@ -142,11 +142,13 @@
     }
 
     private async Task SendEmail(long connId)
-    {
+    {       
         try
         {
-            EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
+            EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);         
+
             await emailHelper.Init();
+
             string interfaceUrl = $"{userConfig.UiHostName}/networkmodelling/{SelectedOwner.ExtAppId}/{connId}";
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +

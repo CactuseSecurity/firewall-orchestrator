@@ -391,3 +391,37 @@ Maintenance release
 - owner-filtering for new report type
 - new setting for email recipients
 - owner-import custom script improvements#
+
+# 8.3.1 - 14.08.24 MAIN
+Hotfix:
+- in CheckPoint importer: fix missing group members
+
+# 8.4 - 30.09.24 MAIN
+Stability release
+- various small bug fixes
+  - installer (redundant code deleting test user)
+  - importer (switching from full details to standard, re-adding VSX gateway support, voip domain handling in cp parser)
+  - reporting (app-rule report containing multiple objects)
+  - middleware (config subscriptions)
+  - reporting (temporarily highlight linked to object in rsb)
+  - modelling (sync connections - not always part of overview table after creation)
+  - RBA (role picking when user has multiple roles)
+  - UI various: adding missing pager control
+  - UI various: spinner clean-up
+- features/upgrades
+  - Added login page welcome message and settings
+  - Added last hit information in app-rule report
+  - API - upgrading to 2.43.0
+  - various security upgrades dotnet (restsharp, jwt, ...)
+
+# 8.4.1 - 30.10.24 MAIN
+Network Modelling feature update
+- import of app server IP addresses via CSV upload
+- import of multiple sources for area IP data 
+- new option email notification: fall-back to main owner if group is empty
+Fixes
+- corrections in displaying UI messages
+- converting owner network ip data to standard format "range"
+- importer 
+  - check point - fix import of all VSX instances
+  - fortinet - add hit counts and install on information

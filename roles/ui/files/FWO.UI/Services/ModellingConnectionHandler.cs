@@ -321,7 +321,7 @@ namespace FWO.Ui.Services
         {
             if(interf.SourceFilled() != ActConn.SourceFilled() || interf.DestinationFilled() != ActConn.DestinationFilled())
             {
-                DisplayMessageInUi(null, userConfig.GetText("replace"), userConfig.GetText("E9015"), true);
+                DisplayMessageInUi(null, userConfig.GetText("replace"), userConfig.GetText("E9017"), true);
                 return;
             }
             ReplaceMode = true;
@@ -586,6 +586,10 @@ namespace FWO.Ui.Services
                     {
                         SrcNwGroupsToAdd.Add(nwGroup);
                     }
+                    else
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
+                    }
                 }
                 CalcVisibility();
             }
@@ -601,6 +605,10 @@ namespace FWO.Ui.Services
                         (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == nwGroup.Id)?.UseInDst ?? true))
                     {
                         DstNwGroupsToAdd.Add(nwGroup);
+                    }
+                    else
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();
@@ -1002,12 +1010,13 @@ namespace FWO.Ui.Services
                     ActConn.SyncState();
                     if(AddMode)
                     {
-                        await AddConnectionToDb();
+                        await AddConnectionToDb();                        
                     }
                     else
                     {
                         await UpdateConnectionInDb();
                     }
+                    await ReInit();
                     Close();
                     return true;
                 }

@@ -23,6 +23,7 @@
   - name: add docker repo
     lineinfile:
       path: "/etc/apt/sources.list.d/docker.list"
+      regexp: '.*https://download.docker.com/linux/.*'
       create: true
       line: "deb [arch={{ linux_architecture }}] https://download.docker.com/linux/{{ ansible_facts['distribution']|lower }} {{ os_codename }} stable"
 

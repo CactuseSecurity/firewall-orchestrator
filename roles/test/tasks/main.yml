@@ -9,7 +9,7 @@
 
 - name: create or re-create test dir
   file:
-    state: dir
+    state: directory
     path: "{{ fworch_home }}/importer"
 
 - name: install packages necessary for testing

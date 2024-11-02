@@ -13529,18 +13529,6 @@
                   }
                 },
                 {
-                  "name": "rulebase_on_gateways",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "layer_guard_rule",
-                      "table": {
-                        "name": "rulebase_on_gateway",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -13607,7 +13595,6 @@
                       "action_id",
                       "active",
                       "dev_id",
-                      "enforced_on_gateway",
                       "is_global",
                       "last_change_admin",
                       "mgm_id",
@@ -13766,7 +13753,6 @@
                       "xlate_rule",
                       "access_rule",
                       "active",
-                      "enforced_on_gateway",
                       "is_global",
                       "nat_rule",
                       "rule_disabled",
@@ -16021,7 +16007,6 @@
                     "check": {},
                     "columns": [
                       "created",
-                      "removed",
                       "is_global",
                       "name",
                       "id",
@@ -16037,7 +16022,6 @@
                   "permission": {
                     "columns": [
                       "created",
-                      "removed",
                       "is_global",
                       "name",
                       "id",
@@ -16055,7 +16039,6 @@
                   "permission": {
                     "columns": [
                       "created",
-                      "removed",
                       "is_global",
                       "name",
                       "id",
@@ -16090,12 +16073,6 @@
                   }
                 },
                 {
-                  "name": "rule",
-                  "using": {
-                    "foreign_key_constraint_on": "layer_guard_rule"
-                  }
-                },
-                {
                   "name": "rulebase",
                   "using": {
                     "foreign_key_constraint_on": "rulebase_id"
@@ -16108,7 +16085,6 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "layer_guard_rule",
                       "dev_id",
                       "order_no",
                       "rulebase_id"
@@ -16122,7 +16098,6 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "layer_guard_rule",
                       "dev_id",
                       "order_no",
                       "rulebase_id"

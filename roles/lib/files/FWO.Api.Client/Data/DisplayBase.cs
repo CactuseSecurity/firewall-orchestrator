@@ -46,6 +46,49 @@ namespace FWO.Api.Data
             return result;
         }
 
+        public static string DisplayService(NwServiceElement svcElem, List<IpProtocol> IpProtos)
+        {
+            IpProtocol? ipProt = IpProtos.FirstOrDefault(p => p.Id == svcElem.ProtoId);
+            NetworkService svc = new()
+            {
+                DestinationPort = svcElem.Port,
+                DestinationPortEnd = svcElem.PortEnd,
+                Protocol = ipProt != null ? new NetworkProtocol(ipProt) : new NetworkProtocol()
+            };
+            return DisplayService(svc, true).ToString();
+        }
+
+        public static List<IpProtocol> CustomSortProtocols(List<IpProtocol> ListIn)
+        {
+            List<IpProtocol> ListOut = [];
+            IpProtocol? tcp = ListIn.Find(x => x.Name.ToLower() == "tcp");
+            if(tcp != null)
+            {
+                ListOut.Add(tcp);
+                ListIn.Remove(tcp);
+            }
+            IpProtocol? udp = ListIn.Find(x => x.Name.ToLower() == "udp");
+            if(udp != null)
+            {
+                ListOut.Add(udp);
+                ListIn.Remove(udp);
+            }
+            IpProtocol? icmp = ListIn.Find(x => x.Name.ToLower() == "icmp");
+            if(icmp != null)
+            {
+                ListOut.Add(icmp);
+                ListIn.Remove(icmp);
+            }
+            foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
+            {
+                if (proto.Name.ToLower() != "unassigned")
+                {
+                    ListOut.Add(proto);
+                }
+            }
+            return ListOut;
+        }
+
         public static string DisplayIpWithName(NetworkObject elem)
         {
             if(elem.Name != null && elem.Name != "")
@@ -202,22 +245,22 @@ namespace FWO.Api.Data
             return "";
         }
 
-        public static string StripOffNetmask(this string ip)
-        {
-            int pos = ip.LastIndexOf('/');
-            if (pos > -1 && ip.Length > pos + 1)
-            {
-                return ip[..pos];
-            }
-            return ip;
-        }
+        // public static string StripOffNetmask(this string ip)
+        // {
+        //     int pos = ip.LastIndexOf('/');
+        //     if (pos > -1 && ip.Length > pos + 1)
+        //     {
+        //         return ip[..pos];
+        //     }
+        //     return ip;
+        // }
 
         private static string StripOffUnnecessaryNetmask(string ip)
         {
             string netmask = GetNetmask(ip);
             if (IsV4Address(ip) && netmask == "32" || IsV6Address(ip) && netmask == "128")
             {
-                return StripOffNetmask(ip);
+                return ip.StripOffNetmask();
             }
             return ip;
         }
@@ -226,7 +269,7 @@ namespace FWO.Api.Data
         {
             // IPAddressRange range = IPAddressRange.Parse(IPAddress.Parse(ipInStart), IPAddress.Parse(ipInEnd));
 
-            IPAddressRange range = IPAddressRange.Parse(StripOffNetmask(ipInStart) + "-" + StripOffNetmask(ipInEnd));
+            IPAddressRange range = IPAddressRange.Parse(ipInStart.StripOffNetmask() + "-" + ipInEnd.StripOffNetmask());
             try
             {
                 range.ToCidrString();
@@ -242,7 +285,7 @@ namespace FWO.Api.Data
         {
             ip1 = StripOffUnnecessaryNetmask(ip1);
             ip2 = StripOffUnnecessaryNetmask(ip2);
-            if (ip1 == ip2)
+            if (ip1 == ip2 || ip2 == "")
             {
                 string netmask = GetNetmask(ip1);
                 if(netmask != "")

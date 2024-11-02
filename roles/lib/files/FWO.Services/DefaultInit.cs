@@ -1,6 +1,6 @@
 ﻿using FWO.Api.Data;
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public static class DefaultInit
     {

@@ -21,6 +21,12 @@ namespace FWO.Api.Data
             IsDeleted = nwObject.IsDeleted;
         }
 
+        public ModellingNwObject(NetworkObject nwObj) : base(nwObj)
+        {
+            Id = nwObj.Id;
+            IsDeleted = false; // Todo: !nwObj.Active ?
+        }
+
         public override string Display()
         {
             return (IsDeleted ? "!" : "") + Name;

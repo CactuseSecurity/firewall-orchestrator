@@ -227,8 +227,12 @@ alter table "rule" add column if not exists "rulebase_id" Integer; -- NOT NULL;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
 Alter table "rule" add CONSTRAINT fk_rule_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 
-Alter Table "rule_metadata" DROP Constraint "rule_metadata_alt_key";
+Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_key";
+Alter Table "rule_metadata" DROP Constraint IF EXISTS "rule_metadata_alt_key";
+
 Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid", "dev_id", "rulebase_id");
+Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
+  foreign key ("dev_id", "rule_uid", "rulebase_id") references "rule_metadata" ("dev_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
 
 -- decision: the rule_metadata always refers to the a rule(_uid) on a specific gateway
 --   that means recertifications, last hit info, owner, ... are all linked to a gateway
@@ -475,7 +479,7 @@ AS $function$
         WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
         ORDER BY rule_name;
     END;
-$function$
+$function$;
 
 -- drop only after migration!
 alter table rule drop constraint if exists rule_dev_id_fkey;

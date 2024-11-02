@@ -299,6 +299,7 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
     # getting Original (NAT) object (both for networks and services)
     origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
     anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
+    noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
 
     for obj_type in cp_const.api_obj_types:
         if obj_type in cp_const.obj_types_full_fetch_needed:
@@ -325,13 +326,15 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
                 if debug_level>5:
                     logger.debug ( obj_type +" total:"+ str(total) )
 
-        # adding the uid of the Original and Any objects (as separate chunks):
+        # adding the uid of the Original, Any and None objects (as separate chunks):
         if obj_type == 'networks':
             object_table['object_chunks'].append(origObj)
             object_table['object_chunks'].append(anyObj)
+            object_table['object_chunks'].append(noneObj)
         if obj_type == 'services-other':
             object_table['object_chunks'].append(origObj)
             object_table['object_chunks'].append(anyObj)
+            object_table['object_chunks'].append(noneObj)
 
         config_json["object_tables"].append(object_table)
 

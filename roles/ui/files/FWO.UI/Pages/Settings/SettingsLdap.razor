@@ -1,7 +1,7 @@
 ﻿@using BlazorTable
 @using System.Net
 @using RestSharp
-
+@using FWO.Services
 @using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
@@ -40,7 +40,7 @@
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("active"))" Field="@(x => x.Active)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.Active))
+                @(context.Active.ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
@@ -56,22 +56,22 @@
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("search_user"))" Field="@(x => x.SearchUser)" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.SearchUser != null && context.SearchUser != ""))
+                @((context.SearchUser != null && context.SearchUser != "").ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.IsWritable()))
+                @(context.IsWritable().ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.HasRoleHandling()))
+                @(context.HasRoleHandling().ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.HasGroupHandling()))
+                @((context.HasGroupHandling()).ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
@@ -479,7 +479,7 @@
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (actLdapConnection.Port < 1 || actLdapConnection.Port > 65535)
+        if (actLdapConnection.Port < 1 || actLdapConnection.Port > GlobalConst.kMaxPortNumber)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5103"), true);
             return false;

@@ -4,6 +4,7 @@
 @using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.Middleware.Client
+@using FWO.Services
 
 @page "/settings/gateways"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -49,7 +50,7 @@
         </Column>
         <Column TableItem="Device" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(!context.ImportDisabled))
+                @((!context.ImportDisabled).ShowAsHtml())
             </Template>
         </Column>
     </Table>

@@ -2,9 +2,10 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class ModellingServiceHandler : ModellingHandlerBase
     {
@@ -81,10 +82,15 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if(ActService.Port < 1 || ActService.Port > 65535 ||
-                (ActService.PortEnd != null &&  (ActService.PortEnd < 1 || ActService.PortEnd > 65535 || ActService.PortEnd < ActService.Port)))
+            if(ActService.Port < 1 || ActService.Port > GlobalConst.kMaxPortNumber ||
+                (ActService.PortEnd != null &&  (ActService.PortEnd < 1 || ActService.PortEnd > GlobalConst.kMaxPortNumber)))
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5103"), true);
+                return false;
+            }
+            if(ActService.PortEnd != null && (ActService.PortEnd < ActService.Port))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5118"), true);
                 return false;
             }
             return true;

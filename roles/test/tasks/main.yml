@@ -5,12 +5,17 @@
   file:
     state: absent
     path: "{{ fworch_home }}/importer"
+  become: true
   when: installation_mode == "upgrade"
 
 - name: create or re-create test dir
   file:
-    state: dir
+    state: directory
     path: "{{ fworch_home }}/importer"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+    mode: "0775"
+  become: true
 
 - name: install packages necessary for testing
   package:

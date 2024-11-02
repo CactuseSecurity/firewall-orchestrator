@@ -229,6 +229,9 @@ bugfix release:
 # 8.4.1 - 15.10.24 DEVELOP
 - Add missing FK connection.proposed_app_id #2591
 
+# 8.4.2 - 17.10.2024 DEVELOP
+- external request
+
 # 9.0 - 31.07.2024 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

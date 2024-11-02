@@ -582,7 +582,7 @@ AS $function$
     END;
 $function$;
 
-/*
+
 CREATE OR REPLACE FUNCTION get_rules_for_owner(device_row device, ownerid integer)
 RETURNS SETOF rule AS $$
     BEGIN
@@ -605,7 +605,7 @@ RETURNS SETOF rule AS $$
         ORDER BY rule_name;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
-*/
+
 
 CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
  RETURNS SETOF rule

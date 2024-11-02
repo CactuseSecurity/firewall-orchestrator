@@ -1,13 +1,11 @@
-﻿using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Logging;
 using FWO.Middleware.RequestParameters;
-using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
 
-namespace FWO.Middleware.Controllers
+namespace FWO.Middleware.Server.Controllers
 {
     /// <summary>
 	/// Controller class for role api
@@ -37,8 +35,8 @@ namespace FWO.Middleware.Controllers
         public async Task<List<RoleGetReturnParameters>> Get()
         {
             // No parameters
-            ConcurrentBag<RoleGetReturnParameters> allRoles = new ConcurrentBag<RoleGetReturnParameters>();
-            ConcurrentBag<Task> ldapRoleRequests = new ConcurrentBag<Task>();
+            ConcurrentBag<RoleGetReturnParameters> allRoles = [];
+            ConcurrentBag<Task> ldapRoleRequests = [];
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -57,7 +55,7 @@ namespace FWO.Middleware.Controllers
             await Task.WhenAll(ldapRoleRequests);
 
             // Return status and result
-            return allRoles.ToList();
+            return [.. allRoles];
         }
 
         /// <summary>
@@ -74,7 +72,7 @@ namespace FWO.Middleware.Controllers
         public async Task<bool> AddUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
             bool userAdded = false;
-            List<Task> ldapRoleRequests = new List<Task>();
+            List<Task> ldapRoleRequests = [];
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -112,7 +110,7 @@ namespace FWO.Middleware.Controllers
         public async Task<bool> RemoveUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
             bool userRemoved = false;
-            List<Task> ldapRoleRequests = new List<Task>();
+            List<Task> ldapRoleRequests = [];
 
             foreach (Ldap currentLdap in ldaps)
             {

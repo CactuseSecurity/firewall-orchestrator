@@ -2,6 +2,7 @@
 @using FWO.Ui.Display
 @using FWO.Middleware.Client
 @using FWO.Ui.Pages.Request
+@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -615,7 +616,7 @@
             if(ticket != null)
             {
                 wfHandler.SetTicketEnv(ticket);
-                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
                 if(reqTask != null)
                 {
                     wfHandler.SetReqTaskEnv(reqTask);

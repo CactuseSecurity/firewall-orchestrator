@@ -1,6 +1,7 @@
 ﻿@using FWO.Api.Client
 @using FWO.Api.Client.Queries
 @using FWO.Config.Api
+@using FWO.Services
 
 @page "/settings/statedefinitions"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -195,7 +196,7 @@ else
     {
         usedStateIds = [];
         GlobalStateMatrix tmpStateMatrix = new();
-        foreach(TaskType type in Enum.GetValues(typeof(TaskType)))
+        foreach(WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
         {
             await tmpStateMatrix.Init(apiConnection, type);
             foreach(var key in tmpStateMatrix.GlobalMatrix.Keys)

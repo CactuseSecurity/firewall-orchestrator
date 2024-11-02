@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class EmailActionParams
     {

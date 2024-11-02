@@ -76,6 +76,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"importer_hostname" Varchar,
 	"debug_level" Integer,
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
+	"ext_mgm_data" Varchar,
  primary key ("mgm_id")
 );
 
@@ -1088,6 +1089,30 @@ create table recertification
 	next_recert_date Timestamp
 );
 
+create table owner_ticket
+(
+    owner_id int,
+    ticket_id bigint
+);
+
+create table ext_request
+(
+	id BIGSERIAL PRIMARY KEY,
+    owner_id int,
+    ticket_id bigint,
+	task_number int,
+	ext_ticket_system varchar,
+	ext_request_type varchar,
+	ext_request_content varchar,
+	ext_query_variables varchar,
+	ext_request_state varchar,
+	ext_ticket_id varchar,
+	last_creation_response varchar,
+	last_processing_response varchar,
+	create_date Timestamp default now(),
+	finish_date Timestamp
+);
+
 -- workflow -------------------------------------------------------
 
 -- create schema
@@ -1122,7 +1147,8 @@ create table request.reqtask
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
 	devices varchar,
-	additional_info varchar
+	additional_info varchar,
+	mgm_id int
 );
 
 create table request.reqelement 
@@ -1131,7 +1157,9 @@ create table request.reqelement
     request_action action_enum NOT NULL default 'create',
     task_id bigint,
     ip cidr,
+	ip_end cidr,
     port int,
+	port_end int,
     ip_proto_id int,
     network_object_id bigint,
     service_id bigint,
@@ -1139,7 +1167,9 @@ create table request.reqelement
     user_id bigint,
     original_nat_id bigint,
 	device_id int,
-	rule_uid varchar
+	rule_uid varchar,
+	group_name varchar,
+	name varchar
 );
 
 create table request.approval 
@@ -1252,14 +1282,18 @@ create table request.implelement
     implementation_action action_enum NOT NULL default 'create',
     implementation_task_id bigint,
     ip cidr,
+	ip_end cidr,
     port int,
+	port_end int,
     ip_proto_id int,
     network_object_id bigint,
     service_id bigint,
     field rule_field_enum NOT NULL,
     user_id bigint,
     original_nat_id bigint,
-	rule_uid varchar
+	rule_uid varchar,
+	group_name varchar,
+	name varchar
 );
 
 create table request.impltask

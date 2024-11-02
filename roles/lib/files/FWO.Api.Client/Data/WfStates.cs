@@ -14,7 +14,7 @@ namespace FWO.Api.Data
         public string Name { get; set; } = "";
 
         [JsonProperty("actions"), JsonPropertyName("actions")]
-        public List<WfStateActionDataHelper> Actions { get; set; } = new ();
+        public List<WfStateActionDataHelper> Actions { get; set; } = [];
 
 
         public WfState(){}
@@ -28,7 +28,7 @@ namespace FWO.Api.Data
 
         public string ActionList()
         {
-            List<string> actionNames = new ();
+            List<string> actionNames = [];
             foreach(var action in Actions)
             {
                 actionNames.Add(action.Action.Name);
@@ -39,12 +39,12 @@ namespace FWO.Api.Data
 
     public class WfStateDict
     {
-        public Dictionary<int, string> Name = new ();
+        public Dictionary<int, string> Name = [];
 
         public async Task Init(ApiConnection apiConnection)
         {
             List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(Client.Queries.RequestQueries.getStates);
-            Name = new ();
+            Name = [];
             foreach(var state in states)
             {
                 Name.Add(state.Id, state.Name);

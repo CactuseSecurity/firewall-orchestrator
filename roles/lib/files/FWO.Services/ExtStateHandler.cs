@@ -2,7 +2,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class ExtStateHandler
     {
@@ -22,6 +22,11 @@ namespace FWO.Ui.Services
         public int? GetInternalStateId(ExtStates extState)
         {
             return extStates.FirstOrDefault(e => e.Name == extState.ToString())?.StateId;
+        }
+
+        public int? GetInternalStateId(string extState)
+        {
+            return extStates.FirstOrDefault(e => e.Name == extState)?.StateId;
         }
     }
 }

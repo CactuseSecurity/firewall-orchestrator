@@ -22,6 +22,7 @@ namespace FWO.Basics
         public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
         public const int kSidebarRightWidth = 300;
         public const int kHoursToMilliseconds = 3600000;
+        public const int kMaxPortNumber = 65535;
 
         public const string kHtml = "html";
         public const string kPdf = "pdf";
@@ -37,6 +38,7 @@ namespace FWO.Basics
         public const string kManual = "manual";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
+		public const string kExternalRequest = "externalRequest";
 
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
 

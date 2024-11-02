@@ -1,0 +1,6 @@
+﻿subscription subscribeExternalRequestConfigChanges  {
+  config (where: { _or: [{config_key: {_eq: "externalRequestSleepTime"}}, {config_key: {_eq: "externalRequestStartAt"}} ]}, limit: 2){
+    config_key
+    config_value
+  }
+}

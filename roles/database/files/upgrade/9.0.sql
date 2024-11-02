@@ -227,8 +227,8 @@ alter table "rule" add column if not exists "rulebase_id" Integer; -- NOT NULL;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
 Alter table "rule" add CONSTRAINT fk_rule_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 
-Alter table "rule" drop constraint "rule_metadata_dev_id_rule_uid_f_key";
-Alter Table "rule_metadata" DROP Constraint "rule_metadata_alt_key";
+Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_key";
+Alter Table "rule_metadata" DROP Constraint IF EXISTS "rule_metadata_alt_key";
 
 Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid", "dev_id", "rulebase_id");
 Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"

@@ -1,5 +1,5 @@
 ﻿@using FWO.Config.Api
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Services
@@ -26,7 +26,7 @@
                 </div>
                 <div class="row">
                     <div class="col-sm-3">@(userConfig.GetText("import_enabled")):</div>
-                    <div class="col-sm-2">@GlobalFunc.ShowBool(!ImportStatus.ImportDisabled)</div>
+                    <div class="col-sm-2">@(!ImportStatus.ImportDisabled).ShowAsHtml()</div>
                 </div>
                 <br>
 
@@ -49,7 +49,7 @@
                 <div class="row">
                     <div class="col-sm-1"/>
                     <div class="col-sm-1">@(userConfig.GetText("success")):</div>
-                    <div class="col-sm-1">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? GlobalFunc.ShowBool(ImportStatus.FirstImport[0].SuccessfulImport) : "")</div>
+                    <div class="col-sm-1">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].SuccessfulImport.ShowAsHtml() : "")</div>
                     <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
                     <div class="col-sm-8">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].ImportErrors : "")</div>
                 </div>
@@ -95,7 +95,7 @@
                 <div class="row">
                     <div class="col-sm-1"/>
                     <div class="col-sm-1">@(userConfig.GetText("success")):</div>
-                    <div class="col-sm-1">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? GlobalFunc.ShowBool(ImportStatus.LastImport[0].SuccessfulImport) : "")</div>
+                    <div class="col-sm-1">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].SuccessfulImport.ShowAsHtml() : "")</div>
                     <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
                     <div class="col-sm-8">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].ImportErrors : "")</div>
                 </div>

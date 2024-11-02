@@ -2,7 +2,7 @@
 using FWO.Api.Client;
 using FWO.Config.Api;
 using FWO.Middleware.RequestParameters;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

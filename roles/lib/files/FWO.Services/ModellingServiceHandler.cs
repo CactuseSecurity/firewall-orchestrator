@@ -2,7 +2,7 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.GlobalConstants;
+using FWO.Basics;
 
 
 namespace FWO.Services

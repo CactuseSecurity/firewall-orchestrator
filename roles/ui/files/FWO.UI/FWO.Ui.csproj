@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\lib\files\FWO.GlobalConstants\FWO.GlobalConstants.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Basics\FWO.Basics.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Config.Api\FWO.Config.Api.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Report.Filter\FWO.Report.Filter.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Report\FWO.Report.csproj" />

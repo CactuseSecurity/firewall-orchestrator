@@ -3,7 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Logging;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using System.Net;
 using RestSharp;
 using FWO.Tufin.SecureChange;

@@ -42,12 +42,12 @@
                 <input type="number" min="0" @bind="configData!.SessionTimeoutNoticePeriod" />
             </div>
         </div>
-        @* <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("maxMessages"))">
             <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages"))*:</label>
             <div class="col-sm-2">
                 <input id="maxMessages" type="number" @bind="configData!.MaxMessages">
             </div>
-        </div> *@
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5423"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
             <div class="col-sm-2">

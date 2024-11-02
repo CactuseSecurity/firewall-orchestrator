@@ -1,5 +1,5 @@
 ﻿using FWO.Config.Api;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -319,17 +319,6 @@ namespace FWO.Services
                     area.MemberCount++;
                 }
             }
-        }
-
-        private static string StripOffNetmask(string ip)
-        {
-            Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");
-            if (match.Success)
-            {
-                string matchedString = match.Value;
-                return matchedString.Remove( matchedString.Length - 1 );
-            }
-            return ip;
         }
 
         private static bool IsInArea(ModellingAppServer server, ModellingNetworkArea area)

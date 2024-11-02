@@ -1,4 +1,4 @@
-﻿using FWO.GlobalConstants;
+﻿using FWO.Basics;
 using System.Text;
 using FWO.Report.Filter;
 using FWO.Ui.Display;

@@ -1,5 +1,5 @@
 using FWO.Api.Data;
-using FWO.GlobalConstants;
+using FWO.Basics;
 
 namespace FWO.Tufin.SecureChange
 {

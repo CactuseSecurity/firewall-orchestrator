@@ -1,5 +1,5 @@
 ﻿@using BlazorTable
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
@@ -71,7 +71,7 @@
                 <Template>
                     @if (context.LastImport != null && context.LastImport.Length > 0)
                     {
-                        @(GlobalFunc.ShowBool(context.LastImport[0].SuccessfulImport));
+                        @(context.LastImport[0].SuccessfulImport.ShowAsHtml());
                     }
                 </Template>
             </Column>

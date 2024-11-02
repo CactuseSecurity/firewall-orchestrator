@@ -475,7 +475,7 @@ AS $function$
         WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
         ORDER BY rule_name;
     END;
-$function$
+$function$;
 
 -- drop only after migration!
 alter table rule drop constraint if exists rule_dev_id_fkey;

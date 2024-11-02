@@ -5,6 +5,7 @@
   file:
     state: absent
     path: "{{ fworch_home }}/importer"
+  become: true
   when: installation_mode == "upgrade"
 
 - name: create or re-create test dir

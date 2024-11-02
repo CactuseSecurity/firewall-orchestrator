@@ -8,6 +8,7 @@ with_hits = True
 # cannot fetch the Any object via API (<=1.7) at the moment
 # therefore we have a workaround adding the object manually (as svc and nw)
 any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
+none_obj_uid = "97aeb36a-9aea-11d5-bd16-0090272ccb30"
 # todo: read this from config (from API 1.6 on it is fetched)
 
 original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"

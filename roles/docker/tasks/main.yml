@@ -24,7 +24,7 @@
     lineinfile:
       path: "/etc/apt/sources.list.d/docker.list"
       create: true
-      line: "deb [arch={{ linux_architecture }}] https://download.docker.com/linux/debian {{ os_codename }} stable"
+      line: "deb [arch={{ linux_architecture }}] https://download.docker.com/linux/{{ ansible_facts['distribution']|lower }} {{ os_codename }} stable"
 
   - name: apt update
     apt: update_cache=true

@@ -52,7 +52,7 @@ namespace FWO.Tufin.SecureChange
 		// 		"comment": "",
 		// 		"object_updated_status": "EXISTING_NOT_EDITED"
 		// 	},
-		// private readonly string ObjectTemplate = "{\"@type\": \"@@TYPE@@\", \"name\": \"@@OBJECTNAME@@\", \"object_type\": \"@@OBJECT_TYPE@@\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
+		// private readonly string ObjectTemplate = "{\"@type\": \"@@TYPE@@\", \"name\": \"@@OBJECTNAME@@\", \"object_type\": \"@@OBJECT_TYPE@@\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\", \"management_id\": @@MANAGEMENT_ID@@}";
 
 		// 	{
 		// 		"@type": "Object",
@@ -61,7 +61,7 @@ namespace FWO.Tufin.SecureChange
 		// 		"status": "NOT_CHANGED",
 		// 		"object_updated_status": "EXISTING_NOT_EDITED"
 		// 	}
-		// private readonly string ObjectTemplateShort = "{\"@type\": \"Object\", \"name\": \"@@OBJECTNAME@@\", \"status\": \"@@STATUS@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
+		// private readonly string ObjectTemplateShort = "{\"@type\": \"Object\", \"name\": \"@@OBJECTNAME@@\", \"status\": \"@@STATUS@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\", \"management_id\": @@MANAGEMENT_ID@@}";
 
 		// private readonly string HostTemplateWithId = "{\"@type\": \"host\", \"name\": \"@@HOSTNAME@@\", \"object_UID\": \"@@OBJECT_UID@@\", \"object_type\": \"host\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"management_id\": @@MANAGEMENT_ID@@, \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
 		// private readonly string HostTemplateWithoutId = "{\"@type\": \"host\", \"name\": \"@@HOSTNAME@@\", \"object_type\": \"host\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"management_id\": @@MANAGEMENT_ID@@, \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
@@ -109,7 +109,8 @@ namespace FWO.Tufin.SecureChange
 		// 		"comment": "",
 		// 		"object_updated_status": "EXISTING_NOT_EDITED"
 		// 	}
-		protected static string FillObjectTemplate(ExternalTicketTemplate template, string type, string objName, string ObjType, string objDetails, string comment, string status, string objUpdStatus)
+		protected static string FillObjectTemplate(ExternalTicketTemplate template, string type, string objName, string ObjType, string objDetails, string comment, 
+			string status, string objUpdStatus, string mgmId)
 		{
 			bool shortened = false;
 			return template.ObjectTemplate
@@ -119,7 +120,8 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@OBJECT_DETAILS@@", objDetails)
 				.Replace("@@COMMENT@@", comment)
 				.Replace("@@STATUS@@", status)
-				.Replace("@@OBJUPDSTATUS@@", objUpdStatus);
+				.Replace("@@OBJUPDSTATUS@@", objUpdStatus)
+				.Replace("@@MANAGEMENT_ID@@", mgmId);
 		}
 
 		// 	{
@@ -129,13 +131,14 @@ namespace FWO.Tufin.SecureChange
 		// 		"status": "NOT_CHANGED",
 		// 		"object_updated_status": "EXISTING_NOT_EDITED"
 		// 	}
-		protected static string FillObjectTemplateShort(ExternalTicketTemplate template, string objName, string status, string objUpdStatus)
+		protected static string FillObjectTemplateShort(ExternalTicketTemplate template, string objName, string status, string objUpdStatus, string mgmId)
 		{
 			bool shortened = false;
 			return template.ObjectTemplateShort
 				.Replace("@@OBJECTNAME@@", Sanitizer.SanitizeJsonFieldMand(objName, ref shortened))
 				.Replace("@@STATUS@@", status)
-				.Replace("@@OBJUPDSTATUS@@", objUpdStatus);
+				.Replace("@@OBJUPDSTATUS@@", objUpdStatus)
+				.Replace("@@MANAGEMENT_ID@@", mgmId);
 		}
 
 		// protected string FillHostTemplate(string hostname, string objUid, string objDetails, string mgmtId, string comment, string status, string objUpdStatus, bool withId)
@@ -193,12 +196,12 @@ namespace FWO.Tufin.SecureChange
 					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId);
 					convertedObjects.Add(FillObjectTemplate(template, objUpdStatus == SCObjStatusValue.NEW.ToString() ? scObjType : "Object",
 						ConstructObjectName(nwObj, namingConvention), scObjType,
-						nwObj.IpString, nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus));
+						nwObj.IpString, nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus, mgmId ?? "0"));
 				}
 				else
 				{
 					convertedObjects.Add(FillObjectTemplateShort(template, ConstructObjectName(nwObj, namingConvention),
-						ObjStatus(nwObj.RequestAction), ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId)));
+						ObjStatus(nwObj.RequestAction), ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId), mgmId ?? "0"));
 				}
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";

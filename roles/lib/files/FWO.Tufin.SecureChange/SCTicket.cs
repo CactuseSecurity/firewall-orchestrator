@@ -183,7 +183,7 @@ namespace FWO.Tufin.SecureChange
 					}
 					else
 					{
-						ticketTask.FillTaskText(template.TasksTemplate);
+						ticketTask.FillTaskText(template);
 						actTicketTemplate = template.TicketTemplate;
 					}
 					TicketTasks.Add(ticketTask.TaskText);

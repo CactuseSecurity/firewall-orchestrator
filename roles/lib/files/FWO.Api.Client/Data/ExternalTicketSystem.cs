@@ -65,12 +65,32 @@ namespace FWO.Api.Data
 		[JsonProperty(nameof(TasksTemplate)), JsonPropertyName(nameof(TasksTemplate))]
 		public string TasksTemplate { get; set; } = "";
 
+		[JsonProperty(nameof(ObjectTemplate)), JsonPropertyName(nameof(ObjectTemplate))]
+		public string ObjectTemplate { get; set; } = "";
+
+		[JsonProperty(nameof(ObjectTemplateShort)), JsonPropertyName(nameof(ObjectTemplateShort))]
+		public string ObjectTemplateShort { get; set; } = "";
+
+		[JsonProperty(nameof(IpTemplate)), JsonPropertyName(nameof(IpTemplate))]
+		public string IpTemplate { get; set; } = "";
+
+		[JsonProperty(nameof(NwObjGroupTemplate)), JsonPropertyName(nameof(NwObjGroupTemplate))]
+		public string NwObjGroupTemplate { get; set; } = "";
+
+		[JsonProperty(nameof(ServiceTemplate)), JsonPropertyName(nameof(ServiceTemplate))]
+		public string ServiceTemplate { get; set; } = "";
+
 		public bool Sanitize()
         {
             bool shortened = false;
             TaskType = Sanitizer.SanitizeMand(TaskType, ref shortened);
 			TicketTemplate = Sanitizer.SanitizeJsonMand(TicketTemplate, ref shortened);
 			TasksTemplate = Sanitizer.SanitizeJsonMand(TasksTemplate, ref shortened);
+			ObjectTemplate = Sanitizer.SanitizeJsonMand(ObjectTemplate, ref shortened);
+			ObjectTemplateShort = Sanitizer.SanitizeJsonMand(ObjectTemplateShort, ref shortened);
+			IpTemplate = Sanitizer.SanitizeJsonMand(IpTemplate, ref shortened);
+			NwObjGroupTemplate = Sanitizer.SanitizeJsonMand(NwObjGroupTemplate, ref shortened);
+			ServiceTemplate = Sanitizer.SanitizeJsonMand(ServiceTemplate, ref shortened);
             return shortened;
         }
 	}

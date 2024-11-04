@@ -32,23 +32,23 @@ namespace FWO.Test
             creator = ""
         };
 
-        //dynamic APPFAIL1 = new
-        //{
-        //    name = "APP1999",
-        //    idString = "APP1999",
-        //    appId = 3,
-        //    comment = "",
-        //    creator = ""
-        //};
+        dynamic APPFAIL1 = new
+        {
+            name = "APP1999",
+            idString = "APP1999",
+            appId = 3,
+            comment = "",
+            creator = ""
+        };
 
-        //dynamic APPFAIL2 = new
-        //{
-        //    name = "COM0999",
-        //    idString = "COM0999",
-        //    appId = 4,
-        //    comment = "",
-        //    creator = ""
-        //};
+        dynamic APPFAIL2 = new
+        {
+            name = "COM0999",
+            idString = "COM0999",
+            appId = 4,
+            comment = "",
+            creator = ""
+        };
 
 
         [SetUp]
@@ -62,18 +62,42 @@ namespace FWO.Test
         [Parallelizable]
         public async Task TestCreateAppZone()
         {
+            ReturnId[]? returnIdsAPPFAIL1;
+            ReturnId[]? returnIdsAPPFAIL2;
+
             try
             {
                 ReturnId[]? returnIdsAPP1 = ( await APIConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, APP1) ).ReturnIds;
                 ReturnId[]? returnIdsAPP2 = ( await APIConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, APP2) ).ReturnIds;
 
-                //ReturnId[]? returnIdsAPPFAIL1 = ( await APIConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, APPFAIL1) ).ReturnIds;
-                //ReturnId[]? returnIdsAPPFAIL2 = ( await APIConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, APPFAIL2) ).ReturnIds;
-
                 Assert.That(Equals(returnIdsAPP1[0].NewId, 1));
                 Assert.That(Equals(returnIdsAPP2[0].NewId, 1));
             }
             catch (Exception) { }
+
+            bool testAPPFAIL1 = false;
+            bool testAPPFAIL2 = false;
+
+            try
+            {
+                returnIdsAPPFAIL1 = ( await APIConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, APPFAIL1) ).ReturnIds;
+            }
+            catch (Exception)
+            {
+                testAPPFAIL1 = true;
+            }
+
+            try
+            {
+                returnIdsAPPFAIL2 = ( await APIConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, APPFAIL2) ).ReturnIds;
+            }
+            catch (Exception)
+            {
+                testAPPFAIL2 = true;
+            }
+
+            Assert.That(Equals(testAPPFAIL1, true));
+            Assert.That(Equals(testAPPFAIL2, true));
         }
     }
 }

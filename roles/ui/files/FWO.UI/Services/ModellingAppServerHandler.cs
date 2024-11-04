@@ -15,15 +15,15 @@ namespace FWO.Ui.Services
         private ModellingAppServer ActAppServerOrig { get; set; } = new();
 
 
-        public ModellingAppServerHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
+        public ModellingAppServerHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
             ModellingAppServer appServer, List<ModellingAppServer> availableAppServers, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi)
+            : base(apiConnection, userConfig, application, addMode, displayMessageInUi)
         {
             ActAppServer = appServer;
             AvailableAppServers = availableAppServers;
             ActAppServerOrig = new ModellingAppServer(ActAppServer);
         }
-        
+
         public async Task<bool> Save()
         {
             try
@@ -32,11 +32,11 @@ namespace FWO.Ui.Services
                 //{
                 //    DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
                 //}
-                if(CheckAppServer())
+                if (CheckAppServer())
                 {
                     bool saveOk = true;
                     apiConnection.SetRole(Roles.Admin);
-                    if(AddMode)
+                    if (AddMode)
                     {
                         saveOk &= await AddAppServerToDb();
                     }
@@ -58,7 +58,7 @@ namespace FWO.Ui.Services
         public void Reset()
         {
             ActAppServer = ActAppServerOrig;
-            if(!AddMode && !ReadOnly)
+            if (!AddMode && !ReadOnly)
             {
                 AvailableAppServers[AvailableAppServers.FindIndex(x => x.Id == ActAppServer.Id)] = ActAppServerOrig;
             }
@@ -66,12 +66,12 @@ namespace FWO.Ui.Services
 
         private bool CheckAppServer()
         {
-            if(ActAppServer.Ip == null || ActAppServer.Ip == "" || ActAppServer.CustomType == null || ActAppServer.CustomType == 0)
+            if (ActAppServer.Ip == null || ActAppServer.Ip == "" || ActAppServer.CustomType == null || ActAppServer.CustomType == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if(!CheckIpAdress(ActAppServer.Ip))
+            if (!CheckIpAdress(ActAppServer.Ip))
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("wrong_ip_address"), true);
                 return false;
@@ -88,29 +88,32 @@ namespace FWO.Ui.Services
         {
             try
             {
-                if (ActAppServer.Ip.TrySplit('-', 1, out string ipEnd))
+                if (ActAppServer.Ip.TryGetNetmask(out string netmask))
                 {
-                    ActAppServer.Ip = ActAppServer.Ip.Split('-')[0];
-                    ActAppServer.IpEnd = ipEnd;
+                    (string Start, string End) = ActAppServer.Ip.CidrToRangeString();
+                    ActAppServer.Ip = Start;
+                    ActAppServer.IpEnd = End;
                 }
-
-                if (!ActAppServer.Ip.TrySplit('/', 1, out string? subnet))
+                else if (ActAppServer.Ip.TrySplit('-', 1, out string ipEnd) && IPAddressRange.TryParse(ActAppServer.Ip, out IPAddressRange ipRange))
                 {
-                    ActAppServer.Ip += "/32";
-                }              
-
-                (string Start, string End) ip = ip = ActAppServer.Ip.CidrToRangeString();
+                    ActAppServer.Ip = ipRange.Begin.ToString();
+                    ActAppServer.IpEnd = ipRange.End.ToString();
+                }
+                else
+                {
+                    ActAppServer.IpEnd = ActAppServer.Ip;
+                }
 
                 var Variables = new
                 {
                     name = ActAppServer.Name,
                     appId = Application.Id,
-                    ip = ip.Start,
-                    ipEnd = ip.End,
+                    ip = ActAppServer.Ip,
+                    ipEnd = ActAppServer.IpEnd,
                     importSource = GlobalConst.kManual,  // todo
                     customType = ActAppServer.CustomType
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
+                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
                 if (returnIds != null)
                 {
                     ActAppServer.Id = returnIds[0].NewId;
@@ -122,7 +125,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                if(exception.Message.Contains("Uniqueness violation"))
+                if (exception.Message.Contains("Uniqueness violation"))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("E9010"), "", true);
                 }
@@ -154,7 +157,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                if(exception.Message.Contains("Uniqueness violation"))
+                if (exception.Message.Contains("Uniqueness violation"))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("E9010"), "", true);
                 }

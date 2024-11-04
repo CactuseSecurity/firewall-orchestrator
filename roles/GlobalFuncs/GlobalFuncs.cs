@@ -111,7 +111,7 @@ namespace FWO.GlobalFunctions
             //     }
             //     return false;
             // }
-            private static string StripOffNetmask(string ip)
+            public static string StripOffNetmask(string ip)
             {
                 if (ip.TryGetNetmask(out string netmask))
                     return ip.Replace(netmask, "");
@@ -200,7 +200,7 @@ namespace FWO.GlobalFunctions
                 }
 
                 return ipAddressRange;
-            }
+            }          
         }
     }
     public static class Extensions

@@ -1,12 +1,13 @@
 ﻿@using FWO.Config.Api
 @using System.Text.Json
+@using FWO.GlobalFunctions
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-@if(AppServerHandler != null)
+@if (AppServerHandler != null)
 {
     <PopUp Title="@(AppServerHandler.ReadOnly ? userConfig.GetText("app_server") : (AppServerHandler.AddMode ? userConfig.GetText("add_app_server") : userConfig.GetText("edit_app_server")))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
         <Body>
@@ -14,7 +15,7 @@
             {
                 <div class="form-group row">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                    @if(AppServerHandler.ReadOnly)
+                    @if (AppServerHandler.ReadOnly)
                     {
                         <label class="col-sm-9">@AppServerHandler.ActAppServer.Name</label>
                     }
@@ -26,7 +27,7 @@
                 <div class="form-group row mt-2">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
                     <div class="col-sm-9">
-                        @if(AppServerHandler.ReadOnly)
+                        @if (AppServerHandler.ReadOnly)
                         {
                             <label>@actAppServerType.Name</label>
                         }
@@ -42,7 +43,7 @@
                 </div>
                 <div class="form-group row mt-2">
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
-                    @if(AppServerHandler.ReadOnly)
+                    @if (AppServerHandler.ReadOnly)
                     {
                         <label class="col-sm-9">@AppServerHandler.ActAppServer.Ip</label>
                     }
@@ -55,7 +56,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                @if(AppServerHandler.ReadOnly)
+                @if (AppServerHandler.ReadOnly)
                 {
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
                 }
@@ -67,7 +68,7 @@
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
-                        </NotAuthorized> 
+                        </NotAuthorized>
                     </AuthorizeView>
                     <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
                 }
@@ -102,7 +103,7 @@
     {
         try
         {
-            if(userConfig.ModAppServerTypes != "")
+            if (userConfig.ModAppServerTypes != "")
             {
                 appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
             }
@@ -119,6 +120,11 @@
         {
             firstTry = false;
             actAppServerType = appServerTypes.FirstOrDefault(a => a.Id == AppServerHandler.ActAppServer.CustomType) ?? new();
+
+            string ipStart = GlobalFuncs.IpOperations.StripOffNetmask(AppServerHandler.ActAppServer.Ip);
+            string ipEnd = GlobalFuncs.IpOperations.StripOffNetmask(AppServerHandler.ActAppServer.IpEnd);
+
+            AppServerHandler.ActAppServer.Ip = DisplayBase.DisplayIp(ipStart, ipEnd);
         }
     }
 
@@ -136,7 +142,7 @@
 
     private async Task Save()
     {
-        if(await AppServerHandler.Save())
+        if (await AppServerHandler.Save())
         {
             await AppServerHandlerChanged.InvokeAsync(AppServerHandler);
             Close();

@@ -1236,7 +1236,7 @@ INSERT INTO txt VALUES ('ext_ticket_template_ph','English',	'Ticket Template in 
 INSERT INTO txt VALUES ('ext_task_template_ph',  'German',	'Template Text je Verbindung, f&uuml;r Tufin Secure Change etwa:
     {
         "@xsi.type": "multi_access_request",
-        "name": "Gewünschter Zugang",
+        "name": "Gew&uuml;nschter Zugang",
         "read_only": false,
         "access_request": {
             "order": "AR1",
@@ -1267,7 +1267,7 @@ INSERT INTO txt VALUES ('ext_task_template_ph',  'German',	'Template Text je Ver
     },
     {
         "@xsi.type": "text_area",
-        "name": "Grund für den Antrag",
+        "name": "Grund f&uuml;r den Antrag",
         "read_only": false,
         "text": "@@REASON@@"
     },
@@ -1287,7 +1287,7 @@ INSERT INTO txt VALUES ('ext_task_template_ph',  'German',	'Template Text je Ver
     },
     {
         "@xsi.type": "checkbox",
-        "name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
+        "name": "Die ben&ouml;tigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
         "value":  @@COM_DOCUMENTED@@
     },
     {

@@ -52,13 +52,13 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public List<Rule> SelectedRules { get; set; } = new List<Rule>();
+    public List<Rule> SelectedRules { get; set; } = [];
 
     public string MessageHeader { get; set; } = "";
     public string Message { get; set; } = "";
 
     private string commentText = "";
-    private Dictionary<int, List<string>> ruleUidsPerDevice = new Dictionary<int, List<string>>();
+    private Dictionary<int, List<string>> ruleUidsPerRulebase = new Dictionary<int, List<string>>();
 
 
     protected override void OnParametersSet()
@@ -69,9 +69,9 @@
             AnalyseSelected();
             MessageHeader = userConfig.GetText("rules_to_delete")+ ":";
             Message = "";
-            foreach(int devId in ruleUidsPerDevice.Keys)
+            foreach(int rulebaseId in ruleUidsPerRulebase.Keys)
             {
-                Message += string.Join("<br>", ruleUidsPerDevice[devId]);
+                Message += string.Join("<br>", ruleUidsPerRulebase[rulebaseId]);
             }
         }
     }
@@ -84,14 +84,14 @@
 
     private void AnalyseSelected()
     {
-        ruleUidsPerDevice.Clear();
+        ruleUidsPerRulebase.Clear();
         foreach(Rule rule in SelectedRules)
         {
-            if(!ruleUidsPerDevice.Keys.Contains(rule.DeviceId))
+            if(!ruleUidsPerRulebase.Keys.Contains(rule.RulebaseId))
             {
-                ruleUidsPerDevice.Add(rule.DeviceId, new List<string>());
+                ruleUidsPerRulebase.Add(rule.RulebaseId, new List<string>());
             }
-            ruleUidsPerDevice[rule.DeviceId].Add(rule.Uid ?? rule.Name ?? rule.Id.ToString());
+            ruleUidsPerRulebase[rule.RulebaseId].Add(rule.Uid ?? rule.Name ?? rule.Id.ToString());
         }
     }
 
@@ -99,9 +99,9 @@
     {
         apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin});
         TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-        foreach(int devId in ruleUidsPerDevice.Keys)
+        foreach(int rulebaseId in ruleUidsPerRulebase.Keys)
         {
-            await ticketCreator.CreateUnusedRuleDeleteTicket(devId, ruleUidsPerDevice[devId], commentText, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+            await ticketCreator.CreateUnusedRuleDeleteTicket(rulebaseId, ruleUidsPerRulebase[rulebaseId], commentText, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
         }
         apiConnection.SwitchBack();
         Close();

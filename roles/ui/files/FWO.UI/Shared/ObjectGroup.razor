@@ -24,7 +24,7 @@
             @if (typeof(InputDataType) == typeof(Rule))
             {
                 Rule rule = (Rule)(Object)Content;
-                @($"{rule.DeviceName} - {userConfig.GetText("rule")} ")
+                @($"{rule.RulebaseName} - {userConfig.GetText("rule")} ")
                 if (rule.Uid != null)
                 {
                     if (rule.Uid.Length > 5)
@@ -429,10 +429,12 @@
                             await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
-                                    Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
+                                    Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(
+                                        m => m.Devices).SelectMany(
+                                            d => d.OrderedRulebases.Length>0? d.OrderedRulebases[0].Rulebase.RuleMetadata[0].Rules ?? new Rule[0]: []).FirstOrDefault();
                                     if (ruleUpdated != null)
                                     {
-                                        ruleUpdated.DeviceName = rule.DeviceName;
+                                        ruleUpdated.RulebaseName = rule.RulebaseName;
                                         Content = (InputDataType)(Object)ruleUpdated;
                                     }
                                     return InvokeAsync(StateHasChanged);

@@ -231,3 +231,9 @@ bugfix release:
 
 # 8.4.2 - 17.10.2024 DEVELOP
 - external request
+
+# 9.0 - 31.07.2024 DEVELOP
+- rule to gateway mapping 1:n
+- add report output for rule to gw mapping
+- cleanup/rework of main import function
+- introduce versioning for demo data (major versions only)

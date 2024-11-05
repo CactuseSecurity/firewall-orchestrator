@@ -26,6 +26,9 @@ fragment ruleOverview on rule {
   rule_src_neg
   rule_dst_neg
   rule_svc_neg
+  rule_src
+  rule_dst
+  rule_svc
   rule_num_numeric
   rule_name
   access_rule

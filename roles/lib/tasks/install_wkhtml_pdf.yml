@@ -37,8 +37,8 @@
       
     - name: download wkhtmltox for {{ os_codename }}
       get_url:
-        url: https://github.com/wkhtmltopdf/packaging/releases/download/{{ wkhtmltopdf_version }}/wkhtmltox_{{ wkhtmltopdf_version }}.{{ os_codename }}_amd64.deb
-        dest: "{{ lib_tmp_dir }}/{{ wkhtmltopdf_version }}.{{ os_codename }}_amd64.deb"
+        url: https://github.com/wkhtmltopdf/packaging/releases/download/{{ wkhtmltopdf_version }}/wkhtmltox_{{ wkhtmltopdf_version }}.{{ os_codename }}_{{ linux_architecture }}.deb
+        dest: "{{ lib_tmp_dir }}/{{ wkhtmltopdf_version }}.{{ os_codename }}_{{ linux_architecture }}.deb"
         force: true
         mode: "0644"
         owner: "{{ fworch_user }}"
@@ -46,11 +46,11 @@
       environment: "{{ proxy_env }}"
 
     - name: install wkhtmltox for {{ os_codename }}
-      command: dpkg -i {{ lib_tmp_dir }}/{{ wkhtmltopdf_version }}.{{ os_codename }}_amd64.deb
+      command: dpkg -i {{ lib_tmp_dir }}/{{ wkhtmltopdf_version }}.{{ os_codename }}_{{ linux_architecture }}.deb
 
     - name: remove wkhtmltox package file after installation (for {{ os_codename }})
       file:
-        path: "{{ lib_tmp_dir }}/wkhtmltox_{{ wkhtmltopdf_version }}.{{ os_codename }}_amd64.deb"
+        path: "{{ lib_tmp_dir }}/wkhtmltox_{{ wkhtmltopdf_version }}.{{ os_codename }}_{{ linux_architecture }}.deb"
         state: absent
 
     when: |

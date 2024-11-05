@@ -10,12 +10,14 @@ import time
 import json
 import threading
 import requests, warnings
-import fwo_api# common  # from current working dir
+import fwo_api
 from common import import_management
 from fwo_log import getFwoLogger, LogLock
 import fwo_globals, fwo_config
 from fwo_const import base_dir, importer_base_dir
 from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
+from models.fwconfigmanagerlist import FwConfigManager, FwConfigManagerList
+from fwoBaseImport import ImportState
 
 
 # https://stackoverflow.com/questions/18499497/how-to-process-sigterm-signal-gracefully
@@ -55,6 +57,19 @@ class LogLockerTask(threading.Thread):
         # self.kill_now = True
 
 
+def getFwoJwt(importUser, importPwd, userManagementApi) -> tuple [str, bool]:
+    skipping = False
+    try:
+        jwt = fwo_api.login(importUser, importPwd, userManagementApi)
+    except FwoApiLoginFailed as e:
+        logger.error(e.message)
+        skipping = True
+    except:
+        logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
+        skipping = True
+    return jwt, skipping
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Run import loop across all managements to read configuration from FW managements via API calls')
@@ -74,12 +89,15 @@ if __name__ == '__main__':
     # logLockerTask = LogLockerTask()     # create logLocker
     # logLockerTask.start()           # start Log locking
 
+    ### initializing
     fwo_config = fwo_config.readConfig()
+    fwo_api_base_url = fwo_config['fwo_api_base_url']
+    fwo_major_version = fwo_config['fwo_major_version']
+    user_management_api_base_url = fwo_config['user_management_api_base_url']
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 
         suppress_cert_warnings_in=args.suppress_certificate_warnings,
         debug_level_in=args.debug)
-    if args.suppress_certificate_warnings:
-        requests.packages.urllib3.disable_warnings()
+    if args.suppress_certificate_warnings: requests.packages.urllib3.disable_warnings()
 
     debug_level = int(args.debug)
     logger = getFwoLogger()
@@ -95,18 +113,8 @@ if __name__ == '__main__':
     sleep_timer = 90
     jwt = ""
     mgm_ids = []
-
-    # read fwo config (API URLs)
-    try: 
-        with open(fwo_config_filename, "r") as fwo_config:
-            fwo_config = json.loads(fwo_config.read())
-        user_management_api_base_url = fwo_config['middleware_uri']
-        fwo_api_base_url = fwo_config['api_uri']
-    except:
-        logger.error("import-main-loop - error while reading FWO config file")        
-        raise
-
     mgm_details = {}
+
     killer = GracefulKiller()
     while not killer.kill_now:
         # authenticate to get JWT
@@ -118,15 +126,7 @@ if __name__ == '__main__':
             logger.error("import-main-loop - error while reading importer pwd file")
             raise
 
-        try:
-            jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url)
-        except FwoApiLoginFailed as e:
-            logger.error(e.message)
-            skipping = True
-        except:
-            logger.error("import-main-loop - Unspecified error while logging into FWO API: " + str(traceback.format_exc()))
-            skipping = True
-
+        jwt, skipping = getFwoJwt(importer_user_name, importer_pwd, user_management_api_base_url)
         requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
         verify_certificates = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importCheckCertificates')=='True'
         suppress_certificate_warnings = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importSuppressCertificateWarnings')=='True'
@@ -152,36 +152,26 @@ if __name__ == '__main__':
 
             if not skipping:
                 for mgm_id in mgm_ids:
-                    if killer.kill_now:
-                        break
-                    if 'id' not in mgm_id:
-                        logger.error("import-main-loop - did not get mgm_id: " + str(traceback.format_exc()))
-                    else:
-                        id = str(mgm_id['id'])
-                        # getting a new JWT in case the old one is not valid anymore after a long previous import
+                    if killer.kill_now: break 
+                    
+                    importState = ImportState.initializeImport(mgm_id, debugLevel=debug_level, version=fwo_major_version)
+                    # getting a new JWT in case the old one is not valid anymore after a long previous import
+                    jwt, skipping = getFwoJwt(importer_user_name, importer_pwd, user_management_api_base_url)
+                    if not skipping:
                         try:
-                            jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url)
-                        except FwoApiLoginFailed as e:
-                            logger.error(e.message)
-                            skipping = True
+                            mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": importState.MgmDetails.Id})
                         except:
-                            logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
+                            logger.error("import-main-loop - error while getting FW management details for mgm_id=" + str(importState.MgmDetails.Id) + " - skipping: " + str(traceback.format_exc()))
                             skipping = True
-                        if not skipping:
+                        if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
+                            logger.debug("import-main-loop: starting import of mgm_id=" + id)
                             try:
-                                mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": id})
-                            except:
-                                logger.error("import-main-loop - error while getting FW management details for mgm_id=" + str(id) + " - skipping: " + str(traceback.format_exc()))
-                                skipping = True
-                            if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
-                                logger.debug("import-main-loop: starting import of mgm_id=" + id)
-                                try:
-                                    import_result = import_management(mgmId=id, debug_level_in=debug_level, 
-                                        clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit))
-                                except (FwoApiFailedLockImport, FwLoginFailed):
-                                    pass # minor errors for a single mgm, go to next one
-                                except: # all other exceptions are logged here
-                                    logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(id) + ", " +  str(traceback.format_exc()))
+                                import_result = import_management(mgmId=importState.MgmDetails.Id, debug_level_in=debug_level, version=importState.ImportVersion,
+                                    clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit))
+                            except (FwoApiFailedLockImport, FwLoginFailed):
+                                pass # minor errors for a single mgm, go to next one
+                            except: # all other exceptions are logged here
+                                logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(mgmId) + ", " +  str(traceback.format_exc()))
         if args.clear:
             break # while loop                                    
         if not killer.kill_now:

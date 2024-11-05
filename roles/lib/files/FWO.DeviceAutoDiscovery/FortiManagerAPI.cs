@@ -257,7 +257,7 @@ namespace FWO.Rest.Client
         public int Oid { get; set; }
 
         [JsonProperty("dev"), JsonPropertyName("dev")]
-        public string DeviceName { get; set; } = "";
+        public string RulebaseName { get; set; } = "";
 
         [JsonProperty("vdom"), JsonPropertyName("vdom")]
         public string VdomName { get; set; } = "";

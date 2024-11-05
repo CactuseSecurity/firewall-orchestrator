@@ -12,7 +12,7 @@
     <div class="col-sm-9 me-auto">
         @if(Readonly)
         {
-            @foreach(var rule in SelectedRules.OrderBy(r => r.DeviceId))
+            @foreach(var rule in SelectedRules)
             {
                 <div class="row">
                     <div class="col-sm-3 border bg-transparent">@Devices.FirstOrDefault(d => d.Id == rule.Metadata.DeviceId)?.Name</div>
@@ -22,7 +22,7 @@
         }
         else
         {
-            <EditList ElementType="Rule" Elements="SelectedRules.OrderBy(r => r.DeviceId).ToArray()" ElementsToAdd="RulesToAdd" ElementsToDelete="RulesToDelete" StdLayout="false">
+            <EditList ElementType="Rule" Elements="SelectedRules.ToArray()" ElementsToAdd="RulesToAdd" ElementsToDelete="RulesToDelete" StdLayout="false">
                 <Display>
                     <div class="row">
                         <div class="col-sm-3 border bg-transparent">@Devices.FirstOrDefault(d => d.Id == context.Metadata.DeviceId)?.Name</div>

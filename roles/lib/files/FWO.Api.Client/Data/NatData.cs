@@ -12,7 +12,7 @@ namespace FWO.Api.Data
         public string TranslatedService { get; set; } = "";
 
         [JsonProperty("rule_services"), JsonPropertyName("rule_services")]
-        public ServiceWrapper[] TranslatedServices { get; set; } = new ServiceWrapper[]{};
+        public ServiceWrapper[] TranslatedServices { get; set; } = [];
 
         [JsonProperty("rule_src_neg"), JsonPropertyName("rule_src_neg")]
         public bool TranslatedSourceNegated { get; set; }

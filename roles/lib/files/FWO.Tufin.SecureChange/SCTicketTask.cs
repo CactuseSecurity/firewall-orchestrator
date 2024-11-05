@@ -40,39 +40,8 @@ namespace FWO.Tufin.SecureChange
 		// 	network // ?? not in swagger
 		// }
 
-		// todo: move to template settings?
-	
-		// 	{
-		// 		"@type": "Object",
-		// 		"name": "LXMA598.xxx.de",
-		// 		"object_type": "host",
-		// 		"object_details": "10.192.222.165/32",
-		// 		"management_id": 1,
-		// 		"status": "ADDED",
-		// 		"comment": "",
-		// 		"object_updated_status": "EXISTING_NOT_EDITED"
-		// 	},
-		// private readonly string ObjectTemplate = "{\"@type\": \"@@TYPE@@\", \"name\": \"@@OBJECTNAME@@\", \"object_type\": \"@@OBJECT_TYPE@@\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\", \"management_id\": @@MANAGEMENT_ID@@}";
-
-		// 	{
-		// 		"@type": "Object",
-		// 		"name": "tufin_virt_ip_10.192.222.166",
-		// 		"management_id": 1,
-		// 		"status": "NOT_CHANGED",
-		// 		"object_updated_status": "EXISTING_NOT_EDITED"
-		// 	}
-		// private readonly string ObjectTemplateShort = "{\"@type\": \"Object\", \"name\": \"@@OBJECTNAME@@\", \"status\": \"@@STATUS@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\", \"management_id\": @@MANAGEMENT_ID@@}";
-
 		// private readonly string HostTemplateWithId = "{\"@type\": \"host\", \"name\": \"@@HOSTNAME@@\", \"object_UID\": \"@@OBJECT_UID@@\", \"object_type\": \"host\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"management_id\": @@MANAGEMENT_ID@@, \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
 		// private readonly string HostTemplateWithoutId = "{\"@type\": \"host\", \"name\": \"@@HOSTNAME@@\", \"object_type\": \"host\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"management_id\": @@MANAGEMENT_ID@@, \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
-
-		// private readonly string IpTemplate = "{\"@type\": \"IP\", \"ip_address\": \"@@IP@@\", \"netmask\": \"255.255.255.255\", \"cidr\": 32}";
-
-		// private readonly string ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLNAME@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}";
-
-		// private readonly string NwObjGroupTemplate = "{\"@type\": \"Object\", \"object_name\": \"@@GROUPNAME@@\", \"management_name\": \"@@MANAGEMENT_NAME@@\"}";
-
-		
 		// private readonly string SvcGroupTemplate = "{\"@type\": \"service_group\", \"group_name\": \"@@GROUPNAME@@\"}";
 
 
@@ -101,9 +70,9 @@ namespace FWO.Tufin.SecureChange
 
 		// 	{
 		// 		"@type": "Object",
-		// 		"name": "LXMA598.xxx.de",
+		// 		"name": "xyz1234.xxx.de",
 		// 		"object_type": "host",
-		// 		"object_details": "10.192.222.165/32",
+		// 		"object_details": "1.2.3.4/32",
 		// 		"management_id": 1,
 		// 		"status": "ADDED",
 		// 		"comment": "",
@@ -126,7 +95,7 @@ namespace FWO.Tufin.SecureChange
 
 		// 	{
 		// 		"@type": "Object",
-		// 		"name": "tufin_virt_ip_10.192.222.166",
+		// 		"name": "ip_1.2.3.4",
 		// 		"management_id": 1,
 		// 		"status": "NOT_CHANGED",
 		// 		"object_updated_status": "EXISTING_NOT_EDITED"
@@ -223,11 +192,6 @@ namespace FWO.Tufin.SecureChange
             };
         }
 
-		// private static string ConstructHostUid(NwObjectElement nwObj)
-		// {
-		// 	return nwObj.NetworkId?.ToString() ?? "host_" + nwObj.IpString;
-		// }
-
 		private static string ObjStatus(string action)
 		{
             return action switch
@@ -242,13 +206,6 @@ namespace FWO.Tufin.SecureChange
 		private static string ObjUpdStatus(string action, long? nwObjId)
 		{
 			return action == nameof(RequestAction.create) && nwObjId == null ? SCObjStatusValue.NEW.ToString() : SCObjStatusValue.EXISTING_NOT_EDITED.ToString();
-            // return action switch
-            // {
-            //     nameof(RequestAction.create) => SCObjStatusValue.NEW.ToString(),
-            //     nameof(RequestAction.delete) => SCObjStatusValue.EXISTING_NOT_EDITED.ToString(),
-            //     nameof(RequestAction.unchanged) => SCObjStatusValue.EXISTING_NOT_EDITED.ToString(),
-            //     _ => "",
-            // };
         }
 	}
 }

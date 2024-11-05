@@ -16,6 +16,7 @@ mutation updateManagement(
   $comment: String
   $debugLevel: Int
   $superManager: Int
+  $extMgtData: String
 ) {
   update_management_by_pk(
     pk_columns: { mgm_id: $id }
@@ -36,6 +37,7 @@ mutation updateManagement(
       mgm_comment: $comment
       debug_level: $debugLevel
       multi_device_manager_id: $superManager
+      ext_mgm_data: $extMgtData
     }
   ) {
     UpdatedId: mgm_id

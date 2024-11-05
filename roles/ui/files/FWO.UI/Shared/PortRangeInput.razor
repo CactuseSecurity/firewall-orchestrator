@@ -1,0 +1,79 @@
+﻿@using System.Text.RegularExpressions
+
+@inject UserConfig userConfig
+
+<input type="text" class="form-control @(PortRangeInputClass)" placeholder="@userConfig.GetText("port_range")"
+@oninput="@(e => {TryParsePortRange(e.Value?.ToString() ?? ""); })">
+
+@code
+{
+	[Parameter]
+	public int? Port { get; set; }
+
+	[Parameter]
+	public int? PortEnd { get; set; }
+
+	[Parameter]
+	public EventCallback<int?> PortChanged { get; set; }
+
+	[Parameter]
+	public EventCallback<int?> PortEndChanged { get; set; }
+
+
+	private string PortRangeInputClass = "";
+
+	private void TryParsePortRange(string portRangeInput)
+	{
+		if (AnalyseInput(portRangeInput))
+		{
+			PortRangeInputClass = "is-valid";
+		}
+		else
+		{
+			@* Port = null;
+			PortEnd = null; *@
+			PortRangeInputClass = "is-invalid";
+		}
+	}
+
+	private bool AnalyseInput(string portRangeInput)
+	{
+        if(Regex.Replace(portRangeInput, @"[^0-9\-]", "").Trim().Length < portRangeInput.Length)
+		{
+			return false;
+		}
+		int idx = portRangeInput.IndexOf('-');
+		if(idx >= 0)
+		{
+			if(idx > 0 && idx < portRangeInput.Length && 
+				int.TryParse(portRangeInput.Substring(0, idx), out int port) &&
+				int.TryParse(portRangeInput.Substring(idx + 1, portRangeInput.Length - idx - 1), out int portEnd))
+			{
+				Port = port;
+				PortChanged.InvokeAsync(Port);
+				PortEnd = portEnd;
+				PortEndChanged.InvokeAsync(PortEnd);
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
+		{
+			if(int.TryParse(portRangeInput, out int port))
+			{
+				Port = port;
+				PortChanged.InvokeAsync(Port);
+				PortEnd = null;
+				PortEndChanged.InvokeAsync(PortEnd);
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+}

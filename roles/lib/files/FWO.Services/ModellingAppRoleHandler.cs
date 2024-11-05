@@ -10,7 +10,7 @@ using System.Collections;
 using System.Text.RegularExpressions;
 using NetTools;
 
-namespace FWO.Ui.Services
+namespace FWO.Services
 {
     public class ModellingAppRoleHandler : ModellingHandlerBase
     {

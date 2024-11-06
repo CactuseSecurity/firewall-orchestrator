@@ -1,11 +1,10 @@
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
 using FWO.Logging;
-using FWO.GlobalConstants;
-using FWO.GlobalFunctions;
 
 namespace FWO.Report
 {
@@ -96,7 +95,7 @@ namespace FWO.Report
                 report.AppendLine($"<td>{connection.Id}</td>");
                 if(isInterface)
                 {
-                    report.AppendLine($"<td>{GlobalFuncs.ShowBool(connection.IsPublished)}</td>");
+                    report.AppendLine($"<td>{connection.IsPublished.ShowAsHtml()}</td>");
                 }
                 if(IsGlobalComSvc)
                 {

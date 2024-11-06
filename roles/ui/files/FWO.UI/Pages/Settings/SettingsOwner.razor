@@ -6,10 +6,11 @@
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
 @using RestSharp
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Logging
 @using FWO.Recert
+@using FWO.Services
 
 @page "/settings/owners"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -340,7 +341,6 @@ else
     private Tenant? selectedTenant;
     private DayOfWeek? selectedDayOfWeek;
     private RecertRefresh recertRefresh;
-    private List<Management> managements = [];
     private List<Tenant> tenants = [];
 
     private bool showCleanupButton = false;
@@ -370,7 +370,6 @@ else
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             AnalyseSampleOwners();
-            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
             recertRefresh = new(apiConnection);
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();

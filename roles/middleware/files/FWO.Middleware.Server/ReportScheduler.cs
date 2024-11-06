@@ -1,10 +1,10 @@
-﻿using FWO.GlobalConstants;
+﻿using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Logging;
-using FWO.Middleware.Controllers;
+using FWO.Middleware.Server.Controllers;
 using FWO.Report;
 using FWO.Report.Filter;
 using System.Timers;

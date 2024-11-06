@@ -4,6 +4,7 @@
 @using FWO.Config.Api.Data
 @using System.Text.Json
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Services
 
 @page "/settings/modelling"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -165,6 +166,9 @@
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5631"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("app_zone_pattern"):</label>
                 <input disabled="@(!namingConvention.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5633"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.AppServerPrefix" />
             </div>
         </div>
         <hr />
@@ -246,16 +250,37 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailBody")):</label>
             <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModReqEmailBody"></textarea>
         </div>
-    </form>
-    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
-        <input type="text" class="col-sm-6" @bind="configData!.ModReqTicketTitle" />
-    </div>
-    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
-        <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
-    </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqTicketTitle" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
+        </div>
     <hr />
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5634"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutActive")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" class="w-100" @bind="configData!.ModRolloutActive">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5631"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutResolveServiceGroups")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" class="w-100" @bind="configData!.ModRolloutResolveServiceGroups">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5632"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutBundleTasks")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" class="w-100" @bind="configData!.ModRolloutBundleTasks">
+                </div>
+            </div>
+        </div>
+    <hr />   
+    </form>
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>

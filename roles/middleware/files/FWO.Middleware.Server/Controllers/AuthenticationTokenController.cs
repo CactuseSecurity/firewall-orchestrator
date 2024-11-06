@@ -2,15 +2,14 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
-using FWO.GlobalConstants;
-using FWO.Middleware.Server;
+using FWO.Basics;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.RequestParameters;
 using System.Security.Authentication;
 using Novell.Directory.Ldap;
 using System.Data;
 
-namespace FWO.Middleware.Controllers
+namespace FWO.Middleware.Server.Controllers
 {
 	/// <summary>
 	/// Authentication token generation. Token is of type JSON web token (JWT).

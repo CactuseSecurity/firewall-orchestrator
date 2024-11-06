@@ -20,6 +20,7 @@ DailyCheckScheduler dailyCheckScheduler;
 ImportAppDataScheduler importAppDataScheduler;
 ImportIpDataScheduler importSubnetDataScheduler;
 ImportChangeNotifyScheduler importChangeNotifyScheduler;
+ExternalRequestScheduler externalRequestScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
@@ -87,6 +88,12 @@ Task.Factory.StartNew(async() =>
 Task.Factory.StartNew(async() =>
 {
     importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start external request scheduler
+Task.Factory.StartNew(async() =>
+{
+    externalRequestScheduler = await ExternalRequestScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 

@@ -1,5 +1,5 @@
 ﻿using NUnit.Framework;
-using FWO.GlobalFunctions;
+using FWO.Basics;
 
 namespace FWO.Test
 {
@@ -44,7 +44,7 @@ namespace FWO.Test
             {
                 foreach (var ipOverlap in ipsShouldOverlap)
                 {
-                    if (GlobalFuncs.IpOperations.CheckOverlap(subnet, ipOverlap))
+                    if (subnet.CheckOverlap(ipOverlap))
                     {
                         ipsThatOverlapped++;
                     }
@@ -52,7 +52,7 @@ namespace FWO.Test
 
                 foreach (var ipNotOverlap in ipsShouldNotOverlap)
                 {
-                    if (GlobalFuncs.IpOperations.CheckOverlap(subnet, ipNotOverlap))
+                    if (subnet.CheckOverlap(ipNotOverlap))
                     {
                         ipsThatOverlapped++;
                     }

@@ -1,10 +1,11 @@
 ﻿@using BlazorTable
 @using FWO.Config.Api
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using System.Text.Json;
 @using FWO.Api.Client.Queries
+@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -507,7 +508,8 @@
                     superManager = discMgmt.SuperManagerId,
                     importerHostname = discMgmt.ImporterHostname,
                     debugLevel = discMgmt.DebugLevel,
-                    comment = discMgmt.Comment
+                    comment = discMgmt.Comment,
+                    extMgtData = actManagement.ExtMgtData
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newManagement, Variables)).ReturnIds;
                 if (returnIds != null)

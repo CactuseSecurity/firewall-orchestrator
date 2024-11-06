@@ -1,9 +1,10 @@
 @using FWO.Api.Client
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Config.Api
-@using FWO.GlobalFunctions
 @using FWO.Ui.Services
+@using FWO.Services
+
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -17,7 +18,7 @@
         <div class="btn-group">
             <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">
                 @(ModellingHandlerBase.DisplayButton(userConfig, "create_implementation", Icons.Add))</button>
-            @if(WfHandler.ActReqTask.TaskType == TaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
+            @if(WfHandler.ActReqTask.TaskType == WfTaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
             {
                 <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">
                     @(userConfig.GetText("check_impltasks"))</button>
@@ -163,7 +164,7 @@
                         <Column TableItem="KeyValuePair<string, bool>" Title="@(userConfig.GetText("device"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" />
                         <Column TableItem="KeyValuePair<string, bool>" Title="@(userConfig.GetText("impltask_created"))" Field="@(x => x.Value)" Sortable="false">
                             <Template>
-                                @(GlobalFuncs.ShowBool(context.Value))
+                                @(context.Value.ShowAsHtml())
                             </Template>
                         </Column>
                     </Table>

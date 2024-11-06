@@ -40,7 +40,7 @@ namespace FWO.Api.Client
         public bool IsLastActivePhase = true;
         public int MinImplTasksNeeded;
 
-        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, TaskType taskType = TaskType.master)
+        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
         {
             GlobalStateMatrix glbStateMatrix = new ();
             await glbStateMatrix.Init(apiConnection, taskType);
@@ -162,19 +162,19 @@ namespace FWO.Api.Client
         public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = [];
 
 
-        public async Task Init(ApiConnection apiConnection, TaskType taskType = TaskType.master, bool reset = false)
+        public async Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master, bool reset = false)
         {
             string matrixKey = taskType switch
             {
-                TaskType.master => "reqMasterStateMatrix",
-                TaskType.generic => "reqGenStateMatrix",
-                TaskType.access => "reqAccStateMatrix",
-                TaskType.rule_delete => "reqRulDelStateMatrix",
-                TaskType.rule_modify => "reqRulModStateMatrix",
-                TaskType.group_create => "reqGrpCreStateMatrix",
-                TaskType.group_modify => "reqGrpModStateMatrix",
-                TaskType.group_delete => "reqGrpDelStateMatrix",
-                TaskType.new_interface => "reqNewIntStateMatrix",
+                WfTaskType.master => "reqMasterStateMatrix",
+                WfTaskType.generic => "reqGenStateMatrix",
+                WfTaskType.access => "reqAccStateMatrix",
+                WfTaskType.rule_delete => "reqRulDelStateMatrix",
+                WfTaskType.rule_modify => "reqRulModStateMatrix",
+                WfTaskType.group_create => "reqGrpCreStateMatrix",
+                WfTaskType.group_modify => "reqGrpModStateMatrix",
+                WfTaskType.group_delete => "reqGrpDelStateMatrix",
+                WfTaskType.new_interface => "reqNewIntStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
             };
 
@@ -202,7 +202,7 @@ namespace FWO.Api.Client
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
         {
             Matrices = [];
-            foreach(TaskType taskType in Enum.GetValues(typeof(TaskType)))
+            foreach(WfTaskType taskType in Enum.GetValues(typeof(WfTaskType)))
             {
                 Matrices.Add(taskType.ToString(), new StateMatrix());
                 await Matrices[taskType.ToString()].Init(phase, apiConnection, taskType);

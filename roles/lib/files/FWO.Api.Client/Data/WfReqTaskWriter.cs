@@ -34,18 +34,18 @@ namespace FWO.Api.Data
     public class WfElementDataHelper
     {
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<WfReqElementWriter> WfElementList { get; set; } = new ();
+        public List<WfReqElementWriter> WfElementList { get; set; } = [];
     }
 
     public class WfApprovalDataHelper
     {
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<WfApprovalWriter> WfApprovalList { get; set; } = new ();
+        public List<WfApprovalWriter> WfApprovalList { get; set; } = [];
     }
 
     public class WfOwnerDataHelper
     {
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<WfOwnerWriter> WfOwnerList { get; set; } = new ();
+        public List<WfOwnerWriter> WfOwnerList { get; set; } = [];
     }
 }

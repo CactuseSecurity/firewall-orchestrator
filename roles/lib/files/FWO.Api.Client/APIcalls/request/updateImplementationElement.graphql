@@ -3,7 +3,9 @@ mutation updateImplementationElement(
   $implementationAction: action_enum
   $implTaskId: bigint!
   $ip: cidr
+  $ipEnd: cidr
   $port: Int
+  $portEnd: Int
   $proto: Int
   $networkObjId: bigint
   $serviceId: bigint
@@ -11,6 +13,8 @@ mutation updateImplementationElement(
   $userId: bigint
   $originalNatId: bigint
   $ruleUid: String
+  $groupName: String
+  $name: String
   ) {
   update_request_implelement_by_pk(
     pk_columns: { id: $id }
@@ -18,7 +22,9 @@ mutation updateImplementationElement(
       implementation_action: $implementationAction
       implementation_task_id: $implTaskId
       ip: $ip
+      ip_end: $ipEnd
       port: $port
+      port_end: $portEnd
       ip_proto_id: $proto
       network_object_id: $networkObjId
       service_id: $serviceId
@@ -26,6 +32,8 @@ mutation updateImplementationElement(
       user_id: $userId
       original_nat_id: $originalNatId
       rule_uid: $ruleUid
+      group_name: $groupName
+      name: $name
   }) {
     UpdatedId: id
   }

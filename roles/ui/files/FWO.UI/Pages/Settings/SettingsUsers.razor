@@ -1,14 +1,14 @@
 @using BlazorTable
 @using System.Net
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
-@using FWO.GlobalFunctions
 @using FWO.Middleware.Client
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
 @using FWO.Ui.Services
+@using FWO.Services
 @using RestSharp
 
 @page "/settings/users"
@@ -95,7 +95,7 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
             <Template>
                 <div data-toggle="tooltip" title="@(userConfig.PureLine("H5278"))">
-                    @(GlobalFuncs.ShowBool(context.PasswordMustBeChanged))
+                    @(context.PasswordMustBeChanged.ShowAsHtml())
                 </div>
             </Template>
         </Column>

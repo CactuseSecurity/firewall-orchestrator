@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\lib\files\FWO.GlobalConstants\FWO.GlobalConstants.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Basics\FWO.Basics.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Config.Api\FWO.Config.Api.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Report.Filter\FWO.Report.Filter.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Report\FWO.Report.csproj" />
@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\..\lib\files\FWO.Api.Client\FWO.Api.Client.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
   </ItemGroup>
 
 </Project>

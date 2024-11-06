@@ -1,7 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using FWO.Config.Api
 @using FWO.Api.Client
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client.Queries
 @using FWO.Middleware.Client
@@ -13,6 +13,7 @@
 @using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
+@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig

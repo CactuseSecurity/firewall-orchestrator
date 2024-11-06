@@ -1,10 +1,10 @@
 ﻿@using BlazorTable
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
-@using FWO.GlobalFunctions
 @using FWO.Ui.Shared
+@using FWO.Services
 
 @page "/monitoring/import_status"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -71,7 +71,7 @@
                 <Template>
                     @if (context.LastImport != null && context.LastImport.Length > 0)
                     {
-                        @(GlobalFuncs.ShowBool(context.LastImport[0].SuccessfulImport));
+                        @(context.LastImport[0].SuccessfulImport.ShowAsHtml());
                     }
                 </Template>
             </Column>

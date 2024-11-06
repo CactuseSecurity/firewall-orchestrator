@@ -17,7 +17,8 @@ namespace FWO.Api.Data
         [JsonProperty("device_id"), JsonPropertyName("device_id")]
         public int? DeviceId { get; set; }
 
-        public Cidr Cidr { get; set; } = new Cidr();
+        public Cidr Cidr { get; set; } = new();
+        public Cidr CidrEnd { get; set; } = new();
 
         public WfReqElement()
         {}
@@ -29,6 +30,7 @@ namespace FWO.Api.Data
             RequestAction = element.RequestAction;
             DeviceId = element.DeviceId;
             Cidr = new Cidr(element.Cidr != null ? element.Cidr.CidrString : "");
+            CidrEnd = new Cidr(element.CidrEnd != null ? element.CidrEnd.CidrString : "");
         }
     }
 }

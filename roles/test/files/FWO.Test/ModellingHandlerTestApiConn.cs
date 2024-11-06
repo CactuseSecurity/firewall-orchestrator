@@ -4,7 +4,7 @@ using FWO.Api.Data;
 
 namespace FWO.Test
 {
-internal class ModellingHandlerTestApiConn : SimulatedApiConnection
+    internal class ModellingHandlerTestApiConn : SimulatedApiConnection
     {
         const string AppRoleId1 = "AR5000001";
         const string AppRoleId2 = "AR9101234-002";

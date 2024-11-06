@@ -77,7 +77,7 @@ namespace FWO.Middleware.Server
 						await Acknowledge(externalRequest);
 						if(externalRequest.ExtRequestState != ExtStates.ExtReqRejected.ToString())
 						{
-							await SendNextRequest(intTicket, externalRequest.TaskNumber);
+							await SendNextRequest(intTicket, externalRequest.TaskNumber, externalRequest.ExtQueryVariables);
 						}
 						else
 						{
@@ -101,9 +101,25 @@ namespace FWO.Middleware.Server
 			return await wfHandler.ResolveTicket(ticketId);
 		}
 
-		private async Task<bool> SendNextRequest(WfTicket ticket, int oldTaskNumber)
+		private static int GetLastTaskNumber(string extQueryVars, int oldTaskNumber)
 		{
-			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == oldTaskNumber + 1);
+			List<int>? taskNumbers = null;
+			Dictionary<string, List<int>>? extQueryVarDict = JsonSerializer.Deserialize<Dictionary<string, List<int>>>(extQueryVars);
+			extQueryVarDict?.TryGetValue(ExternalVarKeys.BundledTasks, out taskNumbers);
+			if(taskNumbers != null && taskNumbers.Count > 0)
+			{
+				return taskNumbers.Last();
+			}
+			else
+			{
+				return oldTaskNumber;
+			}
+		}
+
+		private async Task<bool> SendNextRequest(WfTicket ticket, int oldTaskNumber, string extQueryVars = "")
+		{
+			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && extQueryVars != "" ? GetLastTaskNumber(extQueryVars, oldTaskNumber) : oldTaskNumber;
+			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
 			if(nextTask == null)
 			{
 				Log.WriteDebug("SendNextRequest", "No more task found.");
@@ -119,7 +135,7 @@ namespace FWO.Middleware.Server
 					// The count parameter specifies the number of tickets to be opened.
 
 					List<WfReqTask> bundledTasks = [nextTask];
-					int actTaskNumber = oldTaskNumber + 2;
+					int actTaskNumber = lastTaskNumber + 2;
 					bool taskFound = true;
 					while(taskFound)
 					{

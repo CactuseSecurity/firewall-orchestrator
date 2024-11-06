@@ -23,22 +23,22 @@ namespace FWO.Tufin.SecureChange
 		// 				"members": {
 		// 					"member": @@MEMBERS@@
 		// 				},
-		// 				"change_action": "CREATE" / "UPDATE"
+		// 				"change_action": "@@CHANGEACTION@@"
 		// 			}
 		// 		}
 		// 	}
 		// }
-		public override void FillTaskText(string tasksTemplate)
+		public override void FillTaskText(ExternalTicketTemplate template)
 		{
 			ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement?.ExtMgtData != null ?
 				System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
 			bool shortened = false;
-			TaskText = tasksTemplate
+			TaskText = template.TasksTemplate
 				.Replace("@@GROUPNAME@@", Sanitizer.SanitizeJsonFieldMand(ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName), ref shortened))
 				.Replace("@@MANAGEMENT_ID@@", extMgt.ExtId ?? "0")
 				.Replace("@@MANAGEMENT_NAME@@", extMgt.ExtName)
 				.Replace("@@CHANGEACTION@@", ChangeAction)
-				.Replace("@@MEMBERS@@", ConvertNetworkObjects(extMgt.ExtId, NamingConvention));
+				.Replace("@@MEMBERS@@", ConvertNetworkObjects(template, extMgt.ExtId, NamingConvention));
 		}
 	}
 }

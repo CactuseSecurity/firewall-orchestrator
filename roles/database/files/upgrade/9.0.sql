@@ -246,7 +246,7 @@ ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "child_rulebase_id" INTEGER NULL;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "rule_child_rulebase_id_fkey" CASCADE;
 Alter table "rule" add CONSTRAINT rule_child_rulebase_id_fkey foreign key ("child_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 
-
+-- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
 
 -----------------------------------------------
 

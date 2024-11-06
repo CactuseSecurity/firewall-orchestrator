@@ -98,6 +98,8 @@ ALTER TABLE "rule"
 Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
   foreign key ("dev_id", "rule_uid", "rulebase_id") references "rule_metadata" ("dev_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
 Alter table "rule" add CONSTRAINT fk_rule_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+Alter table "rule" add CONSTRAINT rule_child_rulebase_id_fkey foreign key ("child_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+
 -- Alter table "rule" add constraint "rule_metadata_rulebase_id_rule_uid_f_key"
 --   foreign key ("rulebase_id", "rule_uid", "rulebase_id") references "rule_metadata" ("rulebase_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
 

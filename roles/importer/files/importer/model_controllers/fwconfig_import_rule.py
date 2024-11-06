@@ -510,6 +510,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 rule_action_id = self.lookupAction(rule.rule_action)
                 rule_track_id = self.lookupTrack(rule.rule_track)
                 rulebaseId = self.lookupRulebaseId(rulebaseUid)
+                #childRulebased = self.lookupRulebaseId(rule.)
 
                 rule_type = rule.rule_type
                 if rule_type == RuleType.ACCESS:

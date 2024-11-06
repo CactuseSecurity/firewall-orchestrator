@@ -186,6 +186,7 @@ Create table "rule"
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"rulebase_id" Integer NOT NULL,
+	"child_rulebase_id" INTEGER,
 	primary key ("rule_id")
 );
 

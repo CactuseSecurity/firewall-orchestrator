@@ -120,6 +120,7 @@ class Rule(BaseModel):
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"rulebase_id" Integer NOT NULL,
+    "child_rulebase_id" Integer,
 """
 
 class RuleForImport(BaseModel):
@@ -159,6 +160,7 @@ class RuleForImport(BaseModel):
     rule_track: str
     rule_uid: str
     rulebase_id: int
+    child_rulebase_id: int
     track_id: int
     xlate_rule: Optional[int] = None
 

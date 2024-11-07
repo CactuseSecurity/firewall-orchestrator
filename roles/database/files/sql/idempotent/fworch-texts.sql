@@ -2267,8 +2267,8 @@ INSERT INTO txt VALUES ('email_to',				'German', 	'An');
 INSERT INTO txt VALUES ('email_to',				'English', 	'To');
 INSERT INTO txt VALUES ('email_cc',				'German', 	'CC');
 INSERT INTO txt VALUES ('email_cc',				'English', 	'CC');
-INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'App Zone Pattern');
-INSERT INTO txt VALUES ('app_zone_pattern',		'English', 	'Muster App Zone');
+INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
+INSERT INTO txt VALUES ('app_zone_pattern',		'English', 	'App Zone Pattern');
 INSERT INTO txt VALUES ('app_zone_creation',	'German', 	'App Zonen Objekte erstellen');
 INSERT INTO txt VALUES ('app_zone_creation',	'English', 	'Create App Zone Objects');
 

@@ -157,9 +157,19 @@
             </div>
         </div>
         <div class="form-group row mt-2">
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5633"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.AppServerPrefix" />
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5632"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("app_zone_creation")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" @bind="namingConvention.CreateAppZones">
+                </div>
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5631"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("app_zone_pattern"):</label>
+                <input disabled="@(!namingConvention.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />
+                <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5633"))">
+                    <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>
+                    <input type="text" class="col-sm-4" @bind="namingConvention.AppServerPrefix" />
+                </div>
             </div>
         </div>
         <hr />
@@ -249,7 +259,7 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
         </div>
-    <hr />
+        <hr />
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5634"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutActive")):</label>
@@ -270,7 +280,7 @@
                 </div>
             </div>
         </div>
-    <hr />   
+        <hr />
     </form>
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>

@@ -1,7 +1,7 @@
 ﻿@using FWO.Config.Api
 @using FWO.Services
 @using System.Text.Json
-@using FWO.GlobalFunctions
+@using FWO.Basics
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -122,8 +122,8 @@
             firstTry = false;
             actAppServerType = appServerTypes.FirstOrDefault(a => a.Id == AppServerHandler.ActAppServer.CustomType) ?? new();
 
-            string ipStart = GlobalFuncs.IpOperations.StripOffNetmask(AppServerHandler.ActAppServer.Ip);
-            string ipEnd = GlobalFuncs.IpOperations.StripOffNetmask(AppServerHandler.ActAppServer.IpEnd);
+            string ipStart = StringExtensions.StripOffNetmask(AppServerHandler.ActAppServer.Ip);
+            string ipEnd = StringExtensions.StripOffNetmask(AppServerHandler.ActAppServer.IpEnd);
 
             AppServerHandler.ActAppServer.Ip = DisplayBase.DisplayIp(ipStart, ipEnd);
         }

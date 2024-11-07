@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\GlobalFuncs\FWO.GlobalFunctions.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Basics\FWO.Basics.csproj" />
     <ProjectReference Include="..\FWO.Config.File\FWO.Config.File.csproj" />
     <ProjectReference Include="..\FWO.Middleware\FWO.Middleware.csproj" />
     <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />

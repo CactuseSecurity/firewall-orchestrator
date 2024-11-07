@@ -823,7 +823,7 @@ namespace FWO.Services
                         reqtask.Owners.Remove(oldOwner);
                     }
                 }
-                reqtask.RemovedOwners = new ();
+                reqtask.RemovedOwners = [];
 
                 foreach(var owner in reqtask.NewOwners)
                 {

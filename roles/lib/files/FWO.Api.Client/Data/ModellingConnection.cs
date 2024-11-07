@@ -11,7 +11,9 @@ namespace FWO.Api.Data
 
         // Interfaces:
         Requested,
-        Rejected
+        Rejected,
+
+        EmptyAppRoles
     }
 
     public class ModellingConnection
@@ -204,16 +206,15 @@ namespace FWO.Api.Data
 
         public void AddProperty(string key, string value = "")
         {
-            Props ??= [];
             InitProps();
-            Props.TryAdd(key, value);
+            Props?.TryAdd(key, value);
             Properties = System.Text.Json.JsonSerializer.Serialize(Props);
         }
 
         public void RemoveProperty(string key)
         {
             InitProps();
-            if(Props != null && Props.ContainsKey(key))
+            if(Props != null && Props.Count > 0 && Props.ContainsKey(key))
             {
                 Props.Remove(key);
             }
@@ -223,7 +224,7 @@ namespace FWO.Api.Data
         public string GetStringProperty(string prop)
         {
             InitProps();
-            if(Props != null && Props.TryGetValue(prop, out string? value))
+            if(Props != null && Props.Count > 0 && Props.TryGetValue(prop, out string? value))
             {
                 return value;
             }
@@ -269,6 +270,33 @@ namespace FWO.Api.Data
                     RemoveProperty(ConState.InterfaceRequested.ToString());
                 }
             }
+            if(EmptyAppRolesFound())
+            {
+                AddProperty(ConState.EmptyAppRoles.ToString());
+            }
+            else
+            {
+                RemoveProperty(ConState.EmptyAppRoles.ToString());
+            }
+        }
+
+        public bool EmptyAppRolesFound()
+        {
+            foreach(var appRole in SourceAppRoles)
+            {
+                if(appRole.Content.AppServers.Count == 0)
+                {
+                    return true;
+                }
+            }
+            foreach(var appRole in DestinationAppRoles)
+            {
+                if(appRole.Content.AppServers.Count == 0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public bool Sanitize()
@@ -284,9 +312,10 @@ namespace FWO.Api.Data
 
         private void InitProps()
         {
+            Props ??= [];
             if(Properties != null && Properties != "")
             {
-                Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties);
+                Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties) ?? [];
             }
         }
 

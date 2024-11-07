@@ -7,19 +7,42 @@ namespace FWO.Tufin.SecureChange
 		public SCAccessRequestTicketTask(WfReqTask reqTask, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention = null) : base(reqTask, ipProtos, namingConvention)
 		{}
 
-		public override void FillTaskText(string tasksTemplate)
+		// {
+		// 	"order": "@@ORDERNAME@@",
+		// 	"verifier_result": {
+		// 		"status": "not run"
+		// 	},
+		// 	"use_topology": true,
+		// 	"targets": {
+		// 		"target": {
+		// 			"@type": "ANY"
+		// 		}
+		// 	},
+		// 	"sources": {
+		// 		"source": @@SOURCES@@
+		// 	},
+		// 	"destinations": {
+		// 		"destination": @@DESTINATIONS@@
+		// 	},
+		// 	"services": {
+		// 		"service": @@SERVICES@@
+		// 	},
+		// 	"labels": "",
+		//  "comment": "@@TASKCOMMENT@@
+		// }
+		public override void FillTaskText(ExternalTicketTemplate template)
 		{
 			ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement?.ExtMgtData != null ?
 				System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
-			TaskText = tasksTemplate
+			TaskText = template.TasksTemplate
 				.Replace("@@ORDERNAME@@", "AR"+ ReqTask.TaskNumber.ToString())
 				.Replace("@@TASKCOMMENT@@", ReqTask.GetFirstCommentText())
-				.Replace("@@SOURCES@@", ConvertNetworkElems(ElemFieldType.source, extMgt.ExtName))
-				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(ElemFieldType.destination, extMgt.ExtName))
-				.Replace("@@SERVICES@@", ConvertServiceElems());
+				.Replace("@@SOURCES@@", ConvertNetworkElems(template, ElemFieldType.source, extMgt.ExtName))
+				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(template, ElemFieldType.destination, extMgt.ExtName))
+				.Replace("@@SERVICES@@", ConvertServiceElems(template));
 		}
 
-		private string ConvertNetworkElems(ElemFieldType fieldType, string? mgtName)
+		private string ConvertNetworkElems(ExternalTicketTemplate template, ElemFieldType fieldType, string? mgtName)
 		{
 			List<NwObjectElement> nwObjects = ReqTask.GetNwObjectElements(fieldType);
 			List<string> convertedObjects = [];
@@ -29,24 +52,24 @@ namespace FWO.Tufin.SecureChange
 				{
 					if(convertedObjects.FirstOrDefault(o => o == nwObj.GroupName) == null)
 					{
-						convertedObjects.Add(FillNwObjGroupTemplate(nwObj.GroupName, mgtName ?? ""));
+						convertedObjects.Add(FillNwObjGroupTemplate(template, nwObj.GroupName, mgtName ?? ""));
 					}
 				}
 				else
 				{
-					convertedObjects.Add(FillIpTemplate(nwObj.IpString));
+					convertedObjects.Add(FillIpTemplate(template, nwObj.IpString));
 				}
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";
 		}
 
-		private string ConvertServiceElems()
+		private string ConvertServiceElems(ExternalTicketTemplate template)
 		{
 			List<NwServiceElement> nwServiceElements = ReqTask.GetServiceElements();
 			List<string> convertedObjects = [];
 			foreach(var svc in nwServiceElements)
 			{
-				convertedObjects.Add(FillServiceTemplate(IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
+				convertedObjects.Add(FillServiceTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";
 		}
@@ -57,65 +80,3 @@ namespace FWO.Tufin.SecureChange
 		}
 	}
 }
-
-// {
-// 	"@xsi.type": "multi_access_request",
-// 	"name": "Gewünschter Zugang",
-// 	"read_only": false,
-// 	"access_request": {
-// 		"order": "AR1",
-// 		"verifier_result": {
-// 			"status": "not run"
-// 		},
-// 		"use_topology": true,
-// 		"targets": {
-// 			"target": {
-// 				"@type": "ANY"
-// 			}
-// 		},
-// 		"users": {
-// 			"user": @@USERS@@
-// 		},
-// 		"sources": {
-// 			"source": @@SOURCES@@
-// 		},
-// 		"destinations": {
-// 			"destination": @@DESTINATIONS@@
-// 		},
-// 		"services": {
-// 			"service": @@SERVICES@@
-// 		},
-// 		"action": "@@ACTION@@",
-// 		"labels": ""
-// 	}
-// },
-// {
-// 	"@xsi.type": "text_area",
-// 	"name": "Grund für den Antrag",
-// 	"read_only": false,
-// 	"text": "@@REASON@@"
-// },
-// {
-// 	"@xsi.type": "drop_down_list",
-// 	"name": "Regel Log aktivieren?",
-// 	"selection": "@@LOGGING@@"
-// },
-// {
-// 	"@xsi.type": "date",
-// 	"name": "Regel befristen bis:"
-// },
-// {
-// 	"@xsi.type": "text_field",
-// 	"name": "Anwendungs-ID",
-// 	"text": "@@APPID@@"
-// },
-// {
-// 	"@xsi.type": "checkbox",
-// 	"name": "Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt",
-// 	"value":  @@COM_DOCUMENTED@@
-// },
-// {
-// 	"@xsi.type": "drop_down_list",
-// 	"name": "Expertenmodus: Exakt wie beantragt implementieren (Designervorschlag ignorieren)",
-// 	"selection": "Nein"
-// }

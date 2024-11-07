@@ -80,7 +80,7 @@ namespace FWO.Services
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
                             Elements = elements,
-                            Comments = [ new(){ Comment = new(){ CommentText = "FWOC" + conn.Id.ToString() }} ]
+                            Comments = [ new(){ Comment = new(){ CommentText = ConstructComment(conn) }} ]
                         });
                     }
                 }
@@ -95,6 +95,16 @@ namespace FWO.Services
                 task.StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0;
             }
             return TaskList;
+        }
+
+        private string ConstructComment(ModellingConnection conn)
+        {
+            string comment = "FWOC" + conn.Id.ToString();
+            if(conn.ExtraConfigs.Count > 0)
+            {
+                comment += ", " + userConfig.GetText("impl_instructions") + ": " + string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()));
+            }
+            return comment;
         }
 
         private async Task GetProductionState()

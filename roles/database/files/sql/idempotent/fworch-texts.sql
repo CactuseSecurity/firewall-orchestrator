@@ -1539,6 +1539,14 @@ INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
 INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
+INSERT INTO txt VALUES ('extra_params',         'German',   'Sonderkonfigurationen');
+INSERT INTO txt VALUES ('extra_params',         'English',  'Extra configurations');
+INSERT INTO txt VALUES ('add_extra_config',     'German',   'Sonderkonfiguration hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_extra_config',     'English',  'Add extra configuration');
+INSERT INTO txt VALUES ('delete_extra_config',  'German',   'Sonderkonfiguration entfernen');
+INSERT INTO txt VALUES ('delete_extra_config',  'English',  'Delete extra configurations');
+INSERT INTO txt VALUES ('impl_instructions',    'German',   'Implementationsanweisungen');
+INSERT INTO txt VALUES ('impl_instructions',    'English',  'Implementation instructions');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -5086,6 +5094,10 @@ INSERT INTO txt VALUES ('H5633', 'German',  'App Server Namensprefix: Falls der 
 INSERT INTO txt VALUES ('H5633', 'English', 'App Server Name Prefix: If not already filled, the App Server Name will be constructed by Name Prefix + Ip address.');
 INSERT INTO txt VALUES ('H5634', 'German',  'Automatische Firewallbeantragung aktivieren: Aktiviert den Button zum Workflow zur automatischen Firewallbeantragung.');
 INSERT INTO txt VALUES ('H5634', 'English', 'Activate automatic Firewall request: Activates the button to the workflow for automatic firewall requests.');
+INSERT INTO txt VALUES ('H5635', 'German',  'Hier werden die m&ouml;glichen Werte f&uuml;r Sonderkonfigurationstypen gesetzt.');
+INSERT INTO txt VALUES ('H5635', 'English', 'Set here the possible values for extra configuration types, e.g. NAT.');
+INSERT INTO txt VALUES ('H5636', 'German',  'Hier wird der Anweisungstext f&uuml;r Sonderkonfigurationen eingetragen.');
+INSERT INTO txt VALUES ('H5636', 'English', 'Insert text for extra configurations.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

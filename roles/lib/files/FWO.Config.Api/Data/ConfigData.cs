@@ -313,6 +313,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
 		public string ExtTicketSystems { get; set; } = "";
 
+		[JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
+		public string ModExtraConfigs { get; set; } = "";
+
 		public ConfigData(bool editable = false)
 		{
 			Editable = editable;

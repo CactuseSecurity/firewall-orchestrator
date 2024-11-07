@@ -61,6 +61,9 @@ namespace FWO.Api.Data
         [JsonProperty("conn_prop"), JsonPropertyName("conn_prop")]
         public string? Properties { get; set; } = "";
 
+        [JsonProperty("extra_params"), JsonPropertyName("extra_params")]
+        public string? ExtraParams { get; set; } = "";
+
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<ModellingServiceWrapper> Services { get; set; } = [];
 
@@ -89,6 +92,17 @@ namespace FWO.Api.Data
 
         public int OrderNumber { get; set; } = 0;
         public Dictionary<string, string>? Props;
+        public List<ModellingExtraConfig> ExtraConfigs
+        {  
+            get => ExtraParams != null && ExtraParams != "" ? System.Text.Json.JsonSerializer.Deserialize<List<ModellingExtraConfig>>(ExtraParams) ?? throw new Exception("ExtraParams could not be parsed.") : [];
+            set
+            {
+                if(value != null)
+                {
+                    ExtraParams = System.Text.Json.JsonSerializer.Serialize(value) ?? throw new Exception("value could not be parsed.");
+                }
+            }
+        }
 
 
         public ModellingConnection()
@@ -111,6 +125,7 @@ namespace FWO.Api.Data
             Creator = conn.Creator;
             CreationDate = conn.CreationDate;
             Properties = conn.Properties;
+            ExtraParams = conn.ExtraParams;
             Services = new List<ModellingServiceWrapper>(conn.Services);
             ServiceGroups = new List<ModellingServiceGroupWrapper>(conn.ServiceGroups);
             SourceAppServers = new List<ModellingAppServerWrapper>(conn.SourceAppServers);
@@ -123,14 +138,6 @@ namespace FWO.Api.Data
             DstFromInterface = conn.DstFromInterface;
             InterfaceIsRequested = conn.InterfaceIsRequested;
             InterfaceIsRejected = conn.InterfaceIsRejected;
-        }
-
-        private void InitProps()
-        {
-            if(Properties != null && Properties != "")
-            {
-                Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties);
-            }
         }
 
         public int CompareTo(ModellingConnection secondConnection)
@@ -156,19 +163,6 @@ namespace FWO.Api.Data
                 return rejectedCompare;
             }
             return Name?.CompareTo(secondConnection.Name) ?? -1;
-        }
-
-        private static int Compare(bool first, bool second)
-        {
-            if(first && !second)
-            {
-                return -1;
-            }
-            if(!first && second)
-            {
-                return 1;
-            }
-            return 0;
         }
 
         public string DisplayNameWithOwner(FwoOwner owner)
@@ -242,6 +236,7 @@ namespace FWO.Api.Data
             return Props?.ContainsKey(prop) ?? false;
         }
 
+
         public void SyncState()
         {
             if(IsInterface)
@@ -283,7 +278,29 @@ namespace FWO.Api.Data
             Reason = Sanitizer.SanitizeCommentOpt(Reason, ref shortened);
             Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
             Properties = Sanitizer.SanitizeKeyOpt(Properties, ref shortened);
+            ExtraParams = Sanitizer.SanitizeKeyOpt(ExtraParams, ref shortened);
             return shortened;
+        }
+
+        private void InitProps()
+        {
+            if(Properties != null && Properties != "")
+            {
+                Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties);
+            }
+        }
+
+        private static int Compare(bool first, bool second)
+        {
+            if(first && !second)
+            {
+                return -1;
+            }
+            if(!first && second)
+            {
+                return 1;
+            }
+            return 0;
         }
     }
 

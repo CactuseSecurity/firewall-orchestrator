@@ -1380,7 +1380,8 @@ create table modelling.connection
 	is_published boolean default false,
 	creator Varchar,
 	creation_date timestamp default now(),
-	conn_prop Varchar
+	conn_prop Varchar,
+	extra_params Varchar
 );
 
 create table modelling.selected_objects

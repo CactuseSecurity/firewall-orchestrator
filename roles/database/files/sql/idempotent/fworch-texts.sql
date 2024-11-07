@@ -2275,6 +2275,10 @@ INSERT INTO txt VALUES ('email_to',				'German', 	'An');
 INSERT INTO txt VALUES ('email_to',				'English', 	'To');
 INSERT INTO txt VALUES ('email_cc',				'German', 	'CC');
 INSERT INTO txt VALUES ('email_cc',				'English', 	'CC');
+INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
+INSERT INTO txt VALUES ('app_zone_pattern',		'English', 	'App Zone Pattern');
+INSERT INTO txt VALUES ('app_zone_creation',	'German', 	'App Zonen Objekte erstellen');
+INSERT INTO txt VALUES ('app_zone_creation',	'English', 	'Create App Zone Objects');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -5100,6 +5104,12 @@ INSERT INTO txt VALUES ('H5635', 'German',  'Hier werden die m&ouml;glichen Wert
 INSERT INTO txt VALUES ('H5635', 'English', 'Set here the possible values for extra configuration types, e.g. NAT.');
 INSERT INTO txt VALUES ('H5636', 'German',  'Hier wird der Anweisungstext f&uuml;r Sonderkonfigurationen eingetragen.');
 INSERT INTO txt VALUES ('H5636', 'English', 'Insert text for extra configurations.');
+
+INSERT INTO txt VALUES ('H5631', 'German',  'Muster App Zone: Definiert, wie der Name einer App Zone beginnt (z.B. "AZ").');
+INSERT INTO txt VALUES ('H5631', 'English', 'App zone pattern: Defines how the name of an app zone begins (e.g. "AZ").');
+
+INSERT INTO txt VALUES ('H5632', 'German',  'App Zonen erstellen: Wenn dieses Flag gesetzt wird, werden App Zonen erstellt.');
+INSERT INTO txt VALUES ('H5632', 'English', 'Create app zones: If this flag is set, app zones are created.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

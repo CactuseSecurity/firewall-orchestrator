@@ -5091,11 +5091,11 @@ INSERT INTO txt VALUES ('H5633', 'English', 'App Server Name Prefix: If not alre
 INSERT INTO txt VALUES ('H5634', 'German',  'Automatische Firewallbeantragung aktivieren: Aktiviert den Button zum Workflow zur automatischen Firewallbeantragung.');
 INSERT INTO txt VALUES ('H5634', 'English', 'Activate automatic Firewall request: Activates the button to the workflow for automatic firewall requests.');
 
-INSERT INTO txt VALUES ('H5631', 'German',  'Muster App Zone: Definiert, wie der Name einer App Zone beginnt (z.B. "AZ").');
-INSERT INTO txt VALUES ('H5631', 'English', 'App zone pattern: Defines how the name of an app zone begins (e.g. "AZ").');
+INSERT INTO txt VALUES ('H5635', 'German',  'Muster App Zone: Definiert, wie der Name einer App Zone beginnt (z.B. "AZ").');
+INSERT INTO txt VALUES ('H5635', 'English', 'App zone pattern: Defines how the name of an app zone begins (e.g. "AZ").');
 
-INSERT INTO txt VALUES ('H5632', 'German',  'App Zonen erstellen: Wenn dieses Flag gesetzt wird, werden App Zonen erstellt.');
-INSERT INTO txt VALUES ('H5632', 'English', 'Create app zones: If this flag is set, app zones are created.');
+INSERT INTO txt VALUES ('H5636', 'German',  'App Zonen erstellen: Wenn dieses Flag gesetzt wird, werden App Zonen erstellt.');
+INSERT INTO txt VALUES ('H5636', 'English', 'Create app zones: If this flag is set, app zones are created.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

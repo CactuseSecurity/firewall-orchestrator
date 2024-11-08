@@ -39,7 +39,13 @@ namespace FWO.Services
             ReadOnly = readOnly;
             IsOwner = isOwner;
         }
-        
+
+        public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig)
+        {
+            this.apiConnection = apiConnection;
+            this.userConfig = userConfig;
+        }
+
         public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
         {
             return DisplayButton(userConfig, text, icon, iconText, objIcon);

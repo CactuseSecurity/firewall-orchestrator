@@ -91,6 +91,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getHistoryForApp;
         public static readonly string addHistoryEntry;
 
+        public static readonly string newAppZone;
+
 
         static ModellingQueries()
         {
@@ -183,6 +185,8 @@ namespace FWO.Api.Client.Queries
                 getHistory = File.ReadAllText(QueryPath + "modelling/getHistory.graphql");
                 getHistoryForApp = File.ReadAllText(QueryPath + "modelling/getHistoryForApp.graphql");
                 addHistoryEntry = File.ReadAllText(QueryPath + "modelling/addHistoryEntry.graphql");
+
+                newAppZone = File.ReadAllText(QueryPath + "modelling/addNwAppZone.graphql");
             }
             catch (Exception exception)
             {

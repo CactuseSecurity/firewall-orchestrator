@@ -248,23 +248,23 @@ namespace FWO.Services
             return existingAppRole != null;
         }
 
-        private long? ResolveAppServerId(ModellingAppServer appServer, Management mgt)
+        private (long?, bool) ResolveAppServerId(ModellingAppServer appServer, Management mgt)
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
             ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer));
             if(existingAppServer != null)
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
-                return existingAppServer?.Id;
+                return (existingAppServer?.Id, true);
             }
             else if(alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer)) != null)
             {
-                return 0;
+                return (null, true);
             }
             else
             {
                 alreadyCreatedAppServers[mgt.Id].Add(appServer);
-                return null;
+                return (null, false);
             }
         }
 
@@ -305,6 +305,7 @@ namespace FWO.Services
             List<WfReqElement> groupMembers = [];
             foreach(var appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
             {
+                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
@@ -313,7 +314,8 @@ namespace FWO.Services
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = appRole.IdString,
-                    NetworkId = ResolveAppServerId(appServer, mgt)
+                    NetworkId = networkId,
+                    AlreadyRequested = alreadyRequested
                 });
             }
             Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
@@ -374,7 +376,7 @@ namespace FWO.Services
             unchangedGroupMembersDuringCreate = [];
             foreach(var appServer in newAppServers)
             {
-                long? networkId = ResolveAppServerId(appServer.Content, mgt);
+                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer.Content, mgt);
                 newGroupMembers.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
@@ -383,7 +385,8 @@ namespace FWO.Services
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
                     GroupName = appRole.IdString,
-                    NetworkId = networkId
+                    NetworkId = networkId,
+                    AlreadyRequested = alreadyRequested
                 });
                 newCreatedGroupMembers.Add(new()
                 {

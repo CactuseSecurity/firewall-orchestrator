@@ -162,7 +162,7 @@ namespace FWO.Tufin.SecureChange
 				if(nwObj.RequestAction == RequestAction.create.ToString())
 				{
 					string scObjType = GetSCObjectType(DisplayBase.AutoDetectType(nwObj.IpString, nwObj.IpEndString));
-					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId);
+					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction, nwObj.AlreadyRequested);
 					convertedObjects.Add(FillObjectTemplate(template, objUpdStatus == SCObjStatusValue.NEW.ToString() ? scObjType : "Object",
 						ConstructObjectName(nwObj, namingConvention), scObjType,
 						nwObj.IpString, nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus, mgmId ?? "0"));
@@ -170,7 +170,7 @@ namespace FWO.Tufin.SecureChange
 				else
 				{
 					convertedObjects.Add(FillObjectTemplateShort(template, ConstructObjectName(nwObj, namingConvention),
-						ObjStatus(nwObj.RequestAction), ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId), mgmId ?? "0"));
+						ObjStatus(nwObj.RequestAction), ObjUpdStatus(nwObj.RequestAction, nwObj.AlreadyRequested), mgmId ?? "0"));
 				}
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";
@@ -203,9 +203,9 @@ namespace FWO.Tufin.SecureChange
             };
         }
 
-		private static string ObjUpdStatus(string action, long? nwObjId)
+		private static string ObjUpdStatus(string action, bool alreadyRequested)
 		{
-			return action == nameof(RequestAction.create) && nwObjId == null ? SCObjStatusValue.NEW.ToString() : SCObjStatusValue.EXISTING_NOT_EDITED.ToString();
+			return action == nameof(RequestAction.create) && !alreadyRequested ? SCObjStatusValue.NEW.ToString() : SCObjStatusValue.EXISTING_NOT_EDITED.ToString();
         }
 	}
 }

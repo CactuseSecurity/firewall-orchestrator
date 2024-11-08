@@ -77,7 +77,7 @@
                                         <label>@(param.ExtraConfigType)</label>
                                     </div>
                                     <input type="text" class="col-sm-9" data-toggle="@("tooltip")"
-                                        title="@(userConfig.PureLine("H5636"))" value="@param.ExtraConfigText" @onchange="@((e) => {ConnHandler.UpdateExtraConfig(e, param);})"/>
+                                        title="@(userConfig.PureLine("H5638"))" value="@param.ExtraConfigText" @onchange="@((e) => {ConnHandler.UpdateExtraConfig(e, param);})"/>
                                     <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() => {ConnHandler.DeleteExtraConfig(param); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                                         @(ConnHandler.DisplayButton("delete_extra_config", Icons.Delete))</button>
                                 </div>

@@ -40,10 +40,11 @@ namespace FWO.Services
             IsOwner = isOwner;
         }
 
-        public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig)
+        public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             this.apiConnection = apiConnection;
             this.userConfig = userConfig;
+            this.DisplayMessageInUi = displayMessageInUi;
         }
 
         public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")

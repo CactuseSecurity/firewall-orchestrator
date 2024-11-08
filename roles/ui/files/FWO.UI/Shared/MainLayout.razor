@@ -122,7 +122,7 @@
     private async Task test()
     {
         ModellingAppZone appZone = new();
-        ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig);
+        ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUiFunction);
         await appZoneHandler.CreateAppZones(5);
     }
 

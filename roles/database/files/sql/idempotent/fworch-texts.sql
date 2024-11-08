@@ -1547,6 +1547,16 @@ INSERT INTO txt VALUES ('delete_extra_config',  'German',   'Sonderkonfiguration
 INSERT INTO txt VALUES ('delete_extra_config',  'English',  'Delete extra configurations');
 INSERT INTO txt VALUES ('impl_instructions',    'German',   'Implementationsanweisungen');
 INSERT INTO txt VALUES ('impl_instructions',    'English',  'Implementation instructions');
+INSERT INTO txt VALUES ('never_requested',      'German',   'Wurde noch nicht beantragt');
+INSERT INTO txt VALUES ('never_requested',      'English',  'Never requested');
+INSERT INTO txt VALUES ('in_process',           'German',   'Antrag in Bearbeitung');
+INSERT INTO txt VALUES ('in_process',           'English',  'Request in process');
+INSERT INTO txt VALUES ('last_successful',      'German',   'Zuletzt erfolgreich beantragt: ');
+INSERT INTO txt VALUES ('last_successful',      'English',  'Last successfully requested: ');
+INSERT INTO txt VALUES ('implementation_error', 'German',   'Fehler bei der Umsetzung');
+INSERT INTO txt VALUES ('implementation_error', 'English',  'Implementation error');
+INSERT INTO txt VALUES ('update_subscription_error','German','Fehler beim Aktualisieren');
+INSERT INTO txt VALUES ('update_subscription_error','English','Update subscription error');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

@@ -1,0 +1,5 @@
+subscription subscribeTicketStateChanges {
+  request_ticket(order_by:{ticket_id:desc}) {
+    ...ticketDetails
+  }
+}

@@ -100,13 +100,6 @@
     private ExtStateHandler extStateHandler;
 
 
-    private struct TicketId
-    {
-        [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
-        public long Id { get; set; }
-    };
-
-
     protected override async Task OnInitializedAsync()
     {
         extStateHandler = new(apiConnection);

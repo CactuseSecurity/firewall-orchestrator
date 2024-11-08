@@ -134,9 +134,9 @@ namespace FWO.Ui.Services
             return Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();
         }
 
-        public List<ModellingConnection> GetRegularConnections()
+        public List<ModellingConnection> GetRegularConnections(bool excludeEmptyARs = false)
         {
-            return Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
+            return Connections.Where(x => !x.IsInterface && !x.IsCommonService && (!excludeEmptyARs || !x.EmptyAppRolesFound())).ToList();
         }
 
         public List<string> GetSrcNames(ModellingConnection conn)

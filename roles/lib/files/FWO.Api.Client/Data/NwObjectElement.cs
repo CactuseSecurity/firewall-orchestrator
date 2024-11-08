@@ -35,7 +35,7 @@ namespace FWO.Api.Data
         public long? NetworkId { get; set; }
         public string GroupName { get; set; } = "";
         public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
-
+        public bool AlreadyRequested = false;
 
         public NwObjectElement()
         {}
@@ -68,7 +68,8 @@ namespace FWO.Api.Data
                 NetworkId = NetworkId,
                 GroupName = GroupName,
                 RequestAction = RequestAction,
-                Name = Name
+                Name = Name,
+                AlreadyRequested = AlreadyRequested
             };
             return element;
         }

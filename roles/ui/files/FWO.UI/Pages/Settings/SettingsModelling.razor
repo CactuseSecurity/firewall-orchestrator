@@ -124,6 +124,23 @@
             </div>
         </div>
         <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5637"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("extra_params"):</label>
+            <div class="col-sm-3">
+                <EditList ElementType="string" Elements="ExtraConfigs.ToArray()" ElementsToAdd="ExtraConfigsToAdd" ElementsToDelete="ExtraConfigsToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border bg-transparent">@context</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <input type="text" class="col-sm-10" @bind="actExtraConfig" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddExtraConfig" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                </div>
+            </div>
+        </div>
+        <hr />
         <div class="form-group row">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5606"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
@@ -324,6 +341,11 @@ else
     private AppServerType actAppServerType = new();
     private string appServerDefaultTypeName = "";
 
+    private List<string> ExtraConfigs = [];
+    private List<string> ExtraConfigsToAdd = [];
+    private List<string> ExtraConfigsToDelete = [];
+    private string actExtraConfig = "";
+
     private List<ModellingNwGroup> allAreas = [];
     private List<ModellingNwGroupWrapper> pureAreaList = [];
     private List<CommonAreaConfig> commAreaConfigItems = [];
@@ -366,6 +388,7 @@ else
             configData = await globalConfig.GetEditableConfig();
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? new();
             SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? new();
+            ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? new();
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
             if (configData.ModAppServerTypes != "")
             {
@@ -409,6 +432,15 @@ else
     {
         commonAreas.Add(new() { Area = new() { Content = area } });
         return true;
+    }
+
+    private void AddExtraConfig()
+    {
+        if (actExtraConfig != "")
+        {
+            ExtraConfigsToAdd.Add(actExtraConfig);
+            actExtraConfig = "";
+        }
     }
 
     private void AddPath()
@@ -466,6 +498,8 @@ else
                 AreasToDelete = [];
                 appServerTypesToAdd = [];
                 appServerTypesToDelete = [];
+                ExtraConfigsToAdd = [];
+                ExtraConfigsToDelete = [];
                 RefreshAreas();
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
@@ -484,6 +518,7 @@ else
     {
         PrepareAppDataPaths();
         PrepareSubnetDataPaths();
+        PrepareExtraConfigs();
         configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         PrepareCommonAreas();
@@ -551,5 +586,18 @@ else
             appServerTypes.Add(appServerType);
         }
         configData.ModAppServerTypes = JsonSerializer.Serialize(appServerTypes);
+    }
+
+    private void PrepareExtraConfigs()
+    {
+        foreach (var config in ExtraConfigsToDelete)
+        {
+            ExtraConfigs.Remove(config);
+        }
+        foreach (var config in ExtraConfigsToAdd)
+        {
+            ExtraConfigs.Add(config);
+        }
+        configData.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
     }
 }

@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Middleware.Client;
 using System.Data;
+using Microsoft.AspNetCore.Components;
 
 
 namespace FWO.Services
@@ -30,6 +31,7 @@ namespace FWO.Services
         public bool DstReadOnly { get; set; } = false;
         public bool SvcReadOnly { get; set; } = false;
 
+        public bool AddExtraConfigMode = false;
         public bool SearchNWObjectMode = false;
         public bool RemoveNwObjectMode = false;
         public bool RemovePreselectedInterfaceMode = false;
@@ -254,6 +256,39 @@ namespace FWO.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
+        }
+
+        public void AddExtraConfig()
+        {
+            AddExtraConfigMode = true;
+        }
+
+        public async Task<bool> SaveExtraConfig(ModellingExtraConfig extraConfig)
+        {
+            extraConfig.Id = ActConn.ExtraConfigs.Count > 0 ? ActConn.ExtraConfigs.OrderByDescending(x => x.Id).First().Id + 1 : 1;
+            List<ModellingExtraConfig> actList = ActConn.ExtraConfigs;
+            actList.Add(extraConfig);
+            ActConn.ExtraConfigs = actList;
+            return true;
+        }
+
+        public async Task UpdateExtraConfig(ChangeEventArgs e, ModellingExtraConfig extraConfig)
+        {
+            List<ModellingExtraConfig> actList = ActConn.ExtraConfigs;
+            ModellingExtraConfig? actConfig = actList.FirstOrDefault(x => x.Id == extraConfig.Id);
+            if(actConfig != null)
+            {
+                actConfig.ExtraConfigText = e.Value.ToString();
+            }
+            ActConn.ExtraConfigs = actList;
+        }
+
+        public async Task<bool> DeleteExtraConfig(ModellingExtraConfig extraConfig)
+        {
+            List<ModellingExtraConfig> actList = ActConn.ExtraConfigs;
+            actList.Remove(actList.FirstOrDefault(x => x.Id == extraConfig.Id) ?? throw new Exception("Did not find service group."));
+            ActConn.ExtraConfigs = actList;
+            return true;
         }
 
         public async Task<long> CreateNewRequestedInterface(long ticketId, bool asSource, string name, string reason)
@@ -1174,7 +1209,8 @@ namespace FWO.Services
                     ticketId = ActConn.TicketId,
                     creator = userConfig.User.Name,
                     commonSvc = ActConn.IsCommonService,
-                    connProp = ActConn.Properties
+                    connProp = ActConn.Properties,
+                    extraParams = ActConn.ExtraParams
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newConnection, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -1229,7 +1265,8 @@ namespace FWO.Services
                     isRequested = ActConn.IsRequested,
                     isPublished = ActConn.IsPublished,
                     commonSvc = ActConn.IsCommonService,
-                    connProp = ActConn.Properties
+                    connProp = ActConn.Properties,
+                    extraParams = ActConn.ExtraParams
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnection, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, ActConn.Id,
@@ -1404,6 +1441,7 @@ namespace FWO.Services
             SvcGrpToAdd = [];
             SvcGrpToDelete = [];
             SearchNWObjectMode = false;
+            AddExtraConfigMode = false;
             RemoveNwObjectMode = false;
             RemovePreselectedInterfaceMode = false;
             DisplaySelectedInterfaceMode = false;

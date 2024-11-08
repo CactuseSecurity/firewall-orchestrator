@@ -1,9 +1,11 @@
 mutation newAppZone(
+  $appId: Int!
   $name: String
   $idString: String
   $creator: String
   ) {
   insert_modelling_nwgroup(objects: {
+    app_id: $appId
     name: $name
     id_string: $idString
     creator: $creator

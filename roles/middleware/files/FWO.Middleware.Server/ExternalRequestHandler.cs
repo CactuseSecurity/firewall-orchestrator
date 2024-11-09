@@ -104,7 +104,7 @@ namespace FWO.Middleware.Server
 		private static int GetLastTaskNumber(string extQueryVars, int oldTaskNumber)
 		{
 			List<int>? taskNumbers = null;
-			Dictionary<string, List<int>>? extQueryVarDict = JsonSerializer.Deserialize<Dictionary<string, List<int>>>(extQueryVars);
+			Dictionary<string, List<int>>? extQueryVarDict = JsonSerializer.Deserialize<Dictionary<string, List<int>>?>(extQueryVars);
 			extQueryVarDict?.TryGetValue(ExternalVarKeys.BundledTasks, out taskNumbers);
 			if(taskNumbers != null && taskNumbers.Count > 0)
 			{
@@ -118,7 +118,7 @@ namespace FWO.Middleware.Server
 
 		private async Task<bool> SendNextRequest(WfTicket ticket, int oldTaskNumber, string extQueryVars = "")
 		{
-			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && extQueryVars != "" ? GetLastTaskNumber(extQueryVars, oldTaskNumber) : oldTaskNumber;
+			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && extQueryVars != null && extQueryVars != "" ? GetLastTaskNumber(extQueryVars, oldTaskNumber) : oldTaskNumber;
 			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
 			if(nextTask == null)
 			{

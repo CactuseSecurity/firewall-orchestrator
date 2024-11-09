@@ -90,6 +90,9 @@
     [Parameter]
     public List<ModellingConnection> Connections { get; set; } = [];
 
+    [Parameter]
+    public Func<WfTicket, Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
 
     private List<WfReqTask> TaskList = [];
     private List<IpProtocol> ipProtos = [];
@@ -258,6 +261,7 @@
                 TaskList = intTicket.Tasks;
                 await SaveTicketId(intTicket.Id);
                 await CreateExtRequests(intTicket);
+                await RefreshParent(intTicket);
             }
         }
         catch (Exception exception)

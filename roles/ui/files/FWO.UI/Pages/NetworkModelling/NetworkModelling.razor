@@ -24,7 +24,7 @@
     @if(appHandler != null && appHandler.overviewConnHandler != null && appSelected)
     {
         <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.overviewConnHandler" OverviewMode="true"/>
-        <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetRegularConnections(true)"/>
+        <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetRegularConnections(true)" RefreshParent="SetStatusFromTicket"/>
     }
     <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
         <div class="input-group">
@@ -262,7 +262,7 @@ else
             }
             else
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor });
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor, Roles.Modeller });
             }
             appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner)
             {
@@ -274,7 +274,7 @@ else
             appActive = selectedApp.Active;
             appSelected = true;
             tabSelected = false;
-            ChangeStatus = await GetChangeStatus();
+            await SetChangeStatus();
             await InitConn();
         }
         catch (Exception exception)
@@ -322,12 +322,13 @@ else
         showFwChange = true;
     }
 
-    private async Task<string> GetChangeStatus()
+    private async Task SetChangeStatus()
     {
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = selectedApp.Id});
         if(ticketIds.Count == 0)
         {
-            return userConfig.GetText("never_requested");
+            ChangeStatus = userConfig.GetText("never_requested");
         }
         else
         {
@@ -338,23 +339,22 @@ else
             if(intTicket != null)
             {
                 actTicketSubscription = apiConnection.GetSubscription<List<WfTicket>>(HandleSubscriptionError, OnTicketUpdate, RequestQueries.subscribeTicketStateChanges);
-                return await GetStatusFromTicket(intTicket);
+                await SetStatusFromTicket(intTicket);
             }
         }
-        return "";
     }
 
-    private async Task<string> GetStatusFromTicket(WfTicket intTicket)
+    private async Task SetStatusFromTicket(WfTicket intTicket)
     {
         int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
         int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
         if(intTicket.StateId < doneStateId && intTicket.StateId < rejectedStateId)
         {
-            return userConfig.GetText("in_process");
+            ChangeStatus = userConfig.GetText("in_process");
         }
         else if(intTicket.StateId == doneStateId)
         {
-            return userConfig.GetText("last_successful") + intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss") + " " + intTicket.Requester?.Name;
+            ChangeStatus = userConfig.GetText("last_successful") + intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss") + " " + intTicket.Requester?.Name;
         }
         else
         {
@@ -362,23 +362,23 @@ else
             if(lastRequests.Count > 0)
             {
                 string tooltip = lastRequests.First().LastProcessingResponse ?? lastRequests.First().LastCreationResponse ?? "";
-                return $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
             }
             else
             {
-                return userConfig.GetText("implementation_error");
+                ChangeStatus = userConfig.GetText("implementation_error");
             }
         }
     }
 
-        private async void HandleSubscriptionError(Exception exception)
+    private async void HandleSubscriptionError(Exception exception)
     {
         await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("ticket"), userConfig.GetText("update_subscription_error"), true));
     }
 
     private async void OnTicketUpdate(List<WfTicket> tickets)
     {
-        ChangeStatus = await GetStatusFromTicket(tickets.First());
+        await SetStatusFromTicket(tickets.First());
         await InvokeAsync(StateHasChanged);
     }
 }

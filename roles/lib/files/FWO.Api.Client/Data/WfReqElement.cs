@@ -20,7 +20,6 @@ namespace FWO.Api.Data
         public Cidr Cidr { get; set; } = new();
         public Cidr CidrEnd { get; set; } = new();
 
-        public bool AlreadyRequested = false;
 
         public WfReqElement()
         {}
@@ -33,7 +32,6 @@ namespace FWO.Api.Data
             DeviceId = element.DeviceId;
             Cidr = new Cidr(element.Cidr != null ? element.Cidr.CidrString : "");
             CidrEnd = new Cidr(element.CidrEnd != null ? element.CidrEnd.CidrString : "");
-            AlreadyRequested = element.AlreadyRequested;
         }
     }
 }

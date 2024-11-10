@@ -1,10 +1,8 @@
 ﻿using FWO.Config.Api;
-using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
-using System.Text.Json;
 
 namespace FWO.Services
 {
@@ -80,6 +78,8 @@ namespace FWO.Services
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
                             Elements = elements,
+                            RuleAction = 1,  // Todo ??
+                            Tracking = 1,  // Todo ??
                             Comments = [ new(){ Comment = new(){ CommentText = ConstructComment(conn) }} ]
                         });
                     }

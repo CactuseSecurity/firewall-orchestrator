@@ -310,6 +310,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modRolloutBundleTasks"), JsonPropertyName("modRolloutBundleTasks")]
 		public bool ModRolloutBundleTasks { get; set; } = false;
 
+		[JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
+		public string ModRolloutErrorText { get; set; } = "";
+
 		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
 		public string ExtTicketSystems { get; set; } = "";
 

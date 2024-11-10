@@ -102,22 +102,36 @@ namespace FWO.Middleware.Server
 						request.ExtTicketId = locationUri.Segments.Last();
 					}
 					request.ExtRequestState = ExtStates.ExtReqRequested.ToString();
-					request.LastMessage = ticketIdResponse?.Content;
-					await UpdateRequestCreation(request);
 					Log.WriteDebug(userConfig.GetText("ext_ticket_success"), "Message: " + ticketIdResponse?.Content);
+				}
+				else if(AnalyseForRejected(ticketIdResponse))
+				{
+					request.ExtRequestState = ExtStates.ExtReqRejected.ToString();
+					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
+					ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+					await extReqHandler.HandleStateChange(request);
 				}
 				else
 				{
 					request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
-					request.LastMessage = ticketIdResponse?.Content;
-					await UpdateRequestCreation(request);
 					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
 				}
+				request.LastMessage = ticketIdResponse?.Content;
+				await UpdateRequestCreation(request);
 			}
 			catch(Exception exception)
 			{
 				Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Sending request failed: ", exception);
 			}
+		}
+
+		private bool AnalyseForRejected(RestResponse<int> ticketIdResponse)
+		{
+			return ticketIdResponse.Content != null && 
+				(ticketIdResponse.Content.Contains("GENERAL_ERROR") ||
+				ticketIdResponse.Content.Contains("FIELD_VALIDATION_ERROR") ||
+				ticketIdResponse.Content.Contains("WEB_APPLICATION_ERROR") ||
+				ticketIdResponse.Content.Contains("implementation failure"));
 		}
 
 		private async Task RefreshState(ExternalRequest request)

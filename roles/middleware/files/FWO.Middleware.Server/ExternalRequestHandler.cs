@@ -73,15 +73,14 @@ namespace FWO.Middleware.Server
 					await UpdateTicket(intTicket, externalRequest);
 					if(extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
 					{
-						// Dispose(externalRequest.Id);
 						await Acknowledge(externalRequest);
-						if(externalRequest.ExtRequestState != ExtStates.ExtReqRejected.ToString())
+						if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
 						{
-							await SendNextRequest(intTicket, externalRequest.TaskNumber, externalRequest.ExtQueryVariables);
+							await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
 						}
 						else
 						{
-							await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
+							await SendNextRequest(intTicket, externalRequest.TaskNumber, externalRequest.ExtQueryVariables);
 						}
 					}
 				}

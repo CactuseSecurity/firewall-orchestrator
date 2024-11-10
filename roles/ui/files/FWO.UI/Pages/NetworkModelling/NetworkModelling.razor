@@ -171,6 +171,7 @@ else
     private string ChangeStatus = "";
     private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
     private ExtStateHandler extStateHandler;
+    private bool firstErrorMessage = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -285,7 +286,7 @@ else
 
     private async Task InitConn()
     {
-        if (ConnId != null && int.TryParse(ConnId, out int connectionId))
+        if (appHandler != null && ConnId != null && int.TryParse(ConnId, out int connectionId))
         {
             ModellingConnection? selectedConn = appHandler?.Connections.FirstOrDefault(c => c.Id == connectionId);
             if (selectedConn != null)
@@ -367,6 +368,11 @@ else
             else
             {
                 ChangeStatus = userConfig.GetText("implementation_error");
+            }
+            if(firstErrorMessage)
+            {
+                firstErrorMessage = false;
+                DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
             }
         }
     }

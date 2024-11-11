@@ -93,6 +93,7 @@ namespace FWO.Middleware.Server
 				ExternalTicket ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
 				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
                 RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
+				request.LastMessage = ticketIdResponse.Content;
 				if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)
 				{
 					var locationHeader = ticketIdResponse.Headers?.FirstOrDefault(h => h.Name.Equals("location", StringComparison.OrdinalIgnoreCase))?.Value?.ToString();
@@ -102,11 +103,13 @@ namespace FWO.Middleware.Server
 						request.ExtTicketId = locationUri.Segments.Last();
 					}
 					request.ExtRequestState = ExtStates.ExtReqRequested.ToString();
+					await UpdateRequestCreation(request);
 					Log.WriteDebug(userConfig.GetText("ext_ticket_success"), "Message: " + ticketIdResponse?.Content);
 				}
 				else if(AnalyseForRejected(ticketIdResponse))
 				{
 					request.ExtRequestState = ExtStates.ExtReqRejected.ToString();
+					await UpdateRequestCreation(request);
 					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
 					ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
 					await extReqHandler.HandleStateChange(request);
@@ -114,10 +117,9 @@ namespace FWO.Middleware.Server
 				else
 				{
 					request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
+					await UpdateRequestCreation(request);
 					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
 				}
-				request.LastMessage = ticketIdResponse?.Content;
-				await UpdateRequestCreation(request);
 			}
 			catch(Exception exception)
 			{

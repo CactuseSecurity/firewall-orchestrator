@@ -140,5 +140,76 @@ namespace FWO.Basics
 
             return ipAddressRange;
         }
+        public static string ToDotNotation(string startIp, string endIp)
+        {
+        //    if (startIp == endIp)
+        //    {
+        //        if (startIp.Contains(":"))
+        //        {
+        //            return $"{startIp}/ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+        //        }
+        //        else
+        //        {
+        //            return $"{startIp}/255.255.255.255";
+        //        }
+        //    }
+        //    else
+            //{
+                IPAddress start;
+                IPAddress end;
+                if (!IPAddress.TryParse(startIp, out start))
+                {
+                    throw new ArgumentException($"IP {start} is not valid");
+                }
+                if (!IPAddress.TryParse(endIp, out end))
+                {
+                    throw new ArgumentException($"IP {end} is not valid");
+                }
+                // Ensure both IPs are of the same address family (both IPv4 or both IPv6)
+                if (start.AddressFamily != end.AddressFamily)
+                    throw new ArgumentException("Start and end IPs must be of the same address family.");
+
+                // Start from the largest possible prefix length and decrease to find the exact network match
+                int maxPrefixLength = start.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128;
+
+                for (int prefixLength = maxPrefixLength; prefixLength >= 0; prefixLength--)
+                {
+                    // Create a network based on the start IP and current prefix length
+                    string networkString = $"{start}/{prefixLength}"; // Combine start IP and prefix length into a single string
+                    IPNetwork network = IPNetwork.Parse(networkString);
+
+                    // Check if both start and end IPs are within this exact network
+                    if (network.Contains(start) && network.Contains(end))
+                    {
+                        // Get subnet mask for IPv4
+                        string subnetMask = start.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+                            ? GetIPv4SubnetMask(network.PrefixLength)  // Convert PrefixLength to Subnet Mask for IPv4
+                            : $"(IPv6) /{network.PrefixLength}"; // IPv6 uses CIDR notation directly
+
+                        return $"{network}/{subnetMask}";
+                    }
+                }
+
+                return null; // No exact network match found
+            //}
+        }
+
+        // Convert a prefix length to an IPv4 subnet mask
+        private static string GetIPv4SubnetMask(int prefixLength)
+        {
+            uint mask = 0xffffffff << (32 - prefixLength);
+            uint[] bytes = new uint[4];
+
+            bytes[0] = (mask >> 24) & 0xff;
+            bytes[1] = (mask >> 16) & 0xff;
+            bytes[2] = (mask >> 8) & 0xff;
+            bytes[3] = mask & 0xff;
+
+            return string.Join(".", bytes);
+        }
+
     }
+
 }
+
+

@@ -1,5 +1,7 @@
 using FWO.Api.Data;
 using FWO.Basics;
+using Newtonsoft.Json.Linq;
+using System.Xml.Linq;
 
 namespace FWO.Tufin.SecureChange
 {
@@ -165,7 +167,7 @@ namespace FWO.Tufin.SecureChange
 					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction, nwObj.AlreadyRequested);
 					convertedObjects.Add(FillObjectTemplate(template, objUpdStatus == SCObjStatusValue.NEW.ToString() ? scObjType : "Object",
 						ConstructObjectName(nwObj, namingConvention), scObjType,
-						nwObj.IpString, nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus, mgmId ?? "0"));
+                        ConstructObjectIp(nwObj, scObjType), nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus, mgmId ?? "0"));
 				}
 				else
 				{
@@ -176,12 +178,23 @@ namespace FWO.Tufin.SecureChange
 			return "[" + string.Join(",", convertedObjects) + "]";
 		}
 
-		private static string ConstructObjectName(NwObjectElement nwObj, ModellingNamingConvention? namingConvention)
+        private static string ConstructObjectName(NwObjectElement nwObj, ModellingNamingConvention? namingConvention)
+        {
+            return nwObj.Name ?? namingConvention?.AppServerPrefix + nwObj.IpString;
+        }
+		private static string ConstructObjectIp(NwObjectElement nwObj, string scObjType)
 		{
-			return nwObj.Name ?? namingConvention?.AppServerPrefix + nwObj.IpString;
-		}
-
-		private static string GetSCObjectType(string fwoObjType)
+			switch (scObjType)
+			{
+				case "network":
+					return IpOperations.ToDotNotation(nwObj.IpString, nwObj.IpEndString);
+				case "range":
+					return $"{nwObj.IpString}-{nwObj.IpEndString}"; // TODO: not really implemented yet
+                default:	// single host
+                    return nwObj.IpString;
+            }
+        }
+        private static string GetSCObjectType(string fwoObjType)
 		{
             return fwoObjType switch
             {

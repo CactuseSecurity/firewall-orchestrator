@@ -98,6 +98,7 @@ insert into config (config_key, config_value, config_user) VALUES ('modReqTaskTi
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutActive', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutResolveServiceGroups', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutBundleTasks', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRolloutErrorText', 'Error during external request', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIconify', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reducedProtocolSet', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('overviewDisplayLines', '3', 0);

@@ -429,13 +429,11 @@ namespace FWO.Services
                 {
                     // change referred connId ?
                     string comment = $"{userConfig.GetText("U9016")}: {IntConnHandler?.ActConn.Name}";
-                    apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor]);
-                    TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
+                   TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
                     if(await ticketCreator.PromoteNewInterfaceImplTask(Application, (long)ActConn.TicketId, ExtStates.Done, comment))
                     {
                         DisplayMessageInUi(null, comment, userConfig.GetText("U9013"), false);
                     }
-                    apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
                 }
                 catch(Exception exception)
                 {

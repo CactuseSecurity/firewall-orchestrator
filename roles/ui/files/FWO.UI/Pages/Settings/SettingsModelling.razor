@@ -297,6 +297,10 @@
                 </div>
             </div>
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5639"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modRolloutErrorText")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModRolloutErrorText" />
+        </div>
         <hr />
     </form>
     <AuthorizeView Roles="@Roles.Admin">

@@ -1547,6 +1547,16 @@ INSERT INTO txt VALUES ('delete_extra_config',  'German',   'Sonderkonfiguration
 INSERT INTO txt VALUES ('delete_extra_config',  'English',  'Delete extra configurations');
 INSERT INTO txt VALUES ('impl_instructions',    'German',   'Implementationsanweisungen');
 INSERT INTO txt VALUES ('impl_instructions',    'English',  'Implementation instructions');
+INSERT INTO txt VALUES ('never_requested',      'German',   'Wurde noch nicht beantragt');
+INSERT INTO txt VALUES ('never_requested',      'English',  'Never requested');
+INSERT INTO txt VALUES ('in_process',           'German',   'Antrag in Bearbeitung');
+INSERT INTO txt VALUES ('in_process',           'English',  'Request in process');
+INSERT INTO txt VALUES ('last_successful',      'German',   'Zuletzt erfolgreich beantragt: ');
+INSERT INTO txt VALUES ('last_successful',      'English',  'Last successfully requested: ');
+INSERT INTO txt VALUES ('implementation_error', 'German',   'Fehler bei der Umsetzung');
+INSERT INTO txt VALUES ('implementation_error', 'English',  'Implementation error');
+INSERT INTO txt VALUES ('update_subscription_error','German','Fehler beim Aktualisieren');
+INSERT INTO txt VALUES ('update_subscription_error','English','Update subscription error');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2241,6 +2251,8 @@ INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','German','Servicegruppe
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','English','Resolve service groups');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfassen');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','English',  'Bundle tasks');
+INSERT INTO txt VALUES ('modRolloutErrorText',  'German',   'Fehlertext');
+INSERT INTO txt VALUES ('modRolloutErrorText',  'English',  'Error text');
 INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
@@ -5108,6 +5120,8 @@ INSERT INTO txt VALUES ('H5637', 'German',  'Hier werden die m&ouml;glichen Wert
 INSERT INTO txt VALUES ('H5637', 'English', 'Set here the possible values for extra configuration types, e.g. NAT.');
 INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml;r Sonderkonfigurationen eingetragen.');
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');
+INSERT INTO txt VALUES ('H5639', 'German',  'Hier wird der Meldungstext f&uuml;r Fehler im externen Beantragungsprozess eingetragen.');
+INSERT INTO txt VALUES ('H5639', 'English', 'Insert customized text for errors in requests to external ticket system.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

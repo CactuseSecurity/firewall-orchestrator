@@ -139,7 +139,7 @@ namespace FWO.Services
                     }
                     else
                     {
-                        apiConnection.SetProperRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor]);
+                        apiConnection.SetProperRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor]);
                     }
                     await ActionHandler.Init();
                     dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};

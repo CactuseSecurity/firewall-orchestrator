@@ -590,13 +590,11 @@
         {
             try
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor ]);
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
                 if(await ticketCreator.PromoteNewInterfaceImplTask(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId), ExtStates.Done))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);
                 }
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             }
             catch(Exception exception)
             {
@@ -644,7 +642,7 @@
     {
         if(ConnHandler.ActConn.TicketId != null)
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
+            workInProgress = true;
             await states.Init(apiConnection);
             OwnerIds = (await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners)).ConvertAll(x => x.Id);
             wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
@@ -665,8 +663,8 @@
                     }
                 }
             }
+            workInProgress = false;
             StateHasChanged();
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
         }
     }
 

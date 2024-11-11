@@ -116,9 +116,7 @@
         {
             FirstTry = false;
             WorkInProgress = true;
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Implementer, Roles.Admin, Roles.Auditor ]);
             await states.Init(apiConnection);
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             await InitTasks();
             WorkInProgress = false;
         }
@@ -145,10 +143,8 @@
         List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = SelectedApp.Id});
         if(ticketIds.Count > 0)
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
             TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket? intTicket = await ticketCreator.GetTicket(SelectedApp.Id, ticketIds.First().Id);
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             if(intTicket != null)
             {
                 TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
@@ -238,6 +234,10 @@
         {
             return "text-success";
         }
+        else if(elem.RequestAction == RequestAction.addAfterCreation.ToString())
+        {
+            return "text-info";
+        }
         else if(elem.RequestAction == RequestAction.delete.ToString())
         {
             return "text-danger";
@@ -250,11 +250,9 @@
         WorkInProgress = true;
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
             TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
                 "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized), "");
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             if(intTicket != null)
             {
                 RequestInProcess = true;

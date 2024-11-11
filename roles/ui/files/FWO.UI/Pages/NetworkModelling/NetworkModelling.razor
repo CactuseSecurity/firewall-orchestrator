@@ -176,7 +176,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+        apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         extStateHandler = new(apiConnection);
         await extStateHandler.Init();
         await InitAppList();
@@ -263,7 +263,7 @@ else
             }
             else
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor, Roles.Modeller });
+                apiConnection.SetBestRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor, Roles.Modeller });
             }
             appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner)
             {
@@ -333,7 +333,6 @@ else
         }
         else
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
             TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket? intTicket = await ticketCreator.GetTicket(selectedApp.Id, ticketIds.First().Id);
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
@@ -380,6 +379,11 @@ else
     private async void HandleSubscriptionError(Exception exception)
     {
         await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("ticket"), userConfig.GetText("update_subscription_error"), true));
+    }
+
+    public void Dispose()
+    {
+        actTicketSubscription?.Dispose();
     }
 
     private async void OnTicketUpdate(List<WfTicket> tickets)

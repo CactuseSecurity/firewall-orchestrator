@@ -91,8 +91,7 @@ namespace FWO.Api.Data
                         NetworkId = reqElem.NetworkId,
                         RequestAction = reqElem.RequestAction,
                         Name = reqElem.Name,
-                        GroupName = reqElem.GroupName ?? "",
-                        AlreadyRequested = reqElem.AlreadyRequested
+                        GroupName = reqElem.GroupName ?? ""
                     });
                 }
             }

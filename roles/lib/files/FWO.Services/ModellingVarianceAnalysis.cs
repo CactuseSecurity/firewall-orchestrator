@@ -1,10 +1,8 @@
 ﻿using FWO.Config.Api;
-using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
-using System.Text.Json;
 
 namespace FWO.Services
 {
@@ -80,6 +78,8 @@ namespace FWO.Services
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
                             Elements = elements,
+                            RuleAction = 1,  // Todo ??
+                            Tracking = 1,  // Todo ??
                             Comments = [ new(){ Comment = new(){ CommentText = ConstructComment(conn) }} ]
                         });
                     }
@@ -308,14 +308,13 @@ namespace FWO.Services
                 (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
                 {
-                    RequestAction = RequestAction.create.ToString(),
+                    RequestAction = alreadyRequested? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Name,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = appRole.IdString,
-                    NetworkId = networkId,
-                    AlreadyRequested = alreadyRequested
+                    NetworkId = networkId
                 });
             }
             Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
@@ -379,14 +378,13 @@ namespace FWO.Services
                 (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer.Content, mgt);
                 newGroupMembers.Add(new()
                 {
-                    RequestAction = RequestAction.create.ToString(),
+                    RequestAction = alreadyRequested? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
                     GroupName = appRole.IdString,
-                    NetworkId = networkId,
-                    AlreadyRequested = alreadyRequested
+                    NetworkId = networkId
                 });
                 newCreatedGroupMembers.Add(new()
                 {

@@ -96,7 +96,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("1.2.3.5", TaskList[1].Elements[0].IpString);
             ClassicAssert.AreEqual("1.2.3.10", TaskList[1].Elements[0].IpEnd);
             ClassicAssert.AreEqual("source", TaskList[1].Elements[0].Field);
-            ClassicAssert.AreEqual("create", TaskList[1].Elements[0].RequestAction);
+            ClassicAssert.AreEqual("addAfterCreation", TaskList[1].Elements[0].RequestAction);
 
             ClassicAssert.AreEqual(WfTaskType.access.ToString(), TaskList[2].TaskType);
             ClassicAssert.AreEqual(null, TaskList[2].AdditionalInfo);

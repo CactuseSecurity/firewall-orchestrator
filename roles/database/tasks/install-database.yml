@@ -76,6 +76,10 @@
     debug:
       msg: "test_query result: {{ test_query }}"
 
+  - name: create db users with group memberships
+    import_tasks: create-users.yml
+    when: installation_mode == "new"
+
   - name: creating {{ fworch_db_name }}-db-model
     community.postgresql.postgresql_script:
       db: "{{ fworch_db_name }}"
@@ -91,10 +95,6 @@
     when: installation_mode == "new"
     become: true
     become_user: postgres
-
-  - name: create db users with group memberships
-    import_tasks: create-users.yml
-    when: installation_mode == "new"
 
   - name: add colors to the database
     postgresql_copy:

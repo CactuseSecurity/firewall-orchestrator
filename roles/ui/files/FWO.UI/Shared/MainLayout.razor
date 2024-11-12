@@ -14,8 +14,6 @@
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
 @using FWO.Services
-@*luca testing*@
-@using FWO.Api.Client.Data
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -37,9 +35,7 @@
         <button type="button" @onclick="@(() => ShowMessage("warning", "warning", MessageType.Warning))">warning</button>
         <button type="button" @onclick="@(() => ShowMessage("error", "error", MessageType.Error))">error</button>
         <button type="button" @onclick="@(() => ShowMessage("success", "success", MessageType.Success))">success</button>
-        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@
-        @*Luca testing *@
-        <button type="button" @onclick=test>Create App Zones</button>
+        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@       
         <CascadingValue Value="@DisplayMessageInUiFunction">
             @Body
         </CascadingValue>
@@ -117,14 +113,6 @@
     private Queue<UIMessage> UIMessageQue = [];
 
     private Timer? UIMessageQueTimer;
-
-    //Luca testing
-    private async Task test()
-    {
-        ModellingAppZone appZone = new();
-        ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUiFunction);
-        await appZoneHandler.CreateAppZones("App-4711");
-    }
 
     protected override void OnInitialized()
     {

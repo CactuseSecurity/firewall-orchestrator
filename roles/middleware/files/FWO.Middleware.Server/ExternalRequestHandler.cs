@@ -211,11 +211,7 @@ namespace FWO.Middleware.Server
 				extQueryVariables = extQueryVars,
 				extRequestState = ExtStates.ExtReqInitialized.ToString()
 			};
-			ReturnId[]? reqIds = (await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables)).ReturnIds;
-			if(reqIds != null)
-			{
-				//extTicketSubscriptions.Add(reqIds[0].NewId, ApiConnection.GetSubscription<List<ExternalRequest>>(HandleSubscriptionError, OnStateUpdate, ExtRequestQueries.subscribeExtRequestStateUpdate, new{ id = reqIds[0].NewId }));
-			}
+			await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables);
 		}
 
 		private async Task RejectFollowingTasks(WfTicket ticket, int lastTaskNumber)
@@ -345,11 +341,6 @@ namespace FWO.Middleware.Server
 			{
 				Log.WriteError("Acknowledge External Request", $"Runs into exception: ", exception);
 			}
-		}
-
-		private async void HandleSubscriptionError(Exception exception)
-		{
-			Log.WriteError("External Request Subscription", $"Runs into exception: ", exception);
 		}
 
 		private void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)

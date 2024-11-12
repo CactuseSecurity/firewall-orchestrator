@@ -178,7 +178,8 @@ namespace FWO.Tufin.SecureChange
 
 		private static string ConstructObjectName(NwObjectElement nwObj, ModellingNamingConvention? namingConvention)
 		{
-			return nwObj.Name ?? namingConvention?.AppServerPrefix + nwObj.IpString;
+			return string.IsNullOrEmpty(nwObj.Name) ? namingConvention?.AppServerPrefix + nwObj.IpString :
+                char.IsLetter(nwObj.Name[0]) ? nwObj.Name : namingConvention?.AppServerPrefix + nwObj.Name;
 		}
 
 		private static string GetSCObjectType(string fwoObjType)

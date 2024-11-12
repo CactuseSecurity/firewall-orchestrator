@@ -342,7 +342,7 @@ else
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             if(intTicket != null)
             {
-                actTicketSubscription = apiConnection.GetSubscription<List<WfTicket>>(HandleSubscriptionError, OnTicketUpdate, RequestQueries.subscribeTicketStateChanges);
+                actTicketSubscription = apiConnection.GetSubscription<List<WfTicket>>(HandleSubscriptionError, OnTicketUpdate, RequestQueries.subscribeTicketStateChanges, new {id = intTicket.Id});
                 await SetStatusFromTicket(intTicket);
             }
         }
@@ -372,6 +372,7 @@ else
             {
                 ChangeStatus = userConfig.GetText("implementation_error");
             }
+            await InvokeAsync(StateHasChanged);
             if(firstErrorMessage)
             {
                 firstErrorMessage = false;

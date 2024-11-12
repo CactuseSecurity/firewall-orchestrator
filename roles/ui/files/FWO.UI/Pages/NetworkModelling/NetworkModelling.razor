@@ -137,6 +137,7 @@ else
 <ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp" />
 <ShowHistory @bind-Display="showHistory" Applications="apps" SelectedApp="selectedApp" />
 <ShareLink @bind-Display="shareLink" Application="selectedApp" />
+<InProgress Display="workInProgress"/>
 
 @code
 {
@@ -172,6 +173,7 @@ else
     private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
     private ExtStateHandler extStateHandler;
     private bool firstErrorMessage = true;
+    private bool workInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -251,6 +253,7 @@ else
 
     private async Task InitApp(FwoOwner newApp)
     {
+        workInProgress = true;
         try
         {
             appSelected = false;
@@ -282,6 +285,7 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
+        workInProgress = false;
     }
 
     private async Task InitConn()

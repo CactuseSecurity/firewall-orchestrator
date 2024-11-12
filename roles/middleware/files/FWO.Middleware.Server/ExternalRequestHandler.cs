@@ -6,6 +6,7 @@ using FWO.Config.Api;
 using FWO.Tufin.SecureChange;
 using System.Text.Json;
 using FWO.Services;
+using FWO.Middleware.RequestParameters;
 
 
 namespace FWO.Middleware.Server
@@ -20,6 +21,7 @@ namespace FWO.Middleware.Server
 		private ExternalTicketSystem actSystem = new();
 		private string actTaskType = "";
 		private List<IpProtocol> ipProtos = [];
+		private List<UserGroup>? ownerGroups = [];
 
 
 		/// <summary>
@@ -30,7 +32,35 @@ namespace FWO.Middleware.Server
 			ApiConnection = apiConnection;
 			UserConfig = userConfig;
 			extStateHandler = new(apiConnection);
-			wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request);
+			Task.Run(GetInternalGroups).Wait();
+			wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
+		}
+
+		private async Task GetInternalGroups()
+		{
+			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
+
+			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
+			ownerGroups = [];
+			foreach (var ldapUserGroup in allGroups)
+			{
+				if(ldapUserGroup.OwnerGroup)
+				{
+					UserGroup group = new ()
+					{ 
+						Dn = ldapUserGroup.GroupDn,
+						Name = new DistName(ldapUserGroup.GroupDn).Group,
+						OwnerGroup = ldapUserGroup.OwnerGroup
+					};
+					foreach (var userDn in ldapUserGroup.Members)
+					{
+						UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
+						group.Users.Add(newUser);
+					}
+					ownerGroups.Add(group);
+				}
+			}
 		}
 
 		/// <summary>

@@ -7,6 +7,8 @@ fragment ticketDetails on request_ticket {
   requester: uiuser {
     uiuser_id
     uiuser_username
+    uuid
+    uiuser_email
   }
   requester_dn
   requester_group

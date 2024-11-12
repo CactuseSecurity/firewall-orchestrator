@@ -172,7 +172,7 @@ namespace FWO.Middleware.Server
 				// userGroupDn = incomingApp.Name + "external-ldap-path";
 			}
 
-			var Variables = new
+			var variables = new
 			{
 				name = incomingApp.Name,
 				dn = incomingApp.MainUser ?? "",
@@ -182,7 +182,7 @@ namespace FWO.Middleware.Server
 				importSource = incomingApp.ImportSource,
 				commSvcPossible = false
 			};
-			ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, Variables)).ReturnIds;
+			ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, variables)).ReturnIds;
 			if (returnIds != null)
 			{
 				if(incomingApp.MainUser != null && incomingApp.MainUser != "")

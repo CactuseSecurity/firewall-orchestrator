@@ -91,7 +91,8 @@ namespace FWO.Services
 
         private ObjAction contOption = ObjAction.display;
         private bool InitOngoing = false;
-        private bool usedInMwServer = false;
+        private readonly bool usedInMwServer = false;
+        private readonly List<UserGroup>? UserGroups = null;
 
 
         public WfHandler()
@@ -115,12 +116,13 @@ namespace FWO.Services
 		/// constructor for use in middleware server
 		/// </summary>
         public WfHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig,
-            ApiConnection apiConnection, WorkflowPhases phase)
+            ApiConnection apiConnection, WorkflowPhases phase, List<UserGroup>? userGroups)
         {
             DisplayMessageInUi = displayMessageInUi;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
             Phase = phase;
+            UserGroups = userGroups;
             usedInMwServer = true;
         }
 
@@ -132,7 +134,7 @@ namespace FWO.Services
                 if(!InitOngoing)
                 {
                     InitOngoing = true;
-                    ActionHandler = new (apiConnection, this);
+                    ActionHandler = new (apiConnection, this, UserGroups, usedInMwServer);
                     if(usedInMwServer)
                     {
                         apiConnection.SetRole(Roles.MiddlewareServer);

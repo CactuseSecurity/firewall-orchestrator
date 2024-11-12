@@ -235,11 +235,11 @@ namespace FWO.Services
         private bool ResolveExistingAppRole(ModellingAppRole appRole, Management mgt)
         {
             Log.WriteDebug("Search AppRole", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
-            ModellingAppRole sanitizedAR = new(appRole);
-            sanitizedAR.Sanitize();
+            bool shortened = false;
+            string sanitizedARName = Sanitizer.SanitizeJsonFieldMand(appRole.IdString, ref shortened);
             if(allExistingAppRoles.ContainsKey(mgt.Id))
             {
-                existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedAR.IdString);
+                existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedARName);
             }
             if(existingAppRole != null)
             {
@@ -251,7 +251,10 @@ namespace FWO.Services
         private (long?, bool) ResolveAppServerId(ModellingAppServer appServer, Management mgt)
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
-            ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer));
+            ModellingAppServer sanitizedAS = new(appServer);
+            bool shortened = false;
+            sanitizedAS.Name = Sanitizer.SanitizeJsonFieldMand(sanitizedAS.Name, ref shortened);
+            ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer) || AreEqual(a, sanitizedAS));
             if(existingAppServer != null)
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
@@ -270,7 +273,8 @@ namespace FWO.Services
 
         private bool AreEqual(ModellingAppServer appServer1, ModellingAppServer appServer2)
         {
-            string appServer2Name = string.IsNullOrEmpty(appServer2.Name) ? namingConvention.AppServerPrefix + appServer2.Ip : appServer2.Name;
+            string appServer2Name = string.IsNullOrEmpty(appServer2.Name) ? namingConvention.AppServerPrefix + appServer2.Ip : 
+                (char.IsLetter(appServer2.Name[0]) ? appServer2.Name : namingConvention?.AppServerPrefix + appServer2.Name);
             return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim();
         }
 
@@ -308,7 +312,7 @@ namespace FWO.Services
                 (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
                 {
-                    RequestAction = alreadyRequested? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
+                    RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Name,
                     IpString = appServer.Ip,
@@ -378,7 +382,7 @@ namespace FWO.Services
                 (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer.Content, mgt);
                 newGroupMembers.Add(new()
                 {
-                    RequestAction = alreadyRequested? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
+                    RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,

@@ -31,32 +31,32 @@ namespace FWO.Services
         private readonly MiddlewareClient middlewareClient;
         private readonly UserConfig userConfig;
         private readonly Action<Exception?, string, string, bool> displayMessageInUi;
+        private readonly bool useInMwServer = false;
         private List<UserGroup> ownerGroups = [];
         private List<UiUser> uiUsers = [];
         private string? ScopedUserTo;
         private string? ScopedUserCc;
 
 
-
-        public EmailHelper(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
+        public EmailHelper(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, List<UserGroup>? ownerGroups = null, bool useInMwServer = false)
         {
             this.apiConnection = apiConnection;
             this.middlewareClient = middlewareClient;
             this.userConfig = userConfig;
             this.displayMessageInUi = displayMessageInUi;
+            this.useInMwServer = useInMwServer;
+            this.ownerGroups = ownerGroups ?? [];
         }
 
         public async Task Init(string? scopedUserTo = null, string? scopedUserCc = null)
         {
-            ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, displayMessageInUi, true);
+            if(!useInMwServer)
+            {
+                ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, displayMessageInUi, true);
+            }
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserEmails);
             ScopedUserTo = scopedUserTo;
             ScopedUserCc = scopedUserCc;
-        }
-
-        public List<UserGroup> GetOwnerGroups()
-        {
-            return ownerGroups;
         }
 
         public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body)
@@ -155,15 +155,13 @@ namespace FWO.Services
 
         private List<string> CollectEmailAddressesFromOwner(FwoOwner? owner)
         {
-            List<string> tos = new() { GetEmailAddress(owner?.Dn) };
-            tos.AddRange(GetAddressesFromGroup(owner?.GroupDn));
+            List<string> tos = [GetEmailAddress(owner?.Dn), .. GetAddressesFromGroup(owner?.GroupDn)];
             return tos;
         }
 
         private List<string> CollectEmailAddressesFromUserOrGroup(string? dn)
         {
-            List<string> tos = new() { GetEmailAddress(dn) };
-            tos.AddRange(GetAddressesFromGroup(dn));
+            List<string> tos = [GetEmailAddress(dn), .. GetAddressesFromGroup(dn)];
             return tos;
         }
 

@@ -11,16 +11,20 @@ namespace FWO.Services
         private List<WfState> states = [];
         private readonly ApiConnection apiConnection;
         private readonly WfHandler wfHandler = new ();
+        private readonly bool useInMwServer = false;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
         public bool DisplayConnectionMode = false;
         public ModellingConnectionHandler? ConnHandler { get; set; }
+        private readonly List<UserGroup>? UserGroups = [];
 
 
-        public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler)
+        public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false)
         {
             this.apiConnection = apiConnection;
             this.wfHandler = wfHandler;
+            this.useInMwServer = useInMwServer;
+            UserGroups = userGroups;
         }
 
         public async Task Init()
@@ -42,7 +46,7 @@ namespace FWO.Services
             return offeredActions;
         }
 
-        public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null)
+        public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
         {
             if (statefulObject.StateChanged())
             {
@@ -51,7 +55,7 @@ namespace FWO.Services
                 {
                     if(action.Phase == "" || action.Phase == wfHandler.Phase.ToString())
                     {
-                        await PerformAction(action, statefulObject, scope, owner, ticketId);
+                        await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
                     }
                 }
                 List<WfStateAction> fromStateActions = GetRelevantActions(statefulObject, scope, false);
@@ -59,7 +63,7 @@ namespace FWO.Services
                 {
                     if(action.Phase == "" || action.Phase == wfHandler.Phase.ToString())
                     {
-                        await PerformAction(action, statefulObject, scope, owner, ticketId);
+                        await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
                     }
                 }
                 statefulObject.ResetStateChanged();
@@ -145,7 +149,7 @@ namespace FWO.Services
             {
                 EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
                 await SetScope(statefulObject, scope, emailActionParams);
-                EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, DefaultInit.DoNothing);
+                EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, DefaultInit.DoNothing, UserGroups, useInMwServer);
                 await emailHelper.Init(ScopedUserTo, ScopedUserCc);
                 if(owner != null)
                 {

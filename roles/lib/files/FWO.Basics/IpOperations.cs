@@ -157,17 +157,19 @@ namespace FWO.Basics
             //{
                 IPAddress start;
                 IPAddress end;
-                if (!IPAddress.TryParse(startIp, out start))
+                if (!IPAddress.TryParse(startIp.StripOffNetmask(), out start))
                 {
-                    throw new ArgumentException($"IP {start} is not valid");
+                    throw new ArgumentException($"IP {startIp} is not valid");
                 }
-                if (!IPAddress.TryParse(endIp, out end))
+                if (!IPAddress.TryParse(endIp.StripOffNetmask(), out end))
                 {
-                    throw new ArgumentException($"IP {end} is not valid");
+                    throw new ArgumentException($"IP {endIp} is not valid");
                 }
                 // Ensure both IPs are of the same address family (both IPv4 or both IPv6)
                 if (start.AddressFamily != end.AddressFamily)
+                {
                     throw new ArgumentException("Start and end IPs must be of the same address family.");
+                }
 
                 // Start from the largest possible prefix length and decrease to find the exact network match
                 int maxPrefixLength = start.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128;
@@ -186,7 +188,8 @@ namespace FWO.Basics
                             ? GetIPv4SubnetMask(network.PrefixLength)  // Convert PrefixLength to Subnet Mask for IPv4
                             : $"(IPv6) /{network.PrefixLength}"; // IPv6 uses CIDR notation directly
 
-                        return $"{network}/{subnetMask}";
+                        string resultingIpString = $"{network.ToString().StripOffNetmask()}/{subnetMask}";
+                        return resultingIpString;
                     }
                 }
 

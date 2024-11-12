@@ -156,7 +156,7 @@ DROP FUNCTION purge_view_rule_with_owner();
 
 -- LargeOwnerChange: remove MATERIALIZED for small installations
 -- SmallOwnerChange: add MATERIALIZED for large installations
-CREATE VIEW view_rule_with_owner AS
+CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	SELECT DISTINCT ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
 	r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid,
 	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,

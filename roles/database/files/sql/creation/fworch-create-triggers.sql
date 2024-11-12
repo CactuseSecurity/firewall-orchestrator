@@ -171,23 +171,23 @@ CREATE TRIGGER import_config_insert
 -- EXECUTE FUNCTION refresh_view_rule_with_owner_deferred();
 
 -- -- function used during import of owner data
--- CREATE OR REPLACE FUNCTION recert_refresh_per_owner(i_owner_id INTEGER) RETURNS VOID AS $$
--- DECLARE
--- 	r_mgm    RECORD;
--- BEGIN
--- 	BEGIN
--- 		FOR r_mgm IN
--- 			SELECT mgm_id, mgm_name FROM management
--- 		LOOP
--- 			PERFORM recert_refresh_one_owner_one_mgm (i_owner_id, r_mgm.mgm_id, NULL::TIMESTAMP);
--- 		END LOOP;
+CREATE OR REPLACE FUNCTION recert_refresh_per_owner(i_owner_id INTEGER) RETURNS VOID AS $$
+DECLARE
+	r_mgm    RECORD;
+BEGIN
+	BEGIN
+		FOR r_mgm IN
+			SELECT mgm_id, mgm_name FROM management
+		LOOP
+			PERFORM recert_refresh_one_owner_one_mgm (i_owner_id, r_mgm.mgm_id, NULL::TIMESTAMP);
+		END LOOP;
 
--- 	EXCEPTION WHEN OTHERS THEN
--- 		RAISE EXCEPTION 'Exception caught in recert_refresh_per_owner while handling management %', r_mgm.mgm_name;
--- 	END;
--- 	RETURN;
--- END;
--- $$ LANGUAGE plpgsql;
+	EXCEPTION WHEN OTHERS THEN
+		RAISE EXCEPTION 'Exception caught in recert_refresh_per_owner while handling management %', r_mgm.mgm_name;
+	END;
+	RETURN;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- CREATE OR REPLACE FUNCTION owner_change_triggered ()

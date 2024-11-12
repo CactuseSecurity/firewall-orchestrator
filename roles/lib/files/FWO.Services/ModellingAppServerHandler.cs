@@ -65,6 +65,22 @@ namespace FWO.Services
 
         private bool CheckAppServer()
         {
+            if (ActAppServer.Ip.TryGetNetmask(out string netmask))
+            {
+                (string Start, string End) = ActAppServer.Ip.CidrToRangeString();
+                ActAppServer.Ip = Start;
+                ActAppServer.IpEnd = End;
+            }
+            else if (ActAppServer.Ip.TrySplit('-', 1, out string ipEnd) && IPAddressRange.TryParse(ActAppServer.Ip, out IPAddressRange ipRange))
+            {
+                ActAppServer.Ip = ipRange.Begin.ToString();
+                ActAppServer.IpEnd = ipRange.End.ToString();
+            }
+            else
+            {
+                ActAppServer.IpEnd = ActAppServer.Ip;
+            }
+
             if (ActAppServer.Ip == null || ActAppServer.Ip == "" || ActAppServer.CustomType == null || ActAppServer.CustomType == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E5102"), true);
@@ -87,22 +103,6 @@ namespace FWO.Services
         {
             try
             {
-                if (ActAppServer.Ip.TryGetNetmask(out string netmask))
-                {
-                    (string Start, string End) = ActAppServer.Ip.CidrToRangeString();
-                    ActAppServer.Ip = Start;
-                    ActAppServer.IpEnd = End;
-                }
-                else if (ActAppServer.Ip.TrySplit('-', 1, out string ipEnd) && IPAddressRange.TryParse(ActAppServer.Ip, out IPAddressRange ipRange))
-                {
-                    ActAppServer.Ip = ipRange.Begin.ToString();
-                    ActAppServer.IpEnd = ipRange.End.ToString();
-                }
-                else
-                {
-                    ActAppServer.IpEnd = ActAppServer.Ip;
-                }
-
                 var Variables = new
                 {
                     name = ActAppServer.Name,
@@ -145,7 +145,8 @@ namespace FWO.Services
                     id = ActAppServer.Id,
                     name = ActAppServer.Name,
                     appId = Application.Id,
-                    ip = IPAddressRange.Parse(ActAppServer.Ip).ToCidrString(),   // todo ?
+                    ip = ActAppServer.Ip,   // todo ?
+                    ipEnd = ActAppServer.IpEnd,
                     importSource = GlobalConst.kManual,  // todo
                     customType = ActAppServer.CustomType
                 };

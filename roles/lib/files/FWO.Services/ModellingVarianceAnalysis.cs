@@ -1,10 +1,8 @@
 ﻿using FWO.Config.Api;
-using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
-using System.Text.Json;
 
 namespace FWO.Services
 {
@@ -80,7 +78,9 @@ namespace FWO.Services
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
                             Elements = elements,
-                            Comments = [ new(){ Comment = new(){ CommentText = "FWOC" + conn.Id.ToString() }} ]
+                            RuleAction = 1,  // Todo ??
+                            Tracking = 1,  // Todo ??
+                            Comments = [ new(){ Comment = new(){ CommentText = ConstructComment(conn) }} ]
                         });
                     }
                 }
@@ -95,6 +95,16 @@ namespace FWO.Services
                 task.StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0;
             }
             return TaskList;
+        }
+
+        private string ConstructComment(ModellingConnection conn)
+        {
+            string comment = "FWOC" + conn.Id.ToString();
+            if(conn.ExtraConfigs.Count > 0)
+            {
+                comment += ", " + userConfig.GetText("impl_instructions") + ": " + string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()));
+            }
+            return comment;
         }
 
         private async Task GetProductionState()
@@ -238,23 +248,23 @@ namespace FWO.Services
             return existingAppRole != null;
         }
 
-        private long? ResolveAppServerId(ModellingAppServer appServer, Management mgt)
+        private (long?, bool) ResolveAppServerId(ModellingAppServer appServer, Management mgt)
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
             ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer));
             if(existingAppServer != null)
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
-                return existingAppServer?.Id;
+                return (existingAppServer?.Id, true);
             }
             else if(alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer)) != null)
             {
-                return 0;
+                return (null, true);
             }
             else
             {
                 alreadyCreatedAppServers[mgt.Id].Add(appServer);
-                return null;
+                return (null, false);
             }
         }
 
@@ -295,15 +305,16 @@ namespace FWO.Services
             List<WfReqElement> groupMembers = [];
             foreach(var appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
             {
+                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
                 {
-                    RequestAction = RequestAction.create.ToString(),
+                    RequestAction = alreadyRequested? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Name,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = appRole.IdString,
-                    NetworkId = ResolveAppServerId(appServer, mgt)
+                    NetworkId = networkId
                 });
             }
             Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
@@ -364,10 +375,10 @@ namespace FWO.Services
             unchangedGroupMembersDuringCreate = [];
             foreach(var appServer in newAppServers)
             {
-                long? networkId = ResolveAppServerId(appServer.Content, mgt);
+                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer.Content, mgt);
                 newGroupMembers.Add(new()
                 {
-                    RequestAction = RequestAction.create.ToString(),
+                    RequestAction = alreadyRequested? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,

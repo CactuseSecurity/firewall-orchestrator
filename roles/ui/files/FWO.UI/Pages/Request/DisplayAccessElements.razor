@@ -84,7 +84,14 @@
                     @foreach(var source in Sources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@NwObjDisplay.DisplayIp(source.IpString, source.IpEndString)</label>
+                            @if(source.GroupName != null && source.GroupName != "")
+                            {
+                                <label>@source.GroupName</label>
+                            }
+                            else
+                            {
+                                <label>@NwObjDisplay.DisplayIp(source.IpString, source.IpEndString)</label>
+                            }
                         </div>
                     }
                 </div>
@@ -116,7 +123,14 @@
                     @foreach(var destination in Destinations.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@NwObjDisplay.DisplayIp(destination.IpString, destination.IpEndString)</label>
+                            @if(destination.GroupName != null && destination.GroupName != "")
+                            {
+                                <label>@destination.GroupName</label>
+                            }
+                            else
+                            {
+                                <label>@NwObjDisplay.DisplayIp(destination.IpString, destination.IpEndString)</label>
+                            }
                         </div>
                     }
                 </div>

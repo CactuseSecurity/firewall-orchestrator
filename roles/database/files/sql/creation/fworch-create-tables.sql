@@ -1119,7 +1119,7 @@ create table ext_request
 create schema request;
 
 CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule');
-CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify');
+CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify', 'unchanged', 'addAfterCreation');
 
 -- create tables
 create table request.reqtask 
@@ -1380,7 +1380,8 @@ create table modelling.connection
 	is_published boolean default false,
 	creator Varchar,
 	creation_date timestamp default now(),
-	conn_prop Varchar
+	conn_prop Varchar,
+	extra_params Varchar
 );
 
 create table modelling.selected_objects

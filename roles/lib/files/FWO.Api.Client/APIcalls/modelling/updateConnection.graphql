@@ -10,6 +10,7 @@ mutation updateConnection(
   $isPublished: Boolean
   $commonSvc: Boolean
   $connProp: String
+  $extraParams: String
   ) {
   update_modelling_connection_by_pk(
     pk_columns: { id: $id }
@@ -24,6 +25,7 @@ mutation updateConnection(
       is_published: $isPublished
       common_service: $commonSvc
       conn_prop: $connProp
+      extra_params: $extraParams
   }) {
     UpdatedId: id
   }

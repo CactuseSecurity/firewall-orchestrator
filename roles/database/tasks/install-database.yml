@@ -87,6 +87,7 @@
       - fworch-create-indices.sql
       - fworch-create-triggers.sql
       - fworch-fill-stm.sql
+      - fworch-views-materialized.sql
     when: installation_mode == "new"
     become: true
     become_user: postgres

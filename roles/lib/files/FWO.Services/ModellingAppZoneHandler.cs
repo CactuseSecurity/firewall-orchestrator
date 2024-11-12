@@ -27,20 +27,25 @@ namespace FWO.Services
             }
 
             await DeleteExistingAppZones(owner.Id);
-
-            ModellingAppZone appZone = new();
+                       
+            ModellingAppZone appZone = new()
+            {
+                AppId = owner.Id,
+            };
 
             ApplyNamingConvention(owner.ExtAppId.ToUpper(), appZone);
 
             List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = owner.Id });
-            List<ModellingAppServerWrapper> appServerWrappers = [];
 
             foreach (ModellingAppServer appServer in appServers)
             {
-                appServerWrappers.Add(new ModellingAppServerWrapper() { Content = appServer });
+                appZone.AppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
             }
 
-            await AddAppZoneToDb(appZone);
+            int appZoneId = await AddAppZoneToDb(appZone);
+
+            appZone.Id = appZoneId;
+
             await AddAppServerToAppZone(appZone);
         }
 
@@ -83,7 +88,7 @@ namespace FWO.Services
             appZone.Name = $"{NamingConvention.AppZone}{appZone.ManagedIdString.AppPart}";
         }
 
-        private async Task<int?> AddAppZoneToDb(ModellingAppZone appZone)
+        private async Task<int> AddAppZoneToDb(ModellingAppZone appZone)
         {
             try
             {

@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace FWO.Services
 {
-    public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, bool addMode = false) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi, addMode)
+    public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
     {
         public ModellingNamingConvention NamingConvention = new();
         public List<ModellingAppZone> AppZones { get; set; } = [];
@@ -26,25 +26,9 @@ namespace FWO.Services
                 return;
             }
 
-            (bool success, List<ModellingAppZone>? existingAppZones) = await GetExistingAppZone(owner.Id);
+            await DeleteExistingAppZones(owner.Id);
 
-            if (!success || existingAppZones is null)
-                return;
-
-            ModellingAppZone appZone;
-
-            if (existingAppZones.Count > 0)
-            {
-                appZone = existingAppZones[0];
-            }
-            else
-            {
-                appZone = new()
-                {
-                    AppId = owner.Id,
-                };
-                AddMode = true;
-            }
+            ModellingAppZone appZone = new();
 
             ApplyNamingConvention(owner.ExtAppId.ToUpper(), appZone);
 
@@ -56,19 +40,21 @@ namespace FWO.Services
                 appServerWrappers.Add(new ModellingAppServerWrapper() { Content = appServer });
             }
 
-            //Only new appservers that are not in the DB are selected
-            appZone.AppServers = appServerWrappers.Except(appZone.AppServers, new AppServerComparer()).ToList();
-
-            if (AddMode)
-            {
-                await AddAppZoneToDb(appZone);
-            }
-            else
-            {
-                //await UpdateAppZoneToDb(appZone);
-            }
-
+            await AddAppZoneToDb(appZone);
             await AddAppServerToAppZone(appZone);
+        }
+
+        private async Task DeleteExistingAppZones(int ownerId)
+        {
+            (bool success, List<ModellingAppZone>? existingAppZones) = await GetExistingAppZone(ownerId);
+
+            if (success && existingAppZones is not null && existingAppZones.Count > 0)
+            {
+                foreach (ModellingAppZone existingAppZone in existingAppZones)
+                {
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = existingAppZone.Id });
+                }
+            }
         }
 
         private async Task<(bool, List<ModellingAppZone>?)> GetExistingAppZone(int appId)
@@ -120,11 +106,6 @@ namespace FWO.Services
             }
 
             return -1;
-        }
-
-        private async Task UpdateAppZoneToDb(ModellingAppZone appZone)
-        {
-            throw new NotImplementedException();
         }
 
         private async Task AddAppServerToAppZone(ModellingAppZone appZone)

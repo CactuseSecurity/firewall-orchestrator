@@ -81,6 +81,12 @@ CREATE TRIGGER import_config_insert
     EXECUTE PROCEDURE import_config_from_json ();
 
 ---------------------------------------------------------------------------------------------
+-- Multiple Null app_id_external cause duplicate key error
+
+ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_app_id_external_key;
+CREATE UNIQUE INDEX owner_app_id_external_key ON owner(app_id_external) WHERE app_id_external IS NOT NULL;
+
+---------------------------------------------------------------------------------------------
 -- new import
 
 Create table IF NOT EXISTS "rulebase" 

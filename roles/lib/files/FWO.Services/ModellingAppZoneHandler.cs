@@ -115,7 +115,7 @@ namespace FWO.Services
             }
             catch (Exception ex)
             {
-                DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), "", true);
+                DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9202"), true);
             }
 
             return -1;

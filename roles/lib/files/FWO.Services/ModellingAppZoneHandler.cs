@@ -23,12 +23,32 @@ namespace FWO.Services
             {
                 string errorMessage = $"{userConfig.GetText("app_owner_not_found")}: External-App-Id: {extAppId}";
                 Exception exception = new ArgumentException(errorMessage);
-                DisplayMessageInUi(exception, userConfig.GetText("network_modelling"), errorMessage, false);
+                DisplayMessageInUi(exception, userConfig.GetText("app_zone_creation"), errorMessage, false);
                 return;
             }
 
+            await CreateAppZones(owner);
+        }
+
+        public async Task CreateAppZones(int appId)
+        {
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+
+            FwoOwner? owner = owners.FirstOrDefault(_ => _.Id == appId);
+
+            if (owner is null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("app_zone_creation"), userConfig.GetText("app_owner_not_found"), false);
+                return;
+            }
+
+            await CreateAppZones(owner);
+        }
+
+        private async Task CreateAppZones(FwoOwner owner)
+        {
             await DeleteExistingAppZones(owner.Id);
-                       
+
             ModellingAppZone appZone = new()
             {
                 AppId = owner.Id,

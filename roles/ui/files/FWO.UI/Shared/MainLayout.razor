@@ -124,6 +124,7 @@
         ModellingAppZone appZone = new();
         ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUiFunction);
         await appZoneHandler.CreateAppZones("App-4711");
+        await appZoneHandler.CreateAppZones(5);
     }
 
     protected override void OnInitialized()

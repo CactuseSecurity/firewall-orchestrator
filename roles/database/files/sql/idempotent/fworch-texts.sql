@@ -3075,6 +3075,8 @@ INSERT INTO txt VALUES ('E9202', 'German',  'Fehler beim Erzeugen der App Zonen 
 INSERT INTO txt VALUES ('E9202', 'English', 'Error creating app zone objects');
 INSERT INTO txt VALUES ('E9203', 'German',  'Fehler beim Abrufen der existierenden App Zonen Objekte');
 INSERT INTO txt VALUES ('E9203', 'English', 'Error retrieving the existing app zone objects');
+INSERT INTO txt VALUES ('E9204', 'German',  'Fehler beim Hinzuf&uuml;gen des App Servers zum App Zonen Objekt');
+INSERT INTO txt VALUES ('E9204', 'English', 'Error adding the App Server to the App Zone object');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

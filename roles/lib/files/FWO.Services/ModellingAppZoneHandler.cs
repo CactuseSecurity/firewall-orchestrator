@@ -61,6 +61,8 @@ namespace FWO.Services
                     try
                     {
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = existingAppZone.Id });
+
+                        await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppZone, existingAppZone.Id, $"Delete App Zone: {existingAppZone.Display()}", ownerId);
                     }
                     catch (Exception ex)
                     {
@@ -85,7 +87,7 @@ namespace FWO.Services
                 DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9203"), true);
             }
 
-            return (false, []);
+            return (false, default);
         }
 
         private void ApplyNamingConvention(string extAppId, ModellingAppZone appZone)
@@ -110,6 +112,8 @@ namespace FWO.Services
 
                 ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppZone, azVars) ).ReturnIds;
 
+                await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppZone, appZone.Id, $"New App Zone: {appZone.Display()}", null);
+
                 if (returnIds != null && returnIds.Length > 0)
                     return returnIds[0].NewId;
             }
@@ -132,8 +136,6 @@ namespace FWO.Services
                 };
 
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, nwobject_nwgroupVars);
-
-                await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppZone, appZone.Id, $"New App Zone: {appZone.Display()}", appZone.AppId);
             }
         }
     }

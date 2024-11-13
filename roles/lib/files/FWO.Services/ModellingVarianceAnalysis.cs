@@ -303,7 +303,7 @@ namespace FWO.Services
             }
             foreach(var exAppserver in existingAppRole.AppServers)
             {
-                if(appRole.AppServers.FirstOrDefault(a => AreEqual(a.Content, exAppserver.Content)) == null)
+                if(appRole.AppServers.FirstOrDefault(a => AreEqual(exAppserver.Content, a.Content)) == null)
                 {
                     deletedAppServers.Add(exAppserver);
                 }

@@ -431,6 +431,7 @@ Network Modelling feature update
 - modelling can be requested as firewall change via external ticketing tool
 - includes all approle handling
 - simple form of rule change request (always request all connections as rules)
+- api hasura upgrade to 2.44.0
 Fixes
 - various small UI fixes
- 
+- importer (CP: handle None objects)

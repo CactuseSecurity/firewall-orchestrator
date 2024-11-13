@@ -75,14 +75,14 @@ namespace FWO.Services
             try
             {
                 List<ModellingAppZone> existingAppZones = await apiConnection.SendQueryAsync<List<ModellingAppZone>>(ModellingQueries.getAppZonesByAppId, new { appId = appId });
-
+                
                 if (existingAppZones is not null)
                     return (true, existingAppZones);
 
             }
             catch (Exception ex)
             {
-                DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), "", true);
+                DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9203"), true);
             }
 
             return (false, []);

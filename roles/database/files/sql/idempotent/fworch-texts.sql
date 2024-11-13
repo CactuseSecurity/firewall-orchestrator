@@ -3069,10 +3069,12 @@ INSERT INTO txt VALUES ('E9017', 'English', 'Interface cannot replace requested 
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 
-INSERT INTO txt VALUES ('E9201', 'German',  'Fehler beim l&ouml;schen der existierenden App Zonen Objekte');
+INSERT INTO txt VALUES ('E9201', 'German',  'Fehler beim L&ouml;schen der existierenden App Zonen Objekte');
 INSERT INTO txt VALUES ('E9201', 'English', 'Error deleting existing app zone objects');
-INSERT INTO txt VALUES ('E9202', 'German',  'Fehler beim erzeugen der App Zonen Objekte');
+INSERT INTO txt VALUES ('E9202', 'German',  'Fehler beim Erzeugen der App Zonen Objekte');
 INSERT INTO txt VALUES ('E9202', 'English', 'Error creating app zone objects');
+INSERT INTO txt VALUES ('E9203', 'German',  'Fehler beim Abrufen der existierenden App Zonen Objekte');
+INSERT INTO txt VALUES ('E9203', 'English', 'Error retrieving the existing app zone objects');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

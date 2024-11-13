@@ -1,17 +1,15 @@
 ﻿using FWO.Api.Client;
-using FWO.Api.Data;
-using FWO.Config.Api;
 using FWO.Api.Client.Data;
 using FWO.Api.Client.Queries;
+using FWO.Api.Data;
+using FWO.Config.Api;
 using System.Text.Json;
-using System;
 
 namespace FWO.Services
 {
     public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
     {
-        public ModellingNamingConvention NamingConvention = new();
-        public List<ModellingAppZone> AppZones { get; set; } = [];
+        private ModellingNamingConvention NamingConvention = new();
 
         public async Task CreateAppZones(string extAppId)
         {
@@ -74,7 +72,7 @@ namespace FWO.Services
         {
             (bool success, List<ModellingAppZone>? existingAppZones) = await GetExistingAppZone(ownerId);
 
-            if (success && existingAppZones is not null && existingAppZones.Count > 0)
+            if (success && existingAppZones is not null)
             {
                 foreach (ModellingAppZone existingAppZone in existingAppZones)
                 {
@@ -97,10 +95,9 @@ namespace FWO.Services
             try
             {
                 List<ModellingAppZone> existingAppZones = await apiConnection.SendQueryAsync<List<ModellingAppZone>>(ModellingQueries.getAppZonesByAppId, new { appId = appId });
-                
+
                 if (existingAppZones is not null)
                     return (true, existingAppZones);
-
             }
             catch (Exception ex)
             {
@@ -120,16 +117,16 @@ namespace FWO.Services
 
         private async Task<int> AddAppZoneToDb(ModellingAppZone appZone)
         {
+            var azVars = new
+            {
+                appId = appZone.AppId,
+                name = appZone.Name,
+                idString = appZone.IdString,
+                creator = "CreateAZObjects"
+            };
+
             try
             {
-                var azVars = new
-                {
-                    appId = appZone.AppId,
-                    name = appZone.Name,
-                    idString = appZone.IdString,
-                    creator = "CreateAZObjects"
-                };
-
                 ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppZone, azVars) ).ReturnIds;
 
                 await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppZone, appZone.Id, $"New App Zone: {appZone.Display()}", null);
@@ -155,7 +152,14 @@ namespace FWO.Services
                     nwGroupId = appZone.Id
                 };
 
-                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, nwobject_nwgroupVars);
+                try
+                {
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, nwobject_nwgroupVars);
+                }
+                catch (Exception ex)
+                {
+                    DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9202"), true);
+                }
             }
         }
     }

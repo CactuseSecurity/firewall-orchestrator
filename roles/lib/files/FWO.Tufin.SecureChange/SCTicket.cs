@@ -214,7 +214,7 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@APPID@@", appId)
 				.Replace("@@TASKS@@", string.Join(",", TicketTasks));
 			bool shortened = false;
-			TicketText = Sanitizer.SanitizeJsonMand(TicketText, ref shortened);
+			TicketText = Sanitizer.SanitizeEolMand(TicketText, ref shortened);
 			CheckForProperJson(TicketText);
 		}
 	}

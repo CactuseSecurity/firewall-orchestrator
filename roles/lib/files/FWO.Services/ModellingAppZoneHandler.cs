@@ -36,7 +36,9 @@ namespace FWO.Services
 
             if (owner is null)
             {
-                DisplayMessageInUi(null, userConfig.GetText("app_zone_creation"), userConfig.GetText("app_owner_not_found"), false);
+                string errorMessage = $"{userConfig.GetText("app_owner_not_found")}: App-Id: {appId}";
+                Exception exception = new ArgumentException(errorMessage);
+                DisplayMessageInUi(exception, userConfig.GetText("app_zone_creation"), errorMessage, false);
                 return;
             }
 

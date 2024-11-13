@@ -213,6 +213,8 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@REASON@@", reqTask?.Reason ?? DefaultReason)
 				.Replace("@@APPID@@", appId)
 				.Replace("@@TASKS@@", string.Join(",", TicketTasks));
+			bool shortened = false;
+			TicketText = Sanitizer.SanitizeJsonMand(TicketText, ref shortened);
 			CheckForProperJson(TicketText);
 		}
 	}

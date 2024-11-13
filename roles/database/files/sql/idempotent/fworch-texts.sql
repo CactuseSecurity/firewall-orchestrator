@@ -1541,6 +1541,8 @@ INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfer
 INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
 INSERT INTO txt VALUES ('app_owner_not_found',  'German',   'Keinen Owner für diese App gefunden');
 INSERT INTO txt VALUES ('app_owner_not_found',  'English',  'No owner found for this app');
+INSERT INTO txt VALUES ('delete_app_zone', 	    'German',	'App Zone l&ouml;schen');
+INSERT INTO txt VALUES ('delete_app_zone', 	    'English',	'Delete App Zone');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -3066,6 +3068,9 @@ INSERT INTO txt VALUES ('E9017', 'German',  'Schnittstelle kann die angeforderte
 INSERT INTO txt VALUES ('E9017', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
+
+INSERT INTO txt VALUES ('E9201', 'German',  'Fehler beim l&ouml;schen der existierenden App Zonen Objekte');
+INSERT INTO txt VALUES ('E9201', 'English', 'Error deleting existing app zone objects');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

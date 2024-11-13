@@ -4,6 +4,7 @@ using FWO.Config.Api;
 using FWO.Api.Client.Data;
 using FWO.Api.Client.Queries;
 using System.Text.Json;
+using System;
 
 namespace FWO.Services
 {
@@ -57,7 +58,14 @@ namespace FWO.Services
             {
                 foreach (ModellingAppZone existingAppZone in existingAppZones)
                 {
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = existingAppZone.Id });
+                    try
+                    {
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = existingAppZone.Id });
+                    }
+                    catch (Exception ex)
+                    {
+                        DisplayMessageInUi(ex, userConfig.GetText("delete_app_zone"), userConfig.GetText("E9201"), true);
+                    }
                 }
             }
         }

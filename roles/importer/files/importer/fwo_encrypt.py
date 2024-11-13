@@ -2,6 +2,7 @@ import base64
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
+import traceback
 from fwo_log import getFwoLogger
 
 # can be used for decrypting text encrypted with C# (mw-server)

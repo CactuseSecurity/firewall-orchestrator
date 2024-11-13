@@ -11,7 +11,9 @@
 @using FWO.Logging
 @using FWO.Recert
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Tufin.SecureChange
 @using System.Text.Json
+@using FWO.Services
 
 @page "/settings/extticketing"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -30,8 +32,32 @@
 @if (configData != null)
 {
     <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5426a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("externalRequestSleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.ExternalRequestSleepTime" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5427a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("externalRequestStartAt")):</label>
+            <div class="col-sm-4">
+                <div class="row">
+                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="extReqStartTime" />
+                    <input type="date" class="col-sm-5" @bind="extReqStartDate" />
+                </div>
+            </div>
+        </div>
+        <hr />
         <div class="form-group row mt-2">
-             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
+             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5597"))">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_type")):</label>
+                <div class="col-sm-4">
+                    <Dropdown ElementType="ExternalTicketSystemType" SelectedElement="actExtTicketSystemType"
+                        SelectedElementChanged="InitTaskTypeList"
+                        Elements="Enum.GetValues(typeof(ExternalTicketSystemType)).Cast<ExternalTicketSystemType>()" />
+                </div>
+            </div>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_url")):</label>
                 <div class="col-sm-8">
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemUrl" />
@@ -43,18 +69,24 @@
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemAuth" />
                 </div>
             </div>
-             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5595"))">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_template")):</label>
-                <div class="col-sm-8">
-                    <textarea rows="10" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("ext_ticket_template_ph")) @bind="ticketTemplate"></textarea>   
-                </div>
-            </div>
-             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596"))">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_task_template")):</label>
-                <div class="col-sm-8">
-                    <textarea rows="30" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("ext_task_template_ph")) @bind="tasksTemplate"></textarea>   
-                </div>
-            </div>
+            <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
+                @{int pos = 0;}
+                @foreach(var template in extTicketingSystemTemplates)
+                {
+                    <Tab Title="@(template.TaskType)" Position=pos++>
+                        <ExtTicketTemplates Template="template" />
+                    </Tab>
+                }
+                <Tab Title="  +  " Position=pos>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                        <div class="col-sm-4">
+                            <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="actTaskTypes" />
+                        </div>
+                    </div>
+                    <ExtTicketTemplates Template="newTemplate" />
+                </Tab>
+            </TabSet>
         </div>
     </form>
     <hr />
@@ -80,25 +112,45 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
+    private ExternalTicketSystemType actExtTicketSystemType = ExternalTicketSystemType.Generic;
     private string extTicketingSystemUrl = "";
     private string extTicketingSystemAuth = "";
-    private string ticketTemplate = "";
-    private string tasksTemplate = "";
-
-    ExternalTicketSystem currentSystem = new();
+    private List<ExternalTicketSystem> extTicketSystems = [];
+    private List<ExternalTicketTemplate> extTicketingSystemTemplates = [];
+    private DateTime extReqStartDate = DateTime.Today;
+    private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private ExternalTicketTemplate newTemplate = new();
+    private List<string> actTaskTypes = [];
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            List<ExternalTicketSystem> extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new();
-            if (extTicketSystems.Count()>0)
+            extReqStartDate = extReqStartTime = configData.ExternalRequestStartAt;
+            extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new();
+            if (extTicketSystems.Count() > 0)
             {
+                // todo: loop over several systems
+                actExtTicketSystemType = extTicketSystems.First().Type;
+                InitTaskTypeList(actExtTicketSystemType);
                 extTicketingSystemUrl = extTicketSystems.First().Url;
                 extTicketingSystemAuth = extTicketSystems.First().Authorization;
-                ticketTemplate = extTicketSystems.First().TicketTemplate;
-                tasksTemplate = extTicketSystems.First().TasksTemplate;
+                if(extTicketSystems.First().Templates.Count == 0 && 
+                    (extTicketSystems.First().TicketTemplate != "" || extTicketSystems.First().TasksTemplate != ""))
+                {
+                    // backwards compatibility
+                    extTicketingSystemTemplates.Add(new()
+                    {
+                        TaskType = SCTaskType.AccessRequest.ToString(),
+                        TicketTemplate = extTicketSystems.First().TicketTemplate,
+                        TasksTemplate = extTicketSystems.First().TasksTemplate
+                    });
+                }
+                else
+                {
+                    extTicketingSystemTemplates = extTicketSystems.First().Templates;
+                }
             }
         }
         catch (Exception exception)
@@ -107,14 +159,55 @@ else
         }
     }
 
+    private void InitTaskTypeList(ExternalTicketSystemType extTicketSystemType)
+    {
+        actExtTicketSystemType = extTicketSystemType;
+        switch(extTicketSystemType)
+        {
+            case ExternalTicketSystemType.Generic:
+                actTaskTypes = [];
+                break;
+            case ExternalTicketSystemType.TufinSecureChange:
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
+                break;
+            case ExternalTicketSystemType.AlgoSec:
+                actTaskTypes = [];
+                break;
+            case ExternalTicketSystemType.ServiceNow:
+                actTaskTypes = [];
+                break;
+        }
+        newTemplate.TaskType = actTaskTypes.Count > 0 ? actTaskTypes.First() : "";
+    }
+
     private async Task Save()
     {
         try
         {
             if (configData != null)
             {
-                List<ExternalTicketSystem> currentSystems = new();
-                currentSystems.Add(new ExternalTicketSystem(extTicketingSystemUrl, ticketTemplate, tasksTemplate, extTicketingSystemAuth));
+                configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
+                List<ExternalTicketSystem> currentSystems = [];
+                // todo: loop over several systems
+                if(newTemplate.TicketTemplate != "" || newTemplate.TasksTemplate != "")
+                {
+                    extTicketingSystemTemplates.Add(new()
+                    {
+                        TaskType = newTemplate.TaskType.ToString(),
+                        TicketTemplate = newTemplate.TicketTemplate,
+                        TasksTemplate = newTemplate.TasksTemplate
+                    });
+                }
+                extTicketingSystemTemplates = extTicketingSystemTemplates.Where(t => t.TicketTemplate != "" || t.TasksTemplate != "").ToList();
+                ExternalTicketSystem newSystem = new()
+                {
+                    Type = actExtTicketSystemType,
+                    Url = extTicketingSystemUrl,
+                    Authorization = extTicketingSystemAuth,
+                    Templates = extTicketingSystemTemplates
+                };
+                newSystem.Sanitize();
+                currentSystems.Add(newSystem);
                 configData.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(currentSystems);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("ext_ticket_settings"), userConfig.GetText("U5301"), false);
@@ -129,5 +222,4 @@ else
             DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_settings"), "", true);
         }
     }
-
 }

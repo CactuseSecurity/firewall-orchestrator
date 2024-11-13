@@ -63,7 +63,7 @@ namespace FWO.Config.Api.Data
 		public int AutoDiscoverSleepTime { get; set; } = 24;
 
 		[JsonProperty("autoDiscoverStartAt"), JsonPropertyName("autoDiscoverStartAt")]
-		public DateTime AutoDiscoverStartAt { get; set; } = new DateTime();
+		public DateTime AutoDiscoverStartAt { get; set; } = new();
 
 		[JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
 		public int FwApiElementsPerFetch { get; set; } = 150;
@@ -87,7 +87,13 @@ namespace FWO.Config.Api.Data
 		public int ImpChangeNotifySleepTime { get; set; } = 60;
 
 		[JsonProperty("impChangeNotifyStartAt"), JsonPropertyName("impChangeNotifyStartAt")]
-		public DateTime ImpChangeNotifyStartAt { get; set; } = new DateTime();
+		public DateTime ImpChangeNotifyStartAt { get; set; } = new();
+
+		[JsonProperty("externalRequestSleepTime"), JsonPropertyName("externalRequestSleepTime")]
+		public int ExternalRequestSleepTime { get; set; } = 60;
+
+		[JsonProperty("externalRequestStartAt"), JsonPropertyName("externalRequestStartAt")]
+		public DateTime ExternalRequestStartAt { get; set; } = new();
 
 
 		[JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
@@ -193,7 +199,7 @@ namespace FWO.Config.Api.Data
 		public int MessageViewTime { get; set; } = 7;
 
 		[JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
-		public DateTime DailyCheckStartAt { get; set; } = new DateTime();
+		public DateTime DailyCheckStartAt { get; set; } = new();
 
 		[JsonProperty("maxImportDuration"), JsonPropertyName("maxImportDuration")]
 		public int MaxImportDuration { get; set; } = 4;
@@ -253,6 +259,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
 		public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
 
+        // [JsonProperty("modUserGroupLdap"), JsonPropertyName("modUserGroupLdap")]
+        // public int ModUserGroupLdap { get; set; } = 1;	// 1 = internal ldap
+        
 		[JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
 		public string ImportSubnetDataPath { get; set; } = "";
 
@@ -295,9 +304,23 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
 		public string ModReqTaskTitle { get; set; } = "";
 
+		[JsonProperty("modRolloutActive"), JsonPropertyName("modRolloutActive")]
+		public bool ModRolloutActive { get; set; } = true;
+
+		[JsonProperty("modRolloutResolveServiceGroups"), JsonPropertyName("modRolloutResolveServiceGroups")]
+		public bool ModRolloutResolveServiceGroups { get; set; } = true;
+
+		[JsonProperty("modRolloutBundleTasks"), JsonPropertyName("modRolloutBundleTasks")]
+		public bool ModRolloutBundleTasks { get; set; } = false;
+
+		[JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
+		public string ModRolloutErrorText { get; set; } = "";
 
 		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
 		public string ExtTicketSystems { get; set; } = "";
+
+		[JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
+		public string ModExtraConfigs { get; set; } = "";
 
 		public ConfigData(bool editable = false)
 		{

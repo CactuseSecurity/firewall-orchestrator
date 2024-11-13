@@ -1,0 +1,5 @@
+subscription subscribeTicketStateChanges ($id: bigint!){
+  request_ticket(where: { id: {_eq: $id} }, limit: 1, order_by:{ticket_id:desc}) {
+    ...ticketDetails
+  }
+}

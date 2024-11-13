@@ -33,7 +33,9 @@ fragment implTaskDetails on request_impltask {
     implementation_task_id
     implementation_action
     ip
+    ip_end
     port
+    port_end
     ip_proto_id
     network_object_id
     service_id
@@ -41,6 +43,8 @@ fragment implTaskDetails on request_impltask {
     user_id
     original_nat_id
     rule_uid
+    group_name
+    name
   }
   comments: impltask_comments {
     comment: comment {

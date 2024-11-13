@@ -228,3 +228,9 @@ bugfix release:
 
 # 8.4.1 - 15.10.24 DEVELOP
 - Add missing FK connection.proposed_app_id #2591
+
+# 8.4.2 - 17.10.2024 DEVELOP
+- external request
+
+# 8.4.3 - 05.11.2024 DEVELOP
+- extra parameters in modelling connection

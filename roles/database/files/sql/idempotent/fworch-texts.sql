@@ -1563,6 +1563,8 @@ INSERT INTO txt VALUES ('implementation_error', 'German',   'Fehler bei der Umse
 INSERT INTO txt VALUES ('implementation_error', 'English',  'Implementation error');
 INSERT INTO txt VALUES ('update_subscription_error','German','Fehler beim Aktualisieren');
 INSERT INTO txt VALUES ('update_subscription_error','English','Update subscription error');
+INSERT INTO txt VALUES ('nwareachange_clear_app_servers',    'German',   'Sind Sie sicher, dass Sie die Netzwerk Area wechseln wollen?<br><br>Es werden alle hinzugef&uuml;gten App Server entfernt!');
+INSERT INTO txt VALUES ('nwareachange_clear_app_servers',    'English',  'Are you sure you want to change the network area?<br><br>All added app servers will be removed!');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

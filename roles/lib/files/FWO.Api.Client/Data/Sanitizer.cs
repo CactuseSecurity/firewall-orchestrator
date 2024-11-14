@@ -175,5 +175,15 @@ namespace FWO.Api.Data
             }
             return output;
         }
+
+        public static string SanitizeEolMand(string input, ref bool shortened)
+        {
+            string output = Regex.Replace(input, @"[\n\r]", " ").Trim();
+            if(output.Length < input.Length)
+            {
+                shortened = true;
+            }
+            return output;
+        }
     }
 }

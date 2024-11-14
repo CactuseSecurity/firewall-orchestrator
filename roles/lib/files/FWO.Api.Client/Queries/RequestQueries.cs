@@ -14,6 +14,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string newTicket;
         public static readonly string updateTicket;
         public static readonly string updateTicketState;
+        public static readonly string subscribeTicketStateChanges;
         public static readonly string newRequestTask;
         public static readonly string updateRequestTask;
         public static readonly string updateRequestTaskState;
@@ -67,6 +68,7 @@ namespace FWO.Api.Client.Queries
                 newTicket = File.ReadAllText(QueryPath + "request/newTicket.graphql");
                 updateTicket = File.ReadAllText(QueryPath + "request/updateTicket.graphql");
                 updateTicketState = File.ReadAllText(QueryPath + "request/updateTicketState.graphql");
+                subscribeTicketStateChanges = File.ReadAllText(QueryPath + "request/subscribeTicketStateChanges.graphql");
                 newRequestTask = File.ReadAllText(QueryPath + "request/newRequestTask.graphql");
                 updateRequestTask = File.ReadAllText(QueryPath + "request/updateRequestTask.graphql");
                 updateRequestTaskState = File.ReadAllText(QueryPath + "request/updateRequestTaskState.graphql");

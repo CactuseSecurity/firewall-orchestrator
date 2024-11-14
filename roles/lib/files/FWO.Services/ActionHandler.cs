@@ -195,9 +195,9 @@ namespace FWO.Services
                             var Variables = new
                             {
                                 id = conn.Id,
-                                appId = owner.Id
+                                propAppId = owner.Id
                             };
-                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionOwner, Variables);
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateProposedConnectionOwner, Variables);
                             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
                                 $"Updated {(conn.IsInterface? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
                         }

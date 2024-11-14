@@ -159,10 +159,10 @@ namespace FWO.Tufin.SecureChange
 			List<string> convertedObjects = [];
 			foreach(var nwObj in nwObjects)
 			{
-				if(nwObj.RequestAction == RequestAction.create.ToString())
+				if(nwObj.RequestAction == RequestAction.create.ToString() || nwObj.RequestAction == RequestAction.addAfterCreation.ToString())
 				{
 					string scObjType = GetSCObjectType(DisplayBase.AutoDetectType(nwObj.IpString, nwObj.IpEndString));
-					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId);
+					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction);
 					convertedObjects.Add(FillObjectTemplate(template, objUpdStatus == SCObjStatusValue.NEW.ToString() ? scObjType : "Object",
 						ConstructObjectName(nwObj, namingConvention), scObjType,
 						nwObj.IpString, nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus, mgmId ?? "0"));
@@ -170,7 +170,7 @@ namespace FWO.Tufin.SecureChange
 				else
 				{
 					convertedObjects.Add(FillObjectTemplateShort(template, ConstructObjectName(nwObj, namingConvention),
-						ObjStatus(nwObj.RequestAction), ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId), mgmId ?? "0"));
+						ObjStatus(nwObj.RequestAction), ObjUpdStatus(nwObj.RequestAction), mgmId ?? "0"));
 				}
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";
@@ -197,15 +197,16 @@ namespace FWO.Tufin.SecureChange
             return action switch
             {
                 nameof(RequestAction.create) => SCStatusValue.ADDED.ToString(),
+				nameof(RequestAction.addAfterCreation) => SCStatusValue.ADDED.ToString(),
                 nameof(RequestAction.delete) => SCStatusValue.DELETED.ToString(),
                 nameof(RequestAction.unchanged) => SCStatusValue.NOT_CHANGED.ToString(),
                 _ => "",
             };
         }
 
-		private static string ObjUpdStatus(string action, long? nwObjId)
+		private static string ObjUpdStatus(string action)
 		{
-			return action == nameof(RequestAction.create) && nwObjId == null ? SCObjStatusValue.NEW.ToString() : SCObjStatusValue.EXISTING_NOT_EDITED.ToString();
+			return action == nameof(RequestAction.create) ? SCObjStatusValue.NEW.ToString() : SCObjStatusValue.EXISTING_NOT_EDITED.ToString();
         }
 	}
 }

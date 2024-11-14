@@ -41,6 +41,12 @@ namespace FWO.Api.Data
         [JsonProperty("ext_ticket_id"), JsonPropertyName("ext_ticket_id")]
         public string? ExtTicketId { get; set; }
 
+        [JsonProperty("last_creation_response"), JsonPropertyName("last_creation_response")]
+        public string? LastCreationResponse { get; set; }
+
+        [JsonProperty("last_processing_response"), JsonPropertyName("last_processing_response")]
+        public string? LastProcessingResponse { get; set; }
+
         public string? LastMessage { get; set; }
     }
 }

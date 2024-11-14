@@ -24,6 +24,11 @@ namespace FWO.Test
             throw new NotImplementedException();
         }
 
+        public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        {
+            throw new NotImplementedException();
+        }
+
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
             throw new NotImplementedException();

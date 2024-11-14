@@ -39,6 +39,7 @@ namespace FWO.Api.Client
         public Dictionary<WorkflowPhases, bool> PhaseActive = [];
         public bool IsLastActivePhase = true;
         public int MinImplTasksNeeded;
+        public int MinTicketCompleted;
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
         {
@@ -59,6 +60,7 @@ namespace FWO.Api.Client
                 }
             }
             MinImplTasksNeeded = glbStateMatrix.GlobalMatrix[WorkflowPhases.implementation].LowestInputState;
+            MinTicketCompleted = glbStateMatrix.GlobalMatrix[PhaseActive.LastOrDefault(p => p.Value == true).Key].LowestEndState;
         }
 
         public bool getNextActivePhase(ref WorkflowPhases phase)

@@ -337,8 +337,7 @@ else
         }
         else
         {
-            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-            WfTicket? intTicket = await ticketCreator.GetTicket(selectedApp.Id, ticketIds.First().Id);
+            WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             if(intTicket != null)
             {
@@ -365,7 +364,8 @@ else
             List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
             if(lastRequests.Count > 0)
             {
-                string tooltip = lastRequests.First().LastProcessingResponse ?? lastRequests.First().LastCreationResponse ?? "";
+                bool shortened = false;
+                string tooltip = Sanitizer.SanitizeCommentOpt(lastRequests.First().LastProcessingResponse, ref shortened) ?? Sanitizer.SanitizeCommentOpt(lastRequests.First().LastCreationResponse, ref shortened) ?? "";
                 ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
             }
             else

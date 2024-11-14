@@ -143,10 +143,10 @@
         List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = SelectedApp.Id});
         if(ticketIds.Count > 0)
         {
-            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-            WfTicket? intTicket = await ticketCreator.GetTicket(SelectedApp.Id, ticketIds.First().Id);
+            WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
             if(intTicket != null)
             {
+                intTicket.UpdateCidrsInTaskElements();
                 TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
                 int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
                 int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
@@ -162,7 +162,8 @@
         {
             return userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
                 "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
-                "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString());
+                "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
+                (task.Comments.Count > 0 ? "<br>" + userConfig.GetText("comment") + ": " + task.Comments.First().Comment.CommentText : "");
         }
         else if(task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
         {

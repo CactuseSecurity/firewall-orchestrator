@@ -296,6 +296,10 @@
             {
                 Log.WriteDebug("CreateExtRequest", $"External Request for Ticket {intTicket.Id.ToString()} created.");
             }
+
+            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
+                0, $"Initialized Rollout Requests", apiConnection, userConfig, 
+				intTicket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester.Name);
         }
         catch (Exception exception)
         {

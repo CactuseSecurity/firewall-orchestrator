@@ -212,6 +212,34 @@ namespace FWO.Middleware.Server
 				extRequestState = ExtStates.ExtReqInitialized.ToString()
 			};
 			await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables);
+			await LogRequest(tasks, ticket.Requester?.Name);
+		}
+
+		private async Task LogRequest(List<WfReqTask> tasks, string? requester)
+		{
+			foreach(var task in tasks)
+			{
+				ModellingTypes.ModObjectType objType = ModellingTypes.ModObjectType.Connection;
+				long objId = 0;
+				if(task.GetAddInfoLongValue(AdditionalInfoKeys.ConnId) != null)
+				{
+					objId = task.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) ?? 0;
+					objType = ModellingTypes.ModObjectType.Connection;
+				}
+				else if(task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId) != null)
+				{
+					objId = task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId) ?? 0;
+					objType = ModellingTypes.ModObjectType.AppRole;
+				}
+				else if(task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) != null)
+				{
+					objId = task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) ?? 0;
+					objType = ModellingTypes.ModObjectType.ServiceGroup;
+				}
+				await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Request, objType, objId,
+                	$"Requested {task.Title} on {task.OnManagement?.Name}", 
+					ApiConnection, UserConfig, task.Owners.First()?.Owner.Id, DefaultInit.DoNothing, requester);
+			}
 		}
 
 		private async Task RejectFollowingTasks(WfTicket ticket, int lastTaskNumber)

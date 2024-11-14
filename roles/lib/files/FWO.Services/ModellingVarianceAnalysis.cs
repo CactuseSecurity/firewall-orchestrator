@@ -71,6 +71,7 @@ namespace FWO.Services
                     AnalyseServices(conn);
                     if(elements.Count > 0)
                     {
+                        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.ConnId, conn.Id.ToString()} };
                         AccessTaskList.Add(new()
                         {
                             Title = userConfig.GetText("new_connection") + ": " + conn.Name ?? "",
@@ -80,6 +81,7 @@ namespace FWO.Services
                             Elements = elements,
                             RuleAction = 1,  // Todo ??
                             Tracking = 1,  // Todo ??
+                            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo),
                             Comments = [ new(){ Comment = new(){ CommentText = ConstructComment(conn) }} ]
                         });
                     }
@@ -328,7 +330,7 @@ namespace FWO.Services
                     NetworkId = networkId
                 });
             }
-            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
+            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString}, {AdditionalInfoKeys.AppRoleId, appRole.Id.ToString()} };
             TaskList.Add(new()
             {
                 Title = userConfig.GetText("new_app_role") + appRole.IdString,
@@ -344,7 +346,7 @@ namespace FWO.Services
         private void RequestUpdateAppRole(ModellingAppRole appRole, Management mgt)
         {
             FillGroupMembers(appRole, mgt);
-            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
+            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString}, {AdditionalInfoKeys.AppRoleId, appRole.Id.ToString()} };
             if(newGroupMembers.Count > 0)
             {
                 newGroupMembers.AddRange(unchangedGroupMembers);
@@ -520,7 +522,7 @@ namespace FWO.Services
                     GroupName = svcGrp.Name
                 });
             }
-            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, svcGrp.Name} };
+            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, svcGrp.Name}, {AdditionalInfoKeys.SvcGrpId, svcGrp.Id.ToString()} };
             TaskList.Add(new()
             {
                 Title = userConfig.GetText("new_svc_grp") + svcGrp.Name,

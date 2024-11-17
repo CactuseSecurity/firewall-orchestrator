@@ -36,33 +36,6 @@ namespace FWO.Middleware.Server
 			wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
 		}
 
-		private async Task GetInternalGroups()
-		{
-			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
-
-			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
-			ownerGroups = [];
-			foreach (var ldapUserGroup in allGroups)
-			{
-				if(ldapUserGroup.OwnerGroup)
-				{
-					UserGroup group = new ()
-					{ 
-						Dn = ldapUserGroup.GroupDn,
-						Name = new DistName(ldapUserGroup.GroupDn).Group,
-						OwnerGroup = ldapUserGroup.OwnerGroup
-					};
-					foreach (var userDn in ldapUserGroup.Members)
-					{
-						UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
-						group.Users.Add(newUser);
-					}
-					ownerGroups.Add(group);
-				}
-			}
-		}
-
 		/// <summary>
 		/// send the first request from ticket (called by UI via middleware client)
 		/// </summary>
@@ -121,6 +94,45 @@ namespace FWO.Middleware.Server
 			}
 		}
 
+		/// <summary>
+		/// patch the external request state (called by admin in UI via middleware client)
+		/// </summary>
+		public async Task<bool> PatchState(ExternalRequest externalRequest)
+		{
+			try
+			{
+				await UpdateRequestState(externalRequest);
+				if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString() ||
+					externalRequest.ExtRequestState == ExtStates.ExtReqDone.ToString())
+				{
+					await HandleStateChange(externalRequest);
+				}
+				return true;
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError("Patch External Request State", $"Runs into exception: ", exception);
+				return false;
+			}
+		}
+
+		private async Task UpdateRequestState(ExternalRequest request)
+		{
+			try
+			{
+				var Variables = new
+				{
+					id = request.Id,
+					extRequestState = request.ExtRequestState
+				};
+				await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError("External Request Handler", $"State update failed: ", exception);
+			}
+		}
+
 		private async Task<WfTicket?> InitAndResolve(long ticketId)
 		{
 			GetExtSystemFromConfig();
@@ -128,6 +140,33 @@ namespace FWO.Middleware.Server
 			ipProtos = await ApiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
 			await wfHandler.Init([], false, true);
 			return await wfHandler.ResolveTicket(ticketId);
+		}
+
+		private async Task GetInternalGroups()
+		{
+			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
+
+			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
+			ownerGroups = [];
+			foreach (var ldapUserGroup in allGroups)
+			{
+				if(ldapUserGroup.OwnerGroup)
+				{
+					UserGroup group = new ()
+					{ 
+						Dn = ldapUserGroup.GroupDn,
+						Name = new DistName(ldapUserGroup.GroupDn).Group,
+						OwnerGroup = ldapUserGroup.OwnerGroup
+					};
+					foreach (var userDn in ldapUserGroup.Members)
+					{
+						UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
+						group.Users.Add(newUser);
+					}
+					ownerGroups.Add(group);
+				}
+			}
 		}
 
 		private static int GetLastTaskNumber(string extQueryVars, int oldTaskNumber)
@@ -208,7 +247,7 @@ namespace FWO.Middleware.Server
 				extTicketSystem = JsonSerializer.Serialize(actSystem),
 				extTaskType = actTaskType,
 				extTaskContent = taskContent,
-				extQueryVariables = extQueryVars,
+				extQueryVariables = extQueryVars ?? "",
 				extRequestState = ExtStates.ExtReqInitialized.ToString()
 			};
 			await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables);

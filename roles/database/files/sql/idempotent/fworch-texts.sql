@@ -2425,6 +2425,22 @@ INSERT INTO txt VALUES ('credentials',           'German', 	'Login-Daten');
 INSERT INTO txt VALUES ('credentials',           'English', 'Credentials');
 INSERT INTO txt VALUES ('external_request',     'German',   'Externer Auftrag');
 INSERT INTO txt VALUES ('external_request',     'English',  'External Request');
+INSERT INTO txt VALUES ('external_requests',    'German',   'Externe Auftr&auml;ge');
+INSERT INTO txt VALUES ('external_requests',    'English',  'External Requests');
+INSERT INTO txt VALUES ('request_content',      'German',   'Auftragsinhalt');
+INSERT INTO txt VALUES ('request_content',      'English',  'Request content');
+INSERT INTO txt VALUES ('bundled_tasks',        'German',   'Geb&uuml;ndelte Auftr&auml;ge');
+INSERT INTO txt VALUES ('bundled_tasks',        'English',  'Bundled tasks');
+INSERT INTO txt VALUES ('last_creation_response','German',  'Letzte Erzeugungsnachricht');
+INSERT INTO txt VALUES ('last_creation_response','English', 'Last creation response');
+INSERT INTO txt VALUES ('last_process_response','German',   'Letzte Abwicklungsnachricht');
+INSERT INTO txt VALUES ('last_process_response','English',  'Last processing response');
+INSERT INTO txt VALUES ('ext_ticket_system',    'German',	'Externes Ticketing System');
+INSERT INTO txt VALUES ('ext_ticket_system',    'English',	'External ticketing system');
+INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Tickets f&uuml;r Externe Auftr&auml;ge');
+INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Tickets for External Requests');
+INSERT INTO txt VALUES ('change_state',         'German',   'Status &auml;ndern');
+INSERT INTO txt VALUES ('change_state',         'English',  'Change state');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -2585,6 +2601,8 @@ INSERT INTO txt VALUES ('U5014', 'German',  'Pers&ouml;nliche Nutzereinstellunge
 INSERT INTO txt VALUES ('U5014', 'English', 'Personal settings for the individual user');
 INSERT INTO txt VALUES ('U5015', 'German',  'Verwaltung der Workflow-Voreinstellungen (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5015', 'English', 'Administration of workflow settings (only by admin)');
+INSERT INTO txt VALUES ('U5016', 'German',  'Verwaltung der externen Auftr&auml;ge (nur f&uuml;r Admin)');
+INSERT INTO txt VALUES ('U5016', 'English', 'Administration of external requests (only by admin)');
 
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
@@ -2616,6 +2634,10 @@ INSERT INTO txt VALUES ('U5116', 'German',  'Verwaltung der Login-Daten der eing
 INSERT INTO txt VALUES ('U5116', 'English', 'Manage credentials for login to connected firewall management systems');
 INSERT INTO txt VALUES ('U5117', 'German',  'Sind sie sicher, dass sie folgende Login-Daten l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5117', 'English', 'Are you sure you want to delete credentials: ');
+INSERT INTO txt VALUES ('U5118', 'German',  'Statusanzeige aller externen Auftr&auml;ge. M&ouml;glichkeit zur Status&auml;nderung, wenn n&ouml;tig.');
+INSERT INTO txt VALUES ('U5118', 'English', 'Show the status of all external requests. Possibility to patch state if necessary.');
+INSERT INTO txt VALUES ('U5119', 'German',  'Statusanzeige aller Tickets f&uuml;r externe Auftr&auml;ge. M&ouml;glichkeit zum Wiederanstossen, wenn n&ouml;tig.');
+INSERT INTO txt VALUES ('U5119', 'English', 'Show the status of all tickets for external requests. Possibility to reinit if necessary.');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');
@@ -3092,6 +3114,8 @@ INSERT INTO txt VALUES ('E9017', 'German',  'Schnittstelle kann die angeforderte
 INSERT INTO txt VALUES ('E9017', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
+INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
+INSERT INTO txt VALUES ('E9102', 'English', 'Error at changing the external ticket state.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

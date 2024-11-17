@@ -23,17 +23,15 @@
 @(userConfig.GetText("U5118"))
 <hr />
 
-@* <button type="button" class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button> *@
-
 @if(InitComplete)
 {
     <div class="m-2 vheight75">
         <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(r => getTableRowClass(r))">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" PageSize="PageSize" ColumnReorder="true">
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
+                    <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H9071"))">
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
                         @if(context.ExtRequestState != ExtStates.ExtReqDiscarded.ToString())
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestChangeState(context)">@(userConfig.GetText("change_state"))</button>
@@ -207,11 +205,6 @@ else
         }
     }
 
-    @* private async Task Refresh()
-    {
-        await FetchData();
-    } *@
-
     private void Details(ExternalRequest request)
     {
         actRequest = request;
@@ -254,19 +247,6 @@ else
     private string ConvertQuotes(string textIn)
     {
         return textIn.Replace(@"\u0022", "\"");
-    }
-
-    private string getTableRowClass(ExternalRequest extRequest)
-    {
-        @* switch(extRequest.SortPrio)
-        {
-            case 1:
-                return "background-upcoming";
-            case 2:
-                return "background-overdue";
-            default: *@
-                return "";
-        //}
     }
 
     private void UpdatePageSize(int pageSize)

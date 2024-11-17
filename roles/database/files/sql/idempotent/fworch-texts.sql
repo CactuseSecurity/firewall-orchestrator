@@ -275,6 +275,10 @@ INSERT INTO txt VALUES ('select', 				'German',	'Ausw&auml;hlen');
 INSERT INTO txt VALUES ('select', 				'English',	'Select');
 INSERT INTO txt VALUES ('loading', 				'German',	'Laden...');
 INSERT INTO txt VALUES ('loading', 				'English',	'Loading...');
+INSERT INTO txt VALUES ('PagerPagesize',        'German', 	'Seitengröße');
+INSERT INTO txt VALUES ('PagerPagesize',        'English',  'Page size');
+INSERT INTO txt VALUES ('PagerSubmit',          'German', 	'Speichern');
+INSERT INTO txt VALUES ('PagerSubmit',          'English',  'Save');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -2439,8 +2443,6 @@ INSERT INTO txt VALUES ('ext_ticket_system',    'German',	'Externes Ticketing Sy
 INSERT INTO txt VALUES ('ext_ticket_system',    'English',	'External ticketing system');
 INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Tickets f&uuml;r Externe Auftr&auml;ge');
 INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Tickets for External Requests');
-INSERT INTO txt VALUES ('change_state',         'German',   'Status &auml;ndern');
-INSERT INTO txt VALUES ('change_state',         'English',  'Change state');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -6435,7 +6437,49 @@ INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV fil
 <br>
 The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
-INSERT INTO txt VALUES ('PagerPagesize',     'German', 	'Seitengröße');
-INSERT INTO txt VALUES ('PagerPagesize',     'English', 'Page size');
-INSERT INTO txt VALUES ('PagerSubmit',       'German', 	'Speichern');
-INSERT INTO txt VALUES ('PagerSubmit',       'English', 'Save');
+INSERT INTO txt VALUES ('H9060', 'German',  'Hier werden alle Tickets dargestellt, die f&uuml;r den ausgew&auml;hlten Eigent&uuml;mer f&uuml;r Externe Auftr&auml;ge angelegt wurden.
+');
+INSERT INTO txt VALUES ('H9060', 'English', 'All tickets are displayed, which have been created for the selected owner for external requests.
+');
+INSERT INTO txt VALUES ('H9070', 'German',  'Hier werden alle in der Auftragstabelle eingetragenen Externen Auftr&auml;ge dargestellt,
+    deren Status noch nicht einen der Endzust&auml;nde "ExtReqAcknowledged" oder "ExtReqAckRejected" erreicht hat.<br>
+');
+INSERT INTO txt VALUES ('H9070', 'English', 'All external requests from the external request table are displayed,
+    which have not reached one of the final states "ExtReqAcknowledged" or "ExtReqAckRejected".<br>
+');
+INSERT INTO txt VALUES ('H9071', 'German',  'F&uuml;r den Administrator wird die M&ouml;glichkeit angeboten, den Zustand zu &auml;ndern. Je nach Ausgangszustand gibt es dabei verschiedene erreichbare Endzust&auml;nde:
+    <ul>
+        <li>Von den Initialzuständen "ExtReqInitialized" und "ExtReqFailed" kann nach "ExtReqRejected", "ExtReqAckRejected" und "ExtReqDiscarded" gewechselt werden.</li>
+        <li>Von Zuständen "ExtReqRequested" und "ExtReqInProgress", die bereits eine externe Bearbeitung anzeigen, ist der Übergang nach 
+            "ExtReqRejected", "ExtReqDone", "ExtReqAckRejected" und "ExtReqAcknowledged" möglich.</li>
+        <li>Die Zustände "ExtReqDone" und "ExtReqRejected", die eine abgeschlossene externe Bearbeitung anzeigen, können nur noch mit dem Übergang nach
+            "ExtReqAcknowledged" bzw. "ExtReqAckRejected" geschlossen werden.</li>
+    </ul>
+    Zu beachten ist:
+    <ul>
+        <li>Der Zustand "ExtReqDiscarded" kann nur durch den aktiven Eingriff des Administrators erreicht werden.
+            Der Externe Auftrag wird bei der weiteren Bearbeitung nicht mehr berücksichtigt.
+            Somit steht z.B. die Möglichkeit offen, durch Neuanstossen des internen Tickets einen neuen Auftrag für denselben Requesttask zu erzeugen.</li>
+        <li>Wird als Endzustand "ExtReqRejected" oder "ExtReqDone" gewählt, wird auch automatisch die entsprechende Weiterverarbeitung angestossen.
+            D.h. das interne Ticket wird aktualisiert und ggf. Folgeaufträge angestossen oder abgebrochen.</li>
+        <li>Beim Wählen von "ExtReqAcknowledged" bzw. "ExtReqAckRejected" wird nur der Status im Externen Auftrag gesetzt.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H9071', 'English', 'For the administrator the possibility is given to patch the state. Depending on the actual state different final states can be reached:
+    <ul>
+        <li>From the initial states "ExtReqInitialized" and "ExtReqFailed" the final states "ExtReqRejected", "ExtReqAckRejected" and "ExtReqDiscarded" can be selected.</li>
+        <li>The states "ExtReqRequested" und "ExtReqInProgress", who indicate that the external processing has already started, allow the transition to 
+            "ExtReqRejected", "ExtReqDone", "ExtReqAckRejected" and "ExtReqAcknowledged".</li>
+        <li>The states "ExtReqDone" und "ExtReqRejected", who indicate finalized external processing, can only be closed by transition to
+            "ExtReqAcknowledged" resp. "ExtReqAckRejected".</li>
+    </ul>
+    Please note:
+    <ul>
+        <li>The state "ExtReqDiscarded" can only be reached by the intervention of the administrator.
+            The External Request will not be regarded any more in further processing.
+            This opens the possibility to create a new external request for the same request task by reactivating the resp. internal ticket.</li>
+        <li>If "ExtReqRejected" or "ExtReqDone" are chosen, the further processing is activated automatically.
+            The internal ticket is updated and further tasks may be initialized resp. rejected.</li>
+        <li>Chosing "ExtReqAcknowledged" resp. "ExtReqAckRejected" sets only the state in the external request table.</li>
+    </ul>
+');

@@ -6,10 +6,15 @@
     os_codename: bookworm
   when: os_codename == "trixie"
 
-# fallback to jammy (ubuntu 22.04) for focal (ubuntu 20.04)
+# fallback to jammy (ubuntu 22.04) for noble (ubuntu 24.04)
 - set_fact:
     os_codename: jammy
-  when: os_codename == "focal" or os_codename == "noble"
+  when: os_codename == "noble"
+
+# fallback to v 12.6.1 (since there is no package for later versions) for ubuntu 20.04 (focal)
+- set_fact:
+    wkhtmltopdf_version: 0.12.6-1
+  when: os_codename == "focal"
 
 - block:
 

@@ -486,7 +486,7 @@ else
 
     private async Task AddOwnerInDb()
     {
-        var Variables = new
+        var variables = new
         {
             name = actOwner.Name,
             dn = actOwner.Dn,
@@ -497,7 +497,7 @@ else
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible
         };
-        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, Variables)).ReturnIds;
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, variables)).ReturnIds;
         if (returnIds == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);

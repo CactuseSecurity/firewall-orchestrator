@@ -17,6 +17,6 @@ namespace FWO.Tufin.SecureChange
 			NamingConvention = namingConvention;
 		}
 
-		public abstract void FillTaskText(string tasksTemplate);
+		public abstract void FillTaskText(ExternalTicketTemplate template);
 	}
 }

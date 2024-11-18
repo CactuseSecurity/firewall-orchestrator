@@ -148,6 +148,9 @@
                     case nameof(ConState.InterfaceRejected):
                         relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{false.ShowAsHtml()}</span>");
                         break;
+                    case nameof(ConState.EmptyAppRoles):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9013")}\">!</span>");
+                        break;
                     default:
                         break;
                 }

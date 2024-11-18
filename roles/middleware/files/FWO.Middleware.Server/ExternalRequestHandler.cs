@@ -38,6 +38,7 @@ namespace FWO.Middleware.Server
 
 		/// <summary>
 		/// send the first request from ticket (called by UI via middleware client)
+		/// may also be a higher task number in case of a reinit
 		/// </summary>
 		public async Task<bool> SendFirstRequest(long ticketId)
 		{
@@ -48,7 +49,15 @@ namespace FWO.Middleware.Server
 				{
 					return false;
 				}
-				return await SendNextRequest(intTicket, 0);
+				int lastFinishedTask = 0;
+				foreach(var task in intTicket.Tasks.OrderBy(t => t.TaskNumber))
+				{
+					if(task.StateId > wfHandler.StateMatrix(task.TaskType).LowestEndState)
+					{
+						lastFinishedTask = task.TaskNumber;
+					}
+				}
+				return await SendNextRequest(intTicket, lastFinishedTask);
 			}
 			catch(Exception exception)
 			{

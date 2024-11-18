@@ -275,7 +275,7 @@ INSERT INTO txt VALUES ('select', 				'German',	'Ausw&auml;hlen');
 INSERT INTO txt VALUES ('select', 				'English',	'Select');
 INSERT INTO txt VALUES ('loading', 				'German',	'Laden...');
 INSERT INTO txt VALUES ('loading', 				'English',	'Loading...');
-INSERT INTO txt VALUES ('PagerPagesize',        'German', 	'Seitengröße');
+INSERT INTO txt VALUES ('PagerPagesize',        'German', 	'Seitengr&ouml;ße');
 INSERT INTO txt VALUES ('PagerPagesize',        'English',  'Page size');
 INSERT INTO txt VALUES ('PagerSubmit',          'German', 	'Speichern');
 INSERT INTO txt VALUES ('PagerSubmit',          'English',  'Save');
@@ -1619,14 +1619,14 @@ INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
 INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
 INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
 INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
-INSERT INTO txt VALUES ('owner_appserver_notfound',     'German', 	'Owner für App-Server nicht gefunden.');
-INSERT INTO txt VALUES ('owner_appserver_notfound',     'English', 	'Owner for App server not found.');
-INSERT INTO txt VALUES ('owner_appservertype_notfound',     'German', 	'App-Server Typ für App-Server nicht gefunden.');
-INSERT INTO txt VALUES ('owner_appservertype_notfound',     'English', 	'App server type for App server not found.');
-INSERT INTO txt VALUES ('import_finished_witherrors',     'German', 	'Import wurde mit Fehlern abgeschlossen');
-INSERT INTO txt VALUES ('import_finished_witherrors',     'English', 	'Import succeeded with errors');
-INSERT INTO txt VALUES ('file_upload_failed',        'German', 	'Datei hochladen ist fehlgeschlagen.');
-INSERT INTO txt VALUES ('file_upload_failed',        'English', 	'File upload failed.');
+INSERT INTO txt VALUES ('owner_appserver_notfound','German', 'Owner f&uuml;r App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appserver_notfound','English', 'Owner for App server not found.');
+INSERT INTO txt VALUES ('owner_appservertype_notfound','German', 'App-Server Typ f&uuml;r App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appservertype_notfound','English', 'App server type for App server not found.');
+INSERT INTO txt VALUES ('import_finished_witherrors','German', 	'Import wurde mit Fehlern abgeschlossen');
+INSERT INTO txt VALUES ('import_finished_witherrors','English', 'Import succeeded with errors');
+INSERT INTO txt VALUES ('file_upload_failed',    'German', 	'Datei hochladen ist fehlgeschlagen.');
+INSERT INTO txt VALUES ('file_upload_failed',    'English', 'File upload failed.');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -1853,7 +1853,7 @@ INSERT INTO txt VALUES ('add_new_ldap',         'German', 	'Neue LDAP-Verbindung
 INSERT INTO txt VALUES ('add_new_ldap',         'English', 	'Add new LDAP connection');
 INSERT INTO txt VALUES ('edit_ldap',            'German', 	'LDAP-Verbindung bearbeiten');
 INSERT INTO txt VALUES ('edit_ldap',            'English', 	'Edit LDAP connection');
-INSERT INTO txt VALUES ('edit_ldap_message',    'German', 	'Diese Einstellungen müssen normalerweise nicht angepasst werden. Ändern Sie diese Einstellungen nur wenn Sie wirklich wissen was Sie tun.');
+INSERT INTO txt VALUES ('edit_ldap_message',    'German', 	'Diese Einstellungen m&uuml;ssen normalerweise nicht angepasst werden. &uuml;ndern Sie diese Einstellungen nur wenn Sie wirklich wissen was Sie tun.');
 INSERT INTO txt VALUES ('edit_ldap_message',    'English', 	'These settings do not normally need to be adjusted. Only change these settings if you really know what you are doing.');
 INSERT INTO txt VALUES ('test_connection',      'German', 	'Verbindung testen');
 INSERT INTO txt VALUES ('test_connection',      'English', 	'Test connection');
@@ -2443,6 +2443,8 @@ INSERT INTO txt VALUES ('ext_ticket_system',    'German',	'Externes Ticketing Sy
 INSERT INTO txt VALUES ('ext_ticket_system',    'English',	'External ticketing system');
 INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Tickets f&uuml;r Externe Auftr&auml;ge');
 INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Tickets for External Requests');
+INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;ge neu anstossen');
+INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -2789,6 +2791,8 @@ INSERT INTO txt VALUES ('U9017', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U9017', 'English', 'Are you sure you want to reject following requested interface: ');
 INSERT INTO txt VALUES ('U9018', 'German',  'Antrag abgelehnt.');
 INSERT INTO txt VALUES ('U9018', 'English', 'Ticket rejected.');
+INSERT INTO txt VALUES ('U9019', 'German',  'Sind sie sicher, dass sie die Externen Auftr&auml;ge f&uuml;r folgendes Ticket wiederanstossen wollen: ');
+INSERT INTO txt VALUES ('U9019', 'English', 'Are you sure you want to reinit the external requests for following ticket: ');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
@@ -6425,7 +6429,7 @@ INSERT INTO txt VALUES ('H9055', 'German',  'Importieren von App Servern via CSV
 <li>App IP Address Range</li>
 </ul>
 <br>
-Die CSV darf eine Überschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+Die CSV darf eine &Uuml;berschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
 INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV file. The CSV must contain the following data:
 <ul>
@@ -6449,20 +6453,20 @@ INSERT INTO txt VALUES ('H9070', 'English', 'All external requests from the exte
 ');
 INSERT INTO txt VALUES ('H9071', 'German',  'F&uuml;r den Administrator wird die M&ouml;glichkeit angeboten, den Zustand zu &auml;ndern. Je nach Ausgangszustand gibt es dabei verschiedene erreichbare Endzust&auml;nde:
     <ul>
-        <li>Von den Initialzuständen "ExtReqInitialized" und "ExtReqFailed" kann nach "ExtReqRejected", "ExtReqAckRejected" und "ExtReqDiscarded" gewechselt werden.</li>
-        <li>Von Zuständen "ExtReqRequested" und "ExtReqInProgress", die bereits eine externe Bearbeitung anzeigen, ist der Übergang nach 
-            "ExtReqRejected", "ExtReqDone", "ExtReqAckRejected" und "ExtReqAcknowledged" möglich.</li>
-        <li>Die Zustände "ExtReqDone" und "ExtReqRejected", die eine abgeschlossene externe Bearbeitung anzeigen, können nur noch mit dem Übergang nach
+        <li>Von den Initialzust&auml;nden "ExtReqInitialized" und "ExtReqFailed" kann nach "ExtReqRejected", "ExtReqAckRejected" und "ExtReqDiscarded" gewechselt werden.</li>
+        <li>Von Zust&auml;nden "ExtReqRequested" und "ExtReqInProgress", die bereits eine externe Bearbeitung anzeigen, ist der &Uuml;bergang nach 
+            "ExtReqRejected", "ExtReqDone", "ExtReqAckRejected" und "ExtReqAcknowledged" m&ouml;glich.</li>
+        <li>Die Zust&auml;nde "ExtReqDone" und "ExtReqRejected", die eine abgeschlossene externe Bearbeitung anzeigen, k&ouml;nnen nur noch mit dem &Uuml;bergang nach
             "ExtReqAcknowledged" bzw. "ExtReqAckRejected" geschlossen werden.</li>
     </ul>
     Zu beachten ist:
     <ul>
         <li>Der Zustand "ExtReqDiscarded" kann nur durch den aktiven Eingriff des Administrators erreicht werden.
-            Der Externe Auftrag wird bei der weiteren Bearbeitung nicht mehr berücksichtigt.
-            Somit steht z.B. die Möglichkeit offen, durch Neuanstossen des internen Tickets einen neuen Auftrag für denselben Requesttask zu erzeugen.</li>
-        <li>Wird als Endzustand "ExtReqRejected" oder "ExtReqDone" gewählt, wird auch automatisch die entsprechende Weiterverarbeitung angestossen.
-            D.h. das interne Ticket wird aktualisiert und ggf. Folgeaufträge angestossen oder abgebrochen.</li>
-        <li>Beim Wählen von "ExtReqAcknowledged" bzw. "ExtReqAckRejected" wird nur der Status im Externen Auftrag gesetzt.</li>
+            Der Externe Auftrag wird bei der weiteren Bearbeitung nicht mehr ber&uuml;cksichtigt.
+            Somit steht z.B. die M&ouml;glichkeit offen, durch Neuanstossen des internen Tickets einen neuen Auftrag f&uuml;r denselben Requesttask zu erzeugen.</li>
+        <li>Wird als Endzustand "ExtReqRejected" oder "ExtReqDone" gew&auml;hlt, wird auch automatisch die entsprechende Weiterverarbeitung angestossen.
+            D.h. das interne Ticket wird aktualisiert und ggf. Folgeauftr&auml;ge angestossen oder abgebrochen.</li>
+        <li>Beim W&auml;hlen von "ExtReqAcknowledged" bzw. "ExtReqAckRejected" wird nur der Status im Externen Auftrag gesetzt.</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H9071', 'English', 'For the administrator the possibility is given to patch the state. Depending on the actual state different final states can be reached:

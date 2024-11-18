@@ -35,7 +35,7 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="parameters">ExternalRequestAddParameters</param>
         /// <returns>true if external request could be added</returns>
         [HttpPost]
-        [Authorize(Roles = $"{Roles.Modeller}")]
+        [Authorize(Roles = $"{Roles.Modeller}, {Roles.Admin}")]
         public async Task<bool> Post([FromBody] ExternalRequestAddParameters parameters)
         {
             if(parameters.TicketId > 0)

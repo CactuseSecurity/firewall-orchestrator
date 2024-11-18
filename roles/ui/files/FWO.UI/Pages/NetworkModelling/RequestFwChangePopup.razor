@@ -53,7 +53,7 @@
             <Authorized>
                 @if(SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess)
                 {
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="SendRequest">@(userConfig.GetText("request_fw_change"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="StartRequests">@(userConfig.GetText("request_fw_change"))</button>
                 }
                 else
                 {
@@ -246,7 +246,7 @@
         return "";
     }
 
-    private async Task SendRequest()
+    private async Task StartRequests()
     {
         WorkInProgress = true;
         try

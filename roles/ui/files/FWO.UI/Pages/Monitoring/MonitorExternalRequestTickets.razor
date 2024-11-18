@@ -5,29 +5,36 @@
 @using FWO.Config.Api
 @using FWO.Ui.Shared
 @using FWO.Services
+@using FWO.Middleware.Client
+@using FWO.Middleware.RequestParameters
+@using System.Net
+@using RestSharp
 
 @page "/monitoring/external_request_tickets"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 <h3>@(userConfig.GetText("ext_request_tickets"))</h3>
 @(userConfig.GetText("U5119"))
 <hr />
-
-@* <button type="button" class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button> *@
 
 @if(InitComplete)
 {
     <SelectOwner SelectedOwner="actOwner" SelectedOwnerChanged="FetchOwnerData" Apps="allOwners" />
     <div class="m-2 vheight75">
         <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerTicket" Items="ownerTickets" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(r => getTableRowClass(r))">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerTicket" Items="ownerTickets" PageSize="PageSize" ColumnReorder="true">
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Ticket.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
+                        @if(ReInitPossible(context))
+                        {
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestReInit(context)">@(userConfig.GetText("reinit_ext_request"))</button>
+                        }
                     </div>
                 </Template>
             </Column>
@@ -49,7 +56,7 @@ else
     </div>
 }
 
-<PopUp Title="@(userConfig.GetText("ticket") + ": " + actOwnerTicket.Ticket.Id)" Show="@DetailsMode" Size=PopupSize.XLarge OnClose="() => DetailsMode = false">
+<PopUp Title="@(userConfig.GetText("ticket") + ": " + actOwnerTicket.Ticket.Id)" Show="@DetailsMode" Size=PopupSize.XLarge OnClose="Close">
     <Body>
         @if (DetailsMode)
         {
@@ -69,6 +76,7 @@ else
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="actOwnerTicket.Ticket.Tasks.OrderBy(x => x.TaskNumber).ToList()" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.OnManagement.Name)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
                         <Template>
                             @(statesDict.Name[context.StateId] ?? context.StateId.ToString())
@@ -81,10 +89,13 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => DetailsMode = false">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>
+<Confirm @bind-Display="ReInitMode" AllowedRoles="@Roles.Admin" Message="@(userConfig.GetText("U9019") + actOwnerTicket.Ticket.Id + "?")"
+    PerformAction="ReInit" Title="@(userConfig.GetText("confirm"))" />
+<InProgress Display="workInProgress" />
 
 @code
 {
@@ -96,11 +107,26 @@ else
 	private List<OwnerTicket> ownerTickets = [];
     private OwnerTicket actOwnerTicket = new();
     private WfStateDict statesDict = new ();
+    private StateMatrixDict stateMatrixDict = new ();
+    private StateMatrix MasterStateMatrix = new ();
+    private List<ExternalRequest> relevantRequests = [];
 
     private bool InitComplete = false;
     private bool DetailsMode = false;
+    private bool ReInitMode = false;
 
     private int PageSize { get; set; } = 10;
+    private bool workInProgress = false;
+
+    private static readonly List<string> relevantRequestStates =
+    [
+        ExtStates.ExtReqInitialized.ToString(),
+        ExtStates.ExtReqFailed.ToString(),
+        ExtStates.ExtReqRequested.ToString(),
+        ExtStates.ExtReqInProgress.ToString(),
+        ExtStates.ExtReqRejected.ToString(),
+        ExtStates.ExtReqDone.ToString()
+    ];
 
 
     protected override async Task OnInitializedAsync()
@@ -111,6 +137,9 @@ else
         {
             actOwner = allOwners.First();
             await FetchOwnerData(actOwner);
+            relevantRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = relevantRequestStates});
+            await stateMatrixDict.Init(WorkflowPhases.request, apiConnection);
+            MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
         }
         InitComplete = true;
     }
@@ -128,37 +157,66 @@ else
         }
     }
 
-    @* private async Task Refresh()
-    {
-        await FetchOwnerData(actOwner);
-    } *@
-
     private void Details(OwnerTicket ownerTicket)
     {
         actOwnerTicket = ownerTicket;
         DetailsMode = true;
     }
 
-    @* private string ConvertQuotes(string textIn)
+    private bool ReInitPossible(OwnerTicket ownerTicket)
     {
-        return textIn.Replace(@"\u0022", "\"");
-    } *@
+        return ownerTicket.Ticket.StateId < MasterStateMatrix.LowestEndState && relevantRequests.FirstOrDefault(x => x.TicketId == ownerTicket.Ticket.Id) == null;
+    }
 
-    private string getTableRowClass(OwnerTicket ownerTicket)
+    private void RequestReInit(OwnerTicket ownerTicket)
     {
-        @* switch(ownerTicket.SortPrio)
+        actOwnerTicket = ownerTicket;
+        ReInitMode = true;
+    }
+
+    private async Task ReInit()
+    {
+        workInProgress = true;
+        await InvokeAsync(StateHasChanged);
+        await SendRequest();
+        await FetchOwnerData(actOwner);
+        relevantRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = relevantRequestStates});
+        workInProgress = false;
+        ReInitMode = false;
+    }
+
+    private async Task SendRequest()
+    {
+        try
         {
-            case 1:
-                return "background-upcoming";
-            case 2:
-                return "background-overdue";
-            default: *@
-                return "";
-        //}
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.AddExternalRequest(new ExternalRequestAddParameters(){ TicketId = actOwnerTicket.Ticket.Id });
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("reinit_ext_request"), userConfig.GetText("E9101"), true);
+                Log.WriteError("ReInit ExtRequest", $"Could not create External Request for Ticket {actOwnerTicket.Ticket.Id.ToString()}.");
+            }
+            else
+            {
+                Log.WriteDebug("ReInit ExtRequest", $"External Request for Ticket {actOwnerTicket.Ticket.Id.ToString()} created.");
+            }
+
+            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
+                0, $"Reinitialized Rollout Requests", apiConnection, userConfig, 
+				actOwnerTicket.Ticket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, actOwnerTicket.Ticket.Requester.Name);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("reinit_ext_request"), "", true);
+        }
     }
 
     private void UpdatePageSize(int pageSize)
     {
         PageSize = pageSize;
+    }
+
+    private void Close()
+    {
+        DetailsMode = false;
     }
 }

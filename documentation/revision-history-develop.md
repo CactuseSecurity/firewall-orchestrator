@@ -238,3 +238,6 @@ bugfix release:
 # 8.5.1 - 18.11.2024 DEVELOP
 - reporting - fixing PDF generation on various platforms
 - modelling - fixing AR editing: strict prevention of all area mixing
+
+# 8.5.2 - 20.11.2024 DEVELOP
+- owner import - make ldap selectable (internal/external)

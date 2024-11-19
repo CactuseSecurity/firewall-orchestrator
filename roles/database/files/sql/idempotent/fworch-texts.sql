@@ -1609,9 +1609,9 @@ INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
 INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
 INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
 INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
-INSERT INTO txt VALUES ('owner_appserver_notfound',     'German', 	'Owner für App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appserver_notfound',     'German', 	'Owner f&uuml;r App-Server nicht gefunden.');
 INSERT INTO txt VALUES ('owner_appserver_notfound',     'English', 	'Owner for App server not found.');
-INSERT INTO txt VALUES ('owner_appservertype_notfound',     'German', 	'App-Server Typ für App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appservertype_notfound',     'German', 	'App-Server Typ f&uuml;r App-Server nicht gefunden.');
 INSERT INTO txt VALUES ('owner_appservertype_notfound',     'English', 	'App server type for App server not found.');
 INSERT INTO txt VALUES ('import_finished_witherrors',     'German', 	'Import wurde mit Fehlern abgeschlossen');
 INSERT INTO txt VALUES ('import_finished_witherrors',     'English', 	'Import succeeded with errors');
@@ -1843,7 +1843,7 @@ INSERT INTO txt VALUES ('add_new_ldap',         'German', 	'Neue LDAP-Verbindung
 INSERT INTO txt VALUES ('add_new_ldap',         'English', 	'Add new LDAP connection');
 INSERT INTO txt VALUES ('edit_ldap',            'German', 	'LDAP-Verbindung bearbeiten');
 INSERT INTO txt VALUES ('edit_ldap',            'English', 	'Edit LDAP connection');
-INSERT INTO txt VALUES ('edit_ldap_message',    'German', 	'Diese Einstellungen müssen normalerweise nicht angepasst werden. Ändern Sie diese Einstellungen nur wenn Sie wirklich wissen was Sie tun.');
+INSERT INTO txt VALUES ('edit_ldap_message',    'German', 	'Diese Einstellungen m&uuml;ssen normalerweise nicht angepasst werden. &Auml;ndern Sie diese Einstellungen nur wenn Sie wirklich wissen was Sie tun.');
 INSERT INTO txt VALUES ('edit_ldap_message',    'English', 	'These settings do not normally need to be adjusted. Only change these settings if you really know what you are doing.');
 INSERT INTO txt VALUES ('test_connection',      'German', 	'Verbindung testen');
 INSERT INTO txt VALUES ('test_connection',      'English', 	'Test connection');
@@ -2221,6 +2221,12 @@ INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad und Name von Ap
 INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path and Name of App data import (without ending)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
+INSERT INTO txt VALUES ('ownerGroupLdap',       'German',   'LDAP f&uuml;r Eigent&uuml;mergruppen');
+INSERT INTO txt VALUES ('ownerGroupLdap',       'English',  'LDAP for owner groups');
+INSERT INTO txt VALUES ('ownerGroupPattern',    'German',   'Namenskonvention f&uuml;r Egentt&uuml;mer-LDAP-Gruppen');
+INSERT INTO txt VALUES ('ownerGroupPattern',    'English',  'Naming convention for LDAP owner groups');
+INSERT INTO txt VALUES ('manageGroupsInLdap',   'German',   'Aktive Pflege der Eigent&uuml;mer-LDAP-Gruppen durch FWO');
+INSERT INTO txt VALUES ('manageGroupsInLdap',   'English',  'Active management of owner LDAP groups by FWO');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'English', 	'Import App data start at');
 INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad und Name von Subnetzdaten-Import (ohne Endung)');
@@ -5125,6 +5131,14 @@ INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configuration
 INSERT INTO txt VALUES ('H5639', 'German',  'Hier wird der Meldungstext f&uuml;r Fehler im externen Beantragungsprozess eingetragen.');
 INSERT INTO txt VALUES ('H5639', 'English', 'Insert customized text for errors in requests to external ticket system.');
 
+INSERT INTO txt VALUES ('H5640', 'German',  'Auswahl des LDAP-Systems, in dem die Eigent&uuml;mergruppen gepflegt werden.');
+INSERT INTO txt VALUES ('H5640', 'English', 'Select LDAP system for storing owner groups.');
+INSERT INTO txt VALUES ('H5641', 'German',  'Festlegen des Namensschemas f&uuml;r Eigent&uuml;mergruppen. Dient zur eindeutigen Identifizierung der LDAP Gruppen. Der Platzhalter wird als @@ExternalAppId@@ definiert.');
+INSERT INTO txt VALUES ('H5641', 'English', 'Define naming convention in order to identify the LDAP group belonging to an owner. The variable is specified as @@ExternalAppId@@.');
+INSERT INTO txt VALUES ('H5642', 'German',  'Sollen die LDAP-Gruppen aktiv von FWO gepflegt werden (anlegen/&auml;ndern von Gruppenmitgliedern)? Ein Schreibzugriff auf den jeweiligen LDAP-Server ist notwendig.');
+INSERT INTO txt VALUES ('H5642', 'English', 'Shall FWO manage LDAP groups for owners? Write access to the respective LDAP is needed if you choose this option.');
+
+
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
     Die hier gemachten &Auml;nderungen werden in der UI beim n&auml;chsten Login sichtbar, bei Hilfetexten erst nach dem n&auml;chsten Restart.
@@ -6393,9 +6407,9 @@ INSERT INTO txt VALUES ('H9055', 'German',  'Importieren von App Servern via CSV
 <li>App IP Address Range</li>
 </ul>
 <br>
-Die CSV darf eine Überschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+Die CSV kann eine &Uuml;berschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
-INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV file. The CSV must contain the following data:
+INSERT INTO txt VALUES ('H9055', 'English', 'Import of app servers via CSV file. The CSV must contain the following data:
 <ul>
 <li>App server name</li>
 <li>External app ID</li>
@@ -6405,7 +6419,7 @@ INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV fil
 <br>
 The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
-INSERT INTO txt VALUES ('PagerPagesize',     'German', 	'Seitengröße');
+INSERT INTO txt VALUES ('PagerPagesize',     'German', 	'Seitengr&ouml;&szlig;e');
 INSERT INTO txt VALUES ('PagerPagesize',     'English', 'Page size');
 INSERT INTO txt VALUES ('PagerSubmit',       'German', 	'Speichern');
 INSERT INTO txt VALUES ('PagerSubmit',       'English', 'Save');

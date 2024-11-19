@@ -137,15 +137,22 @@ namespace FWO.Middleware.Server
 			{
 				string userGroupDn;
 				FwoOwner? existingApp = existingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
-				if (existingApp == null)
-				{
-					userGroupDn = await NewApp(incomingApp);
-				}
-				else
-				{
-					userGroupDn = await UpdateApp(incomingApp, existingApp);
-				}
 
+				if (globalConfig.ManageOwnerLdapGroups)
+				{
+					if (existingApp == null)
+					{
+						userGroupDn = await NewApp(incomingApp);
+					}
+					else
+					{
+						userGroupDn = await UpdateApp(incomingApp, existingApp);
+					}
+				}
+				else 
+				{
+					userGroupDn = ""; // await GetLdapDn(incomingApp);
+				}
 				// in order to store email addresses of users in the group in UiUser for email notification:
 				await AddAllGroupMembersToUiUser(userGroupDn);
 
@@ -161,7 +168,7 @@ namespace FWO.Middleware.Server
 		private async Task<string> NewApp(ModellingImportAppData incomingApp)
 		{
 			string userGroupDn;
-			if (true)
+			if (globalConfig.ManageOwnerLdapGroups)
 			{
 				userGroupDn = CreateUserGroup(incomingApp);
 			}
@@ -169,7 +176,7 @@ namespace FWO.Middleware.Server
 			{
 				// alternatively: simply use an existing usergroup from external LDAP
 				// TODO: needs to be implemented
-				// userGroupDn = incomingApp.Name + "external-ldap-path";
+				userGroupDn = incomingApp.Name + "external-ldap-path";
 			}
 
 			var variables = new
@@ -210,16 +217,25 @@ namespace FWO.Middleware.Server
 					{
 						userGroupDn = groupWithSameName.GroupDn;
 					}
-					UpdateUserGroup(incomingApp, groupWithSameName.GroupDn);
+					if (globalConfig.ManageOwnerLdapGroups)
+					{
+						UpdateUserGroup(incomingApp, groupWithSameName.GroupDn);
+					}
 				}
 				else
 				{
-					userGroupDn = CreateUserGroup(incomingApp);
+					if (globalConfig.ManageOwnerLdapGroups)
+					{
+						userGroupDn = CreateUserGroup(incomingApp);
+					}
 				}
 			}
 			else
 			{
-				UpdateUserGroup(incomingApp, userGroupDn);
+				if (globalConfig.ManageOwnerLdapGroups)
+				{
+					UpdateUserGroup(incomingApp, userGroupDn);
+				}
 			}
 
 			var Variables = new
@@ -257,7 +273,8 @@ namespace FWO.Middleware.Server
 
 		private static string GroupName(string appName)
 		{
-			return GlobalConst.kModellerGroup + appName;
+			return appName;
+//			return globalConfig.OwnerLdapGroupNames + appName;
 		}
 
 		/// <summary>

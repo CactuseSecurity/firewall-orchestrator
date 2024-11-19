@@ -34,7 +34,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getCommonServices;
         public static readonly string newConnection;
         public static readonly string updateConnection;
-        public static readonly string updateConnectionOwner;
+        public static readonly string updateProposedConnectionOwner;
         public static readonly string updateConnectionPublish;
         public static readonly string updateConnectionProperties;
         public static readonly string replaceUsedInterface;
@@ -127,7 +127,7 @@ namespace FWO.Api.Client.Queries
                 getCommonServices = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getCommonServices.graphql");
                 newConnection = File.ReadAllText(QueryPath + "modelling/newConnection.graphql");
                 updateConnection = File.ReadAllText(QueryPath + "modelling/updateConnection.graphql");
-                updateConnectionOwner = File.ReadAllText(QueryPath + "modelling/updateConnectionOwner.graphql");
+                updateProposedConnectionOwner = File.ReadAllText(QueryPath + "modelling/updateProposedConnectionOwner.graphql");
                 updateConnectionPublish = File.ReadAllText(QueryPath + "modelling/updateConnectionPublish.graphql");
                 updateConnectionProperties = File.ReadAllText(QueryPath + "modelling/updateConnectionProperties.graphql");
                 replaceUsedInterface = File.ReadAllText(QueryPath + "modelling/replaceUsedInterface.graphql");

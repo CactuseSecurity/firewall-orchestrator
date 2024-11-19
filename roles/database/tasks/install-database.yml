@@ -76,6 +76,10 @@
     debug:
       msg: "test_query result: {{ test_query }}"
 
+  - name: create db users with group memberships
+    import_tasks: create-users.yml
+    when: installation_mode == "new"
+
   - name: creating {{ fworch_db_name }}-db-model
     community.postgresql.postgresql_script:
       db: "{{ fworch_db_name }}"
@@ -87,13 +91,10 @@
       - fworch-create-indices.sql
       - fworch-create-triggers.sql
       - fworch-fill-stm.sql
+      - fworch-views-materialized.sql
     when: installation_mode == "new"
     become: true
     become_user: postgres
-
-  - name: create db users with group memberships
-    import_tasks: create-users.yml
-    when: installation_mode == "new"
 
   - name: add colors to the database
     postgresql_copy:

@@ -68,6 +68,11 @@ namespace FWO.Api.Client
             graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
         }
 
+        public bool IsActRole(string role)
+        {
+            return role == GetActRole();
+        }
+
         public string GetActRole()
         {
             if(graphQlClient.HttpClient.DefaultRequestHeaders.TryGetValues("x-hasura-role", out IEnumerable<string>? roles))
@@ -81,20 +86,9 @@ namespace FWO.Api.Client
             return "";
         }
 
-        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
             prevRole = GetActRole();
-
-            // first look if user is already in one of the target roles 
-            foreach(string role in targetRoleList)
-            {
-                if (user.IsInRole(role))
-                {
-                    SetRole(role);
-                    return;
-                }
-            }
-            // now look if user has a target role as allowed role
             foreach(string role in targetRoleList)
             {
                 if(user.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == role) != null)
@@ -103,6 +97,19 @@ namespace FWO.Api.Client
                     return;
                 }
             }
+        }
+
+        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        {
+            prevRole = GetActRole();
+
+            // first look if user is already in one of the target roles 
+            if(targetRoleList.Contains(prevRole))
+            {
+                return;
+            }
+            // now look if user has a target role as allowed role
+            SetBestRole(user, targetRoleList);
         }
 
         public override void SwitchBack()

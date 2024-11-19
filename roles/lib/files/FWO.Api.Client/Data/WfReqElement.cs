@@ -20,6 +20,7 @@ namespace FWO.Api.Data
         public Cidr Cidr { get; set; } = new();
         public Cidr CidrEnd { get; set; } = new();
 
+
         public WfReqElement()
         {}
 

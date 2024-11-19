@@ -36,7 +36,6 @@ namespace FWO.Api.Data
         public string GroupName { get; set; } = "";
         public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
 
-
         public NwObjectElement()
         {}
 

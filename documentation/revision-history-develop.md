@@ -232,6 +232,9 @@ bugfix release:
 # 8.4.2 - 17.10.2024 DEVELOP
 - external request
 
+# 8.4.3 - 05.11.2024 DEVELOP
+- extra parameters in modelling connection
+
 # 9.0 - 31.07.2024 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

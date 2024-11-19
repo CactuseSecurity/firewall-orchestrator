@@ -24,7 +24,7 @@
     @if(appHandler != null && appHandler.overviewConnHandler != null && appSelected)
     {
         <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.overviewConnHandler" OverviewMode="true"/>
-        <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetRegularConnections(true)" RefreshParent="SetStatusFromTicket"/>
+        <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetConnectionsToRequest()" RefreshParent="SetStatusFromTicket"/>
     }
     <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
         <div class="input-group">

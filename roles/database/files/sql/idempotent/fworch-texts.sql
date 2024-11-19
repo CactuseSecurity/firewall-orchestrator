@@ -6418,32 +6418,35 @@ INSERT INTO txt VALUES ('H9053', 'English', 'The assigned modeller can reject th
         <li>If configured by the administrator (<a href="/help/workflow/actions">Actions</a>), the interface can also be rejected inside the workflow request.</li>
     </ul>
 ');
-
 INSERT INTO txt VALUES ('H9054', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
 INSERT INTO txt VALUES ('H9054', 'English', 'Message that is displayed on Login Page.');
 INSERT INTO txt VALUES ('H9055', 'German',  'Importieren von App Servern via CSV Datei. Die CSV muss folgende Daten enthalten:
-<ul>
-<li>App Server Name</li>
-<li>Externe App-ID</li>
-<li>App Server Typ</li>
-<li>App IP Address Range</li>
-</ul>
-<br>
-Die CSV darf eine &Uuml;berschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+    <ul>
+        <li>App Server Name</li>
+        <li>Externe App-ID</li>
+        <li>App Server Typ</li>
+        <li>App IP Address Range</li>
+    </ul>
+    <br>
+    Die CSV darf eine &Uuml;berschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
 INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV file. The CSV must contain the following data:
-<ul>
-<li>App server name</li>
-<li>External app ID</li>
-<li>App server type</li>
-<li>App IP address range</li>
-</ul>
-<br>
-The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+    <ul>
+        <li>App server name</li>
+        <li>External app ID</li>
+        <li>App server type</li>
+        <li>App IP address range</li>
+    </ul>
+    <br>
+    The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
 INSERT INTO txt VALUES ('H9060', 'German',  'Hier werden alle Tickets dargestellt, die f&uuml;r den ausgew&auml;hlten Eigent&uuml;mer f&uuml;r Externe Auftr&auml;ge angelegt wurden.
+    Wenn ein Ticket noch nicht abgeschlossen ist, aber keine offenen Externen Auftr&auml;ge daf&uuml;r existieren, wird dem Administrator die M&ouml;glichkeit zum Wiederaufsetzen angeboten.
+    Dabei wird dann die erste noch nicht abgeschlossene Aufgabe aus dem Ticket beantragt. 
 ');
 INSERT INTO txt VALUES ('H9060', 'English', 'All tickets are displayed, which have been created for the selected owner for external requests.
+    If a ticket is not finished but no open external requests are existing, a button to reinit is offered to the administrator.
+    When selected, the first not finished request task of the ticket is requested.
 ');
 INSERT INTO txt VALUES ('H9070', 'German',  'Hier werden alle in der Auftragstabelle eingetragenen Externen Auftr&auml;ge dargestellt,
     deren Status noch nicht einen der Endzust&auml;nde "ExtReqAcknowledged" oder "ExtReqAckRejected" erreicht hat.<br>

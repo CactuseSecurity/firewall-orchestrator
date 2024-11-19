@@ -209,12 +209,11 @@ namespace FWO.Middleware.Server
 					// todo: bundle also other task types?
 					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
 					// it must be split into multiple tickets of up to 100 ARs each.
-					// The count parameter specifies the number of tickets to be opened.
 
 					List<WfReqTask> bundledTasks = [nextTask];
 					int actTaskNumber = lastTaskNumber + 2;
 					bool taskFound = true;
-					while(taskFound)
+					while(taskFound && bundledTasks.Count < 100)
 					{
 						WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
 						if(furtherTask != null && furtherTask.TaskType == WfTaskType.access.ToString())

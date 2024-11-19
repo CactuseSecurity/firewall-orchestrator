@@ -8,11 +8,11 @@ namespace FWO.Services
 {
     public class ModellingVarianceAnalysis
     {
-        private ApiConnection apiConnection;
-        private ExtStateHandler extStateHandler;
-        private UserConfig userConfig;
+        private readonly ApiConnection apiConnection;
+        private readonly ExtStateHandler extStateHandler;
+        private readonly UserConfig userConfig;
         private List<Management> managements = [];
-        private ModellingNamingConvention namingConvention = new();
+        private readonly ModellingNamingConvention namingConvention = new();
 
         private List<WfReqTask> TaskList = [];
         private List<WfReqTask> AccessTaskList = [];
@@ -20,9 +20,9 @@ namespace FWO.Services
         private int taskNumber = 0;
         private List<WfReqElement> elements = [];
 
-        private Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
-        private Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
-        private Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
+        private readonly Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
+        private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
+        private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
 
         private ModellingAppRole? existingAppRole;
         private List<ModellingAppServerWrapper> newAppServers = [];

@@ -17,6 +17,8 @@
 
         public abstract void SetRole(string role);
 
+        public abstract void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList);
+
         public abstract void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList);
 
         public abstract void SwitchBack();

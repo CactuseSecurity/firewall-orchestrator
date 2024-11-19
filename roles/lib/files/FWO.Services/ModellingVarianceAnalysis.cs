@@ -1,10 +1,8 @@
 ﻿using FWO.Config.Api;
-using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
-using System.Text.Json;
 
 namespace FWO.Services
 {
@@ -80,7 +78,9 @@ namespace FWO.Services
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
                             Elements = elements,
-                            Comments = [ new(){ Comment = new(){ CommentText = "FWOC" + conn.Id.ToString() }} ]
+                            RuleAction = 1,  // Todo ??
+                            Tracking = 1,  // Todo ??
+                            Comments = [ new(){ Comment = new(){ CommentText = ConstructComment(conn) }} ]
                         });
                     }
                 }
@@ -95,6 +95,16 @@ namespace FWO.Services
                 task.StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0;
             }
             return TaskList;
+        }
+
+        private string ConstructComment(ModellingConnection conn)
+        {
+            string comment = "FWOC" + conn.Id.ToString();
+            if(conn.ExtraConfigs.Count > 0)
+            {
+                comment += ", " + userConfig.GetText("impl_instructions") + ": " + string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()));
+            }
+            return comment;
         }
 
         private async Task GetProductionState()
@@ -225,11 +235,11 @@ namespace FWO.Services
         private bool ResolveExistingAppRole(ModellingAppRole appRole, Management mgt)
         {
             Log.WriteDebug("Search AppRole", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
-            ModellingAppRole sanitizedAR = new(appRole);
-            sanitizedAR.Sanitize();
+            bool shortened = false;
+            string sanitizedARName = Sanitizer.SanitizeJsonFieldMand(appRole.IdString, ref shortened);
             if(allExistingAppRoles.ContainsKey(mgt.Id))
             {
-                existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedAR.IdString);
+                existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedARName);
             }
             if(existingAppRole != null)
             {
@@ -238,30 +248,41 @@ namespace FWO.Services
             return existingAppRole != null;
         }
 
-        private long? ResolveAppServerId(ModellingAppServer appServer, Management mgt)
+        private (long?, bool) ResolveAppServerId(ModellingAppServer appServer, Management mgt)
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
             ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer));
             if(existingAppServer != null)
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
-                return existingAppServer?.Id;
+                return (existingAppServer?.Id, true);
             }
             else if(alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer)) != null)
             {
-                return 0;
+                return (null, true);
             }
             else
             {
                 alreadyCreatedAppServers[mgt.Id].Add(appServer);
-                return null;
+                return (null, false);
             }
+        }
+
+
+        private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
+        {
+            return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + appServer.Ip : 
+                (char.IsLetter(appServer.Name[0]) ? appServer.Name : namingConvention?.AppServerPrefix + appServer.Name);
         }
 
         private bool AreEqual(ModellingAppServer appServer1, ModellingAppServer appServer2)
         {
-            string appServer2Name = string.IsNullOrEmpty(appServer2.Name) ? namingConvention.AppServerPrefix + appServer2.Ip : appServer2.Name;
-            return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim();
+            string appServer2Name = ConstructAppServerName(appServer2, namingConvention);
+            string sanitizedAS2Name = new(appServer2Name);
+            bool shortened = false;
+            sanitizedAS2Name = Sanitizer.SanitizeJsonFieldMand(sanitizedAS2Name, ref shortened);
+            return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim() ||
+                appServer1.Name.ToLower().Trim() == sanitizedAS2Name.ToLower().Trim();
         }
 
         private bool AppRoleChanged(ModellingAppRole appRole)
@@ -282,7 +303,7 @@ namespace FWO.Services
             }
             foreach(var exAppserver in existingAppRole.AppServers)
             {
-                if(appRole.AppServers.FirstOrDefault(a => AreEqual(a.Content, exAppserver.Content)) == null)
+                if(appRole.AppServers.FirstOrDefault(a => AreEqual(exAppserver.Content, a.Content)) == null)
                 {
                     deletedAppServers.Add(exAppserver);
                 }
@@ -295,15 +316,16 @@ namespace FWO.Services
             List<WfReqElement> groupMembers = [];
             foreach(var appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
             {
+                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
                 {
-                    RequestAction = RequestAction.create.ToString(),
+                    RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Name,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = appRole.IdString,
-                    NetworkId = ResolveAppServerId(appServer, mgt)
+                    NetworkId = networkId
                 });
             }
             Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString} };
@@ -364,10 +386,10 @@ namespace FWO.Services
             unchangedGroupMembersDuringCreate = [];
             foreach(var appServer in newAppServers)
             {
-                long? networkId = ResolveAppServerId(appServer.Content, mgt);
+                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer.Content, mgt);
                 newGroupMembers.Add(new()
                 {
-                    RequestAction = RequestAction.create.ToString(),
+                    RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,

@@ -11,7 +11,14 @@
     <Body>
         @if (Display)
         {
-            <p>@(Message)</p>
+            @if (RenderMessageAsHtml)
+            {
+                <p>@((MarkupString)Message)</p>
+            }
+            else
+            {
+                <p>@(Message)</p>
+            }
         }
     </Body>
     <Footer>
@@ -49,6 +56,9 @@
 
     [Parameter]
     public string AllowedRoles { get; set; } = Roles.Admin;
+
+    [Parameter]
+    public bool RenderMessageAsHtml { get; set; }
 
     private void Cancel()
     {

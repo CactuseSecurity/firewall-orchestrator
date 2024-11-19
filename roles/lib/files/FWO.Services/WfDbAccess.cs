@@ -114,7 +114,7 @@ namespace FWO.Services
                 else
                 {
                     ticket = await GetTicket(returnIds[0].NewId);
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
                 }
             }
             catch (Exception exception)
@@ -144,7 +144,7 @@ namespace FWO.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
                 }
             }
             catch (Exception exception)
@@ -823,7 +823,7 @@ namespace FWO.Services
                         reqtask.Owners.Remove(oldOwner);
                     }
                 }
-                reqtask.RemovedOwners = new ();
+                reqtask.RemovedOwners = [];
 
                 foreach(var owner in reqtask.NewOwners)
                 {
@@ -893,7 +893,7 @@ namespace FWO.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
                 }
             }
             catch (Exception exception)

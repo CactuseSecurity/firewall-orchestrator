@@ -261,6 +261,7 @@
                 await SaveTicketId(intTicket.Id);
                 await CreateExtRequests(intTicket);
                 await RefreshParent(intTicket);
+                DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
             }
         }
         catch (Exception exception)
@@ -299,7 +300,7 @@
 
             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
                 0, $"Initialized Rollout Requests", apiConnection, userConfig, 
-				intTicket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester.Name);
+				intTicket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
         }
         catch (Exception exception)
         {

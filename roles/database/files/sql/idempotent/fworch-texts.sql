@@ -2585,6 +2585,8 @@ INSERT INTO txt VALUES ('U0014', 'German',  'L&ouml;schen erfolgreich');
 INSERT INTO txt VALUES ('U0014', 'English', 'Deletion successful');
 INSERT INTO txt VALUES ('U0015', 'German',  'Das L&ouml;schen des Elements wurde erfolgreich abgeschlossen.');
 INSERT INTO txt VALUES ('U0015', 'English', 'The deletion of the element has been completed successfully.');
+INSERT INTO txt VALUES ('U0016', 'German',  'Das Fenster kann geschlossen werden.');
+INSERT INTO txt VALUES ('U0016', 'English', 'Window can be closed.');
 
 INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende Reportvorlage l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U1002', 'English', 'Do you really want to delete report template');
@@ -2795,6 +2797,8 @@ INSERT INTO txt VALUES ('U9018', 'German',  'Antrag abgelehnt.');
 INSERT INTO txt VALUES ('U9018', 'English', 'Ticket rejected.');
 INSERT INTO txt VALUES ('U9019', 'German',  'Sind sie sicher, dass sie die Externen Auftr&auml;ge f&uuml;r folgendes Ticket wiederanstossen wollen: ');
 INSERT INTO txt VALUES ('U9019', 'English', 'Are you sure you want to reinit the external requests for following ticket: ');
+INSERT INTO txt VALUES ('U9020', 'German',  'Die externe Beantragung wurde gestartet.');
+INSERT INTO txt VALUES ('U9020', 'English', 'External Request initialized.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

@@ -10,7 +10,8 @@
       - apt-transport-https
       - ca-certificates
       - curl
-      - software-properties-common
+
+#      - software-properties-common
 
   - name: adding docker apt signing key
     get_url:

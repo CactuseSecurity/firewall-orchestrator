@@ -231,3 +231,9 @@ bugfix release:
 
 # 8.4.2 - 17.10.2024 DEVELOP
 - external request
+
+# 8.4.3 - 05.11.2024 DEVELOP
+- extra parameters in modelling connection
+
+# 8.5.1 - 18.11.2024 DEVELOP
+- fixing PDF generation

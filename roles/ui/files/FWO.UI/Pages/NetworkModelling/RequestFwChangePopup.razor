@@ -90,6 +90,9 @@
     [Parameter]
     public List<ModellingConnection> Connections { get; set; } = [];
 
+    [Parameter]
+    public Func<WfTicket, Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
 
     private List<WfReqTask> TaskList = [];
     private List<IpProtocol> ipProtos = [];
@@ -98,13 +101,6 @@
     private bool RequestInProcess = false;
     private WfStateDict states = new();
     private ExtStateHandler extStateHandler;
-
-
-    private struct TicketId
-    {
-        [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
-        public long Id { get; set; }
-    };
 
 
     protected override async Task OnInitializedAsync()
@@ -120,9 +116,7 @@
         {
             FirstTry = false;
             WorkInProgress = true;
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Implementer, Roles.Admin, Roles.Auditor ]);
             await states.Init(apiConnection);
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             await InitTasks();
             WorkInProgress = false;
         }
@@ -149,10 +143,8 @@
         List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = SelectedApp.Id});
         if(ticketIds.Count > 0)
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
             TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket? intTicket = await ticketCreator.GetTicket(SelectedApp.Id, ticketIds.First().Id);
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             if(intTicket != null)
             {
                 TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
@@ -242,6 +234,10 @@
         {
             return "text-success";
         }
+        else if(elem.RequestAction == RequestAction.addAfterCreation.ToString())
+        {
+            return "text-info";
+        }
         else if(elem.RequestAction == RequestAction.delete.ToString())
         {
             return "text-danger";
@@ -254,17 +250,16 @@
         WorkInProgress = true;
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
             TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
                 "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized), "");
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             if(intTicket != null)
             {
                 RequestInProcess = true;
                 TaskList = intTicket.Tasks;
                 await SaveTicketId(intTicket.Id);
                 await CreateExtRequests(intTicket);
+                await RefreshParent(intTicket);
             }
         }
         catch (Exception exception)

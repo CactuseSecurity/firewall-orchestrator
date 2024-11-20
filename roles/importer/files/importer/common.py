@@ -187,6 +187,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         config2import = configFromFile  # TODO: switch to objects
                     else:
                         configObj = FwConfig('native', configFromFile) # assuming old native config
+                        # need to normalize config (actually not reading from API but already read from file)
+                        config_changed_since_last_import = get_config_from_api(importState, configObj.Config, config2import)
+
                 if configObj.ConfigFormat == 'normalized':
                     # before importing from normalized config file, we need to replace the import id:
                     replace_import_id(configObj.Config, importState.ImportId)

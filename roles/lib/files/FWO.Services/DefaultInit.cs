@@ -8,6 +8,7 @@ namespace FWO.Services
         public static async Task DoNothing() { await Task.CompletedTask; }
         public static async Task DoNothing(string _) { await Task.CompletedTask; }
         public static async Task DoNothing(WfStatefulObject _) { await Task.CompletedTask; }
+        public static async Task DoNothing(WfTicket _) { await Task.CompletedTask; }
         public static async Task DoNothing(WfReqTask _) { await Task.CompletedTask; }
         public static async Task DoNothing(WfImplTask _) {await Task.CompletedTask; }
         public static async Task DoNothing(UiUser _) {await Task.CompletedTask; }

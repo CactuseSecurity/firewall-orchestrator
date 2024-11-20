@@ -98,10 +98,8 @@
         {
             if(CheckInput())
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin });
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
                 long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, Reason);
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller });
 
                 if(ticketId > 0)
                 {
@@ -112,9 +110,7 @@
                     long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
                     await SendEmail(connId);
 
-                    apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Requester, Roles.Admin });
                     await ticketCreator.SetInterfaceId(ticketId, connId, SelectedOwner);
-                    apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller });
                 }
                 await RefreshParent();
                 Close();

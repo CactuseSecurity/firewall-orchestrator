@@ -259,34 +259,7 @@ namespace FWO.Middleware.Server
 				extRequestState = ExtStates.ExtReqInitialized.ToString()
 			};
 			await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables);
-			await LogRequest(tasks, ticket.Requester?.Name);
-		}
-
-		private async Task LogRequest(List<WfReqTask> tasks, string? requester)
-		{
-			foreach(var task in tasks)
-			{
-				ModellingTypes.ModObjectType objType = ModellingTypes.ModObjectType.Connection;
-				long objId = 0;
-				if(task.GetAddInfoLongValue(AdditionalInfoKeys.ConnId) != null)
-				{
-					objId = task.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) ?? 0;
-					objType = ModellingTypes.ModObjectType.Connection;
-				}
-				else if(task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId) != null)
-				{
-					objId = task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId) ?? 0;
-					objType = ModellingTypes.ModObjectType.AppRole;
-				}
-				else if(task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) != null)
-				{
-					objId = task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) ?? 0;
-					objType = ModellingTypes.ModObjectType.ServiceGroup;
-				}
-				await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Request, objType, objId,
-                	$"Requested {task.Title} on {task.OnManagement?.Name}", 
-					ApiConnection, UserConfig, task.Owners.First()?.Owner.Id, DefaultInit.DoNothing, requester);
-			}
+			await LogRequestTasks(tasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
 		}
 
 		private async Task RejectFollowingTasks(WfTicket ticket, int lastTaskNumber)
@@ -353,8 +326,8 @@ namespace FWO.Middleware.Server
 		{
 			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId + ": " ?? "" : "";
 			string onMgt = UserConfig.GetText("on") + reqTask?.OnManagement?.Name + "(" + reqTask?.OnManagement?.Id + ")";
-			string grpName = " " + reqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
-            return appId + reqTask.TaskType switch
+			string grpName = " " + reqTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+            return appId + reqTask?.TaskType switch
             {
                 nameof(WfTaskType.access) => UserConfig.GetText("create_rule") + onMgt,
                 nameof(WfTaskType.group_create) => UserConfig.GetText("create_group") + grpName + onMgt,
@@ -384,6 +357,15 @@ namespace FWO.Middleware.Server
 						await wfHandler.SetAddInfoInReqTask(updatedTask, AdditionalInfoKeys.ExtIcketId, extReq.ExtTicketId);
 					}
 					await UpdateTaskState(updatedTask, extReq.ExtRequestState);
+
+					if(extReq.ExtRequestState == ExtStates.ExtReqDone.ToString())
+					{
+						await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Implement);
+					}
+					else if(extReq.ExtRequestState == ExtStates.ExtReqRejected.ToString())
+					{
+						await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Reject, extReq.LastProcessingResponse ?? extReq.LastCreationResponse ?? "");
+					}
 				}
 			}
 		}
@@ -417,6 +399,45 @@ namespace FWO.Middleware.Server
 				Log.WriteError("Acknowledge External Request", $"Runs into exception: ", exception);
 			}
 		}
+
+		private async Task LogRequestTasks(List<WfReqTask> tasks, string? requester, ModellingTypes.ChangeType changeType, string? comment = null)
+		{
+			foreach(var task in tasks)
+			{
+				(long objId, ModellingTypes.ModObjectType objType) = GetObject(task);
+				await ModellingHandlerBase.LogChange(changeType, objType, objId,
+                	$"{ConstructLogMessageText(changeType)} {task.Title} on {task.OnManagement?.Name}{(comment != null ? ", " + comment : "")}", 
+					ApiConnection, UserConfig, task.Owners.First()?.Owner.Id, DefaultInit.DoNothing, requester);
+			}
+		}
+
+		private static (long, ModellingTypes.ModObjectType) GetObject(WfReqTask task)
+		{
+			if(task.GetAddInfoLongValue(AdditionalInfoKeys.ConnId) != null)
+			{
+				return (task.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) ?? 0, ModellingTypes.ModObjectType.Connection);
+			}
+			else if(task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId) != null)
+			{
+				return (task.GetAddInfoIntValue(AdditionalInfoKeys.AppRoleId) ?? 0, ModellingTypes.ModObjectType.AppRole);
+			}
+			else if(task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) != null)
+			{
+				return (task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) ?? 0, ModellingTypes.ModObjectType.ServiceGroup);
+			}
+			return (0, ModellingTypes.ModObjectType.Connection);
+		}
+
+		private static string ConstructLogMessageText(ModellingTypes.ChangeType changeType)
+		{
+            return changeType switch
+            {
+                ModellingTypes.ChangeType.Request => "Requested",
+                ModellingTypes.ChangeType.Implement => "Implemented",
+                ModellingTypes.ChangeType.Reject => "Rejected",
+                _ => "",
+            };
+        }
 
 		private void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
         {

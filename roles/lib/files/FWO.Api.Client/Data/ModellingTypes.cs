@@ -19,7 +19,9 @@
             Reactivate = 7,
             Replace = 8,
             InitRequests = 9,
-            Request = 10
+            Request = 10,
+            Implement = 11,
+            Reject = 12
         }
 
         public enum ModObjectType

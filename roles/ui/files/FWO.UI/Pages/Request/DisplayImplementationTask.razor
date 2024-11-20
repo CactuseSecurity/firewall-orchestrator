@@ -327,6 +327,7 @@
         Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
     <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
 }
+<InProgress Display="WorkInProgress"/>
 
 @code
 {
@@ -384,7 +385,7 @@
     private string allComments = "";
     private string message = "";
     private bool assignOwnerMode = false;
-
+    private bool WorkInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -469,11 +470,14 @@
 
     private async Task AssignOwner()
     {
+        WorkInProgress = true;
+        await InvokeAsync(StateHasChanged);
         SetChangedOwner();
         await WfHandler.ChangeOwner();
         actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
         newOwnerAssigned = true;
         assignOwnerMode = false;
+        WorkInProgress = false;
     }
 
     private void InitAddComment()
@@ -556,6 +560,8 @@
 
     private async Task SaveImplTask()
     {
+        WorkInProgress = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
             if (WfHandler.ActImplTask.Sanitize())
@@ -588,6 +594,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_task"), "", true);
         }
+        WorkInProgress = false;
     }
 
     private void SetChangedOwner()

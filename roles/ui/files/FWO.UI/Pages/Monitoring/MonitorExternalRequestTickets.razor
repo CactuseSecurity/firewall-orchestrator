@@ -202,7 +202,7 @@ else
 
             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
                 0, $"Reinitialized Rollout Requests", apiConnection, userConfig, 
-				actOwnerTicket.Ticket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, actOwnerTicket.Ticket.Requester.Name);
+				actOwnerTicket.Ticket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, userConfig.User.Name);
         }
         catch (Exception exception)
         {

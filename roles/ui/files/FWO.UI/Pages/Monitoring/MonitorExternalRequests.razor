@@ -148,6 +148,7 @@ else
         </div>
     </Footer>
 </PopUp>
+<InProgress Display="workInProgress" />
 
 
 @code
@@ -161,6 +162,7 @@ else
     private bool ChangeStateMode = false;
 
     private int PageSize { get; set; } = 10;
+    private bool workInProgress = false;
 
     private List<ExtStates> availableStates = [];
     private ExtStates actState = ExtStates.ExtReqRejected;
@@ -221,6 +223,7 @@ else
 
     private async Task PatchState()
     {
+        workInProgress = true;
         actRequest.ExtRequestState = actState.ToString();
         ExternalRequestPatchStateParameters patchParams = new()
         {
@@ -241,6 +244,7 @@ else
             Log.WriteDebug("PatchExtRequestState", $"External Request state for Request {actRequest.Id.ToString()} changed.");
         }
         await FetchData();
+        workInProgress = false;
         ChangeStateMode = false;
     }
 

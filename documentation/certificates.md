@@ -12,7 +12,7 @@ After the change restart apache2
  sudo systemctl restart apache2
 ```
 
-## Change Roor Certificate
+## Change Root Certificate
 
 Copy root cert to
 

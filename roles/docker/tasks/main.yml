@@ -25,7 +25,7 @@
     lineinfile:
       path: "/etc/apt/sources.list.d/docker.list"
       create: true
-      line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_facts['distribution']|lower }} buster stable"
+      line: "deb [arch=amd64] https://download.docker.com/linux/debian buster stable"
 
   - name: apt update
     apt: update_cache=true

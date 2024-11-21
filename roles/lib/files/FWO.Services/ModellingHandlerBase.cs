@@ -98,7 +98,7 @@ namespace FWO.Services
         }
 
         public static async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text,
-            ApiConnection apiConnection, UserConfig userConfig, int? applicationId, Action<Exception?, string, string, bool> displayMessageInUi)
+            ApiConnection apiConnection, UserConfig userConfig, int? applicationId, Action<Exception?, string, string, bool> displayMessageInUi, string? requester = null)
         {
             try
             {
@@ -109,7 +109,7 @@ namespace FWO.Services
                     objectType = (int)objectType,
                     objectId = objId,
                     changeText = text,
-                    changer = userConfig.User.Name
+                    changer = requester ?? userConfig.User.Name
                 };
                 await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addHistoryEntry, Variables);
             }

@@ -18,6 +18,8 @@ namespace FWO.Api.Data
         public const string ReqOwner = "ReqOwner";
         public const string GrpName = "GrpName";
         public const string ExtIcketId = "ExtIcketId";
+        public const string AppRoleId = "AppRoleId";
+        public const string SvcGrpId = "SvcGrpId";
     }
 
     public class WfReqTaskBase : WfTaskBase
@@ -83,6 +85,15 @@ namespace FWO.Api.Data
         public int? GetAddInfoIntValue(string key)
         {
             if(int.TryParse(GetAddInfoValue(key), out int value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        public long? GetAddInfoLongValue(string key)
+        {
+            if(long.TryParse(GetAddInfoValue(key), out long value))
             {
                 return value;
             }

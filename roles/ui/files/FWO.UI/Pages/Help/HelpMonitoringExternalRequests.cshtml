@@ -1,0 +1,19 @@
+﻿@page "/help/monitoring/external_requests"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpMonitoringSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("external_requests")</h3>
+    @(Html.Raw(userConfig.GetText("H9070")))
+    <br><br>
+    @(Html.Raw(userConfig.GetText("H9071")))
+</div>

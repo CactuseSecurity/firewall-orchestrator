@@ -128,7 +128,7 @@
         {
             if(!await GetActTicketStatus())
             {
-                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig);
+                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, DisplayMessageInUi);
                 TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections, SelectedApp);
             }
         }

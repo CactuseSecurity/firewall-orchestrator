@@ -1561,6 +1561,10 @@ INSERT INTO txt VALUES ('implementation_error', 'German',   'Fehler bei der Umse
 INSERT INTO txt VALUES ('implementation_error', 'English',  'Implementation error');
 INSERT INTO txt VALUES ('update_subscription_error','German','Fehler beim Aktualisieren');
 INSERT INTO txt VALUES ('update_subscription_error','English','Update subscription error');
+INSERT INTO txt VALUES ('new_app_zone',         'German',   'Neue AppZone: ');
+INSERT INTO txt VALUES ('new_app_zone',         'English',  'New AppZone: ');
+INSERT INTO txt VALUES ('update_app_zone',      'German',   'Ge&auml;nderte AppZone: ');
+INSERT INTO txt VALUES ('update_app_zone',      'English',  'Update AppZone: ');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

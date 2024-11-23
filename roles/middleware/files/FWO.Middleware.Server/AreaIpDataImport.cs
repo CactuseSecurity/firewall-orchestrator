@@ -95,7 +95,7 @@ namespace FWO.Middleware.Server
             }
             foreach (ModellingNetworkArea existingArea in existingAreas)
             {
-                if (mergedNwData.Areas.FirstOrDefault(x => x.Name == existingArea.Name) == null)
+                if (mergedNwData.Areas.FirstOrDefault(x => x.IdString == existingArea.IdString) == null)
                 {
                     if (await DeleteArea(existingArea))
                     {
@@ -296,11 +296,11 @@ namespace FWO.Middleware.Server
             {
                 foreach (var incomingSubnet in incomingArea.IpData)
                 {
-                    if (incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip.StripOffNetmask() &&
-                        (incomingSubnet.IpEnd == existingSubnet.Content.IpEnd.StripOffNetmask()))
+                    if (incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip?.StripOffNetmask() &&
+                        (incomingSubnet.IpEnd == existingSubnet.Content.IpEnd?.StripOffNetmask()))
                     {
                         existingSubnet.Content.Ip = existingSubnet.Content.Ip.StripOffNetmask();
-                        existingSubnet.Content.IpEnd = existingSubnet.Content.IpEnd.StripOffNetmask();
+                        existingSubnet.Content.IpEnd = existingSubnet.Content.IpEnd?.StripOffNetmask();
                         ipDataToAdd.Remove(incomingSubnet);
                         ipDataToDelete.Remove(existingSubnet);
                     }

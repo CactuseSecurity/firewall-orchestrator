@@ -61,7 +61,7 @@ namespace FWO.Middleware.Server
             // merge all data into a single list of areas
             ModellingImportNwData mergedNwData = MergeNetworkData(AllNwData);
 
-            if (mergedNwData != null && mergedNwData.Areas != null)
+            if (mergedNwData != null)
             {
                 await SaveMergedNwData(mergedNwData);
             }
@@ -119,6 +119,7 @@ namespace FWO.Middleware.Server
             {
                 result.Areas.Add(ConvertAreaToRanges(area));
             }
+
             return result;
         }
 
@@ -163,7 +164,7 @@ namespace FWO.Middleware.Server
             return ipData;
         }
 
-        private ModellingImportAreaData MergeArea(ModellingImportAreaData area1, ModellingImportAreaData area2)
+        private static ModellingImportAreaData MergeArea(ModellingImportAreaData area1, ModellingImportAreaData area2)
         {
             List<ModellingImportAreaIpData> deepCopyIpData = area1.IpData.Select(item => item.Clone()).ToList();
             ModellingImportAreaData resultArea = new(area1.Name, area1.IdString, deepCopyIpData); // make a copy of area1 including all IP data in the list
@@ -187,7 +188,7 @@ namespace FWO.Middleware.Server
             return resultArea;
         }
 
-        private ModellingImportNwData MergeNetworkData(List<ModellingImportNwData> AllNwData)
+        private static ModellingImportNwData MergeNetworkData(List<ModellingImportNwData> AllNwData)
         {
             ModellingImportNwData mergedNwData = new();
 

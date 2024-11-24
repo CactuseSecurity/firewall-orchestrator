@@ -12,14 +12,10 @@ namespace FWO.Services
             if (x is null || y is null)
                 return false;
 
-            IEnumerable<ModellingAppServerWrapper>? diff = x.AppServers.Except(y.AppServers, new AppServerComparer());
-
-            if (diff.Any())
-                return false;
-
             return x.AppId == y.AppId &&
                 x.Id == y.Id &&
-                x.IdString == y.IdString;
+                x.IdString == y.IdString &&
+                x.Name == y.Name;
         }
 
         public int GetHashCode(ModellingAppZone appZone)

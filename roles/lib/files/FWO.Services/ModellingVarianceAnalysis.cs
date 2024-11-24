@@ -4,6 +4,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Api.Client.Data;
+using System.Linq;
 
 namespace FWO.Services
 {
@@ -140,20 +141,6 @@ namespace FWO.Services
                             aSCount++;
                         }
                     }
-
-                    (bool success, List<ModellingAppZone>? existingAppZones) = await AppZoneHandler.GetExistingAppZones(owner.Id);
-                    if (success && existingAppZones is not null)
-                    {
-                        foreach (ModellingAppZone appZone in existingAppZones)
-                        {
-                            if (!allExistingAppZones.ContainsKey(mgt.Id))
-                            {
-                                allExistingAppZones.Add(mgt.Id, []);
-                            }
-                            allExistingAppZones[mgt.Id].Add(new(appZone));
-                            azCount++;
-                        }
-                    }
                 }
 
                 string aRappRoles = "";
@@ -245,6 +232,47 @@ namespace FWO.Services
             });
         }
 
+        private async Task AnalyseAppZones(Management mgt, FwoOwner owner)
+        {
+            allExistingAppZones = AppZoneStateHelper.GetManagementAppZones();
+
+            (bool success, List<ModellingAppZone>? existingAppZones) = await AppZoneHandler.GetExistingAppZones(owner.Id);
+
+            if (success && existingAppZones is not null)
+            {
+                foreach (ModellingAppZone appZone in existingAppZones)
+                {
+                    if (!ResolveExistingAppZone(appZone, mgt))
+                    {
+                        if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_zone") + appZone.IdString && x.OnManagement?.Id == mgt.Id) == null)
+                        {
+                            ModellingAppZone? newFWAppZone = await AppZoneHandler.CreateAppZone(owner);
+                            RequestNewFWAppZone(newFWAppZone, mgt);
+                        }
+                    }
+                    else if (AppZoneChanged(appZone))
+                    {
+                        RequestUpdateAppZone(appZone, mgt);
+                        allExistingAppZones[mgt.Id] = existingAppZones;
+                    }
+                }
+
+                if (!allExistingAppZones.ContainsKey(mgt.Id))
+                {
+                    allExistingAppZones.Add(mgt.Id, []);
+                    allExistingAppZones[mgt.Id].AddRange(existingAppZones);
+                }
+            }
+
+            if (existingAppZones is null || existingAppZones.Count == 0)
+            {
+                ModellingAppZone? newFWAppZone = await AppZoneHandler.CreateAppZone(owner);
+                RequestNewFWAppZone(newFWAppZone, mgt);
+            }
+
+            AppZoneStateHelper.SetManagementAppZones(allExistingAppZones);
+        }
+
         private bool ResolveExistingAppRole(ModellingAppRole appRole, Management mgt)
         {
             Log.WriteDebug("Search AppRole", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
@@ -282,33 +310,6 @@ namespace FWO.Services
             }
         }
 
-        private async Task AnalyseAppZones(Management mgt, FwoOwner owner)
-        {
-            (bool success, List<ModellingAppZone>? existingAppZones) = await AppZoneHandler.GetExistingAppZones(owner.Id);
-
-            //if (success && existingAppZones is null)
-            //{
-            //    ModellingAppZone? newFWAppZone = await AppZoneHandler.CreateAppZone(owner);
-            //    RequestNewFWAppZone(newFWAppZone, mgt);
-            //}
-
-            foreach (ModellingAppZone appZone in allExistingAppZones[mgt.Id])
-            {
-                if (!ResolveExistingAppZone(appZone, mgt))
-                {
-                    if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_zone") + appZone.IdString && x.OnManagement?.Id == mgt.Id) == null)
-                    {
-                        ModellingAppZone? newFWAppZone = await AppZoneHandler.CreateAppZone(owner);
-                        RequestNewFWAppZone(newFWAppZone, mgt);
-                    }
-                }
-                else if (AppZoneChanged(appZone))
-                {
-                    RequestUpdateAppZone(appZone, mgt);
-                }
-            }
-        }
-
         private bool ResolveExistingAppZone(ModellingAppZone appZone, Management mgt)
         {
             if (allExistingAppZones.ContainsKey(mgt.Id))
@@ -322,27 +323,19 @@ namespace FWO.Services
             return existingAppZone != null;
         }
 
-        private bool ResolveAppZone(ModellingAppZone appZone, Management mgt)
+        private bool AppZoneAlreadyRequested(ModellingAppZone appZone, Management mgt)
         {
             Log.WriteDebug("Search AppZone", $"Name: {appZone.Name}, AppId: {appZone.AppId}, Management: {mgt.Name}");
 
             if (!allExistingAppZones.ContainsKey(mgt.Id))
                 return false;
 
-            ModellingAppZone? existingAppZone = allExistingAppZones[mgt.Id].Find(_ => new AppZoneComparer().Equals(_, appZone));
-
-            if (existingAppZone != null)
-            {
-                Log.WriteDebug("Search AppZone", $"Found!!");
-                return true;
-            }
-            else if (alreadyCreatedAppZones[mgt.Id].Contains(appZone, new AppZoneComparer()))
+            if (alreadyCreatedAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? alreadyRequestedAppZones) && alreadyRequestedAppZones.Contains(appZone, new AppZoneComparer()))
             {
                 return true;
             }
             else
             {
-                alreadyCreatedAppZones[mgt.Id].Add(appZone);
                 return false;
             }
         }
@@ -352,6 +345,7 @@ namespace FWO.Services
             string appServer2Name = string.IsNullOrEmpty(appServer2.Name) ? namingConvention.AppServerPrefix + appServer2.Ip : appServer2.Name;
             return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim();
         }
+
 
         private bool AppRoleChanged(ModellingAppRole appRole)
         {
@@ -385,24 +379,27 @@ namespace FWO.Services
             deletedAppServers = [];
             unchangedAppServers = [];
 
-            foreach (ModellingAppServerWrapper appserver in appZone.AppServers)
+            List<ModellingAppServerWrapper> diff1 = appZone.AppServers.Except(existingAppZone.AppServers, new AppServerComparer())
+                                                                                   .ToList();
+            if (diff1.Count > 0)
             {
-                if (existingAppZone.AppServers.FirstOrDefault(a => AreEqual(a.Content, appserver.Content)) != null)
-                {
-                    unchangedAppServers.Add(appserver);
-                }
-                else
-                {
-                    newAppServers.Add(appserver);
-                }
+                newAppServers.AddRange(diff1);
             }
-            foreach (ModellingAppServerWrapper exAppserver in existingAppZone.AppServers)
+
+            List<ModellingAppServerWrapper> diff2 = existingAppZone.AppServers.Except(appZone.AppServers, new AppServerComparer())
+                                                                                    .ToList();
+            if (diff2.Count > 0)
             {
-                if (appZone.AppServers.FirstOrDefault(a => AreEqual(a.Content, exAppserver.Content)) == null)
-                {
-                    deletedAppServers.Add(exAppserver);
-                }
+                deletedAppServers.AddRange(diff2);
             }
+
+            List<ModellingAppServerWrapper> unchanged = existingAppZone.AppServers.Intersect(appZone.AppServers, new AppServerComparer())
+                                                                                    .ToList();
+            if (unchanged.Count > 0)
+            {
+                unchangedAppServers.AddRange(unchanged);
+            }
+
             return newAppServers.Count > 0 || deletedAppServers.Count > 0;
         }
 
@@ -477,7 +474,7 @@ namespace FWO.Services
             List<WfReqElement> groupMembers = [];
             foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(appZone.AppServers))
             {
-                bool alreadyRequested = ResolveAppZone(appZone, mgt);
+                bool alreadyRequested = AppZoneAlreadyRequested(appZone, mgt);
                 groupMembers.Add(new()
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
@@ -499,6 +496,8 @@ namespace FWO.Services
                 Elements = groupMembers,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
             });
+
+            allExistingAppZones[mgt.Id].Add(appZone);
 
             if (!alreadyCreatedAppZones.ContainsKey(mgt.Id))
             {
@@ -654,6 +653,7 @@ namespace FWO.Services
             }
             foreach (ModellingAppServerWrapper appServer in deletedAppServers)
             {
+                //warum unchanged hier?
                 unchangedGroupMembersDuringCreate.Add(new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),

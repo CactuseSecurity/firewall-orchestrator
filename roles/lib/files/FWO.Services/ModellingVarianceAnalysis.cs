@@ -258,9 +258,10 @@ namespace FWO.Services
                     else if (AppZoneChanged(appZone))
                     {
                         RequestUpdateAppZone(appZone, mgt);
-                        allExistingAppZones[mgt.Id] = existingAppZones;
                     }
                 }
+
+                allExistingAppZones[mgt.Id] = existingAppZones;
             }
 
             if (existingAppZones is null || existingAppZones.Count == 0)
@@ -311,13 +312,13 @@ namespace FWO.Services
 
         private bool ResolveExistingAppZone(ModellingAppZone appZone, Management mgt)
         {
-            if (allExistingAppZones.ContainsKey(mgt.Id))
+            if (allExistingAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? mgtAppZones))
             {
-                existingAppZone = allExistingAppZones[mgt.Id].FirstOrDefault(_ => new AppZoneComparer().Equals(_, appZone));
+                existingAppZone = mgtAppZones.FirstOrDefault(_ => new AppZoneComparer().Equals(_, appZone));
             }
             if (existingAppZone != null)
             {
-                //Log.WriteDebug("Search AppRole", $"Found!!");
+                Log.WriteDebug("Search AppZone", $"Found!!");
             }
             return existingAppZone != null;
         }
@@ -326,14 +327,15 @@ namespace FWO.Services
         {
             Log.WriteDebug("Search AppZone", $"Name: {appZone.Name}, AppId: {appZone.AppId}, Management: {mgt.Name}");
 
-            if (alreadyCreatedAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? alreadyRequestedAppZones) && alreadyRequestedAppZones.Contains(appZone, new AppZoneComparer()))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return ( alreadyCreatedAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? alreadyRequestedAppZones)
+                  && alreadyRequestedAppZones.Contains(appZone, new AppZoneComparer()) );
+        }
+        private bool AppServerAlreadyRequested(ModellingAppServer appServer, Management mgt)
+        {
+            Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, AppId: {appServer.AppId}, Management: {mgt.Name}");
+
+            return ( alreadyCreatedAppServers.TryGetValue(mgt.Id, out List<ModellingAppServer>? alreadyRequestedAppServers)
+                  && alreadyRequestedAppServers.Contains(appServer, new AppServerComparer()) );
         }
 
         private bool AreEqual(ModellingAppServer appServer1, ModellingAppServer appServer2)
@@ -341,7 +343,6 @@ namespace FWO.Services
             string appServer2Name = string.IsNullOrEmpty(appServer2.Name) ? namingConvention.AppServerPrefix + appServer2.Ip : appServer2.Name;
             return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim();
         }
-
 
         private bool AppRoleChanged(ModellingAppRole appRole)
         {
@@ -617,7 +618,8 @@ namespace FWO.Services
             unchangedGroupMembersDuringCreate = [];
             foreach (ModellingAppServerWrapper appServer in newAppServers)
             {
-                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer.Content, mgt);
+                bool alreadyRequested = AppServerAlreadyRequested(appServer.Content, mgt);
+
                 newGroupMembers.Add(new()
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
@@ -626,7 +628,7 @@ namespace FWO.Services
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
                     GroupName = appZone.IdString,
-                    NetworkId = networkId
+                    //NetworkId = networkId
                 });
                 newCreatedGroupMembers.Add(new()
                 {
@@ -636,8 +638,14 @@ namespace FWO.Services
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
                     GroupName = appZone.IdString,
-                    NetworkId = networkId
+                    //NetworkId = networkId
                 });
+
+                if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
+                {
+                    alreadyCreatedAppServers.Add(mgt.Id, []);
+                }
+                alreadyCreatedAppServers[mgt.Id].Add(appServer.Content);
             }
             foreach (ModellingAppServerWrapper appServer in unchangedAppServers)
             {
@@ -653,7 +661,6 @@ namespace FWO.Services
             }
             foreach (ModellingAppServerWrapper appServer in deletedAppServers)
             {
-                //warum unchanged hier?
                 unchangedGroupMembersDuringCreate.Add(new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),

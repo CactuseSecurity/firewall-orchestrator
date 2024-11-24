@@ -177,12 +177,12 @@
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5636"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("app_zone_creation")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" @bind="namingConvention.CreateAppZones">
+                    <input type="checkbox" @bind="configData!.CreateAppZones">
                 </div>
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5635"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("app_zone_pattern"):</label>
-                <input disabled="@(!namingConvention.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />               
+                <input disabled="@(!configData.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />               
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5633"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>

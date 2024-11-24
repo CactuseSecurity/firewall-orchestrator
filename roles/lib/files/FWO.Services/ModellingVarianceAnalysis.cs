@@ -234,6 +234,11 @@ namespace FWO.Services
 
         private async Task AnalyseAppZones(Management mgt, FwoOwner owner)
         {
+            if (!userConfig.CreateAppZones)
+            {
+                return;
+            }
+
             allExistingAppZones = AppZoneStateHelper.GetManagementAppZones();
 
             (bool success, List<ModellingAppZone>? existingAppZones) = await AppZoneHandler.GetExistingAppZones(owner.Id);
@@ -255,12 +260,6 @@ namespace FWO.Services
                         RequestUpdateAppZone(appZone, mgt);
                         allExistingAppZones[mgt.Id] = existingAppZones;
                     }
-                }
-
-                if (!allExistingAppZones.ContainsKey(mgt.Id))
-                {
-                    allExistingAppZones.Add(mgt.Id, []);
-                    allExistingAppZones[mgt.Id].AddRange(existingAppZones);
                 }
             }
 
@@ -326,9 +325,6 @@ namespace FWO.Services
         private bool AppZoneAlreadyRequested(ModellingAppZone appZone, Management mgt)
         {
             Log.WriteDebug("Search AppZone", $"Name: {appZone.Name}, AppId: {appZone.AppId}, Management: {mgt.Name}");
-
-            if (!allExistingAppZones.ContainsKey(mgt.Id))
-                return false;
 
             if (alreadyCreatedAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? alreadyRequestedAppZones) && alreadyRequestedAppZones.Contains(appZone, new AppZoneComparer()))
             {
@@ -497,6 +493,10 @@ namespace FWO.Services
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
             });
 
+            if (!allExistingAppZones.ContainsKey(mgt.Id))
+            {
+                allExistingAppZones.Add(mgt.Id, []);
+            }
             allExistingAppZones[mgt.Id].Add(appZone);
 
             if (!alreadyCreatedAppZones.ContainsKey(mgt.Id))

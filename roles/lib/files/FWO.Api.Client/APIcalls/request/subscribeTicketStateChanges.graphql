@@ -1,5 +1,11 @@
 subscription subscribeTicketStateChanges ($id: bigint!){
-  request_ticket(where: { id: {_eq: $id} }, limit: 1, order_by:{ticket_id:desc}) {
-    ...ticketDetails
+  request_ticket(where: { id: {_eq: $id} }, limit:1) {
+    id
+    date_completed
+    state_id
+    requester: uiuser {
+      uiuser_id
+      uiuser_username
+    }
   }
 }

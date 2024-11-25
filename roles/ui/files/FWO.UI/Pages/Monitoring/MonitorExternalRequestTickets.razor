@@ -38,7 +38,11 @@
                     </div>
                 </Template>
             </Column>
-            <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true" >
+                <Template Context="ownwerTicket">
+                    @ownwerTicket.Owner.Display(userConfig.GetText("common_service"))
+                </Template>
+            </Column>
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.Ticket.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.Ticket.StateId)" Sortable="true" Filterable="true" >
                 <Template>
@@ -63,7 +67,7 @@ else
             <form>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
-                    <label class="col-sm-8">@actOwnerTicket.Owner.Name</label>
+                    <label class="col-sm-8">@actOwnerTicket.Owner.Display(userConfig.GetText("common_service"))</label>
                 </div>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ticket")):</label>
@@ -89,7 +93,7 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>

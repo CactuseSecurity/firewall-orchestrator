@@ -26,13 +26,21 @@
 @if(InitComplete)
 {
     <div class="m-2 vheight75">
+        <div class="form-group row">
+            <div class="col-sm-2">
+                <input class="form-check-input" type="checkbox" value="displayAll" @onchange="@ChangeDisplay">
+                <label class="form-check-label">@(userConfig.GetText("show_all"))</label>
+            </div>
+        </div>
         <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
         <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" PageSize="PageSize" ColumnReorder="true">
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H9071"))">
                         <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
-                        @if(context.ExtRequestState != ExtStates.ExtReqDiscarded.ToString())
+                        @if(context.ExtRequestState != ExtStates.ExtReqDiscarded.ToString() &&
+                            context.ExtRequestState != ExtStates.ExtReqAcknowledged.ToString() &&
+                            context.ExtRequestState != ExtStates.ExtReqAckRejected.ToString())
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestChangeState(context)">@(userConfig.GetText("change_state"))</button>
                         }
@@ -40,7 +48,11 @@
                 </Template>
             </Column>
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true" >
+                <Template Context="request">
+                    @request.Owner.Display(userConfig.GetText("common_service"))
+                </Template>
+            </Column>
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="true" />
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.ExtRequestType)" Sortable="true" Filterable="true" />
@@ -65,7 +77,7 @@ else
             <form>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
-                    <label class="col-sm-8">@actRequest.Owner.Name</label>
+                    <label class="col-sm-8">@actRequest.Owner.Display(userConfig.GetText("common_service"))</label>
                 </div>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ticket")):</label>
@@ -116,7 +128,7 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => DetailsMode = false">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => DetailsMode = false">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -163,6 +175,7 @@ else
 
     private int PageSize { get; set; } = 10;
     private bool workInProgress = false;
+    private bool displayAll = false;
 
     private List<ExtStates> availableStates = [];
     private ExtStates actState = ExtStates.ExtReqRejected;
@@ -188,6 +201,19 @@ else
         ExtStates.ExtReqDiscarded.ToString()
     ];
 
+    private static readonly List<string> allRequestStates =
+    [
+        ExtStates.ExtReqInitialized.ToString(),
+        ExtStates.ExtReqFailed.ToString(),
+        ExtStates.ExtReqRequested.ToString(),
+        ExtStates.ExtReqInProgress.ToString(),
+        ExtStates.ExtReqRejected.ToString(),
+        ExtStates.ExtReqDone.ToString(),
+        ExtStates.ExtReqAcknowledged.ToString(),
+        ExtStates.ExtReqAckRejected.ToString(),
+        ExtStates.ExtReqDiscarded.ToString()
+    ];
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -198,13 +224,22 @@ else
     {
         try
         {
-            openRequests = (await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = relevantRequestStates})).OrderByDescending(x => x.Id).ToList();
+            workInProgress = true;
+            List<string> displayedStates = displayAll ? allRequestStates : relevantRequestStates;
+            openRequests = (await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = displayedStates})).OrderByDescending(x => x.Id).ToList();
+            workInProgress = false;
             InitComplete = true;
         }
         catch (System.Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
+    }
+
+    private async Task ChangeDisplay()
+    {
+        displayAll = !displayAll; 
+        await FetchData(); 
     }
 
     private void Details(ExternalRequest request)

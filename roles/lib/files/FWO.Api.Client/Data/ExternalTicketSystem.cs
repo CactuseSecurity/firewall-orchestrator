@@ -28,7 +28,10 @@ namespace FWO.Api.Data
 		
 		[JsonProperty(nameof(Url)), JsonPropertyName(nameof(Url))]
 		public string Url { get; set; } = "";
-		
+
+		[JsonProperty(nameof(LookupRequesterId)), JsonPropertyName(nameof(LookupRequesterId))]
+		public bool LookupRequesterId { get; set; } = false;
+
 		[JsonProperty(nameof(Templates)), JsonPropertyName(nameof(Templates))]
 		public List<ExternalTicketTemplate> Templates { get; set; } = [];
 

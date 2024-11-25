@@ -75,6 +75,13 @@
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemAuth" />
                 </div>
             </div>
+            @if(actExtTicketSystemType == ExternalTicketSystemType.TufinSecureChange)
+            {
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
+                <div class="col-sm-2">
+                    <input type="checkbox" class="w-100" @bind="extTicketingSystemLookup">
+                </div>
+            }
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
                 @{int pos = 0;}
                 @foreach(var template in extTicketingSystemTemplates)
@@ -122,6 +129,7 @@ else
     private ExternalTicketSystemType actExtTicketSystemType = ExternalTicketSystemType.Generic;
     private string extTicketingSystemUrl = "";
     private string extTicketingSystemAuth = "";
+    private bool extTicketingSystemLookup = false;
     private List<ExternalTicketSystem> extTicketSystems = [];
     private List<ExternalTicketTemplate> extTicketingSystemTemplates = [];
     private DateTime extReqStartDate = DateTime.Today;
@@ -144,6 +152,7 @@ else
                 InitTaskTypeList(actExtTicketSystemType);
                 extTicketingSystemUrl = extTicketSystems.First().Url;
                 extTicketingSystemAuth = extTicketSystems.First().Authorization;
+                extTicketingSystemLookup = extTicketSystems.First().LookupRequesterId;
                 if(extTicketSystems.First().Templates.Count == 0 && 
                     (extTicketSystems.First().TicketTemplate != "" || extTicketSystems.First().TasksTemplate != ""))
                 {
@@ -213,6 +222,7 @@ else
                     Type = actExtTicketSystemType,
                     Url = extTicketingSystemUrl,
                     Authorization = extTicketingSystemAuth,
+                    LookupRequesterId = extTicketingSystemLookup,
                     Templates = extTicketingSystemTemplates
                 };
                 newSystem.Sanitize();

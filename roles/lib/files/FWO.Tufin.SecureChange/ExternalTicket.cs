@@ -53,7 +53,7 @@ namespace FWO.Tufin.SecureChange
 			throw new Exception("No Ticket Id given.");
 		}
 
-		private async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
+		protected async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
 		{
 			request.AddHeader("Content-Type", "application/json");
 			request.AddHeader("Authorization", TicketSystem.Authorization);

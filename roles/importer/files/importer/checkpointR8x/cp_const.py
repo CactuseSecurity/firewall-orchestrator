@@ -9,6 +9,7 @@ with_hits = True
 # therefore we have a workaround adding the object manually (as svc and nw)
 any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
 none_obj_uid = "97aeb36a-9aea-11d5-bd16-0090272ccb30"
+internet_obj_uid = 'f99b1488-7510-11e2-8668-87656188709b'
 # todo: read this from config (from API 1.6 on it is fetched)
 
 original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
@@ -38,5 +39,5 @@ obj_types_full_fetch_needed = ['groups', 'groups-with-exclusion', 'updatable-obj
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',
     'CpmiAnyObject', 'CpmiVsxNetobj', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host',
-    'cluster-member', 'CpmiVoipSipDomain'
+    'cluster-member', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain'
 ]

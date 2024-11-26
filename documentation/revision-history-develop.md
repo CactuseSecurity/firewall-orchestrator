@@ -237,6 +237,3 @@ bugfix release:
 
 # 8.5.1 - 18.11.2024 DEVELOP
 - fixing PDF generation
-
-# 8.5.2 - 20.11.2024 DEVELOP
-- add new colors to database

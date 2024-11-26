@@ -42,6 +42,29 @@ namespace FWO.Tufin.SecureChange
 		// 	network // ?? not in swagger
 		// }
 
+		// todo: move to template settings?
+	
+		// 	{
+		// 		"@type": "Object",
+		// 		"name": "LXMA598.xxx.de",
+		// 		"object_type": "host",
+		// 		"object_details": "10.192.222.165/32",
+		// 		"management_id": 1,
+		// 		"status": "ADDED",
+		// 		"comment": "",
+		// 		"object_updated_status": "EXISTING_NOT_EDITED"
+		// 	},
+		private readonly string ObjectTemplate = "{\"@type\": \"@@TYPE@@\", \"name\": \"@@OBJECTNAME@@\", \"object_type\": \"@@OBJECT_TYPE@@\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\", \"management_id\": @@MANAGEMENT_ID@@}";
+
+		// 	{
+		// 		"@type": "Object",
+		// 		"name": "tufin_virt_ip_10.192.222.166",
+		// 		"management_id": 1,
+		// 		"status": "NOT_CHANGED",
+		// 		"object_updated_status": "EXISTING_NOT_EDITED"
+		// 	}
+		private readonly string ObjectTemplateShort = "{\"@type\": \"Object\", \"name\": \"@@OBJECTNAME@@\", \"status\": \"@@STATUS@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\", \"management_id\": @@MANAGEMENT_ID@@}";
+
 		// private readonly string HostTemplateWithId = "{\"@type\": \"host\", \"name\": \"@@HOSTNAME@@\", \"object_UID\": \"@@OBJECT_UID@@\", \"object_type\": \"host\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"management_id\": @@MANAGEMENT_ID@@, \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
 		// private readonly string HostTemplateWithoutId = "{\"@type\": \"host\", \"name\": \"@@HOSTNAME@@\", \"object_type\": \"host\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"management_id\": @@MANAGEMENT_ID@@, \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
 		// private readonly string SvcGroupTemplate = "{\"@type\": \"service_group\", \"group_name\": \"@@GROUPNAME@@\"}";
@@ -70,17 +93,7 @@ namespace FWO.Tufin.SecureChange
 		public SCTicketTask(WfReqTask reqTask, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention) : base(reqTask, ipProtos, namingConvention)
 		{}
 
-		// 	{
-		// 		"@type": "Object",
-		// 		"name": "xyz1234.xxx.de",
-		// 		"object_type": "host",
-		// 		"object_details": "1.2.3.4/32",
-		// 		"management_id": 1,
-		// 		"status": "ADDED",
-		// 		"comment": "",
-		// 		"object_updated_status": "EXISTING_NOT_EDITED"
-		// 	}
-		protected static string FillObjectTemplate(ExternalTicketTemplate template, string type, string objName, string ObjType, string objDetails, string comment, 
+		protected string FillObjectTemplate(string type, string objName, string ObjType, string objDetails, string comment, 
 			string status, string objUpdStatus, string mgmId)
 		{
 			bool shortened = false;
@@ -95,14 +108,7 @@ namespace FWO.Tufin.SecureChange
 				.Replace("@@MANAGEMENT_ID@@", mgmId);
 		}
 
-		// 	{
-		// 		"@type": "Object",
-		// 		"name": "ip_1.2.3.4",
-		// 		"management_id": 1,
-		// 		"status": "NOT_CHANGED",
-		// 		"object_updated_status": "EXISTING_NOT_EDITED"
-		// 	}
-		protected static string FillObjectTemplateShort(ExternalTicketTemplate template, string objName, string status, string objUpdStatus, string mgmId)
+		protected string FillObjectTemplateShort(string objName, string status, string objUpdStatus, string mgmId)
 		{
 			bool shortened = false;
 			return template.ObjectTemplateShort
@@ -167,12 +173,12 @@ namespace FWO.Tufin.SecureChange
 					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction);
 					convertedObjects.Add(FillObjectTemplate(template, objUpdStatus == SCObjStatusValue.NEW.ToString() ? scObjType : "Object",
 						ConstructObjectName(nwObj, namingConvention), scObjType,
-                        ConstructObjectIp(nwObj, scObjType), nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus, mgmId ?? "0"));
+						nwObj.IpString, nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus, mgmId));
 				}
 				else
 				{
-					convertedObjects.Add(FillObjectTemplateShort(template, ConstructObjectName(nwObj, namingConvention),
-						ObjStatus(nwObj.RequestAction), ObjUpdStatus(nwObj.RequestAction), mgmId ?? "0"));
+					convertedObjects.Add(FillObjectTemplateShort(ConstructObjectName(nwObj, namingConvention),
+						ObjStatus(nwObj.RequestAction), ObjUpdStatus(nwObj.RequestAction, nwObj.NetworkId), mgmId));
 				}
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";

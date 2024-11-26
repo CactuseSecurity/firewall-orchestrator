@@ -262,6 +262,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
 		public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
 
+        // [JsonProperty("modUserGroupLdap"), JsonPropertyName("modUserGroupLdap")]
+        // public int ModUserGroupLdap { get; set; } = 1;	// 1 = internal ldap
+        
 		[JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
 		public string ImportSubnetDataPath { get; set; } = "";
 

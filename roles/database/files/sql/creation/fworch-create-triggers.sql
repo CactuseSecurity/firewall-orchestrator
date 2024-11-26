@@ -141,38 +141,53 @@ CREATE TRIGGER import_config_insert
 -------------------------
 -- recert refresh trigger
 
-create or replace function refresh_view_rule_with_owner()
-returns trigger language plpgsql
-as $$
-begin
-    refresh materialized view view_rule_with_owner;
-    return null;
-end $$;
+-- create or replace function refresh_view_rule_with_owner()
+-- returns trigger language plpgsql
+-- as $$
+-- begin
+--     refresh materialized view view_rule_with_owner;
+--     return null;
+-- end $$;
 
-drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertification CASCADE;
+-- drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertification CASCADE;
 
-create trigger refresh_view_rule_with_owner_delete_trigger
-after delete on recertification for each statement 
-execute procedure refresh_view_rule_with_owner();
+-- create trigger refresh_view_rule_with_owner_delete_trigger
+-- after delete on recertification for each statement 
+-- execute procedure refresh_view_rule_with_owner();
 
--- -- function used during import of owner data
--- CREATE OR REPLACE FUNCTION recert_refresh_per_owner(i_owner_id INTEGER) RETURNS VOID AS $$
--- DECLARE
--- 	r_mgm    RECORD;
+-- CREATE OR REPLACE FUNCTION refresh_view_rule_with_owner_deferred()
+-- RETURNS TRIGGER AS $$
 -- BEGIN
--- 	BEGIN
--- 		FOR r_mgm IN
--- 			SELECT mgm_id, mgm_name FROM management
--- 		LOOP
--- 			PERFORM recert_refresh_one_owner_one_mgm (i_owner_id, r_mgm.mgm_id, NULL::TIMESTAMP);
--- 		END LOOP;
-
--- 	EXCEPTION WHEN OTHERS THEN
--- 		RAISE EXCEPTION 'Exception caught in recert_refresh_per_owner while handling management %', r_mgm.mgm_name;
--- 	END;
--- 	RETURN;
+--     -- Call the refresh function only once at the end of the transaction
+--     PERFORM refresh_view_rule_with_owner();
+--     RETURN NULL;
 -- END;
 -- $$ LANGUAGE plpgsql;
+
+-- CREATE CONSTRAINT TRIGGER refresh_view_rule_with_owner_delete_trigger
+-- AFTER DELETE ON recertification
+-- DEFERRABLE INITIALLY DEFERRED
+-- FOR EACH ROW
+-- EXECUTE FUNCTION refresh_view_rule_with_owner_deferred();
+
+-- -- function used during import of owner data
+CREATE OR REPLACE FUNCTION recert_refresh_per_owner(i_owner_id INTEGER) RETURNS VOID AS $$
+DECLARE
+	r_mgm    RECORD;
+BEGIN
+	BEGIN
+		FOR r_mgm IN
+			SELECT mgm_id, mgm_name FROM management
+		LOOP
+			PERFORM recert_refresh_one_owner_one_mgm (i_owner_id, r_mgm.mgm_id, NULL::TIMESTAMP);
+		END LOOP;
+
+	EXCEPTION WHEN OTHERS THEN
+		RAISE EXCEPTION 'Exception caught in recert_refresh_per_owner while handling management %', r_mgm.mgm_name;
+	END;
+	RETURN;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- CREATE OR REPLACE FUNCTION owner_change_triggered ()

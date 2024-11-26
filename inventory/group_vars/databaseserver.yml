@@ -41,5 +41,8 @@ database_idempotent_files:
   - fworch-usr-import.sql
   - fworch-usr-refs.sql
   - fworch-views-changes.sql
-  - fworch-views-recert.sql
   - fworch-zone-import.sql
+
+
+  # - fworch-views-recert.sql 
+  # moved to creation because of materialized view taking too long during upgrades

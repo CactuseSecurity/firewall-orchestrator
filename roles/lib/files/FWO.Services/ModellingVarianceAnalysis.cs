@@ -276,11 +276,11 @@ namespace FWO.Services
         private bool ResolveExistingAppRole(ModellingAppRole appRole, Management mgt)
         {
             Log.WriteDebug("Search AppRole", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
-            ModellingAppRole sanitizedAR = new(appRole);
-            sanitizedAR.Sanitize();
-            if (allExistingAppRoles.ContainsKey(mgt.Id))
+            bool shortened = false;
+            string sanitizedARName = Sanitizer.SanitizeJsonFieldMand(appRole.IdString, ref shortened);
+            if(allExistingAppRoles.ContainsKey(mgt.Id))
             {
-                existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedAR.IdString);
+                existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedARName);
             }
             if (existingAppRole != null)
             {
@@ -310,6 +310,7 @@ namespace FWO.Services
             }
         }
 
+<<<<<<< HEAD
         private bool ResolveExistingAppZone(ModellingAppZone appZone, Management mgt)
         {
             if (allExistingAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? mgtAppZones))
@@ -336,12 +337,23 @@ namespace FWO.Services
 
             return ( alreadyCreatedAppServers.TryGetValue(mgt.Id, out List<ModellingAppServer>? alreadyRequestedAppServers)
                   && alreadyRequestedAppServers.Contains(appServer, new AppServerComparer()) );
+=======
+
+        private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
+        {
+            return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + appServer.Ip : 
+                (char.IsLetter(appServer.Name[0]) ? appServer.Name : namingConvention?.AppServerPrefix + appServer.Name);
+>>>>>>> originupstream/develop
         }
 
         private bool AreEqual(ModellingAppServer appServer1, ModellingAppServer appServer2)
         {
-            string appServer2Name = string.IsNullOrEmpty(appServer2.Name) ? namingConvention.AppServerPrefix + appServer2.Ip : appServer2.Name;
-            return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim();
+            string appServer2Name = ConstructAppServerName(appServer2, namingConvention);
+            string sanitizedAS2Name = new(appServer2Name);
+            bool shortened = false;
+            sanitizedAS2Name = Sanitizer.SanitizeJsonFieldMand(sanitizedAS2Name, ref shortened);
+            return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim() ||
+                appServer1.Name.ToLower().Trim() == sanitizedAS2Name.ToLower().Trim();
         }
 
         private bool AppRoleChanged(ModellingAppRole appRole)
@@ -362,7 +374,11 @@ namespace FWO.Services
             }
             foreach (ModellingAppServerWrapper exAppserver in existingAppRole.AppServers)
             {
+<<<<<<< HEAD
                 if (appRole.AppServers.FirstOrDefault(a => AreEqual(a.Content, exAppserver.Content)) == null)
+=======
+                if(appRole.AppServers.FirstOrDefault(a => AreEqual(exAppserver.Content, a.Content)) == null)
+>>>>>>> originupstream/develop
                 {
                     deletedAppServers.Add(exAppserver);
                 }

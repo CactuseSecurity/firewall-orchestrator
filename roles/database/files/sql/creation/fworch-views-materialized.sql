@@ -155,7 +155,8 @@ SELECT * FROM purge_view_rule_with_owner ();
 DROP FUNCTION purge_view_rule_with_owner();
 
 -- LargeOwnerChange: remove MATERIALIZED for small installations
-CREATE MATERIALIZED VIEW view_rule_with_owner AS 
+-- SmallOwnerChange: add MATERIALIZED for large installations
+CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	SELECT DISTINCT ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
 	r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid,
 	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
@@ -172,18 +173,18 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 -------------------------
 -- recert refresh trigger
 
-create or replace function refresh_view_rule_with_owner()
-returns trigger language plpgsql
-as $$
-begin
-    refresh materialized view view_rule_with_owner;
-    return null;
-end $$;
+-- create or replace function refresh_view_rule_with_owner()
+-- returns trigger language plpgsql
+-- as $$
+-- begin
+--     refresh materialized view view_rule_with_owner;
+--     return null;
+-- end $$;
 
-drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertification CASCADE;
+-- drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertification CASCADE;
 
-create trigger refresh_view_rule_with_owner_delete_trigger
-after delete on recertification for each statement 
-execute procedure refresh_view_rule_with_owner();
+-- create trigger refresh_view_rule_with_owner_delete_trigger
+-- after delete on recertification for each statement 
+-- execute procedure refresh_view_rule_with_owner();
 
 GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;

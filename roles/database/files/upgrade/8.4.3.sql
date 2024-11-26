@@ -5,3 +5,5 @@ insert into config (config_key, config_value, config_user) VALUES ('modExtraConf
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutErrorText', 'Error during external request', 0) ON CONFLICT DO NOTHING;
 
 ALTER TYPE action_enum ADD VALUE IF NOT EXISTS 'addAfterCreation';
+
+delete from config where config_key='[]';

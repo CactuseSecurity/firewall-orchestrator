@@ -1,11 +1,11 @@
-﻿using FWO.Config.Api;
-using FWO.Basics;
-using FWO.Api.Data;
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using System.Text.Json;
-using System.Net;
+using FWO.Api.Data;
+using FWO.Basics;
+using FWO.Config.Api;
 using NetTools;
+using System.Net;
+using System.Text.Json;
 
 namespace FWO.Services
 {
@@ -21,10 +21,10 @@ namespace FWO.Services
         private ModellingManagedIdString OrigId = new();
 
 
-        public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
+        public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
             List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, readOnly, isOwner)
+            : base(apiConnection, userConfig, application, addMode, displayMessageInUi, readOnly, isOwner)
         {
             AppRoles = appRoles;
             AvailableAppServers = availableAppServers;
@@ -36,27 +36,27 @@ namespace FWO.Services
         private void ApplyNamingConvention(string extAppId)
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-            foreach(var aR in AppRoles)
+            foreach (ModellingAppRole aR in AppRoles)
             {
                 aR.ManagedIdString.NamingConvention = NamingConvention;
             }
             ActAppRole.ManagedIdString.NamingConvention = NamingConvention;
-            if(AddMode)
+            if (AddMode)
             {
                 ActAppRole.ManagedIdString.SetAppPartFromExtId(extAppId);
             }
             else
             {
-                ActAppRole.Area = new () { IdString = ModellingManagedIdString.ConvertAppRoleToArea(ActAppRole.IdString, NamingConvention) };
+                ActAppRole.Area = new() { IdString = ModellingManagedIdString.ConvertAppRoleToArea(ActAppRole.IdString, NamingConvention) };
             }
         }
 
         public async Task InitAppRole(ModellingNetworkArea? newArea)
         {
             ActAppRole.Area = newArea;
-            if(newArea != null)
+            if (newArea != null)
             {
-                if(newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
+                if (newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
                 {
                     ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
                     ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);
@@ -68,9 +68,9 @@ namespace FWO.Services
 
         public void AppServerToAppRole(List<ModellingAppServer> appServers)
         {
-            foreach(var appServer in appServers)
+            foreach (ModellingAppServer appServer in appServers)
             {
-                if(!appServer.IsDeleted && ActAppRole.AppServers.FirstOrDefault(w => w.Content.Id == appServer.Id) == null && !AppServerToAdd.Contains(appServer))
+                if (!appServer.IsDeleted && ActAppRole.AppServers.FirstOrDefault(w => w.Content.Id == appServer.Id) == null && !AppServerToAdd.Contains(appServer))
                 {
                     AppServerToAdd.Add(appServer);
                 }
@@ -80,7 +80,7 @@ namespace FWO.Services
         public async Task<ModellingAppRole> GetDummyAppRole()
         {
             List<ModellingAppRole> dummyAppRole = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
-            if(dummyAppRole.Count > 0)
+            if (dummyAppRole.Count > 0)
             {
                 return dummyAppRole.First();
             }
@@ -98,17 +98,17 @@ namespace FWO.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_app_role"), userConfig.GetText("U0001"), true);
                 }
-                if(await CheckAppRole())
+                if (await CheckAppRole())
                 {
-                    foreach(var appServer in AppServerToDelete)
+                    foreach (ModellingAppServer appServer in AppServerToDelete)
                     {
                         ActAppRole.AppServers.Remove(ActAppRole.AppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new Exception("Did not find app server."));
                     }
-                    foreach(var appServer in AppServerToAdd)
+                    foreach (ModellingAppServer appServer in AppServerToAdd)
                     {
-                        ActAppRole.AppServers.Add(new ModellingAppServerWrapper(){ Content = appServer });
+                        ActAppRole.AppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
                     }
-                    if(AddMode)
+                    if (AddMode)
                     {
                         await AddAppRoleToDb(Application.Id);
                     }
@@ -129,12 +129,12 @@ namespace FWO.Services
 
         private async Task<bool> CheckAppRole()
         {
-            if(ActAppRole.IdString.Length <= NamingConvention.FixedPartLength || ActAppRole.Name == "")
+            if (ActAppRole.IdString.Length <= NamingConvention.FixedPartLength || ActAppRole.Name == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if((AddMode || ActAppRole.IdString != OrigId.Whole) && await IdStringAlreadyUsed(ActAppRole.IdString))
+            if (( AddMode || ActAppRole.IdString != OrigId.Whole ) && await IdStringAlreadyUsed(ActAppRole.IdString))
             {
                 // popup for correction?
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), ActAppRole.IdString.ToString() + ": " + userConfig.GetText("E9003"), true);
@@ -147,11 +147,11 @@ namespace FWO.Services
         private async Task<bool> IdStringAlreadyUsed(string appRoleIdString)
         {
             List<ModellingAppRole>? existAR = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = appRoleIdString });
-            if(existAR != null)
+            if (existAR != null)
             {
-                foreach(var aR in existAR)
+                foreach (ModellingAppRole aR in existAR)
                 {
-                    if(aR.Id  != ActAppRole.Id)
+                    if (aR.Id != ActAppRole.Id)
                     {
                         return true;
                     }
@@ -164,13 +164,13 @@ namespace FWO.Services
         {
             int proposedNumber = 1;
             List<ModellingAppRole>? newestARs = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNewestAppRoles, new { pattern = idFixString.CombinedFixPart + "%" });
-            if(newestARs != null && newestARs.Count > 0)
+            if (newestARs != null && newestARs.Count > 0)
             {
                 newestARs[0].ManagedIdString.NamingConvention = NamingConvention;
-                if(int.TryParse(newestARs[0].ManagedIdString.FreePart, out int newestARNumber))
+                if (int.TryParse(newestARs[0].ManagedIdString.FreePart, out int newestARNumber))
                 {
                     proposedNumber = await SearchFrom(idFixString, newestARNumber + 1);
-                    if(proposedNumber == 0)
+                    if (proposedNumber == 0)
                     {
                         proposedNumber = await SearchFrom(idFixString, 1);
                     }
@@ -182,9 +182,9 @@ namespace FWO.Services
         private async Task<int> SearchFrom(ModellingManagedIdString idFixString, int aRNumber)
         {
             double maxNumbers = Math.Pow(10, NamingConvention.FreePartLength) - 1;
-            while(aRNumber <= maxNumbers)
+            while (aRNumber <= maxNumbers)
             {
-                if(!await IdStringAlreadyUsed(idFixString.CombinedFixPart + idFixString.Separator + ProposedString(aRNumber)))
+                if (!await IdStringAlreadyUsed(idFixString.CombinedFixPart + idFixString.Separator + ProposedString(aRNumber)))
                 {
                     return aRNumber;
                 }
@@ -210,13 +210,13 @@ namespace FWO.Services
                     comment = ActAppRole.Comment,
                     creator = userConfig.User.Name
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, Variables)).ReturnIds;
+                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, Variables) ).ReturnIds;
                 if (returnIds != null)
                 {
                     ActAppRole.Id = returnIds[0].NewId;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"New App Role: {ActAppRole.Display()}", Application.Id);
-                    foreach(var appServer in ActAppRole.AppServers)
+                    foreach (ModellingAppServerWrapper appServer in ActAppRole.AppServers)
                     {
                         var Vars = new
                         {
@@ -254,7 +254,7 @@ namespace FWO.Services
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppRole, Variables);
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                     $"Updated App Role: {ActAppRole.Display()}", Application.Id);
-                foreach(var appServer in AppServerToDelete)
+                foreach (ModellingAppServer appServer in AppServerToDelete)
                 {
                     var Vars = new
                     {
@@ -265,7 +265,7 @@ namespace FWO.Services
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"Removed App Server {appServer.Display()} from App Role: {ActAppRole.Display()}", Application.Id);
                 }
-                foreach(var appServer in AppServerToAdd)
+                foreach (ModellingAppServer appServer in AppServerToAdd)
                 {
                     var Vars = new
                     {
@@ -285,18 +285,18 @@ namespace FWO.Services
 
         public void Close()
         {
-            AppServerToAdd = new ();
-            AppServerToDelete = new ();
+            AppServerToAdd = [];
+            AppServerToDelete = [];
         }
 
         public async Task SelectAppServersFromArea(ModellingNetworkArea? area)
         {
-            AppServersInArea = new ();
-            if(area != null)
+            AppServersInArea = [];
+            if (area != null)
             {
-                foreach(var server in AvailableAppServers.Where(x => !x.IsDeleted))
+                foreach (ModellingAppServer? server in AvailableAppServers.Where(x => !x.IsDeleted))
                 {
-                    if(IsInArea(server, area))
+                    if (IsInArea(server, area))
                     {
                         server.InUse = await CheckAppServerInUse(server);
                         server.TooltipText = userConfig.GetText("C9002");
@@ -309,9 +309,9 @@ namespace FWO.Services
         public void CountMembers(ModellingNetworkArea area)
         {
             area.MemberCount = 0;
-            foreach(var server in AvailableAppServers.Where(x => !x.IsDeleted))
+            foreach (ModellingAppServer? server in AvailableAppServers.Where(x => !x.IsDeleted))
             {
-                if(IsInArea(server, area))
+                if (IsInArea(server, area))
                 {
                     area.MemberCount++;
                 }
@@ -322,15 +322,19 @@ namespace FWO.Services
         {
             try
             {
-                foreach(var areaIpData in area.IpData)
+                foreach (NetworkDataWrapper areaIpData in area.IpData)
                 {
                     IPAddress serverIpStart = IPAddress.Parse(server.Ip.StripOffNetmask());
                     IPAddress serverIpEnd = IPAddress.Parse(server.IpEnd.StripOffNetmask());
+                    if(areaIpData.Content.Ip == null || areaIpData.Content.IpEnd == null)
+                    {
+                        return false;
+                    }
                     IPAddress subnetIpStart = IPAddress.Parse(areaIpData.Content.Ip.StripOffNetmask());
                     IPAddress subnetIpEnd = IPAddress.Parse(areaIpData.Content.IpEnd.StripOffNetmask());
 
-                    IPAddressRange ipRangeServer = new IPAddressRange(serverIpStart, serverIpEnd);
-                    IPAddressRange ipRangeSubnet = new IPAddressRange(subnetIpStart, subnetIpEnd);
+                    IPAddressRange ipRangeServer = new(serverIpStart, serverIpEnd);
+                    IPAddressRange ipRangeSubnet = new(subnetIpStart, subnetIpEnd);
 
                     if (serverIpStart.AddressFamily != subnetIpStart.AddressFamily)
                     {
@@ -395,6 +399,7 @@ namespace FWO.Services
         //     }
         //     return false;
         // }
+        
         public static bool OverlapExists(IPAddressRange a, IPAddressRange b)
         {
             return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
@@ -411,6 +416,5 @@ namespace FWO.Services
 
             return BitConverter.ToUInt32(bytes, 0);
         }
-
     }
 }

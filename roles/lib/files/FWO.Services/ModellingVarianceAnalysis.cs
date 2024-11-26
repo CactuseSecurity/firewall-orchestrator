@@ -11,8 +11,13 @@ namespace FWO.Services
     public class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi = null)
     {
         private List<Management> managements = [];
-        private ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+        //private ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
         private ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi);
+        private readonly ApiConnection apiConnection;
+        private readonly ExtStateHandler extStateHandler;
+        private readonly UserConfig userConfig;
+        private List<Management> managements = [];
+        private readonly ModellingNamingConvention namingConvention = new();
 
         private List<WfReqTask> TaskList = [];
         private List<WfReqTask> AccessTaskList = [];
@@ -68,6 +73,7 @@ namespace FWO.Services
                     //RequestNewFWAppZone(newFWAppZone, mgt);
                     if (elements.Count > 0)
                     {
+                        Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.ConnId, conn.Id.ToString()} };
                         AccessTaskList.Add(new()
                         {
                             Title = userConfig.GetText("new_connection") + ": " + conn.Name ?? "",
@@ -77,7 +83,8 @@ namespace FWO.Services
                             Elements = elements,
                             RuleAction = 1,  // Todo ??
                             Tracking = 1,  // Todo ??
-                            Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
+                            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo),
+                            Comments = [ new(){ Comment = new(){ CommentText = ConstructComment(conn) }} ]
                         });
                     }
                 }
@@ -310,7 +317,6 @@ namespace FWO.Services
             }
         }
 
-<<<<<<< HEAD
         private bool ResolveExistingAppZone(ModellingAppZone appZone, Management mgt)
         {
             if (allExistingAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? mgtAppZones))
@@ -337,13 +343,11 @@ namespace FWO.Services
 
             return ( alreadyCreatedAppServers.TryGetValue(mgt.Id, out List<ModellingAppServer>? alreadyRequestedAppServers)
                   && alreadyRequestedAppServers.Contains(appServer, new AppServerComparer()) );
-=======
 
         private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
         {
             return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + appServer.Ip : 
                 (char.IsLetter(appServer.Name[0]) ? appServer.Name : namingConvention?.AppServerPrefix + appServer.Name);
->>>>>>> originupstream/develop
         }
 
         private bool AreEqual(ModellingAppServer appServer1, ModellingAppServer appServer2)
@@ -374,11 +378,7 @@ namespace FWO.Services
             }
             foreach (ModellingAppServerWrapper exAppserver in existingAppRole.AppServers)
             {
-<<<<<<< HEAD
-                if (appRole.AppServers.FirstOrDefault(a => AreEqual(a.Content, exAppserver.Content)) == null)
-=======
                 if(appRole.AppServers.FirstOrDefault(a => AreEqual(exAppserver.Content, a.Content)) == null)
->>>>>>> originupstream/develop
                 {
                     deletedAppServers.Add(exAppserver);
                 }
@@ -469,7 +469,7 @@ namespace FWO.Services
                     NetworkId = networkId
                 });
             }
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString } };
+            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString}, {AdditionalInfoKeys.AppRoleId, appRole.Id.ToString()} };
             TaskList.Add(new()
             {
                 Title = userConfig.GetText("new_app_role") + appRole.IdString,
@@ -526,8 +526,8 @@ namespace FWO.Services
         private void RequestUpdateAppRole(ModellingAppRole appRole, Management mgt)
         {
             FillGroupMembers(appRole, mgt);
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString } };
-            if (newGroupMembers.Count > 0)
+            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, appRole.IdString}, {AdditionalInfoKeys.AppRoleId, appRole.Id.ToString()} };
+            if(newGroupMembers.Count > 0)
             {
                 newGroupMembers.AddRange(unchangedGroupMembers);
                 newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
@@ -775,7 +775,7 @@ namespace FWO.Services
                     GroupName = svcGrp.Name
                 });
             }
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, svcGrp.Name } };
+            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.GrpName, svcGrp.Name}, {AdditionalInfoKeys.SvcGrpId, svcGrp.Id.ToString()} };
             TaskList.Add(new()
             {
                 Title = userConfig.GetText("new_svc_grp") + svcGrp.Name,

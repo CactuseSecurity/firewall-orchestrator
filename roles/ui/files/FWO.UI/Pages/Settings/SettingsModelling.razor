@@ -570,11 +570,11 @@ else
         PrepareSubnetDataPaths();
         PrepareExtraConfigs();
         configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
-        configData.OwnerLdapId = selectedLdap.Id;
         PrepareAppServerTypes();
         PrepareCommonAreas();
         configData.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+        configData.OwnerLdapId = selectedLdap.Id;
     }
 
     private void PrepareAppDataPaths()

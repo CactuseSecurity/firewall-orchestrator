@@ -11,37 +11,52 @@
 @using FWO.Services
 @inject UserConfig userConfig
 
-
 <div class="row">
     <div class="col-sm-8">
-        <label class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
-            @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Add))
-            <span class="ms-2">@(userConfig.GetText("add"))</span>
-        </label>
-        <InputFile id="fileUpload" hidden accept=".csv" OnChange="@SingleUpload" />
-        @if (InputFileChangeEventArgs is not null && !string.IsNullOrEmpty(InputFileChangeEventArgs.File.Name))
-        {
-            <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
-        }
-        <button type="button" disabled="@(Loading || ImportDisabled)" class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="LoadCSV">
-            @if (Loading)
-            {
-                <div class="spinner-border spinner-border-sm" role="status">
-                        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
+        <AuthorizeView Roles="@AuthorizedRoles">
+            <Authorized>
+                <label class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
+                    @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Add))
+                    <span class="ms-2">@(userConfig.GetText("add"))</span>
+                </label>
+                <InputFile id="fileUpload" hidden accept=".csv" OnChange="@SingleUpload" />
+                @if (InputFileChangeEventArgs is not null && !string.IsNullOrEmpty(InputFileChangeEventArgs.File.Name))
+                {
+                    <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
+                }
+                <button type="button" disabled="@(Loading || ImportDisabled)" class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="LoadCSV">
+                    @if (Loading)
+                    {
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
+                        </div>
+                    }
+                    else
+                    {
+                        @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+                    }
+                    <span class="ms-1">@(userConfig.GetText("import"))</span>
+                </button>
+                @if (ShowAlert)
+                {
+                    <div class="alert alert-warning mt-2" role="alert">
+                        <span>@userConfig.GetText("E7014")</span>
                     </div>
-            }
-            else
-            {
-                @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
-            }            
-            <span class="ms-1">@(userConfig.GetText("import"))</span>
-        </button>
-        @if (ShowAlert)
-        {
-            <div class="alert alert-warning mt-2" role="alert">
-                <span>@userConfig.GetText("E7014")</span>
-            </div>
-        }
+                }
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" disabled class="btn btn-sm btn-primary">
+                    <span class="ms-2">
+                        @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Add))
+                        @(userConfig.GetText("add"))
+                    </span>
+                </button>
+                <button type="button" disabled class="btn btn-sm btn-primary mt-2 w-100">
+                    @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+                    <span class="ms-1">@(userConfig.GetText("import"))</span>
+                </button>
+            </NotAuthorized>
+        </AuthorizeView>
     </div>
 </div>
 @code {
@@ -50,6 +65,9 @@
 
     private bool ImportDisabled { get; set; } = true;
     private bool Loading { get; set; }
+
+    [Parameter, EditorRequired]
+    public string? AuthorizedRoles { get; set; }
 
     [Parameter]
     public EventCallback<(Exception, string?)> OnAddAppServerError { get; set; }
@@ -60,10 +78,20 @@
     [Parameter]
     public EventCallback OnImportSuccess { get; set; }
 
-    [Parameter]
+    [Parameter, EditorRequired]
     public ApiConnection? ApiConnection { get; set; }
 
     private List<AppServerType> AppServerTypes = new();
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrWhiteSpace(AuthorizedRoles))
+        {
+            throw new UnauthorizedAccessException($"Parameter {nameof(AuthorizedRoles)} is cannot be empty!");
+        }
+
+        base.OnParametersSet();
+    }
 
     protected override void OnInitialized()
     {
@@ -100,8 +128,8 @@
         if (ImportDisabled || InputFileChangeEventArgs is null)
             return;
 
-        if (InputFileChangeEventArgs.File is null)        
-            return;        
+        if (InputFileChangeEventArgs.File is null)
+            return;
 
         Loading = true;
 
@@ -123,7 +151,8 @@
         string text = System.Text.Encoding.UTF8.GetString(bytes);
         string[] lines = text.Split('\r');
 
-        List<Exception>? importErrors = [];
+        List<Exception>
+    ? importErrors = [];
 
         foreach (string tmpLine in lines)
         {
@@ -224,14 +253,15 @@
         }
 
         return ( columns.Length == 4
-               && columns[0].Trim('"') == "App-Server-Name"
-               && columns[1].Trim('"') == "External-App-ID"
-               && columns[2].Trim('"') == "App-Server-Typ"
-               && columns[3].Trim('"') == "App-IP-Address-Range" );
+        && columns[0].Trim('"') == "App-Server-Name"
+        && columns[1].Trim('"') == "External-App-ID"
+        && columns[2].Trim('"') == "App-Server-Typ"
+        && columns[3].Trim('"') == "App-IP-Address-Range" );
 
     }
 
-    private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel appServer)
+    private async Task<(bool, Exception?)>
+        AddAppServerToDb(CSVAppServerImportModel appServer)
     {
         try
         {
@@ -242,7 +272,8 @@
                 return new(false, new Exception($"{userConfig.GetText("owner_appservertype_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
             }
 
-            List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
+            List<OwnerIdModel>
+                ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
 
             if (ownerIds is null || !ownerIds.Any())
             {

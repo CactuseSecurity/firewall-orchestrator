@@ -18,7 +18,11 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("monitoring"))</h3>
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("monitoring"))</h3>
+    <HelpLink Page="monitoring" />
+</div>
 @(userConfig.GetText("U7001"))
 <hr />
 

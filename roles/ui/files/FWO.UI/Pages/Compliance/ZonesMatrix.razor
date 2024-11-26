@@ -153,11 +153,11 @@ else
             await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.modifyNetworkZoneCommunication, variables);
             zones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
             ToggleEditMode(false);
-            DisplayMessageInUi(null, userConfig.GetText("S_modify_title"), userConfig.GetText("S_modify_message"), false);
+            DisplayMessageInUi(null, userConfig.GetText("U0012"), userConfig.GetText("U0013"), false);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("E_modify_title"), userConfig.GetText("E_modify_message"), true);
+            DisplayMessageInUi(exception, userConfig.GetText("E0034"), userConfig.GetText("E0035"), true);
         }
     }
 

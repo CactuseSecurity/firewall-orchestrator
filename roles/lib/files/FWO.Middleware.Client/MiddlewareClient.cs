@@ -239,9 +239,16 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<RestResponse<bool>> AddExternalRequest(ExternalRequestParameters parameters)
+        public async Task<RestResponse<bool>> AddExternalRequest(ExternalRequestAddParameters parameters)
         {
             RestRequest request = new ("ExternalRequest", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<bool>(request);
+        }
+
+        public async Task<RestResponse<bool>> PatchExternalRequestState(ExternalRequestPatchStateParameters parameters)
+        {
+            RestRequest request = new ("ExternalRequest/PatchState", Method.Patch);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }

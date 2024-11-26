@@ -139,6 +139,8 @@ INSERT INTO txt VALUES ('NetworkZone', 	        'German', 	'Netzwerkzone');
 INSERT INTO txt VALUES ('NetworkZone', 	        'English', 	'Network Zone');
 INSERT INTO txt VALUES ('NetworkArea', 	        'German', 	'Netzwerkarea');
 INSERT INTO txt VALUES ('NetworkArea', 	        'English', 	'Network Area');
+INSERT INTO txt VALUES ('CommunicationProfile', 'German', 	'Kommunikationsprofil');
+INSERT INTO txt VALUES ('CommunicationProfile', 'English', 	'Communication Profile');
 INSERT INTO txt VALUES ('Connection', 	        'German', 	'Verbindung');
 INSERT INTO txt VALUES ('Connection', 	        'English', 	'Connection');
 INSERT INTO txt VALUES ('AppServer', 	        'German', 	'App Server');
@@ -161,6 +163,14 @@ INSERT INTO txt VALUES ('MarkDeleted', 	        'German', 	'Als gel&ouml;scht ma
 INSERT INTO txt VALUES ('MarkDeleted', 	        'English', 	'Mark Deleted');
 INSERT INTO txt VALUES ('Reactivate', 	        'German', 	'Reaktivieren');
 INSERT INTO txt VALUES ('Reactivate', 	        'English', 	'Reactivate');
+INSERT INTO txt VALUES ('InitRequests', 	    'German', 	'Beantragung starten');
+INSERT INTO txt VALUES ('InitRequests', 	    'English', 	'Init Request');
+INSERT INTO txt VALUES ('Request', 	            'German', 	'Beantragen');
+INSERT INTO txt VALUES ('Request', 	            'English', 	'Request');
+INSERT INTO txt VALUES ('Implement', 	        'German', 	'Implementieren');
+INSERT INTO txt VALUES ('Implement', 	        'English', 	'Implement');
+INSERT INTO txt VALUES ('Reject', 	            'German', 	'Ablehnen');
+INSERT INTO txt VALUES ('Reject', 	            'English', 	'Reject');
 INSERT INTO txt VALUES ('SimpleText', 	        'German', 	'Einfacher Text (kein &Auml;nderungsreport)');
 INSERT INTO txt VALUES ('SimpleText', 	        'English', 	'Simple Text (no Change Report)');
 INSERT INTO txt VALUES ('HtmlInBody', 	        'German', 	'Html in Email');
@@ -269,6 +279,10 @@ INSERT INTO txt VALUES ('select', 				'German',	'Ausw&auml;hlen');
 INSERT INTO txt VALUES ('select', 				'English',	'Select');
 INSERT INTO txt VALUES ('loading', 				'German',	'Laden...');
 INSERT INTO txt VALUES ('loading', 				'English',	'Loading...');
+INSERT INTO txt VALUES ('PagerPagesize',        'German', 	'Seitengr&ouml;sse');
+INSERT INTO txt VALUES ('PagerPagesize',        'English',  'Page size');
+INSERT INTO txt VALUES ('PagerSubmit',          'German', 	'Speichern');
+INSERT INTO txt VALUES ('PagerSubmit',          'English',  'Save');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -341,6 +355,8 @@ INSERT INTO txt VALUES ('planning', 			'German',	'Planung');
 INSERT INTO txt VALUES ('planning', 			'English',	'Planning');
 INSERT INTO txt VALUES ('implementation', 		'German',	'Implementierung');
 INSERT INTO txt VALUES ('implementation', 		'English',	'Implementation');
+INSERT INTO txt VALUES ('rollout', 			    'German',	'Einf&uuml;hrung');
+INSERT INTO txt VALUES ('rollout', 			    'English',	'Rollout');
 
 -- start
 INSERT INTO txt VALUES ('welcome_to',           'German', 	'Willkommen zu Firewall Orchestrator');
@@ -1609,14 +1625,14 @@ INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
 INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
 INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
 INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
-INSERT INTO txt VALUES ('owner_appserver_notfound',     'German', 	'Owner für App-Server nicht gefunden.');
-INSERT INTO txt VALUES ('owner_appserver_notfound',     'English', 	'Owner for App server not found.');
-INSERT INTO txt VALUES ('owner_appservertype_notfound',     'German', 	'App-Server Typ für App-Server nicht gefunden.');
-INSERT INTO txt VALUES ('owner_appservertype_notfound',     'English', 	'App server type for App server not found.');
-INSERT INTO txt VALUES ('import_finished_witherrors',     'German', 	'Import wurde mit Fehlern abgeschlossen');
-INSERT INTO txt VALUES ('import_finished_witherrors',     'English', 	'Import succeeded with errors');
-INSERT INTO txt VALUES ('file_upload_failed',        'German', 	'Datei hochladen ist fehlgeschlagen.');
-INSERT INTO txt VALUES ('file_upload_failed',        'English', 	'File upload failed.');
+INSERT INTO txt VALUES ('owner_appserver_notfound','German', 'Owner f&uuml;r App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appserver_notfound','English', 'Owner for App server not found.');
+INSERT INTO txt VALUES ('owner_appservertype_notfound','German', 'App-Server Typ f&uuml;r App-Server nicht gefunden.');
+INSERT INTO txt VALUES ('owner_appservertype_notfound','English', 'App server type for App server not found.');
+INSERT INTO txt VALUES ('import_finished_witherrors','German', 	'Import wurde mit Fehlern abgeschlossen');
+INSERT INTO txt VALUES ('import_finished_witherrors','English', 'Import succeeded with errors');
+INSERT INTO txt VALUES ('file_upload_failed',    'German', 	'Datei hochladen ist fehlgeschlagen.');
+INSERT INTO txt VALUES ('file_upload_failed',    'English', 'File upload failed.');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -1843,7 +1859,7 @@ INSERT INTO txt VALUES ('add_new_ldap',         'German', 	'Neue LDAP-Verbindung
 INSERT INTO txt VALUES ('add_new_ldap',         'English', 	'Add new LDAP connection');
 INSERT INTO txt VALUES ('edit_ldap',            'German', 	'LDAP-Verbindung bearbeiten');
 INSERT INTO txt VALUES ('edit_ldap',            'English', 	'Edit LDAP connection');
-INSERT INTO txt VALUES ('edit_ldap_message',    'German', 	'Diese Einstellungen müssen normalerweise nicht angepasst werden. Ändern Sie diese Einstellungen nur wenn Sie wirklich wissen was Sie tun.');
+INSERT INTO txt VALUES ('edit_ldap_message',    'German', 	'Diese Einstellungen m&uuml;ssen normalerweise nicht angepasst werden. &uuml;ndern Sie diese Einstellungen nur wenn Sie wirklich wissen was Sie tun.');
 INSERT INTO txt VALUES ('edit_ldap_message',    'English', 	'These settings do not normally need to be adjusted. Only change these settings if you really know what you are doing.');
 INSERT INTO txt VALUES ('test_connection',      'German', 	'Verbindung testen');
 INSERT INTO txt VALUES ('test_connection',      'English', 	'Test connection');
@@ -2419,6 +2435,22 @@ INSERT INTO txt VALUES ('credentials',           'German', 	'Login-Daten');
 INSERT INTO txt VALUES ('credentials',           'English', 'Credentials');
 INSERT INTO txt VALUES ('external_request',     'German',   'Externer Auftrag');
 INSERT INTO txt VALUES ('external_request',     'English',  'External Request');
+INSERT INTO txt VALUES ('external_requests',    'German',   'Externe Auftr&auml;ge');
+INSERT INTO txt VALUES ('external_requests',    'English',  'External Requests');
+INSERT INTO txt VALUES ('request_content',      'German',   'Auftragsinhalt');
+INSERT INTO txt VALUES ('request_content',      'English',  'Request content');
+INSERT INTO txt VALUES ('bundled_tasks',        'German',   'Geb&uuml;ndelte Auftr&auml;ge');
+INSERT INTO txt VALUES ('bundled_tasks',        'English',  'Bundled tasks');
+INSERT INTO txt VALUES ('last_creation_response','German',  'Letzte Erzeugungsnachricht');
+INSERT INTO txt VALUES ('last_creation_response','English', 'Last creation response');
+INSERT INTO txt VALUES ('last_process_response','German',   'Letzte Abwicklungsnachricht');
+INSERT INTO txt VALUES ('last_process_response','English',  'Last processing response');
+INSERT INTO txt VALUES ('ext_ticket_system',    'German',	'Externes Ticketing System');
+INSERT INTO txt VALUES ('ext_ticket_system',    'English',	'External ticketing system');
+INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Tickets f&uuml;r Externe Auftr&auml;ge');
+INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Tickets for External Requests');
+INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;ge neu anstossen');
+INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -2538,25 +2570,23 @@ INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers'
 -- 8000-8999: Workflow
 -- 9000-9999: Modelling
 
--- generic success messages
-INSERT INTO txt VALUES ('S_add_title',          'German',   'Erstellen erfolgreich');
-INSERT INTO txt VALUES ('S_add_title',          'English',  'Creation successful');
-INSERT INTO txt VALUES ('S_add_message',        'German',   'Das Erstellen des Elements wurde erfolgreich abgeschlossen.');
-INSERT INTO txt VALUES ('S_add_message',        'English',  'The creation of the element has been completed successfully.');
-
-INSERT INTO txt VALUES ('S_modify_title',       'German',   'Modifizieren erfolgreich');
-INSERT INTO txt VALUES ('S_modify_title',       'English',  'Modification successful');
-INSERT INTO txt VALUES ('S_modify_message',     'German',   'Das Modifizieren des Elements wurde erfolgreich abgeschlossen.');
-INSERT INTO txt VALUES ('S_modify_message',     'English',  'The modification of the element has been completed successfully.');
-
-INSERT INTO txt VALUES ('S_delete_title',       'German',   'L&ouml;schen erfolgreich');
-INSERT INTO txt VALUES ('S_delete_title',       'English',  'Deletion successful');
-INSERT INTO txt VALUES ('S_delete_message',     'German',   'Das L&ouml;schen des Elements wurde erfolgreich abgeschlossen.');
-INSERT INTO txt VALUES ('S_delete_message',     'English',  'The deletion of the element has been completed successfully.');
-
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
 INSERT INTO txt VALUES ('U0001', 'English', 'Input text has been shortened by not allowed characters');
+INSERT INTO txt VALUES ('U0010', 'German',  'Erstellen erfolgreich');
+INSERT INTO txt VALUES ('U0010', 'English', 'Creation successful');
+INSERT INTO txt VALUES ('U0011', 'German',  'Das Erstellen des Elements wurde erfolgreich abgeschlossen.');
+INSERT INTO txt VALUES ('U0011', 'English', 'The creation of the element has been completed successfully.');
+INSERT INTO txt VALUES ('U0012', 'German',  'Modifizieren erfolgreich');
+INSERT INTO txt VALUES ('U0012', 'English', 'Modification successful');
+INSERT INTO txt VALUES ('U0013', 'German',  'Das Modifizieren des Elements wurde erfolgreich abgeschlossen.');
+INSERT INTO txt VALUES ('U0013', 'English', 'The modification of the element has been completed successfully.');
+INSERT INTO txt VALUES ('U0014', 'German',  'L&ouml;schen erfolgreich');
+INSERT INTO txt VALUES ('U0014', 'English', 'Deletion successful');
+INSERT INTO txt VALUES ('U0015', 'German',  'Das L&ouml;schen des Elements wurde erfolgreich abgeschlossen.');
+INSERT INTO txt VALUES ('U0015', 'English', 'The deletion of the element has been completed successfully.');
+INSERT INTO txt VALUES ('U0016', 'German',  'Das Fenster kann geschlossen werden.');
+INSERT INTO txt VALUES ('U0016', 'English', 'Window can be closed.');
 
 INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende Reportvorlage l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U1002', 'English', 'Do you really want to delete report template');
@@ -2579,6 +2609,8 @@ INSERT INTO txt VALUES ('U5014', 'German',  'Pers&ouml;nliche Nutzereinstellunge
 INSERT INTO txt VALUES ('U5014', 'English', 'Personal settings for the individual user');
 INSERT INTO txt VALUES ('U5015', 'German',  'Verwaltung der Workflow-Voreinstellungen (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5015', 'English', 'Administration of workflow settings (only by admin)');
+INSERT INTO txt VALUES ('U5016', 'German',  'Verwaltung der externen Auftr&auml;ge (nur f&uuml;r Admin)');
+INSERT INTO txt VALUES ('U5016', 'English', 'Administration of external requests (only by admin)');
 
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
@@ -2610,6 +2642,10 @@ INSERT INTO txt VALUES ('U5116', 'German',  'Verwaltung der Login-Daten der eing
 INSERT INTO txt VALUES ('U5116', 'English', 'Manage credentials for login to connected firewall management systems');
 INSERT INTO txt VALUES ('U5117', 'German',  'Sind sie sicher, dass sie folgende Login-Daten l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5117', 'English', 'Are you sure you want to delete credentials: ');
+INSERT INTO txt VALUES ('U5118', 'German',  'Statusanzeige aller externen Auftr&auml;ge. M&ouml;glichkeit zur Status&auml;nderung, wenn n&ouml;tig.');
+INSERT INTO txt VALUES ('U5118', 'English', 'Show the status of all external requests. Possibility to patch state if necessary.');
+INSERT INTO txt VALUES ('U5119', 'German',  'Statusanzeige aller Tickets f&uuml;r externe Auftr&auml;ge. M&ouml;glichkeit zum Wiederanstossen, wenn n&ouml;tig.');
+INSERT INTO txt VALUES ('U5119', 'English', 'Show the status of all tickets for external requests. Possibility to reinit if necessary.');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');
@@ -2759,27 +2795,10 @@ INSERT INTO txt VALUES ('U9017', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U9017', 'English', 'Are you sure you want to reject following requested interface: ');
 INSERT INTO txt VALUES ('U9018', 'German',  'Antrag abgelehnt.');
 INSERT INTO txt VALUES ('U9018', 'English', 'Ticket rejected.');
-
--- generic error messages --
-INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
-INSERT INTO txt VALUES ('E_load_title',         'English',  'Loading error');
-INSERT INTO txt VALUES ('E_load_message',       'German',   'Beim Laden der Elemente ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
-INSERT INTO txt VALUES ('E_load_message',       'English',  'An unexpected error occurred while loading the items. Please report the error if it cannot be resolved.');
-
-INSERT INTO txt VALUES ('E_add_title',          'German',   'Fehler beim Erstellen');
-INSERT INTO txt VALUES ('E_add_title',          'English',  'Creation error');
-INSERT INTO txt VALUES ('E_add_message',        'German',   'Bei der Erstellung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
-INSERT INTO txt VALUES ('E_add_message',        'English',  'An unexpected error occurred while creating the item. Please report the error if it cannot be resolved.');
-
-INSERT INTO txt VALUES ('E_modify_title',       'German',   'Fehler beim Modifizieren');
-INSERT INTO txt VALUES ('E_modify_title',       'English',  'Modification error');
-INSERT INTO txt VALUES ('E_modify_message',     'German',   'Bei der Modifizierung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
-INSERT INTO txt VALUES ('E_modify_message',     'English',  'An unexpected error occurred while modifying the item. Please report the error if it cannot be resolved.');
-
-INSERT INTO txt VALUES ('E_delete_title',       'German',   'Fehler beim L&ouml;schen');
-INSERT INTO txt VALUES ('E_delete_title',       'English',  'Deletion error');
-INSERT INTO txt VALUES ('E_delete_message',     'German',   'Bei der L&ouml;schung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
-INSERT INTO txt VALUES ('E_delete_message',     'English',  'An unexpected error occurred while deleting the item. Please report the error if it cannot be resolved.');
+INSERT INTO txt VALUES ('U9019', 'German',  'Sind sie sicher, dass sie die Externen Auftr&auml;ge f&uuml;r folgendes Ticket wiederanstossen wollen: ');
+INSERT INTO txt VALUES ('U9019', 'English', 'Are you sure you want to reinit the external requests for following ticket: ');
+INSERT INTO txt VALUES ('U9020', 'German',  'Die externe Beantragung wurde gestartet.');
+INSERT INTO txt VALUES ('U9020', 'English', 'External Request initialized.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -2796,6 +2815,22 @@ INSERT INTO txt VALUES ('E0012', 'German',  'M&ouml;glicherweise ist das Backend
 INSERT INTO txt VALUES ('E0012', 'English', 'Maybe backend (API or database) is unreachable. Please contact administrator');
 INSERT INTO txt VALUES ('E0021', 'German',  'Bitte &uuml;berpr&uuml;fen Sie ihre Einstellungen');
 INSERT INTO txt VALUES ('E0021', 'English', 'Please check your settings');
+INSERT INTO txt VALUES ('E0030', 'German',  'Fehler beim Laden');
+INSERT INTO txt VALUES ('E0030', 'English', 'Loading error');
+INSERT INTO txt VALUES ('E0031', 'German',  'Beim Laden der Elemente ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E0031', 'English', 'An unexpected error occurred while loading the items. Please report the error if it cannot be resolved.');
+INSERT INTO txt VALUES ('E0032', 'German',  'Fehler beim Erstellen');
+INSERT INTO txt VALUES ('E0032', 'English', 'Creation error');
+INSERT INTO txt VALUES ('E0033', 'German',  'Bei der Erstellung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E0033', 'English', 'An unexpected error occurred while creating the item. Please report the error if it cannot be resolved.');
+INSERT INTO txt VALUES ('E0034', 'German',  'Fehler beim Modifizieren');
+INSERT INTO txt VALUES ('E0034', 'English', 'Modification error');
+INSERT INTO txt VALUES ('E0035', 'German',  'Bei der Modifizierung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E0035', 'English', 'An unexpected error occurred while modifying the item. Please report the error if it cannot be resolved.');
+INSERT INTO txt VALUES ('E0036', 'German',  'Fehler beim L&ouml;schen');
+INSERT INTO txt VALUES ('E0036', 'English', 'Deletion error');
+INSERT INTO txt VALUES ('E0037', 'German',  'Bei der L&ouml;schung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E0037', 'English', 'An unexpected error occurred while deleting the item. Please report the error if it cannot be resolved.');
 
 INSERT INTO txt VALUES ('E1001', 'German',  'Vor dem Generieren des Reports bitte mindestens ein Device auf der linken Seite ausw&auml;hlen');
 INSERT INTO txt VALUES ('E1001', 'English', 'Please select at least one device in the left side-bar before generating a report');
@@ -3086,6 +3121,8 @@ INSERT INTO txt VALUES ('E9017', 'German',  'Schnittstelle kann die angeforderte
 INSERT INTO txt VALUES ('E9017', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
+INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
+INSERT INTO txt VALUES ('E9102', 'English', 'Error at changing the external ticket state.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -4638,6 +4675,8 @@ INSERT INTO txt VALUES ('H5461', 'English', 'Every user can set his own preferre
     The default language at first login can be defined by the admin for all users in the <a href="/help/settings/defaults">Default Settings</a>.<br><br>
     Currently available:
 ');
+INSERT INTO txt VALUES ('H5466', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
+INSERT INTO txt VALUES ('H5466', 'English', 'Message that is displayed on Login Page.');
 INSERT INTO txt VALUES ('H5471', 'German',  'Jeder Nutzer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Reporteinstellungen &uuml;berschreiben.
     Ausgangswert ist der vom Admin in den <a href="/help/settings/defaults">Standardeinstellungen</a> gesetzte Wert.
 ');
@@ -6199,7 +6238,8 @@ INSERT INTO txt VALUES ('H9001', 'German',  'Insbesondere in gr&ouml;sseren Netz
     Desweiteren werden in der Bibliothek vordefinierte (vom Administrator eingestellte) <a href="/help/modelling/services">Dienste</a> angeboten. Diese k&ouml;nnen durch selbst definierte Dienste erg&auml;nzt, 
     als Dienstgruppen geb&uuml;ndelt und dann in den zu definierenden Verbindungen verwendet werden.<br><br>
     F&uuml;r das erstellte Kommunikationsprofil kann per Knopfdruck automatisch ein Verbindungs-Report erstellt werden. Er wird dann in dem <a href="/help/reporting">Report-Modul</a> dargestellt. 
-    Dort stehen dann die vom Report-Modul bereitgestellten Funktionalit&auml;ten zur weiteren Eingrenzung mittels zus&auml;tzlicher Filter, Erzeugung von Vorlagen und Terminen, sowie der Archivierung zur Verf&uuml;gung.
+    Dort stehen dann die vom Report-Modul bereitgestellten Funktionalit&auml;ten zur weiteren Eingrenzung mittels zus&auml;tzlicher Filter, Erzeugung von Vorlagen und Terminen, sowie der Archivierung zur Verf&uuml;gung.<br><br>
+    Bei entsprechender Konfiguration kann die Ausrollung der fertiggestellten Verbindungen automatisch in einem externen Ticketsystem beantragt werden (<a href="/help/modelling/rollout">Einf&uuml;hrung</a>).
 ');
 INSERT INTO txt VALUES ('H9001', 'English', 'Especially in greater networks there is the demand to model the connections between the participants,
     with the aim of further administration. This module provides tools to import already existing <a href="/help/modelling/applications">applications</a> from other systems
@@ -6211,7 +6251,8 @@ INSERT INTO txt VALUES ('H9001', 'English', 'Especially in greater networks ther
     Furthermore the library offers predefined <a href="/help/modelling/services">Services</a> (inserted by the administrator). They can be complemented by self defined services, bundled as Service Groups,
     and used in the connections.<br><br>
     For the communication profile a Connections Report can be created automatically. It is displayed in the <a href="/help/reporting">Report module</a>.
-    Here the reporting functionalities for further filtering, creation of templates and schedules, as well as archiving can be used.
+    Here the reporting functionalities for further filtering, creation of templates and schedules, as well as archiving can be used.<br><br>
+    When configured the rollout of the finalized connections can be requested automatically on an external ticket system (<a href="/help/modelling/rollout">Rollout</a>).
 ');
 INSERT INTO txt VALUES ('H9011', 'German',  'Eine Applikation ist aus Sicht des Firewall Orchestrators ein Beh&auml;lter, in dem aus zugeordneten Host-Adressen ein Kommunikationsprofil erstellt wird.
     Sie wird in der Regel extern aus den Anforderungen und Gegebenheiten der jeweiligen Unternehmung definiert und kann &uuml;ber eine Importschnittstelle in den Firewall Orchestrator importiert
@@ -6382,30 +6423,113 @@ INSERT INTO txt VALUES ('H9053', 'English', 'The assigned modeller can reject th
         <li>If configured by the administrator (<a href="/help/workflow/actions">Actions</a>), the interface can also be rejected inside the workflow request.</li>
     </ul>
 ');
-
-INSERT INTO txt VALUES ('H9054', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
-INSERT INTO txt VALUES ('H9054', 'English', 'Message that is displayed on Login Page.');
 INSERT INTO txt VALUES ('H9055', 'German',  'Importieren von App Servern via CSV Datei. Die CSV muss folgende Daten enthalten:
-<ul>
-<li>App Server Name</li>
-<li>Externe App-ID</li>
-<li>App Server Typ</li>
-<li>App IP Address Range</li>
-</ul>
-<br>
-Die CSV darf eine Überschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+    <ul>
+        <li>App Server Name</li>
+        <li>Externe App-ID</li>
+        <li>App Server Typ</li>
+        <li>App IP Address Range</li>
+    </ul>
+    <br>
+    Die CSV darf eine &Uuml;berschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
 INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV file. The CSV must contain the following data:
-<ul>
-<li>App server name</li>
-<li>External app ID</li>
-<li>App server type</li>
-<li>App IP address range</li>
-</ul>
-<br>
-The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+    <ul>
+        <li>App server name</li>
+        <li>External app ID</li>
+        <li>App server type</li>
+        <li>App IP address range</li>
+    </ul>
+    <br>
+    The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
 ');
-INSERT INTO txt VALUES ('PagerPagesize',     'German', 	'Seitengröße');
-INSERT INTO txt VALUES ('PagerPagesize',     'English', 'Page size');
-INSERT INTO txt VALUES ('PagerSubmit',       'German', 	'Speichern');
-INSERT INTO txt VALUES ('PagerSubmit',       'English', 'Save');
+INSERT INTO txt VALUES ('H9060', 'German',  'Hier werden alle Tickets dargestellt, die f&uuml;r den ausgew&auml;hlten Eigent&uuml;mer f&uuml;r Externe Auftr&auml;ge angelegt wurden.
+    Wenn ein Ticket noch nicht abgeschlossen ist, aber keine offenen Externen Auftr&auml;ge daf&uuml;r existieren, wird dem Administrator die M&ouml;glichkeit zum Wiederaufsetzen angeboten.
+    Dabei wird dann die erste noch nicht abgeschlossene Aufgabe aus dem Ticket beantragt. 
+');
+INSERT INTO txt VALUES ('H9060', 'English', 'All tickets are displayed, which have been created for the selected owner for external requests.
+    If a ticket is not finished but no open external requests are existing, a button to reinit is offered to the administrator.
+    When selected, the first not finished request task of the ticket is requested.
+');
+INSERT INTO txt VALUES ('H9070', 'German',  'Hier werden alle in der Auftragstabelle eingetragenen Externen Auftr&auml;ge dargestellt,
+    deren Status noch nicht einen der Endzust&auml;nde "ExtReqAcknowledged" oder "ExtReqAckRejected" erreicht hat.<br>
+');
+INSERT INTO txt VALUES ('H9070', 'English', 'All external requests from the external request table are displayed,
+    which have not reached one of the final states "ExtReqAcknowledged" or "ExtReqAckRejected".<br>
+');
+INSERT INTO txt VALUES ('H9071', 'German',  'F&uuml;r den Administrator wird die M&ouml;glichkeit angeboten, den Zustand zu &auml;ndern. Je nach Ausgangszustand gibt es dabei verschiedene erreichbare Endzust&auml;nde:
+    <ul>
+        <li>Von den Initialzust&auml;nden "ExtReqInitialized" und "ExtReqFailed" kann nach "ExtReqRejected", "ExtReqAckRejected" und "ExtReqDiscarded" gewechselt werden.</li>
+        <li>Von Zust&auml;nden "ExtReqRequested" und "ExtReqInProgress", die bereits eine externe Bearbeitung anzeigen, ist der &Uuml;bergang nach 
+            "ExtReqRejected", "ExtReqDone", "ExtReqAckRejected" und "ExtReqAcknowledged" m&ouml;glich.</li>
+        <li>Die Zust&auml;nde "ExtReqDone" und "ExtReqRejected", die eine abgeschlossene externe Bearbeitung anzeigen, k&ouml;nnen nur noch mit dem &Uuml;bergang nach
+            "ExtReqAcknowledged" bzw. "ExtReqAckRejected" geschlossen werden.</li>
+    </ul>
+    Zu beachten ist:
+    <ul>
+        <li>Der Zustand "ExtReqDiscarded" kann nur durch den aktiven Eingriff des Administrators erreicht werden.
+            Der Externe Auftrag wird bei der weiteren Bearbeitung nicht mehr ber&uuml;cksichtigt.
+            Somit steht z.B. die M&ouml;glichkeit offen, durch Neuanstossen des internen Tickets einen neuen Auftrag f&uuml;r denselben Requesttask zu erzeugen.</li>
+        <li>Wird als Endzustand "ExtReqRejected" oder "ExtReqDone" gew&auml;hlt, wird auch automatisch die entsprechende Weiterverarbeitung angestossen.
+            D.h. das interne Ticket wird aktualisiert und ggf. Folgeauftr&auml;ge angestossen oder abgebrochen.</li>
+        <li>Beim W&auml;hlen von "ExtReqAcknowledged" bzw. "ExtReqAckRejected" wird nur der Status im Externen Auftrag gesetzt.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H9071', 'English', 'For the administrator the possibility is given to patch the state. Depending on the actual state different final states can be reached:
+    <ul>
+        <li>From the initial states "ExtReqInitialized" and "ExtReqFailed" the final states "ExtReqRejected", "ExtReqAckRejected" and "ExtReqDiscarded" can be selected.</li>
+        <li>The states "ExtReqRequested" und "ExtReqInProgress", who indicate that the external processing has already started, allow the transition to 
+            "ExtReqRejected", "ExtReqDone", "ExtReqAckRejected" and "ExtReqAcknowledged".</li>
+        <li>The states "ExtReqDone" und "ExtReqRejected", who indicate finalized external processing, can only be closed by transition to
+            "ExtReqAcknowledged" resp. "ExtReqAckRejected".</li>
+    </ul>
+    Please note:
+    <ul>
+        <li>The state "ExtReqDiscarded" can only be reached by the intervention of the administrator.
+            The External Request will not be regarded any more in further processing.
+            This opens the possibility to create a new external request for the same request task by reactivating the resp. internal ticket.</li>
+        <li>If "ExtReqRejected" or "ExtReqDone" are chosen, the further processing is activated automatically.
+            The internal ticket is updated and further tasks may be initialized resp. rejected.</li>
+        <li>Chosing "ExtReqAcknowledged" resp. "ExtReqAckRejected" sets only the state in the external request table.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H9080', 'German',  'F&uuml;r das Kommunikationsprofil kann per Knopfdruck die Ausrollung auf den Firewalls &uuml;ber ein externes Ticketsystem angefordert werden.
+    Ber&uuml;cksichtigt werden alle Verbindungen und Common Services, die folgende Voraussetzungen erf&uuml;llen:
+    <ul>
+        <li>Es sind keine beantragten und noch nicht freigegebenen Schnittstellen enthalten.</li>
+        <li>Es wurde keine leere App Rolle verwendet.</li>
+    </ul>
+    Im ersten Schritt werden anhand der Produktionsdaten alle zu beauftragenden Einzelposten ermittelt und in der erforderlichen Reihenfolge aufgelistet:
+    <ul>
+        <li>Zu erweiternde Netzwerkgruppen</li>
+        <li>Neu einzurichtende Netzwerkgruppen</li>
+        <li>Alle relevanten Access Requests (zur Zeit werden alle relevanten Verbindungen beantragt, da die genaue Netzwerktopologie nicht bekannt ist)</li>
+        <li>Zu reduzierende Netzwerkgruppen</li>
+    </ul>
+    Bei Best&auml;tigung wird ein interner Auftrag angelegt und hieraus die einzelnen Aufgaben automatisch nacheinander beauftragt.
+    Dabei k&ouml;nnen bei entsprechender Konfiguration mehrere Aufgaben (zur Zeit nur Access Requests) in einem externen Ticket geb&uuml;ndelt werden.
+    Der aktuelle Status der Verarbeitung kann &uuml;ber erneutes Darstellen der Auftragsliste abgefragt werden. Im Fehlerfall erscheint eine entsprechende Nachricht in der Oberfl&auml;che.
+    Je nach Konfiguration wird nach Beendigung des Auftrags eine Email an den Antragsteller verschickt.
+    Solange die Verarbeitung nicht abgeschlossen ist, kann keine weitere Ausrollung f&uuml;r diese Applikation beantragt werden.
+');
+INSERT INTO txt VALUES ('H9080', 'English', 'For the Communication Profile the rollout on the firewalls can be requested via an external ticket system.
+    Included are all Connections or Common Services satisfying the following conditions:
+    <ul>
+        <li>They contain no requested and not published interfaces.</li>
+        <li>They do not use any empty App Role.</li>
+    </ul>
+    In the first step all tasks to request are calculated by comparing to production data and listed in the necessary order:
+    <ul>
+        <li>Network groups to be expanded</li>
+        <li>Network groups to be created</li>
+        <li>All relevant Access Requests (currently all connections are requested, as the exact network topology is unknown)</li>
+        <li>Network groups to be reduced</li>
+    </ul>
+    If submitted, an internal ticket is created, from where the tasks are processed automatically step by step.
+    Several tasks can be bundled in one single external ticket, if configured (currently only Access Requests).
+    The actual state of the processing can be determined by redisplaying the request list. In case of an error a respective message is displayed in the Ui.
+    After finishing all tasks an email is sent to the requester, if configured.
+    As long as the processing is not finished, no further rollout can be requested for this application.
+');
+INSERT INTO txt VALUES ('H9081', 'German',  'Sonderkonfigurationen sind spezielle Anweisungen zur Implementierung, z.B. NAT. Die m&ouml;glichen Typen werden vom Administrator vorgegeben.');
+INSERT INTO txt VALUES ('H9081', 'English', 'Extra configurations are special recommendations for implementation, e.g. NAT. Possible types are defined by the administrator.');

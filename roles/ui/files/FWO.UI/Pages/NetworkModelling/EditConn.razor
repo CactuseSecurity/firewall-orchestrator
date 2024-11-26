@@ -3,6 +3,7 @@
 @using FWO.Middleware.Client
 @using FWO.Ui.Pages.Request
 @using FWO.Services
+@using System.Text.Json
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -55,6 +56,38 @@
                         title="@(ConnHandler.ActConn.IsRequested ? userConfig.PureLine("U9012") : "")" @bind="ConnHandler.ActConn.Reason" />
                 }
             </div>
+            @if(availableExtraConfigs.Count > 0)
+            {
+                <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9081"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("extra_params")):</label>
+                    <div class="col-sm-9">
+                        @if(ConnHandler.ReadOnly)
+                        {
+                            foreach(var param in ConnHandler.ActConn.ExtraConfigs)
+                            {
+                                <label>@(param.Display())</label><br>
+                            }
+                        }
+                        else
+                        {
+                            foreach(var param in ConnHandler.ActConn.ExtraConfigs)
+                            {
+                                <div class="form-group row">
+                                    <div class="col-sm-1">
+                                        <label>@(param.ExtraConfigType)</label>
+                                    </div>
+                                    <input type="text" class="col-sm-9" data-toggle="@("tooltip")"
+                                        title="@(userConfig.PureLine("H5638"))" value="@param.ExtraConfigText" @onchange="@((e) => {ConnHandler.UpdateExtraConfig(e, param);})"/>
+                                    <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() => {ConnHandler.DeleteExtraConfig(param); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                        @(ConnHandler.DisplayButton("delete_extra_config", Icons.Delete))</button>
+                                </div>
+                            }
+                            <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.AddExtraConfig(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                @(ConnHandler.DisplayButton("add_extra_config", Icons.Add))</button>
+                        }
+                    </div>
+                </div>
+            }
             @if(ConnHandler.ActConn.IsInterface)
             {
                 <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("C9009"))">
@@ -345,6 +378,7 @@
         </div>
     </div>    
     <InProgress Display="workInProgress"/>
+    <AddExtraConfig @bind-Display="ConnHandler.AddExtraConfigMode" @bind-ConnectionHandler="ConnHandler" AvailableExtraConfigTypes="availableExtraConfigs"/>
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
     <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
     <EditAppServer @bind-Display="ConnHandler.DisplayAppServerMode" AppServerHandler="ConnHandler.AppServerHandler"/>
@@ -398,9 +432,13 @@
     private ModellingConnection unchangedConn = new();
     private bool RejectInterfaceMode = false;
 
+    private List<string> availableExtraConfigs = [];
+    
+
     protected override void OnInitialized()
     {
         sidebarLeftWidth = sidebarInitWidth;
+        availableExtraConfigs = JsonSerializer.Deserialize<List<string>>(userConfig.ModExtraConfigs) ?? new();
     }
 
     protected override void OnParametersSet()
@@ -552,13 +590,11 @@
         {
             try
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor ]);
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
                 if(await ticketCreator.PromoteNewInterfaceImplTask(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId), ExtStates.Done))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);
                 }
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             }
             catch(Exception exception)
             {
@@ -606,7 +642,7 @@
     {
         if(ConnHandler.ActConn.TicketId != null)
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
+            workInProgress = true;
             await states.Init(apiConnection);
             OwnerIds = (await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners)).ConvertAll(x => x.Id);
             wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
@@ -627,8 +663,8 @@
                     }
                 }
             }
+            workInProgress = false;
             StateHasChanged();
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
         }
     }
 

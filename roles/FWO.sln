@@ -41,6 +41,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.Basics", "lib\files\FWO
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Tufin.SecureChange", "lib\files\FWO.Tufin.SecureChange\FWO.Tufin.SecureChange.csproj", "{17AA0E0C-BB46-42FE-A08C-68539EA7FD53}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Services", "lib\files\FWO.Services\FWO.Services.csproj", "{56021BEC-39E5-4EC7-B3DB-80834B57B2F0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +117,10 @@ Global
 		{17AA0E0C-BB46-42FE-A08C-68539EA7FD53}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17AA0E0C-BB46-42FE-A08C-68539EA7FD53}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17AA0E0C-BB46-42FE-A08C-68539EA7FD53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56021BEC-39E5-4EC7-B3DB-80834B57B2F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56021BEC-39E5-4EC7-B3DB-80834B57B2F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56021BEC-39E5-4EC7-B3DB-80834B57B2F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56021BEC-39E5-4EC7-B3DB-80834B57B2F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

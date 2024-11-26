@@ -53,7 +53,7 @@
             <Authorized>
                 @if(SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess)
                 {
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="SendRequest">@(userConfig.GetText("request_fw_change"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="StartRequests">@(userConfig.GetText("request_fw_change"))</button>
                 }
                 else
                 {
@@ -90,6 +90,9 @@
     [Parameter]
     public List<ModellingConnection> Connections { get; set; } = [];
 
+    [Parameter]
+    public Func<WfTicket, Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
 
     private List<WfReqTask> TaskList = [];
     private List<IpProtocol> ipProtos = [];
@@ -98,13 +101,6 @@
     private bool RequestInProcess = false;
     private WfStateDict states = new();
     private ExtStateHandler extStateHandler;
-
-
-    private struct TicketId
-    {
-        [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
-        public long Id { get; set; }
-    };
 
 
     protected override async Task OnInitializedAsync()
@@ -120,9 +116,7 @@
         {
             FirstTry = false;
             WorkInProgress = true;
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Implementer, Roles.Admin, Roles.Auditor ]);
             await states.Init(apiConnection);
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             await InitTasks();
             WorkInProgress = false;
         }
@@ -149,12 +143,10 @@
         List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = SelectedApp.Id});
         if(ticketIds.Count > 0)
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
-            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-            WfTicket? intTicket = await ticketCreator.GetTicket(SelectedApp.Id, ticketIds.First().Id);
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+            WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
             if(intTicket != null)
             {
+                intTicket.UpdateCidrsInTaskElements();
                 TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
                 int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
                 int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
@@ -170,7 +162,8 @@
         {
             return userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
                 "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
-                "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString());
+                "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
+                (task.Comments.Count > 0 ? "<br>" + userConfig.GetText("comment") + ": " + task.Comments.First().Comment.CommentText : "");
         }
         else if(task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
         {
@@ -242,6 +235,10 @@
         {
             return "text-success";
         }
+        else if(elem.RequestAction == RequestAction.addAfterCreation.ToString())
+        {
+            return "text-info";
+        }
         else if(elem.RequestAction == RequestAction.delete.ToString())
         {
             return "text-danger";
@@ -249,22 +246,22 @@
         return "";
     }
 
-    private async Task SendRequest()
+    private async Task StartRequests()
     {
         WorkInProgress = true;
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
             TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
                 "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized), "");
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             if(intTicket != null)
             {
                 RequestInProcess = true;
                 TaskList = intTicket.Tasks;
                 await SaveTicketId(intTicket.Id);
                 await CreateExtRequests(intTicket);
+                await RefreshParent(intTicket);
+                DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
             }
         }
         catch (Exception exception)
@@ -290,7 +287,7 @@
     {
         try
         {
-            RestResponse<bool> middlewareServerResponse = await middlewareClient.AddExternalRequest(new ExternalRequestParameters(){ TicketId = intTicket.Id });
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.AddExternalRequest(new ExternalRequestAddParameters(){ TicketId = intTicket.Id });
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
                 DisplayMessageInUi(null, userConfig.GetText("request_fw_change"), userConfig.GetText("E9101"), true);
@@ -300,6 +297,10 @@
             {
                 Log.WriteDebug("CreateExtRequest", $"External Request for Ticket {intTicket.Id.ToString()} created.");
             }
+
+            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
+                0, $"Initialized Rollout Requests", apiConnection, userConfig, 
+				intTicket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
         }
         catch (Exception exception)
         {

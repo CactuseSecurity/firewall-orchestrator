@@ -2,7 +2,10 @@
 query getOpenRequests ($states: [String!] ){
   ext_request (where: { ext_request_state: {_in: $states} } order_by: { id: asc }){
     id
-    owner_id
+    owner: owner {
+      id
+      name
+    }
     ticket_id
     ext_ticket_system
     ext_query_variables
@@ -11,5 +14,6 @@ query getOpenRequests ($states: [String!] ){
     ext_request_type
     ext_request_state
     ext_ticket_id
+    create_date
   }
 }

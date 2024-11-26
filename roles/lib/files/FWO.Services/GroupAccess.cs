@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Middleware.Client;
@@ -13,7 +12,7 @@ namespace FWO.Services
         static public async Task<List<UserGroup>> GetGroupsFromInternalLdap(MiddlewareClient middlewareClient, UserConfig userConfig,
             Action<Exception?, string, string, bool> DisplayMessageInUi, bool ownerGroupsOnly = false)
         {
-            List<UserGroup> groups = new ();
+            List<UserGroup> groups = [];
             RestResponse<List<GroupGetReturnParameters>> middlewareServerGroupsResponse = await middlewareClient.GetInternalGroups();
             if (middlewareServerGroupsResponse.StatusCode != HttpStatusCode.OK || middlewareServerGroupsResponse.Data == null)
             {
@@ -45,7 +44,7 @@ namespace FWO.Services
 
         static public async Task<List<string>> GetGroupDnsFromInternalLdap(MiddlewareClient middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> DisplayMessageInUi)
         {
-            List<string> groupDns = new ();
+            List<string> groupDns = [];
             RestResponse<List<GroupGetReturnParameters>> middlewareServerGroupsResponse = await middlewareClient.GetInternalGroups();
             if (middlewareServerGroupsResponse.StatusCode != HttpStatusCode.OK || middlewareServerGroupsResponse.Data == null)
             {

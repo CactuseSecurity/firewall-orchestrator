@@ -30,7 +30,7 @@ namespace FWO.Api.Data
         public int? RecertInterval { get; set; }
 
         [JsonProperty("app_id_external"), JsonPropertyName("app_id_external")]
-        public string ExtAppId { get; set; } = "";
+        public string? ExtAppId { get; set; }
 
 
         public FwoOwnerBase()
@@ -58,7 +58,7 @@ namespace FWO.Api.Data
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             Dn = Sanitizer.SanitizeLdapPathMand(Dn, ref shortened);
             GroupDn = Sanitizer.SanitizeLdapPathMand(GroupDn, ref shortened);
-            ExtAppId = Sanitizer.SanitizeMand(ExtAppId, ref shortened);
+            ExtAppId = Sanitizer.SanitizeCommentOpt(ExtAppId, ref shortened);
             return shortened;
         }
     }

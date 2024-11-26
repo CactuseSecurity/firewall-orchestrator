@@ -3,6 +3,7 @@ mutation updateAppServer(
   $name: String
   $appId: Int
   $ip: cidr
+  $ipEnd: cidr
   $importSource: String
   $customType: Int
   ) {
@@ -12,7 +13,7 @@ mutation updateAppServer(
       name: $name
       owner_id: $appId
       ip: $ip
-      ip_end: $ip
+      ip_end: $ipEnd
       import_source: $importSource
       is_deleted: false
       custom_type: $customType

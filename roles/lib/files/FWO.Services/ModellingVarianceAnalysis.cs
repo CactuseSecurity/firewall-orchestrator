@@ -9,15 +9,10 @@ using System.Linq;
 namespace FWO.Services
 {
     public class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi = null)
-    {
+    {        
+        private ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+        private ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi);                
         private List<Management> managements = [];
-        //private ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-        private ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi);
-        private readonly ApiConnection apiConnection;
-        private readonly ExtStateHandler extStateHandler;
-        private readonly UserConfig userConfig;
-        private List<Management> managements = [];
-        private readonly ModellingNamingConvention namingConvention = new();
 
         private List<WfReqTask> TaskList = [];
         private List<WfReqTask> AccessTaskList = [];
@@ -343,6 +338,7 @@ namespace FWO.Services
 
             return ( alreadyCreatedAppServers.TryGetValue(mgt.Id, out List<ModellingAppServer>? alreadyRequestedAppServers)
                   && alreadyRequestedAppServers.Contains(appServer, new AppServerComparer()) );
+        }
 
         private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
         {

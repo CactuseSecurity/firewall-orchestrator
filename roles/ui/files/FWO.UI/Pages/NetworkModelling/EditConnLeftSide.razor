@@ -61,10 +61,20 @@
                             @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
                     }
                 }
+                else if(selectedNwElems[0].Key == (int)ModellingTypes.ModObjectType.NetworkArea)
+                {
+                    ModellingNetworkArea? area = ResolveArea(selectedNwElems[0].Value);
+                    if(area != null && !area.IsDeleted && ConnHandler.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == area.Id) == null)
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                            {ConnHandler.RequestRemoveNwGrpObject(area); await ResetNw();}">
+                            @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
+                    }
+                }
                 else if(selectedNwElems[0].Key != (int)ModellingTypes.ModObjectType.AppServer)
                 {
                     ModellingNwGroup? nwGroup = ResolveNwGroupObject(selectedNwElems[0].Value);
-                    if(nwGroup != null && !nwGroup.IsDeleted && ConnHandler.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == nwGroup.Id) == null)
+                    if(nwGroup != null && !nwGroup.IsDeleted && ConnHandler.AvailableNwGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) == null)
                     {
                         <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
                             {ConnHandler.RequestRemoveNwGrpObject(nwGroup); await ResetNw();}">
@@ -243,9 +253,9 @@
     [Parameter]
     public bool OverviewMode { get; set; } = false;
 
-    private List<KeyValuePair<int, long>> selectedNwElems = new();
-    private List<KeyValuePair<int, int>> selectedSvcElems = new();
-    private List<ModellingConnection> selectedInterfaces = new();
+    private List<KeyValuePair<int, long>> selectedNwElems = [];
+    private List<KeyValuePair<int, int>> selectedSvcElems = [];
+    private List<ModellingConnection> selectedInterfaces = [];
     private bool SearchInterfaceMode = false;
     private bool SearchNwObjectMode = false;
     private bool SelectAppMode = false;
@@ -292,9 +302,10 @@
 
     private void NetworkElemsToConn(bool toSource)
     {
-        List<ModellingNwGroup> nwGroups = new();
-        List<ModellingAppRole> appRoles = new();
-        List<ModellingAppServer> appServers = new();
+        List<ModellingNwGroup> nwGroups = [];
+        List<ModellingAppRole> appRoles = [];
+        List<ModellingNetworkArea> areas = [];
+        List<ModellingAppServer> appServers = [];
         foreach(var elem in selectedNwElems)
         {
             if(elem.Key == (int)ModellingTypes.ModObjectType.AppRole)
@@ -303,6 +314,14 @@
                 if(AppRole != null)
                 {
                     appRoles.Add(AppRole);
+                }
+            }
+            else if(elem.Key == (int)ModellingTypes.ModObjectType.NetworkArea)
+            {
+                ModellingNetworkArea? Area = ResolveArea(elem.Value);
+                if(Area != null)
+                {
+                    areas.Add(Area);
                 }
             }
             else if(ModellingTypes.IsNwGroup((ModellingTypes.ModObjectType)elem.Key))
@@ -331,6 +350,17 @@
             else
             {
                 ConnHandler.AppRolesToDestination(appRoles);
+            }
+        }
+        if(areas.Count > 0)
+        {
+            if(toSource)
+            {
+                ConnHandler.AreasToSource(areas);
+            }
+            else
+            {
+                ConnHandler.AreasToDestination(areas);
             }
         }
         if(nwGroups.Count > 0)
@@ -409,6 +439,14 @@
                     Container.AppRoleElements.Add(AppRole);
                 }
             }
+            else if(elem.Key == (int)ModellingTypes.ModObjectType.NetworkArea)
+            {
+                ModellingNetworkArea? Area = ResolveArea(elem.Value);
+                if(Area != null)
+                {
+                    Container.AreaElements.Add(Area);
+                }
+            }
             else if(ModellingTypes.IsNwGroup((ModellingTypes.ModObjectType)elem.Key))
             {
                 ModellingNwGroup? nwGroup = ResolveNwGroupObject(elem.Value);
@@ -484,6 +522,10 @@
         {
             return ResolveAppRole(selectedObj.Value);
         }
+        else if(selectedObj.Key == (int)ModellingTypes.ModObjectType.NetworkArea)
+        {
+            return ResolveArea(selectedObj.Value);
+        }
         else if(ModellingTypes.IsNwGroup((ModellingTypes.ModObjectType)selectedObj.Key))
         {
             return ResolveNwGroupObject(selectedObj.Value);
@@ -516,12 +558,23 @@
         return appRole;
     }
 
-    private ModellingNwGroup? ResolveNwGroupObject(long selectedId)
+    private ModellingNetworkArea? ResolveArea(long selectedId)
     {
-        ModellingNwGroupWrapper? comArea = ConnHandler.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == selectedId);
+        ModellingNetworkAreaWrapper? comArea = ConnHandler.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == selectedId);
         if(comArea != null)
         {
             return comArea.Content;
+        }
+        ModellingNwGroup? nwGroup = ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId)?.Content;
+        return nwGroup != null ? new ModellingNetworkArea(nwGroup) : null;
+    }
+
+    private ModellingNwGroup? ResolveNwGroupObject(long selectedId)
+    {
+        ModellingNwGroupWrapper? nwgrp = ConnHandler.AvailableNwGroups.FirstOrDefault(x => x.Content.Id == selectedId);
+        if(nwgrp != null)
+        {
+            return nwgrp.Content;
         }
         return ConnHandler.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId)?.Content;
     }

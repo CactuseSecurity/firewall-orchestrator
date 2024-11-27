@@ -47,7 +47,6 @@ namespace FWO.Ui.Services
                 
                 foreach(var conn in Connections)
                 {
-                    conn.ExtractNwGroups();
                     await ExtractUsedInterface(conn);
                     conn.SyncState();
                 }
@@ -155,16 +154,23 @@ namespace FWO.Ui.Services
                     conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
 
-            List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList();
+            List<ModellingNetworkArea> areas = [.. ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas)];
+            foreach(var area in areas)
+            {
+                area.TooltipText = userConfig.GetText("C9001");
+            }
+            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface));
+
+            List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups)];
             foreach(var nwGroup in nwGroups)
             {
                 nwGroup.TooltipText = userConfig.GetText("C9001");
             }
-            List<string> names = nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface));
+            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
 
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
 
-            List<ModellingAppServer> appServers = ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList();
+            List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.SourceAppServers)];
             foreach(var appServer in appServers)
             {
                 appServer.TooltipText = userConfig.GetText("C9001");
@@ -180,16 +186,24 @@ namespace FWO.Ui.Services
                 return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
                     conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
-            List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList();
+
+            List<ModellingNetworkArea> areas = [.. ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas)];
+            foreach(var area in areas)
+            {
+                area.TooltipText = userConfig.GetText("C9001");
+            }
+            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface));
+
+            List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups)];
             foreach(var nwGroup in nwGroups)
             {
                 nwGroup.TooltipText = userConfig.GetText("C9001");
             }
-            List<string> names = nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface));
+            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
 
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
 
-            List<ModellingAppServer> appServers = ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList();
+            List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.DestinationAppServers)];
             foreach(var appServer in appServers)
             {
                 appServer.TooltipText = userConfig.GetText("C9001");

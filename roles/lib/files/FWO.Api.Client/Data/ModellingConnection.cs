@@ -84,8 +84,18 @@ namespace FWO.Api.Data
         [JsonProperty("destination_approles"), JsonPropertyName("destination_approles")]
         public List<ModellingAppRoleWrapper> DestinationAppRoles { get; set; } = [];
 
-        public List<ModellingNwGroupWrapper> SourceNwGroups { get; set; } = [];
-        public List<ModellingNwGroupWrapper> DestinationNwGroups { get; set; } = [];
+        [JsonProperty("source_areas"), JsonPropertyName("source_areas")]
+        public List<ModellingNetworkAreaWrapper> SourceAreas { get; set; } = [];
+
+        [JsonProperty("destination_areas"), JsonPropertyName("destination_areas")]
+        public List<ModellingNetworkAreaWrapper> DestinationAreas { get; set; } = [];
+
+        [JsonProperty("source_other_groups"), JsonPropertyName("source_other_groups")]
+        public List<ModellingNwGroupWrapper> SourceOtherGroups { get; set; } = [];
+
+        [JsonProperty("destination_other_groups"), JsonPropertyName("destination_other_groups")]
+        public List<ModellingNwGroupWrapper> DestinationOtherGroups { get; set; } = [];
+
         
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
@@ -128,14 +138,16 @@ namespace FWO.Api.Data
             CreationDate = conn.CreationDate;
             Properties = conn.Properties;
             ExtraParams = conn.ExtraParams;
-            Services = new List<ModellingServiceWrapper>(conn.Services);
-            ServiceGroups = new List<ModellingServiceGroupWrapper>(conn.ServiceGroups);
-            SourceAppServers = new List<ModellingAppServerWrapper>(conn.SourceAppServers);
-            SourceAppRoles = new List<ModellingAppRoleWrapper>(conn.SourceAppRoles);
-            SourceNwGroups = new List<ModellingNwGroupWrapper>(conn.SourceNwGroups);
-            DestinationAppServers = new List<ModellingAppServerWrapper>(conn.DestinationAppServers);
-            DestinationAppRoles = new List<ModellingAppRoleWrapper>(conn.DestinationAppRoles);
-            DestinationNwGroups = new List<ModellingNwGroupWrapper>(conn.DestinationNwGroups);
+            Services = [.. conn.Services];
+            ServiceGroups = [.. conn.ServiceGroups];
+            SourceAppServers = [.. conn.SourceAppServers];
+            SourceAppRoles = [.. conn.SourceAppRoles];
+            SourceAreas = [.. conn.SourceAreas];
+            SourceOtherGroups = [.. conn.SourceOtherGroups];
+            DestinationAppServers = [.. conn.DestinationAppServers];
+            DestinationAppRoles = [.. conn.DestinationAppRoles];
+            DestinationAreas = [.. conn.DestinationAreas];
+            DestinationOtherGroups = [.. conn.DestinationOtherGroups];
             SrcFromInterface = conn.SrcFromInterface;
             DstFromInterface = conn.DstFromInterface;
             InterfaceIsRequested = conn.InterfaceIsRequested;
@@ -172,36 +184,14 @@ namespace FWO.Api.Data
             return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";
         }
         
-        public bool SourceFilled()
+        public virtual bool SourceFilled()
         {
-            return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0 || SourceNwGroups.Count > 0;
+            return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0  || SourceAreas.Count > 0 || SourceOtherGroups.Count > 0;
         }
 
-        public bool DestinationFilled()
+        public virtual bool DestinationFilled()
         {
-            return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationNwGroups.Count > 0;
-        }
-
-        public void ExtractNwGroups()
-        {
-            SourceNwGroups = [];
-            foreach(var nwGroup in SourceAppRoles)
-            {
-                if(nwGroup.Content.GroupType != (int)ModellingTypes.ModObjectType.AppRole)
-                {
-                    SourceNwGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup.Content.ToBase() });
-                }
-            }
-            SourceAppRoles = SourceAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ModObjectType.AppRole).ToList();
-            DestinationNwGroups = [];
-            foreach(var nwGroup in DestinationAppRoles)
-            {
-                if(nwGroup.Content.GroupType != (int)ModellingTypes.ModObjectType.AppRole)
-                {
-                    DestinationNwGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup.Content.ToBase() });
-                }
-            }
-            DestinationAppRoles = DestinationAppRoles.Where(nwGroup => nwGroup.Content.GroupType == (int)ModellingTypes.ModObjectType.AppRole).ToList();
+            return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationAreas.Count > 0 || DestinationOtherGroups.Count > 0;
         }
 
         public void AddProperty(string key, string value = "")

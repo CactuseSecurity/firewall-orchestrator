@@ -57,7 +57,7 @@ namespace FWO.Test
                     {
                         Name = "Interf1",
                         SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }],
-                        SourceNwGroups = [new(){ Content = new(){ Name = "NwGroup1" } }],
+                        SourceOtherGroups = [new(){ Content = new(){ Name = "NwGroup1" } }],
                         ServiceGroups = [new(){ Content = new(){ Name = "ServiceGrp1" } }]
                     }];
                 }

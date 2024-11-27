@@ -178,22 +178,22 @@ namespace FWO.Services
 
         private void AnalyseNetworkAreas(ModellingConnection conn)
         {
-            foreach(var nwGroup in ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups))
+            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    GroupName = nwGroup.IdString
+                    GroupName = area.IdString
                 });
             }
-            foreach(var nwGroup in ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups))
+            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.destination.ToString(),
-                    GroupName = nwGroup.IdString
+                    GroupName = area.IdString
                 });
             }
         }

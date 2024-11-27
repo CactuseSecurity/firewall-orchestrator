@@ -196,13 +196,15 @@ namespace FWO.Services
                             {
                                 conn.SourceAppServers = interf[0].SourceAppServers;
                                 conn.SourceAppRoles = interf[0].SourceAppRoles;
-                                conn.SourceNwGroups = interf[0].SourceNwGroups;
+                                conn.SourceAreas = interf[0].SourceAreas;
+                                conn.SourceOtherGroups = interf[0].SourceOtherGroups;
                             }
                             if(interf[0].DestinationFilled())
                             {
                                 conn.DestinationAppServers = interf[0].DestinationAppServers;
                                 conn.DestinationAppRoles = interf[0].DestinationAppRoles;
-                                conn.DestinationNwGroups = interf[0].DestinationNwGroups;
+                                conn.DestinationAreas = interf[0].DestinationAreas;
+                                conn.DestinationOtherGroups = interf[0].DestinationOtherGroups;
                             }
                             conn.Services = interf[0].Services;
                             conn.ServiceGroups = interf[0].ServiceGroups;

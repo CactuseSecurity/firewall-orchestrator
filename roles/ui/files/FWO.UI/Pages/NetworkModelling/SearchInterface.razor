@@ -99,10 +99,6 @@
             selectableInterfaces = PreselectedInterfaces != null && PreselectedInterfaces.Count > 0 ?
                 allPublishedInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null)?.ToList() ?? new() : allPublishedInterfaces;
             
-            foreach(var interf in selectableInterfaces)
-            {
-                interf.ExtractNwGroups();
-            }
         }
     }
 

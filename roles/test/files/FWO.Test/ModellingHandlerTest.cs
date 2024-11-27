@@ -76,10 +76,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, conn.DstFromInterface);
             ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
             ClassicAssert.AreEqual("AppRole1", conn.SourceAppRoles[0].Content.Name);
-            ClassicAssert.AreEqual("NwGroup1", conn.SourceNwGroups[0].Content.Name);
+            ClassicAssert.AreEqual("NwGroup1", conn.SourceOtherGroups[0].Content.Name);
             ClassicAssert.AreEqual(0, conn.DestinationAppServers.Count);
             ClassicAssert.AreEqual(0, conn.DestinationAppRoles.Count);
-            ClassicAssert.AreEqual(0, conn.DestinationNwGroups.Count);
+            ClassicAssert.AreEqual(0, conn.DestinationOtherGroups.Count);
             ClassicAssert.AreEqual("ServiceGrp1", conn.ServiceGroups[0].Content.Name);
             ClassicAssert.AreEqual(0, conn.Services.Count);
         }
@@ -93,10 +93,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, conn.DstFromInterface);
             ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
             ClassicAssert.AreEqual(0, conn.SourceAppRoles.Count);
-            ClassicAssert.AreEqual(0, conn.SourceNwGroups.Count);
+            ClassicAssert.AreEqual(0, conn.SourceOtherGroups.Count);
             ClassicAssert.AreEqual("AppServer2", conn.DestinationAppServers[0].Content.Name);
             ClassicAssert.AreEqual("AppRole2", conn.DestinationAppRoles[0].Content.Name);
-            ClassicAssert.AreEqual(0, conn.DestinationNwGroups.Count);
+            ClassicAssert.AreEqual(0, conn.DestinationOtherGroups.Count);
             ClassicAssert.AreEqual(0, conn.ServiceGroups.Count);
             ClassicAssert.AreEqual("Service2", conn.Services[0].Content.Name);
         }
@@ -111,11 +111,11 @@ namespace FWO.Test
                 SrcFromInterface = false,
                 SourceAppServers = [new(){ Content = AppServerInside1 }, new(){ Content = AppServerInside2 }],
                 SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1", IdString = "AR5000001", IsDeleted = true }}],
-                SourceNwGroups = [new(){ Content = TestArea }],
+                SourceOtherGroups = [new(){ Content = TestArea }],
                 DstFromInterface = true,
                 DestinationAppServers = [new(){ Content = AppServerInside3 }],
                 DestinationAppRoles = [],
-                DestinationNwGroups = [],
+                DestinationOtherGroups = [],
                 ServiceGroups = [new(){ Content = new(){ Name = "SvcGroup1", IsGlobal = true}}],
                 Services = [new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Name = "UDP"}} }]
             };

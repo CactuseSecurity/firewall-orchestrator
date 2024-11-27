@@ -77,17 +77,37 @@ namespace FWO.Report
             foreach(var conn in Connections)
             {
                 List<NetworkObject> objList = [];
+                GetObjectsFromAreas(conn.SourceAreas, ref objList, resolved);
+                GetObjectsFromAreas(conn.DestinationAreas, ref objList, resolved);
                 GetObjectsFromAR(conn.SourceAppRoles, ref objList, resolved);
                 GetObjectsFromAR(conn.DestinationAppRoles, ref objList, resolved);
-                GetObjectsFromNwGroups(conn.SourceNwGroups, ref objList, resolved);
-                GetObjectsFromNwGroups(conn.DestinationNwGroups, ref objList, resolved);
+                GetObjectsFromOtherGroups(conn.SourceOtherGroups, ref objList, resolved);
+                GetObjectsFromOtherGroups(conn.DestinationOtherGroups, ref objList, resolved);
                 allObjects = allObjects.Union(objList).ToList();
             }
             allObjects = allObjects.Union(GetAllAppServers().ConvertAll(ModellingAppServer.ToNetworkObject)).ToList();
             return allObjects;
         }
 
-        private static void GetObjectsFromNwGroups(List<ModellingNwGroupWrapper> nwGroups, ref List<NetworkObject> objectList, bool resolved = false)
+        private static void GetObjectsFromAreas(List<ModellingNetworkAreaWrapper> areas, ref List<NetworkObject> objectList, bool resolved = false)
+        {
+            foreach (var areaWrapper in areas)
+            {
+                objectList.Add(areaWrapper.Content.ToNetworkObjectGroup());
+                if(resolved)
+                {
+                    foreach(var obj in areaWrapper.Content.ToNetworkObjectGroup().ObjectGroups)
+                    {
+                        if(obj.Object != null)
+                        {
+                            objectList.Add(obj.Object);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void GetObjectsFromOtherGroups(List<ModellingNwGroupWrapper> nwGroups, ref List<NetworkObject> objectList, bool resolved = false)
         {
             foreach (var nwGrpWrapper in nwGroups)
             {
@@ -152,7 +172,8 @@ namespace FWO.Report
 
         public static List<string> GetSrcNames(ModellingConnection conn)
         {
-            List<string> names = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList().ConvertAll(s => s.DisplayHtml());
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).ToList().ConvertAll(s => s.DisplayHtml());
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).ToList().ConvertAll(s => s.DisplayHtml()));
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayHtml()));
             names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.DisplayHtml()));
             return names;
@@ -160,7 +181,8 @@ namespace FWO.Report
 
         public static List<string> GetDstNames(ModellingConnection conn)
         {
-            List<string> names = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList().ConvertAll(s => s.DisplayHtml());
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).ToList().ConvertAll(s => s.DisplayHtml());
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).ToList().ConvertAll(s => s.DisplayHtml()));
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayHtml()));
             names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.DisplayHtml()));
             return names;
@@ -175,7 +197,8 @@ namespace FWO.Report
 
         public List<string> GetLinkedSrcNames(ModellingConnection conn)
         {
-            List<string> names = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s)));
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s)));
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s))));
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s))));
             names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s))));
             return names;
@@ -183,7 +206,8 @@ namespace FWO.Report
         
         public List<string> GetLinkedDstNames(ModellingConnection conn)
         {
-            List<string> names = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s)));
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s)));
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s))));
             names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s))));
             names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, ResolveObjNumber(s))));
             return names;

@@ -25,7 +25,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="@AllowedRoles">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("confirm"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await PerformAction(); Display = false;}">@(userConfig.GetText("confirm"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("confirm"))</button>

@@ -285,13 +285,13 @@ namespace FWO.Services
 
         public void Close()
         {
-            AppServerToAdd = new();
-            AppServerToDelete = new();
+            AppServerToAdd = [];
+            AppServerToDelete = [];
         }
 
         public async Task SelectAppServersFromArea(ModellingNetworkArea? area)
         {
-            AppServersInArea = new();
+            AppServersInArea = [];
             if (area != null)
             {
                 foreach (ModellingAppServer? server in AvailableAppServers.Where(x => !x.IsDeleted))
@@ -326,6 +326,10 @@ namespace FWO.Services
                 {
                     IPAddress serverIpStart = IPAddress.Parse(server.Ip.StripOffNetmask());
                     IPAddress serverIpEnd = IPAddress.Parse(server.IpEnd.StripOffNetmask());
+                    if(areaIpData.Content.Ip == null || areaIpData.Content.IpEnd == null)
+                    {
+                        return false;
+                    }
                     IPAddress subnetIpStart = IPAddress.Parse(areaIpData.Content.Ip.StripOffNetmask());
                     IPAddress subnetIpEnd = IPAddress.Parse(areaIpData.Content.IpEnd.StripOffNetmask());
 
@@ -395,6 +399,7 @@ namespace FWO.Services
         //     }
         //     return false;
         // }
+        
         public static bool OverlapExists(IPAddressRange a, IPAddressRange b)
         {
             return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);

@@ -36,35 +36,9 @@ namespace FWO.Middleware.Server
 			wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
 		}
 
-		private async Task GetInternalGroups()
-		{
-			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
-
-			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
-			ownerGroups = [];
-			foreach (var ldapUserGroup in allGroups)
-			{
-				if(ldapUserGroup.OwnerGroup)
-				{
-					UserGroup group = new ()
-					{ 
-						Dn = ldapUserGroup.GroupDn,
-						Name = new DistName(ldapUserGroup.GroupDn).Group,
-						OwnerGroup = ldapUserGroup.OwnerGroup
-					};
-					foreach (var userDn in ldapUserGroup.Members)
-					{
-						UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
-						group.Users.Add(newUser);
-					}
-					ownerGroups.Add(group);
-				}
-			}
-		}
-
 		/// <summary>
 		/// send the first request from ticket (called by UI via middleware client)
+		/// may also be a higher task number in case of a reinit
 		/// </summary>
 		public async Task<bool> SendFirstRequest(long ticketId)
 		{
@@ -75,7 +49,15 @@ namespace FWO.Middleware.Server
 				{
 					return false;
 				}
-				return await SendNextRequest(intTicket, 0);
+				int lastFinishedTask = 0;
+				foreach(var task in intTicket.Tasks.OrderBy(t => t.TaskNumber))
+				{
+					if(task.StateId > wfHandler.StateMatrix(task.TaskType).LowestEndState)
+					{
+						lastFinishedTask = task.TaskNumber;
+					}
+				}
+				return await SendNextRequest(intTicket, lastFinishedTask);
 			}
 			catch(Exception exception)
 			{
@@ -121,6 +103,45 @@ namespace FWO.Middleware.Server
 			}
 		}
 
+		/// <summary>
+		/// patch the external request state (called by admin in UI via middleware client)
+		/// </summary>
+		public async Task<bool> PatchState(ExternalRequest externalRequest)
+		{
+			try
+			{
+				await UpdateRequestState(externalRequest);
+				if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString() ||
+					externalRequest.ExtRequestState == ExtStates.ExtReqDone.ToString())
+				{
+					await HandleStateChange(externalRequest);
+				}
+				return true;
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError("Patch External Request State", $"Runs into exception: ", exception);
+				return false;
+			}
+		}
+
+		private async Task UpdateRequestState(ExternalRequest request)
+		{
+			try
+			{
+				var Variables = new
+				{
+					id = request.Id,
+					extRequestState = request.ExtRequestState
+				};
+				await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError("External Request Handler", $"State update failed: ", exception);
+			}
+		}
+
 		private async Task<WfTicket?> InitAndResolve(long ticketId)
 		{
 			GetExtSystemFromConfig();
@@ -128,6 +149,33 @@ namespace FWO.Middleware.Server
 			ipProtos = await ApiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
 			await wfHandler.Init([], false, true);
 			return await wfHandler.ResolveTicket(ticketId);
+		}
+
+		private async Task GetInternalGroups()
+		{
+			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
+
+			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
+			ownerGroups = [];
+			foreach (var ldapUserGroup in allGroups)
+			{
+				if(ldapUserGroup.OwnerGroup)
+				{
+					UserGroup group = new ()
+					{ 
+						Dn = ldapUserGroup.GroupDn,
+						Name = new DistName(ldapUserGroup.GroupDn).Group,
+						OwnerGroup = ldapUserGroup.OwnerGroup
+					};
+					foreach (var userDn in ldapUserGroup.Members)
+					{
+						UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
+						group.Users.Add(newUser);
+					}
+					ownerGroups.Add(group);
+				}
+			}
 		}
 
 		private static int GetLastTaskNumber(string extQueryVars, int oldTaskNumber)
@@ -161,12 +209,11 @@ namespace FWO.Middleware.Server
 					// todo: bundle also other task types?
 					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
 					// it must be split into multiple tickets of up to 100 ARs each.
-					// The count parameter specifies the number of tickets to be opened.
 
 					List<WfReqTask> bundledTasks = [nextTask];
 					int actTaskNumber = lastTaskNumber + 2;
 					bool taskFound = true;
-					while(taskFound)
+					while(taskFound && bundledTasks.Count < 100)
 					{
 						WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
 						if(furtherTask != null && furtherTask.TaskType == WfTaskType.access.ToString())
@@ -208,10 +255,11 @@ namespace FWO.Middleware.Server
 				extTicketSystem = JsonSerializer.Serialize(actSystem),
 				extTaskType = actTaskType,
 				extTaskContent = taskContent,
-				extQueryVariables = extQueryVars,
+				extQueryVariables = extQueryVars ?? "",
 				extRequestState = ExtStates.ExtReqInitialized.ToString()
 			};
 			await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables);
+			await LogRequestTasks(tasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
 		}
 
 		private async Task RejectFollowingTasks(WfTicket ticket, int lastTaskNumber)
@@ -278,8 +326,8 @@ namespace FWO.Middleware.Server
 		{
 			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId + ": " ?? "" : "";
 			string onMgt = UserConfig.GetText("on") + reqTask?.OnManagement?.Name + "(" + reqTask?.OnManagement?.Id + ")";
-			string grpName = " " + reqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
-            return appId + reqTask.TaskType switch
+			string grpName = " " + reqTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+            return appId + reqTask?.TaskType switch
             {
                 nameof(WfTaskType.access) => UserConfig.GetText("create_rule") + onMgt,
                 nameof(WfTaskType.group_create) => UserConfig.GetText("create_group") + grpName + onMgt,
@@ -309,6 +357,15 @@ namespace FWO.Middleware.Server
 						await wfHandler.SetAddInfoInReqTask(updatedTask, AdditionalInfoKeys.ExtIcketId, extReq.ExtTicketId);
 					}
 					await UpdateTaskState(updatedTask, extReq.ExtRequestState);
+
+					if(extReq.ExtRequestState == ExtStates.ExtReqDone.ToString())
+					{
+						await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Implement);
+					}
+					else if(extReq.ExtRequestState == ExtStates.ExtReqRejected.ToString())
+					{
+						await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Reject, extReq.LastProcessingResponse ?? extReq.LastCreationResponse ?? "");
+					}
 				}
 			}
 		}
@@ -342,6 +399,45 @@ namespace FWO.Middleware.Server
 				Log.WriteError("Acknowledge External Request", $"Runs into exception: ", exception);
 			}
 		}
+
+		private async Task LogRequestTasks(List<WfReqTask> tasks, string? requester, ModellingTypes.ChangeType changeType, string? comment = null)
+		{
+			foreach(var task in tasks)
+			{
+				(long objId, ModellingTypes.ModObjectType objType) = GetObject(task);
+				await ModellingHandlerBase.LogChange(changeType, objType, objId,
+                	$"{ConstructLogMessageText(changeType)} {task.Title} on {task.OnManagement?.Name}{(comment != null ? ", " + comment : "")}", 
+					ApiConnection, UserConfig, task.Owners.First()?.Owner.Id, DefaultInit.DoNothing, requester);
+			}
+		}
+
+		private static (long, ModellingTypes.ModObjectType) GetObject(WfReqTask task)
+		{
+			if(task.GetAddInfoLongValue(AdditionalInfoKeys.ConnId) != null)
+			{
+				return (task.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) ?? 0, ModellingTypes.ModObjectType.Connection);
+			}
+			else if(task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId) != null)
+			{
+				return (task.GetAddInfoIntValue(AdditionalInfoKeys.AppRoleId) ?? 0, ModellingTypes.ModObjectType.AppRole);
+			}
+			else if(task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) != null)
+			{
+				return (task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) ?? 0, ModellingTypes.ModObjectType.ServiceGroup);
+			}
+			return (0, ModellingTypes.ModObjectType.Connection);
+		}
+
+		private static string ConstructLogMessageText(ModellingTypes.ChangeType changeType)
+		{
+            return changeType switch
+            {
+                ModellingTypes.ChangeType.Request => "Requested",
+                ModellingTypes.ChangeType.Implement => "Implemented",
+                ModellingTypes.ChangeType.Reject => "Rejected",
+                _ => "",
+            };
+        }
 
 		private void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
         {

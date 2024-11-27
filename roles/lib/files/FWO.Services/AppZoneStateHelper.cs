@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Services
 {
+    //Luca test
     internal static class AppZoneStateHelper
     {
         //int = mgtId = Management Id

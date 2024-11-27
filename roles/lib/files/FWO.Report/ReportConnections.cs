@@ -4,7 +4,7 @@ using FWO.Api.Client;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
-using FWO.Logging;
+using FWO.Services;
 
 namespace FWO.Report
 {
@@ -113,7 +113,7 @@ namespace FWO.Report
                 {
                     if((connection.InterfaceIsRequested && connection.SrcFromInterface) || (connection.IsRequested && connection.SourceFilled()))
                     {
-                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested, 
+                        report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested, 
                             connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
                     }
                     else
@@ -122,7 +122,7 @@ namespace FWO.Report
                     }
                     if(connection.InterfaceIsRequested || connection.IsRequested)
                     {
-                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested,
+                        report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
                             connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
                     }
                     else
@@ -131,7 +131,7 @@ namespace FWO.Report
                     }
                     if((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled()))
                     {
-                        report.AppendLine($"<td>{DisplayReqInt(connection.TicketId, connection.InterfaceIsRequested,
+                        report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
                             connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
                     }
                     else
@@ -239,15 +239,6 @@ namespace FWO.Report
                 counter += owner.Connections.Count;
             }
             return $"{counter} {userConfig.GetText("connections")}";
-        }
-
-        // same as in ModellingHandlerBase (not reachable from here) -> ToDo: redesign!
-        private string DisplayReqInt(long? ticketId, bool otherOwner, bool rejected = false)
-        {
-            string tooltipKey = rejected ? "C9011": otherOwner ? "C9007" : "C9008";
-            string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(tooltipKey)}\"";
-            string content = $"{userConfig.GetText(rejected ? "InterfaceRejected" : "interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
-            return $"<span class=\"{(rejected ? "text-danger" : "text-warning")}\" {tooltip}><i>{content}</i></span>";
         }
     }
 }

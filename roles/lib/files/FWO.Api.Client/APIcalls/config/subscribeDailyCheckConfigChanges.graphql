@@ -1,10 +1,10 @@
 ﻿subscription subscribeDailyCheckConfigChanges {
-  config (where: { 
-    config_key: {_eq: "dailyCheckStartAt"},
-    config_key: {_eq: "recRefreshDaily"},
-    config_key: {_eq: "maxImportDuration"},
-    config_key: {_eq: "maxImportInterval"}
-    }){
+  config (where: { _or: [
+    {config_key: {_eq: "dailyCheckStartAt"}},
+    {config_key: {_eq: "recRefreshDaily"}},
+    {config_key: {_eq: "maxImportDuration"}},
+    {config_key: {_eq: "maxImportInterval"}}
+  ]}){
     config_key
     config_value
   }

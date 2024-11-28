@@ -4,7 +4,6 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Api.Client.Data;
-using System.Linq;
 
 namespace FWO.Services
 {
@@ -254,17 +253,19 @@ namespace FWO.Services
 
             if (existingAppZone is not null)
             {
-                WfReqTask? taskEntry = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_zone") + existingAppZone.IdString && x.OnManagement?.Id == mgt.Id);
+                WfReqTask? taskEntryNewAppZone = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_zone") + existingAppZone.IdString && x.OnManagement?.Id == mgt.Id);
+                WfReqTask? taskEntryUpdateAppZone = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id);
+                WfReqTask? taskEntryDeleteAppZone = DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id);
 
-                if (!ResolveProdAppZone(existingAppZone, mgt) && taskEntry is null)
+                if (!ResolveProdAppZone(existingAppZone, mgt) && taskEntryNewAppZone is null)
                 {
                     RequestNewFWAppZone(existingAppZone, mgt);
                 }
-                else if (AppZoneChanged(existingAppZone, mgt))
+                else if (AppZoneChanged(existingAppZone, mgt) && taskEntryUpdateAppZone is null && taskEntryDeleteAppZone is null)
                 {
                     RequestUpdateAppZone(existingAppZone, mgt);
                 }
-                else if (taskEntry is null)
+                else
                 {
                     CreateAppZoneTaskListEntry(existingAppZone, mgt);
                 }
@@ -384,15 +385,15 @@ namespace FWO.Services
 
             ModellingAppZone? prodAppZone = ExistingProdAppZones[mgt.Id].FirstOrDefault();
 
-            List<ModellingAppServerWrapper> diff1 = prodAppZone.AppServers.Except(existingAppZone.AppServers, new AppServerComparer())
-                                                                                   .ToList();
+            List<ModellingAppServerWrapper> diff1 = existingAppZone.AppServers.Except(prodAppZone.AppServers, new AppServerComparer())
+                                                                                    .ToList();
             if (diff1.Count > 0)
             {
                 newAppServers.AddRange(diff1);
             }
 
-            List<ModellingAppServerWrapper> diff2 = existingAppZone.AppServers.Except(prodAppZone.AppServers, new AppServerComparer())
-                                                                                    .ToList();
+            List<ModellingAppServerWrapper> diff2 = prodAppZone.AppServers.Except(existingAppZone.AppServers, new AppServerComparer())
+                                                                                   .ToList();
             if (diff2.Count > 0)
             {
                 deletedAppServers.AddRange(diff2);
@@ -442,6 +443,18 @@ namespace FWO.Services
                     AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
                 });
             }
+
+            if (!ExistingProdAppZones.ContainsKey(mgt.Id))
+            {
+                ExistingProdAppZones.Add(mgt.Id, []);
+            }
+            ExistingProdAppZones[mgt.Id].Add(appZone);
+
+            if (!alreadyCreatedAppZones.ContainsKey(mgt.Id))
+            {
+                alreadyCreatedAppZones.Add(mgt.Id, []);
+            }
+            alreadyCreatedAppZones[mgt.Id].Add(appZone);
         }
 
         private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
@@ -490,6 +503,7 @@ namespace FWO.Services
                     GroupName = appZone.IdString
                 });
             }
+
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appZone.IdString } };
             TaskList.Add(new()
             {

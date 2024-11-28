@@ -23,7 +23,7 @@ namespace FWO.Api.Data
             {
                 Id = Id,
                 Number = Number,
-                Name = Name ?? "",
+                Name = Name + " (" + IdString + ")" ?? IdString ?? "",
                 Type = new NetworkObjectType(){ Name = ObjectType.Group },
                 ObjectGroups = objectGroups,
                 MemberNames = string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name))

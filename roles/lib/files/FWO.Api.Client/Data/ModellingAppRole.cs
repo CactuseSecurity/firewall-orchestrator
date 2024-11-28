@@ -77,7 +77,7 @@ namespace FWO.Api.Data
             {
                 Id = Id,
                 Number = Number,
-                Name = Name ?? "",
+                Name = Name + " (" + IdString + ")" ?? IdString ?? "",
                 Comment = Comment ?? "",
                 Type = new NetworkObjectType(){ Name = ObjectType.Group },
                 ObjectGroups = objectGroups,

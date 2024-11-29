@@ -7,10 +7,10 @@ using FWO.Api.Client.Data;
 
 namespace FWO.Services
 {
-    public class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi = null)
+    public class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi = null)
     {
         private ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-        private ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi);
+        private ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi, owner);
         private List<Management> managements = [];
 
         private List<WfReqTask> TaskList = [];
@@ -49,8 +49,6 @@ namespace FWO.Services
             }
 
             await GetProductionState(owner);
-
-            ExistingProdAppZones = AppZoneStateHelper.GetManagementAppZones();
 
             TaskList = [];
             AccessTaskList = [];
@@ -265,13 +263,7 @@ namespace FWO.Services
                 {
                     RequestUpdateAppZone(existingAppZone, mgt);
                 }
-                else
-                {
-                    CreateAppZoneTaskListEntry(existingAppZone, mgt);
-                }
             }
-
-            AppZoneStateHelper.SetManagementAppZones(ExistingProdAppZones);
         }
 
         private bool ResolveExistingAppRole(ModellingAppRole appRole, Management mgt)
@@ -321,13 +313,6 @@ namespace FWO.Services
             return false;
         }
 
-        private bool AppZoneAlreadyRequested(ModellingAppZone appZone, Management mgt)
-        {
-            Log.WriteDebug("Search AppZone", $"Name: {appZone.Name}, AppId: {appZone.AppId}, Management: {mgt.Name}");
-
-            return ( alreadyCreatedAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? alreadyRequestedAppZones)
-                  && alreadyRequestedAppZones.Contains(appZone, new AppZoneComparer()) );
-        }
         private bool AppServerAlreadyRequested(ModellingAppServer appServer, Management mgt)
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, AppId: {appServer.AppId}, Management: {mgt.Name}");
@@ -335,6 +320,7 @@ namespace FWO.Services
             return ( alreadyCreatedAppServers.TryGetValue(mgt.Id, out List<ModellingAppServer>? alreadyRequestedAppServers)
                   && alreadyRequestedAppServers.Contains(appServer, new AppServerComparer()) );
         }
+
         private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
         {
             return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + appServer.Ip :
@@ -411,7 +397,7 @@ namespace FWO.Services
 
         private void RequestUpdateAppZone(ModellingAppZone appZone, Management mgt)
         {
-            FillGroupMembersAppZone(appZone, mgt);
+            FillGroupMembers(appZone.IdString, mgt);
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appZone.IdString } };
             if (newGroupMembers.Count > 0)
             {
@@ -443,12 +429,6 @@ namespace FWO.Services
                     AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
                 });
             }
-
-            if (!ExistingProdAppZones.ContainsKey(mgt.Id))
-            {
-                ExistingProdAppZones.Add(mgt.Id, []);
-            }
-            ExistingProdAppZones[mgt.Id].Add(appZone);
 
             if (!alreadyCreatedAppZones.ContainsKey(mgt.Id))
             {
@@ -529,48 +509,9 @@ namespace FWO.Services
             alreadyCreatedAppZones[mgt.Id].Add(appZone);
         }
 
-        private void CreateAppZoneTaskListEntry(ModellingAppZone appZone, Management mgt)
-        {
-            List<WfReqElement> groupMembers = GetAppZoneGroupMembers(appZone, mgt);
-
-            bool alreadyRequested = AppZoneAlreadyRequested(appZone, mgt);
-
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appZone.IdString } };
-            TaskList.Add(new()
-            {
-                Title = userConfig.GetText("new_app_zone") + appZone.IdString,
-                TaskType = WfTaskType.group_create.ToString(),
-                RequestAction = alreadyRequested ? RequestAction.unchanged.ToString() : RequestAction.modify.ToString(),
-                ManagementId = mgt.Id,
-                OnManagement = mgt,
-                Elements = groupMembers,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
-            });
-        }
-
-        private List<WfReqElement> GetAppZoneGroupMembers(ModellingAppZone appZone, Management mgt)
-        {
-            List<WfReqElement> groupMembers = [];
-            foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(appZone.AppServers))
-            {
-                bool alreadyRequested = AppServerAlreadyRequested(appServer, mgt);
-                groupMembers.Add(new()
-                {
-                    RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Name,
-                    IpString = appServer.Ip,
-                    IpEnd = appServer.IpEnd,
-                    GroupName = appZone.IdString
-                });
-            }
-
-            return groupMembers;
-        }
-
         private void RequestUpdateAppRole(ModellingAppRole appRole, Management mgt)
         {
-            FillGroupMembers(appRole, mgt);
+            FillGroupMembers(appRole.IdString, mgt);
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString }, { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() } };
             if (newGroupMembers.Count > 0)
             {
@@ -604,7 +545,7 @@ namespace FWO.Services
             }
         }
 
-        private void FillGroupMembers(ModellingAppRole appRole, Management mgt)
+        private void FillGroupMembers(string idString, Management mgt)
         {
             newGroupMembers = [];
             newCreatedGroupMembers = [];
@@ -621,7 +562,7 @@ namespace FWO.Services
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
-                    GroupName = appRole.IdString,
+                    GroupName = idString,
                     NetworkId = networkId
                 });
                 newCreatedGroupMembers.Add(new()
@@ -631,7 +572,7 @@ namespace FWO.Services
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
-                    GroupName = appRole.IdString,
+                    GroupName = idString,
                     NetworkId = networkId
                 });
             }
@@ -644,7 +585,7 @@ namespace FWO.Services
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
-                    GroupName = appRole.IdString
+                    GroupName = idString
                 });
             }
             foreach (ModellingAppServerWrapper appServer in deletedAppServers)
@@ -656,7 +597,7 @@ namespace FWO.Services
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
-                    GroupName = appRole.IdString
+                    GroupName = idString
                 });
                 deletedGroupMembers.Add(new()
                 {
@@ -665,80 +606,7 @@ namespace FWO.Services
                     Name = appServer.Content.Name,
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
-                    GroupName = appRole.IdString
-                });
-            }
-        }
-
-        private void FillGroupMembersAppZone(ModellingAppZone appZone, Management mgt)
-        {
-            newGroupMembers = [];
-            newCreatedGroupMembers = [];
-            deletedGroupMembers = [];
-            unchangedGroupMembers = [];
-            unchangedGroupMembersDuringCreate = [];
-            foreach (ModellingAppServerWrapper appServer in newAppServers)
-            {
-                bool alreadyRequested = AppServerAlreadyRequested(appServer.Content, mgt);
-
-                newGroupMembers.Add(new()
-                {
-                    RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
-                    GroupName = appZone.IdString,
-                    //NetworkId = networkId
-                });
-                newCreatedGroupMembers.Add(new()
-                {
-                    RequestAction = RequestAction.unchanged.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
-                    GroupName = appZone.IdString,
-                    //NetworkId = networkId
-                });
-
-                if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
-                {
-                    alreadyCreatedAppServers.Add(mgt.Id, []);
-                }
-                alreadyCreatedAppServers[mgt.Id].Add(appServer.Content);
-            }
-            foreach (ModellingAppServerWrapper appServer in unchangedAppServers)
-            {
-                unchangedGroupMembers.Add(new()
-                {
-                    RequestAction = RequestAction.unchanged.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
-                    GroupName = appZone.IdString
-                });
-            }
-            foreach (ModellingAppServerWrapper appServer in deletedAppServers)
-            {
-                unchangedGroupMembersDuringCreate.Add(new()
-                {
-                    RequestAction = RequestAction.unchanged.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
-                    GroupName = appZone.IdString
-                });
-                deletedGroupMembers.Add(new()
-                {
-                    RequestAction = RequestAction.delete.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
-                    GroupName = appZone.IdString
+                    GroupName = idString
                 });
             }
         }

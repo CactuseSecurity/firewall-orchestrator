@@ -126,12 +126,12 @@
     {
         try
         {
-            ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUi);
-            await appZoneHandler.UpsertAppZone(SelectedApp);
+            ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUi, SelectedApp);
+            await appZoneHandler.UpsertAppZone();
 
             if (!await GetActTicketStatus())
             {
-                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, DisplayMessageInUi);       
+                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);       
                 TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections, SelectedApp);
             }
         }

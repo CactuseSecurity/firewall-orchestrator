@@ -8,34 +8,13 @@ using System.Text.Json;
 
 namespace FWO.Services
 {
-    public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
+    public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, FwoOwner owner) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
     {
         private ModellingNamingConvention NamingConvention = new();
 
-        public async Task CreateAppZone(string extAppId)
-        {
-            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-
-            FwoOwner? owner = owners.FirstOrDefault(_ => _.ExtAppId == extAppId);
-
-            if (owner is null)
-            {
-                string errorMessage = $"{userConfig.GetText("app_owner_not_found")}: External-App-Id: {extAppId}";
-                Exception exception = new ArgumentException(errorMessage);
-                DisplayMessageInUi(exception, userConfig.GetText("app_zone_creation"), errorMessage, false);
-                return;
-            }
-
-            await CreateAppZone(owner);
-        }
-
         public async Task CreateAppZone(int appId)
         {
-            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-
-            FwoOwner? owner = owners.FirstOrDefault(_ => _.Id == appId);
-
-            if (owner is null)
+            if (owner is null || owner.Id != appId)
             {
                 string errorMessage = $"{userConfig.GetText("app_owner_not_found")}: App-Id: {appId}";
                 Exception exception = new ArgumentException(errorMessage);
@@ -43,13 +22,11 @@ namespace FWO.Services
                 return;
             }
 
-            await CreateAppZone(owner);
+            await CreateAppZone();
         }
 
-        public async Task<ModellingAppZone?> CreateAppZone(FwoOwner owner)
+        public async Task<ModellingAppZone?> CreateAppZone()
         {
-            //await DeleteExistingAppZones(owner.Id);
-
             ModellingAppZone appZone = new()
             {
                 AppId = owner.Id,
@@ -73,7 +50,7 @@ namespace FWO.Services
             return appZone;
         }
 
-        public async Task<ModellingAppZone?> UpsertAppZone(FwoOwner owner)
+        public async Task<ModellingAppZone?> UpsertAppZone()
         {
             ModellingAppZone? appZone;
 
@@ -112,8 +89,8 @@ namespace FWO.Services
                     appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
                 }
 
-                List<ModellingAppServerWrapper>? newAppServers = FindNewAppServers(appZone, allAppServers);  
-                
+                List<ModellingAppServerWrapper>? newAppServers = FindNewAppServers(appZone, allAppServers);
+
                 if (newAppServers.Count > 0)
                 {
                     await AddAppServersToAppZone(appZone.Id, newAppServers);
@@ -132,7 +109,7 @@ namespace FWO.Services
         private static List<ModellingAppServerWrapper> FindRemovedAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
         {
             return existingAppZone.AppServers.Except(allAppServers, new AppServerComparer()).ToList();
-        }        
+        }
 
         public async Task<ModellingAppZone?> CreateAppZone(ModellingConnection conn, FwoOwner owner)
         {
@@ -273,7 +250,7 @@ namespace FWO.Services
                 catch (Exception ex)
                 {
                     DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9204"), true);
-                }                           
+                }
             }
         }
     }

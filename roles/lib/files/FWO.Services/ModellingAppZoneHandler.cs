@@ -181,8 +181,7 @@ namespace FWO.Services
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             appZone.ManagedIdString.NamingConvention = NamingConvention;
-            appZone.ManagedIdString.SetAppPartFromExtId(extAppId);
-            appZone.Name = $"{NamingConvention.AppZone}{appZone.ManagedIdString.AppPart}";
+            appZone.ManagedIdString.SetAppPartFromExtIdAZ(extAppId);
         }
 
         private async Task<int> AddAppZoneToDb(ModellingAppZone appZone)

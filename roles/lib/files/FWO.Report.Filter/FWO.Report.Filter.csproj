@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="IPAddressRange" Version="6.1.0" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
       <ProjectReference Include="..\..\..\lib\files\FWO.Api.Client\FWO.Api.Client.csproj" />

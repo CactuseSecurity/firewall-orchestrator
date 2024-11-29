@@ -473,7 +473,7 @@
         }
         foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners)
         {
-            OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Name };
+            OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Display("") };
             currentReport.ReportData.OwnerData.Add(actOwnerData);
             await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
             connIntermediate =>

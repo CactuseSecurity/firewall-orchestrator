@@ -367,6 +367,9 @@ namespace FWO.Services
 
             ModellingAppZone? prodAppZone = ExistingProdAppZones[mgt.Id].FirstOrDefault();
 
+            if (prodAppZone is null)
+                return false;
+
             List<ModellingAppServerWrapper> diff1 = existingAppZone.AppServers.Except(prodAppZone.AppServers, new AppServerComparer())
                                                                                     .ToList();
             if (diff1.Count > 0)

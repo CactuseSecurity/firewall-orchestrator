@@ -13,28 +13,28 @@ namespace FWO.Test
     [Parallelizable]
     internal class ExportTest
     {
-        static NetworkObject TestIp1 = new NetworkObject(){ Id = 1, Name = "TestIp1", IP = "1.2.3.4/32", IpEnd = "1.2.3.4/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
-        static NetworkObject TestIp2 = new NetworkObject(){ Id = 2, Name = "TestIp2", IP = "127.0.0.1/32", IpEnd = "127.0.0.1/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
-        static NetworkObject TestIpRange = new NetworkObject(){ Id = 3, Name = "TestIpRange", IP = "1.2.3.4/32", IpEnd = "1.2.3.5/32", Type = new NetworkObjectType(){ Name = ObjectType.IPRange }};
-        static NetworkObject TestIpNew = new NetworkObject(){ Id = 4, Name = "TestIpNew", IP = "10.0.6.0/32", IpEnd = "10.0.6.255/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
-        static NetworkObject TestIp1Changed = new NetworkObject(){ Id = 5, Name = "TestIp1Changed", IP = "2.3.4.5/32", IpEnd = "2.3.4.5/32", Type = new NetworkObjectType(){ Name = ObjectType.Host }};
+        static readonly NetworkObject TestIp1 = new(){ Id = 1, Name = "TestIp1", IP = "1.2.3.4/32", IpEnd = "1.2.3.4/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
+        static readonly NetworkObject TestIp2 = new(){ Id = 2, Name = "TestIp2", IP = "127.0.0.1/32", IpEnd = "127.0.0.1/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
+        static readonly NetworkObject TestIpRange = new(){ Id = 3, Name = "TestIpRange", IP = "1.2.3.4/32", IpEnd = "1.2.3.5/32", Type = new NetworkObjectType(){ Name = ObjectType.IPRange }};
+        static readonly NetworkObject TestIpNew = new(){ Id = 4, Name = "TestIpNew", IP = "10.0.6.0/32", IpEnd = "10.0.6.255/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
+        static readonly NetworkObject TestIp1Changed = new(){ Id = 5, Name = "TestIp1Changed", IP = "2.3.4.5/32", IpEnd = "2.3.4.5/32", Type = new NetworkObjectType(){ Name = ObjectType.Host }};
 
-        static NetworkService TestService1 = new NetworkService(){  Id = 1, DestinationPort = 443, DestinationPortEnd = 443, Name = "TestService1", Protocol = new NetworkProtocol { Name = "TCP" }};
-        static NetworkService TestService2 = new NetworkService(){  Id = 2, DestinationPort = 6666, DestinationPortEnd = 7777, Name = "TestService2", Protocol = new NetworkProtocol { Name = "UDP" }};
+        static readonly NetworkService TestService1 = new(){  Id = 1, DestinationPort = 443, DestinationPortEnd = 443, Name = "TestService1", Protocol = new NetworkProtocol { Name = "TCP" }};
+        static readonly NetworkService TestService2 = new(){  Id = 2, DestinationPort = 6666, DestinationPortEnd = 7777, Name = "TestService2", Protocol = new NetworkProtocol { Name = "UDP" }};
 
-        static NetworkUser TestUser1 = new NetworkUser(){ Id = 1, Name = "TestUser1" };
-        static NetworkUser TestUser2 = new NetworkUser(){ Id = 2, Name = "TestUser2", Type = new NetworkUserType() { Name = ObjectType.Group} };
+        static readonly NetworkUser TestUser1 = new(){ Id = 1, Name = "TestUser1" };
+        static readonly NetworkUser TestUser2 = new(){ Id = 2, Name = "TestUser2", Type = new NetworkUserType() { Name = ObjectType.Group} };
 
-        static Rule Rule1 = new Rule();
-        static Rule Rule1Changed = new Rule();
-        static Rule Rule2 = new Rule();
-        static Rule Rule2Changed = new Rule();
-        static Rule NatRule = new Rule();
-        static Rule RecertRule1 = new Rule();
-        static Rule RecertRule2 = new Rule();
+        static Rule Rule1 = new();
+        static Rule Rule1Changed = new();
+        static Rule Rule2 = new();
+        static Rule Rule2Changed = new();
+        static Rule NatRule = new();
+        static Rule RecertRule1 = new();
+        static Rule RecertRule2 = new();
 
-        SimulatedUserConfig userConfig = new SimulatedUserConfig();
-        DynGraphqlQuery query = new DynGraphqlQuery("TestFilter")
+        readonly SimulatedUserConfig userConfig = new();
+        readonly DynGraphqlQuery query = new("TestFilter")
         { 
             ReportTimeString = "2023-04-20T17:50:04",
             QueryVariables = new Dictionary<string, object>()
@@ -556,13 +556,13 @@ namespace FWO.Test
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">ServiceGroup1</a><br>" +
             "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">AppRole1 ()</a></td></table><hr>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">AppRole1 (AR1)</a></td></table><hr>" +
             "<h4>Interfaces</h4><table>" +
             "<tr><th>No.</th><th>Id</th><th>Published</th><th>Name</th><th>Interface Description</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
             "<tr><td>1</td><td>102</td><td>✖</td><td>Inter2</td><td></td><td></td>" +
             "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc3\" target=\"_top\" style=\"\"></a><br>" +
             "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc4\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\"> ()</a><br>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">noRole ()</a><br>" +
             "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
             "<h4>Own Common Services</h4><table>" +
             "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
@@ -574,9 +574,9 @@ namespace FWO.Test
 
             "<h4>Network Objects</h4>" +
             "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr>" +
-            "<tr><td>1</td><td>21</td><td><a name=nwobj1>AppRole1</a></td><td></td><td>AppServer1</td>" +
+            "<tr><td>1</td><td>21</td><td><a name=nwobj1>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td>" +
             "<tr><td>2</td><td>11</td><td><a name=nwobj2>AppServer1</a></td><td>1.0.0.0</td><td></td>" +
-            "<tr><td>3</td><td>0</td><td><a name=nwobj3></a></td><td></td><td></td>" +
+            "<tr><td>3</td><td>0</td><td><a name=nwobj3>noRole ()</a></td><td></td><td></td>" +
             "<tr><td>4</td><td>12</td><td><a name=nwobj4>AppServer2</a></td><td>2.0.0.0</td><td></td>" +
             "</table><hr>" +
             "<h4>Network Services</h4>" +
@@ -1263,7 +1263,7 @@ namespace FWO.Test
         {
             ModellingAppServer AppServer1 = new() {Id = 11, Number = 1, Name = "AppServer1", Ip = "1.0.0.0"};
             ModellingAppServer AppServer2 = new() {Id = 12, Number = 2, Name = "AppServer2", Ip = "2.0.0.0"};
-            ModellingAppRole AppRole1 = new() { Id = 21, Number = 3, Name = "AppRole1", Comment = "CommAR1", AppServers = [new() { Content = AppServer1 }] };
+            ModellingAppRole AppRole1 = new() { Id = 21, Number = 3, Name = "AppRole1", IdString="AR1", Comment = "CommAR1", AppServers = [new() { Content = AppServer1 }] };
             ModellingService Service1 = new() { Id = 31, Number = 1, Name = "Service1", Port = 1234, Protocol = new() { Name = "TCP" } };
             ModellingService Service2 = new() { Id = 32, Number = 2, Name = "Service2", Port = 2345, Protocol = new() { Name = "UDP" } };
             ModellingServiceGroup ServiceGroup1 = new() { Id = 41, Number = 3, Name = "ServiceGroup1", Comment = "CommSG1", Services = [new() { Content = Service1 }] };
@@ -1279,7 +1279,7 @@ namespace FWO.Test
             { 
                 Id = 102, Name = "Inter2", 
                 DestinationAppServers = [new() { Content = AppServer2 }],
-                DestinationAppRoles = [new() {}],
+                DestinationAppRoles = [new() { Content = new() { Name = "noRole" }}],
                 Services = [new() { Content = Service2 }],
                 ServiceGroups = [new() {}]
             };

@@ -52,7 +52,7 @@ namespace FWO.Report
 
         public long ResolveObjNumber(ModellingNwObject networkObject)
         {
-            return AllObjects.FirstOrDefault(x => x.Name == networkObject.Name)?.Number ?? 0;
+            return AllObjects.FirstOrDefault(x => x.Name.StartsWith(networkObject.Name))?.Number ?? 0;
         }
 
         public long ResolveSvcNumber(ModellingSvcObject serviceObject)

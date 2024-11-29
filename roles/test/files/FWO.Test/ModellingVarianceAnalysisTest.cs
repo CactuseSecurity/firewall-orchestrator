@@ -52,7 +52,7 @@ namespace FWO.Test
         public void Initialize()
         {
             extStateHandler.Init().Wait();
-            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig);
+            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application);
         }
 
         [Test]

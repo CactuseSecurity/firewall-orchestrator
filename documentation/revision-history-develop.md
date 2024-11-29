@@ -236,4 +236,15 @@ bugfix release:
 - extra parameters in modelling connection
 
 # 8.5.1 - 18.11.2024 DEVELOP
-- fixing PDF generation
+- reporting - fixing PDF generation on various platforms
+- modelling - fixing AR editing: strict prevention of all area mixing
+
+# 8.5.2 - 27.11.2024 DEVELOP
+- some check point importer fixes
+  - 4 new colors
+  - added Internet object
+  - added voip one more object
+
+# 8.5.3 - 27.11.2024 DEVELOP
+- owner import - make ldap selectable (internal/external)
+- small fixes regarding missing config data for two schedulers (daily, app data import)

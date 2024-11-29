@@ -23,7 +23,6 @@ namespace FWO.Services
         private Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
         private Dictionary<int, List<ModellingAppZone>> ExistingProdAppZones = [];
-        private Dictionary<int, List<ModellingAppZone>> alreadyCreatedAppZones = [];
 
         private ModellingAppRole? existingAppRole;
         private List<ModellingAppServerWrapper> newAppServers = [];
@@ -133,6 +132,7 @@ namespace FWO.Services
 
                             ExistingProdAppZones[mgt.Id].Add(new ModellingAppZone(objGrp, namingConvention));
                             aRCount++;
+                            azCount++;
                         }
                     }
 
@@ -153,6 +153,7 @@ namespace FWO.Services
 
                 string aRappRoles = "";
                 string aRappServers = "";
+                string azAppZones = "";
                 foreach (int mgt in allExistingAppRoles.Keys)
                 {
                     aRappRoles += $" Management {mgt}: " + string.Join(",", allExistingAppRoles[mgt].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
@@ -161,7 +162,10 @@ namespace FWO.Services
                 {
                     aRappServers += $" Management {mgt}: " + string.Join(",", allExistingAppServers[mgt].ConvertAll(x => $"{x.Name}({x.Ip})").ToList());
                 }
-
+                foreach (int mgt in ExistingProdAppZones.Keys)
+                {
+                    azAppZones += $" Management {mgt}: " + string.Join(",", ExistingProdAppZones[mgt].Where(a => a.IdString.StartsWith("AZ")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
+                }
 
                 Log.WriteDebug("GetProductionState",
                     $"Found {aRCount} AppRoles, {aSCount} AppServer, AppZones: {azCount}. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
@@ -313,14 +317,6 @@ namespace FWO.Services
             return false;
         }
 
-        private bool AppServerAlreadyRequested(ModellingAppServer appServer, Management mgt)
-        {
-            Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, AppId: {appServer.AppId}, Management: {mgt.Name}");
-
-            return ( alreadyCreatedAppServers.TryGetValue(mgt.Id, out List<ModellingAppServer>? alreadyRequestedAppServers)
-                  && alreadyRequestedAppServers.Contains(appServer, new AppServerComparer()) );
-        }
-
         private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
         {
             return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + appServer.Ip :
@@ -395,48 +391,6 @@ namespace FWO.Services
             return newAppServers.Count > 0 || deletedAppServers.Count > 0;
         }
 
-        private void RequestUpdateAppZone(ModellingAppZone appZone, Management mgt)
-        {
-            FillGroupMembers(appZone.IdString, mgt);
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appZone.IdString } };
-            if (newGroupMembers.Count > 0)
-            {
-                newGroupMembers.AddRange(unchangedGroupMembers);
-                newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
-                TaskList.Add(new()
-                {
-                    Title = userConfig.GetText("update_app_zone") + appZone.IdString + userConfig.GetText("add_members"),
-                    TaskType = WfTaskType.group_modify.ToString(),
-                    RequestAction = RequestAction.modify.ToString(),
-                    ManagementId = mgt.Id,
-                    OnManagement = mgt,
-                    Elements = newGroupMembers,
-                    AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
-                });
-            }
-            if (deletedGroupMembers.Count > 0)
-            {
-                deletedGroupMembers.AddRange(unchangedGroupMembers);
-                deletedGroupMembers.AddRange(newCreatedGroupMembers);
-                DeleteTasksList.Add(new()
-                {
-                    Title = userConfig.GetText("update_app_zone") + appZone.IdString + userConfig.GetText("remove_members"),
-                    TaskType = WfTaskType.group_modify.ToString(),
-                    RequestAction = RequestAction.modify.ToString(),
-                    ManagementId = mgt.Id,
-                    OnManagement = mgt,
-                    Elements = deletedGroupMembers,
-                    AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
-                });
-            }
-
-            if (!alreadyCreatedAppZones.ContainsKey(mgt.Id))
-            {
-                alreadyCreatedAppZones.Add(mgt.Id, []);
-            }
-            alreadyCreatedAppZones[mgt.Id].Add(appZone);
-        }
-
         private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
         {
             List<WfReqElement> groupMembers = [];
@@ -472,7 +426,7 @@ namespace FWO.Services
             List<WfReqElement> groupMembers = [];
             foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(appZone.AppServers))
             {
-                bool alreadyRequested = AppServerAlreadyRequested(appServer, mgt);
+                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
@@ -480,7 +434,8 @@ namespace FWO.Services
                     Name = appServer.Name,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
-                    GroupName = appZone.IdString
+                    GroupName = appZone.IdString,
+                    NetworkId = networkId
                 });
             }
 
@@ -495,18 +450,42 @@ namespace FWO.Services
                 Elements = groupMembers,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
             });
+        }
 
-            if (!ExistingProdAppZones.ContainsKey(mgt.Id))
+        private void RequestUpdateAppZone(ModellingAppZone appZone, Management mgt)
+        {
+            FillGroupMembers(appZone.IdString, mgt);
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appZone.IdString } };
+            if (newGroupMembers.Count > 0)
             {
-                ExistingProdAppZones.Add(mgt.Id, []);
+                newGroupMembers.AddRange(unchangedGroupMembers);
+                newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
+                TaskList.Add(new()
+                {
+                    Title = userConfig.GetText("update_app_zone") + appZone.IdString + userConfig.GetText("add_members"),
+                    TaskType = WfTaskType.group_modify.ToString(),
+                    RequestAction = RequestAction.modify.ToString(),
+                    ManagementId = mgt.Id,
+                    OnManagement = mgt,
+                    Elements = newGroupMembers,
+                    AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+                });
             }
-            ExistingProdAppZones[mgt.Id].Add(appZone);
-
-            if (!alreadyCreatedAppZones.ContainsKey(mgt.Id))
+            if (deletedGroupMembers.Count > 0)
             {
-                alreadyCreatedAppZones.Add(mgt.Id, []);
+                deletedGroupMembers.AddRange(unchangedGroupMembers);
+                deletedGroupMembers.AddRange(newCreatedGroupMembers);
+                DeleteTasksList.Add(new()
+                {
+                    Title = userConfig.GetText("update_app_zone") + appZone.IdString + userConfig.GetText("remove_members"),
+                    TaskType = WfTaskType.group_modify.ToString(),
+                    RequestAction = RequestAction.modify.ToString(),
+                    ManagementId = mgt.Id,
+                    OnManagement = mgt,
+                    Elements = deletedGroupMembers,
+                    AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+                });
             }
-            alreadyCreatedAppZones[mgt.Id].Add(appZone);
         }
 
         private void RequestUpdateAppRole(ModellingAppRole appRole, Management mgt)

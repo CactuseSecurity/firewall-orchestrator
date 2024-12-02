@@ -34,7 +34,7 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
 
-        public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> Connections, FwoOwner owner)
+        public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> Connections)
         {
             // later: get rules + compare, bundle requests
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
@@ -47,7 +47,7 @@ namespace FWO.Services
                 }
             }
 
-            await GetProductionState(owner);
+            await GetProductionState();
 
             TaskList = [];
             AccessTaskList = [];
@@ -62,7 +62,7 @@ namespace FWO.Services
                     AnalyseAppServers(conn);
                     AnalyseServiceGroups(conn, mgt);
                     AnalyseServices(conn);
-                    await AnalyseAppZone(mgt, owner);
+                    await AnalyseAppZone(mgt);
                     if (elements.Count > 0)
                     {
                         Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
@@ -103,7 +103,7 @@ namespace FWO.Services
             return comment;
         }
 
-        private async Task GetProductionState(FwoOwner owner)
+        private async Task GetProductionState()
         {
             try
             {
@@ -244,7 +244,7 @@ namespace FWO.Services
             });
         }
 
-        private async Task AnalyseAppZone(Management mgt, FwoOwner owner)
+        private async Task AnalyseAppZone(Management mgt)
         {
             if (!userConfig.CreateAppZones)
             {

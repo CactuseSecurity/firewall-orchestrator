@@ -75,8 +75,10 @@ namespace FWO.Services
 
                 appZone.AppServers.AddRange(allAppServers);
 
-                int newAppZoneId = await AddAppZoneToDb(appZone);
+                int newAppZoneId = await AddAppZoneToDb(appZone);                
                 appZone.Id = newAppZoneId;
+
+                await AddAppServersToAppZone(appZone.Id, appZone.AppServers);
             }
             else
             {

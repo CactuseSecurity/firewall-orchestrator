@@ -238,7 +238,7 @@ namespace FWO.Middleware.Server
 
 		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks)
 		{
-			string taskContent = ConstructContent(tasks, ticket.Requester);
+			string taskContent = await ConstructContent(tasks, ticket.Requester);
 			Dictionary<string, List<int>>? bundledTasks;
 			string? extQueryVars = null;
 			if(tasks.Count > 1)
@@ -296,7 +296,7 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private string ConstructContent(List<WfReqTask> reqTasks, UiUser? requester)
+		private async Task<string> ConstructContent(List<WfReqTask> reqTasks, UiUser? requester)
 		{
 			ExternalTicket? ticket;
 			if(extSystemType == ExternalTicketSystemType.TufinSecureChange)
@@ -315,7 +315,7 @@ namespace FWO.Middleware.Server
 			if(ticket != null)
 			{
 				ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
-				ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
+				await ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
 				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
 				return JsonSerializer.Serialize(ticket);
 			}

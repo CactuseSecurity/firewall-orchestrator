@@ -148,19 +148,19 @@ namespace FWO.Test
         }
 
         [Test]
-        public void TestSCGrpCreateTicket()
+        public async Task TestSCGrpCreateTicket()
         {
             SCTicket ticket = new (ticketSystem);
-            ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
+            await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(GrpCreateFilledTicketText, ticket.TicketText);
         }
 
         [Test]
-        public void TestSCAccessTicket()
+        public async Task TestSCAccessTicket()
         {
             SCTicket ticket = new (ticketSystem);
-            ticket.CreateRequestString(accessReqTasks, ipProtos, NamingConvention);
+            await ticket.CreateRequestString(accessReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(AccessFilledTicketText, ticket.TicketText);
         }

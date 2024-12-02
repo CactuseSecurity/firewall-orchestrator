@@ -94,10 +94,10 @@ namespace FWO.Tufin.SecureChange
 			actTicketTemplate = TicketSystem.Templates.FirstOrDefault()?.TicketTemplate ?? "";
 		}
 
-		public override void CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
+		public override async Task CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
 		{
 			CreateTicketTasks(tasks, ipProtos, namingConvention);
-			CreateTicketText(tasks.First());
+			await CreateTicketText(tasks.First());
 		}
 
 		public override string GetTaskTypeAsString(WfReqTask task)
@@ -229,7 +229,7 @@ namespace FWO.Tufin.SecureChange
 		// 								"text": "@@APPID@@"
 		// 							}]}}}
 
-		private async void CreateTicketText(WfReqTask? reqTask)
+		private async Task CreateTicketText(WfReqTask? reqTask)
 		{
 			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId ?? "" : "";
 			string onBehalf = TicketSystem.LookupRequesterId ? (await LookupRequesterId(Requester)).ToString() : Requester;

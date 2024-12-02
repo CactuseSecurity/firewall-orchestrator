@@ -22,7 +22,7 @@ namespace FWO.Services
         private Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
         private Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
-        private Dictionary<int, List<ModellingAppZone>> ExistingProdAppZones = [];
+        //private Dictionary<int, List<ModellingAppZone>> ExistingProdAppZones = [];
 
         private ModellingAppRole? existingAppRole;
         private List<ModellingAppServerWrapper> newAppServers = [];
@@ -109,7 +109,7 @@ namespace FWO.Services
             {
                 int aRCount = 0;
                 int aSCount = 0;
-                int azCount = 0;
+                //int azCount = 0;
                 foreach (Management mgt in managements)
                 {
                     List<NetworkObject>? objGrpByMgt = await GetObjects(mgt.Id, [2]);
@@ -125,14 +125,14 @@ namespace FWO.Services
 
                             allExistingAppRoles[mgt.Id].Add(new(objGrp, namingConvention));
 
-                            if (!ExistingProdAppZones.ContainsKey(mgt.Id))
-                            {
-                                ExistingProdAppZones.Add(mgt.Id, []);
-                            }
+                            //if (!ExistingProdAppZones.ContainsKey(mgt.Id))
+                            //{
+                            //    ExistingProdAppZones.Add(mgt.Id, []);
+                            //}
 
-                            ExistingProdAppZones[mgt.Id].Add(new ModellingAppZone(objGrp, namingConvention));
+                            //ExistingProdAppZones[mgt.Id].Add(new ModellingAppZone(objGrp, namingConvention));
                             aRCount++;
-                            azCount++;
+                            //azCount++;
                         }
                     }
 
@@ -162,13 +162,13 @@ namespace FWO.Services
                 {
                     aRappServers += $" Management {mgt}: " + string.Join(",", allExistingAppServers[mgt].ConvertAll(x => $"{x.Name}({x.Ip})").ToList());
                 }
-                foreach (int mgt in ExistingProdAppZones.Keys)
-                {
-                    azAppZones += $" Management {mgt}: " + string.Join(",", ExistingProdAppZones[mgt].Where(a => a.IdString.StartsWith("AZ")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
-                }
+                //foreach (int mgt in ExistingProdAppZones.Keys)
+                //{
+                //    azAppZones += $" Management {mgt}: " + string.Join(",", ExistingProdAppZones[mgt].Where(a => a.IdString.StartsWith("AZ")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
+                //}
 
                 Log.WriteDebug("GetProductionState",
-                    $"Found {aRCount} AppRoles, {aSCount} AppServer, AppZones: {azCount}. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
+                    $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}"); //, AppZones: {azCount}
             }
             catch (Exception exception)
             {
@@ -259,11 +259,11 @@ namespace FWO.Services
                 WfReqTask? taskEntryUpdateAppZone = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id);
                 WfReqTask? taskEntryDeleteAppZone = DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id);
 
-                if (!ResolveProdAppZone(existingAppZone, mgt) && taskEntryNewAppZone is null)
+                if (!ResolveExistingAppRole(existingAppZone, mgt) && taskEntryNewAppZone is null)
                 {
                     RequestNewFWAppZone(existingAppZone, mgt);
                 }
-                else if (AppZoneChanged(existingAppZone, mgt) && taskEntryUpdateAppZone is null && taskEntryDeleteAppZone is null)
+                else if (AppRoleChanged(existingAppZone) && taskEntryUpdateAppZone is null && taskEntryDeleteAppZone is null)
                 {
                     RequestUpdateAppZone(existingAppZone, mgt);
                 }
@@ -307,15 +307,15 @@ namespace FWO.Services
             }
         }
 
-        private bool ResolveProdAppZone(ModellingAppZone existingAppZone, Management mgt)
-        {
-            if (ExistingProdAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? prodAppZones))
-            {
-                return prodAppZones.Contains(existingAppZone, new AppZoneComparer());
-            }
+        //private bool ResolveProdAppZone(ModellingAppZone existingAppZone, Management mgt)
+        //{
+        //    if (ExistingProdAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? prodAppZones))
+        //    {
+        //        return prodAppZones.Contains(existingAppZone, new AppZoneComparer());
+        //    }
 
-            return false;
-        }
+        //    return false;
+        //}
 
         private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
         {
@@ -338,6 +338,12 @@ namespace FWO.Services
             newAppServers = [];
             deletedAppServers = [];
             unchangedAppServers = [];
+
+            if (existingAppRole is null)
+            {
+                return false;
+            }
+
             foreach (ModellingAppServerWrapper appserver in appRole.AppServers)
             {
                 if (existingAppRole.AppServers.FirstOrDefault(a => AreEqual(a.Content, appserver.Content)) != null)
@@ -359,40 +365,40 @@ namespace FWO.Services
             return newAppServers.Count > 0 || deletedAppServers.Count > 0;
         }
 
-        private bool AppZoneChanged(ModellingAppZone existingAppZone, Management mgt)
-        {
-            newAppServers = [];
-            deletedAppServers = [];
-            unchangedAppServers = [];
+        //private bool AppZoneChanged(ModellingAppZone existingAppZone, Management mgt)
+        //{
+        //    newAppServers = [];
+        //    deletedAppServers = [];
+        //    unchangedAppServers = [];
 
-            ModellingAppZone? prodAppZone = ExistingProdAppZones[mgt.Id].FirstOrDefault();
+        //    ModellingAppZone? prodAppZone = ExistingProdAppZones[mgt.Id].FirstOrDefault();
 
-            if (prodAppZone is null)
-                return false;
+        //    if (prodAppZone is null)
+        //        return false;
 
-            List<ModellingAppServerWrapper> diff1 = existingAppZone.AppServers.Except(prodAppZone.AppServers, new AppServerComparer())
-                                                                                    .ToList();
-            if (diff1.Count > 0)
-            {
-                newAppServers.AddRange(diff1);
-            }
+        //    List<ModellingAppServerWrapper> diff1 = existingAppZone.AppServers.Except(prodAppZone.AppServers, new AppServerComparer())
+        //                                                                            .ToList();
+        //    if (diff1.Count > 0)
+        //    {
+        //        newAppServers.AddRange(diff1);
+        //    }
 
-            List<ModellingAppServerWrapper> diff2 = prodAppZone.AppServers.Except(existingAppZone.AppServers, new AppServerComparer())
-                                                                                   .ToList();
-            if (diff2.Count > 0)
-            {
-                deletedAppServers.AddRange(diff2);
-            }
+        //    List<ModellingAppServerWrapper> diff2 = prodAppZone.AppServers.Except(existingAppZone.AppServers, new AppServerComparer())
+        //                                                                           .ToList();
+        //    if (diff2.Count > 0)
+        //    {
+        //        deletedAppServers.AddRange(diff2);
+        //    }
 
-            List<ModellingAppServerWrapper> unchanged = existingAppZone.AppServers.Intersect(prodAppZone.AppServers, new AppServerComparer())
-                                                                                    .ToList();
-            if (unchanged.Count > 0)
-            {
-                unchangedAppServers.AddRange(unchanged);
-            }
+        //    List<ModellingAppServerWrapper> unchanged = existingAppZone.AppServers.Intersect(prodAppZone.AppServers, new AppServerComparer())
+        //                                                                            .ToList();
+        //    if (unchanged.Count > 0)
+        //    {
+        //        unchangedAppServers.AddRange(unchanged);
+        //    }
 
-            return newAppServers.Count > 0 || deletedAppServers.Count > 0;
-        }
+        //    return newAppServers.Count > 0 || deletedAppServers.Count > 0;
+        //}
 
         private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
         {

@@ -215,7 +215,11 @@ namespace FWO.Middleware.Server
                 }, token);
             }
             await PrepareConnReportData(reportSchedule, report, apiConnectionUser);
-            report.ReportData.GlobalComSvc = await apiConnectionUser.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+            List<ModellingConnection> comSvcs = await apiConnectionUser.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+            if(comSvcs.Count > 0)
+            {
+                report.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
+            }
         }
 
         private async Task PrepareConnReportData(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser)
@@ -225,7 +229,6 @@ namespace FWO.Middleware.Server
             {
                 foreach(var conn in ownerReport.Connections)
                 {
-                    //conn.ExtractNwGroups();
                     await handlerBase.ExtractUsedInterface(conn);
                 }
                 ownerReport.Name = reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Name;

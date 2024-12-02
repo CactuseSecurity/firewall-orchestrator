@@ -71,32 +71,32 @@ namespace FWO.Test
             "<h4>TestDev</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td>TestRule1</td><td>srczn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
+            "<td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
             "<td>dstzn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
-            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
+            "<td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
+            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
             "<td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr>" +
             "<tr><td>2</td><td>TestRule2</td><td></td>" +
-            "<td>not<br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
+            "<td>not<br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
             "<td></td>" +
-            "<td>not<br><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
-            "<td>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
+            "<td>not<br><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
+            "<td>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr>" +
             "<h4>Network Objects</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr style=\"\"><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr style=\"\"><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr style=\"\"><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Network Services</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Users</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=user1x1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table><hr></body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
@@ -194,32 +194,32 @@ namespace FWO.Test
             "<h4>TestDev</h4>" +
             "<table><tr><th>No.</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>1</td><td>2022-04-19</td><td>TestRule1</td><td>srczn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
+            "<td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
             "<td>dstzn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
-            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
+            "<td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
+            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
             "<td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr>" +
             "<tr><td>2</td><td></td><td>TestRule2</td><td></td>" +
-            "<td>not<br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
+            "<td>not<br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
             "<td></td>" +
-            "<td>not<br><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
-            "<td>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
+            "<td>not<br><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
+            "<td>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr>" +
             "<h4>Network Objects</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr style=\"\"><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr style=\"\"><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr style=\"\"><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Network Services</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Users</h4>" +
             "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=user1x1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table><hr></body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true)));
         }
@@ -251,10 +251,10 @@ namespace FWO.Test
             "<td>2022-04-19</td>" +
             "<td>TestRule1</td>" +
             "<td>srczn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
+            "<td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
             "<td>dstzn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
-            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
+            "<td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
+            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
             "<td>accept</td>" +
             "<td>none</td>" +
             "<td><b>Y</b></td>" +
@@ -267,27 +267,27 @@ namespace FWO.Test
             "<td></td>" +
             "<td>TestRule2</td>" +
             "<td></td>" +
-            "<td>not<br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
+            "<td>not<br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
             "<td></td>" +
-            "<td>not<br><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
-            "<td>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
+            "<td>not<br><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
+            "<td>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
             "<td>deny</td>" +
             "<td>none</td>" +
             "<td><b>Y</b></td>" +
             "<td>uid2:123</td>" +
             "<td>comment2</td></tr></table><hr>" +
             "<h4>Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr style=\"\"><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr style=\"\"><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr style=\"\"><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr style=\"\"><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=user1x1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table><hr></body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportRecerts.ExportToHtml(), true)));
         }
@@ -315,29 +315,29 @@ namespace FWO.Test
             "<tr><td>1</td>" +
             "<td>TestRule1</td>" +
             "<td>srczn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
+            "<td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
             "<td>dstzn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
-            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj5\" target=\"_top\" style=\"\">TestIp1Changed</a> (2.3.4.5)</span></td>" +
-            "<td>not<br><span style=\"\"><span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj5\" target=\"_top\" style=\"\">TestIp1Changed</a> (2.3.4.5)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"\">TestIpNew</a> (10.0.6.0/24)</span></td>" +
-            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
+            "<td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
+            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
+            "<td><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x5\" target=\"_top\" style=\"\">TestIp1Changed</a> (2.3.4.5)</span></td>" +
+            "<td>not<br><span style=\"\"><span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x5\" target=\"_top\" style=\"\">TestIp1Changed</a> (2.3.4.5)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x4\" target=\"_top\" style=\"\">TestIpNew</a> (10.0.6.0/24)</span></td>" +
+            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
             "<td><b>Y</b></td>" +
             "<td>uid1</td>" +
             "<td>comment1</td></tr></table><hr>" +
             "<h4>Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>4</td><td><a name=nwobj4>TestIpNew</a></td><td>Network</td><td>10.0.6.0/24</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>5</td><td><a name=nwobj5>TestIp1Changed</a></td><td>Host</td><td>2.3.4.5</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>4</td><td><a name=nwobj1x4>TestIpNew</a></td><td>Network</td><td>10.0.6.0/24</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>5</td><td><a name=nwobj1x5>TestIp1Changed</a></td><td>Host</td><td>2.3.4.5</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=svc1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=svc2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
             "</table><hr>" +
             "<h4>Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=user2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
             "</table><hr></table></body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportNatRules.ExportToHtml(), true)));
         }
@@ -364,41 +364,41 @@ namespace FWO.Test
             "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>05.04.2023 12:00:00</td><td>Rule added</td><td><p style=\"color: green; text-decoration: bold;\">TestRule1</p></td>" +
             "<td><p style=\"color: green; text-decoration: bold;\">srczn</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp2</a> (127.0.0.1/32)</p></td>" +
+            "<td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp2</a> (127.0.0.1/32)</p></td>" +
             "<td><p style=\"color: green; text-decoration: bold;\">dstzn</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService1</a> (443/TCP)</p></td>" +
+            "<td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td>" +
+            "<td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService1</a> (443/TCP)</p></td>" +
             "<td><p style=\"color: green; text-decoration: bold;\">accept</p></td>" +
             "<td><p style=\"color: green; text-decoration: bold;\">none</p></td>" +
             "<td><p style=\"color: green; text-decoration: bold;\"><b>Y</b></p></td>" +
             "<td><p style=\"color: green; text-decoration: bold;\">uid1</p></td>" +
             "<td><p style=\"color: green; text-decoration: bold;\">comment1</p></td></tr>" +
             "<tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule1</td><td>srczn</td>" +
-            "<td><p><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)<br></p>" +
-            "deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp1</a> (1.2.3.4/32)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj5\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp1Changed</a> (2.3.4.5)</p></td>" +
+            "<td><p><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)<br></p>" +
+            "deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp1</a> (1.2.3.4/32)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x5\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp1Changed</a> (2.3.4.5)</p></td>" +
             "<td>dstzn</td>" +
-            "<td><p><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpNew</a> (10.0.6.0/24)</p></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService1</a> (443/TCP)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService1</a> (443/TCP)</p></td>" +
+            "<td><p><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x4\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpNew</a> (10.0.6.0/24)</p></td>" +
+            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService1</a> (443/TCP)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService1</a> (443/TCP)</p></td>" +
             "<td>accept</td><td>none</td><td><b>Y</b></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">uid1<br></p></td>" +
             "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">comment1<br></p>added: <p style=\"color: green; text-decoration: bold;\">new comment</p></td></tr>" +
             "<tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule2</td><td></td>" +
-            "<td>not<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)<br>" +
-            "<span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</td>" +
+            "<td>not<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)<br>" +
+            "<span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</td>" +
             "<td></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService2</a> (6666-7777/UDP)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService2</a> (6666-7777/UDP)</p></td>" +
+            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td>" +
+            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService2</a> (6666-7777/UDP)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService2</a> (6666-7777/UDP)</p></td>" +
             "<td>deny</td><td>none</td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><b>Y</b><br></p>added: <p style=\"color: green; text-decoration: bold;\"><b>N</b></p></td><td>uid2:123</td><td>comment2</td></tr>" +
             "<tr><td>05.04.2023 12:00:00</td><td>Rule deleted</td><td><p style=\"color: red; text-decoration: line-through red;\">TestRule2</p></td><td></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp1</a> (1.2.3.4/32)<br>" +
-            "<span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp2</a> (127.0.0.1/32)</p></td>" +
+            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp1</a> (1.2.3.4/32)<br>" +
+            "<span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp2</a> (127.0.0.1/32)</p></td>" +
             "<td></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService2</a> (6666-7777/UDP)</p></td>" +
+            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td>" +
+            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService2</a> (6666-7777/UDP)</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">deny</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\">none</p></td>" +
             "<td><p style=\"color: red; text-decoration: line-through red;\"><b>Y</b></p></td>" +
@@ -553,47 +553,58 @@ namespace FWO.Test
             "<h4>Connections</h4><table>" +
             "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
             "<tr><td>1</td><td>101</td><td>Conn1</td><td></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">ServiceGroup1</a><br>" +
-            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">AppRole1 (AR1)</a></td></table><hr>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x41\" target=\"_top\" style=\"\">ServiceGroup1</a><br>" +
+            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x31\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x21\" target=\"_top\" style=\"\">AppRole1 (AR1)</a></td></table><hr>" +
             "<h4>Interfaces</h4><table>" +
             "<tr><th>No.</th><th>Id</th><th>Published</th><th>Name</th><th>Interface Description</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
             "<tr><td>1</td><td>102</td><td>✖</td><td>Inter2</td><td></td><td></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc3\" target=\"_top\" style=\"\"></a><br>" +
-            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc4\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">noRole ()</a><br>" +
-            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br>" +
+            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x0\" target=\"_top\" style=\"\">noRole ()</a><br>" +
+            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
             "<h4>Own Common Services</h4><table>" +
             "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
             "<tr><td>1</td><td>103</td><td>ComSvc3</td><td></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc3\" target=\"_top\" style=\"\"></a><br>" +
-            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc4\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br>" +
+            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
 
             "<h4>Network Objects</h4>" +
             "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr>" +
-            "<tr><td>1</td><td>21</td><td><a name=nwobj1>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td>" +
-            "<tr><td>2</td><td>11</td><td><a name=nwobj2>AppServer1</a></td><td>1.0.0.0</td><td></td>" +
-            "<tr><td>3</td><td>0</td><td><a name=nwobj3>noRole ()</a></td><td></td><td></td>" +
-            "<tr><td>4</td><td>12</td><td><a name=nwobj4>AppServer2</a></td><td>2.0.0.0</td><td></td>" +
+            "<tr><td>1</td><td>21</td><td><a name=nwobj1x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td>" +
+            "<tr><td>2</td><td>11</td><td><a name=nwobj1x11>AppServer1</a></td><td>1.0.0.0</td><td></td>" +
+            "<tr><td>3</td><td>0</td><td><a name=nwobj1x0>noRole ()</a></td><td></td><td></td>" +
+            "<tr><td>4</td><td>12</td><td><a name=nwobj1x12>AppServer2</a></td><td>2.0.0.0</td><td></td>" +
             "</table><hr>" +
             "<h4>Network Services</h4>" +
             "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr>" +
-            "<tr><td>1</td><td>41</td><td><a name=svc1>ServiceGroup1</a></td><td></td><td></td><td>Service1</td>" +
-            "<tr><td>2</td><td>31</td><td><a name=svc2>Service1</a></td><td>TCP</td><td>1234</td><td></td>" +
-            "<tr><td>3</td><td>0</td><td><a name=svc3></a></td><td></td><td></td><td></td>" +
-            "<tr><td>4</td><td>32</td><td><a name=svc4>Service2</a></td><td>UDP</td><td>2345</td><td></td>" +
+            "<tr><td>1</td><td>41</td><td><a name=svc1x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td>" +
+            "<tr><td>2</td><td>31</td><td><a name=svc1x31>Service1</a></td><td>TCP</td><td>1234</td><td></td>" +
+            "<tr><td>3</td><td>0</td><td><a name=svc1x0></a></td><td></td><td></td><td></td>" +
+            "<tr><td>4</td><td>32</td><td><a name=svc1x32>Service2</a></td><td>UDP</td><td>2345</td><td></td>" +
             "</table><hr>" +
 
             "<h3>Global Common Services</h3><table>" +
             "<tr><th>No.</th><th>Id</th><th>Owner</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
             "<tr><td>1</td><td>103</td><td>App1</td><td>ComSvc3</td><td></td>" +
-            "<td><span class=\"\" ><span class=\"\" ><span class=\"\">AppServer1 (1.0.0.0)</span></span></span></td>" +
-            "<td><span></span><br>" +
-            "<span>Service2 (2345/UDP)</span></td>" +
-            "<td><span class=\"\" ><span class=\"\" ><span class=\"\">AppServer2 (2.0.0.0)</span></span></span></td></table><hr>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2x0\" target=\"_top\" style=\"\"></a><br>" +
+            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
+            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
+
+            "<h4>Network Objects</h4>" +
+            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr>" +
+            "<tr><td>1</td><td>11</td><td><a name=nwobj2x11>AppServer1</a></td><td>1.0.0.0</td><td></td>" +
+            "<tr><td>2</td><td>12</td><td><a name=nwobj2x12>AppServer2</a></td><td>2.0.0.0</td><td></td>" +
+            "</table><hr>" +
+            "<h4>Network Services</h4>" +
+            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr>" +
+            "<tr><td>1</td><td>0</td><td><a name=svc2x0></a></td><td></td><td></td><td></td>" +
+            "<tr><td>2</td><td>32</td><td><a name=svc2x32>Service2</a></td><td>UDP</td><td>2345</td><td></td>" +
+            "</table><hr>" +
             "</body></html>";
             ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportConnections.ExportToHtml(), true)));
         }
@@ -1305,7 +1316,7 @@ namespace FWO.Test
                         CommonServices = [ComSvc3],
                     }
                 ],
-                GlobalComSvc = [ComSvc3]
+                GlobalComSvc = [new(){GlobalComSvcs = [ComSvc3]}]
             };
             reportData.OwnerData.First().PrepareObjectData();
             return reportData;

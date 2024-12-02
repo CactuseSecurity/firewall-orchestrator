@@ -184,12 +184,12 @@ namespace FWO.Api.Data
             return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";
         }
         
-        public virtual bool SourceFilled()
+        public bool SourceFilled()
         {
             return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0  || SourceAreas.Count > 0 || SourceOtherGroups.Count > 0;
         }
 
-        public virtual bool DestinationFilled()
+        public bool DestinationFilled()
         {
             return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationAreas.Count > 0 || DestinationOtherGroups.Count > 0;
         }

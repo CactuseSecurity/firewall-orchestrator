@@ -82,7 +82,13 @@
                                     Data="CurrentReport.ReportData.OwnerData"
                                     NameExtractor="own => own.Name" 
                                     NetworkObjectExtractor="own => own.GetAllNetworkObjects(true)"
-                                    NetworkServiceExtractor="own => own.GetAllServices()"
+                                    NetworkServiceExtractor="own => own.GetAllServices(true)"
+                                    Reload="true"/>
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport" 
+                                    Data="CurrentReport.ReportData.GlobalComSvc"
+                                    NameExtractor="glbComSvc => glbComSvc.Name"
+                                    NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true)"
+                                    NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)"
                                     Reload="true"/>
                             </CascadingValue>
                         </div>

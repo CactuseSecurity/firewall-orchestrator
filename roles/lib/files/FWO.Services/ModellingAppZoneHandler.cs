@@ -62,7 +62,7 @@ namespace FWO.Services
                 allAppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
             }
 
-            appZone = await GetExistingAppZone(owner.Id);
+            appZone = await GetExistingAppZone();
 
             if (appZone is null)
             {
@@ -113,7 +113,7 @@ namespace FWO.Services
             return existingAppZone.AppServers.Except(allAppServers, new AppServerComparer()).ToList();
         }
 
-        public async Task<ModellingAppZone?> CreateAppZone(ModellingConnection conn, FwoOwner owner)
+        public async Task<ModellingAppZone?> CreateAppZone(ModellingConnection conn)
         {
             if (conn is null || ( conn.SourceAppServers.Count == 0 && conn.DestinationAppServers.Count == 0 ))
                 return default;
@@ -144,9 +144,9 @@ namespace FWO.Services
             return appZone;
         }
 
-        private async Task DeleteExistingAppZone(int ownerId)
+        private async Task DeleteExistingAppZone()
         {
-            ModellingAppZone? existingAppZone = await GetExistingAppZone(ownerId);
+            ModellingAppZone? existingAppZone = await GetExistingAppZone();
 
             if (existingAppZone is not null)
             {
@@ -154,7 +154,7 @@ namespace FWO.Services
                 {
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = existingAppZone.Id });
 
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppZone, existingAppZone.Id, $"Delete App Zone: {existingAppZone.Display()}", ownerId);
+                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppZone, existingAppZone.Id, $"Delete App Zone: {existingAppZone.Display()}", owner.Id);
                 }
                 catch (Exception ex)
                 {
@@ -163,11 +163,11 @@ namespace FWO.Services
             }
         }
 
-        public async Task<ModellingAppZone?> GetExistingAppZone(int appId)
+        public async Task<ModellingAppZone?> GetExistingAppZone()
         {
             try
             {
-                List<ModellingAppZone>? existingAppZones = await apiConnection.SendQueryAsync<List<ModellingAppZone>>(ModellingQueries.getAppZonesByAppId, new { appId = appId });
+                List<ModellingAppZone>? existingAppZones = await apiConnection.SendQueryAsync<List<ModellingAppZone>>(ModellingQueries.getAppZonesByAppId, new { appId = owner.Id });
 
                 return existingAppZones.FirstOrDefault();
             }

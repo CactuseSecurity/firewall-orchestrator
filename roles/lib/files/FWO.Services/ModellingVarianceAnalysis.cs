@@ -22,7 +22,6 @@ namespace FWO.Services
         private Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
         private Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
-        //private Dictionary<int, List<ModellingAppZone>> ExistingProdAppZones = [];
 
         private ModellingAppRole? existingAppRole;
         private List<ModellingAppServerWrapper> newAppServers = [];
@@ -109,7 +108,6 @@ namespace FWO.Services
             {
                 int aRCount = 0;
                 int aSCount = 0;
-                //int azCount = 0;
                 foreach (Management mgt in managements)
                 {
                     List<NetworkObject>? objGrpByMgt = await GetObjects(mgt.Id, [2]);
@@ -125,14 +123,7 @@ namespace FWO.Services
 
                             allExistingAppRoles[mgt.Id].Add(new(objGrp, namingConvention));
 
-                            //if (!ExistingProdAppZones.ContainsKey(mgt.Id))
-                            //{
-                            //    ExistingProdAppZones.Add(mgt.Id, []);
-                            //}
-
-                            //ExistingProdAppZones[mgt.Id].Add(new ModellingAppZone(objGrp, namingConvention));
                             aRCount++;
-                            //azCount++;
                         }
                     }
 
@@ -153,7 +144,6 @@ namespace FWO.Services
 
                 string aRappRoles = "";
                 string aRappServers = "";
-                string azAppZones = "";
                 foreach (int mgt in allExistingAppRoles.Keys)
                 {
                     aRappRoles += $" Management {mgt}: " + string.Join(",", allExistingAppRoles[mgt].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
@@ -162,13 +152,9 @@ namespace FWO.Services
                 {
                     aRappServers += $" Management {mgt}: " + string.Join(",", allExistingAppServers[mgt].ConvertAll(x => $"{x.Name}({x.Ip})").ToList());
                 }
-                //foreach (int mgt in ExistingProdAppZones.Keys)
-                //{
-                //    azAppZones += $" Management {mgt}: " + string.Join(",", ExistingProdAppZones[mgt].Where(a => a.IdString.StartsWith("AZ")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
-                //}
 
                 Log.WriteDebug("GetProductionState",
-                    $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}"); //, AppZones: {azCount}
+                    $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
             }
             catch (Exception exception)
             {
@@ -251,7 +237,7 @@ namespace FWO.Services
                 return;
             }
 
-            ModellingAppZone? existingAppZone = await AppZoneHandler.GetExistingAppZone(owner.Id);
+            ModellingAppZone? existingAppZone = await AppZoneHandler.GetExistingAppZone();
 
             if (existingAppZone is not null)
             {
@@ -307,16 +293,6 @@ namespace FWO.Services
             }
         }
 
-        //private bool ResolveProdAppZone(ModellingAppZone existingAppZone, Management mgt)
-        //{
-        //    if (ExistingProdAppZones.TryGetValue(mgt.Id, out List<ModellingAppZone>? prodAppZones))
-        //    {
-        //        return prodAppZones.Contains(existingAppZone, new AppZoneComparer());
-        //    }
-
-        //    return false;
-        //}
-
         private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
         {
             return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + appServer.Ip :
@@ -364,41 +340,6 @@ namespace FWO.Services
             }
             return newAppServers.Count > 0 || deletedAppServers.Count > 0;
         }
-
-        //private bool AppZoneChanged(ModellingAppZone existingAppZone, Management mgt)
-        //{
-        //    newAppServers = [];
-        //    deletedAppServers = [];
-        //    unchangedAppServers = [];
-
-        //    ModellingAppZone? prodAppZone = ExistingProdAppZones[mgt.Id].FirstOrDefault();
-
-        //    if (prodAppZone is null)
-        //        return false;
-
-        //    List<ModellingAppServerWrapper> diff1 = existingAppZone.AppServers.Except(prodAppZone.AppServers, new AppServerComparer())
-        //                                                                            .ToList();
-        //    if (diff1.Count > 0)
-        //    {
-        //        newAppServers.AddRange(diff1);
-        //    }
-
-        //    List<ModellingAppServerWrapper> diff2 = prodAppZone.AppServers.Except(existingAppZone.AppServers, new AppServerComparer())
-        //                                                                           .ToList();
-        //    if (diff2.Count > 0)
-        //    {
-        //        deletedAppServers.AddRange(diff2);
-        //    }
-
-        //    List<ModellingAppServerWrapper> unchanged = existingAppZone.AppServers.Intersect(prodAppZone.AppServers, new AppServerComparer())
-        //                                                                            .ToList();
-        //    if (unchanged.Count > 0)
-        //    {
-        //        unchangedAppServers.AddRange(unchanged);
-        //    }
-
-        //    return newAppServers.Count > 0 || deletedAppServers.Count > 0;
-        //}
 
         private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
         {

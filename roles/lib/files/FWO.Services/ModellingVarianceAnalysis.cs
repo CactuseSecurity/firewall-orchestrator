@@ -43,7 +43,7 @@ namespace FWO.Services
             namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
         }
 
-        public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> Connections, FwoOwner owner)
+        public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> connections, FwoOwner owner)
         {
             // later: get rules + compare, bundle requests
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
@@ -59,7 +59,7 @@ namespace FWO.Services
             TaskList = [];
             AccessTaskList = [];
             DeleteTasksList = [];
-            foreach(var conn in Connections.Where(c => !c.IsRequested))
+            foreach(var conn in connections.Where(c => !c.IsRequested))
             {
                 foreach(var mgt in managements)
                 {
@@ -74,7 +74,7 @@ namespace FWO.Services
                         Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.ConnId, conn.Id.ToString()} };
                         AccessTaskList.Add(new()
                         {
-                            Title = userConfig.GetText("new_connection") + ": " + conn.Name ?? "",
+                            Title = (conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection")) + ": " + conn.Name ?? "",
                             TaskType = WfTaskType.access.ToString(),
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
@@ -102,6 +102,10 @@ namespace FWO.Services
         private string ConstructComment(ModellingConnection conn)
         {
             string comment = "FWOC" + conn.Id.ToString();
+            if(conn.IsCommonService)
+            {
+                comment += ", ComSvc";
+            }
             if(conn.ExtraConfigs.Count > 0)
             {
                 comment += ", " + userConfig.GetText("impl_instructions") + ": " + string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()));

@@ -1547,6 +1547,8 @@ INSERT INTO txt VALUES ('modify_group',         'German',   'Gruppe &auml;ndern'
 INSERT INTO txt VALUES ('modify_group',         'English',  'Modify Group');
 INSERT INTO txt VALUES ('new_connection',       'German',   'Neue Verbindung');
 INSERT INTO txt VALUES ('new_connection',       'English',  'New Connection');
+INSERT INTO txt VALUES ('new_common_service',   'German',   'Neuer Common Service');
+INSERT INTO txt VALUES ('new_common_service',   'English',  'New Common Service');
 INSERT INTO txt VALUES ('new_app_role',         'German',   'Neue AppRolle: ');
 INSERT INTO txt VALUES ('new_app_role',         'English',  'New AppRole: ');
 INSERT INTO txt VALUES ('update_app_role',      'German',   'Ge&auml;nderte AppRolle: ');

@@ -140,10 +140,10 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetConnectionsToRequest()
         {
-            return Connections.Where(x => !(x.IsInterface ||
+            return [.. Connections.Where(x => !(x.IsInterface ||
                 x.GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 x.GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
-                x.EmptyAppRolesFound())).ToList();
+                x.EmptyAppRolesFound())).OrderByDescending(y => y.IsCommonService)];
         }
 
         public async Task AddConnection()

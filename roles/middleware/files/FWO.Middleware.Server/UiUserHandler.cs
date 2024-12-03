@@ -118,9 +118,9 @@ namespace FWO.Middleware.Server
 					foreach (var grp in user.Groups)
 					{
 						string grpName = new DistName(grp).Group;
-						if (grpName.StartsWith(GlobalConst.kModellerGroup))
+						if (grpName.Contains(GlobalConst.kModellerGroup))
 						{
-							FwoOwner? owner = apps.FirstOrDefault(x => x.ExtAppId == grpName.Substring(GlobalConst.kModellerGroup.Length));
+							FwoOwner? owner = apps.FirstOrDefault(x => x.ExtAppId == grpName.Substring(GlobalConst.kModellerGroup.Length));	// TODO: use pattern matching
 							if (owner != null)
 							{
 								user.Ownerships.Add(owner.Id);

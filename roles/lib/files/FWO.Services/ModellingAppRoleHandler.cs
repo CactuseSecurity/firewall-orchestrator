@@ -292,7 +292,7 @@ namespace FWO.Services
         public async Task SelectAppServersFromArea(ModellingNetworkArea? area)
         {
             AppServersInArea = [];
-            if(area != null)
+            if (area != null)
             {
                 foreach (ModellingAppServer? server in AvailableAppServers.Where(x => !x.IsDeleted))
                 {
@@ -326,6 +326,10 @@ namespace FWO.Services
                 {
                     IPAddress serverIpStart = IPAddress.Parse(server.Ip.StripOffNetmask());
                     IPAddress serverIpEnd = IPAddress.Parse(server.IpEnd.StripOffNetmask());
+                    if(areaIpData.Content.Ip == null || areaIpData.Content.IpEnd == null)
+                    {
+                        return false;
+                    }
                     IPAddress subnetIpStart = IPAddress.Parse(areaIpData.Content.Ip.StripOffNetmask());
                     IPAddress subnetIpEnd = IPAddress.Parse(areaIpData.Content.IpEnd.StripOffNetmask());
 

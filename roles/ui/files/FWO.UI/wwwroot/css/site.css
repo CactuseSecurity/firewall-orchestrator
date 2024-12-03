@@ -495,3 +495,7 @@ thead {
 .cursor-pointer{
     cursor: pointer;
 }
+
+.show-horizontal-scrollbar .table-responsive {
+  overflow-x: scroll;
+}

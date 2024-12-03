@@ -113,6 +113,7 @@ namespace FWO.Api.Data
                         PortEnd = reqElem.PortEnd,
                         ProtoId = reqElem.ProtoId ?? 0,
                         ServiceId = reqElem.ServiceId,
+                        Name = reqElem.Name,
                         RequestAction = reqElem.RequestAction
                     });
                 }

@@ -131,6 +131,7 @@ namespace FWO.Middleware.Server
 		{
 			return ticketIdResponse.Content != null && 
 				(ticketIdResponse.Content.Contains("GENERAL_ERROR") ||
+				ticketIdResponse.Content.Contains("ILLEGAL_ARGUMENT_ERROR") ||
 				ticketIdResponse.Content.Contains("FIELD_VALIDATION_ERROR") ||
 				ticketIdResponse.Content.Contains("WEB_APPLICATION_ERROR") ||
 				ticketIdResponse.Content.Contains("implementation failure"));

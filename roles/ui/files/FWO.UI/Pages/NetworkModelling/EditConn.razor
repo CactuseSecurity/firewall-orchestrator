@@ -58,7 +58,7 @@
             </div>
             @if(availableExtraConfigs.Count > 0)
             {
-                <div class="form-group row mt-2 me-auto">
+                <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9081"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("extra_params")):</label>
                     <div class="col-sm-9">
                         @if(ConnHandler.ReadOnly)

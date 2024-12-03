@@ -241,9 +241,9 @@ namespace FWO.Services
 
             if (existingAppZone is not null)
             {
-                WfReqTask? taskEntryNewAppZone = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_zone") + existingAppZone.IdString && x.OnManagement?.Id == mgt.Id);
-                WfReqTask? taskEntryUpdateAppZone = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id);
-                WfReqTask? taskEntryDeleteAppZone = DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id);
+                WfReqTask? taskEntryNewAppZone = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_zone") + existingAppZone.Name && x.OnManagement?.Id == mgt.Id);
+                WfReqTask? taskEntryUpdateAppZone = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.Name + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id);
+                WfReqTask? taskEntryDeleteAppZone = DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.Name + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id);
 
                 if (!ResolveExistingApp(existingAppZone, mgt) && taskEntryNewAppZone is null)
                 {
@@ -275,7 +275,7 @@ namespace FWO.Services
             string sanitizedARName = Sanitizer.SanitizeJsonFieldMand(app.IdString, ref shortened);
             if (allExistingAppRoles.ContainsKey(mgt.Id))
             {
-                existingApp = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == app.IdString || a.Name == sanitizedARName);
+                existingApp = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == app.IdString || a.Name == sanitizedARName || a.Name == app.Name);
             }
             if (existingApp != null)
             {
@@ -405,27 +405,30 @@ namespace FWO.Services
         {
             string title = "";
             string additionalInfoKeys = "";
+            string groupName = "";
 
             if (app.GetType() == typeof(ModellingAppRole))
             {
                 title = userConfig.GetText("update_app_role");
                 additionalInfoKeys = AdditionalInfoKeys.AppRoleId;
+                groupName = app.IdString;
             }
             else if (app.GetType() == typeof(ModellingAppZone))
             {
                 title = userConfig.GetText("update_app_zone");
                 additionalInfoKeys = AdditionalInfoKeys.AppZoneId;
+                groupName = app.Name;
             }
 
-            FillGroupMembers(app.IdString, mgt);
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, app.IdString }, { additionalInfoKeys, app.Id.ToString() } };
+            FillGroupMembers(groupName, mgt);
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, groupName }, { additionalInfoKeys, app.Id.ToString() } };
             if (newGroupMembers.Count > 0)
             {
                 newGroupMembers.AddRange(unchangedGroupMembers);
                 newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
                 TaskList.Add(new()
                 {
-                    Title = title + app.IdString + userConfig.GetText("add_members"),
+                    Title = title + groupName + userConfig.GetText("add_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
                     RequestAction = RequestAction.modify.ToString(),
                     ManagementId = mgt.Id,
@@ -440,7 +443,7 @@ namespace FWO.Services
                 deletedGroupMembers.AddRange(newCreatedGroupMembers);
                 DeleteTasksList.Add(new()
                 {
-                    Title = title + app.IdString + userConfig.GetText("remove_members"),
+                    Title = title + groupName + userConfig.GetText("remove_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
                     RequestAction = RequestAction.modify.ToString(),
                     ManagementId = mgt.Id,

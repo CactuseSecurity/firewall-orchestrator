@@ -106,19 +106,19 @@ namespace FWO.Test
             ClassicAssert.AreEqual("source", TaskList[1].Elements[0].Field);
             ClassicAssert.AreEqual("addAfterCreation", TaskList[1].Elements[0].RequestAction);
 
-            ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[2].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[2].TaskType);
             ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"AppZoneId\":\"3\"}", TaskList[2].AdditionalInfo);
-            ClassicAssert.AreEqual("create", TaskList[2].RequestAction);
+            ClassicAssert.AreEqual("modify", TaskList[2].RequestAction);
             ClassicAssert.AreEqual(3, TaskList[2].TaskNumber);
-            ClassicAssert.AreEqual("New AppZone: AZ4711", TaskList[2].Title);
+            ClassicAssert.AreEqual("Update AppZone: AZ4711: Add Members", TaskList[2].Title);
             ClassicAssert.AreEqual(2, TaskList[2].Elements.Count);
-            ClassicAssert.AreEqual("AppServer1", TaskList[2].Elements[0].Name);
-            ClassicAssert.AreEqual("AppServer2", TaskList[2].Elements[1].Name);
+            ClassicAssert.AreEqual("AppServer2", TaskList[2].Elements[0].Name);
+            ClassicAssert.AreEqual("AppServer1", TaskList[2].Elements[1].Name);
             ClassicAssert.AreEqual("AZ4711", TaskList[2].Elements[0].GroupName);
-            ClassicAssert.AreEqual("1.1.1.1/32", TaskList[2].Elements[0].IpString);
-            ClassicAssert.AreEqual("1.1.1.1/32", TaskList[2].Elements[0].IpEnd);
-            ClassicAssert.AreEqual("2.2.2.2/32", TaskList[2].Elements[1].IpString);
-            ClassicAssert.AreEqual("2.2.2.2/32", TaskList[2].Elements[1].IpEnd);
+            ClassicAssert.AreEqual("1.1.1.1/32", TaskList[2].Elements[1].IpString);
+            ClassicAssert.AreEqual("1.1.1.1/32", TaskList[2].Elements[1].IpEnd);
+            ClassicAssert.AreEqual("2.2.2.2/32", TaskList[2].Elements[0].IpString);
+            ClassicAssert.AreEqual("2.2.2.2/32", TaskList[2].Elements[0].IpEnd);
             ClassicAssert.AreEqual("source", TaskList[2].Elements[0].Field);
             ClassicAssert.AreEqual("addAfterCreation", TaskList[2].Elements[0].RequestAction);
 
@@ -191,7 +191,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[1].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[2].TaskType);
-            ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[3].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[3].TaskType);
             ClassicAssert.AreEqual(WfTaskType.access.ToString(), TaskList[4].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[5].TaskType);
 

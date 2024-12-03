@@ -3,6 +3,7 @@ using NUnit.Framework.Legacy;
 using FWO.Api.Data;
 using FWO.Services;
 using System.Text;
+using FWO.Api.Client.Data;
 
 namespace FWO.Test
 {
@@ -19,6 +20,7 @@ namespace FWO.Test
         static readonly ExtStateTestApiConn extStateApiConnection = new();
         readonly ExtStateHandler extStateHandler = new(extStateApiConnection);
         ModellingVarianceAnalysis varianceAnalysis;
+        ModellingAppZoneHandler AppZoneHandler;
 
         static readonly FwoOwner Application = new() { Id = 1, Name = "App1" };
 
@@ -35,6 +37,8 @@ namespace FWO.Test
 
         static readonly ModellingServiceGroup SvcGrp1 = new(){ Id = 1, Name = "SvcGrp1", Services = [ new(){ Content = Svc2 } ]};
 
+        static readonly ModellingAppRole AZ1 = new() { Id = 1, Name = "AppZone1", IdString = "AZ4711", AppServers = [new() { Content = AS1 }, new() { Content = AS3 }] };
+        
         static readonly ModellingConnection Connection1 = new()
         {
             Id = 1,
@@ -45,6 +49,7 @@ namespace FWO.Test
             ServiceGroups = [ new(){ Content = SvcGrp1 } ],
             Services = [ new(){Content = Svc1 } ]
         };
+
         static readonly List<ModellingConnection> Connections = [ Connection1 ];
 
 
@@ -53,6 +58,7 @@ namespace FWO.Test
         {
             extStateHandler.Init().Wait();
             varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application);
+            AppZoneHandler = new(varianceAnalysisApiConnection, userConfig, Application);
         }
 
         [Test]

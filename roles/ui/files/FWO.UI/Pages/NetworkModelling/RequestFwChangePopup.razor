@@ -126,7 +126,7 @@
     {
         try
         {
-            ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUi, SelectedApp);
+            ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp);
             await appZoneHandler.UpsertAppZone();
 
             if (!await GetActTicketStatus())

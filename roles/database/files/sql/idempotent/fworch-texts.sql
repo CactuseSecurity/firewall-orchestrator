@@ -1202,6 +1202,8 @@ INSERT INTO txt VALUES ('ext_nwgroup_template', 'German',	'Template Netzwerkgrup
 INSERT INTO txt VALUES ('ext_nwgroup_template', 'English',	'Template network group');
 INSERT INTO txt VALUES ('ext_service_template', 'German',	'Template Dienst');
 INSERT INTO txt VALUES ('ext_service_template', 'English',	'Template service');
+INSERT INTO txt VALUES ('ext_icmp_template',    'German',	'Template ICMP');
+INSERT INTO txt VALUES ('ext_icmp_template',    'English',	'Template ICMP');
 INSERT INTO txt VALUES ('ext_ticket_template_ph','German',	'Ticket Template im JSON-Format, Bspw. f&uuml;r Tufin Secure Change:
 {
 	"ticket": {
@@ -5011,6 +5013,8 @@ INSERT INTO txt VALUES ('H5596d', 'German', 'Template Netzwerkgruppe: Template p
 INSERT INTO txt VALUES ('H5596d', 'English','Template network group: Template for network group. Available placeholders: @@GROUPNAME@@, @@MANAGEMENT_ID@@, @@MANAGEMENT_NAME@@.');
 INSERT INTO txt VALUES ('H5596e', 'German', 'Template Dienst: Template pro Dienst. Verf&uuml;gbare Platzhalter: @@PROTOCOLNAME@@, @@PORT@@, @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5596e', 'English','Template service: Template for service. Available placeholders: @@PROTOCOLNAME@@, @@PORT@@, @@SERVICENAME@@.');
+INSERT INTO txt VALUES ('H5596f', 'German', 'Template ICMP: spezielles Template f&uuml;r den Protokolltyp ICMP. Verf&uuml;gbare Platzhalter: @@SERVICENAME@@.');
+INSERT INTO txt VALUES ('H5596f', 'English','Template ICMP: Special template for protocol type ICMP. Available placeholders: @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5597', 'German',  'Typ des externen Ticketing Systems: Aktuell wird nur TufinSecureChange unterst&uuml;tzt.');
 INSERT INTO txt VALUES ('H5597', 'English', 'Type of external ticketing system: Currently only TufinSecureChange is supported.');
 INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die Einstellungen f&uuml;r die Anbindung an externe Ticket-Systeme verwaltet.');

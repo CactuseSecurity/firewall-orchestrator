@@ -83,6 +83,10 @@ namespace FWO.Api.Data
 		[JsonProperty(nameof(ServiceTemplate)), JsonPropertyName(nameof(ServiceTemplate))]
 		public string ServiceTemplate { get; set; } = "";
 
+		[JsonProperty(nameof(IcmpTemplate)), JsonPropertyName(nameof(IcmpTemplate))]
+		public string IcmpTemplate { get; set; } = "";
+
+
 		public bool Sanitize()
         {
             bool shortened = false;
@@ -94,6 +98,7 @@ namespace FWO.Api.Data
 			IpTemplate = Sanitizer.SanitizeJsonMand(IpTemplate, ref shortened);
 			NwObjGroupTemplate = Sanitizer.SanitizeJsonMand(NwObjGroupTemplate, ref shortened);
 			ServiceTemplate = Sanitizer.SanitizeJsonMand(ServiceTemplate, ref shortened);
+			IcmpTemplate = Sanitizer.SanitizeJsonMand(IcmpTemplate, ref shortened);
             return shortened;
         }
 	}

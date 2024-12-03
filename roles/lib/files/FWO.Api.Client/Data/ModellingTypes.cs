@@ -17,12 +17,17 @@
             Unassign = 5,
             MarkDeleted = 6,
             Reactivate = 7,
-            Replace = 8
+            Replace = 8,
+            InitRequests = 9,
+            Request = 10,
+            Implement = 11,
+            Reject = 12
         }
 
         public enum ModObjectType
         {
             Connection = 1,
+            CommunicationProfile = 2,
 
             AppServer = 10,
             Network = 11,

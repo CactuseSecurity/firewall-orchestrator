@@ -357,14 +357,20 @@ namespace FWO.Services
         private void RequestNewApp(ModellingNwGroup app, Management mgt)
         {
             string title = "";
+            string additionalInfoKeys = "";
+            string groupName = "";
 
             if (app.GetType() == typeof(ModellingAppRole))
             {
                 title = userConfig.GetText("new_app_role");
+                additionalInfoKeys = AdditionalInfoKeys.AppRoleId;
+                groupName = app.IdString;
             }
             else if (app.GetType() == typeof(ModellingAppZone))
             {
                 title = userConfig.GetText("new_app_zone");
+                additionalInfoKeys = AdditionalInfoKeys.AppZoneId;
+                groupName = app.Name;
             }
 
             List<WfReqElement> groupMembers = [];
@@ -378,14 +384,14 @@ namespace FWO.Services
                     Name = appServer.Name,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
-                    GroupName = app.IdString,
+                    GroupName = groupName,
                     NetworkId = networkId
                 });
             }
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, app.IdString }, { AdditionalInfoKeys.AppRoleId, app.Id.ToString() } };
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, groupName }, { additionalInfoKeys, app.Id.ToString() } };
             TaskList.Add(new()
             {
-                Title = title + app.IdString,
+                Title = title + groupName,
                 TaskType = WfTaskType.group_create.ToString(),
                 RequestAction = RequestAction.create.ToString(),
                 ManagementId = mgt.Id,
@@ -398,18 +404,21 @@ namespace FWO.Services
         private void RequestUpdateApp(ModellingNwGroup app, Management mgt)
         {
             string title = "";
+            string additionalInfoKeys = "";
 
             if (app.GetType() == typeof(ModellingAppRole))
             {
                 title = userConfig.GetText("update_app_role");
+                additionalInfoKeys = AdditionalInfoKeys.AppRoleId;
             }
             else if (app.GetType() == typeof(ModellingAppZone))
             {
                 title = userConfig.GetText("update_app_zone");
+                additionalInfoKeys = AdditionalInfoKeys.AppZoneId;
             }
 
             FillGroupMembers(app.IdString, mgt);
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, app.IdString }, { AdditionalInfoKeys.AppRoleId, app.Id.ToString() } };
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, app.IdString }, { additionalInfoKeys, app.Id.ToString() } };
             if (newGroupMembers.Count > 0)
             {
                 newGroupMembers.AddRange(unchangedGroupMembers);

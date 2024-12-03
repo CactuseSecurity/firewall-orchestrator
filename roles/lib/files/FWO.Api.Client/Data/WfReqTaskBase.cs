@@ -20,6 +20,7 @@ namespace FWO.Api.Data
         public const string ExtIcketId = "ExtIcketId";
         public const string AppRoleId = "AppRoleId";
         public const string SvcGrpId = "SvcGrpId";
+        public const string AppZoneId = "AppZoneId";
     }
 
     public class WfReqTaskBase : WfTaskBase

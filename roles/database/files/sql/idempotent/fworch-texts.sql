@@ -1967,6 +1967,8 @@ INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-I
 INSERT INTO txt VALUES ('externalRequestSleepTime','English','External Request sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestStartAt',  'German','Externer Auftrags-Start');
 INSERT INTO txt VALUES ('externalRequestStartAt',  'English','External Request start at');
+INSERT INTO txt VALUES ('externalRequestWaitCycles','German','Anzahl Wartezyklen');
+INSERT INTO txt VALUES ('externalRequestWaitCycles','English','Number wait cycles');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start');
@@ -4610,6 +4612,8 @@ INSERT INTO txt VALUES ('H5426', 'German',  'Autodiscover-Intervall (in Stunden)
 INSERT INTO txt VALUES ('H5426', 'English', 'Auto-discovery sleep time (in hours): defines the interval in which the autodiscovery should be performed.');
 INSERT INTO txt VALUES ('H5426a', 'German',  'Externes Auftrags-Intervall (in Sekunden): legt das Intervall fest, in dem die externen Auftr&auml;ge durchgef&uuml;hrt werden sollen.');
 INSERT INTO txt VALUES ('H5426a', 'English', 'External Request sleep time (in seconds): defines the interval in which the external requests should be performed.');
+INSERT INTO txt VALUES ('H5426b', 'German',  'Anzahl Wartezyklen: legt fest, wie viele Zyklen des Auftrags-Intervalls bei bestimmten Auftr&auml;gen gewartet werden soll (z.B. nach Neuanlegen von Netzwerkobjekten).');
+INSERT INTO txt VALUES ('H5426b', 'English', 'Number wait cycles: defines how many cycles of the external request interval are to be waited in case of some requests (e.g. after creation of new network objects).');
 INSERT INTO txt VALUES ('H5427', 'German',  'Autodiscover-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Autodiscovery gerechnet werden.');
 INSERT INTO txt VALUES ('H5427', 'English', 'Auto-discovery start at: defines a referential time from which the autodiscovery intervals are calculated.');
 INSERT INTO txt VALUES ('H5427a', 'German',  'Externer Auftrags-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die externen Auftr&auml;ge gerechnet werden.');

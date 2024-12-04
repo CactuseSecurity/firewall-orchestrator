@@ -17,5 +17,6 @@ query getOpenRequests ($states: [String!] ){
     ext_request_state
     ext_ticket_id
     create_date
+    wait_cycles
   }
 }

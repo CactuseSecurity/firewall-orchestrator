@@ -32,14 +32,22 @@
 @if (configData != null)
 {
     <form onsubmit="return false">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5426a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("externalRequestSleepTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.ExternalRequestSleepTime" />
+        <div class="form-group row">
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5426a"))">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("externalRequestSleepTime")):</label>
+                <div class="col-sm-2">
+                    <input type="number" min="0" @bind="configData!.ExternalRequestSleepTime" />
+                </div>
+            </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5426b"))">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("externalRequestWaitCycles")):</label>
+                <div class="col-sm-2">
+                    <input type="number" min="0" @bind="configData!.ExternalRequestWaitCycles" />
+                </div>
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5427a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("externalRequestStartAt")):</label>
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("externalRequestStartAt")):</label>
             <div class="col-sm-4">
                 <div class="row">
                     <input type="time" step="60" class="ml-13 col-sm-5" @bind="extReqStartTime" />

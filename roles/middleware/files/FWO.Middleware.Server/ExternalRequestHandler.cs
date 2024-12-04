@@ -11,6 +11,9 @@ using FWO.Middleware.RequestParameters;
 
 namespace FWO.Middleware.Server
 {
+	/// <summary>
+	/// Class to execute handling of external requests
+	/// </summary>
 	public class ExternalRequestHandler
 	{
 		private readonly ApiConnection ApiConnection;
@@ -57,7 +60,7 @@ namespace FWO.Middleware.Server
 						lastFinishedTask = task.TaskNumber;
 					}
 				}
-				return await SendNextRequest(intTicket, lastFinishedTask);
+				return await CreateNextRequest(intTicket, lastFinishedTask);
 			}
 			catch(Exception exception)
 			{
@@ -92,7 +95,7 @@ namespace FWO.Middleware.Server
 						}
 						else
 						{
-							await SendNextRequest(intTicket, externalRequest.TaskNumber, externalRequest.ExtQueryVariables);
+							await CreateNextRequest(intTicket, externalRequest.TaskNumber, externalRequest.ExtQueryVariables, externalRequest.ExtRequestType);
 						}
 					}
 				}
@@ -193,17 +196,23 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private async Task<bool> SendNextRequest(WfTicket ticket, int oldTaskNumber, string extQueryVars = "")
+		private async Task<bool> CreateNextRequest(WfTicket ticket, int oldTaskNumber, string extQueryVars = "", string oldRequestType = "")
 		{
-			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && extQueryVars != null && extQueryVars != "" ? GetLastTaskNumber(extQueryVars, oldTaskNumber) : oldTaskNumber;
+			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && extQueryVars != null && extQueryVars != "" ?
+				GetLastTaskNumber(extQueryVars, oldTaskNumber) : oldTaskNumber;
 			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
 			if(nextTask == null)
 			{
-				Log.WriteDebug("SendNextRequest", "No more task found.");
+				Log.WriteDebug("CreateNextRequest", "No more task found.");
 				return false;
 			}
 			else
 			{
+				int waitCycles = 0;
+				if(oldRequestType == "(NetworkObjectModify, CREATE)" || oldRequestType == "(NetworkObjectModify, UPDATE)")
+				{
+					waitCycles = UserConfig.ExternalRequestWaitCycles;
+				}
 				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
 				{
 					// todo: bundle also other task types?
@@ -226,17 +235,17 @@ namespace FWO.Middleware.Server
 							taskFound = false;
 						}
 					}
-					await CreateExtRequest(ticket, bundledTasks);
+					await CreateExtRequest(ticket, bundledTasks, waitCycles);
 				}
 				else
 				{
-					await CreateExtRequest(ticket, [nextTask]);
+					await CreateExtRequest(ticket, [nextTask], waitCycles);
 				}
 			}
 			return true;
 		}
 
-		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks)
+		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks, int waitCycles)
 		{
 			string taskContent = await ConstructContent(tasks, ticket.Requester);
 			Dictionary<string, List<int>>? bundledTasks;
@@ -256,7 +265,8 @@ namespace FWO.Middleware.Server
 				extTaskType = actTaskType,
 				extTaskContent = taskContent,
 				extQueryVariables = extQueryVars ?? "",
-				extRequestState = ExtStates.ExtReqInitialized.ToString()
+				extRequestState = ExtStates.ExtReqInitialized.ToString(),
+				waitCycles = waitCycles
 			};
 			await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables);
 			await LogRequestTasks(tasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);

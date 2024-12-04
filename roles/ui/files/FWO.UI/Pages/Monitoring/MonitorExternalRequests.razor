@@ -56,6 +56,7 @@
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="true" />
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.ExtRequestType)" Sortable="true" Filterable="true" />
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("wait_cycles"))" Field="@(x => x.WaitCycles)" Sortable="true" Filterable="true" />
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("state"))" Field="@(x => x.ExtRequestState)" Sortable="true" Filterable="true" />
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("ext_ticket_number"))" Field="@(x => x.ExtTicketId)" Sortable="true" Filterable="true" />
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
@@ -90,6 +91,10 @@ else
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
                     <label class="col-sm-8">@actRequest.ExtRequestType</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("wait_cycles")):</label>
+                    <label class="col-sm-8">@actRequest.WaitCycles</label>
                 </div>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>

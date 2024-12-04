@@ -70,7 +70,7 @@ namespace FWO.Tufin.SecureChange
 			return await restClient.ExecuteAsync<int>(request);
 		}
 
-		protected void CheckForProperJson(string jsonString)
+		protected static void CheckForProperJson(string jsonString)
 		{
 			try
 			{

@@ -40,6 +40,14 @@ namespace FWO.Middleware.Server
 		}
 
 		/// <summary>
+		/// constructor only for unit testing
+		/// </summary>
+		public ExternalRequestHandler(UserConfig userConfig)
+		{
+			UserConfig = userConfig;
+		}
+
+		/// <summary>
 		/// send the first request from ticket (called by UI via middleware client)
 		/// may also be a higher task number in case of a reinit
 		/// </summary>
@@ -95,7 +103,7 @@ namespace FWO.Middleware.Server
 						}
 						else
 						{
-							await CreateNextRequest(intTicket, externalRequest.TaskNumber, externalRequest.ExtQueryVariables, externalRequest.ExtRequestType);
+							await CreateNextRequest(intTicket, externalRequest.TaskNumber, externalRequest);
 						}
 					}
 				}
@@ -181,7 +189,13 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private static int GetLastTaskNumber(string extQueryVars, int oldTaskNumber)
+		/// <summary>
+		/// get number of last processed request task (public only for unit testing)
+		/// </summary>
+		/// <param name="extQueryVars"></param>
+		/// <param name="oldTaskNumber"></param>
+		/// <returns></returns>
+		public static int GetLastTaskNumber(string extQueryVars, int oldTaskNumber)
 		{
 			List<int>? taskNumbers = null;
 			Dictionary<string, List<int>>? extQueryVarDict = JsonSerializer.Deserialize<Dictionary<string, List<int>>?>(extQueryVars);
@@ -196,10 +210,10 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private async Task<bool> CreateNextRequest(WfTicket ticket, int oldTaskNumber, string extQueryVars = "", string oldRequestType = "")
+		private async Task<bool> CreateNextRequest(WfTicket ticket, int oldTaskNumber, ExternalRequest? oldRequest = null)
 		{
-			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && extQueryVars != null && extQueryVars != "" ?
-				GetLastTaskNumber(extQueryVars, oldTaskNumber) : oldTaskNumber;
+			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && oldRequest != null && oldRequest.ExtQueryVariables != "" ?
+				GetLastTaskNumber(oldRequest.ExtQueryVariables, oldTaskNumber) : oldTaskNumber;
 			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
 			if(nextTask == null)
 			{
@@ -208,11 +222,7 @@ namespace FWO.Middleware.Server
 			}
 			else
 			{
-				int waitCycles = 0;
-				if(oldRequestType == "(NetworkObjectModify, CREATE)" || oldRequestType == "(NetworkObjectModify, UPDATE)")
-				{
-					waitCycles = UserConfig.ExternalRequestWaitCycles;
-				}
+				int waitCycles = GetWaitCycles(oldRequest);
 				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
 				{
 					// todo: bundle also other task types?
@@ -243,6 +253,23 @@ namespace FWO.Middleware.Server
 				}
 			}
 			return true;
+		}
+
+		/// <summary>
+		/// qad heuristic for Tufin SC (public only for unit testing)
+		/// </summary>
+		/// <param name="oldRequest"></param>
+		/// <returns></returns>
+		public int GetWaitCycles(ExternalRequest? oldRequest)
+		{
+			// TODO: to be refined
+			if(oldRequest != null && UserConfig.ExternalRequestWaitCycles > 0 &&
+				(oldRequest.ExtRequestType == "(NetworkObjectModify, CREATE)" || oldRequest.ExtRequestType == "(NetworkObjectModify, UPDATE)") &&
+				oldRequest.ExtRequestContent.Contains("\"object_updated_status\": \"NEW\""))
+			{
+				return UserConfig.ExternalRequestWaitCycles;
+			}
+			return 0;
 		}
 
 		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks, int waitCycles)

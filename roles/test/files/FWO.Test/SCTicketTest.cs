@@ -2,6 +2,7 @@
 using NUnit.Framework.Legacy;
 using FWO.Api.Data;
 using FWO.Tufin.SecureChange;
+using FWO.Middleware.Server;
 
 namespace FWO.Test
 {
@@ -9,7 +10,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class SCTicketTest
     {
-        readonly SimulatedUserConfig userConfig = new();
+        readonly SimulatedUserConfig userConfig = new(){ExternalRequestWaitCycles = 3};
         static readonly ModellingNamingConvention NamingConvention = new()
         {
             NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 2, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR", AppServerPrefix = "net_"
@@ -175,6 +176,25 @@ namespace FWO.Test
             await ticket.CreateRequestString(accessReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(AccessFilledTicketText, ticket.TicketText);
+        }
+
+        [Test]
+        public async Task TestGetWaitCycles()
+        {
+            SCTicket ticket = new (ticketSystem);
+            await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
+            ExternalRequestHandler extReqHandler = new(userConfig);
+            ExternalRequest request = new(){ ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks.First()), ExtRequestContent = ticket.TicketText};
+
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(request));
+        }
+
+        [Test]
+        public void TestGetLastTaskNumber()
+        {
+            string extQueryVars = "{\"BundledTasks\":[1,2,3]}";
+
+            ClassicAssert.AreEqual(3, ExternalRequestHandler.GetLastTaskNumber(extQueryVars, 0));
         }
     }
 }

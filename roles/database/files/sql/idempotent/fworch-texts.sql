@@ -2465,6 +2465,8 @@ INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Tickets f&uuml;r Ex
 INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Tickets for External Requests');
 INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;ge neu anstossen');
 INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
+INSERT INTO txt VALUES ('wait_cycles',          'German',   'Wartezyklen');
+INSERT INTO txt VALUES ('wait_cycles',          'English',  'Wait cycles');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');

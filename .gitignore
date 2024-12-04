@@ -3,4 +3,3 @@
 .test_data/
 roles/importer/venv/
 ansible_venv/
-/roles/lib/files/FWO.Services/AppZoneStateHelper.cs

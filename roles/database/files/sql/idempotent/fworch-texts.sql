@@ -1555,7 +1555,7 @@ INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
 INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
-INSERT INTO txt VALUES ('app_owner_not_found',  'German',   'Keinen Owner für diese App gefunden');
+INSERT INTO txt VALUES ('app_owner_not_found',  'German',   'Keinen Eigent&uuml;mer für diese App gefunden');
 INSERT INTO txt VALUES ('app_owner_not_found',  'English',  'No owner found for this app');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'German',	'App Zone l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'English',	'Delete App Zone');

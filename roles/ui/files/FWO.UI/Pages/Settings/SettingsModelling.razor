@@ -29,15 +29,15 @@
     <form onsubmit="return false">
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("allowServerInConn")):</label>
+                <label for="cbx_allow_server_in_conn" class="col-form-label col-sm-8">@(userConfig.GetText("allowServerInConn")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
+                    <input id="cbx_allow_server_in_conn" type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
                 </div>
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5604"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("allowServiceInConn")):</label>
+                <label for="cbx_allow_service_in_conn" class="col-form-label col-sm-8">@(userConfig.GetText("allowServiceInConn")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
+                    <input id="cbx_allow_service_in_conn" type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
                 </div>
             </div>
         </div>
@@ -48,15 +48,15 @@
                 <input type="number" min="0" class="col-sm-3" @bind="configData!.OverviewDisplayLines" />
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("modIconify"))*:</label>
+                <label for="cbx_mod_iconify" class="col-form-label col-sm-8">@(userConfig.GetText("modIconify"))*:</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.ModIconify">
+                    <input id="cbx_mod_iconify" type="checkbox" class="w-100" @bind="configData!.ModIconify">
                 </div>
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("reducedProtocolSet")):</label>
+                <label for="cbx_reduced_protocol_set" class="col-form-label col-sm-8">@(userConfig.GetText("reducedProtocolSet")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.ReducedProtocolSet">
+                    <input id="cbx_reduced_protocol_set" type="checkbox" class="w-100" @bind="configData!.ReducedProtocolSet">
                 </div>
             </div>
         </div>
@@ -101,7 +101,7 @@
                                 <div class="row align-items-center">
                                     <div class="col-form-label col-sm-8">@(userConfig.GetText("use_in_src")):</div>
                                     <div class="col-sm-3">
-                                        <input type="checkbox" class="w-100" @bind="context.UseInSrc">
+                                        <input id="cbx_use_in_src" type="checkbox" class="w-100" @bind="context.UseInSrc">
                                     </div>
                                 </div>
                             </div>
@@ -109,7 +109,7 @@
                                 <div class="row align-items-center">
                                     <div class="col-form-label col-sm-8">@(userConfig.GetText("use_in_dst")):</div>
                                     <div class="col-sm-3">
-                                        <input type="checkbox" class="w-100" @bind="context.UseInDst">
+                                        <input id="cbx_use_in_dst" type="checkbox" class="w-100" @bind="context.UseInDst">
                                     </div>
                                 </div>
                             </div>
@@ -143,9 +143,9 @@
         <hr />
         <div class="form-group row">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5606"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
+                <label for="cbx_network_area_required" class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" @bind="namingConvention.NetworkAreaRequired">
+                    <input id="cbx_network_area_required" type="checkbox" @bind="namingConvention.NetworkAreaRequired">
                 </div>
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5609"))">
@@ -163,9 +163,9 @@
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
+                <label for="cbx_use_app_part" class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" @bind="namingConvention.UseAppPart">
+                    <input id="cbx_use_app_part" type="checkbox" @bind="namingConvention.UseAppPart">
                 </div>
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5608"))">
@@ -175,9 +175,9 @@
         </div>
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5636"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("app_zone_creation")):</label>
+                <label for="cbx_create_app_zones" class="col-form-label col-sm-8">@(userConfig.GetText("app_zone_creation")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" @bind="namingConvention.CreateAppZones">
+                    <input id="cbx_create_app_zones" type="checkbox" @bind="namingConvention.CreateAppZones">
                 </div>
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5635"))">
@@ -255,9 +255,9 @@
                     </ElementTemplate>
                 </Dropdown>
             </div>
-            <label class="col-form-label col-sm-2">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
+            <label for="cbx_mod_req_email_requester_in_cc" class="col-form-label col-sm-2">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
             <div class="col-sm-1">
-                <input type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
+                <input id="cbx_mod_req_email_requester_in_cc" type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
             </div>
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
@@ -279,21 +279,21 @@
         <hr />
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5634"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutActive")):</label>
+                <label for="cbx_rollout_active" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutActive")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.ModRolloutActive">
+                    <input id="cbx_rollout_active" type="checkbox" class="w-100" @bind="configData!.ModRolloutActive">
                 </div>
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5631"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutResolveServiceGroups")):</label>
+                <label for="cbx_rollout_resolve_service_groups" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutResolveServiceGroups")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.ModRolloutResolveServiceGroups">
+                    <input id="cbx_rollout_resolve_service_groups" type="checkbox" class="w-100" @bind="configData!.ModRolloutResolveServiceGroups">
                 </div>
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5632"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutBundleTasks")):</label>
+                <label for="cbx_rollout_bundle_tasks" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutBundleTasks")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.ModRolloutBundleTasks">
+                    <input id="cbx_rollout_bundle_tasks" type="checkbox" class="w-100" @bind="configData!.ModRolloutBundleTasks">
                 </div>
             </div>
         </div>

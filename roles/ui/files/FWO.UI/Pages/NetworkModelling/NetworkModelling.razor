@@ -104,8 +104,8 @@
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
                                     <div>
-                                        <input type="checkbox" @bind="showRejected">
-                                        <label class="col-form-label">@(userConfig.GetText("displayRejected")):</label>
+                                        <input for="cbx_show_rejected" type="checkbox" @bind="showRejected">
+                                        <label id="cbx_show_rejected"  class="col-form-label">@(userConfig.GetText("displayRejected")):</label>
                                     </div>
                                 </Authorized>
                             </AuthorizeView>

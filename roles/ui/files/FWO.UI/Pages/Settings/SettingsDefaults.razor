@@ -75,9 +75,9 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5414"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
+            <label for="cbx_auto_fill_right_sidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
             <div class="col-sm-1">
-                <input type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
+                <input id="cbx_auto_fill_right_sidebar" type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5413"))">
@@ -156,9 +156,9 @@
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5565"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
+            <label for="cbx_allow_manual_owner_admin" class="col-form-label col-sm-4">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
             <div class="col-sm-1">
-                <input type="checkbox" class="w-100" @bind="configData!.AllowManualOwnerAdmin">
+                <input id="cbx_allow_manual_owner_admin" type="checkbox" class="w-100" @bind="configData!.AllowManualOwnerAdmin">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5454"))">

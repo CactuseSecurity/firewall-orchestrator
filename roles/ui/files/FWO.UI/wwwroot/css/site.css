@@ -499,3 +499,13 @@ thead {
 .show-horizontal-scrollbar .table-responsive {
   overflow-x: scroll;
 }
+
+/*checkboxes indicate clickability via pointer*/
+.form-check-input.clickable-indicator {
+  cursor: pointer;
+}
+/*labels that belong to checkboxes indicate clickability and text of label is not selectable*/
+.form-check-label.clickable-indicator {
+  cursor: pointer;
+  user-select: none;
+}

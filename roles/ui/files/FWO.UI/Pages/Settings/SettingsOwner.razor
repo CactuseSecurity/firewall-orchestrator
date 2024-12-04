@@ -184,16 +184,20 @@
                                 </Dropdown>
                             </div>
                         }
+                        @*example for generating unique ids for each checkbox and their according label (this can be done in a loop for multiple checkbox-label-pairs)*@
+                        @{
+                          Guid idCheckboxLabelPair = Guid.NewGuid();
+                        }
                         <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591"))">
                             @if(Readonly && userConfig.AllowManualOwnerAdmin)
                             {
-                                <input disabled class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                                <input disabled class="form-check-input" type="checkbox" id="@idCheckboxLabelPair" @bind="actOwner.CommSvcPossible">
                             }
                             else
                             {
-                                <input class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                                <input class="form-check-input clickable-indicator" type="checkbox" id="@idCheckboxLabelPair" @bind="actOwner.CommSvcPossible">
                             }
-                            <label class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
+                            <label class="form-check-label clickable-indicator" for="@idCheckboxLabelPair"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
                         </div>
                     </div>
                     <div class="form-group row mt-2">

@@ -240,16 +240,12 @@ namespace FWO.Services
             ModellingAppZone? existingAppZone = await AppZoneHandler.GetExistingAppZone();
 
             if (existingAppZone is not null)
-            {
-                WfReqTask? taskEntryNewAppZone = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_zone") + existingAppZone.IdString && x.OnManagement?.Id == mgt.Id);
-                WfReqTask? taskEntryUpdateAppZone = TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id);
-                WfReqTask? taskEntryDeleteAppZone = DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_zone") + existingAppZone.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id);
-
-                if (!ResolveExistingApp(existingAppZone, mgt) && taskEntryNewAppZone is null)
+            {               
+                if (!ResolveExistingApp(existingAppZone, mgt))
                 {
                     RequestNewApp(existingAppZone, mgt);
                 }
-                else if (AppChanged(existingAppZone) && taskEntryUpdateAppZone is null && taskEntryDeleteAppZone is null)
+                else if (AppChanged(existingAppZone) )
                 {
                     RequestUpdateApp(existingAppZone, mgt);
                 }

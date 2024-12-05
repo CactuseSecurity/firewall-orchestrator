@@ -39,7 +39,15 @@ namespace FWO.Services
             ReadOnly = readOnly;
             IsOwner = isOwner;
         }
-        
+
+        public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, bool addMode = false)
+        {
+            this.apiConnection = apiConnection;
+            this.userConfig = userConfig;
+            this.DisplayMessageInUi = displayMessageInUi;
+            this.AddMode = addMode;
+        }
+
         public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
         {
             return DisplayButton(userConfig, text, icon, iconText, objIcon);

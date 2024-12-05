@@ -250,7 +250,10 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
 		public bool ReducedProtocolSet { get; set; } = true;
 
-		[JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
+        [JsonProperty("createApplicationZones"), JsonPropertyName("createApplicationZones")]
+        public bool CreateAppZones { get; set; }
+
+        [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
 		public string ImportAppDataPath { get; set; } = "";
 
 		[JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]

@@ -38,7 +38,7 @@ namespace FWO.Ui.Services
                     {
                         appId = Application.Id
                     };
-                    Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, queryParam);
+                    Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsResolved, queryParam);
                 }
                 else
                 {
@@ -143,7 +143,9 @@ namespace FWO.Ui.Services
             return [.. Connections.Where(x => !(x.IsInterface ||
                 x.GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 x.GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
-                x.EmptyAppRolesFound())).OrderByDescending(y => y.IsCommonService)];
+                x.EmptyAppRolesFound() ||
+                x.DeletedObjectsFound()
+                )).OrderByDescending(y => y.IsCommonService)];
         }
 
         public async Task AddConnection()

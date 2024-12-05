@@ -13,7 +13,8 @@ namespace FWO.Api.Data
         Requested,
         Rejected,
 
-        EmptyAppRoles
+        EmptyAppRoles,
+        DeletedObjects
     }
 
     public class ModellingConnection
@@ -268,6 +269,14 @@ namespace FWO.Api.Data
             {
                 RemoveProperty(ConState.EmptyAppRoles.ToString());
             }
+            if(DeletedObjectsFound())
+            {
+                AddProperty(ConState.DeletedObjects.ToString());
+            }
+            else
+            {
+                RemoveProperty(ConState.DeletedObjects.ToString());
+            }
         }
 
         public bool EmptyAppRolesFound()
@@ -282,6 +291,39 @@ namespace FWO.Api.Data
             foreach(var appRole in DestinationAppRoles)
             {
                 if(appRole.Content.AppServers.Count == 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool DeletedObjectsFound()
+        {
+            foreach(var area in SourceAreas)
+            {
+                if(area.Content.IsDeleted)
+                {
+                    return true;
+                }
+            }
+            foreach(var area in DestinationAreas)
+            {
+                if(area.Content.IsDeleted)
+                {
+                    return true;
+                }
+            }
+            foreach(var appServer in SourceAppServers)
+            {
+                if(appServer.Content.IsDeleted)
+                {
+                    return true;
+                }
+            }
+            foreach(var appServer in DestinationAppServers)
+            {
+                if(appServer.Content.IsDeleted)
                 {
                     return true;
                 }

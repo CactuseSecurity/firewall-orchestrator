@@ -3250,6 +3250,8 @@ INSERT INTO txt VALUES ('C9012', 'German',  'Sie haben keine der Rollen: request
 INSERT INTO txt VALUES ('C9012', 'English', 'You do not have one of the following roles: requester, implementer, admin, auditor.');
 INSERT INTO txt VALUES ('C9013', 'German',  'Leere Rolle. Diese Verbindung wird nicht beantragt.');
 INSERT INTO txt VALUES ('C9013', 'English', 'Empty App Role. This connection will not be requested.');
+INSERT INTO txt VALUES ('C9014', 'German',  'Gel&ouml;schtes Objekt. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9014', 'English', 'Deleted object. This connection will not be requested.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -6543,6 +6545,7 @@ INSERT INTO txt VALUES ('H9080', 'German',  'F&uuml;r das Kommunikationsprofil k
     <ul>
         <li>Es sind keine beantragten und noch nicht freigegebenen Schnittstellen enthalten.</li>
         <li>Es wurde keine leere App Rolle verwendet.</li>
+        <li>Es sind keine gel&ouml;schten Netzwerkobjekte enthalten.</li>
     </ul>
     Im ersten Schritt werden anhand der Produktionsdaten alle zu beauftragenden Einzelposten ermittelt und in der erforderlichen Reihenfolge aufgelistet:
     <ul>
@@ -6560,8 +6563,9 @@ INSERT INTO txt VALUES ('H9080', 'German',  'F&uuml;r das Kommunikationsprofil k
 INSERT INTO txt VALUES ('H9080', 'English', 'For the Communication Profile the rollout on the firewalls can be requested via an external ticket system.
     Included are all Connections or Common Services satisfying the following conditions:
     <ul>
-        <li>They contain no requested and not published interfaces.</li>
+        <li>They contain no requested but unpublished interfaces.</li>
         <li>They do not use any empty App Role.</li>
+        <li>They do not contain any deleted network object.</li>
     </ul>
     In the first step all tasks to request are calculated by comparing to production data and listed in the necessary order:
     <ul>

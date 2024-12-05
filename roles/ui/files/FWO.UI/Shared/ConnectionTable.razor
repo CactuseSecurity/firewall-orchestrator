@@ -183,6 +183,9 @@
                     case nameof(ConState.EmptyAppRoles):
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9013")}\">!</span>");
                         break;
+                    case nameof(ConState.DeletedObjects):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9014")}\">!</span>");
+                        break;
                     default:
                         break;
                 }

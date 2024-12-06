@@ -510,7 +510,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 rule_action_id = self.lookupAction(rule.rule_action)
                 rule_track_id = self.lookupTrack(rule.rule_track)
                 rulebaseId = self.lookupRulebaseId(rulebaseUid)
-                #childRulebased = self.lookupRulebaseId(rule.)
+                childRulebased = None # self.lookupRulebaseId(rule.) wie sieht rule aus?
 
                 rule_type = rule.rule_type
                 if rule_type == RuleType.ACCESS:
@@ -567,6 +567,7 @@ class FwConfigImportRule(FwConfigImportBase):
                     nat_rule=nat_rule,
                     is_global=is_global,
                     rulebase_id=rulebaseId,
+                    child_rulebase_id=childRulebased,
                     rule_create=importId,
                     rule_last_seen=importId,
                     rule_num_numeric=rule_number_float,

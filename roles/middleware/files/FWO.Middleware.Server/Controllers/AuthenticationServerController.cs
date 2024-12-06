@@ -66,8 +66,8 @@ namespace FWO.Middleware.Server.Controllers
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<List<LdapGetUpdateParameters>> Get()
         {
-            UiLdapConnection[] ldapConnections = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(AuthQueries.getAllLdapConnections));
-            List<LdapGetUpdateParameters> ldapList = new List<LdapGetUpdateParameters>();
+            UiLdapConnection[] ldapConnections = await apiConnection.SendQueryAsync<UiLdapConnection[]>(AuthQueries.getAllLdapConnections);
+            List<LdapGetUpdateParameters> ldapList = new();
             foreach (UiLdapConnection conn in ldapConnections)
             {
                 ldapList.Add(conn.ToApiParams());

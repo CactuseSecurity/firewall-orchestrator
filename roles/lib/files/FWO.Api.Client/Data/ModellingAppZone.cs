@@ -17,5 +17,12 @@ namespace FWO.Api.Client.Data
             AppServers = appZone.AppServers;
             Area = appZone.Area;            
         }
+
+        public ModellingAppZone(NetworkObject nwObj, ModellingNamingConvention? namCon = null) : base(nwObj, namCon)
+        {
+            Comment = nwObj.Comment;
+            CreationDate = nwObj.CreateTime.Time;
+            AppServers = ConvertNwObjectsToAppServers(nwObj.ObjectGroupFlats);
+        }        
     }
 }

@@ -262,8 +262,14 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
 		public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
 
-        // [JsonProperty("modUserGroupLdap"), JsonPropertyName("modUserGroupLdap")]
-        // public int ModUserGroupLdap { get; set; } = 1;	// 1 = internal ldap
+		[JsonProperty("ownerLdapId"), JsonPropertyName("ownerLdapId")]
+		public int OwnerLdapId { get; set; } = GlobalConst.kLdapInternalId;
+
+		[JsonProperty("manageOwnerLdapGroups"), JsonPropertyName("manageOwnerLdapGroups")]
+		public bool ManageOwnerLdapGroups { get; set; } = true;
+
+		[JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
+		public string OwnerLdapGroupNames { get; set; } = "";
         
 		[JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
 		public string ImportSubnetDataPath { get; set; } = "";

@@ -37,11 +37,12 @@ namespace FWO.Basics
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kManual = "manual";
         public const string kModellerGroup = "ModellerGroup_";
+        public const string kAppIdPlaceholder = "@@ExternalAppId@@";
+        public const string kLdapGroupPattern = kModellerGroup + kAppIdPlaceholder;
         public const string kImportChangeNotify = "importChangeNotify";
 		public const string kExternalRequest = "externalRequest";
-
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
-
+        public const int kLdapInternalId = 1;
         public const string kDummyAppRole = "DummyAppRole";
         public const string kUndefinedText = "(undefined text)";
 

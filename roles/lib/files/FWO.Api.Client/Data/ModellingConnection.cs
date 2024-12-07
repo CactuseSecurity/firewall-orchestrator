@@ -314,6 +314,26 @@ namespace FWO.Api.Data
                     return true;
                 }
             }
+            foreach(var appRole in SourceAppRoles)
+            {
+                foreach(var appServer in appRole.Content.AppServers)
+                {
+                    if(appServer.Content.IsDeleted)
+                    {
+                        return true;
+                    }
+                }
+            }
+            foreach(var appRole in DestinationAppRoles)
+            {
+                foreach(var appServer in appRole.Content.AppServers)
+                {
+                    if(appServer.Content.IsDeleted)
+                    {
+                        return true;
+                    }
+                }
+            }
             foreach(var appServer in SourceAppServers)
             {
                 if(appServer.Content.IsDeleted)

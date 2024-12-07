@@ -43,14 +43,11 @@
                 </Template>
             </Column>
         }
-        else
-        {
-            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
-                <Template>
-                    @((MarkupString)DisplayState(context))
-                </Template>
-            </Column>
-        }
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+            <Template>
+                @((MarkupString)DisplayState(context))
+            </Template>
+        </Column>
     }
     @if(ShowAppName)
     {
@@ -181,10 +178,10 @@
                         relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{false.ShowAsHtml()}</span>");
                         break;
                     case nameof(ConState.EmptyAppRoles):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9013")}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9015") : userConfig.PureLine("C9013"))}\">!</span>");
                         break;
                     case nameof(ConState.DeletedObjects):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9014")}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9016") : userConfig.PureLine("C9014"))}\">!</span>");
                         break;
                     default:
                         break;

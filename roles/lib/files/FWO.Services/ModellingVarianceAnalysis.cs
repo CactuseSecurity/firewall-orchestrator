@@ -308,8 +308,8 @@ namespace FWO.Services
             string sanitizedAS2Name = new(appServer2Name);
             bool shortened = false;
             sanitizedAS2Name = Sanitizer.SanitizeJsonFieldMand(sanitizedAS2Name, ref shortened);
-            return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim() ||
-                appServer1.Name.ToLower().Trim() == sanitizedAS2Name.ToLower().Trim();
+            return appServer1.Name.Trim() == appServer2Name.Trim() ||
+                appServer1.Name.Trim() == sanitizedAS2Name.Trim();
         }
 
         private bool NwGroupChanged(ModellingNwGroup nwGroup)

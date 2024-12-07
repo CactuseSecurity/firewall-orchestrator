@@ -3250,10 +3250,14 @@ INSERT INTO txt VALUES ('C9011', 'German',  'Angefrage Schnittstelle wurde abgel
 INSERT INTO txt VALUES ('C9011', 'English', 'Requested interface was rejected.');
 INSERT INTO txt VALUES ('C9012', 'German',  'Sie haben keine der Rollen: requester, implementer, admin, auditor.');
 INSERT INTO txt VALUES ('C9012', 'English', 'You do not have one of the following roles: requester, implementer, admin, auditor.');
-INSERT INTO txt VALUES ('C9013', 'German',  'Leere Rolle. Diese Verbindung wird nicht beantragt.');
-INSERT INTO txt VALUES ('C9013', 'English', 'Empty App Role. This connection will not be requested.');
-INSERT INTO txt VALUES ('C9014', 'German',  'Gel&ouml;schtes Objekt. Diese Verbindung wird nicht beantragt.');
-INSERT INTO txt VALUES ('C9014', 'English', 'Deleted object. This connection will not be requested.');
+INSERT INTO txt VALUES ('C9013', 'German',  'Leere App Rolle enthalten. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9013', 'English', 'Contains empty App Role. This connection will not be requested.');
+INSERT INTO txt VALUES ('C9014', 'German',  'Gel&ouml;schtes Objekt enthalten. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9014', 'English', 'Contains deleted object. This connection will not be requested.');
+INSERT INTO txt VALUES ('C9015', 'German',  'Leere App Rolle enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
+INSERT INTO txt VALUES ('C9015', 'English', 'Contains empty App Role. Connections using this interface will not be requested.');
+INSERT INTO txt VALUES ('C9016', 'German',  'Gel&ouml;schtes Objekt enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
+INSERT INTO txt VALUES ('C9016', 'English', 'Contains deleted object. Connections using this interface will not be requested.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.

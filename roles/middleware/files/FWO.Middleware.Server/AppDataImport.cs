@@ -655,7 +655,7 @@ namespace FWO.Middleware.Server
 			{
 				var Variables = new
 				{
-					name = newName,
+                    newName,
 					id = appServer.Id,
 				};
 				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerName, Variables);

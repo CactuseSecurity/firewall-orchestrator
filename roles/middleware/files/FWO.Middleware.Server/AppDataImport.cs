@@ -572,6 +572,7 @@ namespace FWO.Middleware.Server
 			{
 				if (string.IsNullOrEmpty(appServer.Name))
 				{
+					Log.WriteWarning("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
 					ModellingNamingConvention NamingConvention = new();
 					NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
 					return NamingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
@@ -659,6 +660,8 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 				};
 				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerName, Variables);
+				Log.WriteWarning("Import App Server Data", $"Name of App Server changed from {appServer.Name} changed to {newName}");
+				
 			}
 			catch (Exception exc)
 			{

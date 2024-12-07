@@ -148,17 +148,32 @@ def extractSocketInfo(asset, services):
     # ignoring services for the moment
     sockets = []
 
+    # dealing with plain ip addresses
     if 'assets' in asset and 'values' in asset['assets']:
         for ip in asset['assets']['values']:
             ip1, ip2, nwtype = getNetworkBorders(ip)
+            
+            assetName = ''  # default value = no name, leave empty, this needs to be handled in middleware app importer
+            # find out name of asset
             if nwtype=='host':
-                hname = reverse_dns_lookup(ip1)
-                if hname=='' or hname.startswith('ERROR:'):
-                    hname = "NONAME"
-                sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype, "name": hname })
+                resolvedAssetName = reverse_dns_lookup(ip1)
+                if not resolvedAssetName.startswith('ERROR:'):
+                    # logger.debug("found resolved host " + assetName + ": " + ip1)
+                    assetName = resolvedAssetName
+                else:
+                    logger.warning("IP address could not be resolved: " + ip1)
+            elif nwtype=='network':
+                logger.debug("found network: " + ip1)
+                assetName = "NET-"+ip1    # might add netmask
+            # elif nwtype=='range':
+            #     logger.warning("found range: " + ip1)
+            #     assetName = "NET-"+ip1+"-"+ip2
             else:
-                sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype })
+                logger.warning("IP address could not be resolved: " + ip1)
 
+            sockets.append({ "ip": ip1, "ip_end": ip2, "type": nwtype, "name": assetName  })
+
+    # now dealing with firewall objects
     if 'objects' in asset:
         for obj in asset['objects']:
             if 'values' in obj:
@@ -175,7 +190,7 @@ def getLogger(debug_level_in=0):
     else:
         llevel = logging.INFO
 
-    logger = logging.getLogger() # use root logger
+    logger = logging.getLogger('import-app-data')
     # logHandler = logging.StreamHandler(stream=stdout)
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
     logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)

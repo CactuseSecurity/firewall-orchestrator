@@ -537,11 +537,24 @@ namespace FWO.Middleware.Server
 				{
 					if (existingAppServer.IsDeleted)
 					{
-						return await ReactivateAppServer(existingAppServer);
+						if (!await ReactivateAppServer(existingAppServer))
+						{	
+							return false;
+						}
+					}
+					if (!existingAppServer.Name.Equals(incomingAppServer.Name))
+					{
+						if (!await UpdateAppServerName(existingAppServer, buildAppServerName(incomingAppServer)))
+						{	
+							return false;
+						}
 					}
 					if (existingAppServer.CustomType == null)
 					{
-						return await UpdateAppServerType(existingAppServer);
+						if (!await UpdateAppServerType(existingAppServer))
+						{	
+							return false;
+						}
 					}
 				}
 				return true;
@@ -553,13 +566,35 @@ namespace FWO.Middleware.Server
 			}
 		}
 
+		private string buildAppServerName(ModellingImportAppServer appServer)
+		{
+			try
+			{
+				if (string.IsNullOrEmpty(appServer.Name))
+				{
+					ModellingNamingConvention NamingConvention = new();
+					NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
+					return NamingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
+				}
+				else
+				{
+					return appServer.Name;
+				}
+			}
+			catch (Exception exc)
+			{
+				Log.WriteError("Import App Server Data", $"App Server name {appServer.Name} could not be set according to naming conventions.", exc);
+				return appServer.Name;
+			}
+		}
+
 		private async Task<bool> NewAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource)
 		{
 			try
 			{
 				var Variables = new
 				{
-					name = incomingAppServer.Name,
+					name = buildAppServerName(incomingAppServer),
 					appId = appID,
 					ip = IpAsCidr(incomingAppServer.Ip),
 					ipEnd = incomingAppServer.IpEnd != "" ? IpAsCidr(incomingAppServer.IpEnd) : IpAsCidr(incomingAppServer.Ip),
@@ -609,6 +644,25 @@ namespace FWO.Middleware.Server
 			catch (Exception exc)
 			{
 				Log.WriteError("Import App Server Data", $"Type of App Server {appServer.Name} could not be set.", exc);
+				return false;
+			}
+			return true;
+		}
+
+		private async Task<bool> UpdateAppServerName(ModellingAppServer appServer, string newName)
+		{
+			try
+			{
+				var Variables = new
+				{
+					name = newName,
+					id = appServer.Id,
+				};
+				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerName, Variables);
+			}
+			catch (Exception exc)
+			{
+				Log.WriteError("Import App Server Data", $"Name of App Server {appServer.Name} could not be set to {newName}.", exc);
 				return false;
 			}
 			return true;

@@ -35,7 +35,8 @@
         @if (ShowAlert)
         {
             <div class="alert alert-warning mt-2" role="alert">
-                <span>@(userConfig.GetText("E7014"))</span> @* TODO: Change text to "File format is not supported/nSupported File formats: " and concat with format list*@
+                @* TODO: Change text to "File format is not supported. Supported File formats: "*@
+                <span>@(userConfig.GetText("E7014") + GetSupportedFormatsString + ".")</span>
             </div>
         }
     </div>
@@ -161,5 +162,29 @@
         }
 
         Loading = false;
+    }
+
+    /// <summary>
+    /// Creates a comma separated list of the supported file formats as a string.
+    /// </summary>
+    /// <returns>Returns the created string or empty string if no supported file formats were defined.</returns>
+    private string GetSupportedFormatsString()
+    {
+        var supportedFormatsString = string.Empty;
+
+        if (SupportedFileFormats is string[] supportedFileFormats && supportedFileFormats.Length > 0)
+        {
+            for (int i = 0; i < supportedFileFormats.Length; i++)
+            {
+                if (i > 0)
+                {
+                    supportedFormatsString += ", ";
+                }
+
+                supportedFormatsString += $"{"."}{supportedFileFormats[i]}";
+            }
+        }
+
+        return supportedFormatsString;
     }
 }

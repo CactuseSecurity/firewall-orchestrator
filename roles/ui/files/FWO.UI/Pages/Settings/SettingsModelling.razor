@@ -366,6 +366,9 @@ else
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
     EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
 
+    /// <summary>
+    /// List of file formats which are supported by the FileUpload component.
+    /// </summary>
     private string[] fileUploadFormats = { "csv" };
 
     private void OnAddAppServerError((Exception Exception, string Message) error)

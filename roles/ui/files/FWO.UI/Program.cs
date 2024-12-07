@@ -76,7 +76,7 @@ builder.Services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
 builder.Services.AddScoped(_ => new NetworkZoneService());
 builder.Services.AddScoped(_ => new DomEventService());
 
-// for processing files and uploading them to the database
+// For processing files and uploading them to the database
 builder.Services.AddScoped(sp => new FileUploadService(sp));
 
 builder.Services.AddBlazorTable();

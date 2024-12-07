@@ -23,7 +23,13 @@ namespace FWO.Ui.Services
         /// </summary>
         private List<Exception> importErrors { get; set; }
 
+        /// <summary>
+        /// Injected UserConfig service.
+        /// </summary>
         private UserConfig userConfig { get; set; }
+        /// <summary>
+        /// Injected ApiConnection service.
+        /// </summary>
         private ApiConnection apiConnection { get; set; }
 
         public FileUploadService(IServiceProvider services)
@@ -34,13 +40,23 @@ namespace FWO.Ui.Services
             importErrors = new List<Exception>();
         }
 
+        /// <summary>
+        /// Reads the file provided by an InputFileChangeEvent to a byte array.
+        /// </summary>
+        /// <param name="args">Event args of an InputFileChangeEvent.</param>
+        /// <returns>Task for reading the file to bytes asynchronously.</returns>
         public async Task ReadFileToBytes(InputFileChangeEventArgs args) 
         {
             using MemoryStream ms = new MemoryStream();
             await args.File.OpenReadStream().CopyToAsync(ms);
             UploadedData = ms.ToArray();
         }
-
+        
+        /// <summary>
+        /// Invokes the correct task to import the previously created byte array according to the specific use case.
+        /// </summary>
+        /// <param name="fileUploadCase">The specific use case.</param>
+        /// <returns>Returns a list of the errors, which occured during the import process. Returns an empty list if no error occured.</returns>
         public async Task<List<Exception>> ImportUploadedData(FileUploadCase fileUploadCase)
         {
             importErrors.Clear();
@@ -53,6 +69,11 @@ namespace FWO.Ui.Services
             return importErrors;
         }
 
+        /// <summary>
+        /// Imports an app server configuration, assuming that it was uploaded in csv format. 
+        /// </summary>
+        /// <param name="importErrors">The object to transfer the occuring exceptions.</param>
+        /// <returns>Task for importing an app server configuration in csv format asynchronously.</returns>
         public async Task ImportAppServerFromCSV(List<Exception> importErrors)
         {
             string text = System.Text.Encoding.UTF8.GetString(UploadedData);
@@ -64,9 +85,9 @@ namespace FWO.Ui.Services
 
                 string[]? entries;
 
-                // create import model
+                // Creates import model.
 
-                if (IsHeader(line))
+                if (IsHeaderOfAppServerConfiguration(line))
                     continue;
 
                 if (!TryGetEntries(line, ';', out entries) && !TryGetEntries(line, ',', out entries))
@@ -80,7 +101,7 @@ namespace FWO.Ui.Services
                     AppIPRangeStart = entries[3]
                 };
 
-                // get IP range
+                // Gets IP range.
 
                 if (appServer.AppIPRangeStart.TryGetNetmask(out string netmask))
                 {
@@ -98,7 +119,7 @@ namespace FWO.Ui.Services
                     appServer.AppIPRangeEnd = appServer.AppIPRangeStart;
                 }
 
-                // write to db
+                // Writes to db.
 
                 (bool importSuccess, Exception? error) = await AddAppServerToDb(appServer);
 
@@ -107,6 +128,13 @@ namespace FWO.Ui.Services
             }
         }
 
+        /// <summary>
+        /// Splits a line of a csv file into an array of strings if possible.
+        /// </summary>
+        /// <param name="line">The line that should be split.</param>
+        /// <param name="separator">The symbol that is used as a separator in the processed csv file.</param>
+        /// <param name="entries">An output parameter to transfer the created string array out of the methods scope.</param>
+        /// <returns>Flag to feedback the success or failure of the process.</returns>
         private bool TryGetEntries(string line, char separator, out string[]? entries)
         {
             entries = null;
@@ -128,7 +156,12 @@ namespace FWO.Ui.Services
             return true;
         }
 
-        private bool IsHeader(string lineText)
+        /// <summary>
+        /// Validates if the provided line is the header of an app server configuration.
+        /// </summary>
+        /// <param name="lineText"></param>
+        /// <returns>Returns true if the line is the header of an app server configuration, otherwise returns false.</returns>
+        private bool IsHeaderOfAppServerConfiguration(string lineText)
         {
             bool splitOnSemicolon = lineText.TrySplit(';', out int splitLength);
 
@@ -156,6 +189,11 @@ namespace FWO.Ui.Services
 
         }
 
+        /// <summary>
+        /// Writes an app server configuration to db using a CSVAppServerImportModel object.
+        /// </summary>
+        /// <param name="appServer">The import model. </param>
+        /// <returns>Returns a tuple with true and null to feedback if the process was successfull, otherwise returns false and the exception that occured.</returns>
         private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel appServer)
         {
             try

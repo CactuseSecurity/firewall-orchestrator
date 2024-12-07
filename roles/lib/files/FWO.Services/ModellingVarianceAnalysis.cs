@@ -51,9 +51,10 @@ namespace FWO.Services
             TaskList = [];
             AccessTaskList = [];
             DeleteTasksList = [];
-            foreach(var conn in connections.Where(c => !c.IsRequested))
+            foreach (Management mgt in managements)
             {
-                foreach (Management mgt in managements)
+                await AnalyseAppZone(mgt);
+                foreach(var conn in connections.Where(c => !c.IsRequested))
                 {
                     elements = [];
                     AnalyseNetworkAreas(conn);
@@ -61,7 +62,6 @@ namespace FWO.Services
                     AnalyseAppServers(conn);
                     AnalyseServiceGroups(conn, mgt);
                     AnalyseServices(conn);
-                    await AnalyseAppZone(mgt);
                     if (elements.Count > 0)
                     {
                         Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
@@ -212,18 +212,18 @@ namespace FWO.Services
 
         private void AnalyseAppRole(ModellingAppRole appRole, Management mgt, bool isSource = false)
         {
-            if (!ResolveExistingApp(appRole, mgt))
+            if (!ResolveExistingNwGroup(appRole, mgt))
             {
                 if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_role") + appRole.IdString && x.OnManagement?.Id == mgt.Id) == null)
                 {
-                    RequestNewApp(appRole, mgt);
+                    RequestNewNwGroup(appRole, mgt);
                 }
             }
-            else if (AppChanged(appRole) &&
+            else if (NwGroupChanged(appRole) &&
                 TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
                 DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
             {
-                RequestUpdateApp(appRole, mgt);
+                RequestUpdateNwGroup(appRole, mgt);
             }
 
             elements.Add(new()
@@ -245,18 +245,18 @@ namespace FWO.Services
 
             if (existingAppZone is not null)
             {               
-                if (!ResolveExistingApp(existingAppZone, mgt))
+                if (!ResolveExistingNwGroup(existingAppZone, mgt))
                 {
-                    RequestNewApp(existingAppZone, mgt);
+                    RequestNewNwGroup(existingAppZone, mgt);
                 }
-                else if (AppChanged(existingAppZone) )
+                else if (NwGroupChanged(existingAppZone) )
                 {
-                    RequestUpdateApp(existingAppZone, mgt);
+                    RequestUpdateNwGroup(existingAppZone, mgt);
                 }
             }
         }
 
-        private bool ResolveExistingApp(ModellingNwGroup nwGroup, Management mgt)
+        private bool ResolveExistingNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
             string nwGroupType = nwGroup.GetType() == typeof(ModellingAppRole) ? "AppRole" : "AppZone"; 
             Log.WriteDebug($"Search {nwGroupType}", $"Name: {nwGroup.Name}, IdString: {nwGroup.IdString}, Management: {mgt.Name}");
@@ -312,7 +312,7 @@ namespace FWO.Services
                 appServer1.Name.ToLower().Trim() == sanitizedAS2Name.ToLower().Trim();
         }
 
-        private bool AppChanged(ModellingNwGroup nwGroup)
+        private bool NwGroupChanged(ModellingNwGroup nwGroup)
         {
             newAppServers = [];
             deletedAppServers = [];
@@ -344,7 +344,7 @@ namespace FWO.Services
             return newAppServers.Count > 0 || deletedAppServers.Count > 0;
         }
 
-        private void RequestNewApp(ModellingNwGroup nwGroup, Management mgt)
+        private void RequestNewNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
             string title = "";
 
@@ -385,7 +385,7 @@ namespace FWO.Services
             });
         }
 
-        private void RequestUpdateApp(ModellingNwGroup nwGroup, Management mgt)
+        private void RequestUpdateNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
             string title = "";
 

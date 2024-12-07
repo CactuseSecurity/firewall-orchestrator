@@ -285,9 +285,9 @@ namespace FWO.Middleware.Server
 			
 			var Variables = new
 			{
-				ownerId = ticket.Tasks.First()?.Owners.First()?.Owner.Id,
+				ownerId = ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
   				ticketId = ticket.Id,
-				taskNumber = tasks.First()?.TaskNumber ?? 0,
+				taskNumber = tasks.FirstOrDefault()?.TaskNumber ?? 0,
 				extTicketSystem = JsonSerializer.Serialize(actSystem),
 				extTaskType = actTaskType,
 				extTaskContent = taskContent,
@@ -361,7 +361,7 @@ namespace FWO.Middleware.Server
 
 		private string ConstructSubject(WfReqTask reqTask)
 		{
-			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId + ": " ?? "" : "";
+			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.FirstOrDefault()?.Owner.ExtAppId + ": " ?? "" : "";
 			string onMgt = UserConfig.GetText("on") + reqTask?.OnManagement?.Name + "(" + reqTask?.OnManagement?.Id + ")";
 			string grpName = " " + reqTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName);
             return appId + reqTask?.TaskType switch
@@ -444,7 +444,7 @@ namespace FWO.Middleware.Server
 				(long objId, ModellingTypes.ModObjectType objType) = GetObject(task);
 				await ModellingHandlerBase.LogChange(changeType, objType, objId,
                 	$"{ConstructLogMessageText(changeType)} {task.Title} on {task.OnManagement?.Name}{(comment != null ? ", " + comment : "")}", 
-					ApiConnection, UserConfig, task.Owners.First()?.Owner.Id, DefaultInit.DoNothing, requester);
+					ApiConnection, UserConfig, task.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, requester);
 			}
 		}
 

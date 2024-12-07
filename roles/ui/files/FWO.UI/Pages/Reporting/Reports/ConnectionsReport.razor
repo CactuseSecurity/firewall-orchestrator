@@ -33,7 +33,7 @@
     @if(AllCommonServices != null && AllCommonServices.Count > 0)
     {
         <Collapse Title="@userConfig.GetText("global_common_services")" Style="@("primary")" StartToggled="false">
-            <ConnectionTable Connections="@AllCommonServices" AppHandler="AppHandlers.First()" Readonly="true" ShowAppName="true"/>
+            <ConnectionTable Connections="@AllCommonServices" AppHandler="AppHandlers.FirstOrDefault()" Readonly="true" ShowAppName="true"/>
         </Collapse>
     }
 }

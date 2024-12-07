@@ -206,7 +206,7 @@ else
 
             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
                 0, $"Reinitialized Rollout Requests", apiConnection, userConfig, 
-				actOwnerTicket.Ticket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, userConfig.User.Name);
+				actOwnerTicket.Ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, userConfig.User.Name);
         }
         catch (Exception exception)
         {

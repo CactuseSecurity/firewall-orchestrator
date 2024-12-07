@@ -97,7 +97,7 @@ namespace FWO.Tufin.SecureChange
 		public override async Task CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
 		{
 			CreateTicketTasks(tasks, ipProtos, namingConvention);
-			await CreateTicketText(tasks.First());
+			await CreateTicketText(tasks.FirstOrDefault());
 		}
 
 		public override string GetTaskTypeAsString(WfReqTask task)
@@ -258,7 +258,7 @@ namespace FWO.Tufin.SecureChange
 					SCLookupUsersResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCLookupUsersResponse?>(restResponse.Content);
 					if(scResponse != null)
 					{
-						return scResponse.User.Users.First()?.Id ?? 0;
+						return scResponse.User.Users.FirstOrDefault()?.Id ?? 0;
 					}
 				}
 			}

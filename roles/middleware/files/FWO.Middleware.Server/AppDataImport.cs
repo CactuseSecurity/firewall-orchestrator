@@ -568,14 +568,14 @@ namespace FWO.Middleware.Server
 
 		private string buildAppServerName(ModellingImportAppServer appServer)
 		{
+			bool changed = false;
 			try
 			{
 				if (string.IsNullOrEmpty(appServer.Name))
 				{
 					Log.WriteWarning("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
-					ModellingNamingConvention NamingConvention = new();
-					NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
-					return NamingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
+					ModellingNamingConvention NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
+					return Sanitizer.SanitizeJsonFieldMand(NamingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd), ref changed);
 				}
 				else
 				{

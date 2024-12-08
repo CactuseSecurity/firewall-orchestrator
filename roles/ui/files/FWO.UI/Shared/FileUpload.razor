@@ -1,0 +1,190 @@
+﻿@using FWO.Api.Client
+@using FWO.Api.Data
+@using FWO.Services
+@using FWO.Ui.Data
+@using Microsoft.AspNetCore.Components.Forms
+
+@inject FileUploadService fileUploadService
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<div id="file-upload-component" class="row">
+    <div class="col-sm-8">
+        <label class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
+            @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Add))
+            <span class="ms-2">@(userConfig.GetText("add"))</span>
+        </label>
+        <InputFile id="fileUpload" hidden accept=".csv" OnChange="@OnFileSelected" />
+        @if (InputFileChangeEventArgs is not null && !string.IsNullOrEmpty(InputFileChangeEventArgs.File.Name))
+        {
+            <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
+        }
+        <button type="button" disabled="@(Loading || ImportDisabled)" class="btn btn-sm @(ImportDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="UploadFileAsync">
+            @if (Loading)
+            {
+                <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
+                    </div>
+            }
+            else
+            {
+                @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Import))
+            }            
+            <span class="ms-1">@(userConfig.GetText("import"))</span>
+        </button>
+        @if (ShowAlert)
+        {
+            <div class="alert alert-warning mt-2" role="alert">
+                @* TODO: Change text to "File format is not supported. Supported File formats: "*@
+                <span>@(userConfig.GetText("E7014") + GetSupportedFormatsString + ".")</span>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Defines a set of supported file formats.
+    /// </summary>
+    [Parameter]
+    public string[]? SupportedFileFormats { get; set; }
+    /// <summary>
+    /// Defines the use case.
+    /// </summary>
+    [Parameter]
+    public FileUploadCase FileUploadCase { get; set; }
+    /// <summary>
+    /// Defines the callback in case of an error while uploading a file.
+    /// </summary>
+
+    [Parameter]
+    public EventCallback<(Exception, string?)> OnFileUploadError { get; set; }
+    /// <summary>
+    /// Defines the callback in case of a warning concerning the import of the uploaded data.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnUploadedDataImportWarning { get; set; }
+    /// <summary>
+    /// Defines the callback in case of a successfull import of the uploaded data.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnUploadedDataImportSuccess { get; set; }
+
+    /// <summary>
+    /// Reference to fileUpload's InputFileChange event args.
+    /// </summary>
+    private InputFileChangeEventArgs? InputFileChangeEventArgs { get; set; }
+
+    /// <summary>
+    /// Visibility condition of alert div.
+    /// </summary>
+    private bool ShowAlert { get; set; }
+    /// File validation result.
+    /// </summary>
+    private bool ImportDisabled { get; set; } = true;
+    /// <summary>
+    /// Flag to check wether the importing process is in progress.
+    /// </summary>
+    private bool Loading { get; set; }
+
+
+    /// <summary>
+    /// Validates selected file.
+    /// </summary>
+    /// <param name="e">Event args for the selected file.</param>
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        ImportDisabled = true;
+        InputFileChangeEventArgs = e;
+        ShowAlert = false;
+
+        if (InputFileChangeEventArgs.FileCount == 0) return;
+
+        var fileExtension = Path.GetExtension(e.File.Name);
+
+        // If supported formats were defined check if file format is supported
+        if (SupportedFileFormats is string[] supportedFileFormats)
+        {
+            // Check if file has an extension
+            var fileFormatSupported = (fileExtension != string.Empty);
+
+            // Check if file format is among the defined supported file formats
+            var fileExtensionWithoutPeriod = fileExtension.Substring(1);
+            fileFormatSupported = supportedFileFormats.Contains(fileExtensionWithoutPeriod);
+
+            if (!fileFormatSupported)
+            {
+                ShowAlert = true;
+                return;
+            }
+        }
+
+        ImportDisabled = false;
+    }
+
+    /// <summary>
+    /// Uploads the selected file.
+    /// </summary>
+    /// <returns>Task for uploading the selected file asynchronously.</returns>
+    private async Task UploadFileAsync()
+    {
+        if (ImportDisabled || InputFileChangeEventArgs is null)
+            return;
+
+        if (InputFileChangeEventArgs.File is null)
+            return;
+
+        Loading = true;
+
+        try
+        {
+            await fileUploadService.ReadFileToBytes(InputFileChangeEventArgs);
+        }
+        catch (Exception ex)
+        {
+            Loading = false;
+            await OnFileUploadError.InvokeAsync((ex, $"{userConfig.GetText("file_upload_failed")} {ex.Message}"));
+            return;
+        }
+
+        var importErrors = await fileUploadService.ImportUploadedData(FileUploadCase);
+
+        if (importErrors.Count > 0)
+        {
+            Exception exception = importErrors.First();
+            string message = $"{userConfig.GetText("import_finished_witherrors")}({importErrors.Count}). {exception.Message}";
+
+            await OnUploadedDataImportWarning.InvokeAsync(message);
+        }
+        else
+        {
+            await OnUploadedDataImportSuccess.InvokeAsync();
+        }
+
+        Loading = false;
+    }
+
+    /// <summary>
+    /// Creates a comma separated list of the supported file formats as a string.
+    /// </summary>
+    /// <returns>Returns the created string or empty string if no supported file formats were defined.</returns>
+    private string GetSupportedFormatsString()
+    {
+        var supportedFormatsString = string.Empty;
+
+        if (SupportedFileFormats is string[] supportedFileFormats && supportedFileFormats.Length > 0)
+        {
+            for (int i = 0; i < supportedFileFormats.Length; i++)
+            {
+                if (i > 0)
+                {
+                    supportedFormatsString += ", ";
+                }
+
+                supportedFormatsString += $"{"."}{supportedFileFormats[i]}";
+            }
+        }
+
+        return supportedFormatsString;
+    }
+}

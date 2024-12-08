@@ -325,6 +325,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
 		public string ModRolloutErrorText { get; set; } = "";
 
+		[JsonProperty("externalRequestWaitCycles"), JsonPropertyName("externalRequestWaitCycles")]
+		public int ExternalRequestWaitCycles { get; set; } = 0;
+
 		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
 		public string ExtTicketSystems { get; set; } = "";
 

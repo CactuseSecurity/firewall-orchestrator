@@ -6,25 +6,16 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_interface"))" Size=PopupSize.Small Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_interface"))" Size=PopupSize.XLarge Show="@Display" OnClose="Close">
     <Body>
-        @if (Display)
+        @if (Display && InitComplete)
         {
-            <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("interface")):</label>
-                <div class="col-sm-9">
-                    <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="selectedInterface" ElementToString="@(i => DisplayInterface(i))" Elements="selectableInterfaces" Nullable="true">
-                        <ElementTemplate Context="inter">
-                            @DisplayInterface(inter)
-                        </ElementTemplate>
-                    </Dropdown>
-                </div>
-            </div>
+            <ConnectionTable Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces"/>
         }
     </Body>
     <Footer>
         <div class="btn-group">
-            @if(selectedInterface != null)
+            @if(SelectedInterfaces.Count == 1)
             {
                 <AuthorizeView Roles="@Roles.Modeller">
                     <Authorized>
@@ -58,11 +49,8 @@
     [Parameter]
     public EventCallback<List<ModellingConnection>> PreselectedInterfacesChanged { get; set; }
 
-    [Parameter]
-    public Func <ModellingConnection, bool>? SelectAction { get; set; }
-
-    [Parameter]
-    public Func <ModellingConnection, string> DisplayInterface { get; set; }
+    // [Parameter]
+    // public Func <ModellingConnection, bool>? SelectAction { get; set; }
 
     [Parameter]
     public FwoOwner Application { get; set; } = new();
@@ -70,8 +58,9 @@
 
     private List<ModellingConnection> selectableInterfaces { get; set; } = new();
     private List<ModellingConnection> allPublishedInterfaces { get; set; } = new();
-    private ModellingConnection? selectedInterface;
+    private List<ModellingConnection> SelectedInterfaces { get; set; } = [];
     private bool FirstTry = true;
+    private bool InitComplete = false;
 
 
     protected override async Task OnParametersSetAsync()
@@ -83,6 +72,7 @@
                 FirstTry = false;
                 allPublishedInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getPublishedInterfaces);
                 RefreshSelectionList();
+                InitComplete = true;
             }
             catch (Exception exception)
             {
@@ -98,11 +88,6 @@
         {
             selectableInterfaces = PreselectedInterfaces != null && PreselectedInterfaces.Count > 0 ?
                 allPublishedInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null)?.ToList() ?? new() : allPublishedInterfaces;
-            
-            foreach(var interf in selectableInterfaces)
-            {
-                interf.ExtractNwGroups();
-            }
         }
     }
 
@@ -117,19 +102,19 @@
     {
         try
         {
-            if(selectedInterface != null)
+            if(SelectedInterfaces.Count == 1)
             {
                 var Variables = new
                 {
                     appId = Application.Id,
-                    connectionId = selectedInterface?.Id
+                    connectionId = SelectedInterfaces.First().Id
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedConnection, Variables);
+                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addSelectedConnection, Variables);
                 if(PreselectedInterfaces == null)
                 {
                     PreselectedInterfaces = new();
                 }
-                PreselectedInterfaces.Add(selectedInterface ?? throw new Exception("No Interface selected."));
+                PreselectedInterfaces.Add(SelectedInterfaces.First() ?? throw new Exception("No Interface selected."));
                 RefreshSelectionList();
                 await PreselectedInterfacesChanged.InvokeAsync(PreselectedInterfaces);
             }
@@ -142,8 +127,9 @@
 
     private void Close()
     {
-        selectedInterface = null;
+        SelectedInterfaces = [];
         FirstTry = true;
+        InitComplete = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

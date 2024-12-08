@@ -61,6 +61,32 @@ namespace FWO.Tufin.SecureChange
 			public SCPollTicketResponseStatus Ticket { get; set; } = new();
 		}
 
+		// {
+		// "users": {
+		// 	"user": [
+		// 	{
+		// 		"@xsi.type": "user",
+		// 		"id": 55,
+		// 		"type": "user",
+		// 		"name": "Userxyz",
+		private class SCLookupUserResponseUser
+		{
+			[JsonProperty("id"), JsonPropertyName("id")]
+			public int Id { get; set; }
+		}
+
+		private class SCLookupUserResponseUsers
+		{
+			[JsonProperty("user"), JsonPropertyName("user")]
+			public List<SCLookupUserResponseUser> Users { get; set; } = [];
+		}
+
+		private class SCLookupUsersResponse
+		{
+			[JsonProperty("users"), JsonPropertyName("users")]
+			public SCLookupUserResponseUsers User { get; set; } = new();
+		}
+
 
 		public SCTicket(ExternalTicketSystem tufinSystem)
 		{
@@ -68,10 +94,10 @@ namespace FWO.Tufin.SecureChange
 			actTicketTemplate = TicketSystem.Templates.FirstOrDefault()?.TicketTemplate ?? "";
 		}
 
-		public override void CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
+		public override async Task CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
 		{
 			CreateTicketTasks(tasks, ipProtos, namingConvention);
-			CreateTicketText(tasks.First());
+			await CreateTicketText(tasks.FirstOrDefault());
 		}
 
 		public override string GetTaskTypeAsString(WfReqTask task)
@@ -203,19 +229,40 @@ namespace FWO.Tufin.SecureChange
 		// 								"text": "@@APPID@@"
 		// 							}]}}}
 
-		private void CreateTicketText(WfReqTask? reqTask)
+		private async Task CreateTicketText(WfReqTask? reqTask)
 		{
 			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId ?? "" : "";
+			string onBehalf = TicketSystem.LookupRequesterId ? (await LookupRequesterId(Requester)).ToString() : Requester;
 			TicketText = actTicketTemplate
 				.Replace("@@TICKET_SUBJECT@@", Subject)
 				.Replace("@@PRIORITY@@", Priority)
-				.Replace("@@ONBEHALF@@", Requester)
+				.Replace("@@ONBEHALF@@", onBehalf)
 				.Replace("@@REASON@@", reqTask?.Reason ?? DefaultReason)
 				.Replace("@@APPID@@", appId)
 				.Replace("@@TASKS@@", string.Join(",", TicketTasks));
 			bool shortened = false;
 			TicketText = Sanitizer.SanitizeEolMand(TicketText, ref shortened);
 			CheckForProperJson(TicketText);
+		}
+
+		private async Task<int> LookupRequesterId(string requesterName)
+		{
+			if(!string.IsNullOrEmpty(requesterName))
+			{
+				string restEndPoint = "users.json?user_name=" + requesterName;
+				RestRequest request = new(restEndPoint, Method.Get);
+				RestResponse<int> restResponse = await RestCall(request, restEndPoint);
+				if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
+				{
+					Log.WriteDebug("Lookup external requester id OK", "Content: " + restResponse.Content);
+					SCLookupUsersResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCLookupUsersResponse?>(restResponse.Content);
+					if(scResponse != null)
+					{
+						return scResponse.User.Users.FirstOrDefault()?.Id ?? 0;
+					}
+				}
+			}
+			return 0;
 		}
 	}
 }

@@ -19,7 +19,7 @@ namespace FWO.Tufin.SecureChange
 
 		public ExternalTicket(){}
 
-		public virtual void CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
+		public virtual async Task CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
 		{}
 
 		public virtual string GetTaskTypeAsString(WfReqTask task)
@@ -53,7 +53,7 @@ namespace FWO.Tufin.SecureChange
 			throw new Exception("No Ticket Id given.");
 		}
 
-		private async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
+		protected async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
 		{
 			request.AddHeader("Content-Type", "application/json");
 			request.AddHeader("Authorization", TicketSystem.Authorization);
@@ -70,7 +70,7 @@ namespace FWO.Tufin.SecureChange
 			return await restClient.ExecuteAsync<int>(request);
 		}
 
-		protected void CheckForProperJson(string jsonString)
+		protected static void CheckForProperJson(string jsonString)
 		{
 			try
 			{

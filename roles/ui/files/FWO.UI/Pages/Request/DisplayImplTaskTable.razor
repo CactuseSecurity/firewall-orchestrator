@@ -246,7 +246,7 @@
                 WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId);
                 if(reqTask != null && reqTask.Owners != null && reqTask.Owners.Count > 0)
                 {
-                    return reqTask.Owners?.First()?.Owner.Name ?? "";
+                    return reqTask.Owners?.FirstOrDefault()?.Owner.Name ?? "";
                 }
             }
         }

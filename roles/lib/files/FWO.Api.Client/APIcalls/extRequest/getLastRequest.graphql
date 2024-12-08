@@ -15,5 +15,6 @@ query getLastRequest ($ticketId: bigint! ){
 	  last_processing_response
 	  create_date
 	  finish_date
+    wait_cycles
   }
 }

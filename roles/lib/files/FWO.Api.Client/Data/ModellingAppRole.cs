@@ -77,7 +77,7 @@ namespace FWO.Api.Data
             {
                 Id = Id,
                 Number = Number,
-                Name = Name ?? "",
+                Name = Name + " (" + IdString + ")" ?? IdString ?? "",
                 Comment = Comment ?? "",
                 Type = new NetworkObjectType(){ Name = ObjectType.Group },
                 ObjectGroups = objectGroups,
@@ -94,10 +94,10 @@ namespace FWO.Api.Data
         }
     }
     
-    public class ModellingAppRoleWrapper : ModellingNwGroupWrapper
+    public class ModellingAppRoleWrapper
     {
         [JsonProperty("nwgroup"), JsonPropertyName("nwgroup")]
-        public new ModellingAppRole Content { get; set; } = new();
+        public ModellingAppRole Content { get; set; } = new();
 
         public static ModellingAppRole[] Resolve(List<ModellingAppRoleWrapper> wrappedList)
         {

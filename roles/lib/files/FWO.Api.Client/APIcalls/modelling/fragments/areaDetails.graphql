@@ -1,0 +1,14 @@
+fragment areaDetails on modelling_nwgroup {
+  id
+  name
+  id_string
+  is_deleted
+  ip_data: nwobject_nwgroups{
+    owner_network{
+      id
+      name
+      ip
+      ip_end
+    }
+  }
+}

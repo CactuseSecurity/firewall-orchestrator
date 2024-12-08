@@ -224,8 +224,8 @@ namespace FWO.Middleware.Server.Controllers
 			{
 				LdapEntry? ldapEntry = null;
 				Ldap? ldap = null;
-				List<Task> ldapValidationRequests = new List<Task>();
-				object dnLock = new object();
+				List<Task> ldapValidationRequests = [];
+				object dnLock = new();
 				bool ldapFound = false;
 
 				foreach (Ldap currentLdap in ldaps.Where(x => x.Active))
@@ -288,14 +288,16 @@ namespace FWO.Middleware.Server.Controllers
 
 		public async Task<List<string>> GetRoles(UiUser user)
 		{
-			List<string> dnList = new() { user.Dn };
-			// search all groups where user is member for group associated roles
-			dnList.AddRange(user.Groups);
+			List<string> dnList =
+            [
+                user.Dn,
+                .. user.Groups, // search all groups where user is member for group associated roles
+            ];
 
-			List<string> userRoles = new List<string>();
-			object rolesLock = new object();
+			List<string> userRoles = [];
+			object rolesLock = new();
 
-			List<Task> ldapRoleRequests = new List<Task>();
+			List<Task> ldapRoleRequests = [];
 
 			foreach (Ldap currentLdap in ldaps)
 			{
@@ -330,7 +332,7 @@ namespace FWO.Middleware.Server.Controllers
 
 		public async Task<Tenant?> GetTenantAsync(LdapEntry user, Ldap ldap)
 		{
-			Tenant tenant = new Tenant();
+			Tenant tenant = new();
 			if (ldap.TenantId != null)
 			{
 				Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {ldap.TenantId.Value}");

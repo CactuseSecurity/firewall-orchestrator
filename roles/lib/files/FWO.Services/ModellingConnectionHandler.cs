@@ -21,7 +21,8 @@ namespace FWO.Services
         public ModellingConnection ActConn { get; set; } = new();
         public List<ModellingAppRole> AvailableAppRoles { get; set; } = [];
         public List<ModellingNwGroupWrapper> AvailableSelectedObjects { get; set; } = [];
-        public List<ModellingNwGroupWrapper> AvailableCommonAreas { get; set; } = [];
+        public List<ModellingNetworkAreaWrapper> AvailableCommonAreas { get; set; } = [];
+        public List<ModellingNwGroupWrapper> AvailableNwGroups { get; set; } = [];
         public List<CommonAreaConfig> CommonAreaConfigItems { get; set; } = [];
         public List<ModellingServiceGroup> AvailableServiceGroups { get; set; } = [];
     
@@ -52,6 +53,10 @@ namespace FWO.Services
         public List<ModellingAppRole> SrcAppRolesToDelete { get; set; } = [];
         public List<ModellingAppRole> DstAppRolesToAdd { get; set; } = [];
         public List<ModellingAppRole> DstAppRolesToDelete { get; set; } = [];
+        public List<ModellingNetworkArea> SrcAreasToAdd { get; set; } = [];
+        public List<ModellingNetworkArea> SrcAreasToDelete { get; set; } = [];
+        public List<ModellingNetworkArea> DstAreasToAdd { get; set; } = [];
+        public List<ModellingNetworkArea> DstAreasToDelete { get; set; } = [];
         public List<ModellingNwGroup> SrcNwGroupsToAdd { get; set; } = [];
         public List<ModellingNwGroup> SrcNwGroupsToDelete { get; set; } = [];
         public List<ModellingNwGroup> DstNwGroupsToAdd { get; set; } = [];
@@ -206,7 +211,7 @@ namespace FWO.Services
                 AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
 
-                List<ModellingNwGroup> allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
+                List<ModellingNetworkArea> allAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
                 CommonAreaConfigItems = [];
                 if(userConfig.ModCommonAreas != "")
                 {
@@ -215,15 +220,16 @@ namespace FWO.Services
                 AvailableCommonAreas = [];
                 foreach(var comAreaConfig in CommonAreaConfigItems)
                 {
-                    ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == comAreaConfig.AreaId);
+                    ModellingNetworkArea? area = allAreas.FirstOrDefault(a => a.Id == comAreaConfig.AreaId);
                     if(area != null)
                     {
                         AvailableCommonAreas.Add(new () { Content = area });
                     }
                 }
+                AvailableNwGroups = [];
                 
                 AvailableSelectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
-                AvailableSelectedObjects = AvailableSelectedObjects.Where(x => !AvailableCommonAreas.Contains(x)).ToList();
+                AvailableSelectedObjects = AvailableSelectedObjects.Where(x => AvailableCommonAreas.FirstOrDefault(a => a.Content.Id == x.Content.Id) == null).ToList();
             }
             catch (Exception exception)
             {
@@ -455,20 +461,22 @@ namespace FWO.Services
             ActConn.TicketId = interf.TicketId;
             if(SrcReadOnly)
             {
-                ActConn.SourceAppServers = new List<ModellingAppServerWrapper>(interf.SourceAppServers){};
-                ActConn.SourceAppRoles = new List<ModellingAppRoleWrapper>(interf.SourceAppRoles){};
-                ActConn.SourceNwGroups = new List<ModellingNwGroupWrapper>(interf.SourceNwGroups){};
+                ActConn.SourceAppServers = [.. interf.SourceAppServers];
+                ActConn.SourceAppRoles = [.. interf.SourceAppRoles];
+                ActConn.SourceAreas = [.. interf.SourceAreas];
+                ActConn.SourceOtherGroups = [.. interf.SourceOtherGroups];
                 ActConn.SrcFromInterface = true;
             }
             else
             {
-                ActConn.DestinationAppServers = new List<ModellingAppServerWrapper>(interf.DestinationAppServers){};
-                ActConn.DestinationAppRoles = new List<ModellingAppRoleWrapper>(interf.DestinationAppRoles){};
-                ActConn.DestinationNwGroups = new List<ModellingNwGroupWrapper>(interf.DestinationNwGroups){};
+                ActConn.DestinationAppServers = [.. interf.DestinationAppServers];
+                ActConn.DestinationAppRoles = [.. interf.DestinationAppRoles];
+                ActConn.DestinationAreas = [.. interf.DestinationAreas];
+                ActConn.DestinationOtherGroups = [.. interf.DestinationOtherGroups];
                 ActConn.DstFromInterface = true;
             }
-            ActConn.Services = new List<ModellingServiceWrapper>(interf.Services){};
-            ActConn.ServiceGroups = new List<ModellingServiceGroupWrapper>(interf.ServiceGroups){};
+            ActConn.Services = [.. interf.Services];
+            ActConn.ServiceGroups = [.. interf.ServiceGroups];
         }
 
         public void RemoveInterf()
@@ -478,14 +486,16 @@ namespace FWO.Services
             {
                 ActConn.SourceAppServers = [];
                 ActConn.SourceAppRoles = [];
-                ActConn.SourceNwGroups = [];
+                ActConn.SourceAreas = [];
+                ActConn.SourceOtherGroups = [];
                 ActConn.SrcFromInterface = false;
             }
             if(DstReadOnly)
             {
                 ActConn.DestinationAppServers = [];
                 ActConn.DestinationAppRoles = [];
-                ActConn.DestinationNwGroups = [];
+                ActConn.DestinationAreas = [];
+                ActConn.DestinationOtherGroups = [];
                 ActConn.DstFromInterface = false;
             }
             ActConn.Services = [];
@@ -608,13 +618,53 @@ namespace FWO.Services
             }
         }
 
+        public void AreasToSource(List<ModellingNetworkArea> areas)
+        {
+            if(!SrcDropForbidden())
+            {
+                foreach(var area in areas)
+                {
+                    if(ActConn.SourceAreas.FirstOrDefault(w => w.Content.Id == area.Id) == null && !SrcAreasToAdd.Contains(area) &&
+                        (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Id)?.UseInSrc ?? true))
+                    {
+                        SrcAreasToAdd.Add(area);
+                    }
+                    else
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
+                    }
+                }
+                CalcVisibility();
+            }
+        }
+
+        public void AreasToDestination(List<ModellingNetworkArea> areas)
+        {
+            if(!DstDropForbidden())
+            {
+                foreach(var area in areas)
+                {
+                    if(ActConn.DestinationAreas.FirstOrDefault(w => w.Content.Id == area.Id) == null && !DstAreasToAdd.Contains(area) &&
+                        (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Id)?.UseInSrc ?? true))
+                    {
+                        DstAreasToAdd.Add(area);
+                    }
+                    else
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
+                    }
+                }
+                CalcVisibility();
+            }
+        }
+
         public void NwGroupToSource(List<ModellingNwGroup> nwGroups)
         {
             if(!SrcDropForbidden())
             {
                 foreach(var nwGroup in nwGroups)
                 {
-                    if(ActConn.SourceNwGroups.FirstOrDefault(w => w.Content.Id == nwGroup.Id) == null && !SrcNwGroupsToAdd.Contains(nwGroup) &&
+                    if(ActConn.SourceOtherGroups.FirstOrDefault(w => w.Content.Id == nwGroup.Id) == null && !SrcNwGroupsToAdd.Contains(nwGroup) &&
                         (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == nwGroup.Id)?.UseInSrc ?? true))
                     {
                         SrcNwGroupsToAdd.Add(nwGroup);
@@ -634,7 +684,7 @@ namespace FWO.Services
             {
                 foreach(var nwGroup in nwGroups)
                 {
-                    if(ActConn.DestinationNwGroups.FirstOrDefault(w => w.Content.Id == nwGroup.Id) == null && !DstNwGroupsToAdd.Contains(nwGroup) &&
+                    if(ActConn.DestinationOtherGroups.FirstOrDefault(w => w.Content.Id == nwGroup.Id) == null && !DstNwGroupsToAdd.Contains(nwGroup) &&
                         (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == nwGroup.Id)?.UseInDst ?? true))
                     {
                         DstNwGroupsToAdd.Add(nwGroup);
@@ -971,9 +1021,11 @@ namespace FWO.Services
 
         public bool SrcFilledInWork(int dummyARCount = 0)
         {
-            return ActConn.SourceNwGroups.Count - SrcNwGroupsToDelete.Count > 0 || 
+            return ActConn.SourceAreas.Count - SrcAreasToDelete.Count > 0 || 
+                ActConn.SourceOtherGroups.Count - SrcNwGroupsToDelete.Count > 0 || 
                 ActConn.SourceAppRoles.Count - dummyARCount - SrcAppRolesToDelete.Count > 0 ||
                 ActConn.SourceAppServers.Count - SrcAppServerToDelete.Count > 0 ||
+                SrcAreasToAdd.Count > 0 ||
                 SrcNwGroupsToAdd.Count > 0 ||
                 SrcAppServerToAdd.Count > 0 ||
                 SrcAppRolesToAdd.Count > 0;
@@ -981,9 +1033,11 @@ namespace FWO.Services
 
         public bool DstFilledInWork(int dummyARCount = 0)
         {
-            return ActConn.DestinationNwGroups.Count - DstNwGroupsToDelete.Count > 0 || 
-                ActConn.DestinationAppRoles.Count - dummyARCount - DstAppRolesToDelete.Count > 0 || 
+            return ActConn.DestinationAreas.Count - DstAreasToDelete.Count > 0 ||
+                ActConn.DestinationOtherGroups.Count - DstNwGroupsToDelete.Count > 0 ||
+                ActConn.DestinationAppRoles.Count - dummyARCount - DstAppRolesToDelete.Count > 0 ||
                 ActConn.DestinationAppServers.Count - DstAppServerToDelete.Count > 0 ||
+                DstAreasToAdd.Count > 0 ||
                 DstNwGroupsToAdd.Count > 0 ||
                 DstAppServerToAdd.Count > 0 ||
                 DstAppRolesToAdd.Count > 0;
@@ -1122,13 +1176,21 @@ namespace FWO.Services
             {
                 ActConn.SourceAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
             }
+            foreach(var area in SrcAreasToDelete)
+            {
+                ActConn.SourceAreas.Remove(ActConn.SourceAreas.FirstOrDefault(x => x.Content.Id == area.Id) ?? throw new Exception("Did not find area."));
+            }
+            foreach(var area in SrcAreasToAdd)
+            {
+                ActConn.SourceAreas.Add(new ModellingNetworkAreaWrapper(){ Content = area });
+            }
             foreach(var nwGroup in SrcNwGroupsToDelete)
             {
-                ActConn.SourceNwGroups.Remove(ActConn.SourceNwGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new Exception("Did not find nwgroup."));
+                ActConn.SourceOtherGroups.Remove(ActConn.SourceOtherGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new Exception("Did not find nwgroup."));
             }
             foreach(var nwGroup in SrcNwGroupsToAdd)
             {
-                ActConn.SourceNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
+                ActConn.SourceOtherGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
             }
         }
 
@@ -1158,13 +1220,21 @@ namespace FWO.Services
             {
                 ActConn.DestinationAppRoles.Add(new ModellingAppRoleWrapper(){ Content = appRole });
             }
+            foreach(var area in DstAreasToDelete)
+            {
+                ActConn.DestinationAreas.Remove(ActConn.DestinationAreas.FirstOrDefault(x => x.Content.Id == area.Id) ?? throw new Exception("Did not find area."));
+            }
+            foreach(var area in DstAreasToAdd)
+            {
+                ActConn.DestinationAreas.Add(new ModellingNetworkAreaWrapper(){ Content = area });
+            }
             foreach(var nwGroup in DstNwGroupsToDelete)
             {
-                ActConn.DestinationNwGroups.Remove(ActConn.DestinationNwGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new Exception("Did not find nwgroup."));
+                ActConn.DestinationOtherGroups.Remove(ActConn.DestinationOtherGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new Exception("Did not find nwgroup."));
             }
             foreach(var nwGroup in DstNwGroupsToAdd)
             {
-                ActConn.DestinationNwGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
+                ActConn.DestinationOtherGroups.Add(new ModellingNwGroupWrapper(){ Content = nwGroup });
             }
         }
 
@@ -1192,14 +1262,14 @@ namespace FWO.Services
         {
             try
             {
-                int? appId = propose ? null : Application.Id;
-                int? proposedAppId = propose ? Application.Id : null;
+                int? AppId = propose ? null : Application.Id;
+                int? ProposedAppId = propose ? Application.Id : null;
 
                 var Variables = new
                 {
                     name = ActConn.Name,
-                    appId = appId,
-                    proposedAppId = proposedAppId,
+                    appId = AppId,
+                    proposedAppId = ProposedAppId,
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
@@ -1215,19 +1285,21 @@ namespace FWO.Services
                 {
                     ActConn.Id = returnIds[0].NewId;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"New {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", appId);
+                        $"New {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", AppId);
                     if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                     {
                         await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers).ToList(), 
                             ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles).ToList(),
-                            ModellingNwGroupWrapper.Resolve(ActConn.SourceNwGroups).ToList(),
+                            ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas).ToList(),
+                            ModellingNwGroupWrapper.Resolve(ActConn.SourceOtherGroups).ToList(),
                             ModellingTypes.ConnectionField.Source);
                     }
                     if(ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
                     {
                         await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.DestinationAppServers).ToList(),
                             ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles).ToList(),
-                            ModellingNwGroupWrapper.Resolve(ActConn.DestinationNwGroups).ToList(),
+                            ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas).ToList(),
+                            ModellingNwGroupWrapper.Resolve(ActConn.DestinationOtherGroups).ToList(),
                             ModellingTypes.ConnectionField.Destination); 
                     }
                     if(ActConn.UsedInterfaceId == null)
@@ -1272,13 +1344,13 @@ namespace FWO.Services
 
                 if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                 {
-                    await RemoveNwObjects(SrcAppServerToDelete, SrcAppRolesToDelete, SrcNwGroupsToDelete, ModellingTypes.ConnectionField.Source);
-                    await AddNwObjects(SrcAppServerToAdd, SrcAppRolesToAdd, SrcNwGroupsToAdd, ModellingTypes.ConnectionField.Source);
+                    await RemoveNwObjects(SrcAppServerToDelete, SrcAppRolesToDelete, SrcAreasToDelete, SrcNwGroupsToDelete, ModellingTypes.ConnectionField.Source);
+                    await AddNwObjects(SrcAppServerToAdd, SrcAppRolesToAdd, SrcAreasToAdd, SrcNwGroupsToAdd, ModellingTypes.ConnectionField.Source);
                 }
                 if(ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
                 {
-                    await RemoveNwObjects(DstAppServerToDelete, DstAppRolesToDelete, DstNwGroupsToDelete, ModellingTypes.ConnectionField.Destination);
-                    await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
+                    await RemoveNwObjects(DstAppServerToDelete, DstAppRolesToDelete, DstAreasToDelete, DstNwGroupsToDelete, ModellingTypes.ConnectionField.Destination);
+                    await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstAreasToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
                 }
                 if(ActConn.UsedInterfaceId == null)
                 {
@@ -1297,7 +1369,8 @@ namespace FWO.Services
             }
         }
 
-        private async Task AddNwObjects(List<ModellingAppServer> appServers, List<ModellingAppRole> appRoles, List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
+        private async Task AddNwObjects(List<ModellingAppServer> appServers, List<ModellingAppRole> appRoles,
+            List<ModellingNetworkArea> areas, List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
         {
             try
             {
@@ -1315,6 +1388,13 @@ namespace FWO.Services
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Added App Role {appRole.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
+                foreach(var area in areas)
+                {
+                    var Variables = new { nwGroupId = area.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Added Area {area.Display()} to {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
+                }
                 foreach(var nwGroup in nwGroups)
                 {
                     var Variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
@@ -1329,7 +1409,8 @@ namespace FWO.Services
             }
         }
 
-        private async Task RemoveNwObjects(List<ModellingAppServer> appServers, List<ModellingAppRole> appRoles, List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
+        private async Task RemoveNwObjects(List<ModellingAppServer> appServers, List<ModellingAppRole> appRoles,
+            List<ModellingNetworkArea> areas, List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
         {
             try
             {
@@ -1346,6 +1427,13 @@ namespace FWO.Services
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
+                }
+                foreach(var area in areas)
+                {
+                    var Variables = new { nwGroupId = area.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Removed Area {area.Display()} from {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}: {field}", Application.Id);
                 }
                 foreach(var nwGroup in nwGroups)
                 {
@@ -1430,6 +1518,10 @@ namespace FWO.Services
             SrcAppRolesToDelete = [];
             DstAppRolesToAdd = [];
             DstAppRolesToDelete = [];
+            SrcAreasToAdd = [];
+            SrcAreasToDelete = [];
+            DstAreasToAdd = [];
+            DstAreasToDelete = [];
             SrcNwGroupsToAdd = [];
             SrcNwGroupsToDelete = [];
             DstNwGroupsToAdd = [];

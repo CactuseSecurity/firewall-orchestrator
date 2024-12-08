@@ -4,6 +4,8 @@ query getOwnerTickets ($ownerId: Int!) {
     owner: owner {
       id
       name
+      app_id_external
+      common_service_possible
     }
     ticket: ticket {
       ...ticketDetails

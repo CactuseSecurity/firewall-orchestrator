@@ -11,6 +11,7 @@
 @using FWO.Services
 @inject UserConfig userConfig
 
+@inject ApiConnection apiConnection
 
 <div class="row">
     <div class="col-sm-8">
@@ -59,9 +60,6 @@
 
     [Parameter]
     public EventCallback OnImportSuccess { get; set; }
-
-    [Parameter]
-    public ApiConnection? ApiConnection { get; set; }
 
     private List<AppServerType> AppServerTypes = new();
 
@@ -128,7 +126,6 @@
         foreach (string tmpLine in lines)
         {
             string line = tmpLine;
-
             string[]? entries;
 
             if (IsHeader(line))
@@ -137,6 +134,30 @@
             if (!TryGetEntries(line, ';', out entries) && !TryGetEntries(line, ',', out entries))
                 continue;
 
+            (bool importSuccess, Exception? error) = await ImportSingleAppServer(entries);
+            if (!importSuccess && error is not null)
+            {
+                importErrors.Add(error);
+            }
+        }
+
+        if (importErrors.Count > 0)
+        {
+            Exception exception = importErrors.First();
+            string message = $"{userConfig.GetText("import_finished_witherrors")}({importErrors.Count}). {exception.Message}";
+            await OnAddAppServerWarning.InvokeAsync(message);
+        }
+        else
+        {
+            await OnImportSuccess.InvokeAsync();
+        }
+        Loading = false;
+    }
+
+    private async Task<(bool, Exception?)> ImportSingleAppServer(string[]? entries)
+    {
+        if(entries != null && entries.Length > 3)
+        {
             CSVAppServerImportModel appServer = new()
                 {
                     AppServerName = entries[0],
@@ -160,26 +181,9 @@
             {
                 appServer.AppIPRangeEnd = appServer.AppIPRangeStart;
             }
-
-            (bool importSuccess, Exception? error) = await AddAppServerToDb(appServer);
-
-            if (!importSuccess && error is not null)
-                importErrors.Add(error);
+            return await AddAppServerToDb(appServer);
         }
-
-        if (importErrors.Count > 0)
-        {
-            Exception exception = importErrors.First();
-            string message = $"{userConfig.GetText("import_finished_witherrors")}({importErrors.Count}). {exception.Message}";
-
-            await OnAddAppServerWarning.InvokeAsync(message);
-        }
-        else
-        {
-            await OnImportSuccess.InvokeAsync();
-        }
-
-        Loading = false;
+        return (false, new Exception($"{userConfig.GetText("wrong_input_data")}: {(entries != null ? string.Join(",", entries) : "")}"));
     }
 
     private bool TryGetEntries(string line, char separator, out string[]? entries)
@@ -236,15 +240,13 @@
         try
         {
             AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == appServer.AppServerTyp);
-
             if (appServerType is null)
             {
                 return new(false, new Exception($"{userConfig.GetText("owner_appservertype_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
             }
 
-            List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
-
-            if (ownerIds is null || !ownerIds.Any())
+            List<OwnerIdModel> ownerIds = await apiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
+            if (ownerIds is null || ownerIds.Count == 0 || !ownerIds.Any())
             {
                 return new(false, new Exception($"{userConfig.GetText("owner_appserver_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
             }
@@ -258,8 +260,7 @@
                 importSource = GlobalConst.kManual,
                 customType = appServerType.Id
             };
-
-            ReturnId[]? returnIds = ( await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
+            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
         }
         catch (Exception exception)
         {

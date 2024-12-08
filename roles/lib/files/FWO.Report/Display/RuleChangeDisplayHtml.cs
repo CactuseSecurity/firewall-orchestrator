@@ -56,8 +56,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplaySource(ruleChange.OldRule, location, reportType, deletedStyle));
-                case 'I': return OutputHtmlAdded(DisplaySource(ruleChange.NewRule, location, reportType, addedStyle));
+                case 'D': return OutputHtmlDeleted(DisplaySource(ruleChange.OldRule, location, reportType, 0, deletedStyle));
+                case 'I': return OutputHtmlAdded(DisplaySource(ruleChange.NewRule, location, reportType, 0, addedStyle));
                 case 'C': return DisplayArrayDiff(DisplaySource(ruleChange.OldRule, location, reportType),
                                                   DisplaySource(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.SourceNegated, ruleChange.NewRule.SourceNegated);
@@ -80,8 +80,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplayDestination(ruleChange.OldRule, location, reportType, deletedStyle));
-                case 'I': return OutputHtmlAdded(DisplayDestination(ruleChange.NewRule, location, reportType, addedStyle));
+                case 'D': return OutputHtmlDeleted(DisplayDestination(ruleChange.OldRule, location, reportType, 0, deletedStyle));
+                case 'I': return OutputHtmlAdded(DisplayDestination(ruleChange.NewRule, location, reportType, 0, addedStyle));
                 case 'C': return DisplayArrayDiff(DisplayDestination(ruleChange.OldRule, location, reportType),
                                                   DisplayDestination(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.DestinationNegated, ruleChange.NewRule.DestinationNegated);
@@ -93,8 +93,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplayServices(ruleChange.OldRule, location, reportType, deletedStyle));
-                case 'I': return OutputHtmlAdded(DisplayServices(ruleChange.NewRule, location, reportType, addedStyle));
+                case 'D': return OutputHtmlDeleted(DisplayServices(ruleChange.OldRule, location, reportType, 0, deletedStyle));
+                case 'I': return OutputHtmlAdded(DisplayServices(ruleChange.NewRule, location, reportType, 0, addedStyle));
                 case 'C': return DisplayArrayDiff(DisplayServices(ruleChange.OldRule, location, reportType),
                                                   DisplayServices(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated);

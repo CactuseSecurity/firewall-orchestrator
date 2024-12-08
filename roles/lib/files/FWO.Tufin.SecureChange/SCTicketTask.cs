@@ -145,6 +145,11 @@ namespace FWO.Tufin.SecureChange
 			return template.ServiceTemplate.Replace("@@PROTOCOLNAME@@", protocolName).Replace("@@PORT@@", port).Replace("@@SERVICENAME@@", serviceName);
 		}
 
+		protected static string FillIcmpTemplate(ExternalTicketTemplate template, string serviceName)
+		{
+			return template.IcmpTemplate.Replace("@@SERVICENAME@@", serviceName);
+		}
+
 		protected static string FillNwObjGroupTemplate(ExternalTicketTemplate template, string groupName, string mgtName)
 		{
 			return template.NwObjGroupTemplate.Replace("@@GROUPNAME@@", groupName).Replace("@@MANAGEMENT_NAME@@", mgtName);

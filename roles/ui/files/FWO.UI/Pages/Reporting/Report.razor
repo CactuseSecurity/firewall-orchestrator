@@ -132,7 +132,7 @@
                             break;
 
                         case ReportType.Connections:
-                            <ConnectionsReport AppHandlers="appHandlers" AllCommonServices="currentReport.ReportData.GlobalComSvc"/>
+                            <ConnectionsReport AppHandlers="appHandlers" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
                             break;
 
                         default:
@@ -473,7 +473,7 @@
         }
         foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners)
         {
-            OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Name };
+            OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Display("") };
             currentReport.ReportData.OwnerData.Add(actOwnerData);
             await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
             connIntermediate =>
@@ -484,7 +484,11 @@
 
             await PrepareConnReportData(selectedOwner, actOwnerData);
         }
-        currentReport.ReportData.GlobalComSvc = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+        List<ModellingConnection> comSvcs = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+        if(comSvcs.Count > 0)
+        {
+            currentReport.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
+        }
     }
 
     async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerReport ownerData)

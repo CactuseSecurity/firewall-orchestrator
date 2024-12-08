@@ -1555,6 +1555,10 @@ INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
 INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
+INSERT INTO txt VALUES ('app_owner_not_found',  'German',   'Keinen Eigent&uuml;mer für diese App gefunden');
+INSERT INTO txt VALUES ('app_owner_not_found',  'English',  'No owner found for this app');
+INSERT INTO txt VALUES ('delete_app_zone', 	    'German',	'App Zone l&ouml;schen');
+INSERT INTO txt VALUES ('delete_app_zone', 	    'English',	'Delete App Zone');
 INSERT INTO txt VALUES ('extra_params',         'German',   'Sonderkonfigurationen');
 INSERT INTO txt VALUES ('extra_params',         'English',  'Extra configurations');
 INSERT INTO txt VALUES ('add_extra_config',     'German',   'Sonderkonfiguration hinzuf&uuml;gen');
@@ -1573,6 +1577,10 @@ INSERT INTO txt VALUES ('implementation_error', 'German',   'Fehler bei der Umse
 INSERT INTO txt VALUES ('implementation_error', 'English',  'Implementation error');
 INSERT INTO txt VALUES ('update_subscription_error','German','Fehler beim Aktualisieren');
 INSERT INTO txt VALUES ('update_subscription_error','English','Update subscription error');
+INSERT INTO txt VALUES ('new_app_zone',         'German',   'Neue AppZone: ');
+INSERT INTO txt VALUES ('new_app_zone',         'English',  'New AppZone: ');
+INSERT INTO txt VALUES ('update_app_zone',      'German',   'Ge&auml;nderte AppZone: ');
+INSERT INTO txt VALUES ('update_app_zone',      'English',  'Update AppZone: ');
 INSERT INTO txt VALUES ('nwareachange_clear_app_servers',    'German',   'Sind Sie sicher, dass Sie die Netzwerk Area wechseln wollen?<br><br>Es werden alle hinzugef&uuml;gten App Server entfernt!');
 INSERT INTO txt VALUES ('nwareachange_clear_app_servers',    'English',  'Are you sure you want to change the network area?<br><br>All added app servers will be removed!');
 
@@ -3129,6 +3137,15 @@ INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugu
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
 INSERT INTO txt VALUES ('E9102', 'English', 'Error at changing the external ticket state.');
+
+INSERT INTO txt VALUES ('E9201', 'German',  'Fehler beim L&ouml;schen der existierenden App Zonen Objekte');
+INSERT INTO txt VALUES ('E9201', 'English', 'Error deleting existing app zone objects');
+INSERT INTO txt VALUES ('E9202', 'German',  'Fehler beim Erzeugen der App Zonen Objekte');
+INSERT INTO txt VALUES ('E9202', 'English', 'Error creating app zone objects');
+INSERT INTO txt VALUES ('E9203', 'German',  'Fehler beim Abrufen der existierenden App Zonen Objekte');
+INSERT INTO txt VALUES ('E9203', 'English', 'Error retrieving the existing app zone objects');
+INSERT INTO txt VALUES ('E9204', 'German',  'Fehler beim Hinzuf&uuml;gen des App Servers zum App Zonen Objekt');
+INSERT INTO txt VALUES ('E9204', 'English', 'Error adding the App Server to the App Zone object');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

@@ -41,7 +41,7 @@ namespace FWO.Api.Data
             // Todo: Fill Area + AppId from IdString (-> Naming Convention)?
         }
 
-        private static List<ModellingAppServerWrapper> ConvertNwObjectsToAppServers(GroupFlat<NetworkObject>[] groupFlats)
+        protected static List<ModellingAppServerWrapper> ConvertNwObjectsToAppServers(GroupFlat<NetworkObject>[] groupFlats)
         {
             List<ModellingAppServerWrapper> appServers = [];
             foreach(var obj in groupFlats.Where(x => x.Object?.IP != null && x.Object?.IP != "").ToList())

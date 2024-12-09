@@ -1,12 +1,10 @@
-﻿using FWO.Api.Data;
-
-namespace FWO.Report
+﻿namespace FWO.Report
 {
     public class ReportData
     {
         public List<ManagementReport> ManagementData = [];
         public List<OwnerReport> OwnerData = [];
-        public List<ModellingConnection> GlobalComSvc = [];
+        public List<GlobalCommonSvcReport> GlobalComSvc = [];
         public ManagementReport GlobalStats = new();
 
 

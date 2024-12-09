@@ -231,7 +231,7 @@
             y => y.Id == managements.Find(z => z.Id == actDevice.Management.Id)?.DeviceType.Id)?.Manufacturer);
         if(matchingDeviceTypes.FirstOrDefault(x => x.Id == actDevice.DeviceType.Id) == null)
         {
-            actDevice.DeviceType = matchingDeviceTypes.First() ?? new DeviceType();
+            actDevice.DeviceType = matchingDeviceTypes.FirstOrDefault() ?? new DeviceType();
         }
     }
 

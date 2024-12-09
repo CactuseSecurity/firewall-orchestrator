@@ -10,7 +10,7 @@ namespace FWO.Services
     public class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi = null)
     {
         private ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-        private ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi, owner);
+        private ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, owner, displayMessageInUi);
         private List<Management> managements = [];
 
         private List<WfReqTask> TaskList = [];
@@ -271,7 +271,7 @@ namespace FWO.Services
             string sanitizedARName = Sanitizer.SanitizeJsonFieldMand(app.IdString, ref shortened);
             if (allExistingAppRoles.ContainsKey(mgt.Id))
             {
-                existingApp = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == app.IdString || a.Name == sanitizedARName);
+                existingApp = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == app.IdString || a.Name == sanitizedARName || a.Name == app.Name);
             }
             if (existingApp != null)
             {
@@ -353,14 +353,20 @@ namespace FWO.Services
         private void RequestNewApp(ModellingNwGroup app, Management mgt)
         {
             string title = "";
+            string additionalInfoKeys = "";
+            string groupName = "";
 
             if (app.GetType() == typeof(ModellingAppRole))
             {
                 title = userConfig.GetText("new_app_role");
+                additionalInfoKeys = AdditionalInfoKeys.AppRoleId;
+                groupName = app.IdString;
             }
             else if (app.GetType() == typeof(ModellingAppZone))
             {
                 title = userConfig.GetText("new_app_zone");
+                additionalInfoKeys = AdditionalInfoKeys.AppZoneId;
+                groupName = app.Name;
             }
 
             List<WfReqElement> groupMembers = [];
@@ -374,14 +380,14 @@ namespace FWO.Services
                     Name = appServer.Name,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
-                    GroupName = app.IdString,
+                    GroupName = groupName,
                     NetworkId = networkId
                 });
             }
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, app.IdString }, { AdditionalInfoKeys.AppRoleId, app.Id.ToString() } };
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, groupName }, { additionalInfoKeys, app.Id.ToString() } };
             TaskList.Add(new()
             {
-                Title = title + app.IdString,
+                Title = title + groupName,
                 TaskType = WfTaskType.group_create.ToString(),
                 RequestAction = RequestAction.create.ToString(),
                 ManagementId = mgt.Id,
@@ -394,25 +400,31 @@ namespace FWO.Services
         private void RequestUpdateApp(ModellingNwGroup app, Management mgt)
         {
             string title = "";
+            string additionalInfoKeys = "";
+            string groupName = "";
 
             if (app.GetType() == typeof(ModellingAppRole))
             {
                 title = userConfig.GetText("update_app_role");
+                additionalInfoKeys = AdditionalInfoKeys.AppRoleId;
+                groupName = app.IdString;
             }
             else if (app.GetType() == typeof(ModellingAppZone))
             {
                 title = userConfig.GetText("update_app_zone");
+                additionalInfoKeys = AdditionalInfoKeys.AppZoneId;
+                groupName = app.Name;
             }
 
-            FillGroupMembers(app.IdString, mgt);
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, app.IdString }, { AdditionalInfoKeys.AppRoleId, app.Id.ToString() } };
+            FillGroupMembers(groupName, mgt);
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, groupName }, { additionalInfoKeys, app.Id.ToString() } };
             if (newGroupMembers.Count > 0)
             {
                 newGroupMembers.AddRange(unchangedGroupMembers);
                 newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
                 TaskList.Add(new()
                 {
-                    Title = title + app.IdString + userConfig.GetText("add_members"),
+                    Title = title + groupName + userConfig.GetText("add_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
                     RequestAction = RequestAction.modify.ToString(),
                     ManagementId = mgt.Id,
@@ -427,7 +439,7 @@ namespace FWO.Services
                 deletedGroupMembers.AddRange(newCreatedGroupMembers);
                 DeleteTasksList.Add(new()
                 {
-                    Title = title + app.IdString + userConfig.GetText("remove_members"),
+                    Title = title + groupName + userConfig.GetText("remove_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
                     RequestAction = RequestAction.modify.ToString(),
                     ManagementId = mgt.Id,

@@ -13,10 +13,11 @@ namespace FWO.Services
 
         public async Task<ModellingAppZone?> UpsertAppZone()
         {
+            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = owner.Id });
             List<ModellingAppServerWrapper> allAppServers = [];
 
-            foreach (ModellingAppServer appServer in tempAppServers)
+            foreach (ModellingAppServer appServer in tempAppServers.Where(a => !a.IsDeleted))
             {
                 allAppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
             }
@@ -53,14 +54,14 @@ namespace FWO.Services
             return appZone;
         }
 
-        private static List<ModellingAppServerWrapper> FindNewAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
+        private List<ModellingAppServerWrapper> FindNewAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
         {
-            return allAppServers.Except(existingAppZone.AppServers, new AppServerComparer()).ToList();
+            return allAppServers.Except(existingAppZone.AppServers, new AppServerComparer(NamingConvention)).ToList();
         }
 
-        private static List<ModellingAppServerWrapper> FindRemovedAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
+        private List<ModellingAppServerWrapper> FindRemovedAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
         {
-            return existingAppZone.AppServers.Except(allAppServers, new AppServerComparer()).ToList();
+            return existingAppZone.AppServers.Except(allAppServers, new AppServerComparer(NamingConvention)).ToList();
         }
 
         public async Task<ModellingAppZone?> GetExistingAppZone()
@@ -79,7 +80,6 @@ namespace FWO.Services
 
         private void ApplyNamingConvention(string? extAppId, ModellingAppZone appZone)
         {
-            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             appZone.ManagedIdString.NamingConvention = NamingConvention;
             if(extAppId != null)
             {

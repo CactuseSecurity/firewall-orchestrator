@@ -265,7 +265,8 @@ namespace FWO.Middleware.Server
 			// TODO: to be refined
 			if(oldRequest != null && UserConfig.ExternalRequestWaitCycles > 0 &&
 				(oldRequest.ExtRequestType == "(NetworkObjectModify, CREATE)" || oldRequest.ExtRequestType == "(NetworkObjectModify, UPDATE)") &&
-				oldRequest.ExtRequestContent.Contains("\"object_updated_status\": \"NEW\""))
+				(oldRequest.ExtRequestContent.Contains("\"object_updated_status\": \"NEW\"") || oldRequest.ExtRequestContent.Contains("object_updated_status\u0022: \u0022NEW\u0022") ||
+				oldRequest.ExtRequestContent.Contains("\"object_updated_status\":\"NEW\"") || oldRequest.ExtRequestContent.Contains("object_updated_status\u0022:\u0022NEW\u0022")))
 			{
 				return UserConfig.ExternalRequestWaitCycles;
 			}

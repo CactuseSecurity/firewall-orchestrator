@@ -11,6 +11,7 @@ namespace FWO.Services
     {
         private readonly ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
         private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi, owner);
+        private AppServerComparer appServerComparer = new(new());
         private List<Management> managements = [];
 
         private List<WfReqTask> TaskList = [];
@@ -36,6 +37,7 @@ namespace FWO.Services
         public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> connections)
         {
             // later: get rules + compare, bundle requests
+            appServerComparer = new (namingConvention);
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
             managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
             foreach (Management mgt in managements)
@@ -279,13 +281,13 @@ namespace FWO.Services
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
 
-            ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer));
+            ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer));
             if (existingAppServer != null)
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
                 return (existingAppServer?.Id, true);
             }
-            else if (alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer)) != null)
+            else if (alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer)) != null)
             {
                 return (null, true);
             }
@@ -294,22 +296,6 @@ namespace FWO.Services
                 alreadyCreatedAppServers[mgt.Id].Add(appServer);
                 return (null, false);
             }
-        }
-
-        private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
-        {
-            return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + appServer.Ip :
-                ( char.IsLetter(appServer.Name[0]) ? appServer.Name : namingConvention?.AppServerPrefix + appServer.Name );
-        }
-
-        private bool AreEqual(ModellingAppServer appServer1, ModellingAppServer appServer2)
-        {
-            string appServer2Name = ConstructAppServerName(appServer2, namingConvention);
-            string sanitizedAS2Name = new(appServer2Name);
-            bool shortened = false;
-            sanitizedAS2Name = Sanitizer.SanitizeJsonFieldMand(sanitizedAS2Name, ref shortened);
-            return appServer1.Name.Trim() == appServer2Name.Trim() ||
-                appServer1.Name.Trim() == sanitizedAS2Name.Trim();
         }
 
         private bool NwGroupChanged(ModellingNwGroup nwGroup)
@@ -325,7 +311,7 @@ namespace FWO.Services
 
             foreach (ModellingAppServerWrapper appserver in ( (ModellingAppRole)nwGroup ).AppServers)
             {
-                if (existingAppRole.AppServers.FirstOrDefault(a => AreEqual(a.Content, appserver.Content)) != null)
+                if (existingAppRole.AppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appserver.Content)) != null)
                 {
                     unchangedAppServers.Add(appserver);
                 }
@@ -336,7 +322,7 @@ namespace FWO.Services
             }
             foreach (ModellingAppServerWrapper exAppserver in existingAppRole.AppServers)
             {
-                if (( (ModellingAppRole)nwGroup ).AppServers.FirstOrDefault(a => AreEqual(exAppserver.Content, a.Content)) == null)
+                if (( (ModellingAppRole)nwGroup ).AppServers.FirstOrDefault(a => appServerComparer.Equals(exAppserver.Content, a.Content)) == null)
                 {
                     deletedAppServers.Add(exAppserver);
                 }

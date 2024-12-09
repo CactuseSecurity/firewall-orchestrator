@@ -16,7 +16,10 @@ query getOpenRequests ($states: [String!] ){
     ext_request_type
     ext_request_state
     ext_ticket_id
+    last_creation_response
+	  last_processing_response
     create_date
+	  finish_date
     wait_cycles
   }
 }

@@ -71,7 +71,7 @@ else
     </div>
 }
 
-<PopUp Title="@(userConfig.GetText("ext_request") + ": " + actRequest.Id)" Show="@DetailsMode" Size=PopupSize.XLarge OnClose="() => DetailsMode = false">
+<PopUp Title="@(userConfig.GetText("external_request") + ": " + actRequest.Id)" Show="@DetailsMode" Size=PopupSize.XLarge OnClose="() => DetailsMode = false">
     <Body>
         @if (DetailsMode)
         {

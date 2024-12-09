@@ -49,6 +49,7 @@
                     @(statesDict.Name[context.Ticket.StateId] ?? context.Ticket.StateId.ToString())
                 </Template>
             </Column>
+            <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.Ticket.CreationDate)" Sortable="true" Filterable="true" />
 	        <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>
@@ -77,8 +78,13 @@ else
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                     <label class="col-sm-8">@(statesDict.Name[actOwnerTicket.Ticket.StateId] ?? actOwnerTicket.Ticket.StateId.ToString())</label>
                 </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("creation_date")):</label>
+                    <label class="col-sm-8">@actOwnerTicket.Ticket.CreationDate</label>
+                </div>
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="actOwnerTicket.Ticket.Tasks.OrderBy(x => x.TaskNumber).ToList()" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.OnManagement.Name)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
@@ -86,6 +92,7 @@ else
                             @(statesDict.Name[context.StateId] ?? context.StateId.ToString())
                         </Template>
                     </Column>
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("start_time"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
 	                <Pager ShowPageNumber="true" ShowTotalCount="true" />
                 </Table>
             </form>

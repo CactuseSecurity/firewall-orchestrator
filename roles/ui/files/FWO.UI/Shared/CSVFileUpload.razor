@@ -87,7 +87,7 @@
     {
         if (string.IsNullOrWhiteSpace(AuthorizedRoles))
         {
-            throw new UnauthorizedAccessException($"Parameter {nameof(AuthorizedRoles)} is cannot be empty!");
+            throw new UnauthorizedAccessException($"Parameter {nameof(AuthorizedRoles)} cannot be empty!");
         }
 
         base.OnParametersSet();
@@ -151,8 +151,7 @@
         string text = System.Text.Encoding.UTF8.GetString(bytes);
         string[] lines = text.Split('\r');
 
-        List<Exception>
-    ? importErrors = [];
+        List<Exception>? importErrors = [];
 
         foreach (string tmpLine in lines)
         {
@@ -260,8 +259,7 @@
 
     }
 
-    private async Task<(bool, Exception?)>
-        AddAppServerToDb(CSVAppServerImportModel appServer)
+    private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel appServer)
     {
         try
         {

@@ -3,6 +3,7 @@ using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
+using FWO.Report;
 
 namespace FWO.Ui.Display
 {
@@ -15,6 +16,17 @@ namespace FWO.Ui.Display
             return rule.DisplayOrderNumber.ToString();
         }
 
+        public static string DisplayEnabled(Rule rule, OutputLocation location)
+        {
+            if (location == OutputLocation.export)
+            {
+                return $"<b>{(rule.Disabled ? "N" : "Y")}</b>";
+            }
+            else
+            {
+                return $"<div class=\"oi {(rule.Disabled ? "oi-x" : "oi-check")}\"></div>";
+            }
+        }
         public static string DisplayName(Rule rule)
         {
             return rule.Name ?? "";

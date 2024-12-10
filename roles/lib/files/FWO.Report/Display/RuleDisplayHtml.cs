@@ -9,8 +9,8 @@ namespace FWO.Ui.Display
 {
     public class RuleDisplayHtml(UserConfig userConfig) : RuleDisplayBase(userConfig)
     {
-        public RuleDisplayHtml(UserConfig userConfig) : base(userConfig)
-        {}
+        // public RuleDisplayHtml(UserConfig userConfig) : base(userConfig)
+        // {}
 
         public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
@@ -40,18 +40,6 @@ namespace FWO.Ui.Display
                 result.AppendJoin("<br>", Array.ConvertAll(rule.Services, service => ServiceToHtml(service.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
             }
             return result.ToString();
-        }
-
-        public static string DisplayEnabled(Rule rule, OutputLocation location)
-        {
-            if (location == OutputLocation.export)
-            {
-                return $"<b>{(rule.Disabled ? "N" : "Y")}</b>";
-            }
-            else
-            {
-                return $"<div class=\"oi {(rule.Disabled ? "oi-x" : "oi-check")}\"></div>";
-            }
         }
 
         public static string DisplaySectionHeader(Rule rule, int ColumnCount)

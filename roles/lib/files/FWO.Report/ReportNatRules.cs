@@ -14,8 +14,8 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new ();
-            NatRuleDisplayHtml ruleDisplay = new (userConfig);
+            StringBuilder report = new();
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
             int chapterNumber = 0;
 
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
@@ -53,17 +53,17 @@ namespace FWO.Report
                                 if (string.IsNullOrEmpty(rule.SectionHeader))
                                 {
                                     report.AppendLine("<tr>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
+                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
+                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
+                                    report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
+                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export, chapterNumber)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export, chapterNumber)}</td>");
                                     report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export, chapterNumber)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, OutputLocation.export)}</td>");
+                                    report.AppendLine($"<td>{NatRuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
                                     report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
                                     report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                                     report.AppendLine("</tr>");
@@ -74,6 +74,7 @@ namespace FWO.Report
                                     report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
                                     report.AppendLine("</tr>");
                                 }
+                            }
                             report.AppendLine("</table>");
                             report.AppendLine("<hr>");
                         }
@@ -131,7 +132,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{objNumber++}</td>");
                         report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svcobj.Id}>{svcobj.Name}</a></td>");
                         report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
-                        report.AppendLine($"<td>{((svcobj.Type.Name!=ServiceType.Group && svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
+                        report.AppendLine($"<td>{((svcobj.Type.Name != ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
                         if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
                             report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
                         else

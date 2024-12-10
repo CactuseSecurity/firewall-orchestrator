@@ -121,6 +121,17 @@ namespace FWO.Api.Data
             string result = "";
             if (nwObjType != ObjectType.Group)
             {
+
+                if (string.IsNullOrEmpty(ip2))
+                {
+                    ip2 = ip1;
+                }
+
+                if (string.IsNullOrEmpty(ip1))
+                {
+                    Log.WriteDebug("Ip displaying", $"Parameter {nameof(ip1)} is empty.");
+                }
+
                 if (!IsV4Address(ip1) && !IsV6Address(ip1))
                 {
                     Log.WriteError("Ip displaying", $"Found undefined IP family: {ip1} - {ip2}");
@@ -130,11 +141,7 @@ namespace FWO.Api.Data
                     Log.WriteError("Ip displaying", $"Found mixed IP family: {ip1} - {ip2}");
                 }
                 else
-                {
-                    if (ip2 == "")
-                    {
-                        ip2 = ip1;
-                    }
+                {                    
                     string IpStart = StripOffUnnecessaryNetmask(ip1);
                     string IpEnd = StripOffUnnecessaryNetmask(ip2);
 

@@ -8,9 +8,6 @@
 
   <ItemGroup>
     <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.95" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.3.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
-    <PackageReference Include="System.Text.Encodings.Web" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>

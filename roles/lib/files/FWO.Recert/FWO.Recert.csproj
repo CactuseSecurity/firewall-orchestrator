@@ -6,11 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.3.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
-  </ItemGroup>
-
  <ItemGroup>
     <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
     <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />

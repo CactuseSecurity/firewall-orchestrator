@@ -452,14 +452,15 @@ AS $function$
     END;
 $function$;
 
-SELECT 1 FROM migrateToRulebases();
+SELECT * FROM migrateToRulebases();
 
 -- rewrite get_rulebase_for_owner to work with rulebase instead of device
 CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
  RETURNS SETOF rule
  LANGUAGE plpgsql
  STABLE
-AS $function$
+AS 
+$function$
     BEGIN
         RETURN QUERY
         SELECT r.* FROM rule r
@@ -481,8 +482,9 @@ AS $function$
     END;
 $function$;
 
--- drop only after migration!
-alter table rule drop constraint if exists rule_dev_id_fkey;
+-- drop only after migration
+
+ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_dev_id_fkey;
 
 Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
 

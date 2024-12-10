@@ -5,6 +5,8 @@ query getOpenRequests ($states: [String!] ){
     owner: owner {
       id
       name
+      app_id_external
+      common_service_possible
     }
     ticket_id
     ext_ticket_system
@@ -14,6 +16,10 @@ query getOpenRequests ($states: [String!] ){
     ext_request_type
     ext_request_state
     ext_ticket_id
+    last_creation_response
+	  last_processing_response
     create_date
+	  finish_date
+    wait_cycles
   }
 }

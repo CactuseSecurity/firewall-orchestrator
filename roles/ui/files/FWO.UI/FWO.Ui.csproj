@@ -7,7 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="IPAddressRange" Version="6.1.0" />
+    <PackageReference Include="IPAddressRange" Version="6.1.0">
+      <TreatAsUsed>true</TreatAsUsed>
+    </PackageReference>
     <PackageReference Include="BlazorTable" Version="1.17.0" />
   </ItemGroup>
 

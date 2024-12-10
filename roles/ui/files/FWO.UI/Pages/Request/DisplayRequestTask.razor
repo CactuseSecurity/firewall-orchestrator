@@ -594,7 +594,7 @@
         actRuleDevice = WfHandler.Devices.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetRuleDeviceId());
         actRuleAction = ruleActions.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.RuleAction);
         actTracking = trackings.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.Tracking);
-        actManagement = WfHandler.ActReqTask.ManagementId != null ? managements.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.ManagementId) : managements.First();
+        actManagement = WfHandler.ActReqTask.ManagementId != null ? managements.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.ManagementId) : managements.FirstOrDefault();
         actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
         StateHasChanged();
     }

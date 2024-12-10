@@ -98,7 +98,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 config_changed_since_last_import, configNormalized = \
                     importFromFile(importState, in_file, gateways)
             else:
-                ### geting config from firewall manager API ######
+                ### getting config from firewall manager API ######
                 config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
 
                 # also import sub managers if they exist

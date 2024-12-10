@@ -111,7 +111,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, nwObjConverted.Id);
             ClassicAssert.AreEqual(1, nwObjConverted.Number);
-            ClassicAssert.AreEqual(ARName, nwObjConverted.Name);
+            ClassicAssert.AreEqual(ARName + " ("+ ar1.IdString +")", nwObjConverted.Name);
             ClassicAssert.AreEqual("Comment nw1", nwObjConverted.Comment);
             ClassicAssert.AreEqual(ObjectType.Group, nwObjConverted.Type.Name);
             ClassicAssert.AreEqual("nwObj2|nwObj3", nwObjConverted.MemberNames);

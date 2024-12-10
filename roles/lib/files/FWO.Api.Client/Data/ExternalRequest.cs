@@ -23,6 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("task_number"), JsonPropertyName("task_number")]
         public int TaskNumber { get; set; }
 
+        [JsonProperty("wait_cycles"), JsonPropertyName("wait_cycles")]
+        public int WaitCycles { get; set; }
+
         [JsonProperty("ext_ticket_system"), JsonPropertyName("ext_ticket_system")]
         public string ExtTicketSystem { get; set; } = "";
 

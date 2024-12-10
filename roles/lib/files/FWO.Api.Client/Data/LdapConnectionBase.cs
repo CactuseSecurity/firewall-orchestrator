@@ -32,7 +32,7 @@ namespace FWO.Api.Data
         public int PatternLength { get; set; }
 
         [JsonProperty("ldap_search_user"), JsonPropertyName("ldap_search_user")]
-        public string? SearchUser { get; set; }
+        public string SearchUser { get; set; } = "";
 
         [JsonProperty("ldap_tls"), JsonPropertyName("ldap_tls")]
         public bool Tls { get; set; }
@@ -41,7 +41,7 @@ namespace FWO.Api.Data
         public int TenantLevel { get; set; }
 
         [JsonProperty("ldap_search_user_pwd"), JsonPropertyName("ldap_search_user_pwd")]
-        public string? SearchUserPwd { get; set; }
+        public string SearchUserPwd { get; set; } = "";
 
         [JsonProperty("ldap_searchpath_for_users"), JsonPropertyName("ldap_searchpath_for_users")]
         public string? UserSearchPath { get; set; }

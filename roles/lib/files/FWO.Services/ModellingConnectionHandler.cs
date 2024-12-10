@@ -179,7 +179,7 @@ namespace FWO.Services
         {
             try
             {
-                List<ModellingConnection> conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = ActConn.Id});
+                List<ModellingConnection> conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new {id = ActConn.Id});
                 if(conns.Count > 0)
                 {
                     ActConn = conns.First();
@@ -477,6 +477,7 @@ namespace FWO.Services
             }
             ActConn.Services = [.. interf.Services];
             ActConn.ServiceGroups = [.. interf.ServiceGroups];
+            ActConn.ExtraConfigsFromInterface = interf.ExtraConfigs;
         }
 
         public void RemoveInterf()
@@ -507,6 +508,7 @@ namespace FWO.Services
             SrcReadOnly = false;
             DstReadOnly = false;
             SvcReadOnly = false;
+            ActConn.ExtraConfigsFromInterface = [];
         }
 
         public void RequestRemovePreselectedInterface(ModellingConnection interf)

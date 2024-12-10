@@ -61,6 +61,12 @@
                 <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9081"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("extra_params")):</label>
                     <div class="col-sm-9">
+                        <span class="text-secondary">
+                            @foreach(var intconf in ConnHandler.ActConn.ExtraConfigsFromInterface)
+                            {
+                                <label>@(intconf.Display())</label><br>
+                            }
+                        </span>
                         @if(ConnHandler.ReadOnly)
                         {
                             foreach(var param in ConnHandler.ActConn.ExtraConfigs)

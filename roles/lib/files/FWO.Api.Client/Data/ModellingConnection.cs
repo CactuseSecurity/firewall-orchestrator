@@ -116,6 +116,7 @@ namespace FWO.Api.Data
                 }
             }
         }
+        public List<ModellingExtraConfig> ExtraConfigsFromInterface = [];
 
 
         public ModellingConnection()
@@ -153,6 +154,7 @@ namespace FWO.Api.Data
             DstFromInterface = conn.DstFromInterface;
             InterfaceIsRequested = conn.InterfaceIsRequested;
             InterfaceIsRejected = conn.InterfaceIsRejected;
+            ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
         }
 
         public int CompareTo(ModellingConnection secondConnection)

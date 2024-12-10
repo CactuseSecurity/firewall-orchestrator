@@ -101,9 +101,10 @@ namespace FWO.Services
             {
                 comment += ", ComSvc";
             }
-            if(conn.ExtraConfigs.Count > 0)
+            if(conn.ExtraConfigs.Count > 0 || conn.ExtraConfigsFromInterface.Count > 0)
             {
-                comment += ", " + userConfig.GetText("impl_instructions") + ": " + string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()));
+                comment += ", " + userConfig.GetText("impl_instructions") + ": " + 
+                    string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()).Concat(conn.ExtraConfigsFromInterface.ConvertAll(x => x.Display())));
             }
             return comment;
         }

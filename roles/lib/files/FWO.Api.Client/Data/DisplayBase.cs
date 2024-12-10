@@ -10,7 +10,7 @@ namespace FWO.Api.Data
     {
         public static StringBuilder DisplayService(NetworkService service, bool isTechReport, string? serviceName = null)
         {
-            StringBuilder result = new ();
+            StringBuilder result = new();
             string ports = service.DestinationPortEnd == null || service.DestinationPortEnd == 0 || service.DestinationPort == service.DestinationPortEnd ?
                 $"{service.DestinationPort}" : $"{service.DestinationPort}-{service.DestinationPortEnd}";
             if (isTechReport)
@@ -62,24 +62,24 @@ namespace FWO.Api.Data
         {
             List<IpProtocol> ListOut = [];
             IpProtocol? tcp = ListIn.Find(x => x.Name.ToLower() == "tcp");
-            if(tcp != null)
+            if (tcp != null)
             {
                 ListOut.Add(tcp);
                 ListIn.Remove(tcp);
             }
             IpProtocol? udp = ListIn.Find(x => x.Name.ToLower() == "udp");
-            if(udp != null)
+            if (udp != null)
             {
                 ListOut.Add(udp);
                 ListIn.Remove(udp);
             }
             IpProtocol? icmp = ListIn.Find(x => x.Name.ToLower() == "icmp");
-            if(icmp != null)
+            if (icmp != null)
             {
                 ListOut.Add(icmp);
                 ListIn.Remove(icmp);
             }
-            foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
+            foreach (var proto in ListIn.OrderBy(x => x.Name).ToList())
             {
                 if (proto.Name.ToLower() != "unassigned")
                 {
@@ -91,7 +91,7 @@ namespace FWO.Api.Data
 
         public static string DisplayIpWithName(NetworkObject elem)
         {
-            if(elem.Name != null && elem.Name != "")
+            if (elem.Name != null && elem.Name != "")
             {
                 return elem.Name + DisplayIp(elem.IP, elem.IpEnd, true);
             }
@@ -109,7 +109,7 @@ namespace FWO.Api.Data
                 string nwObjType = AutoDetectType(ip1, ip2);
                 return DisplayIp(ip1, ip2, nwObjType, inBrackets);
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 Log.WriteError("Ip displaying", $"Exception thrown: {exc.Message}");
                 return "";
@@ -121,7 +121,17 @@ namespace FWO.Api.Data
             string result = "";
             if (nwObjType != ObjectType.Group)
             {
-                if (!IsV4Address(ip1) && !IsV6Address(ip1))
+
+                if (string.IsNullOrEmpty(ip2))
+                {
+                    ip2 = ip1;
+                }
+
+                if (string.IsNullOrEmpty(ip1))
+                {
+                    Log.WriteDebug("Ip displaying", $"Parameter {nameof(ip1)} is empty.");
+                }
+                else if (!IsV4Address(ip1) && !IsV6Address(ip1))
                 {
                     Log.WriteError("Ip displaying", $"Found undefined IP family: {ip1} - {ip2}");
                 }
@@ -131,10 +141,6 @@ namespace FWO.Api.Data
                 }
                 else
                 {
-                    if (ip2 == "")
-                    {
-                        ip2 = ip1;
-                    }
                     string IpStart = StripOffUnnecessaryNetmask(ip1);
                     string IpEnd = StripOffUnnecessaryNetmask(ip2);
 
@@ -143,9 +149,9 @@ namespace FWO.Api.Data
                         result = inBrackets ? " (" : "";
                         if (nwObjType == ObjectType.Network)
                         {
-                            if(GetNetmask(IpStart) == "")
+                            if (GetNetmask(IpStart) == "")
                             {
-                                IPAddressRange ipRange = new (IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
+                                IPAddressRange ipRange = new(IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
                                 if (ipRange != null)
                                 {
                                     result += ipRange.ToCidrString();
@@ -240,7 +246,7 @@ namespace FWO.Api.Data
             int pos = ip.LastIndexOf('/');
             if (pos > -1 && ip.Length > pos + 1)
             {
-                return ip[(pos + 1)..];
+                return ip[( pos + 1 )..];
             }
             return "";
         }
@@ -288,7 +294,7 @@ namespace FWO.Api.Data
             if (ip1 == ip2 || ip2 == "")
             {
                 string netmask = GetNetmask(ip1);
-                if(netmask != "")
+                if (netmask != "")
                 {
                     return ObjectType.Network;
                 }

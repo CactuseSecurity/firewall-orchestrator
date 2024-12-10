@@ -16,9 +16,11 @@ namespace FWO.Report
         {
             StringBuilder report = new ();
             NatRuleDisplayHtml ruleDisplay = new (userConfig);
+            int chapterNumber = 0;
 
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
+                chapterNumber++;
                 report.AppendLine($"<h3>{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");
 
@@ -51,17 +53,17 @@ namespace FWO.Report
                                 if (string.IsNullOrEmpty(rule.SectionHeader))
                                 {
                                     report.AppendLine("<tr>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType)}</td>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export)}</td>");
-                                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export, chapterNumber)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export, chapterNumber)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export, chapterNumber)}</td>");
+                                    report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, OutputLocation.export)}</td>");
                                     report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
                                     report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                                     report.AppendLine("</tr>");
@@ -72,16 +74,12 @@ namespace FWO.Report
                                     report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
                                     report.AppendLine("</tr>");
                                 }
-                            }
                             report.AppendLine("</table>");
                             report.AppendLine("<hr>");
                         }
-                        }
-
+                    }
                 }
-
                 // show all objects used in this management's rules
-
                 int objNumber = 1;
                 if (managementReport.ReportObjects != null)
                 {
@@ -100,7 +98,7 @@ namespace FWO.Report
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td><a name={ObjCatString.NwObj}{nwobj.Id}>{nwobj.Name}</a></td>");
+                        report.AppendLine($"<td><a name={ObjCatString.NwObj}{chapterNumber}x{nwobj.Id}>{nwobj.Name}</a></td>");
                         report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
                         report.AppendLine($"<td>{NwObjDisplay.DisplayIp(nwobj.IP, nwobj.IpEnd, nwobj.Type.Name)}</td>");
                         report.AppendLine(nwobj.MemberNamesAsHtml());
@@ -131,7 +129,7 @@ namespace FWO.Report
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td><a name={ObjCatString.Svc}{svcobj.Id}>{svcobj.Name}</a></td>");
+                        report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svcobj.Id}>{svcobj.Name}</a></td>");
                         report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
                         report.AppendLine($"<td>{((svcobj.Type.Name!=ServiceType.Group && svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
                         if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
@@ -164,7 +162,7 @@ namespace FWO.Report
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td><a name={ObjCatString.User}{userobj.Id}>{userobj.Name}</a></td>");
+                        report.AppendLine($"<td><a name={ObjCatString.User}{chapterNumber}x{userobj.Id}>{userobj.Name}</a></td>");
                         report.AppendLine($"<td>{(userobj.Type.Name != "" ? userConfig.GetText(userobj.Type.Name) : "")}</td>");
                         report.AppendLine(userobj.MemberNamesAsHtml());
                         report.AppendLine($"<td>{userobj.Uid}</td>");

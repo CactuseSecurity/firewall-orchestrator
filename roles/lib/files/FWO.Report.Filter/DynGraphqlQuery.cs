@@ -267,12 +267,12 @@ namespace FWO.Report.Filter
                 case ReportType.Connections:
 
                     query.FullQuery = Queries.compact($@"
-                        {ModellingQueries.connectionDetailsFragment}
-                        query getConnections ({paramString})
+                        {ModellingQueries.connectionResolvedDetailsFragment}
+                        query getConnectionsResolved ({paramString})
                         {{
                             modelling_connection (where: {{ {query.ConnectionWhereStatement} }} order_by: {{ is_interface: desc, common_service: desc, name: asc }})
                             {{
-                                ...connectionDetails
+                                ...connectionResolvedDetails
                             }}
                         }}
                     ");

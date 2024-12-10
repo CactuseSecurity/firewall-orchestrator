@@ -38,13 +38,18 @@
                     </div>
                 </Template>
             </Column>
-            <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true" >
+                <Template Context="ownwerTicket">
+                    @ownwerTicket.Owner.Display(userConfig.GetText("common_service"))
+                </Template>
+            </Column>
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.Ticket.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.Ticket.StateId)" Sortable="true" Filterable="true" >
                 <Template>
                     @(statesDict.Name[context.Ticket.StateId] ?? context.Ticket.StateId.ToString())
                 </Template>
             </Column>
+            <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.Ticket.CreationDate)" Sortable="true" Filterable="true" />
 	        <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>
@@ -63,7 +68,7 @@ else
             <form>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
-                    <label class="col-sm-8">@actOwnerTicket.Owner.Name</label>
+                    <label class="col-sm-8">@actOwnerTicket.Owner.Display(userConfig.GetText("common_service"))</label>
                 </div>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ticket")):</label>
@@ -73,8 +78,13 @@ else
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                     <label class="col-sm-8">@(statesDict.Name[actOwnerTicket.Ticket.StateId] ?? actOwnerTicket.Ticket.StateId.ToString())</label>
                 </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("creation_date")):</label>
+                    <label class="col-sm-8">@actOwnerTicket.Ticket.CreationDate</label>
+                </div>
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="actOwnerTicket.Ticket.Tasks.OrderBy(x => x.TaskNumber).ToList()" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.OnManagement.Name)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
@@ -82,6 +92,7 @@ else
                             @(statesDict.Name[context.StateId] ?? context.StateId.ToString())
                         </Template>
                     </Column>
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("start_time"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
 	                <Pager ShowPageNumber="true" ShowTotalCount="true" />
                 </Table>
             </form>
@@ -89,7 +100,7 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -202,7 +213,7 @@ else
 
             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
                 0, $"Reinitialized Rollout Requests", apiConnection, userConfig, 
-				actOwnerTicket.Ticket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, userConfig.User.Name);
+				actOwnerTicket.Ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, userConfig.User.Name);
         }
         catch (Exception exception)
         {

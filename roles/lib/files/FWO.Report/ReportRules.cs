@@ -361,12 +361,13 @@ namespace FWO.Report
         {
             StringBuilder report = new ();
             RuleDisplayHtml ruleDisplayHtml = new (userConfig);
+            int chapterNumber = 0;
 
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.OrderedRulebases != null && device.OrderedRulebases.Length > 0)))
             {
+                chapterNumber++;
                 managementReport.AssignRuleNumbers();
-
                 report.AppendLine($"<h3>{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");
 
@@ -374,12 +375,12 @@ namespace FWO.Report
                 {
                     if (device.OrderedRulebases != null && device.OrderedRulebases.Length > 0)
                     {
-                        AppendRulesForDeviceHtml(ref report, device, ruleDisplayHtml);
+                        AppendRulesForDeviceHtml(ref report, device, chapterNumber, ruleDisplayHtml);
                     }
                 }
 
                 // show all objects used in this management's rules
-                AppendObjectsForManagementHtml(ref report, managementReport);
+                AppendObjectsForManagementHtml(ref report, chapterNumber, managementReport);
             }
 
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
@@ -414,7 +415,7 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void AppendRulesForDeviceHtml(ref StringBuilder report, DeviceReport device, RuleDisplayHtml ruleDisplayHtml)
+        private void AppendRulesForDeviceHtml(ref StringBuilder report, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
             if (device.ContainsRules())
             {
@@ -457,10 +458,24 @@ namespace FWO.Report
                         {
                             report.AppendLine(RuleDisplayHtml.DisplaySectionHeader(rule, ColumnCount));
                         }
-                        // if(ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
-                        // {  // Why do we do this here?
-                        //     report.AppendLine(RuleDisplayHtml.DisplaySectionHeader(rule, ColumnCount));
-                        // }
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayName(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplaySourceZone(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestinationZone(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayAction(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayTrack(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                    else
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td class=\"bg-gray\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
+                        report.AppendLine("</tr>");
                     }
                 }
                 report.AppendLine("</table>");
@@ -468,15 +483,14 @@ namespace FWO.Report
             }
         }
 
-        private void AppendObjectsForManagementHtml(ref StringBuilder report, ManagementReport managementReport)
+        private void AppendObjectsForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            int objNumber = 1;
-            AppendNetworkObjectsForManagementHtml(ref report, ref objNumber, managementReport);
-            AppendNetworkServicesForManagementHtml(ref report, ref objNumber, managementReport);
-            AppendUsersForManagementHtml(ref report, ref objNumber, managementReport);
+            AppendNetworkObjectsForManagementHtml(ref report, chapterNumber, managementReport);
+            AppendNetworkServicesForManagementHtml(ref report, chapterNumber, managementReport);
+            AppendUsersForManagementHtml(ref report, chapterNumber, managementReport);
         }
 
-        private void AppendNetworkObjectsForManagementHtml(ref StringBuilder report, ref int objNumber, ManagementReport managementReport)
+        private void AppendNetworkObjectsForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
             if (managementReport.ReportObjects != null && !ReportType.IsResolvedReport())
             {
@@ -491,11 +505,12 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
+                int objNumber = 1;
                 foreach (var nwobj in managementReport.ReportObjects)
                 {
                     report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlighted : "")}\">");
                     report.AppendLine($"<td>{objNumber++}</td>");
-                    report.AppendLine($"<td><a name={ObjCatString.NwObj}{nwobj.Id}>{nwobj.Name}</a></td>");
+                    report.AppendLine($"<td><a name={ObjCatString.NwObj}{chapterNumber}x{nwobj.Id}>{nwobj.Name}</a></td>");
                     report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
                     report.AppendLine($"<td>{NwObjDisplay.DisplayIp(nwobj.IP, nwobj.IpEnd, nwobj.Type.Name)}</td>");
                     report.AppendLine(nwobj.MemberNamesAsHtml());
@@ -508,7 +523,7 @@ namespace FWO.Report
             }
         }
 
-        private void AppendNetworkServicesForManagementHtml(ref StringBuilder report, ref int objNumber, ManagementReport managementReport)
+        private void AppendNetworkServicesForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
             if (managementReport.ReportServices != null && !ReportType.IsResolvedReport())
             {
@@ -524,12 +539,12 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
-                objNumber = 1;
+                int objNumber = 1;
                 foreach (var svcobj in managementReport.ReportServices)
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");
-                    report.AppendLine($"<td><a name={ObjCatString.Svc}{svcobj.Id}>{svcobj.Name}</a></td>");
+                    report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svcobj.Id}>{svcobj.Name}</a></td>");
                     report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
                     report.AppendLine($"<td>{((svcobj.Type.Name!=ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
                     if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
@@ -550,7 +565,7 @@ namespace FWO.Report
             }
         }
 
-        private void AppendUsersForManagementHtml(ref StringBuilder report, ref int objNumber, ManagementReport managementReport)
+        private void AppendUsersForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
             if (managementReport.ReportUsers != null && !ReportType.IsResolvedReport())
             {
@@ -564,12 +579,12 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
-                objNumber = 1;
+                int objNumber = 1;
                 foreach (var userobj in managementReport.ReportUsers)
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");
-                    report.AppendLine($"<td><a name={ObjCatString.User}{userobj.Id}>{userobj.Name}</a></td>");
+                    report.AppendLine($"<td><a name={ObjCatString.User}{chapterNumber}x{userobj.Id}>{userobj.Name}</a></td>");
                     report.AppendLine($"<td>{(userobj.Type.Name != "" ? userConfig.GetText(userobj.Type.Name) : "")}</td>");
                     report.AppendLine(userobj.MemberNamesAsHtml());
                     report.AppendLine($"<td>{userobj.Uid}</td>");

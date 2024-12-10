@@ -250,7 +250,10 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
 		public bool ReducedProtocolSet { get; set; } = true;
 
-		[JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
+        [JsonProperty("createApplicationZones"), JsonPropertyName("createApplicationZones")]
+        public bool CreateAppZones { get; set; }
+
+        [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
 		public string ImportAppDataPath { get; set; } = "";
 
 		[JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
@@ -259,8 +262,14 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
 		public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
 
-        // [JsonProperty("modUserGroupLdap"), JsonPropertyName("modUserGroupLdap")]
-        // public int ModUserGroupLdap { get; set; } = 1;	// 1 = internal ldap
+		[JsonProperty("ownerLdapId"), JsonPropertyName("ownerLdapId")]
+		public int OwnerLdapId { get; set; } = GlobalConst.kLdapInternalId;
+
+		[JsonProperty("manageOwnerLdapGroups"), JsonPropertyName("manageOwnerLdapGroups")]
+		public bool ManageOwnerLdapGroups { get; set; } = true;
+
+		[JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
+		public string OwnerLdapGroupNames { get; set; } = "";
         
 		[JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
 		public string ImportSubnetDataPath { get; set; } = "";
@@ -315,6 +324,9 @@ namespace FWO.Config.Api.Data
 
 		[JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
 		public string ModRolloutErrorText { get; set; } = "";
+
+		[JsonProperty("externalRequestWaitCycles"), JsonPropertyName("externalRequestWaitCycles")]
+		public int ExternalRequestWaitCycles { get; set; } = 0;
 
 		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
 		public string ExtTicketSystems { get; set; } = "";

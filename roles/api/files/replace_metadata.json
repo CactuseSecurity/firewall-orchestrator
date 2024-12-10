@@ -5335,6 +5335,7 @@
                       "last_processing_response",
                       "owner_id",
                       "task_number",
+                      "wait_cycles",
                       "create_date",
                       "finish_date"
                     ]
@@ -5346,17 +5347,18 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "create_date",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
                       "ext_ticket_system",
+                      "finish_date",
+                      "id",
                       "owner_id",
                       "task_number",
-                      "create_date",
-                      "finish_date"
+                      "ticket_id",
+                      "wait_cycles"
                     ]
                   },
                   "comment": ""
@@ -5379,6 +5381,7 @@
                       "last_processing_response",
                       "owner_id",
                       "task_number",
+                      "wait_cycles",
                       "create_date",
                       "finish_date"
                     ],
@@ -5402,6 +5405,7 @@
                       "last_processing_response",
                       "owner_id",
                       "task_number",
+                      "wait_cycles",
                       "create_date",
                       "finish_date"
                     ],
@@ -5413,20 +5417,21 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "create_date",
+                      "id",
+                      "ticket_id",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
                       "ext_ticket_id",
                       "ext_ticket_system",
-                      "finish_date",
-                      "id",
                       "last_creation_response",
                       "last_processing_response",
                       "owner_id",
                       "task_number",
-                      "ticket_id"
+                      "wait_cycles",
+                      "create_date",
+                      "finish_date"
                     ],
                     "filter": {}
                   },
@@ -5450,6 +5455,7 @@
                       "last_processing_response",
                       "owner_id",
                       "task_number",
+                      "wait_cycles",
                       "create_date",
                       "finish_date"
                     ],

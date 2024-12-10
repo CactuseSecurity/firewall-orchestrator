@@ -222,7 +222,6 @@ else
         {
             if (configData != null)
             {
-                configData.WelcomeMessage = SanitizeHtml(configData!.WelcomeMessage);
                 configData.DefaultLanguage = selectedLanguage.Name;
                 configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
@@ -238,6 +237,4 @@ else
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
     }
-
-    private static string SanitizeHtml(string input) => System.Web.HttpUtility.HtmlEncode(input).Replace("\n", "<br>");
 }

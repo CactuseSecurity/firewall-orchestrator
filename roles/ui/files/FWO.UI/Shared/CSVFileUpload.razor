@@ -293,7 +293,7 @@
                 importSource = GlobalConst.kManual,
                 customType = appServerType.Id
             };
-            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
+            ReturnId[]? returnIds = ( await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
         }
         catch (Exception exception)
         {

@@ -2,6 +2,7 @@
 using NUnit.Framework.Legacy;
 using FWO.Api.Data;
 using FWO.Tufin.SecureChange;
+using FWO.Middleware.Server;
 
 namespace FWO.Test
 {
@@ -9,7 +10,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class SCTicketTest
     {
-        readonly SimulatedUserConfig userConfig = new();
+        readonly SimulatedUserConfig userConfig = new(){ExternalRequestWaitCycles = 3};
         static readonly ModellingNamingConvention NamingConvention = new()
         {
             NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 2, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR", AppServerPrefix = "net_"
@@ -41,7 +42,8 @@ namespace FWO.Test
                     TasksTemplate = "{\"order\": \"@@ORDERNAME@@\",\"verifier_result\": {\"status\": \"not run\"},\"use_topology\": true,\"targets\": {\"target\": {\"@type\": \"ANY\"}},\"action\": \"accept\",\"sources\":{\"source\":@@SOURCES@@},\"destinations\":{\"destination\":@@DESTINATIONS@@},\"services\":{\"service\":@@SERVICES@@},\"labels\":\"\",\"comment\": \"@@TASKCOMMENT@@\"}",
                     IpTemplate = "{\"@type\": \"IP\", \"ip_address\": \"@@IP@@\", \"netmask\": \"255.255.255.255\", \"cidr\": 32}",
                     NwObjGroupTemplate = "{\"@type\": \"Object\", \"object_name\": \"@@GROUPNAME@@\", \"management_name\": \"@@MANAGEMENT_NAME@@\"}",
-                    ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLNAME@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}"
+                    ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLNAME@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}",
+                    IcmpTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"ICMP\", \"type\": 8, \"name\": \"@@SERVICENAME@@\"}"
                 }
 
             ]
@@ -125,7 +127,17 @@ namespace FWO.Test
                         Port = 1000,
                         ProtoId = 6,
                         Field = ElemFieldType.service.ToString()
+                    },
+                    new()
+                    {
+                        Id = 4,
+                        TaskId = 1,
+                        RequestAction = RequestAction.create.ToString(),
+                        Name = "Icmp1",
+                        ProtoId = 1,
+                        Field = ElemFieldType.service.ToString()
                     }
+
                 ]
             }
         ];
@@ -136,7 +148,8 @@ namespace FWO.Test
             "{\"order\": \"AR1\",\"verifier_result\": {\"status\": \"not run\"},\"use_topology\": true,\"targets\": {\"target\": {\"@type\": \"ANY\"}},\"action\": \"accept\"," +
             "\"sources\":{\"source\":[{\"@type\": \"Object\", \"object_name\": \"ARxx12345-100\", \"management_name\": \"CheckpointExt\"}]}," +
             "\"destinations\":{\"destination\":[{\"@type\": \"Object\", \"object_name\": \"ARxx12345-101\", \"management_name\": \"CheckpointExt\"}]}," +
-            "\"services\":{\"service\":[{\"@type\": \"PROTOCOL\", \"protocol\": \"TCP\", \"port\": 1000, \"name\": \"Svc1\"}]},\"labels\":\"\",\"comment\": \"\"}]}," +
+            "\"services\":{\"service\":[{\"@type\": \"PROTOCOL\", \"protocol\": \"TCP\", \"port\": 1000, \"name\": \"Svc1\"},{\"@type\": \"PROTOCOL\", \"protocol\": \"ICMP\", \"type\": 8, \"name\": \"Icmp1\"}]}," +
+            "\"labels\":\"\",\"comment\": \"\"}]}," +
             "{\"@xsi.type\": \"text_area\",\"name\": \"Grund für den Antrag\",\"read_only\": false,\"text\": \"connection needed\"},{\"@xsi.type\": \"text_field\",\"name\": \"Anwendungs-ID\",\"text\": \"\"},{\"@xsi.type\": \"checkbox\",\"name\": \"hinterlegt\",\"value\": true}]}}}}]}}}}";
 
 
@@ -148,21 +161,40 @@ namespace FWO.Test
         }
 
         [Test]
-        public void TestSCGrpCreateTicket()
+        public async Task TestSCGrpCreateTicket()
         {
             SCTicket ticket = new (ticketSystem);
-            ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
+            await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(GrpCreateFilledTicketText, ticket.TicketText);
         }
 
         [Test]
-        public void TestSCAccessTicket()
+        public async Task TestSCAccessTicket()
         {
             SCTicket ticket = new (ticketSystem);
-            ticket.CreateRequestString(accessReqTasks, ipProtos, NamingConvention);
+            await ticket.CreateRequestString(accessReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(AccessFilledTicketText, ticket.TicketText);
+        }
+
+        [Test]
+        public async Task TestGetWaitCycles()
+        {
+            SCTicket ticket = new (ticketSystem);
+            await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
+            ExternalRequestHandler extReqHandler = new(userConfig);
+            ExternalRequest request = new(){ ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks.First()), ExtRequestContent = ticket.TicketText};
+
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(request));
+        }
+
+        [Test]
+        public void TestGetLastTaskNumber()
+        {
+            string extQueryVars = "{\"BundledTasks\":[1,2,3]}";
+
+            ClassicAssert.AreEqual(3, ExternalRequestHandler.GetLastTaskNumber(extQueryVars, 0));
         }
     }
 }

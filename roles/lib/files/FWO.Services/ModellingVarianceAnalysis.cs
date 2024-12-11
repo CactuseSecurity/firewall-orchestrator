@@ -7,10 +7,11 @@ using FWO.Api.Client.Data;
 
 namespace FWO.Services
 {
-    public class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi = null)
+    public class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi)
     {
-        private ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-        private ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi, owner);
+        private readonly ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+        private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi, owner);
+        private AppServerComparer appServerComparer = new(new());
         private List<Management> managements = [];
 
         private List<WfReqTask> TaskList = [];
@@ -19,11 +20,11 @@ namespace FWO.Services
         private int taskNumber = 0;
         private List<WfReqElement> elements = [];
 
-        private Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
-        private Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
-        private Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
+        private readonly Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
+        private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
+        private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
 
-        private ModellingAppRole? existingApp;
+        private ModellingAppRole? existingAppRole;
         private List<ModellingAppServerWrapper> newAppServers = [];
         private List<ModellingAppServerWrapper> deletedAppServers = [];
         private List<ModellingAppServerWrapper> unchangedAppServers = [];
@@ -33,9 +34,10 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
 
-        public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> Connections)
+        public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> connections)
         {
             // later: get rules + compare, bundle requests
+            appServerComparer = new (namingConvention);
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
             managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
             foreach (Management mgt in managements)
@@ -51,9 +53,10 @@ namespace FWO.Services
             TaskList = [];
             AccessTaskList = [];
             DeleteTasksList = [];
-            foreach (ModellingConnection? conn in Connections.Where(c => !c.IsRequested))
+            foreach (Management mgt in managements)
             {
-                foreach (Management mgt in managements)
+                await AnalyseAppZone(mgt);
+                foreach(var conn in connections.Where(c => !c.IsRequested))
                 {
                     elements = [];
                     AnalyseNetworkAreas(conn);
@@ -61,13 +64,12 @@ namespace FWO.Services
                     AnalyseAppServers(conn);
                     AnalyseServiceGroups(conn, mgt);
                     AnalyseServices(conn);
-                    await AnalyseAppZone(mgt);
                     if (elements.Count > 0)
                     {
                         Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
                         AccessTaskList.Add(new()
                         {
-                            Title = userConfig.GetText("new_connection") + ": " + conn.Name ?? "",
+                            Title = (conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection")) + ": " + conn.Name ?? "",
                             TaskType = WfTaskType.access.ToString(),
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
@@ -95,7 +97,11 @@ namespace FWO.Services
         private string ConstructComment(ModellingConnection conn)
         {
             string comment = "FWOC" + conn.Id.ToString();
-            if (conn.ExtraConfigs.Count > 0)
+            if(conn.IsCommonService)
+            {
+                comment += ", ComSvc";
+            }
+            if(conn.ExtraConfigs.Count > 0)
             {
                 comment += ", " + userConfig.GetText("impl_instructions") + ": " + string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()));
             }
@@ -174,22 +180,22 @@ namespace FWO.Services
 
         private void AnalyseNetworkAreas(ModellingConnection conn)
         {
-            foreach (ModellingNwGroup nwGroup in ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups))
+            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    GroupName = nwGroup.IdString
+                    GroupName = area.IdString
                 });
             }
-            foreach (ModellingNwGroup nwGroup in ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups))
+            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.destination.ToString(),
-                    GroupName = nwGroup.IdString
+                    GroupName = area.IdString
                 });
             }
         }
@@ -208,18 +214,18 @@ namespace FWO.Services
 
         private void AnalyseAppRole(ModellingAppRole appRole, Management mgt, bool isSource = false)
         {
-            if (!ResolveExistingApp(appRole, mgt))
+            if (!ResolveExistingNwGroup(appRole, mgt))
             {
                 if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_role") + appRole.IdString && x.OnManagement?.Id == mgt.Id) == null)
                 {
-                    RequestNewApp(appRole, mgt);
+                    RequestNewNwGroup(appRole, mgt);
                 }
             }
-            else if (AppChanged(appRole) &&
+            else if (NwGroupChanged(appRole) &&
                 TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
                 DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
             {
-                RequestUpdateApp(appRole, mgt);
+                RequestUpdateNwGroup(appRole, mgt);
             }
 
             elements.Add(new()
@@ -241,57 +247,47 @@ namespace FWO.Services
 
             if (existingAppZone is not null)
             {               
-                if (!ResolveExistingApp(existingAppZone, mgt))
+                if (!ResolveExistingNwGroup(existingAppZone, mgt))
                 {
-                    RequestNewApp(existingAppZone, mgt);
+                    RequestNewNwGroup(existingAppZone, mgt);
                 }
-                else if (AppChanged(existingAppZone) )
+                else if (NwGroupChanged(existingAppZone) )
                 {
-                    RequestUpdateApp(existingAppZone, mgt);
+                    RequestUpdateNwGroup(existingAppZone, mgt);
                 }
             }
         }
 
-        private bool ResolveExistingApp(ModellingNwGroup app, Management mgt)
+        private bool ResolveExistingNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
-            string appType = "";
-
-            if (app.GetType() == typeof(ModellingAppRole))
-            {
-                appType = "AppRole";
-            }
-            else if (app.GetType() == typeof(ModellingAppZone))
-            {
-                appType = "AppZone";
-            }
-
-            Log.WriteDebug($"Search {appType}", $"Name: {app.Name}, IdString: {app.IdString}, Management: {mgt.Name}");
+            string nwGroupType = nwGroup.GetType() == typeof(ModellingAppRole) ? "AppRole" : "AppZone"; 
+            Log.WriteDebug($"Search {nwGroupType}", $"Name: {nwGroup.Name}, IdString: {nwGroup.IdString}, Management: {mgt.Name}");
 
             bool shortened = false;
-            string sanitizedARName = Sanitizer.SanitizeJsonFieldMand(app.IdString, ref shortened);
+            string sanitizedARName = Sanitizer.SanitizeJsonFieldMand(nwGroup.IdString, ref shortened);
             if (allExistingAppRoles.ContainsKey(mgt.Id))
             {
-                existingApp = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == app.IdString || a.Name == sanitizedARName);
+                existingAppRole = allExistingAppRoles[mgt.Id].FirstOrDefault(a => a.Name == nwGroup.IdString || a.Name == sanitizedARName);
             }
-            if (existingApp != null)
+            if (existingAppRole != null)
             {
-                Log.WriteDebug($"Search {appType}", $"Found!!");
+                Log.WriteDebug($"Search {nwGroupType}", $"Found!!");
             }
 
-            return existingApp != null;
+            return existingAppRole != null;
         }
 
         private (long?, bool) ResolveAppServerId(ModellingAppServer appServer, Management mgt)
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
 
-            ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer));
+            ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer));
             if (existingAppServer != null)
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
                 return (existingAppServer?.Id, true);
             }
-            else if (alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => AreEqual(a, appServer)) != null)
+            else if (alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer)) != null)
             {
                 return (null, true);
             }
@@ -302,36 +298,20 @@ namespace FWO.Services
             }
         }
 
-        private static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
-        {
-            return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + appServer.Ip :
-                ( char.IsLetter(appServer.Name[0]) ? appServer.Name : namingConvention?.AppServerPrefix + appServer.Name );
-        }
-
-        private bool AreEqual(ModellingAppServer appServer1, ModellingAppServer appServer2)
-        {
-            string appServer2Name = ConstructAppServerName(appServer2, namingConvention);
-            string sanitizedAS2Name = new(appServer2Name);
-            bool shortened = false;
-            sanitizedAS2Name = Sanitizer.SanitizeJsonFieldMand(sanitizedAS2Name, ref shortened);
-            return appServer1.Name.ToLower().Trim() == appServer2Name.ToLower().Trim() ||
-                appServer1.Name.ToLower().Trim() == sanitizedAS2Name.ToLower().Trim();
-        }
-
-        private bool AppChanged(ModellingNwGroup app)
+        private bool NwGroupChanged(ModellingNwGroup nwGroup)
         {
             newAppServers = [];
             deletedAppServers = [];
             unchangedAppServers = [];
 
-            if (existingApp is null)
+            if (existingAppRole is null)
             {
                 return false;
             }
 
-            foreach (ModellingAppServerWrapper appserver in ( (ModellingAppRole)app ).AppServers)
+            foreach (ModellingAppServerWrapper appserver in ( (ModellingAppRole)nwGroup ).AppServers)
             {
-                if (existingApp.AppServers.FirstOrDefault(a => AreEqual(a.Content, appserver.Content)) != null)
+                if (existingAppRole.AppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appserver.Content)) != null)
                 {
                     unchangedAppServers.Add(appserver);
                 }
@@ -340,9 +320,9 @@ namespace FWO.Services
                     newAppServers.Add(appserver);
                 }
             }
-            foreach (ModellingAppServerWrapper exAppserver in existingApp.AppServers)
+            foreach (ModellingAppServerWrapper exAppserver in existingAppRole.AppServers)
             {
-                if (( (ModellingAppRole)app ).AppServers.FirstOrDefault(a => AreEqual(exAppserver.Content, a.Content)) == null)
+                if (( (ModellingAppRole)nwGroup ).AppServers.FirstOrDefault(a => appServerComparer.Equals(exAppserver.Content, a.Content)) == null)
                 {
                     deletedAppServers.Add(exAppserver);
                 }
@@ -350,21 +330,21 @@ namespace FWO.Services
             return newAppServers.Count > 0 || deletedAppServers.Count > 0;
         }
 
-        private void RequestNewApp(ModellingNwGroup app, Management mgt)
+        private void RequestNewNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
             string title = "";
 
-            if (app.GetType() == typeof(ModellingAppRole))
+            if (nwGroup.GetType() == typeof(ModellingAppRole))
             {
                 title = userConfig.GetText("new_app_role");
             }
-            else if (app.GetType() == typeof(ModellingAppZone))
+            else if (nwGroup.GetType() == typeof(ModellingAppZone))
             {
                 title = userConfig.GetText("new_app_zone");
             }
 
             List<WfReqElement> groupMembers = [];
-            foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(( (ModellingAppRole)app ).AppServers))
+            foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(( (ModellingAppRole)nwGroup ).AppServers))
             {
                 (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
@@ -374,14 +354,14 @@ namespace FWO.Services
                     Name = appServer.Name,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
-                    GroupName = app.IdString,
+                    GroupName = nwGroup.IdString,
                     NetworkId = networkId
                 });
             }
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, app.IdString }, { AdditionalInfoKeys.AppRoleId, app.Id.ToString() } };
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, nwGroup.IdString }, { AdditionalInfoKeys.AppRoleId, nwGroup.Id.ToString() } };
             TaskList.Add(new()
             {
-                Title = title + app.IdString,
+                Title = title + nwGroup.IdString,
                 TaskType = WfTaskType.group_create.ToString(),
                 RequestAction = RequestAction.create.ToString(),
                 ManagementId = mgt.Id,
@@ -391,28 +371,28 @@ namespace FWO.Services
             });
         }
 
-        private void RequestUpdateApp(ModellingNwGroup app, Management mgt)
+        private void RequestUpdateNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
             string title = "";
 
-            if (app.GetType() == typeof(ModellingAppRole))
+            if (nwGroup.GetType() == typeof(ModellingAppRole))
             {
                 title = userConfig.GetText("update_app_role");
             }
-            else if (app.GetType() == typeof(ModellingAppZone))
+            else if (nwGroup.GetType() == typeof(ModellingAppZone))
             {
                 title = userConfig.GetText("update_app_zone");
             }
 
-            FillGroupMembers(app.IdString, mgt);
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, app.IdString }, { AdditionalInfoKeys.AppRoleId, app.Id.ToString() } };
+            FillGroupMembers(nwGroup.IdString, mgt);
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, nwGroup.IdString }, { AdditionalInfoKeys.AppRoleId, nwGroup.Id.ToString() } };
             if (newGroupMembers.Count > 0)
             {
                 newGroupMembers.AddRange(unchangedGroupMembers);
                 newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
                 TaskList.Add(new()
                 {
-                    Title = title + app.IdString + userConfig.GetText("add_members"),
+                    Title = title + nwGroup.IdString + userConfig.GetText("add_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
                     RequestAction = RequestAction.modify.ToString(),
                     ManagementId = mgt.Id,
@@ -427,7 +407,7 @@ namespace FWO.Services
                 deletedGroupMembers.AddRange(newCreatedGroupMembers);
                 DeleteTasksList.Add(new()
                 {
-                    Title = title + app.IdString + userConfig.GetText("remove_members"),
+                    Title = title + nwGroup.IdString + userConfig.GetText("remove_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
                     RequestAction = RequestAction.modify.ToString(),
                     ManagementId = mgt.Id,

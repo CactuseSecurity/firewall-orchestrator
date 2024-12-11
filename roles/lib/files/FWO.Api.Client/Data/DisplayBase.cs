@@ -129,10 +129,8 @@ namespace FWO.Api.Data
 
                 if (string.IsNullOrEmpty(ip1))
                 {
-                    Log.WriteDebug("Ip displaying", $"Parameter {nameof(ip1)} is empty.");
-                }
-
-                if (!IsV4Address(ip1) && !IsV6Address(ip1))
+                    Log.WriteDebug("Ip displaying", $"Nessessary parameter {nameof(ip1)} is empty.");
+                }else if (!IsV4Address(ip1) && !IsV6Address(ip1))
                 {
                     Log.WriteError("Ip displaying", $"Found undefined IP family: {ip1} - {ip2}");
                 }

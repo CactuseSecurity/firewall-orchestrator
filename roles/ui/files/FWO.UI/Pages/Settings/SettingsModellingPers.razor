@@ -28,9 +28,9 @@
                 <input type="number" min="0" class="col-sm-3" @bind="configData!.OverviewDisplayLines" />
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("modIconify")):</label>
+                <label for="cbx_modelling_pers_iconify" class="col-form-label col-sm-8">@(userConfig.GetText("modIconify")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.ModIconify">
+                    <input id="cbx_modelling_pers_iconify" type="checkbox" class="w-100" @bind="configData!.ModIconify">
                 </div>
             </div>
         </div>

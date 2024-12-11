@@ -28,8 +28,8 @@
     <div class="m-2 vheight75">
         <div class="form-group row">
             <div class="col-sm-2">
-                <input class="form-check-input" type="checkbox" value="displayAll" @onchange="@ChangeDisplay">
-                <label class="form-check-label">@(userConfig.GetText("show_all"))</label>
+                <input id="cbx_show_all" class="form-check-input" type="checkbox" value="displayAll" @onchange="@ChangeDisplay">
+                <label for="cbx_show_all" class="form-check-label">@(userConfig.GetText("show_all"))</label>
             </div>
         </div>
         <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>

@@ -27,15 +27,15 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5497"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
+            <label for="cbx_check_certificates" class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
             <div class="col-sm-1">
-                <input type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
+                <input id="cbx_check_certificates" type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5498"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
+            <label for="cbx_suppress_certificate_warnings" class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
             <div class="col-sm-1">
-                <input type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
+                <input id="cbx_suppress_certificate_warnings" type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5499"))">
@@ -46,9 +46,9 @@
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5483"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
+            <label for="cbx_change_notify_active" class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
             <div class="col-sm-1">
-                <input type="checkbox" class="w-100" @bind="configData!.ImpChangeNotifyActive" />
+                <input id="cbx_change_notify_active" type="checkbox" class="w-100" @bind="configData!.ImpChangeNotifyActive" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5484"))">

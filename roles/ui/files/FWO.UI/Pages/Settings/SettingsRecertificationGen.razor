@@ -46,16 +46,16 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5421"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
+            <label for="cbx_comment_required" class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" class="w-100" @bind="configData!.CommentRequired" />
+                <input id="cbx_comment_required" type="checkbox" class="w-100" @bind="configData!.CommentRequired" />
             </div>
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5428"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckActive")):</label>
+            <label for="cbx_rec_check_active" class="col-form-label col-sm-4">@(userConfig.GetText("recCheckActive")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" class="w-100" @bind="configData!.RecCheckActive" />
+                <input id="cbx_rec_check_active" type="checkbox" class="w-100" @bind="configData!.RecCheckActive" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5429"))">
@@ -113,9 +113,9 @@
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5433"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>
+            <label for="cbx_rec_auto_create_delete_ticket" class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" class="w-100" @bind="configData!.RecAutoCreateDeleteTicket" />
+                <input id="cbx_rec_auto_create_delete_ticket" type="checkbox" class="w-100" @bind="configData!.RecAutoCreateDeleteTicket" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5434"))">
@@ -166,12 +166,12 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5440"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("recalc_recerts")):</label>
             <div class="form-group col-sm-3">
-                <input type="checkbox" @bind="configData!.RecRefreshStartup" />
-                <label class="col-form-label-marg7">@(userConfig.GetText("at_startup"))</label>
+                <input id="cbx_rec_refresh_startup" type="checkbox" @bind="configData!.RecRefreshStartup" />
+                <label for="cbx_rec_refresh_startup" class="col-form-label-marg7">@(userConfig.GetText("at_startup"))</label>
             </div>
             <div class="form-group col-sm-3">
-                <input type="checkbox" @bind="configData!.RecRefreshDaily" />
-                <label class="col-form-label-marg7">@(userConfig.GetText("daily"))</label>
+                <input id="cbx_rec_refresh_daily" type="checkbox" @bind="configData!.RecRefreshDaily" />
+                <label for="cbx_rec_refresh_daily" class="col-form-label-marg7">@(userConfig.GetText("daily"))</label>
             </div>
             <div class="form-group col-sm-2">
                 <AuthorizeView Roles="@Roles.Admin">

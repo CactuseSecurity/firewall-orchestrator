@@ -19,10 +19,8 @@ namespace FWO.Test
         };
         static readonly ModellingVarianceAnalysisTestApiConn varianceAnalysisApiConnection = new();
         static readonly ExtStateTestApiConn extStateApiConnection = new();
-        static readonly ModellingAppZoneHandlerTestApiCon AppZoneHandlerTestApiCon = new();
         readonly ExtStateHandler extStateHandler = new(extStateApiConnection);
         ModellingVarianceAnalysis varianceAnalysis;
-        ModellingAppZoneHandler AppZoneHandler;
 
         static readonly FwoOwner Application = new() { Id = 1, Name = "App1" };
 

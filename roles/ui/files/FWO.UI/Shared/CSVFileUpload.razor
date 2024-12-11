@@ -11,6 +11,7 @@
 @using FWO.Services
 
 @inject UserConfig userConfig
+@inject ApiConnection apiConnection
 
 <div class="row">
     <div class="col-sm-8">
@@ -78,9 +79,6 @@
 
     [Parameter]
     public EventCallback OnImportSuccess { get; set; }
-
-    [Parameter, EditorRequired]
-    public ApiConnection? ApiConnection { get; set; }
 
     private List<AppServerType> AppServerTypes = new();
 
@@ -277,7 +275,7 @@
             }
 
             List<OwnerIdModel>
-                ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
+                ownerIds = await apiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
 
             if (ownerIds is null || !ownerIds.Any())
             {

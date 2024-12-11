@@ -333,7 +333,6 @@ namespace FWO.Services
         private void RequestNewNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
             string title = "";
-            string groupName = "";
 
             if (nwGroup.GetType() == typeof(ModellingAppRole))
             {
@@ -375,7 +374,6 @@ namespace FWO.Services
         private void RequestUpdateNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
             string title = "";
-            string groupName = "";
 
             if (nwGroup.GetType() == typeof(ModellingAppRole))
             {

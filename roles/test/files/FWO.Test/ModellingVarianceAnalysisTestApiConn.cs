@@ -15,7 +15,7 @@ namespace FWO.Test
         static readonly ModellingAppServer AppServer1 = new() { Id = 13, Name = "AppServer1", Ip = "1.1.1.1/32", IpEnd = "1.1.1.1/32" };
         static readonly ModellingAppServer AppServer2 = new() { Id = 14, Name = "AppServer2", Ip = "2.2.2.2/32", IpEnd = "2.2.2.2/32" };
         static readonly NetworkObject AZProd = new() { Id = 2, Name = "AZ4711", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
-        static readonly ModellingAppZone AZExist = new() { Id = 3, Name = "AZ4711", AppServers = new() { new() { Content = AppServer1 }, new() { Content = AppServer2 } } };
+        static readonly ModellingAppZone AZExist = new() { Id = 3, Name = "AZ4711", IdString = "AZ4711", AppServers = new() { new() { Content = AppServer1 }, new() { Content = AppServer2 } } };
         
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {

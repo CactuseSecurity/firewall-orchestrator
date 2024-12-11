@@ -1,0 +1,12 @@
+mutation updateExternalRequestWaitCycles(
+  $id: bigint!
+  $waitCycles: Int!
+  ) {
+  update_ext_request_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      wait_cycles: $waitCycles
+  }) {
+    UpdatedId: id
+  }
+}

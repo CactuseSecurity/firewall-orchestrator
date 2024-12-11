@@ -110,7 +110,7 @@
                 unchangedService = new(ServiceHandler.ActService);
                 if(ServiceHandler.AddMode && (ServiceHandler.ActService.Protocol == null || ServiceHandler.ActService.Protocol.Id == 0) && ipProtos.Count > 0)
                 {
-                    ServiceHandler.ActService.Protocol = ipProtos.First();
+                    ServiceHandler.ActService.Protocol = ipProtos.FirstOrDefault();
                 }
             }
             catch (Exception exception)

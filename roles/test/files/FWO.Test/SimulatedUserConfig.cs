@@ -80,7 +80,9 @@ namespace FWO.Test
             {"update_app_role","Update AppRole: "},
             {"new_svc_grp","New Servicegroup: "},
             {"add_members",": Add Members"},
-            {"remove_members",": Remove Members"}
+            {"remove_members",": Remove Members"},
+            {"new_app_zone", "New AppZone: " },
+            {"update_app_zone", "Update AppZone: " }
         };
 
         public override string GetText(string key)
